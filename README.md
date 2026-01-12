@@ -2,10 +2,12 @@
 
 Next.js (React.js)
 Node.js
-TypeScript
 HTML
 CSS
+TypeScript
+Shadcn
 Tailwind
+Shadcn
 PostgreSQL
 Prisma ORM
 Next Auth

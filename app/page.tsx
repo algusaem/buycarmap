@@ -1,5 +1,5 @@
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center">test</div>
+    <div className="flex min-h-screen items-center justify-center ">Test</div>
   );
 }
