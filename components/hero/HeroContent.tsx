@@ -6,12 +6,7 @@ import * as motion from "motion/react-client";
 import { Search, MapPin, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const stats = [
-  { value: "50K+", label: "Active listings" },
-  { value: "12", label: "Platforms" },
-  { value: "100%", label: "Free to use" },
-];
+import { useTranslation } from "@/lib/i18n/client";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -20,6 +15,13 @@ const fadeInUp = {
 
 export function HeroContent() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useTranslation();
+
+  const stats = [
+    { value: "50K+", label: t.hero.stats.listings },
+    { value: "12", label: t.hero.stats.platforms },
+    { value: "100%", label: t.hero.stats.free },
+  ];
 
   return (
     <motion.div
@@ -34,9 +36,9 @@ export function HeroContent() {
         variants={fadeInUp}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        Find your next car
+        {t.hero.title}
         <br />
-        <span className="text-primary">on the map</span>
+        <span className="text-primary">{t.hero.titleHighlight}</span>
       </motion.h1>
 
       {/* Subheadline */}
@@ -45,9 +47,7 @@ export function HeroContent() {
         variants={fadeInUp}
         transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
       >
-        Search thousands of second-hand cars from Wallapop, Milanuncios,
-        Coches.net and more — all in one place, visualized on an interactive
-        map.
+        {t.hero.subtitle}
       </motion.p>
 
       {/* Search bar */}
@@ -61,21 +61,23 @@ export function HeroContent() {
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search make, model, or location..."
+              placeholder={t.hero.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="border-0 bg-transparent pl-10 text-base shadow-none focus-visible:ring-0"
             />
           </div>
           <Button size="lg" className="gap-2 px-6">
-            <span className="hidden sm:inline">Search</span>
+            <span className="hidden sm:inline">{t.common.search}</span>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Quick filters */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-sm text-muted-foreground">Popular:</span>
+          <span className="text-sm text-muted-foreground">
+            {t.common.popular}
+          </span>
           {["Golf", "Seat León", "BMW Serie 3", "Audi A4"].map((term, i) => (
             <motion.button
               key={term}
@@ -102,15 +104,15 @@ export function HeroContent() {
         <Button variant="outline" size="lg" className="gap-2" asChild>
           <Link href="/map">
             <MapPin className="h-4 w-4" />
-            Explore the map
+            {t.hero.exploreMap}
           </Link>
         </Button>
-        <span className="text-sm text-muted-foreground">or</span>
+        <span className="text-sm text-muted-foreground">{t.common.or}</span>
         <Link
           href="/login"
           className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
         >
-          Sign in to save searches →
+          {t.hero.signInToSave} →
         </Link>
       </motion.div>
 
