@@ -11,7 +11,6 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import {
   Card,
   CardContent,
@@ -21,11 +20,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PasswordInput } from "./PasswordInput";
-import { OAuthButtons } from "./OAuthButtons";
 import { useTranslation } from "@/lib/i18n/client";
-import { loginSchema, LoginInput } from "@/lib/validations/auth";
+import { registerSchema, RegisterInput } from "@/lib/validations/auth";
+import { register as registerUser } from "@/app/actions/register";
 
-export function LoginForm() {
+export function RegisterForm() {
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -33,23 +32,33 @@ export function LoginForm() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: LoginInput) => {
-    const result = await signIn("credentials", {
+  const onSubmit = async (data: RegisterInput) => {
+    const formData = new FormData();
+    formData.append("email", data.email);
+    formData.append("password", data.password);
+    formData.append("confirmPassword", data.confirmPassword);
+    if (data.name) {
+      formData.append("name", data.name);
+    }
+
+    const result = await registerUser(formData);
+
+    if (!result.success) {
+      toast.error(result.error ?? t.auth.registrationFailed);
+      return;
+    }
+
+    await signIn("credentials", {
       email: data.email,
       password: data.password,
       redirect: false,
     });
 
-    if (result?.error) {
-      toast.error(t.auth.invalidCredentials);
-      return;
-    }
-
-    toast.success(t.auth.signInSuccess);
+    toast.success(t.auth.accountCreated);
     router.push("/");
     router.refresh();
   };
@@ -63,9 +72,9 @@ export function LoginForm() {
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-2xl font-bold">
-            {t.auth.welcomeBack}
+            {t.auth.createAccount}
           </CardTitle>
-          <CardDescription>{t.auth.signInDescription}</CardDescription>
+          <CardDescription>{t.auth.signUpDescription}</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -75,6 +84,26 @@ export function LoginForm() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
+            >
+              <Label htmlFor="name">{t.auth.name}</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder={t.auth.namePlaceholder}
+                autoComplete="name"
+                className="bg-background/50"
+                {...register("name")}
+              />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name.message}</p>
+              )}
+            </motion.div>
+
+            <motion.div
+              className="space-y-2"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.35 }}
             >
               <Label htmlFor="email">{t.auth.email}</Label>
               <Input
@@ -96,21 +125,29 @@ export function LoginForm() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.4 }}
             >
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">{t.auth.password}</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-muted-foreground transition-colors hover:text-primary"
-                >
-                  {t.auth.forgotPassword}
-                </Link>
-              </div>
+              <Label htmlFor="password">{t.auth.password}</Label>
               <PasswordInput
                 id="password"
-                autoComplete="current-password"
+                autoComplete="new-password"
                 className="bg-background/50"
                 error={errors.password?.message}
                 {...register("password")}
+              />
+            </motion.div>
+
+            <motion.div
+              className="space-y-2"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.45 }}
+            >
+              <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
+              <PasswordInput
+                id="confirmPassword"
+                autoComplete="new-password"
+                className="bg-background/50"
+                error={errors.confirmPassword?.message}
+                {...register("confirmPassword")}
               />
             </motion.div>
 
@@ -128,49 +165,29 @@ export function LoginForm() {
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                    {t.auth.signingIn}
+                    {t.auth.creatingAccount}
                   </span>
                 ) : (
-                  t.auth.signIn
+                  t.auth.signUp
                 )}
               </Button>
             </motion.div>
           </form>
-
-          <motion.div
-            className="relative my-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.6 }}
-          >
-            <Separator />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-              {t.auth.orContinueWith}
-            </span>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.7 }}
-          >
-            <OAuthButtons />
-          </motion.div>
         </CardContent>
 
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.8 }}
+          transition={{ duration: 0.4, delay: 0.6 }}
         >
           <CardFooter className="flex-col gap-4 border-t border-border/50 pt-6">
             <p className="text-center text-sm text-muted-foreground">
-              {t.auth.noAccount}{" "}
+              {t.auth.alreadyHaveAccount}{" "}
               <Link
-                href="/register"
+                href="/login"
                 className="font-medium text-primary transition-colors hover:text-primary/80"
               >
-                {t.auth.createOne}
+                {t.auth.signIn}
               </Link>
             </p>
           </CardFooter>

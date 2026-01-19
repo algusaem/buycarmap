@@ -31,6 +31,18 @@ export interface Translations {
     createOne: string;
     google: string;
     github: string;
+    invalidCredentials: string;
+    createAccount: string;
+    signUpDescription: string;
+    name: string;
+    namePlaceholder: string;
+    confirmPassword: string;
+    signUp: string;
+    creatingAccount: string;
+    alreadyHaveAccount: string;
+    registrationFailed: string;
+    signInSuccess: string;
+    accountCreated: string;
   };
   meta: {
     title: string;

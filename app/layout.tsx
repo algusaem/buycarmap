@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import { getLocale, getTranslations } from "@/lib/i18n/server";
 import { I18nProvider } from "@/lib/i18n/client";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -42,6 +43,17 @@ export default async function RootLayout({
             <LanguageSwitcher />
           </div>
           {children}
+          <Toaster
+            theme="dark"
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: "oklch(0.20 0.015 250)",
+                border: "1px solid oklch(0.28 0.01 250)",
+                color: "oklch(0.92 0.01 250)",
+              },
+            }}
+          />
         </I18nProvider>
       </body>
     </html>
