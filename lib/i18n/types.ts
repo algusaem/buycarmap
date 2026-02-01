@@ -37,12 +37,18 @@ export interface Translations {
     name: string;
     namePlaceholder: string;
     confirmPassword: string;
+    passwordPlaceholder: string;
+    confirmPasswordPlaceholder: string;
     signUp: string;
     creatingAccount: string;
     alreadyHaveAccount: string;
     registrationFailed: string;
     signInSuccess: string;
     accountCreated: string;
+    legalNotice: string;
+    terms: string;
+    and: string;
+    privacyPolicy: string;
   };
   meta: {
     title: string;

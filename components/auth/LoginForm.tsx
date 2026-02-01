@@ -107,6 +107,7 @@ export function LoginForm() {
               </div>
               <PasswordInput
                 id="password"
+                placeholder={t.auth.passwordPlaceholder}
                 autoComplete="current-password"
                 className="bg-background/50"
                 error={errors.password?.message}

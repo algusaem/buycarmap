@@ -5,8 +5,11 @@ import * as motion from "motion/react-client";
 import { AuthBackground } from "@/components/auth/AuthBackground";
 import { BrandHeader } from "@/components/auth/BrandHeader";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { useTranslation } from "@/lib/i18n/client";
 
 export default function LoginPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background">
       <AuthBackground />
@@ -22,19 +25,19 @@ export default function LoginPage() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.9 }}
           >
-            By signing in, you agree to our{" "}
+            {t.auth.legalNotice}{" "}
             <Link
               href="/terms"
               className="underline hover:text-muted-foreground"
             >
-              Terms
+              {t.auth.terms}
             </Link>{" "}
-            and{" "}
+            {t.auth.and}{" "}
             <Link
               href="/privacy"
               className="underline hover:text-muted-foreground"
             >
-              Privacy Policy
+              {t.auth.privacyPolicy}
             </Link>
           </motion.p>
         </div>

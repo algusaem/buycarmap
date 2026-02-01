@@ -128,6 +128,7 @@ export function RegisterForm() {
               <Label htmlFor="password">{t.auth.password}</Label>
               <PasswordInput
                 id="password"
+                placeholder={t.auth.passwordPlaceholder}
                 autoComplete="new-password"
                 className="bg-background/50"
                 error={errors.password?.message}
@@ -144,6 +145,7 @@ export function RegisterForm() {
               <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
               <PasswordInput
                 id="confirmPassword"
+                placeholder={t.auth.confirmPasswordPlaceholder}
                 autoComplete="new-password"
                 className="bg-background/50"
                 error={errors.confirmPassword?.message}
