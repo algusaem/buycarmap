@@ -59,7 +59,7 @@ export function LoginForm() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
     >
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="space-y-1 pb-4">
@@ -78,12 +78,7 @@ export function LoginForm() {
 
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-            >
+            <div className="space-y-2">
               <Label htmlFor="email">{t.auth.email}</Label>
               <Input
                 id="email"
@@ -98,14 +93,9 @@ export function LoginForm() {
                   {errors.email.message}
                 </p>
               )}
-            </motion.div>
+            </div>
 
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
-            >
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t.auth.password}</Label>
                 <Link
@@ -123,69 +113,46 @@ export function LoginForm() {
                 error={errors.password?.message}
                 {...register("password")}
               />
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.5 }}
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={isSubmitting}
             >
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                    {t.auth.signingIn}
-                  </span>
-                ) : (
-                  t.auth.signIn
-                )}
-              </Button>
-            </motion.div>
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
+                  {t.auth.signingIn}
+                </span>
+              ) : (
+                t.auth.signIn
+              )}
+            </Button>
           </form>
 
-          <motion.div
-            className="relative my-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.6 }}
-          >
+          <div className="relative my-6">
             <Separator />
             <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
               {t.auth.orContinueWith}
             </span>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.7 }}
-          >
-            <OAuthButtons />
-          </motion.div>
+          <OAuthButtons />
         </CardContent>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.8 }}
-        >
-          <CardFooter className="flex-col gap-4 border-t border-border/50 pt-6">
-            <p className="text-center text-sm text-muted-foreground">
-              {t.auth.noAccount}{" "}
-              <Link
-                href="/register"
-                className="font-medium text-primary transition-colors hover:text-primary/80"
-              >
-                {t.auth.createOne}
-              </Link>
-            </p>
-          </CardFooter>
-        </motion.div>
+        <CardFooter className="flex-col gap-4 border-t border-border/50 pt-6">
+          <p className="text-center text-sm text-muted-foreground">
+            {t.auth.noAccount}{" "}
+            <Link
+              href="/register"
+              className="font-medium text-primary transition-colors hover:text-primary/80"
+            >
+              {t.auth.createOne}
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </motion.div>
   );

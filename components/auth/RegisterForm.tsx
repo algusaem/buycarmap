@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import * as motion from "motion/react-client";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,10 +68,17 @@ export function RegisterForm() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
     >
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="space-y-1 pb-4">
+          <Link
+            href="/"
+            className="-ml-1 mb-2 inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+          >
+            <ArrowLeft className="h-3 w-3" />
+            {t.auth.return}
+          </Link>
           <CardTitle className="text-2xl font-bold">
             {t.auth.createAccount}
           </CardTitle>
@@ -79,12 +87,7 @@ export function RegisterForm() {
 
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-            >
+            <div className="space-y-2">
               <Label htmlFor="name">{t.auth.name}</Label>
               <Input
                 id="name"
@@ -97,14 +100,9 @@ export function RegisterForm() {
               {errors.name && (
                 <p className="text-sm text-destructive">{errors.name.message}</p>
               )}
-            </motion.div>
+            </div>
 
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.35 }}
-            >
+            <div className="space-y-2">
               <Label htmlFor="email">{t.auth.email}</Label>
               <Input
                 id="email"
@@ -117,14 +115,9 @@ export function RegisterForm() {
               {errors.email && (
                 <p className="text-sm text-destructive">{errors.email.message}</p>
               )}
-            </motion.div>
+            </div>
 
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
-            >
+            <div className="space-y-2">
               <Label htmlFor="password">{t.auth.password}</Label>
               <PasswordInput
                 id="password"
@@ -134,14 +127,9 @@ export function RegisterForm() {
                 error={errors.password?.message}
                 {...register("password")}
               />
-            </motion.div>
+            </div>
 
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.45 }}
-            >
+            <div className="space-y-2">
               <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
               <PasswordInput
                 id="confirmPassword"
@@ -151,49 +139,37 @@ export function RegisterForm() {
                 error={errors.confirmPassword?.message}
                 {...register("confirmPassword")}
               />
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.5 }}
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={isSubmitting}
             >
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                    {t.auth.creatingAccount}
-                  </span>
-                ) : (
-                  t.auth.signUp
-                )}
-              </Button>
-            </motion.div>
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
+                  {t.auth.creatingAccount}
+                </span>
+              ) : (
+                t.auth.signUp
+              )}
+            </Button>
           </form>
         </CardContent>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.6 }}
-        >
-          <CardFooter className="flex-col gap-4 border-t border-border/50 pt-6">
-            <p className="text-center text-sm text-muted-foreground">
-              {t.auth.alreadyHaveAccount}{" "}
-              <Link
-                href="/login"
-                className="font-medium text-primary transition-colors hover:text-primary/80"
-              >
-                {t.auth.signIn}
-              </Link>
-            </p>
-          </CardFooter>
-        </motion.div>
+        <CardFooter className="flex-col gap-4 border-t border-border/50 pt-6">
+          <p className="text-center text-sm text-muted-foreground">
+            {t.auth.alreadyHaveAccount}{" "}
+            <Link
+              href="/login"
+              className="font-medium text-primary transition-colors hover:text-primary/80"
+            >
+              {t.auth.signIn}
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </motion.div>
   );
