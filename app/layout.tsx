@@ -36,11 +36,11 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body
-        className={`${plusJakarta.variable} ${jetbrainsMono.variable} flex min-h-screen flex-col font-sans antialiased`}
+        className={`${plusJakarta.variable} ${jetbrainsMono.variable} flex h-screen flex-col overflow-hidden font-sans antialiased`}
       >
         <I18nProvider locale={locale}>
           <Navbar />
-          <div className="flex flex-1 flex-col">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
           <Toaster
             theme="dark"
             position="top-center"

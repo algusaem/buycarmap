@@ -170,7 +170,7 @@ export default function TypographyPage() {
         <div className="space-y-6">
           <h2 className="text-2xl font-bold text-foreground">In Context</h2>
           <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="aspect-video bg-gradient-to-br from-secondary to-background" />
+            <div className="aspect-video bg-linear-to-br from-secondary to-background" />
             <div className="p-6">
               <div className="mb-2 flex items-start justify-between">
                 <div>
