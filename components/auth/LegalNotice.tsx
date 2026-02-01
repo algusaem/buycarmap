@@ -3,6 +3,7 @@
 import Link from "next/link";
 import * as motion from "motion/react-client";
 import { useTranslation } from "@/lib/i18n/client";
+import { fadeIn } from "@/lib/animations";
 
 export function LegalNotice() {
   const { t } = useTranslation();
@@ -10,9 +11,7 @@ export function LegalNotice() {
   return (
     <motion.p
       className="text-center text-xs text-muted-foreground/60"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, delay: 0.6 }}
+      {...fadeIn(0.3)}
     >
       {t.auth.legalNotice}{" "}
       <Link

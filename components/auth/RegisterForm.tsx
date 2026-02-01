@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import * as motion from "motion/react-client";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { ArrowLeft } from "lucide-react";
+import { fadeInUp } from "@/lib/animations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,11 +66,7 @@ export function RegisterForm() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-    >
+    <motion.div {...fadeInUp}>
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="space-y-1 pb-4">
           <Link

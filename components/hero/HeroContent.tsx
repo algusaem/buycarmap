@@ -7,11 +7,7 @@ import { Search, MapPin, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/lib/i18n/client";
-
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
+import { fadeInUpVariant, staggerContainer, buttonTap } from "@/lib/animations";
 
 export function HeroContent() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,14 +22,12 @@ export function HeroContent() {
   return (
     <motion.div
       className="relative z-10 mx-auto max-w-4xl px-4 text-center"
-      initial="hidden"
-      animate="visible"
-      transition={{ staggerChildren: 0.1 }}
+      {...staggerContainer(0.1)}
     >
       {/* Main headline */}
       <motion.h1
         className="mb-6 text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl lg:text-7xl"
-        variants={fadeInUp}
+        variants={fadeInUpVariant}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         {t.hero.title}
@@ -44,8 +38,8 @@ export function HeroContent() {
       {/* Subheadline */}
       <motion.p
         className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground sm:text-xl"
-        variants={fadeInUp}
-        transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+        variants={fadeInUpVariant}
+        transition={{ duration: 0.6, ease: "easeOut" }}
       >
         {t.hero.subtitle}
       </motion.p>
@@ -53,8 +47,8 @@ export function HeroContent() {
       {/* Search bar */}
       <motion.div
         className="mx-auto mb-8 max-w-xl"
-        variants={fadeInUp}
-        transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+        variants={fadeInUpVariant}
+        transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <div className="flex gap-2 rounded-xl border border-border/50 bg-card/80 p-2 shadow-lg backdrop-blur-sm transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]">
           <div className="relative flex-1">
@@ -86,8 +80,7 @@ export function HeroContent() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, delay: 0.4 + i * 0.05 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              {...buttonTap}
             >
               {term}
             </motion.button>
@@ -98,8 +91,8 @@ export function HeroContent() {
       {/* CTA buttons */}
       <motion.div
         className="mb-12 flex flex-col items-center justify-center gap-4 sm:flex-row"
-        variants={fadeInUp}
-        transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
+        variants={fadeInUpVariant}
+        transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <Button variant="outline" size="lg" className="gap-2" asChild>
           <Link href="/map">
@@ -119,8 +112,8 @@ export function HeroContent() {
       {/* Stats */}
       <motion.div
         className="flex items-center justify-center gap-8 sm:gap-12"
-        variants={fadeInUp}
-        transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
+        variants={fadeInUpVariant}
+        transition={{ duration: 0.6, ease: "easeOut" }}
       >
         {stats.map((stat) => (
           <div key={stat.label} className="text-center">
