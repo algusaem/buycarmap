@@ -57,39 +57,39 @@
   /* Cartographic Modern - Dark-first theme for map-based car discovery */
   /* Primary: Amber/Gold (discovery, value) | Secondary: Eucalyptus (maps, success) */
 
-  --background: oklch(0.16 0.015 250);           /* #0F1419 - deep ink */
-  --foreground: oklch(0.92 0.01 250);            /* #E6EDF3 - cream text */
+  --background: oklch(0.16 0.015 250); /* #0F1419 - deep ink */
+  --foreground: oklch(0.92 0.01 250); /* #E6EDF3 - cream text */
 
-  --card: oklch(0.20 0.015 250);                 /* #1C2128 - elevated surface */
+  --card: oklch(0.2 0.015 250); /* #1C2128 - elevated surface */
   --card-foreground: oklch(0.92 0.01 250);
 
-  --popover: oklch(0.22 0.015 250);              /* #262D36 - panels */
+  --popover: oklch(0.22 0.015 250); /* #262D36 - panels */
   --popover-foreground: oklch(0.92 0.01 250);
 
-  --primary: oklch(0.75 0.14 75);                /* #E8A849 - amber/gold */
-  --primary-foreground: oklch(0.16 0.015 250);   /* dark text on amber */
+  --primary: oklch(0.75 0.14 75); /* #E8A849 - amber/gold */
+  --primary-foreground: oklch(0.16 0.015 250); /* dark text on amber */
 
-  --secondary: oklch(0.22 0.015 250);            /* #262D36 */
+  --secondary: oklch(0.22 0.015 250); /* #262D36 */
   --secondary-foreground: oklch(0.92 0.01 250);
 
   --muted: oklch(0.22 0.015 250);
-  --muted-foreground: oklch(0.62 0.01 250);      /* #8B949E */
+  --muted-foreground: oklch(0.62 0.01 250); /* #8B949E */
 
-  --accent: oklch(0.62 0.12 160);                /* #3B9B6D - eucalyptus green */
+  --accent: oklch(0.62 0.12 160); /* #3B9B6D - eucalyptus green */
   --accent-foreground: oklch(0.98 0.01 250);
 
-  --destructive: oklch(0.58 0.18 25);            /* #D94F4F - muted red */
+  --destructive: oklch(0.58 0.18 25); /* #D94F4F - muted red */
 
-  --border: oklch(0.28 0.01 250);                /* #30363D */
+  --border: oklch(0.28 0.01 250); /* #30363D */
   --input: oklch(0.28 0.01 250);
-  --ring: oklch(0.75 0.14 75);                   /* amber ring */
+  --ring: oklch(0.75 0.14 75); /* amber ring */
 
   /* Chart colors - amber to green spectrum */
-  --chart-1: oklch(0.75 0.14 75);                /* amber */
-  --chart-2: oklch(0.62 0.12 160);               /* eucalyptus */
-  --chart-3: oklch(0.70 0.10 50);                /* warm tan */
-  --chart-4: oklch(0.55 0.08 200);               /* slate teal */
-  --chart-5: oklch(0.58 0.18 25);                /* alert red */
+  --chart-1: oklch(0.75 0.14 75); /* amber */
+  --chart-2: oklch(0.62 0.12 160); /* eucalyptus */
+  --chart-3: oklch(0.7 0.1 50); /* warm tan */
+  --chart-4: oklch(0.55 0.08 200); /* slate teal */
+  --chart-5: oklch(0.58 0.18 25); /* alert red */
 
   /* Sidebar - slightly lighter than background */
   --sidebar: oklch(0.18 0.015 250);
@@ -102,35 +102,35 @@
   --sidebar-ring: oklch(0.75 0.14 75);
 
   /* Semantic colors for car listings */
-  --success: oklch(0.62 0.12 160);               /* available, good deal */
-  --warning: oklch(0.75 0.14 75);                /* price change, attention */
-  --info: oklch(0.55 0.08 200);                  /* metadata, neutral */
+  --success: oklch(0.62 0.12 160); /* available, good deal */
+  --warning: oklch(0.75 0.14 75); /* price change, attention */
+  --info: oklch(0.55 0.08 200); /* metadata, neutral */
 }
 
 /* Light mode alternative - warm paper aesthetic */
 .light {
-  --background: oklch(0.97 0.01 80);             /* warm off-white */
-  --foreground: oklch(0.20 0.02 250);            /* deep ink text */
+  --background: oklch(0.97 0.01 80); /* warm off-white */
+  --foreground: oklch(0.2 0.02 250); /* deep ink text */
 
-  --card: oklch(0.99 0.005 80);                  /* white cards */
-  --card-foreground: oklch(0.20 0.02 250);
+  --card: oklch(0.99 0.005 80); /* white cards */
+  --card-foreground: oklch(0.2 0.02 250);
 
   --popover: oklch(0.99 0.005 80);
-  --popover-foreground: oklch(0.20 0.02 250);
+  --popover-foreground: oklch(0.2 0.02 250);
 
-  --primary: oklch(0.65 0.16 75);                /* darker amber for contrast */
+  --primary: oklch(0.65 0.16 75); /* darker amber for contrast */
   --primary-foreground: oklch(0.99 0.005 80);
 
   --secondary: oklch(0.94 0.01 80);
-  --secondary-foreground: oklch(0.20 0.02 250);
+  --secondary-foreground: oklch(0.2 0.02 250);
 
   --muted: oklch(0.94 0.01 80);
-  --muted-foreground: oklch(0.50 0.01 250);
+  --muted-foreground: oklch(0.5 0.01 250);
 
-  --accent: oklch(0.52 0.12 160);                /* darker eucalyptus */
+  --accent: oklch(0.52 0.12 160); /* darker eucalyptus */
   --accent-foreground: oklch(0.99 0.005 80);
 
-  --destructive: oklch(0.50 0.20 25);
+  --destructive: oklch(0.5 0.2 25);
 
   --border: oklch(0.88 0.01 80);
   --input: oklch(0.88 0.01 80);
@@ -138,16 +138,16 @@
 
   --chart-1: oklch(0.65 0.16 75);
   --chart-2: oklch(0.52 0.12 160);
-  --chart-3: oklch(0.60 0.10 50);
+  --chart-3: oklch(0.6 0.1 50);
   --chart-4: oklch(0.45 0.08 200);
-  --chart-5: oklch(0.50 0.20 25);
+  --chart-5: oklch(0.5 0.2 25);
 
   --sidebar: oklch(0.95 0.01 80);
-  --sidebar-foreground: oklch(0.20 0.02 250);
+  --sidebar-foreground: oklch(0.2 0.02 250);
   --sidebar-primary: oklch(0.65 0.16 75);
   --sidebar-primary-foreground: oklch(0.99 0.005 80);
   --sidebar-accent: oklch(0.92 0.01 80);
-  --sidebar-accent-foreground: oklch(0.20 0.02 250);
+  --sidebar-accent-foreground: oklch(0.2 0.02 250);
   --sidebar-border: oklch(0.88 0.01 80);
   --sidebar-ring: oklch(0.65 0.16 75);
 
@@ -168,3 +168,55 @@
   }
 }
 
+/* Leaflet map dark theme overrides */
+.leaflet-container {
+  background: oklch(0.16 0.015 250);
+  font-family: var(--font-sans);
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3) !important;
+}
+
+.leaflet-control-zoom a {
+  background: oklch(0.2 0.015 250) !important;
+  border: 1px solid oklch(0.28 0.01 250 / 0.5) !important;
+  color: oklch(0.62 0.01 250) !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 18px !important;
+  font-weight: 400 !important;
+  transition: all 0.15s ease !important;
+}
+
+.leaflet-control-zoom a:first-child {
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-radius: 0 0 8px 8px !important;
+  border-top: none !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: oklch(0.24 0.015 250) !important;
+  color: oklch(0.92 0.01 250) !important;
+}
+
+.leaflet-control-attribution {
+  background: oklch(0.16 0.015 250 / 0.8) !important;
+  color: oklch(0.5 0.01 250) !important;
+  font-size: 10px !important;
+  padding: 2px 8px !important;
+  backdrop-filter: blur(4px);
+}
+
+.leaflet-control-attribution a {
+  color: oklch(0.62 0.01 250) !important;
+}
+
+.leaflet-control-attribution a:hover {
+  color: oklch(0.75 0.14 75) !important;
+}
