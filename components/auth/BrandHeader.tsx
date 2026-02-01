@@ -2,14 +2,10 @@
 
 import * as motion from "motion/react-client";
 import { MapPin } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/client";
 
-interface BrandHeaderProps {
-  tagline?: string;
-}
-
-export function BrandHeader({
-  tagline = "Find your next car on the map",
-}: BrandHeaderProps) {
+export function BrandHeader() {
+  const { t } = useTranslation();
   return (
     <motion.div
       className="space-y-2 text-center"
@@ -41,7 +37,7 @@ export function BrandHeader({
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay: 0.25 }}
       >
-        {tagline}
+        {t.auth.brandTagline}
       </motion.p>
     </motion.div>
   );

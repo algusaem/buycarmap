@@ -49,6 +49,7 @@ export interface Translations {
     terms: string;
     and: string;
     privacyPolicy: string;
+    brandTagline: string;
   };
   meta: {
     title: string;
