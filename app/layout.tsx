@@ -3,7 +3,7 @@ import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { getLocale, getTranslations } from "@/lib/i18n/server";
 import { I18nProvider } from "@/lib/i18n/client";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Navbar } from "@/components/Navbar";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -36,13 +36,11 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body
-        className={`${plusJakarta.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${plusJakarta.variable} ${jetbrainsMono.variable} flex min-h-screen flex-col font-sans antialiased`}
       >
         <I18nProvider locale={locale}>
-          <div className="fixed right-4 top-4 z-50">
-            <LanguageSwitcher />
-          </div>
-          {children}
+          <Navbar />
+          <div className="flex flex-1 flex-col">{children}</div>
           <Toaster
             theme="dark"
             position="top-center"

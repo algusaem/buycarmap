@@ -3,11 +3,11 @@ import { HeroContent } from "./HeroContent";
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen overflow-hidden bg-background">
+    <section className="relative flex flex-1 flex-col overflow-hidden bg-background">
       <HeroBackground />
 
       {/* Main content - centered */}
-      <div className="relative flex min-h-screen items-center justify-center py-20">
+      <div className="relative flex flex-1 items-center justify-center py-20">
         <HeroContent />
       </div>
 

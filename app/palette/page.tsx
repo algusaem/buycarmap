@@ -72,7 +72,7 @@ export default function PalettePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-8 md:p-12">
+    <div className="flex-1 bg-background p-8 md:p-12">
       <div className="mx-auto max-w-4xl space-y-12">
         <div className="space-y-2">
           <h1 className="font-bold text-4xl text-foreground">

@@ -53,6 +53,7 @@ export const es: Translations = {
     and: "y",
     privacyPolicy: "Política de privacidad",
     brandTagline: "Encuentra tu próximo coche en el mapa",
+    return: "Volver",
   },
   meta: {
     title: "Buy Car Map",

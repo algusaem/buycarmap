@@ -50,6 +50,7 @@ export interface Translations {
     and: string;
     privacyPolicy: string;
     brandTagline: string;
+    return: string;
   };
   meta: {
     title: string;

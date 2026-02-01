@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import * as motion from "motion/react-client";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +63,13 @@ export function LoginForm() {
     >
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="space-y-1 pb-4">
+          <Link
+            href="/"
+            className="-ml-1 mb-2 inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+          >
+            <ArrowLeft className="h-3 w-3" />
+            {t.auth.return}
+          </Link>
           <CardTitle className="text-2xl font-bold">
             {t.auth.welcomeBack}
           </CardTitle>
@@ -86,7 +94,9 @@ export function LoginForm() {
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </motion.div>
 
