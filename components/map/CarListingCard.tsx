@@ -4,18 +4,9 @@ import Image from "next/image";
 import { Heart } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { CarListing } from "@/lib/mock/listings";
 
-interface CarListingCardProps {
-  id: string;
-  image: string;
-  title: string;
-  subtitle: string;
-  price: number;
-  mileage: number;
-  year: number;
-  fuel: string;
-  location: string;
-  source: string;
+interface CarListingCardProps extends CarListing {
   isFavorite?: boolean;
   onHover?: (id: string | null) => void;
 }
