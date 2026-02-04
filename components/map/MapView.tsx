@@ -41,8 +41,10 @@ export function MapView({ listings }: MapViewProps) {
       </div>
 
       {/* Right - Map */}
-      <div className="hidden lg:flex lg:flex-1">
-        <ListingsMap />
+      <div className="hidden p-4 lg:flex lg:flex-1">
+        <div className="h-full w-full overflow-hidden rounded-2xl border border-border/50">
+          <ListingsMap />
+        </div>
       </div>
 
       {/* Mobile map */}
