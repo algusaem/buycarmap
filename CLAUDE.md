@@ -13,6 +13,8 @@ BuyCarMap is a web application that aggregates second-hand car listings from mul
 - **Styling**: Tailwind CSS 4
 - **Animations**: Motion (formerly Framer Motion)
 - **Toasts**: Sonner
+- **Theming**: next-themes
+- **Maps**: Leaflet + react-leaflet with CARTO tiles
 - **Icons**: Lucide React (UI icons), React Icons (brand/specialized icons)
 - **Language**: TypeScript
 
@@ -191,6 +193,29 @@ Key entities:
 - Add `whileHover` and `whileTap` for interactive micro-animations
 - Keep animations subtle and purposeful - avoid gratuitous motion
 
+### Theming
+
+- **Use next-themes** for dark/light mode switching
+- `ThemeProvider` wraps the app in `layout.tsx` with `attribute="class"`
+- Use `useTheme()` hook to access `resolvedTheme` and `setTheme`
+- **Hydration safety**: components using `useTheme` must wait until mounted
+
+```tsx
+const { resolvedTheme, setTheme } = useTheme();
+const [mounted, setMounted] = useState(false);
+useEffect(() => setMounted(true), []);
+if (!mounted) return <Placeholder />;
+```
+
+- Use CSS variables (e.g., `var(--background)`) for theme-aware styles
+- Light theme activates via `.light` class on `<html>` (defined in `globals.css`)
+
+### Map Tiles
+
+- **Dark mode**: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`
+- **Light mode**: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png`
+- Map component uses `useTheme` to switch tiles based on theme
+
 ### Forms
 
 - **Always use React Hook Form** for form state management
@@ -251,7 +276,18 @@ export async function myAction(formData: FormData) {
 - Import: `import { toast } from "sonner"`
 - Use `toast.success()` for success messages
 - Use `toast.error()` for error messages
-- Toaster configured in root layout with dark theme
+- Toaster configured in root layout - style with `classNames`, not inline styles:
+
+```tsx
+<Toaster
+  toastOptions={{
+    classNames: {
+      toast: "bg-card border-border text-foreground",
+    },
+  }}
+/>
+```
+
 - Prefer toasts over inline error messages for server/API errors
 
 ### React

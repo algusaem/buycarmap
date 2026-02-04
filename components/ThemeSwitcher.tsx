@@ -4,7 +4,7 @@ import * as motion from "motion/react-client";
 import { AnimatePresence } from "motion/react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useMounted } from "@/lib/hooks/useMounted";
 
 const iconAnimation = {
   initial: { opacity: 0, rotate: -90, scale: 0.5 },
@@ -22,13 +22,8 @@ const textAnimation = {
 
 export function ThemeSwitcher() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Avoid hydration mismatch by not rendering until mounted
   if (!mounted) {
     return <div className="h-5 w-16" />;
   }
