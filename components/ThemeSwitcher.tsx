@@ -3,7 +3,8 @@
 import * as motion from "motion/react-client";
 import { AnimatePresence } from "motion/react";
 import { Moon, Sun } from "lucide-react";
-import { useState } from "react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 const iconAnimation = {
   initial: { opacity: 0, rotate: -90, scale: 0.5 },
@@ -20,8 +21,19 @@ const textAnimation = {
 };
 
 export function ThemeSwitcher() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const isDark = theme === "dark";
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Avoid hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return <div className="h-5 w-16" />;
+  }
+
+  const isDark = resolvedTheme === "dark";
   const Icon = isDark ? Moon : Sun;
 
   return (
@@ -31,13 +43,13 @@ export function ThemeSwitcher() {
     >
       <div className="relative h-4 w-4">
         <AnimatePresence mode="wait">
-          <motion.div key={theme} {...iconAnimation} className="absolute inset-0">
+          <motion.div key={resolvedTheme} {...iconAnimation} className="absolute inset-0">
             <Icon className="h-4 w-4" />
           </motion.div>
         </AnimatePresence>
       </div>
       <AnimatePresence mode="wait">
-        <motion.span key={theme} {...textAnimation}>
+        <motion.span key={resolvedTheme} {...textAnimation}>
           {isDark ? "Dark" : "Light"}
         </motion.span>
       </AnimatePresence>

@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { getLocale, getTranslations } from "@/lib/i18n/server";
 import { I18nProvider } from "@/lib/i18n/client";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
 import "./globals.css";
 
@@ -34,25 +35,29 @@ export default async function RootLayout({
   const locale = await getLocale();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} suppressHydrationWarning>
       <body
         className={`${plusJakarta.variable} ${jetbrainsMono.variable} flex h-screen flex-col overflow-hidden font-sans antialiased`}
       >
-        <I18nProvider locale={locale}>
-          <Navbar />
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
-          <Toaster
-            theme="dark"
-            position="top-center"
-            toastOptions={{
-              style: {
-                background: "oklch(0.20 0.015 250)",
-                border: "1px solid oklch(0.28 0.01 250)",
-                color: "oklch(0.92 0.01 250)",
-              },
-            }}
-          />
-        </I18nProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <I18nProvider locale={locale}>
+            <Navbar />
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                classNames: {
+                  toast: "bg-card border-border text-foreground",
+                },
+              }}
+            />
+          </I18nProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

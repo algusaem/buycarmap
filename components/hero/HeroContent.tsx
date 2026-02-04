@@ -51,7 +51,7 @@ export function HeroContent() {
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <div className="flex gap-2 rounded-xl border border-border/50 bg-card/80 p-2 shadow-lg backdrop-blur-sm transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]">
-          <div className="relative flex-1">
+          <div className="relative flex-1 ">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
