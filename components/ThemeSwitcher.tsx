@@ -3,8 +3,8 @@
 import * as motion from "motion/react-client";
 import { AnimatePresence } from "motion/react";
 import { Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useMounted } from "@/lib/hooks/useMounted";
+import { useThemeTransition } from "@/lib/hooks/useThemeTransition";
 
 const iconAnimation = {
   initial: { opacity: 0, rotate: -90, scale: 0.5 },
@@ -21,7 +21,7 @@ const textAnimation = {
 };
 
 export function ThemeSwitcher() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme, toggleTheme } = useThemeTransition();
   const mounted = useMounted();
 
   if (!mounted) {
@@ -33,7 +33,7 @@ export function ThemeSwitcher() {
 
   return (
     <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onClick={toggleTheme}
       className="flex cursor-pointer items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
     >
       <div className="relative h-4 w-4">
