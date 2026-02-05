@@ -3,8 +3,10 @@
 import * as motion from "motion/react-client";
 import { AnimatePresence } from "motion/react";
 import { Moon, Sun } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useMounted } from "@/lib/hooks/useMounted";
 import { useThemeTransition } from "@/lib/hooks/useThemeTransition";
+import { useTranslation } from "@/lib/i18n/client";
 
 const iconAnimation = {
   initial: { opacity: 0, rotate: -90, scale: 0.5 },
@@ -22,6 +24,7 @@ const textAnimation = {
 
 export function ThemeSwitcher() {
   const { resolvedTheme, toggleTheme } = useThemeTransition();
+  const { t } = useTranslation();
   const mounted = useMounted();
 
   if (!mounted) {
@@ -32,9 +35,10 @@ export function ThemeSwitcher() {
   const Icon = isDark ? Moon : Sun;
 
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={toggleTheme}
-      className="flex cursor-pointer items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+      className="gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
     >
       <div className="relative h-4 w-4">
         <AnimatePresence mode="wait">
@@ -45,9 +49,9 @@ export function ThemeSwitcher() {
       </div>
       <AnimatePresence mode="wait">
         <motion.span key={resolvedTheme} {...textAnimation}>
-          {isDark ? "Dark" : "Light"}
+          {isDark ? t.theme.dark : t.theme.light}
         </motion.span>
       </AnimatePresence>
-    </button>
+    </Button>
   );
 }

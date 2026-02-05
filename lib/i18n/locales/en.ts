@@ -55,6 +55,25 @@ export const en: Translations = {
     brandTagline: "Find your next car on the map",
     return: "Return",
   },
+  map: {
+    searching: "Searching\u2026",
+    emptyState: "Search for cars to see results",
+    loading: "Loading\u2026",
+    filters: "Filters",
+    backToHome: "Back to home",
+    closeMap: "Close map",
+    addFavorite: "Add to favorites",
+    removeFavorite: "Remove from favorites",
+    unknownTitle: "Unknown",
+  },
+  theme: {
+    dark: "Dark",
+    light: "Light",
+  },
+  password: {
+    show: "Show password",
+    hide: "Hide password",
+  },
   meta: {
     title: "Buy Car Map",
     description: "Car buying map to find the best deals near you",

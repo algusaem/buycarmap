@@ -1,17 +1,45 @@
 "use client";
 
-import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
+import L from "leaflet";
+import { MapContainer, TileLayer, ZoomControl, Marker, Popup } from "react-leaflet";
 import { useTheme } from "next-themes";
 import { useMounted } from "@/lib/hooks/useMounted";
+import { CarListing } from "@/interfaces/listing";
+import { useMemo } from "react";
 
 const TILE_URLS = {
   dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
   light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
 };
 
-export function ListingsMap() {
+function createCarIcon() {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+      width: 12px;
+      height: 12px;
+      background: var(--primary);
+      border: 2px solid var(--foreground);
+      border-radius: 50%;
+      box-shadow: 0 0 6px color-mix(in oklch, var(--primary), transparent 50%);
+    "></div>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+  });
+}
+
+interface ListingsMapProps {
+  listings?: CarListing[];
+}
+
+export function ListingsMap({ listings = [] }: ListingsMapProps) {
   const { resolvedTheme } = useTheme();
   const mounted = useMounted();
+
+  const carIcon = useMemo(() => {
+    if (!mounted) return undefined;
+    return createCarIcon();
+  }, [mounted]);
 
   const tileUrl = mounted && resolvedTheme === "light" ? TILE_URLS.light : TILE_URLS.dark;
 
@@ -21,7 +49,7 @@ export function ListingsMap() {
         center={[40.4168, -3.7038]}
         zoom={6}
         zoomControl={false}
-        style={{ height: "100%", width: "100%" }} // Mandatory for leaflet
+        style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
           key={tileUrl}
@@ -29,6 +57,23 @@ export function ListingsMap() {
           url={tileUrl}
         />
         <ZoomControl position="bottomright" />
+        {carIcon &&
+          listings.map((listing) => (
+            <Marker
+              key={listing.id}
+              position={[listing.lat, listing.lng]}
+              icon={carIcon}
+            >
+              <Popup>
+                <div className="text-sm">
+                  <p className="font-semibold">{listing.title}</p>
+                  <p className="font-mono text-primary">
+                    {listing.price.toLocaleString("es-ES")} &euro;
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
       </MapContainer>
     </div>
   );

@@ -52,6 +52,25 @@ export interface Translations {
     brandTagline: string;
     return: string;
   };
+  map: {
+    searching: string;
+    emptyState: string;
+    loading: string;
+    filters: string;
+    backToHome: string;
+    closeMap: string;
+    addFavorite: string;
+    removeFavorite: string;
+    unknownTitle: string;
+  };
+  theme: {
+    dark: string;
+    light: string;
+  };
+  password: {
+    show: string;
+    hide: string;
+  };
   meta: {
     title: string;
     description: string;

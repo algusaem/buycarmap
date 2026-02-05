@@ -1,0 +1,75 @@
+export interface WallapopImageUrls {
+  small: string;
+  medium: string;
+  big: string;
+}
+
+export interface WallapopItemImage {
+  id: string;
+  average_color: string;
+  urls: WallapopImageUrls;
+}
+
+export interface WallapopItemLocation {
+  latitude: number;
+  longitude: number;
+  postal_code: string;
+  city: string;
+  region: string;
+  country_code: string;
+}
+
+export interface WallapopItemPrice {
+  amount: number;
+  currency: string;
+}
+
+export interface WallapopFlagValue {
+  flag: boolean;
+}
+
+export interface WallapopTypeAttributes {
+  brand?: string;
+  model?: string;
+  year?: number;
+  version?: string;
+  km?: number;
+  engine?: string;
+  horsepower?: number;
+}
+
+export interface WallapopItem {
+  id: string;
+  title: string;
+  description: string;
+  category_id: number;
+  price: WallapopItemPrice;
+  images: WallapopItemImage[];
+  location: WallapopItemLocation;
+  reserved: WallapopFlagValue;
+  shipping: { item_is_shippable: boolean; user_allows_shipping: boolean };
+  favorited: WallapopFlagValue;
+  web_slug: string;
+  created_at: number;
+  modified_at: number;
+  type_attributes: WallapopTypeAttributes;
+}
+
+export interface WallapopSearchSection {
+  type: string;
+  title: string;
+  items: WallapopItem[];
+}
+
+export interface WallapopSearchData {
+  section: WallapopSearchSection;
+}
+
+export interface WallapopSearchMeta {
+  next_page: string | null;
+}
+
+export interface WallapopSearchResponse {
+  data: WallapopSearchData;
+  meta: WallapopSearchMeta;
+}
