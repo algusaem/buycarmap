@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const searchSchema = z.object({
   keywords: z.string().optional(),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   distanceInKm: z.number().positive().optional(),
   minPrice: z.number().nonnegative().optional(),
   maxPrice: z.number().positive().optional(),

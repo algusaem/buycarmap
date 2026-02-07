@@ -4,10 +4,11 @@ import { getCityCoordinates } from "@/lib/geo/cities";
 
 const WALLAPOP_BASE_URL = "https://es.wallapop.com/item";
 
+const FALLBACK_LAT = 40.4168;
+const FALLBACK_LNG = -3.7038;
+
 export function normalizeWallapopItems(
   items: WallapopItem[],
-  searchLat: number,
-  searchLng: number,
 ): CarListing[] {
   return items
     .filter((item) => !item.reserved?.flag)
@@ -23,7 +24,7 @@ export function normalizeWallapopItems(
         lat = item.location.latitude;
         lng = item.location.longitude;
       } else {
-        const coords = getCityCoordinates(city, searchLat, searchLng);
+        const coords = getCityCoordinates(city, FALLBACK_LAT, FALLBACK_LNG);
         lat = coords.lat;
         lng = coords.lng;
       }

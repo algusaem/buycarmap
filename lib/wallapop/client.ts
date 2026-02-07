@@ -9,13 +9,15 @@ export async function searchWallapop(
 ): Promise<WallapopSearchResponse> {
   const url = new URL(BASE_URL, window.location.origin);
   url.searchParams.set("category_id", "100");
-  url.searchParams.set("latitude", String(params.latitude));
-  url.searchParams.set("longitude", String(params.longitude));
   url.searchParams.set("source", "deep_link");
   url.searchParams.set("order_by", "most_relevance");
   url.searchParams.set("section_type", "organic_search_results");
 
   if (params.keywords) url.searchParams.set("keywords", params.keywords);
+  if (params.latitude != null)
+    url.searchParams.set("latitude", String(params.latitude));
+  if (params.longitude != null)
+    url.searchParams.set("longitude", String(params.longitude));
   if (params.distanceInKm)
     url.searchParams.set("distance_in_km", String(params.distanceInKm));
   if (params.minPrice)
