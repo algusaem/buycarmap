@@ -71,6 +71,27 @@ export interface Translations {
     show: string;
     hide: string;
   };
+  filters: {
+    fuelType: string;
+    transmission: string;
+    brand: string;
+    any: string;
+    clearFilters: string;
+    fuelTypes: {
+      gasoline: string;
+      gasoil: string;
+      electricHybrid: string;
+      hybrid: string;
+      hybridPlugin: string;
+      lpg: string;
+      cng: string;
+    };
+    transmissions: {
+      manual: string;
+      automatic: string;
+      semiautomatic: string;
+    };
+  };
   meta: {
     title: string;
     description: string;

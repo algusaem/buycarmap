@@ -26,6 +26,10 @@ export async function searchWallapop(
     url.searchParams.set("max_sale_price", String(params.maxPrice));
   if (params.brand) url.searchParams.set("brand", params.brand);
   if (params.model) url.searchParams.set("model", params.model);
+  if (params.engine?.length)
+    url.searchParams.set("engine", params.engine.join(","));
+  if (params.gearbox?.length)
+    url.searchParams.set("gearbox", params.gearbox.join(","));
   if (nextPage) url.searchParams.set("next_page", nextPage);
 
   const response = await fetch(url.toString(), {

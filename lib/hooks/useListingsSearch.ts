@@ -15,11 +15,20 @@ export function useListingsSearch() {
   const lastParamsRef = useRef<SearchInput | null>(null);
   const isLoadingMoreRef = useRef(false);
 
-  async function search(query: string) {
-    if (!query.trim()) return;
+  async function search(input: SearchInput) {
+    const hasKeywords = input.keywords && input.keywords.trim().length > 0;
+    const hasFilters =
+      (input.engine && input.engine.length > 0) ||
+      (input.gearbox && input.gearbox.length > 0) ||
+      !!input.brand;
 
-    const input = { keywords: query.trim() };
-    const parsed = searchSchema.safeParse(input);
+    if (!hasKeywords && !hasFilters) return;
+
+    const sanitized = {
+      ...input,
+      keywords: input.keywords?.trim(),
+    };
+    const parsed = searchSchema.safeParse(sanitized);
 
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);

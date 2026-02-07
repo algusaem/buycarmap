@@ -13,8 +13,8 @@ export const searchSchema = z.object({
   maxYear: z.number().int().optional(),
   minKm: z.number().nonnegative().optional(),
   maxKm: z.number().positive().optional(),
-  engine: z.string().optional(),
-  gearbox: z.string().optional(),
+  engine: z.array(z.string()).optional(),
+  gearbox: z.array(z.string()).optional(),
 });
 
 export type SearchInput = z.infer<typeof searchSchema>;

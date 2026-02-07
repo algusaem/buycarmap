@@ -74,6 +74,27 @@ export const es: Translations = {
     show: "Mostrar contrase\u00f1a",
     hide: "Ocultar contrase\u00f1a",
   },
+  filters: {
+    fuelType: "Combustible",
+    transmission: "Cambio",
+    brand: "Marca",
+    any: "Cualquiera",
+    clearFilters: "Borrar filtros",
+    fuelTypes: {
+      gasoline: "Gasolina",
+      gasoil: "Di\u00e9sel",
+      electricHybrid: "El\u00e9ctrico/H\u00edbrido",
+      hybrid: "H\u00edbrido",
+      hybridPlugin: "H\u00edbrido enchufable",
+      lpg: "GLP",
+      cng: "GNC",
+    },
+    transmissions: {
+      manual: "Manual",
+      automatic: "Autom\u00e1tico",
+      semiautomatic: "Semiautom\u00e1tico",
+    },
+  },
   meta: {
     title: "Buy Car Map",
     description:

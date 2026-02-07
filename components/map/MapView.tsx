@@ -1,12 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { ListingsHeader } from "@/components/map/ListingsHeader";
 import { CarListingCard } from "@/components/map/CarListingCard";
 import { MobileMapOverlay } from "@/components/map/MobileMapOverlay";
 import { useListingsSearch } from "@/lib/hooks/useListingsSearch";
+import { useSearchFilters } from "@/lib/hooks/useSearchFilters";
 import { useTranslation } from "@/lib/i18n/client";
 
 const ListingsMap = dynamic(
@@ -21,6 +22,9 @@ export function MapView() {
   const { listings, isLoading, isLoadingMore, nextPage, search, sentinelRef } =
     useListingsSearch();
 
+  const getKeywords = useCallback(() => searchQuery, [searchQuery]);
+  const filters = useSearchFilters(search, getKeywords);
+
   return (
     <div className="flex h-0 min-h-0 flex-1 overflow-hidden">
       {/* Left - Listings Panel */}
@@ -28,9 +32,19 @@ export function MapView() {
         <ListingsHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onSearch={search}
+          onSearch={filters.triggerSearch}
           onShowMap={() => setShowMap(true)}
           isLoading={isLoading}
+          filtersOpen={filters.isOpen}
+          onToggleFilters={filters.toggle}
+          activeFilterCount={filters.activeCount}
+          engine={filters.engine}
+          gearbox={filters.gearbox}
+          brand={filters.brand}
+          onEngineChange={filters.setEngine}
+          onGearboxChange={filters.setGearbox}
+          onBrandChange={filters.setBrand}
+          onClearFilters={filters.clearAll}
         />
 
         <div className="flex-1 overflow-y-auto p-4">

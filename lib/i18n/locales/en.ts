@@ -74,6 +74,27 @@ export const en: Translations = {
     show: "Show password",
     hide: "Hide password",
   },
+  filters: {
+    fuelType: "Fuel type",
+    transmission: "Transmission",
+    brand: "Brand",
+    any: "Any",
+    clearFilters: "Clear filters",
+    fuelTypes: {
+      gasoline: "Gasoline",
+      gasoil: "Diesel",
+      electricHybrid: "Electric/Hybrid",
+      hybrid: "Hybrid",
+      hybridPlugin: "Plug-in Hybrid",
+      lpg: "LPG",
+      cng: "CNG",
+    },
+    transmissions: {
+      manual: "Manual",
+      automatic: "Automatic",
+      semiautomatic: "Semi-automatic",
+    },
+  },
   meta: {
     title: "Buy Car Map",
     description: "Car buying map to find the best deals near you",
