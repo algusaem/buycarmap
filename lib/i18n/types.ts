@@ -75,6 +75,19 @@ export interface Translations {
     fuelType: string;
     transmission: string;
     brand: string;
+    price: string;
+    minPrice: string;
+    maxPrice: string;
+    mileage: string;
+    minKm: string;
+    maxKm: string;
+    year: string;
+    minYear: string;
+    maxYear: string;
+    horsePower: string;
+    minHp: string;
+    maxHp: string;
+    listed: string;
     any: string;
     clearFilters: string;
     fuelTypes: {
@@ -90,6 +103,11 @@ export interface Translations {
       manual: string;
       automatic: string;
       semiautomatic: string;
+    };
+    timeFilters: {
+      today: string;
+      lastWeek: string;
+      lastMonth: string;
     };
   };
   meta: {

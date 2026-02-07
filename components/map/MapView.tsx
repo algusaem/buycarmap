@@ -41,9 +41,27 @@ export function MapView() {
           engine={filters.engine}
           gearbox={filters.gearbox}
           brand={filters.brand}
+          minPrice={filters.minPrice}
+          maxPrice={filters.maxPrice}
+          minKm={filters.minKm}
+          maxKm={filters.maxKm}
+          minYear={filters.minYear}
+          maxYear={filters.maxYear}
+          minHorsePower={filters.minHorsePower}
+          maxHorsePower={filters.maxHorsePower}
+          timeFilter={filters.timeFilter}
           onEngineChange={filters.setEngine}
           onGearboxChange={filters.setGearbox}
           onBrandChange={filters.setBrand}
+          onMinPriceChange={filters.setMinPrice}
+          onMaxPriceChange={filters.setMaxPrice}
+          onMinKmChange={filters.setMinKm}
+          onMaxKmChange={filters.setMaxKm}
+          onMinYearChange={filters.setMinYear}
+          onMaxYearChange={filters.setMaxYear}
+          onMinHorsePowerChange={filters.setMinHorsePower}
+          onMaxHorsePowerChange={filters.setMaxHorsePower}
+          onTimeFilterChange={filters.setTimeFilter}
           onClearFilters={filters.clearAll}
         />
 

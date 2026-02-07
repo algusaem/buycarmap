@@ -38,7 +38,7 @@ export function ThemeSwitcher() {
     <Button
       variant="ghost"
       onClick={toggleTheme}
-      className="gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+      className="gap-2 text-sm font-medium text-muted-foreground hover:bg-transparent hover:text-primary dark:hover:bg-transparent"
     >
       <div className="relative h-4 w-4">
         <AnimatePresence mode="wait">

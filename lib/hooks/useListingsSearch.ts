@@ -20,7 +20,16 @@ export function useListingsSearch() {
     const hasFilters =
       (input.engine && input.engine.length > 0) ||
       (input.gearbox && input.gearbox.length > 0) ||
-      !!input.brand;
+      !!input.brand ||
+      input.minPrice != null ||
+      input.maxPrice != null ||
+      input.minKm != null ||
+      input.maxKm != null ||
+      input.minYear != null ||
+      input.maxYear != null ||
+      input.minHorsePower != null ||
+      input.maxHorsePower != null ||
+      !!input.timeFilter;
 
     if (!hasKeywords && !hasFilters) return;
 

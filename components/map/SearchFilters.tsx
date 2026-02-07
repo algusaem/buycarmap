@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import * as motion from "motion/react-client";
 import { Button } from "@/components/ui/button";
+import { RangeInput } from "@/components/ui/range-input";
 import {
   Select,
   SelectTrigger,
@@ -10,111 +11,86 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import { ToggleChip } from "@/components/ui/toggle-chip";
 import { useTranslation } from "@/lib/i18n/client";
-
-const FUEL_OPTIONS = [
-  { value: "gasoline", labelKey: "gasoline" },
-  { value: "gasoil", labelKey: "gasoil" },
-  { value: "electric-hybrid", labelKey: "electricHybrid" },
-  { value: "hybride", labelKey: "hybrid" },
-  { value: "hybride_plugin", labelKey: "hybridPlugin" },
-  { value: "lpg", labelKey: "lpg" },
-  { value: "cng", labelKey: "cng" },
-] as const;
-
-const TRANSMISSION_OPTIONS = [
-  { value: "manual", labelKey: "manual" },
-  { value: "automatic", labelKey: "automatic" },
-  { value: "semiautomatic", labelKey: "semiautomatic" },
-] as const;
-
-const BRANDS = [
-  "Alfa Romeo",
-  "Aston Martin",
-  "Audi",
-  "BMW",
-  "Citro\u00ebn",
-  "Cupra",
-  "Dacia",
-  "DS",
-  "Fiat",
-  "Ford",
-  "Honda",
-  "Hyundai",
-  "Jaguar",
-  "Jeep",
-  "Kia",
-  "Land Rover",
-  "Lexus",
-  "Mazda",
-  "Mercedes-Benz",
-  "Mini",
-  "Mitsubishi",
-  "Nissan",
-  "Opel",
-  "Peugeot",
-  "Porsche",
-  "Renault",
-  "Seat",
-  "Skoda",
-  "Smart",
-  "Subaru",
-  "Suzuki",
-  "Tesla",
-  "Toyota",
-  "Volkswagen",
-  "Volvo",
-];
-
-const BRAND_ANY = "__any__";
+import {
+  FUEL_OPTIONS,
+  TRANSMISSION_OPTIONS,
+  BRANDS,
+  BRAND_ANY,
+  TIME_FILTER_OPTIONS,
+} from "@/components/map/search-filter-options";
 
 interface SearchFiltersProps {
   engine: string[];
   gearbox: string[];
   brand: string;
+  minPrice: number | undefined;
+  maxPrice: number | undefined;
+  minKm: number | undefined;
+  maxKm: number | undefined;
+  minYear: number | undefined;
+  maxYear: number | undefined;
+  minHorsePower: number | undefined;
+  maxHorsePower: number | undefined;
+  timeFilter: "" | "today" | "lastWeek" | "lastMonth";
   onEngineChange: (engine: string[]) => void;
   onGearboxChange: (gearbox: string[]) => void;
   onBrandChange: (brand: string) => void;
+  onMinPriceChange: (price: number | undefined) => void;
+  onMaxPriceChange: (price: number | undefined) => void;
+  onMinKmChange: (km: number | undefined) => void;
+  onMaxKmChange: (km: number | undefined) => void;
+  onMinYearChange: (year: number | undefined) => void;
+  onMaxYearChange: (year: number | undefined) => void;
+  onMinHorsePowerChange: (hp: number | undefined) => void;
+  onMaxHorsePowerChange: (hp: number | undefined) => void;
+  onTimeFilterChange: (timeFilter: "" | "today" | "lastWeek" | "lastMonth") => void;
   onClearAll: () => void;
-}
-
-function ToggleChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-        active
-          ? "border-primary bg-primary/15 text-primary"
-          : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
-      }`}
-    >
-      {label}
-    </button>
-  );
 }
 
 export function SearchFilters({
   engine,
   gearbox,
   brand,
+  minPrice,
+  maxPrice,
+  minKm,
+  maxKm,
+  minYear,
+  maxYear,
+  minHorsePower,
+  maxHorsePower,
+  timeFilter,
   onEngineChange,
   onGearboxChange,
   onBrandChange,
+  onMinPriceChange,
+  onMaxPriceChange,
+  onMinKmChange,
+  onMaxKmChange,
+  onMinYearChange,
+  onMaxYearChange,
+  onMinHorsePowerChange,
+  onMaxHorsePowerChange,
+  onTimeFilterChange,
   onClearAll,
 }: SearchFiltersProps) {
   const { t } = useTranslation();
 
-  const hasFilters = engine.length > 0 || gearbox.length > 0 || brand !== "";
+  const hasFilters =
+    engine.length > 0 ||
+    gearbox.length > 0 ||
+    brand !== "" ||
+    minPrice !== undefined ||
+    maxPrice !== undefined ||
+    minKm !== undefined ||
+    maxKm !== undefined ||
+    minYear !== undefined ||
+    maxYear !== undefined ||
+    minHorsePower !== undefined ||
+    maxHorsePower !== undefined ||
+    timeFilter !== "";
 
   function toggleEngine(value: string) {
     if (engine.includes(value)) {
@@ -179,8 +155,47 @@ export function SearchFilters({
           </div>
         </div>
 
-        {/* Brand + Clear */}
+        {/* Numeric ranges + Brand */}
         <div className="flex flex-wrap items-end gap-3">
+          <RangeInput
+            label={t.filters.price}
+            minPlaceholder={t.filters.minPrice}
+            maxPlaceholder={t.filters.maxPrice}
+            minValue={minPrice}
+            maxValue={maxPrice}
+            onMinChange={onMinPriceChange}
+            onMaxChange={onMaxPriceChange}
+          />
+          <RangeInput
+            label={t.filters.mileage}
+            minPlaceholder={t.filters.minKm}
+            maxPlaceholder={t.filters.maxKm}
+            minValue={minKm}
+            maxValue={maxKm}
+            onMinChange={onMinKmChange}
+            onMaxChange={onMaxKmChange}
+          />
+          <RangeInput
+            label={t.filters.year}
+            minPlaceholder={t.filters.minYear}
+            maxPlaceholder={t.filters.maxYear}
+            minValue={minYear}
+            maxValue={maxYear}
+            onMinChange={onMinYearChange}
+            onMaxChange={onMaxYearChange}
+            min={1900}
+          />
+          <RangeInput
+            label={t.filters.horsePower}
+            minPlaceholder={t.filters.minHp}
+            maxPlaceholder={t.filters.maxHp}
+            minValue={minHorsePower}
+            maxValue={maxHorsePower}
+            onMinChange={onMinHorsePowerChange}
+            onMaxChange={onMaxHorsePowerChange}
+          />
+
+          {/* Brand */}
           <div className="flex w-full flex-col gap-2 sm:w-56">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.filters.brand}
@@ -216,6 +231,25 @@ export function SearchFilters({
               {t.filters.clearFilters}
             </Button>
           )}
+        </div>
+
+        {/* Time filter */}
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {t.filters.listed}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {TIME_FILTER_OPTIONS.map((opt) => (
+              <ToggleChip
+                key={opt.value}
+                label={t.filters.timeFilters[opt.labelKey]}
+                active={timeFilter === opt.value}
+                onClick={() =>
+                  onTimeFilterChange(timeFilter === opt.value ? "" : opt.value)
+                }
+              />
+            ))}
+          </div>
         </div>
       </div>
     </motion.div>

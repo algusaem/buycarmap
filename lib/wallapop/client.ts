@@ -24,12 +24,26 @@ export async function searchWallapop(
     url.searchParams.set("min_sale_price", String(params.minPrice));
   if (params.maxPrice)
     url.searchParams.set("max_sale_price", String(params.maxPrice));
+  if (params.minKm)
+    url.searchParams.set("min_km", String(params.minKm));
+  if (params.maxKm)
+    url.searchParams.set("max_km", String(params.maxKm));
+  if (params.minYear)
+    url.searchParams.set("min_year", String(params.minYear));
+  if (params.maxYear)
+    url.searchParams.set("max_year", String(params.maxYear));
+  if (params.minHorsePower)
+    url.searchParams.set("min_horse_power", String(params.minHorsePower));
+  if (params.maxHorsePower)
+    url.searchParams.set("max_horse_power", String(params.maxHorsePower));
   if (params.brand) url.searchParams.set("brand", params.brand);
   if (params.model) url.searchParams.set("model", params.model);
   if (params.engine?.length)
     url.searchParams.set("engine", params.engine.join(","));
   if (params.gearbox?.length)
     url.searchParams.set("gearbox", params.gearbox.join(","));
+  if (params.timeFilter)
+    url.searchParams.set("time_filter", params.timeFilter);
   if (nextPage) url.searchParams.set("next_page", nextPage);
 
   const response = await fetch(url.toString(), {
