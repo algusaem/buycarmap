@@ -45,6 +45,8 @@ export function normalizeWallapopItems(
         mileage: attrs?.km ?? 0,
         year: attrs?.year ?? 0,
         fuel: attrs?.engine ?? "",
+        brand: attrs?.brand ?? "",
+        model: attrs?.model ?? "",
         location: city,
         source: "Wallapop",
         lat,

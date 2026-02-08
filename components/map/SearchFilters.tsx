@@ -19,14 +19,16 @@ import {
   FUEL_OPTIONS,
   TRANSMISSION_OPTIONS,
   BRANDS,
-  BRAND_ANY,
+  SELECT_ANY,
   TIME_FILTER_OPTIONS,
 } from "@/components/map/search-filter-options";
+import { useCarModels } from "@/lib/hooks/useCarModels";
 
 export interface SearchFiltersProps {
   engine: string[];
   gearbox: string[];
   brand: string;
+  model: string;
   minPrice: number | undefined;
   maxPrice: number | undefined;
   minKm: number | undefined;
@@ -41,6 +43,7 @@ export interface SearchFiltersProps {
   onEngineChange: (engine: string[]) => void;
   onGearboxChange: (gearbox: string[]) => void;
   onBrandChange: (brand: string) => void;
+  onModelChange: (model: string) => void;
   onMinPriceChange: (price: number | undefined) => void;
   onMaxPriceChange: (price: number | undefined) => void;
   onMinKmChange: (km: number | undefined) => void;
@@ -59,6 +62,7 @@ export function SearchFilters({
   engine,
   gearbox,
   brand,
+  model,
   minPrice,
   maxPrice,
   minKm,
@@ -73,6 +77,7 @@ export function SearchFilters({
   onEngineChange,
   onGearboxChange,
   onBrandChange,
+  onModelChange,
   onMinPriceChange,
   onMaxPriceChange,
   onMinKmChange,
@@ -87,11 +92,13 @@ export function SearchFilters({
   onClearAll,
 }: SearchFiltersProps) {
   const { t } = useTranslation();
+  const { models, isLoading: isLoadingModels } = useCarModels(brand);
 
   const hasFilters =
     engine.length > 0 ||
     gearbox.length > 0 ||
     brand !== "" ||
+    model !== "" ||
     minPrice !== undefined ||
     maxPrice !== undefined ||
     minKm !== undefined ||
@@ -120,7 +127,11 @@ export function SearchFilters({
   }
 
   function handleBrandChange(value: string) {
-    onBrandChange(value === BRAND_ANY ? "" : value);
+    onBrandChange(value === SELECT_ANY ? "" : value);
+  }
+
+  function handleModelChange(value: string) {
+    onModelChange(value === SELECT_ANY ? "" : value);
   }
 
   return (
@@ -220,14 +231,14 @@ export function SearchFilters({
               {t.filters.brand}
             </span>
             <Select
-              value={brand || BRAND_ANY}
+              value={brand || SELECT_ANY}
               onValueChange={handleBrandChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t.filters.any} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={BRAND_ANY}>
+                <SelectItem value={SELECT_ANY}>
                   {t.filters.any}
                 </SelectItem>
                 {BRANDS.map((b) => (
@@ -238,6 +249,38 @@ export function SearchFilters({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Model (only when brand is selected) */}
+          {brand && (
+            <div className="flex w-full flex-col gap-2 sm:w-56">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t.filters.model}
+              </span>
+              <Select
+                value={model || SELECT_ANY}
+                onValueChange={handleModelChange}
+                disabled={isLoadingModels}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      isLoadingModels ? t.filters.loadingModels : t.filters.any
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SELECT_ANY}>
+                    {t.filters.any}
+                  </SelectItem>
+                  {models.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {hasFilters && (
             <Button

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SearchInput } from "@/lib/validations/search";
 import { SelectedLocation } from "@/interfaces/location";
 
@@ -8,6 +8,7 @@ interface FilterValues {
   engine: string[];
   gearbox: string[];
   brand: string;
+  model: string;
   minPrice: number | undefined;
   maxPrice: number | undefined;
   minKm: number | undefined;
@@ -25,6 +26,7 @@ const INITIAL_FILTERS: FilterValues = {
   engine: [],
   gearbox: [],
   brand: "",
+  model: "",
   minPrice: undefined,
   maxPrice: undefined,
   minKm: undefined,
@@ -44,6 +46,7 @@ function toParams(keywords: string, f: FilterValues): SearchInput {
     engine: f.engine.length > 0 ? f.engine : undefined,
     gearbox: f.gearbox.length > 0 ? f.gearbox : undefined,
     brand: f.brand || undefined,
+    model: f.model || undefined,
     minPrice: f.minPrice,
     maxPrice: f.maxPrice,
     minKm: f.minKm,
@@ -64,6 +67,7 @@ function countActive(f: FilterValues): number {
     f.engine.length +
     f.gearbox.length +
     (f.brand ? 1 : 0) +
+    (f.model ? 1 : 0) +
     (f.minPrice !== undefined ? 1 : 0) +
     (f.maxPrice !== undefined ? 1 : 0) +
     (f.minKm !== undefined ? 1 : 0) +
@@ -83,17 +87,23 @@ export function useSearchFilters(
 ) {
   const [filters, setFilters] = useState<FilterValues>(INITIAL_FILTERS);
   const [isOpen, setIsOpen] = useState(false);
-  const hasSearchedRef = useRef(false);
 
   const activeCount = countActive(filters);
+
+  const didInitRef = useRef(false);
+  useEffect(() => {
+    if (!didInitRef.current) {
+      didInitRef.current = true;
+      search(toParams("", INITIAL_FILTERS));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const update = useCallback(
     (patch: Partial<FilterValues>) => {
       setFilters((prev) => {
         const next = { ...prev, ...patch };
-        if (hasSearchedRef.current) {
-          search(toParams(getKeywords(), next));
-        }
+        search(toParams(getKeywords(), next));
         return next;
       });
     },
@@ -101,7 +111,6 @@ export function useSearchFilters(
   );
 
   const triggerSearch = useCallback(() => {
-    hasSearchedRef.current = true;
     setFilters((prev) => {
       search(toParams(getKeywords(), prev));
       return prev;
@@ -110,9 +119,7 @@ export function useSearchFilters(
 
   const clearAll = useCallback(() => {
     setFilters(INITIAL_FILTERS);
-    if (hasSearchedRef.current) {
-      search({ keywords: getKeywords() });
-    }
+    search({ keywords: getKeywords() });
   }, [search, getKeywords]);
 
   const toggle = useCallback(() => setIsOpen((o) => !o), []);
@@ -126,7 +133,11 @@ export function useSearchFilters(
     [update],
   );
   const setBrand = useCallback(
-    (brand: string) => update({ brand }),
+    (brand: string) => update({ brand, model: "" }),
+    [update],
+  );
+  const setModel = useCallback(
+    (model: string) => update({ model }),
     [update],
   );
   const setMinPrice = useCallback(
@@ -184,6 +195,7 @@ export function useSearchFilters(
     setEngine,
     setGearbox,
     setBrand,
+    setModel,
     setMinPrice,
     setMaxPrice,
     setMinKm,

@@ -7,6 +7,8 @@ export interface CarListing {
   mileage: number;
   year: number;
   fuel: string;
+  brand: string;
+  model: string;
   location: string;
   source: string;
   lat: number;

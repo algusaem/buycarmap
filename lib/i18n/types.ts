@@ -75,6 +75,8 @@ export interface Translations {
     fuelType: string;
     transmission: string;
     brand: string;
+    model: string;
+    loadingModels: string;
     price: string;
     minPrice: string;
     maxPrice: string;

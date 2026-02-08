@@ -78,6 +78,8 @@ export const es: Translations = {
     fuelType: "Combustible",
     transmission: "Cambio",
     brand: "Marca",
+    model: "Modelo",
+    loadingModels: "Cargando\u2026",
     price: "Precio",
     minPrice: "M\u00edn\u00a0\u20ac",
     maxPrice: "M\u00e1x\u00a0\u20ac",

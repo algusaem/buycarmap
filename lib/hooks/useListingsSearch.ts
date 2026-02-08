@@ -16,23 +16,6 @@ export function useListingsSearch() {
   const isLoadingMoreRef = useRef(false);
 
   async function search(input: SearchInput) {
-    const hasKeywords = input.keywords && input.keywords.trim().length > 0;
-    const hasFilters =
-      (input.engine && input.engine.length > 0) ||
-      (input.gearbox && input.gearbox.length > 0) ||
-      !!input.brand ||
-      input.minPrice != null ||
-      input.maxPrice != null ||
-      input.minKm != null ||
-      input.maxKm != null ||
-      input.minYear != null ||
-      input.maxYear != null ||
-      input.minHorsePower != null ||
-      input.maxHorsePower != null ||
-      !!input.timeFilter;
-
-    if (!hasKeywords && !hasFilters) return;
-
     const sanitized = {
       ...input,
       keywords: input.keywords?.trim(),

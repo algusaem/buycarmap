@@ -52,7 +52,7 @@ export const BRANDS = [
   "Volvo",
 ];
 
-export const BRAND_ANY = "__any__";
+export const SELECT_ANY = "__any__";
 
 export const TIME_FILTER_OPTIONS = [
   { value: "today", labelKey: "today" },

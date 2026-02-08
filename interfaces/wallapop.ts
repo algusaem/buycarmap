@@ -73,3 +73,15 @@ export interface WallapopSearchResponse {
   data: WallapopSearchData;
   meta: WallapopSearchMeta;
 }
+
+export interface WallapopFilterOption {
+  id: string;
+  title: string;
+}
+
+export interface WallapopFilterResponse {
+  type: string;
+  id: string;
+  title: string;
+  options: WallapopFilterOption[];
+}
