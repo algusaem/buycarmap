@@ -1,11 +1,12 @@
 "use client";
 
 import L from "leaflet";
-import { MapContainer, TileLayer, ZoomControl, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, ZoomControl, Marker, Popup, useMap } from "react-leaflet";
 import { useTheme } from "next-themes";
 import { useMounted } from "@/lib/hooks/useMounted";
 import { CarListing } from "@/interfaces/listing";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslation } from "@/lib/i18n/client";
 
 const TILE_URLS = {
   dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -28,12 +29,25 @@ function createCarIcon() {
   });
 }
 
+function FitBounds({ listings }: { listings: CarListing[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (listings.length === 0) return;
+    const bounds = L.latLngBounds(listings.map((l) => [l.lat, l.lng]));
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+  }, [map, listings]);
+
+  return null;
+}
+
 interface ListingsMapProps {
   listings?: CarListing[];
 }
 
 export function ListingsMap({ listings = [] }: ListingsMapProps) {
   const { resolvedTheme } = useTheme();
+  const { locale } = useTranslation();
   const mounted = useMounted();
 
   const carIcon = useMemo(() => {
@@ -57,6 +71,7 @@ export function ListingsMap({ listings = [] }: ListingsMapProps) {
           url={tileUrl}
         />
         <ZoomControl position="bottomright" />
+        <FitBounds listings={listings} />
         {carIcon &&
           listings.map((listing) => (
             <Marker
@@ -68,7 +83,7 @@ export function ListingsMap({ listings = [] }: ListingsMapProps) {
                 <div className="text-sm">
                   <p className="font-semibold">{listing.title}</p>
                   <p className="font-mono text-primary">
-                    {listing.price.toLocaleString("es-ES")} &euro;
+                    {listing.price.toLocaleString(locale)} &euro;
                   </p>
                 </div>
               </Popup>

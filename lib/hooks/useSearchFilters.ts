@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { SearchInput } from "@/lib/validations/search";
+import { SelectedLocation } from "@/interfaces/location";
 
 type TimeFilter = "" | "today" | "lastWeek" | "lastMonth";
 
@@ -16,6 +17,8 @@ interface FilterValues {
   minHorsePower: number | undefined;
   maxHorsePower: number | undefined;
   timeFilter: TimeFilter;
+  selectedLocation: SelectedLocation | undefined;
+  distanceInKm: number;
 }
 
 const INITIAL_FILTERS: FilterValues = {
@@ -31,6 +34,8 @@ const INITIAL_FILTERS: FilterValues = {
   minHorsePower: undefined,
   maxHorsePower: undefined,
   timeFilter: "",
+  selectedLocation: undefined,
+  distanceInKm: 50,
 };
 
 function toParams(keywords: string, f: FilterValues): SearchInput {
@@ -48,6 +53,9 @@ function toParams(keywords: string, f: FilterValues): SearchInput {
     minHorsePower: f.minHorsePower,
     maxHorsePower: f.maxHorsePower,
     timeFilter: f.timeFilter || undefined,
+    latitude: f.selectedLocation?.lat,
+    longitude: f.selectedLocation?.lng,
+    distanceInKm: f.selectedLocation ? f.distanceInKm : undefined,
   };
 }
 
@@ -64,7 +72,8 @@ function countActive(f: FilterValues): number {
     (f.maxYear !== undefined ? 1 : 0) +
     (f.minHorsePower !== undefined ? 1 : 0) +
     (f.maxHorsePower !== undefined ? 1 : 0) +
-    (f.timeFilter ? 1 : 0)
+    (f.timeFilter ? 1 : 0) +
+    (f.selectedLocation !== undefined ? 1 : 0)
   );
 }
 
@@ -156,6 +165,15 @@ export function useSearchFilters(
     (timeFilter: TimeFilter) => update({ timeFilter }),
     [update],
   );
+  const setLocation = useCallback(
+    (selectedLocation: SelectedLocation | undefined) =>
+      update({ selectedLocation }),
+    [update],
+  );
+  const setDistanceInKm = useCallback(
+    (distanceInKm: number) => update({ distanceInKm }),
+    [update],
+  );
 
   return {
     ...filters,
@@ -175,6 +193,8 @@ export function useSearchFilters(
     setMinHorsePower,
     setMaxHorsePower,
     setTimeFilter,
+    setLocation,
+    setDistanceInKm,
     clearAll,
   };
 }

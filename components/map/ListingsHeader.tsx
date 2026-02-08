@@ -5,7 +5,7 @@ import { AnimatePresence } from "motion/react";
 import { ArrowLeft, Search, SlidersHorizontal, Map, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchFilters } from "@/components/map/SearchFilters";
+import { SearchFilters, SearchFiltersProps } from "@/components/map/SearchFilters";
 import { useTranslation } from "@/lib/i18n/client";
 
 interface ListingsHeaderProps {
@@ -17,31 +17,7 @@ interface ListingsHeaderProps {
   filtersOpen: boolean;
   onToggleFilters: () => void;
   activeFilterCount: number;
-  engine: string[];
-  gearbox: string[];
-  brand: string;
-  minPrice: number | undefined;
-  maxPrice: number | undefined;
-  minKm: number | undefined;
-  maxKm: number | undefined;
-  minYear: number | undefined;
-  maxYear: number | undefined;
-  minHorsePower: number | undefined;
-  maxHorsePower: number | undefined;
-  timeFilter: "" | "today" | "lastWeek" | "lastMonth";
-  onEngineChange: (engine: string[]) => void;
-  onGearboxChange: (gearbox: string[]) => void;
-  onBrandChange: (brand: string) => void;
-  onMinPriceChange: (price: number | undefined) => void;
-  onMaxPriceChange: (price: number | undefined) => void;
-  onMinKmChange: (km: number | undefined) => void;
-  onMaxKmChange: (km: number | undefined) => void;
-  onMinYearChange: (year: number | undefined) => void;
-  onMaxYearChange: (year: number | undefined) => void;
-  onMinHorsePowerChange: (hp: number | undefined) => void;
-  onMaxHorsePowerChange: (hp: number | undefined) => void;
-  onTimeFilterChange: (timeFilter: "" | "today" | "lastWeek" | "lastMonth") => void;
-  onClearFilters: () => void;
+  filterProps: SearchFiltersProps;
 }
 
 export function ListingsHeader({
@@ -53,31 +29,7 @@ export function ListingsHeader({
   filtersOpen,
   onToggleFilters,
   activeFilterCount,
-  engine,
-  gearbox,
-  brand,
-  minPrice,
-  maxPrice,
-  minKm,
-  maxKm,
-  minYear,
-  maxYear,
-  minHorsePower,
-  maxHorsePower,
-  timeFilter,
-  onEngineChange,
-  onGearboxChange,
-  onBrandChange,
-  onMinPriceChange,
-  onMaxPriceChange,
-  onMinKmChange,
-  onMaxKmChange,
-  onMinYearChange,
-  onMaxYearChange,
-  onMinHorsePowerChange,
-  onMaxHorsePowerChange,
-  onTimeFilterChange,
-  onClearFilters,
+  filterProps,
 }: ListingsHeaderProps) {
   const { t } = useTranslation();
 
@@ -157,35 +109,7 @@ export function ListingsHeader({
       </div>
 
       <AnimatePresence>
-        {filtersOpen && (
-          <SearchFilters
-            engine={engine}
-            gearbox={gearbox}
-            brand={brand}
-            minPrice={minPrice}
-            maxPrice={maxPrice}
-            minKm={minKm}
-            maxKm={maxKm}
-            minYear={minYear}
-            maxYear={maxYear}
-            minHorsePower={minHorsePower}
-            maxHorsePower={maxHorsePower}
-            timeFilter={timeFilter}
-            onEngineChange={onEngineChange}
-            onGearboxChange={onGearboxChange}
-            onBrandChange={onBrandChange}
-            onMinPriceChange={onMinPriceChange}
-            onMaxPriceChange={onMaxPriceChange}
-            onMinKmChange={onMinKmChange}
-            onMaxKmChange={onMaxKmChange}
-            onMinYearChange={onMinYearChange}
-            onMaxYearChange={onMaxYearChange}
-            onMinHorsePowerChange={onMinHorsePowerChange}
-            onMaxHorsePowerChange={onMaxHorsePowerChange}
-            onTimeFilterChange={onTimeFilterChange}
-            onClearAll={onClearFilters}
-          />
-        )}
+        {filtersOpen && <SearchFilters {...filterProps} />}
       </AnimatePresence>
     </div>
   );

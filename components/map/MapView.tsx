@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { ListingsHeader } from "@/components/map/ListingsHeader";
 import { CarListingCard } from "@/components/map/CarListingCard";
@@ -9,6 +9,7 @@ import { MobileMapOverlay } from "@/components/map/MobileMapOverlay";
 import { useListingsSearch } from "@/lib/hooks/useListingsSearch";
 import { useSearchFilters } from "@/lib/hooks/useSearchFilters";
 import { useTranslation } from "@/lib/i18n/client";
+import { SearchFiltersProps } from "@/components/map/SearchFilters";
 
 const ListingsMap = dynamic(
   () => import("@/components/map/ListingsMap").then((mod) => mod.ListingsMap),
@@ -25,6 +26,41 @@ export function MapView() {
   const getKeywords = useCallback(() => searchQuery, [searchQuery]);
   const filters = useSearchFilters(search, getKeywords);
 
+  const filterProps = useMemo<SearchFiltersProps>(
+    () => ({
+      engine: filters.engine,
+      gearbox: filters.gearbox,
+      brand: filters.brand,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      minKm: filters.minKm,
+      maxKm: filters.maxKm,
+      minYear: filters.minYear,
+      maxYear: filters.maxYear,
+      minHorsePower: filters.minHorsePower,
+      maxHorsePower: filters.maxHorsePower,
+      timeFilter: filters.timeFilter,
+      selectedLocation: filters.selectedLocation,
+      distanceInKm: filters.distanceInKm,
+      onEngineChange: filters.setEngine,
+      onGearboxChange: filters.setGearbox,
+      onBrandChange: filters.setBrand,
+      onMinPriceChange: filters.setMinPrice,
+      onMaxPriceChange: filters.setMaxPrice,
+      onMinKmChange: filters.setMinKm,
+      onMaxKmChange: filters.setMaxKm,
+      onMinYearChange: filters.setMinYear,
+      onMaxYearChange: filters.setMaxYear,
+      onMinHorsePowerChange: filters.setMinHorsePower,
+      onMaxHorsePowerChange: filters.setMaxHorsePower,
+      onTimeFilterChange: filters.setTimeFilter,
+      onLocationChange: filters.setLocation,
+      onDistanceChange: filters.setDistanceInKm,
+      onClearAll: filters.clearAll,
+    }),
+    [filters],
+  );
+
   return (
     <div className="flex h-0 min-h-0 flex-1 overflow-hidden">
       {/* Left - Listings Panel */}
@@ -38,31 +74,7 @@ export function MapView() {
           filtersOpen={filters.isOpen}
           onToggleFilters={filters.toggle}
           activeFilterCount={filters.activeCount}
-          engine={filters.engine}
-          gearbox={filters.gearbox}
-          brand={filters.brand}
-          minPrice={filters.minPrice}
-          maxPrice={filters.maxPrice}
-          minKm={filters.minKm}
-          maxKm={filters.maxKm}
-          minYear={filters.minYear}
-          maxYear={filters.maxYear}
-          minHorsePower={filters.minHorsePower}
-          maxHorsePower={filters.maxHorsePower}
-          timeFilter={filters.timeFilter}
-          onEngineChange={filters.setEngine}
-          onGearboxChange={filters.setGearbox}
-          onBrandChange={filters.setBrand}
-          onMinPriceChange={filters.setMinPrice}
-          onMaxPriceChange={filters.setMaxPrice}
-          onMinKmChange={filters.setMinKm}
-          onMaxKmChange={filters.setMaxKm}
-          onMinYearChange={filters.setMinYear}
-          onMaxYearChange={filters.setMaxYear}
-          onMinHorsePowerChange={filters.setMinHorsePower}
-          onMaxHorsePowerChange={filters.setMaxHorsePower}
-          onTimeFilterChange={filters.setTimeFilter}
-          onClearFilters={filters.clearAll}
+          filterProps={filterProps}
         />
 
         <div className="flex-1 overflow-y-auto p-4">

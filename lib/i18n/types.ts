@@ -109,6 +109,17 @@ export interface Translations {
       lastWeek: string;
       lastMonth: string;
     };
+    location: string;
+    locationPlaceholder: string;
+    distance: string;
+    noResults: string;
+    distanceOptions: {
+      km10: string;
+      km25: string;
+      km50: string;
+      km100: string;
+      km200: string;
+    };
   };
   meta: {
     title: string;

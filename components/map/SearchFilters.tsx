@@ -12,7 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleChip } from "@/components/ui/toggle-chip";
+import { LocationSearch } from "@/components/map/LocationSearch";
 import { useTranslation } from "@/lib/i18n/client";
+import { SelectedLocation } from "@/interfaces/location";
 import {
   FUEL_OPTIONS,
   TRANSMISSION_OPTIONS,
@@ -21,7 +23,7 @@ import {
   TIME_FILTER_OPTIONS,
 } from "@/components/map/search-filter-options";
 
-interface SearchFiltersProps {
+export interface SearchFiltersProps {
   engine: string[];
   gearbox: string[];
   brand: string;
@@ -34,6 +36,8 @@ interface SearchFiltersProps {
   minHorsePower: number | undefined;
   maxHorsePower: number | undefined;
   timeFilter: "" | "today" | "lastWeek" | "lastMonth";
+  selectedLocation: SelectedLocation | undefined;
+  distanceInKm: number;
   onEngineChange: (engine: string[]) => void;
   onGearboxChange: (gearbox: string[]) => void;
   onBrandChange: (brand: string) => void;
@@ -46,6 +50,8 @@ interface SearchFiltersProps {
   onMinHorsePowerChange: (hp: number | undefined) => void;
   onMaxHorsePowerChange: (hp: number | undefined) => void;
   onTimeFilterChange: (timeFilter: "" | "today" | "lastWeek" | "lastMonth") => void;
+  onLocationChange: (location: SelectedLocation | undefined) => void;
+  onDistanceChange: (distance: number) => void;
   onClearAll: () => void;
 }
 
@@ -62,6 +68,8 @@ export function SearchFilters({
   minHorsePower,
   maxHorsePower,
   timeFilter,
+  selectedLocation,
+  distanceInKm,
   onEngineChange,
   onGearboxChange,
   onBrandChange,
@@ -74,6 +82,8 @@ export function SearchFilters({
   onMinHorsePowerChange,
   onMaxHorsePowerChange,
   onTimeFilterChange,
+  onLocationChange,
+  onDistanceChange,
   onClearAll,
 }: SearchFiltersProps) {
   const { t } = useTranslation();
@@ -90,7 +100,8 @@ export function SearchFilters({
     maxYear !== undefined ||
     minHorsePower !== undefined ||
     maxHorsePower !== undefined ||
-    timeFilter !== "";
+    timeFilter !== "" ||
+    selectedLocation !== undefined;
 
   function toggleEngine(value: string) {
     if (engine.includes(value)) {
@@ -121,6 +132,14 @@ export function SearchFilters({
       className="overflow-hidden border-b border-border/50"
     >
       <div className="flex flex-col gap-4 p-4">
+        {/* Location */}
+        <LocationSearch
+          selectedLocation={selectedLocation}
+          distanceInKm={distanceInKm}
+          onLocationChange={onLocationChange}
+          onDistanceChange={onDistanceChange}
+        />
+
         {/* Fuel type */}
         <div className="flex flex-col gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

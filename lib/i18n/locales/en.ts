@@ -112,6 +112,17 @@ export const en: Translations = {
       lastWeek: "Last week",
       lastMonth: "Last month",
     },
+    location: "Location",
+    locationPlaceholder: "City or address\u2026",
+    distance: "Distance",
+    noResults: "No locations found",
+    distanceOptions: {
+      km10: "10\u00a0km",
+      km25: "25\u00a0km",
+      km50: "50\u00a0km",
+      km100: "100\u00a0km",
+      km200: "200\u00a0km",
+    },
   },
   meta: {
     title: "Buy Car Map",
