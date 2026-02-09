@@ -8,9 +8,14 @@ export async function searchWallapop(
   nextPage?: string,
 ): Promise<WallapopSearchResponse> {
   const url = new URL(BASE_URL, window.location.origin);
+  const hasLocation = params.latitude != null && params.longitude != null;
+
   url.searchParams.set("category_id", "100");
   url.searchParams.set("source", "deep_link");
-  url.searchParams.set("order_by", "most_relevance");
+  // "most_relevance" always applies tight IP-based geo-filtering that
+  // ignores distance_in_km. Use "newest" by default so users get
+  // nationwide results until they explicitly pick a location.
+  url.searchParams.set("order_by", hasLocation ? "most_relevance" : "newest");
   url.searchParams.set("section_type", "organic_search_results");
 
   if (params.keywords) url.searchParams.set("keywords", params.keywords);

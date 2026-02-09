@@ -14,8 +14,11 @@ export function useListingsSearch() {
   const nextPageRef = useRef<string | null>(null);
   const lastParamsRef = useRef<SearchInput | null>(null);
   const isLoadingMoreRef = useRef(false);
+  const searchVersionRef = useRef(0);
 
   async function search(input: SearchInput) {
+    const version = ++searchVersionRef.current;
+
     const sanitized = {
       ...input,
       keywords: input.keywords?.trim(),
@@ -32,16 +35,19 @@ export function useListingsSearch() {
 
     const cached = getCached<CarListing[]>(cacheKey);
     if (cached) {
+      if (searchVersionRef.current !== version) return;
       setListings(cached);
       return;
     }
 
+    if (searchVersionRef.current !== version) return;
     setIsLoading(true);
     setNextPage(null);
     nextPageRef.current = null;
 
     try {
       const response = await searchWallapop(params);
+      if (searchVersionRef.current !== version) return;
       const items = response.data?.section?.items ?? [];
       const normalized = normalizeWallapopItems(items);
 
@@ -52,11 +58,12 @@ export function useListingsSearch() {
       nextPageRef.current = next;
       lastParamsRef.current = params;
     } catch (err) {
+      if (searchVersionRef.current !== version) return;
       const message =
         err instanceof Error ? err.message : "Failed to fetch listings";
       toast.error(message);
     } finally {
-      setIsLoading(false);
+      if (searchVersionRef.current === version) setIsLoading(false);
     }
   }
 

@@ -81,12 +81,16 @@ function countActive(f: FilterValues): number {
   );
 }
 
+const DEBOUNCE_MS = 400;
+
 export function useSearchFilters(
   search: (params: SearchInput) => void,
   getKeywords: () => string,
 ) {
   const [filters, setFilters] = useState<FilterValues>(INITIAL_FILTERS);
   const [isOpen, setIsOpen] = useState(false);
+  const filtersRef = useRef<FilterValues>(INITIAL_FILTERS);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const activeCount = countActive(filters);
 
@@ -99,25 +103,33 @@ export function useSearchFilters(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    return () => clearTimeout(debounceRef.current);
+  }, []);
+
   const update = useCallback(
     (patch: Partial<FilterValues>) => {
       setFilters((prev) => {
         const next = { ...prev, ...patch };
-        search(toParams(getKeywords(), next));
+        filtersRef.current = next;
         return next;
       });
+      clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        search(toParams(getKeywords(), filtersRef.current));
+      }, DEBOUNCE_MS);
     },
     [search, getKeywords],
   );
 
   const triggerSearch = useCallback(() => {
-    setFilters((prev) => {
-      search(toParams(getKeywords(), prev));
-      return prev;
-    });
+    clearTimeout(debounceRef.current);
+    search(toParams(getKeywords(), filtersRef.current));
   }, [search, getKeywords]);
 
   const clearAll = useCallback(() => {
+    clearTimeout(debounceRef.current);
+    filtersRef.current = INITIAL_FILTERS;
     setFilters(INITIAL_FILTERS);
     search({ keywords: getKeywords() });
   }, [search, getKeywords]);
