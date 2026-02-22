@@ -1,7 +1,12 @@
 import { WallapopSearchResponse } from "@/interfaces/wallapop";
 import { SearchInput } from "@/lib/validations/search";
+import { getUserLocation } from "@/lib/geo/user-location";
 
 const BASE_URL = "/api/wallapop/search";
+
+// Center of Spain — ultimate fallback when both explicit location
+// and browser geolocation are unavailable (e.g. permissions denied).
+const SPAIN_CENTER = { lat: 40.0, lng: -3.5 };
 
 export async function searchWallapop(
   params: SearchInput,
@@ -10,21 +15,24 @@ export async function searchWallapop(
   const url = new URL(BASE_URL, window.location.origin);
   const hasLocation = params.latitude != null && params.longitude != null;
 
+  // Priority: explicit location > browser geolocation > Spain center.
+  // Always send coordinates so Wallapop doesn't geo-filter by server IP
+  // (Vercel servers are in the US, which would return US listings).
+  const userLoc = getUserLocation();
+  const lat = params.latitude ?? userLoc?.lat ?? SPAIN_CENTER.lat;
+  const lng = params.longitude ?? userLoc?.lng ?? SPAIN_CENTER.lng;
+  const distance = hasLocation ? params.distanceInKm : 1000;
+
   url.searchParams.set("category_id", "100");
   url.searchParams.set("source", "deep_link");
-  // "most_relevance" always applies tight IP-based geo-filtering that
-  // ignores distance_in_km. Use "newest" by default so users get
-  // nationwide results until they explicitly pick a location.
   url.searchParams.set("order_by", hasLocation ? "most_relevance" : "newest");
   url.searchParams.set("section_type", "organic_search_results");
 
   if (params.keywords) url.searchParams.set("keywords", params.keywords);
-  if (params.latitude != null)
-    url.searchParams.set("latitude", String(params.latitude));
-  if (params.longitude != null)
-    url.searchParams.set("longitude", String(params.longitude));
-  if (params.distanceInKm)
-    url.searchParams.set("distance_in_km", String(params.distanceInKm));
+  url.searchParams.set("latitude", String(lat));
+  url.searchParams.set("longitude", String(lng));
+  if (distance)
+    url.searchParams.set("distance_in_km", String(distance));
   if (params.minPrice)
     url.searchParams.set("min_sale_price", String(params.minPrice));
   if (params.maxPrice)

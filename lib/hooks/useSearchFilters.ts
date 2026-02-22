@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SearchInput } from "@/lib/validations/search";
 import { SelectedLocation } from "@/interfaces/location";
+import {
+  initUserGeolocation,
+  waitForGeolocation,
+} from "@/lib/geo/user-location";
 
 type TimeFilter = "" | "today" | "lastWeek" | "lastMonth";
 
@@ -94,12 +98,23 @@ export function useSearchFilters(
 
   const activeCount = countActive(filters);
 
-  const didInitRef = useRef(false);
   useEffect(() => {
-    if (!didInitRef.current) {
-      didInitRef.current = true;
-      search(toParams("", INITIAL_FILTERS));
-    }
+    let cancelled = false;
+    // Fire an immediate search (uses Spain-center fallback if geolocation
+    // hasn't resolved yet), then re-search once geolocation finishes so
+    // results are centered on the user's actual location.
+    search(toParams("", INITIAL_FILTERS));
+    initUserGeolocation();
+    waitForGeolocation().then(() => {
+      if (cancelled) return;
+      // Only re-search if the user hasn't already picked an explicit location.
+      if (!filtersRef.current.selectedLocation) {
+        search(toParams("", filtersRef.current));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
