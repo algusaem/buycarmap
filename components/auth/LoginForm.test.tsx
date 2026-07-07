@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
+import { toast } from "sonner";
 import { LoginForm } from "./LoginForm";
 
 const push = vi.fn();
@@ -17,6 +18,12 @@ vi.mock("next-auth/react", () => ({
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 describe("LoginForm", () => {
+  beforeEach(() => {
+    push.mockReset();
+    refresh.mockReset();
+    signIn.mockReset();
+  });
+
   it("does not sign in when the email is malformed", async () => {
     // The email field is type="email"; the browser's native constraint
     // validation blocks submission of a malformed value before onSubmit runs.
@@ -54,6 +61,18 @@ describe("LoginForm", () => {
         redirect: false,
       }),
     );
+  });
+
+  it("shows an error and does not redirect on invalid credentials", async () => {
+    signIn.mockResolvedValue({ error: "CredentialsSignin", ok: false });
+    renderWithI18n(<LoginForm />);
+
+    await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "wrong-password");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("has no accessibility violations", async () => {

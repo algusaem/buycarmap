@@ -1,12 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { RegisterForm } from "./RegisterForm";
 
+const push = vi.fn();
+const refresh = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push, refresh }),
 }));
 const signIn = vi.fn().mockResolvedValue({ error: null, ok: true });
 vi.mock("next-auth/react", () => ({
@@ -32,6 +34,12 @@ const submit = () =>
   userEvent.click(screen.getByRole("button", { name: "Sign up" }));
 
 describe("RegisterForm", () => {
+  beforeEach(() => {
+    push.mockReset();
+    refresh.mockReset();
+    registerUser.mockReset();
+  });
+
   it("blocks submission and shows an error when passwords do not match", async () => {
     renderWithI18n(<RegisterForm />);
 
@@ -81,6 +89,33 @@ describe("RegisterForm", () => {
       ),
     );
     expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it("includes the name in the submitted form data when one is entered", async () => {
+    registerUser.mockResolvedValue({ success: true });
+    renderWithI18n(<RegisterForm />);
+
+    await userEvent.type(screen.getByLabelText("Name"), "Ada Lovelace");
+    await fillValid();
+    await submit();
+
+    await waitFor(() => expect(registerUser).toHaveBeenCalled());
+    const submitted = registerUser.mock.calls[0][0] as FormData;
+    expect(submitted.get("name")).toBe("Ada Lovelace");
+  });
+
+  it("routes to /login if auto sign-in fails after a successful register", async () => {
+    registerUser.mockResolvedValue({ success: true });
+    signIn.mockResolvedValueOnce({ error: "CredentialsSignin", ok: false });
+    renderWithI18n(<RegisterForm />);
+
+    await fillValid();
+    await submit();
+
+    // Account was created, but the follow-up sign-in failed: send them to login
+    // rather than an unauthenticated home page.
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/login"));
+    expect(push).not.toHaveBeenCalledWith("/");
   });
 
   it("has no accessibility violations", async () => {

@@ -23,6 +23,17 @@ describe("loginSchema", () => {
       expect(result.error.issues[0].message).toBe("Password is required");
     }
   });
+
+  it("trims and lowercases the email", () => {
+    const result = loginSchema.safeParse({
+      email: "  ADA@Example.COM ",
+      password: "secret",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.email).toBe("ada@example.com");
+    }
+  });
 });
 
 describe("registerSchema", () => {
@@ -57,6 +68,32 @@ describe("registerSchema", () => {
       expect(result.error.issues[0].message).toBe(
         "Password must be at least 8 characters",
       );
+    }
+  });
+
+  it("rejects a password longer than 72 bytes (bcrypt truncation limit)", () => {
+    const long = "a".repeat(73);
+    const result = registerSchema.safeParse({
+      ...valid,
+      password: long,
+      confirmPassword: long,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(
+        "Password must be at most 72 characters",
+      );
+    }
+  });
+
+  it("normalizes the email to lowercase on the parsed output", () => {
+    const result = registerSchema.safeParse({
+      ...valid,
+      email: "  ADA@Example.COM ",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.email).toBe("ada@example.com");
     }
   });
 

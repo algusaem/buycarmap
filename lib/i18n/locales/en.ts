@@ -126,6 +126,11 @@ export const en: Translations = {
       km200: "200\u00a0km",
     },
   },
+  nav: {
+    signIn: "Sign in",
+    signUp: "Sign up",
+    signOut: "Sign out",
+  },
   meta: {
     title: "Buy Car Map",
     description: "Car buying map to find the best deals near you",

@@ -54,13 +54,21 @@ export function RegisterForm() {
       return;
     }
 
-    await signIn("credentials", {
+    const signInResult = await signIn("credentials", {
       email: data.email,
       password: data.password,
       redirect: false,
     });
 
     toast.success(t.auth.accountCreated);
+
+    // Account exists now; if the auto sign-in somehow failed, send them to
+    // the login page rather than an unauthenticated home page.
+    if (signInResult?.error) {
+      router.push("/login");
+      return;
+    }
+
     router.push("/");
     router.refresh();
   };

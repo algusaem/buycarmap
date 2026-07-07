@@ -126,6 +126,11 @@ export const es: Translations = {
       km200: "200\u00a0km",
     },
   },
+  nav: {
+    signIn: "Entrar",
+    signUp: "Registrarse",
+    signOut: "Cerrar sesión",
+  },
   meta: {
     title: "Buy Car Map",
     description:

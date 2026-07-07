@@ -123,6 +123,11 @@ export interface Translations {
       km200: string;
     };
   };
+  nav: {
+    signIn: string;
+    signUp: string;
+    signOut: string;
+  };
   meta: {
     title: string;
     description: string;

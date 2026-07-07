@@ -8,6 +8,7 @@ vi.mock("@/lib/auth/hash", () => ({
   hashPassword: vi.fn(async (p: string) => `hashed:${p}`),
 }));
 
+import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { register } from "./register";
 
@@ -75,6 +76,20 @@ describe("register action", () => {
     });
   });
 
+  it("normalizes the email (trim + lowercase) before storing", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.user.create).mockResolvedValue({ id: "1" } as never);
+
+    await register(formData({ ...valid, email: "  ADA@Example.COM " }));
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { email: "ada@example.com" },
+    });
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ email: "ada@example.com" }),
+    });
+  });
+
   it("stores a null name when the field is submitted empty", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.user.create).mockResolvedValue({ id: "1" } as never);
@@ -85,5 +100,32 @@ describe("register action", () => {
     expect(prisma.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ name: null }),
     });
+  });
+
+  it("maps a unique-constraint race (P2002) to the duplicate-email error", async () => {
+    // findUnique says the email is free, but a concurrent signup won the insert.
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.user.create).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+        code: "P2002",
+        clientVersion: "test",
+      }),
+    );
+
+    const result = await register(formData(valid));
+
+    expect(result).toEqual({
+      success: false,
+      error: "An account with this email already exists",
+    });
+  });
+
+  it("returns a generic failure (no message) on an unexpected DB error", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.user.create).mockRejectedValue(new Error("connection lost"));
+
+    const result = await register(formData(valid));
+
+    expect(result).toEqual({ success: false });
   });
 });
