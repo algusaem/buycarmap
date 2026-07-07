@@ -28,10 +28,16 @@ BuyCarMap aggregates second-hand car listings and displays them on an interactiv
 ## Commands
 
 ```bash
-npm run dev    # Start dev server (next dev)
-npm run build  # prisma generate && next build
-npm run start  # next start
-npm run lint   # eslint
+npm run dev            # Start dev server (next dev)
+npm run build          # prisma generate && next build
+npm run start          # next start
+npm run lint           # eslint
+npm test               # Vitest (unit + hook + integration + component + contract)
+npm run test:watch     # Vitest watch mode
+npm run test:coverage  # Vitest with v8 coverage
+npm run test:e2e        # Playwright end-to-end (needs a runnable app + browsers)
+npm run test:contract       # Contract tests vs fixtures (offline)
+npm run test:contract:live  # Contract tests vs the real Wallapop/coches.net APIs
 ```
 
 ## Project Structure
@@ -186,6 +192,41 @@ Semantic aliases also exist: `--success`, `--warning`, `--info`, plus `--chart-1
 - **Light**: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png`
 - `ListingsMap` switches tiles via `useTheme().resolvedTheme` (guarded by `useMounted`).
 
+## Testing
+
+Stack: **Vitest** (unit/hook/integration/component), **React Testing Library**, **MSW** (network mocking), **vitest-axe** (a11y), **Playwright** (e2e + visual). No test runner existed before; this is the house setup — follow it, don't introduce Jest/Cypress.
+
+### Layout & conventions
+
+- **Colocate** tests next to source (`foo.ts` → `foo.test.ts`). No `__tests__/` folders.
+- **Two Vitest projects** (`vitest.config.ts`), split by environment:
+  - `unit` (jsdom) — everything by default: pure lib, source clients (need `window.location`), hooks, components. Files: `*.test.ts(x)`.
+  - `node` — Next.js route handlers + server actions, which need real Node request globals. **Opt in by naming the file `*.node.test.ts`.**
+- **MSW is the only way to fake network.** Shared handlers + typed fixtures live in `test/`; `onUnhandledRequest: "error"` so stray requests fail loudly. Override per-test with `server.use(...)`. Never hand-stub `global.fetch`.
+  - `test/fixtures/*` — typed builders (`makeWallapopItem`, `makeCochesNetItem`, …). Override only the fields under test.
+  - `test/msw/handlers.ts` — default happy-path handlers for both the local proxy routes (jsdom clients) and the upstream APIs (node route tests).
+  - `test/mocks/intersection-observer.ts` — controllable IO; call `triggerIntersection()` to drive infinite scroll.
+  - `test/utils/render.tsx` — `renderWithI18n(ui)` wraps in `I18nProvider locale="en"` so tests query stable English labels. (`useTranslation` falls back to Spanish without a provider.)
+- **Contract tests** (`test/contract/*.contract.test.ts`, node project) — Zod schemas of the *external* Wallapop/coches.net shapes the normalizers read. Validate fixtures offline (CI on every push); `CONTRACT_LIVE=1` also hits the real APIs (nightly) to catch upstream drift.
+- **Quality bar:** the `/check-tests` rules apply — no tautological/self-fulfilling/mock-the-SUT tests; hand-derive expected values; cover a negative path.
+
+### Environment gotchas (baked into the setup — know them before writing tests)
+
+- **Module-level caches persist across tests**: `lib/wallapop/cache.ts`, `lib/cochesnet/models.ts` (`modelsByMake`), `lib/geo/user-location.ts`. Use distinct keys/brands per test, or fake timers, to avoid cross-test bleed. MSW handlers + IO observers reset in `afterEach` (`test/setup.jsdom.ts`).
+- **`Date.now()` / 400 ms debounces** → `vi.useFakeTimers()` + `advanceTimersByTimeAsync`.
+- **`useListingsSearch.loadMore` is not public** — it fires only via the sentinel. Test it by `sentinelRef(node)` + `triggerIntersection()`.
+- **`<input type="email">` uses native browser validation**: a malformed value is blocked by the browser *before* react-hook-form runs, so RHF's "Invalid email address" message never renders. Assert "did not submit" for malformed input, and use empty/required cases to exercise RHF's own messages. (The forms don't set `noValidate`.)
+- **Controlled inputs** (e.g. `RangeInput`): a value only accumulates if a parent holds state — render a stateful harness, don't pass a static `value`.
+- **jsdom lacks** IntersectionObserver, geolocation (defaults to "denied" → Spain-center fallback), matchMedia, canvas — all stubbed in `test/setup.jsdom.ts`. Leaflet can't run in jsdom: mock `react-leaflet` in component tests; render it for real only in Playwright.
+
+### E2E (Playwright, `e2e/`)
+
+- Runs against a real `next dev` server (Playwright `webServer`). The two source proxies are mocked at the **browser** level via `page.route` (`e2e/fixtures/network.ts`) so e2e never hits live Wallapop/coches.net. Fixture image URLs must use an **allowed `next.config` host** (`**.wallapop.com`, `**.ccdn.es`) or `next/image` throws a client exception.
+- **Three projects**: `chromium` + `mobile` (functional, run by `npm run test:e2e`) and `visual` (screenshots, run by `npm run test:visual`). Visual is deliberately excluded from `test:e2e` so pixel diffs never gate functional PRs.
+- **Visual baselines are platform-specific** (`*-win32.png` locally). CI is ubuntu, so regenerate Linux baselines (`--update-snapshots` on Linux) before enabling visual in CI.
+- **Auth e2e covers client validation only.** The register→login persistence round-trip is a `test.skip` stub — enable it once a disposable Postgres/Prisma test DB is wired.
+- Known findings the suite surfaced (unfixed, flagged): auth pages fail `color-contrast` (excluded from the a11y gate); malformed-email is caught by native browser validation, not RHF (forms lack `noValidate`).
+
 ## Rules for Claude
 
 ### TypeScript
@@ -243,10 +284,16 @@ Semantic aliases also exist: `--success`, `--warning`, `--info`, plus `--chart-1
 - Avoid unnecessary `useEffect` (no effects purely to sync state). Prefer `.map` over `forEach`.
 - Keep components single-responsibility; split beyond ~250 lines. Reuse only to remove real duplication, never preemptively.
 - Do not refactor working code unless it improves correctness or clarity. No speculative abstractions.
+- **Never use render functions that return JSX.** If logic produces markup, extract it into a proper React component with props — not a plain function called inside JSX.
+- **Extract repeated JSX into private components:** when a pattern repeats within a component, extract it as a non-exported component in the same file.
+- **Single code path over ternary branches:** prefer one JSX structure with conditional rendering (`{condition && …}`) over duplicating large blocks in a ternary.
 
 ### Code Style
 
 - Readability over cleverness. No unused variables/hooks/imports. Never over-engineer.
+- Use `await` — never `.then()` chains.
+- **Guard clauses over nested ifs:** use early returns to flatten logic instead of deeply nested conditionals.
+- **Only create what's asked for:** don't generate extra files, hooks, configs, or interfaces beyond what was explicitly requested.
 
 ### Styling & Layout
 

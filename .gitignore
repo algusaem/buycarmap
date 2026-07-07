@@ -42,3 +42,8 @@ next-env.d.ts
 
 /app/generated/prisma
 nul
+
+# testing
+/test-results
+/playwright-report
+/blob-report

@@ -1,0 +1,101 @@
+import { Page } from "@playwright/test";
+
+// Deterministic proxy responses so e2e never touches live Wallapop/coches.net.
+// Kept intentionally small and self-contained (e2e can't import Vitest fixtures
+// cleanly across the tsconfig boundary).
+const wallapop = {
+  data: {
+    section: {
+      type: "cars",
+      title: "Cars",
+      items: [
+        {
+          id: "e2e-wp-1",
+          title: "Audi A3 2.0 TDI",
+          description: "Full service history",
+          price: { amount: 14500, currency: "EUR" },
+          images: [
+            {
+              id: "i",
+              average_color: "#333",
+              urls: {
+                small: "",
+                medium: "",
+                big: "https://cdn.wallapop.com/e2e.jpg",
+              },
+            },
+          ],
+          location: {
+            latitude: 40.4168,
+            longitude: -3.7038,
+            postal_code: "28001",
+            city: "Madrid",
+            region: "Madrid",
+            country_code: "ES",
+          },
+          reserved: { flag: false },
+          web_slug: "audi-a3-e2e-wp-1",
+          type_attributes: {
+            brand: "Audi",
+            model: "A3",
+            year: 2018,
+            km: 95000,
+            engine: "gasoil",
+            horsepower: 150,
+          },
+        },
+      ],
+    },
+  },
+  meta: { next_page: null },
+};
+
+const cochesnet = {
+  items: [
+    {
+      id: "e2e-cn-1",
+      title: "BMW Serie 3 320d",
+      url: "/bmw-serie_3/e2e-cn-1",
+      price: { amount: 18900, hasTaxes: true },
+      km: 120000,
+      year: 2019,
+      hp: 190,
+      make: "BMW",
+      makeId: 7,
+      model: "Serie 3",
+      modelId: 4321,
+      fuelType: "Diésel",
+      fuelTypeId: 1,
+      transmissionTypeId: 1,
+      resources: [{ type: "IMAGE", url: "https://cdn.wallapop.com/e2e.jpg" }],
+      location: {
+        provinceIds: [8],
+        regionId: 9,
+        regionLiteral: "Cataluña",
+        mainProvince: "Barcelona",
+        mainProvinceId: 8,
+        cityId: 810,
+        cityLiteral: "Barcelona",
+      },
+      isProfessional: true,
+    },
+  ],
+  paidItems: [],
+  meta: { totalPages: 1, totalResults: 1 },
+};
+
+/** Route both source proxies to fixed payloads. */
+export async function mockListingSources(page: Page) {
+  await page.route("**/api/wallapop/search**", (route) =>
+    route.fulfill({ json: wallapop }),
+  );
+  await page.route("**/api/cochesnet/search**", (route) =>
+    route.fulfill({ json: cochesnet }),
+  );
+  await page.route("**/api/cochesnet/models**", (route) =>
+    route.fulfill({ json: { items: [] } }),
+  );
+  await page.route("**/api/wallapop/filters/models**", (route) =>
+    route.fulfill({ json: { type: "model", id: "model", title: "Model", options: [] } }),
+  );
+}

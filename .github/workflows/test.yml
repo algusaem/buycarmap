@@ -1,0 +1,65 @@
+name: Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Nightly upstream-drift check against the real Wallapop/coches.net APIs.
+    - cron: "0 4 * * *"
+
+# Dummy values so `prisma generate` + `next build` don't fail on missing env.
+# Real secrets are only needed once the DB-backed flows are wired.
+env:
+  DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+  NEXTAUTH_SECRET: "ci-test-secret"
+  NEXTAUTH_URL: "http://localhost:3000"
+
+jobs:
+  unit:
+    name: Unit / integration / component / contract
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx prisma generate
+      - run: npm run test:coverage
+
+  e2e:
+    name: End-to-end (Playwright)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  contract-live:
+    name: Upstream contract (live)
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:contract:live
