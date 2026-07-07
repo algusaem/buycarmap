@@ -84,13 +84,41 @@ const cochesnet = {
   meta: { totalPages: 1, totalResults: 1 },
 };
 
-/** Route both source proxies to fixed payloads. */
+const milanuncios = {
+  ads: [
+    {
+      id: "e2e-mn-1",
+      title: "SEAT León 1.5 TSI",
+      url: "/seat-de-segunda-mano/seat-leon-e2e-mn-1.htm",
+      description: "Único propietario, garantía 12 meses",
+      category: { id: 850, name: "Seat", slug: "seat-de-segunda-mano" },
+      price: { cashPrice: { value: 16500, includeTaxes: true } },
+      images: ["https://images.milanuncios.com/e2e.jpg"],
+      tags: [
+        { type: "kilómetros", text: "60.000 kms" },
+        { type: "año", text: "2020" },
+        { type: "combustible", text: "gasolina" },
+      ],
+      location: {
+        city: { id: 1, name: "Sevilla", slug: "sevilla" },
+        province: { id: 41, name: "Sevilla", slug: "sevilla" },
+      },
+      isReserved: "RELEASED",
+    },
+  ],
+  pagination: { page: 1, resultsPerPage: 41, totalAds: 1, totalPages: 1 },
+};
+
+/** Route all three source proxies to fixed payloads. */
 export async function mockListingSources(page: Page) {
   await page.route("**/api/wallapop/search**", (route) =>
     route.fulfill({ json: wallapop }),
   );
   await page.route("**/api/cochesnet/search**", (route) =>
     route.fulfill({ json: cochesnet }),
+  );
+  await page.route("**/api/milanuncios/search**", (route) =>
+    route.fulfill({ json: milanuncios }),
   );
   await page.route("**/api/cochesnet/models**", (route) =>
     route.fulfill({ json: { items: [] } }),

@@ -9,9 +9,14 @@ describe("SourceBadge", () => {
     expect(screen.getByText("coches.net")).toBeInTheDocument();
   });
 
-  it("falls back to the raw source name when unknown", () => {
+  it("renders the branded label for Milanuncios", () => {
     render(<SourceBadge source="Milanuncios" />);
     expect(screen.getByText("Milanuncios")).toBeInTheDocument();
+  });
+
+  it("falls back to the raw source name when unknown", () => {
+    render(<SourceBadge source="Autoscout24" />);
+    expect(screen.getByText("Autoscout24")).toBeInTheDocument();
   });
 
   it("has no accessibility violations", async () => {

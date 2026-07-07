@@ -7,6 +7,10 @@ import {
   makeCochesNetItem,
   makeCochesNetResponse,
 } from "@/test/fixtures/cochesnet";
+import {
+  makeMilanunciosAd,
+  makeMilanunciosResponse,
+} from "@/test/fixtures/milanuncios";
 import { triggerIntersection } from "@/test/mocks/intersection-observer";
 import { useListingsSearch } from "./useListingsSearch";
 
@@ -18,24 +22,26 @@ import { toast } from "sonner";
 afterEach(() => vi.clearAllMocks());
 
 describe("useListingsSearch", () => {
-  it("interleaves Wallapop and coches.net results and sets hasMore", async () => {
+  it("interleaves all three sources and sets hasMore", async () => {
     const { result } = renderHook(() => useListingsSearch());
 
     await act(async () => {
       await result.current.search({ keywords: "interleave-case" });
     });
 
-    // Default handlers return one item per source; interleave alternates them.
+    // Default handlers return one item per source; interleave round-robins them.
     expect(result.current.listings.map((l) => l.source)).toEqual([
       "Wallapop",
       "Coches.net",
+      "Milanuncios",
     ]);
-    // wallapop next_page "page-2" and coches.net totalPages 3 → more available.
+    // wallapop next_page "page-2", coches.net totalPages 3, milanuncios
+    // totalPages 5 → more available.
     expect(result.current.hasMore).toBe(true);
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("still renders one source when the other fails", async () => {
+  it("still renders the remaining sources when one fails", async () => {
     server.use(
       http.get("*/api/wallapop/search", () =>
         HttpResponse.json({ error: "down" }, { status: 500 }),
@@ -47,12 +53,14 @@ describe("useListingsSearch", () => {
       await result.current.search({ keywords: "partial-failure" });
     });
 
-    expect(result.current.listings).toHaveLength(1);
-    expect(result.current.listings[0].source).toBe("Coches.net");
+    expect(result.current.listings.map((l) => l.source)).toEqual([
+      "Coches.net",
+      "Milanuncios",
+    ]);
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it("toasts and renders nothing when both sources fail", async () => {
+  it("toasts and renders nothing when every source fails", async () => {
     server.use(
       http.get("*/api/wallapop/search", () =>
         HttpResponse.json({ error: "down" }, { status: 500 }),
@@ -60,11 +68,14 @@ describe("useListingsSearch", () => {
       http.post("*/api/cochesnet/search", () =>
         HttpResponse.json({ error: "down" }, { status: 500 }),
       ),
+      http.get("*/api/milanuncios/search", () =>
+        HttpResponse.json({ error: "down" }, { status: 500 }),
+      ),
     );
     const { result } = renderHook(() => useListingsSearch());
 
     await act(async () => {
-      await result.current.search({ keywords: "both-fail" });
+      await result.current.search({ keywords: "all-fail" });
     });
 
     expect(result.current.listings).toEqual([]);
@@ -79,12 +90,15 @@ describe("useListingsSearch", () => {
     });
     const first = result.current.listings;
 
-    // Both endpoints now fail — a cache hit means we never touch them.
+    // Every endpoint now fails — a cache hit means we never touch them.
     server.use(
       http.get("*/api/wallapop/search", () =>
         HttpResponse.json({}, { status: 500 }),
       ),
       http.post("*/api/cochesnet/search", () =>
+        HttpResponse.json({}, { status: 500 }),
+      ),
+      http.get("*/api/milanuncios/search", () =>
         HttpResponse.json({}, { status: 500 }),
       ),
     );
@@ -140,13 +154,17 @@ describe("useListingsSearch", () => {
       http.post("*/api/cochesnet/search", () =>
         HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 3)),
       ),
+      http.get("*/api/milanuncios/search", () =>
+        HttpResponse.json(makeMilanunciosResponse([makeMilanunciosAd()], 5)),
+      ),
     );
     const { result } = renderHook(() => useListingsSearch());
 
     await act(async () => {
       await result.current.search({ keywords: "paginate" });
     });
-    expect(result.current.listings).toHaveLength(2);
+    // One item per source on page 1.
+    expect(result.current.listings).toHaveLength(3);
 
     // Attach the sentinel, then simulate it scrolling into view.
     act(() => result.current.sentinelRef(document.createElement("div")));
@@ -154,6 +172,7 @@ describe("useListingsSearch", () => {
       triggerIntersection();
     });
 
-    await waitFor(() => expect(result.current.listings).toHaveLength(4));
+    // Each source still has a further page → one more item each.
+    await waitFor(() => expect(result.current.listings).toHaveLength(6));
   });
 });

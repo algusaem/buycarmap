@@ -6,16 +6,19 @@ import { searchWallapop } from "@/lib/wallapop/client";
 import { normalizeWallapopItems } from "@/lib/wallapop/normalize";
 import { searchCochesNet } from "@/lib/cochesnet/client";
 import { normalizeCochesNetItems } from "@/lib/cochesnet/normalize";
+import { searchMilanuncios } from "@/lib/milanuncios/client";
+import { normalizeMilanunciosItems } from "@/lib/milanuncios/normalize";
 import { getCached, setCached } from "@/lib/wallapop/cache";
 
-// Merge two source result lists by alternating, so both Wallapop and
-// coches.net listings appear near the top instead of one source dominating.
-function interleave(a: CarListing[], b: CarListing[]): CarListing[] {
+// Merge the per-source result lists by round-robin, so every source appears
+// near the top instead of one dominating.
+function interleave(lists: CarListing[][]): CarListing[] {
   const merged: CarListing[] = [];
-  const max = Math.max(a.length, b.length);
+  const max = Math.max(0, ...lists.map((l) => l.length));
   for (let i = 0; i < max; i++) {
-    if (i < a.length) merged.push(a[i]);
-    if (i < b.length) merged.push(b[i]);
+    for (const list of lists) {
+      if (i < list.length) merged.push(list[i]);
+    }
   }
   return merged;
 }
@@ -24,12 +27,16 @@ interface PageState {
   wallapopNext: string | null;
   cochesNetPage: number;
   cochesNetHasMore: boolean;
+  milanunciosPage: number;
+  milanunciosHasMore: boolean;
 }
 
 const EMPTY_PAGE: PageState = {
   wallapopNext: null,
   cochesNetPage: 0,
   cochesNetHasMore: false,
+  milanunciosPage: 0,
+  milanunciosHasMore: false,
 };
 
 export function useListingsSearch() {
@@ -44,7 +51,10 @@ export function useListingsSearch() {
   const searchVersionRef = useRef(0);
 
   const applyHasMore = useCallback((state: PageState) => {
-    const more = state.wallapopNext !== null || state.cochesNetHasMore;
+    const more =
+      state.wallapopNext !== null ||
+      state.cochesNetHasMore ||
+      state.milanunciosHasMore;
     setHasMore(more);
   }, []);
 
@@ -79,13 +89,18 @@ export function useListingsSearch() {
     pageRef.current = EMPTY_PAGE;
     setHasMore(false);
 
-    const [wpResult, cnResult] = await Promise.allSettled([
+    const [wpResult, cnResult, mnResult] = await Promise.allSettled([
       searchWallapop(params),
       searchCochesNet(params, 1),
+      searchMilanuncios(params, 1),
     ]);
     if (searchVersionRef.current !== version) return;
 
-    if (wpResult.status === "rejected" && cnResult.status === "rejected") {
+    if (
+      wpResult.status === "rejected" &&
+      cnResult.status === "rejected" &&
+      mnResult.status === "rejected"
+    ) {
       toast.error("Failed to fetch listings");
       setIsLoading(false);
       return;
@@ -97,8 +112,10 @@ export function useListingsSearch() {
         : [];
     const cnData = cnResult.status === "fulfilled" ? cnResult.value : null;
     const cnItems = cnData ? normalizeCochesNetItems(cnData.items ?? []) : [];
+    const mnData = mnResult.status === "fulfilled" ? mnResult.value : null;
+    const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
 
-    const merged = interleave(wpItems, cnItems);
+    const merged = interleave([wpItems, cnItems, mnItems]);
     const nextState: PageState = {
       wallapopNext:
         wpResult.status === "fulfilled"
@@ -107,6 +124,10 @@ export function useListingsSearch() {
       cochesNetPage: 1,
       cochesNetHasMore: cnData
         ? cnData.items.length > 0 && 1 < (cnData.meta?.totalPages ?? 1)
+        : false,
+      milanunciosPage: 1,
+      milanunciosHasMore: mnData
+        ? mnData.ads.length > 0 && 1 < (mnData.pagination?.totalPages ?? 1)
         : false,
     };
 
@@ -122,7 +143,12 @@ export function useListingsSearch() {
     const params = lastParamsRef.current;
     if (isLoadingMoreRef.current || !params) return;
     const state = pageRef.current;
-    if (state.wallapopNext === null && !state.cochesNetHasMore) return;
+    if (
+      state.wallapopNext === null &&
+      !state.cochesNetHasMore &&
+      !state.milanunciosHasMore
+    )
+      return;
 
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
@@ -135,21 +161,24 @@ export function useListingsSearch() {
       const cnPromise = state.cochesNetHasMore
         ? searchCochesNet(params, state.cochesNetPage + 1)
         : null;
+      const mnPromise = state.milanunciosHasMore
+        ? searchMilanuncios(params, state.milanunciosPage + 1)
+        : null;
 
-      const [wpResult, cnResult] = await Promise.allSettled([
+      const [wpResult, cnResult, mnResult] = await Promise.allSettled([
         wpPromise ?? Promise.resolve(null),
         cnPromise ?? Promise.resolve(null),
+        mnPromise ?? Promise.resolve(null),
       ]);
 
       const wpItems =
         wpResult.status === "fulfilled" && wpResult.value
-          ? normalizeWallapopItems(
-              wpResult.value.data?.section?.items ?? [],
-            )
+          ? normalizeWallapopItems(wpResult.value.data?.section?.items ?? [])
           : [];
-      const cnData =
-        cnResult.status === "fulfilled" ? cnResult.value : null;
+      const cnData = cnResult.status === "fulfilled" ? cnResult.value : null;
       const cnItems = cnData ? normalizeCochesNetItems(cnData.items ?? []) : [];
+      const mnData = mnResult.status === "fulfilled" ? mnResult.value : null;
+      const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
 
       const nextState: PageState = {
         wallapopNext: wpPromise
@@ -163,10 +192,21 @@ export function useListingsSearch() {
             cnData.items.length > 0 &&
             state.cochesNetPage + 1 < (cnData.meta?.totalPages ?? 1)
           : state.cochesNetHasMore,
+        milanunciosPage: mnPromise
+          ? state.milanunciosPage + 1
+          : state.milanunciosPage,
+        milanunciosHasMore: mnPromise
+          ? !!mnData &&
+            mnData.ads.length > 0 &&
+            state.milanunciosPage + 1 < (mnData.pagination?.totalPages ?? 1)
+          : state.milanunciosHasMore,
       };
 
       pageRef.current = nextState;
-      setListings((prev) => [...prev, ...interleave(wpItems, cnItems)]);
+      setListings((prev) => [
+        ...prev,
+        ...interleave([wpItems, cnItems, mnItems]),
+      ]);
       applyHasMore(nextState);
     } catch {
       toast.error("Failed to load more listings");

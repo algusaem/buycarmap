@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**.ccdn.es",
       },
+      {
+        protocol: "https",
+        hostname: "**.milanuncios.com",
+      },
     ],
   },
 };

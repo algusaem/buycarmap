@@ -5,6 +5,11 @@ import {
   makeCochesNetResponse,
   makeCochesNetTaxonomy,
 } from "../fixtures/cochesnet";
+import {
+  makeMilanunciosAd,
+  makeMilanunciosHtml,
+  makeMilanunciosResponse,
+} from "../fixtures/milanuncios";
 
 // Default happy-path handlers. Two audiences share this file:
 //   - jsdom source clients hit the local proxy routes (`/api/...`).
@@ -30,6 +35,9 @@ export const handlers = [
   http.get("*/api/cochesnet/models", () =>
     HttpResponse.json(makeCochesNetTaxonomy([{ id: 4321, label: "Serie 3" }])),
   ),
+  http.get("*/api/milanuncios/search", () =>
+    HttpResponse.json(makeMilanunciosResponse([makeMilanunciosAd()], 5)),
+  ),
 
   // ---- Nominatim geocoding (consumed by lib/geo/nominatim.ts) ----
   http.get("https://nominatim.openstreetmap.org/search", () =>
@@ -50,5 +58,8 @@ export const handlers = [
   ),
   http.post("https://web.gw.coches.net/search/listing", () =>
     HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 3)),
+  ),
+  http.get("https://www.milanuncios.com/*", () =>
+    HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([makeMilanunciosAd()], 5))),
   ),
 ];
