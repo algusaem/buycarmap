@@ -55,6 +55,102 @@ export const en: Translations = {
     brandTagline: "Find your next car on the map",
     return: "Return",
   },
+  forgotPassword: {
+    title: "Reset your password",
+    description:
+      "Enter the email linked to your account and we'll send you a link to choose a new password.",
+    submit: "Send reset link",
+    submitting: "Sending…",
+    backToLogin: "Back to sign in",
+    successTitle: "Check your email",
+    successDescription:
+      "If an account matches that email, a link to reset your password is on its way. It may take a few minutes to arrive.",
+    genericError: "Something went wrong. Please try again.",
+  },
+  legal: {
+    backToHome: "Back to home",
+    lastUpdated: "Last updated",
+    terms: {
+      title: "Terms of Service",
+      updated: "7 July 2026",
+      intro:
+        "These terms govern your use of BuyCarMap. By accessing or using the service, you agree to them. Please read them carefully.",
+      sections: [
+        {
+          heading: "About the service",
+          body: "BuyCarMap aggregates second-hand car listings published on third-party platforms such as Wallapop, coches.net and Milanuncios, and shows them together on an interactive map. We are a search and comparison tool: we do not sell vehicles, hold listings, or take part in any transaction between buyers and sellers.",
+        },
+        {
+          heading: "Your account",
+          body: "You may browse without an account. If you create one, you are responsible for keeping your credentials secure and for all activity under your account. Provide accurate information and notify us of any unauthorized use.",
+        },
+        {
+          heading: "Acceptable use",
+          body: "Use BuyCarMap only for lawful, personal, non-commercial purposes. Do not attempt to scrape, overload, reverse-engineer, or disrupt the service, and do not use it to infringe the rights of others.",
+        },
+        {
+          heading: "Third-party listings",
+          body: "Listing details — price, mileage, photos, availability and seller information — originate from the source platforms and are shown as provided. We do not verify them and cannot guarantee their accuracy, completeness, or that a vehicle is still available. Always confirm details directly with the seller before acting.",
+        },
+        {
+          heading: "No warranty",
+          body: "The service is provided “as is” and “as available”, without warranties of any kind. We do not guarantee that BuyCarMap will be uninterrupted, error-free, or that results will meet your requirements.",
+        },
+        {
+          heading: "Limitation of liability",
+          body: "To the fullest extent permitted by law, BuyCarMap is not liable for any loss arising from your use of the service or from any transaction with a seller found through it, including the purchase of a vehicle.",
+        },
+        {
+          heading: "Changes to these terms",
+          body: "We may update these terms as the service evolves. Material changes will be reflected by the “last updated” date above, and continued use of BuyCarMap means you accept the revised terms.",
+        },
+        {
+          heading: "Contact",
+          body: "Questions about these terms? Reach us at hello@buycarmap.com.",
+        },
+      ],
+    },
+    privacy: {
+      title: "Privacy Policy",
+      updated: "7 July 2026",
+      intro:
+        "This policy explains what data BuyCarMap collects, why, and what you can do about it. We aim to collect as little as possible.",
+      sections: [
+        {
+          heading: "Information we collect",
+          body: "If you create an account, we store your email address, an optional display name, and a securely hashed password — never the password itself. When you are signed in, we save your search queries so you can revisit them. We also process basic technical data needed to serve the app.",
+        },
+        {
+          heading: "How we use your data",
+          body: "We use your data to provide the service: to authenticate you, keep you signed in, save your searches, and improve how BuyCarMap works. We do not sell your personal data.",
+        },
+        {
+          heading: "Location",
+          body: "To centre the map on you, we may ask your browser for your location. It is only used to order results and is never stored on our servers unless you explicitly save a location as part of a search. You can decline, and we fall back to a default region.",
+        },
+        {
+          heading: "Cookies",
+          body: "We use a small number of cookies for essential functions only: keeping you signed in, and remembering your language and theme preferences. We do not use advertising cookies.",
+        },
+        {
+          heading: "Third-party services",
+          body: "To show listings and maps we contact external providers, including Wallapop, coches.net and Milanuncios (listings), OpenStreetMap / Nominatim (geocoding), CARTO (map tiles), and Neon (database hosting). Their handling of any data is governed by their own privacy policies.",
+        },
+        {
+          heading: "Data retention",
+          body: "We keep account and search data for as long as your account is active. When you delete your account, the associated data is removed.",
+        },
+        {
+          heading: "Your rights",
+          body: "You can request access to, correction of, or deletion of your personal data at any time. Depending on where you live, you may have additional rights under laws such as the GDPR.",
+        },
+        {
+          heading: "Contact",
+          body: "For any privacy question or request, contact us at privacy@buycarmap.com.",
+        },
+      ],
+    },
+  },
   map: {
     searching: "Searching\u2026",
     emptyState: "Search for cars to see results",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loginSchema, registerSchema } from "./auth";
+import { forgotPasswordSchema, loginSchema, registerSchema } from "./auth";
 
 describe("loginSchema", () => {
   it("accepts a valid email + password", () => {
@@ -107,6 +107,40 @@ describe("registerSchema", () => {
       const issue = result.error.issues[0];
       expect(issue.message).toBe("Passwords do not match");
       expect(issue.path).toEqual(["confirmPassword"]);
+    }
+  });
+});
+
+describe("forgotPasswordSchema", () => {
+  it("accepts a valid email", () => {
+    expect(forgotPasswordSchema.safeParse({ email: "a@b.com" }).success).toBe(
+      true,
+    );
+  });
+
+  it("rejects an invalid email address", () => {
+    const result = forgotPasswordSchema.safeParse({ email: "nope" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("Invalid email address");
+    }
+  });
+
+  it("rejects an empty email as required", () => {
+    const result = forgotPasswordSchema.safeParse({ email: "" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("Email is required");
+    }
+  });
+
+  it("trims and lowercases the email on the parsed output", () => {
+    const result = forgotPasswordSchema.safeParse({
+      email: "  ADA@Example.COM ",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.email).toBe("ada@example.com");
     }
   });
 });

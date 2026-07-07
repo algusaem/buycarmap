@@ -16,9 +16,13 @@ const ListingsMap = dynamic(
   { ssr: false },
 );
 
-export function MapView() {
+interface MapViewProps {
+  initialQuery?: string;
+}
+
+export function MapView({ initialQuery = "" }: MapViewProps) {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [showMap, setShowMap] = useState(false);
   const { listings, isLoading, isLoadingMore, hasMore, search, sentinelRef } =
     useListingsSearch();

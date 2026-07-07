@@ -1,3 +1,15 @@
+export interface LegalSection {
+  heading: string;
+  body: string;
+}
+
+export interface LegalDocument {
+  title: string;
+  updated: string;
+  intro: string;
+  sections: LegalSection[];
+}
+
 export interface Translations {
   common: {
     search: string;
@@ -51,6 +63,22 @@ export interface Translations {
     privacyPolicy: string;
     brandTagline: string;
     return: string;
+  };
+  forgotPassword: {
+    title: string;
+    description: string;
+    submit: string;
+    submitting: string;
+    backToLogin: string;
+    successTitle: string;
+    successDescription: string;
+    genericError: string;
+  };
+  legal: {
+    backToHome: string;
+    lastUpdated: string;
+    terms: LegalDocument;
+    privacy: LegalDocument;
   };
   map: {
     searching: string;

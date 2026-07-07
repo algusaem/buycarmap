@@ -103,13 +103,13 @@ export function useSearchFilters(
     // Fire an immediate search (uses Spain-center fallback if geolocation
     // hasn't resolved yet), then re-search once geolocation finishes so
     // results are centered on the user's actual location.
-    search(toParams("", INITIAL_FILTERS));
+    search(toParams(getKeywords(), INITIAL_FILTERS));
     initUserGeolocation();
     waitForGeolocation().then(() => {
       if (cancelled) return;
       // Only re-search if the user hasn't already picked an explicit location.
       if (!filtersRef.current.selectedLocation) {
-        search(toParams("", filtersRef.current));
+        search(toParams(getKeywords(), filtersRef.current));
       }
     });
     return () => {

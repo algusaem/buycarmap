@@ -55,6 +55,102 @@ export const es: Translations = {
     brandTagline: "Encuentra tu próximo coche en el mapa",
     return: "Volver",
   },
+  forgotPassword: {
+    title: "Restablecer tu contraseña",
+    description:
+      "Introduce el correo asociado a tu cuenta y te enviaremos un enlace para elegir una nueva contraseña.",
+    submit: "Enviar enlace",
+    submitting: "Enviando…",
+    backToLogin: "Volver a iniciar sesión",
+    successTitle: "Revisa tu correo",
+    successDescription:
+      "Si existe una cuenta con ese correo, te enviaremos un enlace para restablecer tu contraseña. Puede tardar unos minutos en llegar.",
+    genericError: "Algo ha ido mal. Inténtalo de nuevo.",
+  },
+  legal: {
+    backToHome: "Volver al inicio",
+    lastUpdated: "Última actualización",
+    terms: {
+      title: "Términos del servicio",
+      updated: "7 de julio de 2026",
+      intro:
+        "Estos términos regulan el uso de BuyCarMap. Al acceder o utilizar el servicio, los aceptas. Léelos con atención.",
+      sections: [
+        {
+          heading: "Sobre el servicio",
+          body: "BuyCarMap agrupa anuncios de coches de segunda mano publicados en plataformas de terceros como Wallapop, coches.net y Milanuncios, y los muestra juntos en un mapa interactivo. Somos una herramienta de búsqueda y comparación: no vendemos vehículos, no alojamos los anuncios ni participamos en ninguna transacción entre comprador y vendedor.",
+        },
+        {
+          heading: "Tu cuenta",
+          body: "Puedes navegar sin cuenta. Si creas una, eres responsable de mantener tus credenciales seguras y de toda la actividad realizada con ella. Facilita información veraz y avísanos de cualquier uso no autorizado.",
+        },
+        {
+          heading: "Uso aceptable",
+          body: "Utiliza BuyCarMap solo con fines lícitos, personales y no comerciales. No intentes extraer datos de forma masiva, sobrecargar, aplicar ingeniería inversa ni interrumpir el servicio, ni lo uses para vulnerar los derechos de terceros.",
+        },
+        {
+          heading: "Anuncios de terceros",
+          body: "Los datos de cada anuncio —precio, kilometraje, fotos, disponibilidad e información del vendedor— provienen de las plataformas de origen y se muestran tal cual. No los verificamos y no podemos garantizar su exactitud, integridad ni que el vehículo siga disponible. Confirma siempre los detalles directamente con el vendedor antes de actuar.",
+        },
+        {
+          heading: "Sin garantías",
+          body: "El servicio se presta «tal cual» y «según disponibilidad», sin garantías de ningún tipo. No garantizamos que BuyCarMap funcione sin interrupciones ni errores, ni que los resultados se ajusten a tus necesidades.",
+        },
+        {
+          heading: "Limitación de responsabilidad",
+          body: "En la medida permitida por la ley, BuyCarMap no se hace responsable de ninguna pérdida derivada del uso del servicio ni de cualquier transacción con un vendedor encontrado a través de él, incluida la compra de un vehículo.",
+        },
+        {
+          heading: "Cambios en los términos",
+          body: "Podemos actualizar estos términos a medida que el servicio evoluciona. Los cambios relevantes se reflejarán en la fecha de «última actualización», y el uso continuado de BuyCarMap implica que aceptas los términos revisados.",
+        },
+        {
+          heading: "Contacto",
+          body: "¿Dudas sobre estos términos? Escríbenos a hello@buycarmap.com.",
+        },
+      ],
+    },
+    privacy: {
+      title: "Política de privacidad",
+      updated: "7 de julio de 2026",
+      intro:
+        "Esta política explica qué datos recopila BuyCarMap, por qué y qué puedes hacer al respecto. Intentamos recopilar los mínimos posibles.",
+      sections: [
+        {
+          heading: "Información que recopilamos",
+          body: "Si creas una cuenta, guardamos tu correo electrónico, un nombre opcional y una contraseña cifrada de forma segura, nunca la contraseña en sí. Cuando has iniciado sesión, guardamos tus búsquedas para que puedas volver a ellas. También procesamos datos técnicos básicos necesarios para ofrecer la aplicación.",
+        },
+        {
+          heading: "Cómo usamos tus datos",
+          body: "Usamos tus datos para prestar el servicio: autenticarte, mantener tu sesión, guardar tus búsquedas y mejorar el funcionamiento de BuyCarMap. No vendemos tus datos personales.",
+        },
+        {
+          heading: "Ubicación",
+          body: "Para centrar el mapa en ti, podemos pedir tu ubicación al navegador. Solo se usa para ordenar los resultados y no se almacena en nuestros servidores salvo que guardes expresamente una ubicación dentro de una búsqueda. Puedes rechazarlo y usaremos una región por defecto.",
+        },
+        {
+          heading: "Cookies",
+          body: "Usamos un número reducido de cookies solo para funciones esenciales: mantener tu sesión y recordar tus preferencias de idioma y tema. No usamos cookies publicitarias.",
+        },
+        {
+          heading: "Servicios de terceros",
+          body: "Para mostrar anuncios y mapas contactamos con proveedores externos, como Wallapop, coches.net y Milanuncios (anuncios), OpenStreetMap / Nominatim (geocodificación), CARTO (teselas del mapa) y Neon (alojamiento de la base de datos). El tratamiento que hagan de los datos se rige por sus propias políticas de privacidad.",
+        },
+        {
+          heading: "Conservación de datos",
+          body: "Conservamos los datos de cuenta y de búsqueda mientras tu cuenta esté activa. Cuando eliminas tu cuenta, los datos asociados se eliminan.",
+        },
+        {
+          heading: "Tus derechos",
+          body: "Puedes solicitar en cualquier momento el acceso, la rectificación o la eliminación de tus datos personales. Según dónde residas, puedes tener derechos adicionales conforme a normativas como el RGPD.",
+        },
+        {
+          heading: "Contacto",
+          body: "Para cualquier consulta o solicitud sobre privacidad, escríbenos a privacy@buycarmap.com.",
+        },
+      ],
+    },
+  },
   map: {
     searching: "Buscando\u2026",
     emptyState: "Busca coches para ver resultados",

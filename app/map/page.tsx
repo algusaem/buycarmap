@@ -1,5 +1,10 @@
 import { MapView } from "@/components/map/MapView";
 
-export default function MapPage() {
-  return <MapView />;
+export default async function MapPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  return <MapView initialQuery={q ?? ""} />;
 }

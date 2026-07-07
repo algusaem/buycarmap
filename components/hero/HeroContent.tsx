@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as motion from "motion/react-client";
 import { Search, MapPin, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,12 @@ import { fadeInUpVariant, staggerContainer, buttonTap } from "@/lib/animations";
 export function HeroContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const { t } = useTranslation();
+  const router = useRouter();
+
+  const goToSearch = (query: string) => {
+    const trimmed = query.trim();
+    router.push(trimmed ? `/map?q=${encodeURIComponent(trimmed)}` : "/map");
+  };
 
   const stats = [
     { value: "50K+", label: t.hero.stats.listings },
@@ -50,22 +57,34 @@ export function HeroContent() {
         variants={fadeInUpVariant}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        <div className="flex gap-2 rounded-xl border border-border/50 bg-card/80 p-2 shadow-lg backdrop-blur-sm transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            goToSearch(searchQuery);
+          }}
+          className="flex gap-2 rounded-xl border border-border/50 bg-card/80 p-2 shadow-lg backdrop-blur-sm transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]"
+        >
           <div className="relative flex-1 ">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
+              name="q"
               placeholder={t.hero.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="border-0 bg-transparent pl-10 text-base shadow-none focus-visible:ring-0"
             />
           </div>
-          <Button size="lg" className="gap-2 px-6">
+          <Button
+            type="submit"
+            size="lg"
+            className="gap-2 px-6"
+            aria-label={t.common.search}
+          >
             <span className="hidden sm:inline">{t.common.search}</span>
             <ArrowRight className="h-4 w-4" />
           </Button>
-        </div>
+        </form>
 
         {/* Quick filters */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -75,7 +94,8 @@ export function HeroContent() {
           {["Golf", "Seat León", "BMW Serie 3", "Audi A4"].map((term, i) => (
             <motion.button
               key={term}
-              onClick={() => setSearchQuery(term)}
+              type="button"
+              onClick={() => goToSearch(term)}
               className="rounded-full border border-border/50 bg-card/50 px-3 py-1 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}

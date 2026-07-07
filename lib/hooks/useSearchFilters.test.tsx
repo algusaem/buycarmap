@@ -19,6 +19,17 @@ describe("useSearchFilters", () => {
     );
   });
 
+  it("includes the initial keyword from getKeywords in the mount search", () => {
+    // A landing-page search seeds the map via /map?q=... — the keyword must be
+    // carried into the very first search, not dropped in favour of "".
+    const search = vi.fn();
+    renderHook(() => useSearchFilters(search, () => "golf"));
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({ keywords: "golf" }),
+    );
+  });
+
   it("debounces filter updates by 400ms before searching", async () => {
     vi.useFakeTimers();
     const search = vi.fn();
