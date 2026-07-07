@@ -1,5 +1,10 @@
-allowBuilds:
-  '@prisma/engines': set this to true or false
-  prisma: set this to true or false
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
+# Build scripts pnpm is allowed to run on install. Everything else is blocked
+# by default (pnpm's supply-chain guard). prisma/@prisma/engines generate the
+# client, sharp powers next/image optimization, unrs-resolver is a native
+# resolver used by ESLint, msw's postinstall is harmless.
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - prisma
+  - msw
+  - sharp
+  - unrs-resolver

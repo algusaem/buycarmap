@@ -47,3 +47,6 @@ nul
 /test-results
 /playwright-report
 /blob-report
+
+# using pnpm — keep npm from re-creating this
+/package-lock.json

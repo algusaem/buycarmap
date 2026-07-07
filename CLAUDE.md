@@ -28,17 +28,20 @@ BuyCarMap aggregates second-hand car listings and displays them on an interactiv
 ## Commands
 
 ```bash
-npm run dev            # Start dev server (next dev)
-npm run build          # prisma generate && next build
-npm run start          # next start
-npm run lint           # eslint
-npm test               # Vitest (unit + hook + integration + component + contract)
-npm run test:watch     # Vitest watch mode
-npm run test:coverage  # Vitest with v8 coverage
-npm run test:e2e        # Playwright end-to-end (needs a runnable app + browsers)
-npm run test:contract       # Contract tests vs fixtures (offline)
-npm run test:contract:live  # Contract tests vs the real Wallapop/coches.net APIs
+# Package manager is pnpm (v11). Do not use npm/yarn — there is no package-lock.json.
+pnpm dev              # Start dev server (next dev)
+pnpm build            # prisma generate && next build
+pnpm start            # next start
+pnpm lint             # eslint
+pnpm test             # Vitest (unit + hook + integration + component + contract)
+pnpm test:watch       # Vitest watch mode
+pnpm test:coverage    # Vitest with v8 coverage
+pnpm test:e2e         # Playwright end-to-end (needs a runnable app + browsers)
+pnpm test:contract       # Contract tests vs fixtures (offline)
+pnpm test:contract:live  # Contract tests vs the real Wallapop/coches.net APIs
 ```
+
+> pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` under `onlyBuiltDependencies` (currently prisma, `@prisma/engines`, msw, sharp, unrs-resolver). If you add a dependency with a native/build step and `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
 
 ## Project Structure
 
@@ -222,7 +225,7 @@ Stack: **Vitest** (unit/hook/integration/component), **React Testing Library**, 
 ### E2E (Playwright, `e2e/`)
 
 - Runs against a real `next dev` server (Playwright `webServer`). The two source proxies are mocked at the **browser** level via `page.route` (`e2e/fixtures/network.ts`) so e2e never hits live Wallapop/coches.net. Fixture image URLs must use an **allowed `next.config` host** (`**.wallapop.com`, `**.ccdn.es`) or `next/image` throws a client exception.
-- **Three projects**: `chromium` + `mobile` (functional, run by `npm run test:e2e`) and `visual` (screenshots, run by `npm run test:visual`). Visual is deliberately excluded from `test:e2e` so pixel diffs never gate functional PRs.
+- **Three projects**: `chromium` + `mobile` (functional, run by `pnpm test:e2e`) and `visual` (screenshots, run by `pnpm test:visual`). Visual is deliberately excluded from `test:e2e` so pixel diffs never gate functional PRs.
 - **Visual baselines are platform-specific** (`*-win32.png` locally). CI is ubuntu, so regenerate Linux baselines (`--update-snapshots` on Linux) before enabling visual in CI.
 - **Auth e2e covers client validation only.** The register→login persistence round-trip is a `test.skip` stub — enable it once a disposable Postgres/Prisma test DB is wired.
 - Known findings the suite surfaced (unfixed, flagged): auth pages fail `color-contrast` (excluded from the a11y gate); malformed-email is caught by native browser validation, not RHF (forms lack `noValidate`).
