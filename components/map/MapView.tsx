@@ -20,7 +20,7 @@ export function MapView() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [showMap, setShowMap] = useState(false);
-  const { listings, isLoading, isLoadingMore, nextPage, search, sentinelRef } =
+  const { listings, isLoading, isLoadingMore, hasMore, search, sentinelRef } =
     useListingsSearch();
 
   const getKeywords = useCallback(() => searchQuery, [searchQuery]);
@@ -98,7 +98,7 @@ export function MapView() {
                   <CarListingCard key={listing.id} {...listing} />
                 ))}
               </div>
-              {nextPage && (
+              {hasMore && (
                 <div ref={sentinelRef} className="mt-6 flex justify-center py-4">
                   {isLoadingMore && (
                     <div className="flex items-center gap-2">

@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**.wallapop.com",
       },
+      {
+        protocol: "https",
+        hostname: "**.ccdn.es",
+      },
     ],
   },
 };

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CarListing } from "@/interfaces/listing";
+import { SourceBadge } from "@/components/map/SourceBadge";
 import { useTranslation } from "@/lib/i18n/client";
 
 interface CarListingCardProps extends CarListing {
@@ -85,9 +86,7 @@ export function CarListingCard({
           </Button>
 
           {/* Source badge */}
-          <div className="absolute bottom-3 left-3 rounded-md bg-background/80 px-2 py-1 text-xs font-medium backdrop-blur-sm">
-            {source}
-          </div>
+          <SourceBadge source={source} className="absolute bottom-3 left-3" />
         </div>
       </Link>
 
