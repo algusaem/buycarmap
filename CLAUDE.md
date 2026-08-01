@@ -4,7 +4,7 @@
 
 BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, year, mileage, horsepower, fuel, transmission, and recency, then browse results as a synchronized card list + map.
 
-**Current state**: The live data sources are **Wallapop** and **coches.net**, both proxied through Next.js API routes and merged into one result set. Other sources listed below are planned, not yet integrated. Auth (register/login) works but listing persistence, saved searches, and favorites are not built yet — the schema only has `User`, `Session`, and `SearchHistory`. Keep this in mind: do not assume `Car`/`Favorite`/`SavedSearch` models exist.
+**Current state**: The live data sources are **Wallapop** and **coches.net**, both proxied through Next.js API routes and merged into one result set. Other sources listed below are planned, not yet integrated. Auth is complete (register, login, password reset, account management, optional OAuth) — see **Authentication** below. Listing persistence, saved searches, and favorites are not built yet. Keep this in mind: do not assume `Car`/`Favorite`/`SavedSearch` models exist.
 
 ## Tech Stack
 
@@ -47,9 +47,13 @@ pnpm test:contract:live  # Contract tests vs the real Wallapop/coches.net APIs
 
 ```
 app/
-  actions/                      # Server actions (register.ts)
+  account/page.tsx              # Profile, change password, delete account (guarded)
+  reset-password/page.tsx       # Redeems an emailed reset token
+  verify-email/page.tsx         # Confirms a signup and creates the account
+  confirm-email/page.tsx        # Verifies an address, or completes an email change
+  actions/                      # Server actions (register, forgot-password, reset-password, account)
   api/
-    auth/[...nextauth]/route.ts # NextAuth handler (exports authOptions)
+    auth/[...nextauth]/route.ts # NextAuth handler (authOptions live in lib/auth/options.ts)
     wallapop/search/route.ts    # Proxy → Wallapop search/section
     wallapop/filters/models/    # Proxy → Wallapop model list for a brand
     cochesnet/search/route.ts   # Proxy → coches.net search/listing (POST)
@@ -66,14 +70,19 @@ components/
   ui/                           # button, card, input, label, select, separator, toggle-chip, range-input
   Navbar, ThemeProvider, ThemeSwitcher, LanguageSwitcher
 lib/
-  hooks/                        # useListingsSearch, useSearchFilters, useCarModels, useLocationSearch, useMounted, useThemeTransition
+  hooks/                        # useListingsSearch, useSearchFilters, useCarModels, useLocationSearch, useOAuthProviders, useMounted, useThemeTransition
   wallapop/                     # client, filters, normalize, cache
   cochesnet/                    # client, normalize, taxonomy (ID maps), geo (geocoding)
   geo/                          # cities (static), nominatim (geocode), user-location (browser geolocation)
-  i18n/                         # config, client (provider + useTranslation), server, translations, locales/{en,es}
+  i18n/                         # config, client, server, errors (code → copy), translations, locales/{en,es}
   validations/                  # auth.ts, search.ts (Zod schemas)
-  auth/hash.ts                  # bcrypt hashing
+  auth/                         # options (authOptions), session, authorize, hash, cleanup, password-strength,
+                                #   password-policy, pwned (HIBP), tokens
+  email/                        # client (Resend via fetch), copy, templates/
+  env.ts                        # Zod-validated server env; throws at boot if invalid
+  rate-limit.ts                 # Postgres-backed fixed-window limiter
   prisma.ts  utils.ts  animations.ts
+proxy.ts                        # Route protection (Next 16's renamed middleware)
 interfaces/                     # wallapop.ts, listing.ts, location.ts (reusable typings)
 types/next-auth.d.ts            # Session type extension
 prisma/schema.prisma
@@ -118,9 +127,14 @@ The whole app lives under `/map` and is orchestrated by `components/map/MapView.
 
 Current schema (`prisma/schema.prisma`) — only these exist:
 
-- **User**: `id`, `email` (unique), `password`, `name?`, `avatarUrl?`, timestamps. Relations: `sessions`, `searchHistories`.
-- **Session**: token-based session rows (`token` unique, `expiresAt`), cascade-deleted with the user.
+- **User**: `id`, `email` (unique), `password?` (null for OAuth-only accounts), `name?`, `image?`, `emailVerified?`, `passwordChangedAt`, timestamps.
+- **Account** / **Session** / **VerificationToken**: the shapes `@next-auth/prisma-adapter` requires. `Session` is unused while the strategy is JWT, but the adapter's types need the model.
+- **PasswordResetToken** / **EmailVerificationToken**: `tokenHash` (sha-256), `expiresAt`, `usedAt`. Single-use; the raw token is never stored. `EmailVerificationToken.newEmail` is null to confirm the current address and set to the target for an email change.
+- **PendingRegistration**: a submitted-but-unconfirmed signup (`email`, bcrypt `password`, `tokenHash`). No `User` row exists until the link is confirmed — this is what makes registration enumeration-resistant.
+- **RateLimit**: `key`, `count`, `expiresAt` — fixed-window counters for the auth limiter.
 - **SearchHistory**: `userId`, `query`, `createdAt`.
+
+Note: `User.avatarUrl` was renamed to `image` because the NextAuth adapter writes the OAuth profile picture to that exact field.
 
 Planned (not yet modeled): normalized `Car` listings, `Source`, `SavedSearch`, `Favorite`, price history, notifications. If a task needs these, add the models — don't assume they're present.
 
@@ -260,9 +274,48 @@ Stack: **Vitest** (unit/hook/integration/component), **React Testing Library**, 
 
 ### Authentication
 
-- NextAuth 4, Credentials provider, JWT sessions. Config (`authOptions`) exported from `app/api/auth/[...nextauth]/route.ts`.
-- Passwords hashed with bcryptjs (12 rounds) via `lib/auth/hash.ts`. Session type extended in `types/next-auth.d.ts`.
-- Registration = server action (`app/actions/register.ts`) creates the user, then the client calls `signIn("credentials", ...)`.
+- NextAuth 4, JWT sessions. **`authOptions` lives in `lib/auth/options.ts`**, not the route file — server components and actions import it for `getServerSession`, and pulling it from a route would drag the handler along.
+- Providers: Credentials always; Google/GitHub only when both halves of their env pair are set (`lib/env.ts`). The Prisma adapter is attached only when OAuth is configured. Both providers use `allowDangerousEmailAccountLinking` — see the reasoning comment in `options.ts` before changing it.
+- Passwords hashed with bcryptjs (12 rounds) via `lib/auth/hash.ts`.
+- **Never call `getServerSession` directly** — use `getCurrentUser()` from `lib/auth/session.ts`. Every server action that touches user data must call it; `proxy.ts` only decodes the JWT and cannot see revocations, so it is UX, not authorization.
+
+#### Password policy (NIST SP 800-63B)
+
+Length and blocklists, not composition rules. Three layers, all of which must pass:
+
+1. `lib/validations/auth.ts` — length only (12–72; 72 is bcrypt's truncation limit). Shared by register / reset / change so they cannot drift.
+2. `lib/auth/password-strength.ts` — dependency-free scorer (0–4), also used by the client meter. Rejects below 2.
+3. `lib/auth/pwned.ts` — Have I Been Pwned k-anonymity check. Only the first 5 hash characters leave the process. **Fails open** on outage.
+
+`lib/auth/password-policy.ts` composes 2 and 3; call `validateNewPassword()` from any action that sets a password. The client meter is a hint — the server gate is what counts.
+
+#### Error codes, not messages
+
+Zod schemas and server actions return **codes** (`AUTH_ERROR` in `lib/validations/auth.ts`), never English prose — server code cannot read the client i18n context, and the default locale is Spanish. Forms resolve them with `translateAuthError(t, code)` from `lib/i18n/errors.ts`, backed by the `authErrors` namespace. When calling `setError`, pass the **raw code**; the field translates it once at render.
+
+#### Session revocation
+
+JWTs cannot be deleted server-side, so `User.passwordChangedAt` is the revocation clock. The `jwt` callback stamps `pwdAt` at sign-in and re-reads the row at most every 5 minutes; if the password changed after the stamp — or the account is gone — it **throws**, which NextAuth's session route catches, clearing the cookie and nulling the session. Any flow that changes a password must bump `passwordChangedAt`.
+
+#### Email address changes
+
+The confirmation link goes to the **new** address, never the current one, and the current password is required to start the change. Either alone is insufficient: a hijacked session can't move the account without the password, and knowing the password doesn't help without control of the target mailbox. The old address gets a notice afterwards so its owner can react. `confirmEmail` requires a POST for the same mail-scanner reason as signup confirmation.
+
+#### Housekeeping
+
+`lib/auth/cleanup.ts` prunes expired `PendingRegistration`, `PasswordResetToken` and `EmailVerificationToken` rows opportunistically (~2% of token-issuing requests), mirroring what `lib/rate-limit.ts` already does. There is no scheduler in this project — don't add one for this.
+
+#### Rate limiting
+
+`lib/rate-limit.ts`, backed by the `RateLimit` table — **not** in-memory, because Vercel's serverless instances would reset a Map constantly. Rules live in `RATE_LIMITS`. Applied to login (per IP + per account), register, reset request, reset redemption, and change-password. **Fails open** on database error.
+
+#### Enumeration
+
+Every auth surface is enumeration-resistant: identical responses, dummy-hash timing equalization on login, and bcrypt run *before* any existence check so response time cannot substitute for the message.
+
+**Registration is verify-first when email is configured.** `register` writes a `PendingRegistration` row (never a `User`), emails a confirmation link, and returns `{ success: true, pending: true }` for a free address and a taken one alike — the taken address just gets a different email. The account is created only by `verifyRegistration` when the link is confirmed. That action requires a **POST** (a button on `/verify-email`, not the link click) because mail scanners follow every link in an inbox and would otherwise burn the token.
+
+**When email is unconfigured, registration falls back** to immediate creation and does report `emailTaken` — otherwise nobody could sign up at all. That path logs a warning and is the only remaining leak; configuring `RESEND_API_KEY` closes it.
 
 ### Theming
 

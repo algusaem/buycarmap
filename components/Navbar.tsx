@@ -56,12 +56,18 @@ function AuthNav() {
 
   return (
     <div className="flex items-center gap-2 sm:gap-3">
-      <span
-        className="hidden max-w-[16ch] truncate text-sm text-muted-foreground sm:inline"
+      {/* The name doubles as the entry point to /account — a real link, so
+          Cmd/middle-click open it in a new tab like any other navigation. */}
+      <Link
+        href="/account"
         title={session.user.email}
+        className="hidden max-w-[16ch] truncate rounded-md text-sm text-muted-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring sm:inline"
       >
         {session.user.name || session.user.email}
-      </span>
+      </Link>
+      <Button asChild variant="ghost" size="sm" className="sm:hidden">
+        <Link href="/account">{t.nav.account}</Link>
+      </Button>
       <Button
         variant="ghost"
         size="sm"

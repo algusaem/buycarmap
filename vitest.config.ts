@@ -14,6 +14,16 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
     globals: true,
+    // `lib/env.ts` validates required configuration at import time and throws
+    // when it is missing. Anything importing it transitively (server actions,
+    // authOptions) would fail to load without these. Values are dummies — no
+    // test connects to a real database or signs a real production token.
+    env: {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/buycarmap_test",
+      NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long",
+      NEXTAUTH_URL: "http://localhost:3000",
+      APP_URL: "http://localhost:3000",
+    },
     coverage: {
       provider: "v8",
       include: ["lib/**", "components/**", "app/**"],
@@ -44,6 +54,9 @@ export default defineConfig({
           setupFiles: ["./test/setup.node.ts"],
           include: [
             "{lib,app}/**/*.node.test.ts",
+            // `proxy.ts` is required to sit at the repo root by Next's file
+            // convention, so its colocated test does not match the glob above.
+            "proxy.node.test.ts",
             "test/contract/**/*.test.ts",
           ],
         },

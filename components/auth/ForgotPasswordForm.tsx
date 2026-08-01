@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
+import { translateAuthError } from "@/lib/i18n/errors";
 import {
   forgotPasswordSchema,
   ForgotPasswordInput,
@@ -44,7 +45,9 @@ export function ForgotPasswordForm() {
 
     const result = await requestPasswordReset(formData);
     if (!result.success) {
-      toast.error(result.error ?? t.forgotPassword.genericError);
+      toast.error(
+        translateAuthError(t, result.error) ?? t.forgotPassword.genericError,
+      );
       return;
     }
 
@@ -101,7 +104,7 @@ export function ForgotPasswordForm() {
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">
-                    {errors.email.message}
+                    {translateAuthError(t, errors.email.message)}
                   </p>
                 )}
               </div>

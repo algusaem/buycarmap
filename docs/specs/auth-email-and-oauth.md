@@ -1,272 +1,213 @@
 # Spec: Auth completion — transactional email, password reset, OAuth
 
-Status: **draft / not started** (except the UI stubs noted below).
-Owner: unassigned. Last updated: 2026-07-07.
+Status: **Iterations A, B, C and D implemented.**
+Last updated: 2026-08-01.
 
-This spec captures the work still missing to make the auth surface fully
-functional. The pages and links already exist; the backends behind them do not.
-Read this top-to-bottom before starting — the iterations build on each other
-(email infra must land before password reset can actually send anything).
-
----
-
-## 1. Current state (what already exists)
-
-Built and working:
-
-- `/login`, `/register` — NextAuth 4 Credentials provider, JWT sessions,
-  bcrypt hashing (`lib/auth/hash.ts`), register server action
-  (`app/actions/register.ts`).
-- `/forgot-password` — **UI only.** Real RHF + Zod form
-  (`components/auth/ForgotPasswordForm.tsx`, schema
-  `forgotPasswordSchema` in `lib/validations/auth.ts`) that posts to the
-  `requestPasswordReset` server action (`app/actions/forgot-password.ts`).
-  The action **validates the email and returns generic success but sends
-  nothing** — it has a `TODO`. On success the form shows a "check your email"
-  confirmation that is currently a lie (no mail is sent).
-- `/terms`, `/privacy` — real localized content (`components/legal/LegalContent.tsx`,
-  i18n `legal.*` keys). No backend needed; done.
-- OAuth buttons (`components/auth/OAuthButtons.tsx`) — **dead.** Google and
-  GitHub buttons render on `/login` and `/register` with no `onClick` and no
-  provider configured. They do nothing.
-
-Schema today (`prisma/schema.prisma`) has only `User`, `Session`,
-`SearchHistory`. No token models, no OAuth `Account` model.
-
-NextAuth config lives in `app/api/auth/[...nextauth]/route.ts` (exports
-`authOptions`), currently Credentials-only.
+The pages, the backends behind them, and the security layer they sit on are all
+built. What remains is configuration you have to supply, plus one deliberate
+gap documented in §5.
 
 ---
 
-## 2. Iteration A — Transactional email infrastructure
+## 1. What is built
 
-Everything else depends on this. Land it first.
+### Password policy (NIST SP 800-63B)
+Length and blocklists rather than composition rules. Three layers:
 
-### Decisions to make
-- **Provider**: Resend (recommended — simple API, good DX, generous free tier)
-  vs. SMTP via Nodemailer vs. Postmark/SendGrid. Pick one before building.
-- **Templating**: `react-email` (`@react-email/components` + `@react-email/render`)
-  pairs well with Resend and keeps templates in TSX, consistent with the stack.
+| Layer | File | Rejects |
+| --- | --- | --- |
+| Length | `lib/validations/auth.ts` | under 12 or over 72 characters |
+| Strength | `lib/auth/password-strength.ts` | score below 2 of 4 — common passwords (incl. leetspeak), sequences, keyboard runs, repeats, the user's own name/email |
+| Breach | `lib/auth/pwned.ts` | anything in the Have I Been Pwned corpus |
 
-### Build
-- Add the provider SDK. Remember pnpm: if it ships a build/postinstall step and
-  `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, allowlist it in
-  `pnpm-workspace.yaml` under `onlyBuiltDependencies`.
-- `lib/email/client.ts` — thin wrapper exposing `sendEmail({ to, subject, react })`.
-  Reads the API key from env. Never call the provider directly from features;
-  go through this module (mirrors the `lib/wallapop/*` client pattern).
-- `lib/email/templates/*` — one component per email. Start with
-  `PasswordResetEmail`. Templates must be **bilingual**: accept a `locale`
-  (`"en" | "es"`) prop and pull copy from a locale map. Do **not** import the
-  client-side `useTranslation` in emails (server render, no React context) —
-  add a small server-side string map (either reuse `lib/i18n/locales/*` by
-  importing the raw objects, or a dedicated `lib/email/copy.ts`).
-- Fail loudly in logs but **never surface provider errors to the user** in a
-  way that reveals account existence (see enumeration note in §3).
+`lib/auth/password-policy.ts` composes the last two. The breach check uses the
+k-anonymity range API: only the first five characters of the SHA-1 leave the
+process, and it **fails open** so an HIBP outage cannot block signups.
+`components/auth/PasswordStrengthMeter.tsx` shows the same scoring live — a
+hint only; the server gate is authoritative.
 
-### Env vars (add to `.env`, document in the Neon/env memory)
-```
-EMAIL_PROVIDER_API_KEY=...        # e.g. RESEND_API_KEY
-EMAIL_FROM="BuyCarMap <no-reply@buycarmap.com>"
-APP_URL=http://localhost:3000     # base for links in emails; prod = real domain
-```
-Sending domain must be verified with the provider (SPF/DKIM) before prod mail
-lands in inboxes.
+### Rate limiting
+`lib/rate-limit.ts`, backed by the `RateLimit` table. Postgres rather than
+memory because Vercel's instances would reset a Map constantly. Counting and
+window rollover happen in one atomic upsert, so concurrent attempts cannot both
+read a stale count. Fails open on database error.
 
-### Tests
-- Unit-test `lib/email/client.ts` and template rendering with **MSW**
-  intercepting the provider HTTP endpoint (house rule: never hand-stub
-  `fetch`). Assert the rendered HTML contains the reset URL and locale-correct
-  copy. Add a contract test only if the provider response shape is parsed.
-- Do not send real email in tests. A `CONTRACT_LIVE`-style gate can cover a
-  real send nightly if wanted.
+| Surface | Limit |
+| --- | --- |
+| Login per IP | 20 / 15 min |
+| Login per account | 8 failures / 15 min (cleared on success) |
+| Register per IP | 5 / hour |
+| Reset request per IP / per email | 10 / 4 per hour |
+| Reset redemption per IP | 15 / hour |
+| Change password per account | 10 / hour |
 
----
+### Session hardening and revocation
+7-day expiry (was NextAuth's 30-day default), `useSecureCookies` derived from
+`APP_URL` so a misconfigured `NEXTAUTH_URL` cannot downgrade cookies.
 
-## 3. Iteration B — Password reset (wire the existing UI to real mail)
+JWTs cannot be deleted server-side, so `User.passwordChangedAt` acts as a
+revocation clock: the `jwt` callback stamps `pwdAt` at sign-in and re-reads the
+row at most every 5 minutes. If the password changed after the stamp — or the
+account is gone — it throws, and NextAuth's session route clears the cookie.
+**Any flow that changes a password must bump `passwordChangedAt`.**
 
-Depends on Iteration A.
+### Verify-first registration
+No `User` row until the address is confirmed from the inbox — see §5 for why
+this is what closes the enumeration hole. Falls back to immediate creation when
+email is unconfigured.
 
-### Schema
-Add a token model. Store a **hash** of the token, not the token itself.
+### Password reset (Iteration B)
+`/forgot-password` → `/reset-password?token=…`. Tokens are 256-bit CSPRNG
+values stored only as SHA-256 digests, single-use, one-hour TTL, with prior
+tokens invalidated on each new request. Redemption updates the password, marks
+the token used, clears sessions and lifts the login lockout — all in one
+transaction. Missing, expired and already-used tokens return one identical
+error.
 
-```prisma
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  userId    String
-  tokenHash String   @unique          // sha-256 of the random token
-  expiresAt DateTime
-  usedAt    DateTime?                  // single-use: set on redemption
-  createdAt DateTime @default(now())
+### Email (Iteration A)
+`lib/email/client.ts` wraps Resend's REST API with plain `fetch` — no SDK, so
+MSW intercepts it like every other outbound call. `sendEmail` never throws:
+letting a provider error surface would make "did the send succeed?" an
+enumeration oracle. Unconfigured, it no-ops with a warning. Templates
+(`lib/email/templates/`) are bilingual plain-string builders with inline styles,
+since mail clients strip `<style>` and ignore CSS variables.
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  @@index([userId])
-}
-```
-Add the back-relation `passwordResetTokens PasswordResetToken[]` to `User`.
-Then create a **baselined migration** (see the `neon-db-setup` memory for the
-Prisma 7 URL-in-config + baseline workflow) and run `prisma generate`.
+### Account management
+`/account` — profile, email (verification badge, re-send link, and address
+change — see §4), change password (requires the current one, signs out every
+other device, keeps this one via silent re-auth), connected OAuth providers
+(unlink, refused when it would leave the account unreachable), sign out
+everywhere, delete account (typed confirmation plus password).
 
-### Request flow (finish `app/actions/forgot-password.ts`)
-1. Validate email (already done).
-2. Look up the user. **If not found, still return success** — never reveal
-   whether an account exists (enumeration resistance).
-3. If found: generate a cryptographically random token
-   (`crypto.randomBytes(32).toString("base64url")`), store `sha256(token)` with
-   a short expiry (**30–60 min**), invalidate any prior unused tokens for that
-   user.
-4. Send `PasswordResetEmail` via `lib/email/client.ts` with a link:
-   `${APP_URL}/reset-password?token=<raw-token>` in the user's locale
-   (read the `locale` cookie server-side via `getLocale()`).
-5. Return generic success regardless (the UI already shows the neutral
-   "if an account matches…" copy — keep it).
+### OAuth (Iteration D)
+Google and GitHub register only when both halves of their env pair are present;
+`OAuthButtons` renders nothing at all — divider included — when none are.
 
-### Reset page (new: `/reset-password`)
-- `app/reset-password/page.tsx` — reads `token` from `searchParams` (server
-  component, `searchParams` is a Promise in Next 16 — `await` it, like
-  `app/map/page.tsx` already does). Pass the token to a client form.
-- `components/auth/ResetPasswordForm.tsx` — new-password + confirm fields,
-  RHF + Zod. Reuse the password rules from `registerSchema` (min 8, max 72 for
-  bcrypt) — factor a shared `passwordField` in `lib/validations/auth.ts`.
-- `resetPassword` server action (`app/actions/reset-password.ts`):
-  hash the incoming token, look up by `tokenHash`, reject if missing / expired
-  / already used, then update `user.password` (via `hashPassword`), mark the
-  token `usedAt`, and (recommended) delete the user's `Session` rows so any
-  active sessions are invalidated. Return typed `{ success, error? }`.
-- On success: toast + redirect to `/login`. Add i18n keys under a new
-  `resetPassword.*` namespace in **both** `en.ts` and `es.ts` and the
-  `Translations` type.
+**Account-linking policy: auto-link on verified email**
+(`allowDangerousEmailAccountLinking`). Both providers release only verified
+addresses, and anyone controlling the mailbox could already take the account
+over through password reset, so linking grants no new capability. The
+alternative is a dead-end `OAuthAccountNotLinked` error for any user who
+registered with a password first.
 
-### Security checklist (must-haves)
-- [ ] Token stored hashed, single-use, short TTL.
-- [ ] Enumeration-resistant responses on both request and reset.
-- [ ] Rate limit the request action (per email + per IP) — even a coarse
-      in-memory limiter is better than none; note that Vercel is serverless so
-      a shared store (Neon or Upstash) is needed for a real limit.
-- [ ] Invalidate existing sessions on successful reset.
-- [ ] Constant-ish behaviour whether or not the user exists (avoid timing that
-      leaks existence — the extra hash+send for real users is acceptable).
-
-### Tests (house setup: Vitest projects, MSW, colocated)
-- `*.node.test.ts` for the two server actions (they need Node globals).
-  Cover: unknown email → success + no token row; valid email → token row +
-  email send intercepted by MSW; expired token → rejected; used token →
-  rejected; happy path → password changed + token consumed + sessions cleared.
-- Component test for `ResetPasswordForm` (jsdom): mismatched passwords, weak
-  password, submit disabled/loading, success path.
-- Extend the `e2e/auth.spec.ts` flow (currently DB-gated / `test.skip`) once a
-  disposable Postgres is wired — see the `testing-setup` memory.
+### Transport and headers
+`next.config.ts` sets CSP, HSTS, `X-Frame-Options`, `X-Content-Type-Options`,
+`Referrer-Policy` and `Permissions-Policy` (geolocation kept for the map).
+`script-src` keeps `'unsafe-inline'`: nonces require per-request middleware
+rendering, which would cost the app its static optimization. The directives
+that block clickjacking, plugin injection and form exfiltration are enforced.
 
 ---
 
-## 4. Iteration C — Email verification (optional, related)
+## 2. Configuration you must supply
 
-Not required by any current UI, but natural once email infra exists and often
-expected alongside password reset.
+Nothing below is required for the app to run — each degrades cleanly — but
+without email, password reset is unusable **and registration falls back to a
+mode that leaks whether an address is registered** (§5).
 
-- Add `emailVerified DateTime?` to `User` and a `VerificationToken` model
-  (same hashed-token pattern as §3).
-- Send a verification email on register; add `/verify-email` route that
-  redeems the token.
-- Decide policy: block login until verified, or allow but nudge. If blocking,
-  update `authorizeCredentials` (`lib/auth/authorize.ts`) to reject unverified
-  users with a clear, non-enumerating message.
-- Full i18n + tests as above.
+```
+RESEND_API_KEY=...      # https://resend.com → API Keys
+EMAIL_FROM="BuyCarMap <no-reply@yourdomain.com>"   # domain must be verified (SPF/DKIM)
+APP_URL=https://...     # base for links inside emails
 
-Defer unless product wants it.
+GOOGLE_CLIENT_ID=...  GOOGLE_CLIENT_SECRET=...
+GITHUB_ID=...         GITHUB_SECRET=...
+```
+
+OAuth callback URLs to register in each console, for both local and production:
+`${APP_URL}/api/auth/callback/google` and `.../github`.
+
+Full list with commentary in `.env.example`.
 
 ---
 
-## 5. Iteration D — OAuth providers (Google, GitHub)
+## 3. Migration
 
-Makes the dead `OAuthButtons` real. Independent of email infra — can be done in
-parallel with A–C.
+`prisma/migrations/20260801120000_auth_hardening/` — **not yet applied.** Local
+and production share one Neon database (see the `neon-db-setup` memory), so
+review it before running `prisma migrate deploy`.
 
-### Schema
-OAuth with NextAuth needs an `Account` model (and, if you switch to the DB
-session strategy, adjustments). With the current **JWT** strategy you still
-need `Account` to link provider identities to users via the Prisma adapter.
+It renames `User.avatarUrl` to `image` (the adapter writes the OAuth picture to
+that exact field), makes `password` nullable for OAuth-only accounts, adds
+`emailVerified` and `passwordChangedAt`, reshapes the never-written `Session`
+table to the adapter's column names, and adds `Account`, `VerificationToken`,
+`PasswordResetToken`, `EmailVerificationToken`, `PendingRegistration` and
+`RateLimit`.
 
-- Add `@auth/prisma-adapter` (NextAuth v4 uses `@next-auth/prisma-adapter`;
-  confirm the version that matches NextAuth 4 in this repo).
-- Add the adapter's required models (`Account`, and `VerificationToken` if not
-  already added in §4). The `User` model already exists — the adapter expects
-  certain fields; reconcile (`emailVerified`, `image` vs current `avatarUrl` —
-  may need a mapping or an added `image` field).
-- Migration + `prisma generate` (baselined workflow).
+---
 
-### NextAuth config (`app/api/auth/[...nextauth]/route.ts`)
-- Add `GoogleProvider` and `GitHubProvider` alongside the existing Credentials
-  provider. Set `adapter: PrismaAdapter(prisma)`.
-- **Account-linking gotcha**: a user who registered with email+password and
-  later signs in with Google using the same email will, by default, hit
-  `OAuthAccountNotLinked`. Decide the policy (auto-link by verified email vs.
-  force one method) and handle it explicitly. Document the choice.
+## 4. Iteration C — Email verification
 
-### UI (`components/auth/OAuthButtons.tsx`)
-- Convert to a client component that calls
-  `signIn("google")` / `signIn("github")` with `callbackUrl: "/"`.
-- Add loading state per button; disable while a sign-in is in flight.
-- Keep the existing `t.auth.google` / `t.auth.github` labels.
+`emailVerified` is stamped by `verifyRegistration` when a signup link is
+redeemed, so verify-first accounts are verified the moment they exist. Accounts
+from the no-email fallback start unverified and can confirm from `/account`:
+`requestEmailVerification` mails a link, `confirmEmail` redeems it at
+`/confirm-email`. The same token model carries email *changes* — `newEmail` null
+confirms the current address, set moves the account to that one.
 
-### Env vars
-```
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-GITHUB_ID=...
-GITHUB_SECRET=...
-```
-Register OAuth apps for both providers. Callback URLs:
-`${APP_URL}/api/auth/callback/google` and `.../github` — add both the local
-and prod URLs in each provider console. **Requires the user to supply real
-credentials** — flagged to product; do not build against fake ones expecting
-them to work end-to-end.
+Login is deliberately **not** gated on verification. Blocking would need a
+rejection message that still does not reveal whether the account exists, and
+would strand every account created before this shipped. `EmailForm` nudges
+instead, with a badge and a re-send button.
 
-### Tests
-- Provider config unit test (providers array shape, adapter present).
-- e2e is hard to run against real Google/GitHub — mock at the NextAuth route
-  level or limit e2e to asserting the buttons trigger `signIn` (spy) and the
-  redirect kicks off. Don't hit live OAuth in CI.
+---
+
+## 5. Registration enumeration: closed by verify-first signup
+
+Signup used to answer "an account with this email already exists", which turned
+the form into a membership oracle — feed it a list of addresses and it tells you
+which belong to users, which is exactly what makes targeted phishing work.
+
+**With email configured, registration is now verify-first.** `register`
+(`app/actions/register.ts`) writes a `PendingRegistration` row rather than a
+`User`, emails a confirmation link, and returns `{ success: true, pending: true }`.
+A taken address takes the other branch — it gets the "you already have an
+account" email instead — but returns the *same value*, so the caller cannot tell
+the branches apart. The `User` row is created only when the link is confirmed
+through `verifyRegistration` (`app/actions/verify-registration.ts`).
+
+Why this actually closes it, where immediate creation could not: if the account
+existed the moment you submitted, an attacker could simply try to log in with
+the password they just chose. Success would mean the address had been free,
+failure that it was taken — the oracle survives the response wording. Creating
+nothing until the mailbox is proven removes the difference at the source. It
+also avoids squatting: an attacker cannot occupy an address they do not control,
+because their pending row never becomes an account.
+
+Confirmation is a **POST** — a button on `/verify-email`, not the link click
+itself. Corporate mail scanners fetch every link in an inbox; an
+account-creating GET would let a scanner consume the token before the recipient
+ever opened the page.
+
+Supporting measures kept: per-IP rate limiting (5/hour), and bcrypt run
+*before* any existence check so response time cannot substitute for the message
+(the original code returned early for existing addresses, which made timing a
+reliable oracle on its own).
+
+### The remaining case: no email configured
+
+Verify-first cannot work without a way to deliver the link, so when
+`RESEND_API_KEY`/`EMAIL_FROM` are absent, `register` falls back to immediate
+creation and does report `emailTaken`. The alternative would be a deployment
+where nobody can register at all. That path logs a warning on every use and is
+the only place the leak survives — configuring email closes it with no code
+change.
 
 ---
 
 ## 6. Cross-cutting conventions (do not violate)
 
-- **Server actions over API routes** for all mutations; place in `app/actions/`.
-  Validate with Zod `safeParse`, return typed `{ success, error? }`.
-- **i18n**: every new user-facing string (pages **and** emails) needs keys in
-  both `lib/i18n/locales/en.ts` and `es.ts`, plus the `Translations` type in
-  `lib/i18n/types.ts`. Default locale is `es`.
-- **Toasts** via Sonner (`toast.success` / `toast.error`), not inline error text.
-- **No `any` / `unknown`**; `interface` over `type`; reusable typings in
-  `/interfaces`.
-- **Prisma 7 + `@prisma/adapter-pg`**; migrations follow the baselined workflow
-  in the `neon-db-setup` memory. Prod and local share one Neon DB — be careful
-  running migrations.
-- **Tests**: Vitest two-project split (`*.node.test.ts` for route handlers /
-  server actions), MSW for all network, colocated, `/check-tests` quality bar
-  (hand-derived expectations, a negative path, no mock-the-SUT).
-
----
-
-## 7. Suggested order & acceptance
-
-1. **A — Email infra** → can send a rendered, localized test email via the
-   `lib/email` client (verified by an MSW-intercepted unit test + one real
-   manual send).
-2. **B — Password reset** → a real user requesting a reset receives an email,
-   the link sets a new password, the token is single-use and expires, sessions
-   are invalidated, and the "check your email" confirmation is no longer a lie.
-3. **C — Email verification** (optional) → register triggers a verify email;
-   redemption flips `emailVerified`.
-4. **D — OAuth** → Google/GitHub buttons sign a user in and create linked
-   accounts; account-linking policy is decided and documented.
-
-Each iteration is shippable on its own and leaves the app in a working state.
-
-### Open questions for product/user
-- Which email provider? (Resend recommended.)
-- Sending domain + `EMAIL_FROM` identity?
-- Will the user provide Google/GitHub OAuth app credentials, or should the
-  buttons be hidden until then? (They are dead today.)
-- Email verification: required to log in, or optional nudge?
+- **Server actions over API routes** for all mutations; validate with Zod
+  `safeParse`, return typed `{ success, error? }` where `error` is an
+  `AUTH_ERROR` **code**, never prose — server code cannot read the client i18n
+  context and the default locale is Spanish. Forms resolve codes through
+  `translateAuthError`. When calling `setError`, pass the raw code.
+- **Authorization**: `getCurrentUser()` from `lib/auth/session.ts` in every
+  action that touches user data. `proxy.ts` only decodes the JWT and cannot see
+  revocations — it is UX, not a security boundary.
+- **i18n**: new strings need keys in both locales plus the `Translations` type.
+- **Toasts** via Sonner. Field-fixable errors go on the field instead.
+- **No `any` / `unknown`**; `interface` over `type`.
+- **Tests**: Vitest two-project split (`*.node.test.ts` for actions and
+  anything needing Node globals), MSW for all network — including HIBP and
+  Resend, whose handlers are in `test/msw/handlers.ts`.

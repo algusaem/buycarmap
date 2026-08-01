@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +13,6 @@ import { fadeInUp } from "@/lib/animations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import {
   Card,
   CardContent,
@@ -25,11 +24,24 @@ import {
 import { PasswordInput } from "./PasswordInput";
 import { OAuthButtons } from "./OAuthButtons";
 import { useTranslation } from "@/lib/i18n/client";
-import { loginSchema, LoginInput } from "@/lib/validations/auth";
+import { translateAuthError } from "@/lib/i18n/errors";
+import { AUTH_ERROR, loginSchema, LoginInput } from "@/lib/validations/auth";
+
+// Middleware puts the originally-requested path here. Only same-origin paths
+// are honoured: accepting an absolute URL would make the sign-in page an open
+// redirect that phishing links could bounce through. A leading "//" is rejected
+// because browsers read it as a protocol-relative URL to another host.
+function safeRedirectTarget(callbackUrl: string | null): string {
+  if (!callbackUrl) return "/";
+  if (!callbackUrl.startsWith("/") || callbackUrl.startsWith("//")) return "/";
+  return callbackUrl;
+}
 
 export function LoginForm() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = safeRedirectTarget(searchParams.get("callbackUrl"));
 
   const {
     register,
@@ -47,12 +59,21 @@ export function LoginForm() {
     });
 
     if (result?.error) {
-      toast.error(t.auth.invalidCredentials);
+      // `authorize` returns null for both a wrong password and an unknown
+      // account, which arrives as the opaque "CredentialsSignin" — so the
+      // generic message here is the whole point, not a shortcut. Rate limiting
+      // is the one case worth naming, since it tells the user to wait rather
+      // than to keep guessing, and reveals nothing about the account.
+      toast.error(
+        result.error === AUTH_ERROR.rateLimited
+          ? t.authErrors.rateLimited
+          : t.auth.invalidCredentials,
+      );
       return;
     }
 
     toast.success(t.auth.signInSuccess);
-    router.push("/");
+    router.push(redirectTo);
     router.refresh();
   };
 
@@ -87,7 +108,7 @@ export function LoginForm() {
               />
               {errors.email && (
                 <p className="text-sm text-destructive">
-                  {errors.email.message}
+                  {translateAuthError(t, errors.email.message)}
                 </p>
               )}
             </div>
@@ -107,7 +128,7 @@ export function LoginForm() {
                 placeholder={t.auth.passwordPlaceholder}
                 autoComplete="current-password"
                 className="bg-background/50"
-                error={errors.password?.message}
+                error={translateAuthError(t, errors.password?.message)}
                 {...register("password")}
               />
             </div>
@@ -129,14 +150,9 @@ export function LoginForm() {
             </Button>
           </form>
 
-          <div className="relative my-6">
-            <Separator />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-              {t.auth.orContinueWith}
-            </span>
-          </div>
-
-          <OAuthButtons />
+          {/* Renders nothing — divider included — when no OAuth provider is
+              configured, so the layout has no orphaned separator. */}
+          <OAuthButtons callbackUrl={redirectTo} />
         </CardContent>
 
         <CardFooter className="flex-col gap-4 border-t border-border/50 pt-6">

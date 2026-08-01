@@ -62,4 +62,15 @@ export const handlers = [
   http.get("https://www.milanuncios.com/*", () =>
     HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([makeMilanunciosAd()], 5))),
   ),
+
+  // ---- Have I Been Pwned range API (consumed by lib/auth/pwned.ts) ----
+  // Default: the password is clean. The suffixes below are arbitrary and will
+  // not match any real hash, so `findSuffix` returns 0. A test that needs a
+  // breached password overrides this with `server.use(...)` and echoes back the
+  // suffix of the hash it expects.
+  http.get("https://api.pwnedpasswords.com/range/*", () =>
+    HttpResponse.text(
+      "0018A45C4D1DEF81644B54AB7F969B88D65:1\n00D4F6E8FA6EECAD2A3AA415EEC418D38EC:2",
+    ),
+  ),
 ];

@@ -8,11 +8,13 @@ on:
     # Nightly upstream-drift check against the real Wallapop/coches.net APIs.
     - cron: "0 4 * * *"
 
-# Dummy values so `prisma generate` + `next build` don't fail on missing env.
-# Real secrets are only needed once the DB-backed flows are wired.
+# Dummy values so `prisma generate` + `next build` don't fail on missing env —
+# lib/env.ts validates these at import and refuses to boot without them.
+# Nothing here connects to a real database or signs a real token. The secret is
+# padded past 32 characters only to keep the length warning out of CI logs.
 env:
   DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
-  NEXTAUTH_SECRET: "ci-test-secret"
+  NEXTAUTH_SECRET: "ci-test-secret-at-least-32-characters"
   NEXTAUTH_URL: "http://localhost:3000"
 
 jobs:

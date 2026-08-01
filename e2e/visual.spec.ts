@@ -3,7 +3,7 @@ import { mockListingSources } from "./fixtures/network";
 
 // Screenshot baselines. Runs only in the "visual" Playwright project so pixel
 // diffs never gate functional PRs. Generate/update baselines with:
-//   npx playwright test --project=visual --update-snapshots
+//   pnpm test:visual --update-snapshots
 test("login page visual baseline", async ({ page }) => {
   await page.goto("/login");
   await expect(page).toHaveScreenshot("login.png", { fullPage: true });

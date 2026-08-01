@@ -164,6 +164,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Plus Jakarta Sans ships an `fi` ligature that merges the i's tittle into
+       the f, so "confirma", "perfil" and "filtros" render with what looks like
+       a dotless i. Elegant in display type, but at UI sizes it reads as a
+       rendering fault. Standard ligatures off; `contextual` stays on because
+       it only handles legitimate glyph spacing. Delete this to restore them. */
+    font-variant-ligatures: no-common-ligatures contextual;
   }
   ::selection {
     @apply bg-accent/30 text-foreground;

@@ -13,6 +13,7 @@ vi.mock("next/navigation", () => ({
 const signIn = vi.fn().mockResolvedValue({ error: null, ok: true });
 vi.mock("next-auth/react", () => ({
   signIn: (...args: unknown[]) => signIn(...args),
+  getProviders: async () => ({}),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const registerUser = vi.fn();
@@ -21,12 +22,16 @@ vi.mock("@/app/actions/register", () => ({
 }));
 import { toast } from "sonner";
 
+// Clears the 12-character floor and the strength scorer. Kept as a constant so
+// the policy change is visible in one place.
+const STRONG_PASSWORD = "harbour-lentil-quilt";
+
 async function fillValid() {
   await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
-  await userEvent.type(screen.getByLabelText("Password"), "longenough");
+  await userEvent.type(screen.getByLabelText("Password"), STRONG_PASSWORD);
   await userEvent.type(
     screen.getByLabelText("Confirm password"),
-    "longenough",
+    STRONG_PASSWORD,
   );
 }
 
@@ -44,7 +49,7 @@ describe("RegisterForm", () => {
     renderWithI18n(<RegisterForm />);
 
     await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
-    await userEvent.type(screen.getByLabelText("Password"), "longenough");
+    await userEvent.type(screen.getByLabelText("Password"), STRONG_PASSWORD);
     await userEvent.type(
       screen.getByLabelText("Confirm password"),
       "different",
@@ -57,8 +62,42 @@ describe("RegisterForm", () => {
     expect(registerUser).not.toHaveBeenCalled();
   });
 
-  it("registers then signs in on success", async () => {
-    registerUser.mockResolvedValue({ success: true });
+  it("shows the neutral check-your-inbox panel when confirmation is pending", async () => {
+    // The action returns this identically for a free address and a taken one,
+    // so the panel must not hint at which case occurred — and must not attempt
+    // a sign-in, since no account exists yet.
+    registerUser.mockResolvedValue({ success: true, pending: true });
+    signIn.mockClear();
+    renderWithI18n(<RegisterForm />);
+
+    await fillValid();
+    await submit();
+
+    expect(await screen.findByText("Check your email")).toBeInTheDocument();
+    expect(
+      screen.getByText(/If that address can be used for a new account/i),
+    ).toBeInTheDocument();
+    expect(signIn).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("hides the form once confirmation is pending", async () => {
+    registerUser.mockResolvedValue({ success: true, pending: true });
+    renderWithI18n(<RegisterForm />);
+
+    await fillValid();
+    await submit();
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Sign up" }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("registers then signs in when the account was created immediately", async () => {
+    // `pending: false` is the no-email-configured fallback.
+    registerUser.mockResolvedValue({ success: true, pending: false });
     renderWithI18n(<RegisterForm />);
 
     await fillValid();
@@ -67,16 +106,14 @@ describe("RegisterForm", () => {
     await waitFor(() => expect(registerUser).toHaveBeenCalledOnce());
     expect(signIn).toHaveBeenCalledWith("credentials", {
       email: "ada@example.com",
-      password: "longenough",
+      password: STRONG_PASSWORD,
       redirect: false,
     });
   });
 
-  it("surfaces the action error and does not sign in on failure", async () => {
-    registerUser.mockResolvedValue({
-      success: false,
-      error: "An account with this email already exists",
-    });
+  it("translates the action's error code and does not sign in on failure", async () => {
+    // The server returns a locale-free code; the form resolves it to copy.
+    registerUser.mockResolvedValue({ success: false, error: "emailTaken" });
     signIn.mockClear();
     renderWithI18n(<RegisterForm />);
 
@@ -89,6 +126,48 @@ describe("RegisterForm", () => {
       ),
     );
     expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it("shows the generic fallback for an error code it does not recognise", async () => {
+    registerUser.mockResolvedValue({ success: false, error: "some-new-code" });
+    signIn.mockClear();
+    renderWithI18n(<RegisterForm />);
+
+    await fillValid();
+    await submit();
+
+    // A raw identifier must never reach the UI.
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Something went wrong. Please try again.",
+      ),
+    );
+  });
+
+  it("rates a weak password low and a strong one high as the user types", async () => {
+    renderWithI18n(<RegisterForm />);
+    const passwordField = screen.getByLabelText("Password");
+
+    await userEvent.type(passwordField, "password");
+    expect(await screen.findByText("Very weak")).toBeInTheDocument();
+    expect(
+      screen.getByText("This is a commonly used password"),
+    ).toBeInTheDocument();
+
+    await userEvent.clear(passwordField);
+    await userEvent.type(passwordField, STRONG_PASSWORD);
+    expect(await screen.findByText("Strong")).toBeInTheDocument();
+  });
+
+  it("flags a password built from the entered email", async () => {
+    renderWithI18n(<RegisterForm />);
+
+    await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "ada-is-my-name-99");
+
+    expect(
+      await screen.findByText("Avoid using your name or email"),
+    ).toBeInTheDocument();
   });
 
   it("includes the name in the submitted form data when one is entered", async () => {

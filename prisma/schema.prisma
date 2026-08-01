@@ -11,31 +11,149 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  
+
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  avatarUrl String?
+  id       String  @id @default(cuid())
+  email    String  @unique
+  // Nullable: OAuth-only accounts never set a password. Credentials login
+  // must guard on this (see lib/auth/authorize.ts).
+  password String?
+  name     String?
+  // Named `image` (not `avatarUrl`) because the NextAuth Prisma adapter writes
+  // the OAuth profile picture to this exact field.
+  image    String?
+
+  emailVerified DateTime?
+  // Bumped on every password change / reset. The JWT callback compares the
+  // token's issue time against this and revokes older sessions, which is how
+  // "sign out everywhere" works under a stateless JWT strategy.
+  passwordChangedAt DateTime @default(now())
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  sessions   Session[]
-  searchHistories SearchHistory[]
+  accounts               Account[]
+  sessions               Session[]
+  searchHistories        SearchHistory[]
+  passwordResetTokens    PasswordResetToken[]
+  emailVerificationToken EmailVerificationToken[]
 }
 
+// Required by @next-auth/prisma-adapter to link OAuth identities to a User.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// Adapter-shaped session table. Unused while `session.strategy` is "jwt", but
+// the adapter's type contract requires the model to exist.
 model Session {
-  id        String   @id @default(cuid())
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Required by @next-auth/prisma-adapter (email/magic-link flows). Distinct from
+// EmailVerificationToken below, which backs our own hashed-token verification.
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
   userId    String
-  token     String   @unique
+  // sha-256 of the token we emailed. The raw token exists only in the link, so
+  // a database leak does not hand an attacker working reset links.
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// A signup that has been submitted but not yet confirmed from the inbox.
+//
+// This is what makes registration enumeration-resistant: no User row exists
+// until someone proves control of the address, so the signup form can answer
+// "check your inbox" identically whether or not the email is already taken.
+//
+// Holding the bcrypt hash (never the plaintext) means confirmation does not
+// have to ask for the password again.
+model PendingRegistration {
+  id        String   @id @default(cuid())
+  email     String
+  password  String
+  name      String?
+  tokenHash String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 
+  @@index([email])
+  @@index([expiresAt])
+}
+
+// Backs two flows that are the same mechanism with different targets:
+//   newEmail == null -> confirm the address already on the account
+//   newEmail != null -> move the account to that address on redemption
+//
+// The link always goes to the address being *proved*, which for a change means
+// the new one. That is what stops an attacker with a hijacked session from
+// silently moving an account to an inbox they control.
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  newEmail  String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Fixed-window counters for the auth rate limiter. Lives in Postgres rather
+// than memory because Vercel runs each request on a possibly-cold instance,
+// so an in-process Map would reset constantly and limit nothing.
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }
 
 model SearchHistory {
@@ -45,5 +163,6 @@ model SearchHistory {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
 
+  @@index([userId])
+}

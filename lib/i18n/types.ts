@@ -74,6 +74,172 @@ export interface Translations {
     successDescription: string;
     genericError: string;
   };
+  verifyEmail: {
+    // Shown on /register after submitting, for taken and free addresses alike.
+    pendingTitle: string;
+    pendingDescription: string;
+    title: string;
+    description: string;
+    submit: string;
+    submitting: string;
+    success: string;
+    successTitle: string;
+    successDescription: string;
+    signIn: string;
+    invalidTitle: string;
+    invalidDescription: string;
+    backToRegister: string;
+    resend: string;
+    resending: string;
+    resent: string;
+  };
+  confirmEmail: {
+    title: string;
+    description: string;
+    submit: string;
+    submitting: string;
+    successTitle: string;
+    successDescription: string;
+    backToAccount: string;
+    invalidTitle: string;
+    invalidDescription: string;
+  };
+  resetPassword: {
+    title: string;
+    description: string;
+    newPassword: string;
+    newPasswordPlaceholder: string;
+    confirmPassword: string;
+    confirmPasswordPlaceholder: string;
+    submit: string;
+    submitting: string;
+    success: string;
+    invalidTitle: string;
+    invalidDescription: string;
+    requestNewLink: string;
+    backToLogin: string;
+  };
+  account: {
+    title: string;
+    description: string;
+    backToMap: string;
+    profile: {
+      title: string;
+      description: string;
+      name: string;
+      namePlaceholder: string;
+      email: string;
+      emailHint: string;
+      submit: string;
+      submitting: string;
+      success: string;
+    };
+    email: {
+      title: string;
+      description: string;
+      current: string;
+      verified: string;
+      unverified: string;
+      verifyCta: string;
+      verifying: string;
+      verifySent: string;
+      newEmail: string;
+      newEmailPlaceholder: string;
+      currentPassword: string;
+      currentPasswordPlaceholder: string;
+      submit: string;
+      submitting: string;
+      submitted: string;
+      notice: string;
+    };
+    sessions: {
+      title: string;
+      description: string;
+      submit: string;
+      submitting: string;
+      warning: string;
+    };
+    providers: {
+      title: string;
+      description: string;
+      none: string;
+      unlink: string;
+      unlinking: string;
+      unlinked: string;
+      lastMethodHint: string;
+    };
+    security: {
+      title: string;
+      description: string;
+      currentPassword: string;
+      currentPasswordPlaceholder: string;
+      newPassword: string;
+      newPasswordPlaceholder: string;
+      confirmPassword: string;
+      confirmPasswordPlaceholder: string;
+      submit: string;
+      submitting: string;
+      success: string;
+      signOutNotice: string;
+    };
+    danger: {
+      title: string;
+      description: string;
+      warning: string;
+      confirmLabel: string;
+      confirmHint: string;
+      /** The word the user must type to arm the delete button, per locale. */
+      confirmWord: string;
+      password: string;
+      passwordPlaceholder: string;
+      submit: string;
+      submitting: string;
+      success: string;
+    };
+  };
+  // Locale-free error codes returned by Zod schemas and server actions,
+  // resolved at render time by `translateAuthError` (lib/i18n/errors.ts).
+  authErrors: {
+    emailRequired: string;
+    emailInvalid: string;
+    passwordRequired: string;
+    passwordTooShort: string;
+    passwordTooLong: string;
+    passwordsDoNotMatch: string;
+    confirmPasswordRequired: string;
+    nameTooLong: string;
+    emailTaken: string;
+    passwordBreached: string;
+    passwordWeak: string;
+    passwordReused: string;
+    currentPasswordIncorrect: string;
+    tokenInvalid: string;
+    alreadyVerified: string;
+    sameEmail: string;
+    lastSignInMethod: string;
+    rateLimited: string;
+    unauthorized: string;
+    generic: string;
+  };
+  passwordStrength: {
+    label: string;
+    hint: string;
+    scores: {
+      veryWeak: string;
+      weak: string;
+      fair: string;
+      good: string;
+      strong: string;
+    };
+    issues: {
+      tooShort: string;
+      tooLong: string;
+      common: string;
+      sequential: string;
+      repeated: string;
+      personal: string;
+    };
+  };
   legal: {
     backToHome: string;
     lastUpdated: string;
@@ -155,6 +321,7 @@ export interface Translations {
     signIn: string;
     signUp: string;
     signOut: string;
+    account: string;
   };
   meta: {
     title: string;

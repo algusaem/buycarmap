@@ -1,41 +1,124 @@
 import { z } from "zod";
+import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+} from "@/lib/auth/password-strength";
 
-// Normalize email once, reused by both schemas: trim + lowercase so that
+// Validation messages are *error codes*, not sentences. Zod runs on the server
+// too, and a server action cannot read the client's React i18n context — before
+// this, every server-side validation failure surfaced hardcoded English to a
+// user whose default locale is Spanish. The UI resolves these codes through
+// `translateAuthError` (lib/i18n/errors.ts).
+export const AUTH_ERROR = {
+  emailRequired: "emailRequired",
+  emailInvalid: "emailInvalid",
+  passwordRequired: "passwordRequired",
+  passwordTooShort: "passwordTooShort",
+  passwordTooLong: "passwordTooLong",
+  passwordsDoNotMatch: "passwordsDoNotMatch",
+  confirmPasswordRequired: "confirmPasswordRequired",
+  nameTooLong: "nameTooLong",
+  // Only reachable from the no-email fallback in app/actions/register.ts (and
+  // from a losing race on an email change). Verify-first signup never emits it.
+  emailTaken: "emailTaken",
+  passwordBreached: "passwordBreached",
+  passwordWeak: "passwordWeak",
+  passwordReused: "passwordReused",
+  currentPasswordIncorrect: "currentPasswordIncorrect",
+  tokenInvalid: "tokenInvalid",
+  alreadyVerified: "alreadyVerified",
+  sameEmail: "sameEmail",
+  lastSignInMethod: "lastSignInMethod",
+  rateLimited: "rateLimited",
+  unauthorized: "unauthorized",
+  generic: "generic",
+} as const;
+
+export type AuthErrorCode = (typeof AUTH_ERROR)[keyof typeof AUTH_ERROR];
+
+// Normalize email once, reused by every schema: trim + lowercase so that
 // "  Foo@Example.com " and "foo@example.com" are always the same account,
 // on the client (RHF) and the server (register action / authorize).
 const email = z
   .string()
   .trim()
   .toLowerCase()
-  .min(1, "Email is required")
-  .email("Invalid email address");
+  .min(1, AUTH_ERROR.emailRequired)
+  .email(AUTH_ERROR.emailInvalid);
+
+// One definition of "an acceptable new password", shared by register, reset,
+// and change-password so the three can never drift apart. Length only — the
+// strength and breach checks are async and run server-side in
+// `lib/auth/password-policy.ts`.
+const newPassword = z
+  .string()
+  .min(MIN_PASSWORD_LENGTH, AUTH_ERROR.passwordTooShort)
+  // bcrypt only uses the first 72 bytes; reject longer so a password is never
+  // silently truncated (and to bound hashing work per request).
+  .max(MAX_PASSWORD_LENGTH, AUTH_ERROR.passwordTooLong);
+
+const confirmPassword = z.string().min(1, AUTH_ERROR.confirmPasswordRequired);
+
+const passwordsMatch = {
+  check: (data: { password: string; confirmPassword: string }) =>
+    data.password === data.confirmPassword,
+  options: {
+    message: AUTH_ERROR.passwordsDoNotMatch,
+    path: ["confirmPassword"],
+  },
+};
 
 export const loginSchema = z.object({
   email,
-  password: z.string().min(1, "Password is required"),
+  // Never apply strength rules at login: existing accounts may predate the
+  // current policy, and a length hint on the login form leaks the policy to
+  // an attacker for free.
+  password: z.string().min(1, AUTH_ERROR.passwordRequired),
 });
 
 export const registerSchema = z
   .object({
-    name: z.string().optional(),
+    name: z.string().trim().max(80, AUTH_ERROR.nameTooLong).optional(),
     email,
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      // bcrypt only uses the first 72 bytes; reject longer so a password is
-      // never silently truncated (and to bound hashing work per request).
-      .max(72, "Password must be at most 72 characters"),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
+    password: newPassword,
+    confirmPassword,
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+  .refine(passwordsMatch.check, passwordsMatch.options);
 
 export const forgotPasswordSchema = z.object({
   email,
 });
 
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, AUTH_ERROR.tokenInvalid),
+    password: newPassword,
+    confirmPassword,
+  })
+  .refine(passwordsMatch.check, passwordsMatch.options);
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, AUTH_ERROR.passwordRequired),
+    password: newPassword,
+    confirmPassword,
+  })
+  .refine(passwordsMatch.check, passwordsMatch.options);
+
+export const updateProfileSchema = z.object({
+  name: z.string().trim().max(80, AUTH_ERROR.nameTooLong),
+});
+
+export const changeEmailSchema = z.object({
+  email,
+  // No strength rules — this proves identity, it does not set a new password.
+  currentPassword: z.string().min(1, AUTH_ERROR.passwordRequired),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type ChangeEmailInput = z.infer<typeof changeEmailSchema>;
