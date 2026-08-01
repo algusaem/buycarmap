@@ -19,10 +19,10 @@ export default async function VerifyEmailPage({
   // a mail scanner's link prefetch create the account before the recipient
   // ever sees this page.
   return (
-    <div className="relative flex flex-1 flex-col w-full overflow-hidden bg-background">
+    <div className="relative flex flex-1 flex-col w-full overflow-y-auto bg-background">
       <AuthBackground />
 
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-6">
+      <div className="relative z-10 flex min-h-full items-center justify-center px-4 py-6">
         <div className="w-full max-w-md space-y-6">
           <BrandHeader />
           {token ? (

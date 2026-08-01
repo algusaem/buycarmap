@@ -9,10 +9,21 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
 }));
 
+// The sign-in CTA is session-aware, so the component now reads useSession.
+const useSession = vi.fn();
+vi.mock("next-auth/react", () => ({
+  useSession: () => useSession(),
+}));
+
 const searchButton = () => screen.getByRole("button", { name: "Search" });
+const signInCta = () =>
+  screen.queryByRole("link", { name: /Sign in to save searches/i });
 
 describe("HeroContent search", () => {
-  beforeEach(() => push.mockReset());
+  beforeEach(() => {
+    push.mockReset();
+    useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+  });
 
   it("navigates to the map with the typed query as a param", async () => {
     renderWithI18n(<HeroContent />);
@@ -51,5 +62,49 @@ describe("HeroContent search", () => {
     );
 
     expect(push).toHaveBeenCalledWith("/map?q=Seat%20Le%C3%B3n");
+  });
+});
+
+describe("HeroContent sign-in call to action", () => {
+  beforeEach(() => push.mockReset());
+
+  it("invites a signed-out visitor to sign in", () => {
+    useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+    renderWithI18n(<HeroContent />);
+
+    expect(signInCta()).toBeInTheDocument();
+  });
+
+  it("hides the invitation once the visitor is signed in", () => {
+    // "Sign in to save searches" shown to someone already signed in reads as a
+    // broken page, not as a prompt.
+    useSession.mockReturnValue({
+      data: { user: { id: "u1", email: "ada@example.com" } },
+      status: "authenticated",
+    });
+    renderWithI18n(<HeroContent />);
+
+    expect(signInCta()).not.toBeInTheDocument();
+  });
+
+  it("hides the invitation while the session is still loading", () => {
+    // Rendering it during loading and pulling it away a moment later is a
+    // visible flicker on every page load for signed-in users.
+    useSession.mockReturnValue({ data: null, status: "loading" });
+    renderWithI18n(<HeroContent />);
+
+    expect(signInCta()).not.toBeInTheDocument();
+  });
+
+  it("keeps the explore-map action in every session state", () => {
+    for (const status of ["unauthenticated", "authenticated", "loading"]) {
+      useSession.mockReturnValue({ data: null, status });
+      const { unmount } = renderWithI18n(<HeroContent />);
+
+      expect(
+        screen.getByRole("link", { name: /Explore the map/i }),
+      ).toBeInTheDocument();
+      unmount();
+    }
   });
 });

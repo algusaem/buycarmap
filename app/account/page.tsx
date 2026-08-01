@@ -49,7 +49,11 @@ export default async function AccountPage() {
   const providers = record.accounts.map((account) => account.provider);
 
   return (
-    <div className="flex flex-1 flex-col bg-background">
+    // `overflow-y-auto` is required, not cosmetic: the root layout pins the
+    // body to h-screen with overflow-hidden so the map never scrolls the page,
+    // which leaves every long route unable to scroll at all. Same pattern as
+    // components/legal/LegalContent.tsx.
+    <div className="flex flex-1 flex-col overflow-y-auto bg-background">
       <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-12">
         <Link
           href="/map"

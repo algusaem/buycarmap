@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui/button";
@@ -54,26 +54,29 @@ function AuthNav() {
     );
   }
 
+  // Mirrors the signed-out branch: same gaps, same Button primitives, so both
+  // states line up. A bare <Link> styled by hand sat at a different height and
+  // hovered differently from the buttons beside it.
   return (
-    <div className="flex items-center gap-2 sm:gap-3">
-      {/* The name doubles as the entry point to /account — a real link, so
-          Cmd/middle-click open it in a new tab like any other navigation. */}
-      <Link
-        href="/account"
-        title={session.user.email}
-        className="hidden max-w-[16ch] truncate rounded-md text-sm text-muted-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring sm:inline"
-      >
-        {session.user.name || session.user.email}
-      </Link>
-      <Button asChild variant="ghost" size="sm" className="sm:hidden">
-        <Link href="/account">{t.nav.account}</Link>
+    <div className="flex items-center gap-1 sm:gap-2">
+      {/* A real link, so Cmd/middle-click opens the account in a new tab. */}
+      <Button asChild variant="ghost" size="sm" className="min-w-0">
+        <Link href="/account" title={session.user.email}>
+          <User className="h-4 w-4 shrink-0" />
+          {/* The name can be long; it truncates rather than stretching the
+              navbar. Hidden on mobile, where the icon carries the meaning. */}
+          <span className="hidden max-w-[16ch] truncate sm:inline">
+            {session.user.name || session.user.email}
+          </span>
+          <span className="sr-only sm:hidden">{t.nav.account}</span>
+        </Link>
       </Button>
       <Button
         variant="ghost"
         size="sm"
         onClick={() => signOut({ callbackUrl: "/" })}
       >
-        <LogOut className="h-4 w-4" />
+        <LogOut className="h-4 w-4 shrink-0" />
         <span className="hidden sm:inline">{t.nav.signOut}</span>
         <span className="sr-only sm:hidden">{t.nav.signOut}</span>
       </Button>

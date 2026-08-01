@@ -1,8 +1,12 @@
 import { MapPin, Car } from "lucide-react";
 
 export function AuthBackground() {
+  // Clips itself rather than relying on the page to do it. The gradient orbs
+  // below are deliberately positioned outside the box (`-bottom-32`), so on a
+  // scrollable parent they would otherwise add 128px of empty scroll area.
+  // `pointer-events-none` keeps purely decorative layers from swallowing clicks.
   return (
-    <>
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {/* Topographic grid pattern */}
       <div className="absolute inset-0 opacity-[0.03]">
         <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
@@ -59,6 +63,6 @@ export function AuthBackground() {
       >
         <Car className="h-10 w-10 text-muted-foreground" />
       </div>
-    </>
+    </div>
   );
 }

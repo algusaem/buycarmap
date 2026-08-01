@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import * as motion from "motion/react-client";
 import { Search, MapPin, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,9 @@ export function HeroContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const { t } = useTranslation();
   const router = useRouter();
+  // Checked against "unauthenticated" rather than falsiness so the CTA stays
+  // hidden while the session is still loading, instead of flashing in and out.
+  const { status } = useSession();
 
   const goToSearch = (query: string) => {
     const trimmed = query.trim();
@@ -120,13 +124,19 @@ export function HeroContent() {
             {t.hero.exploreMap}
           </Link>
         </Button>
-        <span className="text-sm text-muted-foreground">{t.common.or}</span>
-        <Link
-          href="/login"
-          className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
-        >
-          {t.hero.signInToSave} →
-        </Link>
+        {/* Only pitch signing in to people who aren't. Showing "sign in to
+            save searches" to an already-authenticated user reads as broken. */}
+        {status === "unauthenticated" && (
+          <>
+            <span className="text-sm text-muted-foreground">{t.common.or}</span>
+            <Link
+              href="/login"
+              className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
+            >
+              {t.hero.signInToSave} →
+            </Link>
+          </>
+        )}
       </motion.div>
 
       {/* Stats */}
