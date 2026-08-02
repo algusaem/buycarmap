@@ -49,6 +49,7 @@ model User {
   // Relations
   accounts               Account[]
   sessions               Session[]
+  favorites              Favorite[]
   searchHistories        SearchHistory[]
   passwordResetTokens    PasswordResetToken[]
   emailVerificationToken EmailVerificationToken[]
@@ -186,6 +187,54 @@ model RateLimit {
   expiresAt DateTime
 
   @@index([expiresAt])
+}
+
+// A listing someone saved, stored as a full snapshot rather than a reference.
+//
+// Nothing in this app persists listings — they are fetched live from Wallapop,
+// coches.net and Milanuncios on every search — and none of those source clients
+// can fetch a single listing by id; they expose search only. A favorite holding
+// just `(source, listingId)` would therefore have nothing to render, so the
+// favorites page would be a list of ids.
+//
+// The cost is that the snapshot goes stale: a price drop is invisible until the
+// user follows the link. The alternative, re-fetching every saved listing on
+// page load, turns one page view into N calls against reverse-engineered APIs
+// that already fail often enough to need `Promise.allSettled`. A page that
+// always renders last week's price beats one that is blank when a source is
+// down. See docs/specs/favorites.md.
+model Favorite {
+  id        String @id @default(cuid())
+  userId    String
+  // The normalized, source-prefixed listing id: `wallapop-abc123`. Already
+  // unique across sources, so it needs no separate source column to be a key.
+  listingId String
+
+  // --- snapshot of CarListing at save time ---
+  source   String
+  title    String
+  subtitle String
+  image    String
+  brand    String
+  model    String
+  location String
+  fuel     String
+  url      String
+  price    Int
+  mileage  Int
+  year     Int
+  lat      Float
+  lng      Float
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Saving is a toggle a user can click twice in a second. This is what makes
+  // "saving twice leaves one row" true in the database rather than in a
+  // read-then-write race in application code.
+  @@unique([userId, listingId])
+  @@index([userId])
 }
 
 model SearchHistory {
