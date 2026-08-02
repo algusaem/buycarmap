@@ -78,3 +78,71 @@ describe("useSearchFilters", () => {
     expect(result.current.activeCount).toBe(2);
   });
 });
+
+describe("useSearchFilters panel visibility", () => {
+  it("starts collapsed", () => {
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("toggles open and closed", () => {
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+
+    act(() => result.current.toggle());
+    expect(result.current.isOpen).toBe(true);
+
+    act(() => result.current.toggle());
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("collapses the panel when a search is triggered", () => {
+    // The results sit behind the expanded panel, so leaving it open after an
+    // explicit search hides the very thing the user asked for.
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+
+    act(() => result.current.toggle());
+    expect(result.current.isOpen).toBe(true);
+
+    act(() => result.current.triggerSearch());
+
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("still searches when the panel was already closed", () => {
+    // Triggering from the search box with no panel open must behave normally.
+    const search = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => "golf"));
+    search.mockClear();
+
+    act(() => result.current.triggerSearch());
+
+    expect(result.current.isOpen).toBe(false);
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({ keywords: "golf" }),
+    );
+  });
+
+  it("leaves the panel open while filters are being adjusted", () => {
+    // `update()` re-searches on every change. Collapsing there would shut the
+    // panel the moment someone picked a brand, mid-edit.
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+
+    act(() => result.current.toggle());
+    act(() => result.current.setBrand("Audi"));
+    act(() => vi.advanceTimersByTime(500));
+
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it("leaves the panel open when filters are cleared", () => {
+    // Clearing is an editing action, not a "show me the results" action.
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+
+    act(() => result.current.toggle());
+    act(() => result.current.clearAll());
+
+    expect(result.current.isOpen).toBe(true);
+  });
+});

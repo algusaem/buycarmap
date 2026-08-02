@@ -139,6 +139,11 @@ export function useSearchFilters(
 
   const triggerSearch = useCallback(() => {
     clearTimeout(debounceRef.current);
+    // Collapse the panel on an explicit search: the user has finished choosing
+    // and wants the results, which the expanded panel is covering. Deliberately
+    // not done in `update()` — filters re-search on every change, and closing
+    // the panel out from under someone still adjusting them would be hostile.
+    setIsOpen(false);
     search(toParams(getKeywords(), filtersRef.current));
   }, [search, getKeywords]);
 

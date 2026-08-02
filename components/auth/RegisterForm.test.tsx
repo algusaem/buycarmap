@@ -11,10 +11,16 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
 }));
 const signIn = vi.fn().mockResolvedValue({ error: null, ok: true });
+// OAuthButtons asks which providers exist. Mutable so one test can put the
+// page in the configured state without the rest paying for the extra buttons.
+let oauthProviders: Record<string, { id: string; name: string; type: string }> =
+  {};
 vi.mock("next-auth/react", () => ({
   signIn: (...args: unknown[]) => signIn(...args),
-  getProviders: async () => ({}),
+  getProviders: async () => oauthProviders,
 }));
+// GoogleSignInButton resolves Google's palette from the theme.
+vi.mock("next-themes", () => ({ useTheme: () => ({ resolvedTheme: "dark" }) }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const registerUser = vi.fn();
 vi.mock("@/app/actions/register", () => ({
@@ -43,6 +49,32 @@ describe("RegisterForm", () => {
     push.mockReset();
     refresh.mockReset();
     registerUser.mockReset();
+    oauthProviders = {};
+  });
+
+  it("offers the configured OAuth providers alongside the signup form", async () => {
+    // There is no separate OAuth "register" — NextAuth creates the account on
+    // first sign-in — so this page must surface the option rather than hiding
+    // it behind the login page.
+    oauthProviders = {
+      google: { id: "google", name: "Google", type: "oauth" },
+    };
+    renderWithI18n(<RegisterForm />);
+
+    expect(
+      await screen.findByRole("button", { name: "Continue with Google" }),
+    ).toBeInTheDocument();
+    // The password form is still the primary path, not replaced by it.
+    expect(screen.getByRole("button", { name: "Sign up" })).toBeInTheDocument();
+  });
+
+  it("shows no provider section when none is configured", async () => {
+    renderWithI18n(<RegisterForm />);
+
+    await screen.findByRole("button", { name: "Sign up" });
+    expect(
+      screen.queryByRole("button", { name: /continue with/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("blocks submission and shows an error when passwords do not match", async () => {

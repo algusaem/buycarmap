@@ -22,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { OAuthButtons } from "./OAuthButtons";
 import { PasswordInput } from "./PasswordInput";
 import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
 import { useTranslation } from "@/lib/i18n/client";
@@ -263,6 +264,13 @@ export function RegisterForm() {
                 )}
               </Button>
             </form>
+
+            {/* Same component and same action as on the login page. With OAuth
+                there is no separate "register" — NextAuth creates the account
+                on first sign-in — so the only thing this adds is letting
+                someone who came here to sign up actually find the option,
+                instead of having to guess it lives behind "Welcome back". */}
+            <OAuthButtons />
           </CardContent>
         )}
 

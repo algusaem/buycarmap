@@ -38,11 +38,10 @@ export interface Translations {
     forgotPassword: string;
     signIn: string;
     signingIn: string;
-    orContinueWith: string;
     noAccount: string;
     createOne: string;
-    google: string;
-    github: string;
+    continueWithGoogle: string;
+    continueWithGithub: string;
     invalidCredentials: string;
     createAccount: string;
     signUpDescription: string;

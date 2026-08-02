@@ -2,38 +2,27 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useTranslation } from "@/lib/i18n/client";
 import { useOAuthProviders } from "@/lib/hooks/useOAuthProviders";
+import { GoogleSignInButton } from "./GoogleSignInButton";
 
 interface OAuthButtonsProps {
   /** Where to land after a successful provider round-trip. */
   callbackUrl?: string;
 }
 
-const PROVIDER_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
-  {
-    google: FcGoogle,
-    github: FaGithub,
-  };
-
 export function OAuthButtons({ callbackUrl = "/" }: OAuthButtonsProps) {
   const { t } = useTranslation();
   const providers = useOAuthProviders();
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
 
-  // Nothing configured — render nothing at all, including the "or continue
-  // with" divider, rather than a row of buttons that cannot work.
+  // Nothing configured — render nothing at all, divider included, rather than
+  // buttons that cannot work.
   if (providers.length === 0) return null;
-
-  const labels: Record<string, string> = {
-    google: t.auth.google,
-    github: t.auth.github,
-  };
 
   const onSignIn = async (provider: string) => {
     setPendingProvider(provider);
@@ -47,36 +36,42 @@ export function OAuthButtons({ callbackUrl = "/" }: OAuthButtonsProps) {
     <>
       <div className="relative my-6">
         <Separator />
+        {/* Just "or": the buttons now say "Continue with …" themselves, so the
+            old "or continue with" divider repeated the same words twice. */}
         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-          {t.auth.orContinueWith}
+          {t.common.or}
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {providers.map((provider) => {
-          const Icon = PROVIDER_ICONS[provider];
-          const isPending = pendingProvider === provider;
+      {/* Stacked rather than side by side: "Continue with Google" does not fit
+          a half-width button on a phone, and Google's guidelines forbid
+          cropping or squashing their button. */}
+      <div className="flex flex-col gap-3">
+        {providers.includes("google") && (
+          <GoogleSignInButton
+            isPending={pendingProvider === "google"}
+            // All providers lock while one redirect is in flight.
+            disabled={pendingProvider !== null}
+            onClick={() => onSignIn("google")}
+          />
+        )}
 
-          return (
-            <Button
-              key={provider}
-              variant="outline"
-              type="button"
-              className="w-full"
-              // Only the button being used shows a spinner, but all of them
-              // lock so a second provider cannot be started mid-redirect.
-              disabled={pendingProvider !== null}
-              onClick={() => onSignIn(provider)}
-            >
-              {isPending ? (
-                <AiOutlineLoading3Quarters className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                Icon && <Icon className="mr-2 h-4 w-4" />
-              )}
-              {labels[provider] ?? provider}
-            </Button>
-          );
-        })}
+        {providers.includes("github") && (
+          <Button
+            variant="outline"
+            type="button"
+            className="h-10 w-full gap-2.5"
+            disabled={pendingProvider !== null}
+            onClick={() => onSignIn("github")}
+          >
+            {pendingProvider === "github" ? (
+              <AiOutlineLoading3Quarters className="h-[18px] w-[18px] shrink-0 animate-spin" />
+            ) : (
+              <FaGithub className="h-[18px] w-[18px] shrink-0" />
+            )}
+            {t.auth.continueWithGithub}
+          </Button>
+        )}
       </div>
     </>
   );
