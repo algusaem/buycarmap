@@ -7,6 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "db:branch": "node scripts/db-branch.mjs",
+    "db:branch:rm": "node scripts/db-branch.mjs --delete",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

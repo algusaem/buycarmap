@@ -58,6 +58,9 @@ export default defineConfig({
             // convention, so its colocated test does not match the glob above.
             "proxy.node.test.ts",
             "test/contract/**/*.test.ts",
+            // Dev tooling that rewrites .env files. Not app code, but a bug
+            // here clobbers real secrets, so it is covered.
+            "scripts/**/*.node.test.ts",
           ],
         },
       },

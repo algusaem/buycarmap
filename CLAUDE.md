@@ -39,6 +39,9 @@ pnpm test:coverage    # Vitest with v8 coverage
 pnpm test:e2e         # Playwright end-to-end (needs a runnable app + browsers)
 pnpm test:contract       # Contract tests vs fixtures (offline)
 pnpm test:contract:live  # Contract tests vs the real Wallapop/coches.net APIs
+
+pnpm db:branch        # Give the current git branch its own Neon database (see below)
+pnpm db:branch:rm     # Delete this branch's Neon branch when the work is merged
 ```
 
 > pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` under `onlyBuiltDependencies` (currently prisma, `@prisma/engines`, msw, sharp, unrs-resolver). If you add a dependency with a native/build step and `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
@@ -249,6 +252,50 @@ Stack: **Vitest** (unit/hook/integration/component), **React Testing Library**, 
 - Known findings the suite surfaced (unfixed, flagged): auth pages fail `color-contrast` (excluded from the a11y gate); malformed-email is caught by native browser validation, not RHF (forms lack `noValidate`).
 
 ## Rules for Claude
+
+### Worktrees and the dev database
+
+**Never run `prisma migrate reset`, `prisma db push --force-reset`, or any command that drops or
+recreates the database.** The Neon database holds real accounts, there is no seed script, and
+"reset" rebuilds the schema with zero rows. Prisma offers it for bookkeeping problems that do not
+need it — treat the offer as a bug report, not an instruction.
+
+**Before running any Prisma command or `pnpm dev` from a worktree, run `pnpm db:branch`.** It gives
+the current git branch its own copy-on-write Neon branch and writes `DATABASE_URL` into that
+worktree's `.env`, seeding the rest of the file from the main checkout. Do this first, unprompted,
+whenever starting work on a new branch or worktree — the command is idempotent, so re-running it on
+an already-provisioned branch just reuses it.
+
+Why it is mandatory: `migrate dev` assumes the dev database matches the *current branch's* migration
+history. While worktrees share one database, a migration applied from any one of them makes every
+other worktree report "applied to the database but missing from the local migrations directory" and
+demand a reset. This happened on 2026-08-02 and cost an investigation.
+
+Two related traps, both seen in practice:
+
+- **`prisma migrate status` does not catch this.** It reported "Database schema is up to date!"
+  against a stale checksum and a migration missing locally. It validates neither. Only `migrate dev`
+  does.
+- **Checksums are SHA-256 of `migration.sql` with CRLF normalized to LF.** `core.autocrlf=true` is
+  set with no `.gitattributes`, so every migration file is CRLF on disk and LF in git. That is *not*
+  a source of drift. Do not chase it.
+
+A stale checksum is repaired with `UPDATE _prisma_migrations SET checksum = … WHERE migration_name =
+…` — never with a reset. Confirm the file is semantically correct first: if `migrate dev`'s drift
+summary shows no differences attributable to that migration, Prisma already replayed it on a shadow
+database and it matched.
+
+Worktrees start with neither `.env` nor `node_modules`. `pnpm db:branch` handles the first — it is
+dependency-free for exactly this reason, and reads the shared secrets from the main checkout via
+`git rev-parse --git-common-dir`. The rest still needs doing:
+
+```bash
+pnpm install && pnpm exec prisma generate
+```
+
+`prisma generate` is easy to forget because nothing prompts for it: without `app/generated/prisma`,
+four test files fail at *import* while every test that does run passes, which reads like an
+unrelated breakage rather than a missing bootstrap step.
 
 ### TypeScript
 
