@@ -109,8 +109,34 @@ const milanuncios = {
   pagination: { page: 1, resultsPerPage: 41, totalAds: 1, totalPages: 1 },
 };
 
+// A 1x1 opaque PNG. The fixture listings point at real hosts (next.config only
+// allows a fixed set), but those URLs do not exist — so next/image really
+// fetched them and really got 403/404, and the resulting empty image slot
+// rendered differently depending on when the failure landed. That was the sole
+// cause of the map screenshot flaking; it also spammed the dev server log on
+// every functional run.
+const TRANSPARENT_PIXEL_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/** Serve every optimized image from a fixed byte sequence. */
+async function mockListingImages(page: Page) {
+  await page.route("**/_next/image**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: TRANSPARENT_PIXEL_PNG,
+    }),
+  );
+}
+
 /** Route all three source proxies to fixed payloads. */
 export async function mockListingSources(page: Page) {
+  // Images are part of "don't touch the network", so they belong here rather
+  // than in each caller.
+  await mockListingImages(page);
+
   await page.route("**/api/wallapop/search**", (route) =>
     route.fulfill({ json: wallapop }),
   );

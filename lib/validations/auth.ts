@@ -26,6 +26,13 @@ export const AUTH_ERROR = {
   passwordReused: "passwordReused",
   currentPasswordIncorrect: "currentPasswordIncorrect",
   tokenInvalid: "tokenInvalid",
+  // Thrown only after a correct password, so it reveals nothing about whether
+  // an account exists — you already had to prove the credentials.
+  totpRequired: "totpRequired",
+  totpInvalid: "totpInvalid",
+  totpAlreadyEnabled: "totpAlreadyEnabled",
+  totpNotEnabled: "totpNotEnabled",
+  totpUnavailable: "totpUnavailable",
   alreadyVerified: "alreadyVerified",
   sameEmail: "sameEmail",
   lastSignInMethod: "lastSignInMethod",
@@ -68,12 +75,28 @@ const passwordsMatch = {
   },
 };
 
+// A 6-digit TOTP code or a formatted recovery code. Kept permissive here —
+// which of the two it is gets decided server-side, and a length rule on this
+// field would only tell an attacker which format the account uses.
+const twoFactorCode = z.string().trim().optional();
+
 export const loginSchema = z.object({
   email,
   // Never apply strength rules at login: existing accounts may predate the
   // current policy, and a length hint on the login form leaks the policy to
   // an attacker for free.
   password: z.string().min(1, AUTH_ERROR.passwordRequired),
+  // Absent on the first attempt; supplied after the form learns 2FA is on.
+  totp: twoFactorCode,
+});
+
+export const twoFactorCodeSchema = z.object({
+  code: z.string().trim().min(1, AUTH_ERROR.totpInvalid),
+});
+
+export const disableTwoFactorSchema = z.object({
+  currentPassword: z.string().min(1, AUTH_ERROR.passwordRequired),
+  code: z.string().trim().min(1, AUTH_ERROR.totpInvalid),
 });
 
 export const registerSchema = z
@@ -122,3 +145,5 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangeEmailInput = z.infer<typeof changeEmailSchema>;
+export type TwoFactorCodeInput = z.infer<typeof twoFactorCodeSchema>;
+export type DisableTwoFactorInput = z.infer<typeof disableTwoFactorSchema>;

@@ -67,6 +67,8 @@ describe("LoginForm", () => {
       expect(signIn).toHaveBeenCalledWith("credentials", {
         email: "ada@example.com",
         password: "secret123",
+        // Always sent, empty until the server asks for a two-factor code.
+        totp: "",
         redirect: false,
       }),
     );
@@ -142,5 +144,148 @@ describe("LoginForm", () => {
   it("has no accessibility violations", async () => {
     const { container } = renderWithI18n(<LoginForm />);
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe("LoginForm two-factor step", () => {
+  const codeField = () => screen.queryByLabelText(/enter the 6-digit code/i);
+
+  beforeEach(() => {
+    push.mockReset();
+    signIn.mockReset();
+    // The sonner mock is module-level, so calls accumulate across tests unless
+    // cleared — an assertion of "not called" would otherwise see an earlier one.
+    vi.mocked(toast.error).mockClear();
+    vi.mocked(toast.success).mockClear();
+    searchParams = new URLSearchParams();
+  });
+
+  async function submitCredentials() {
+    await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "secret123");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  }
+
+  it("hides the code field until the server asks for one", async () => {
+    renderWithI18n(<LoginForm />);
+
+    // Showing it up front would tell every visitor which accounts use 2FA.
+    expect(codeField()).not.toBeInTheDocument();
+  });
+
+  it("reveals the code field, without an error, when a code is required", async () => {
+    signIn.mockResolvedValue({ error: "totpRequired", ok: false });
+    renderWithI18n(<LoginForm />);
+
+    await submitCredentials();
+
+    await waitFor(() => expect(codeField()).toBeInTheDocument());
+    // Nothing has gone wrong yet — this is a step, not a failure.
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("sends the code on the second attempt", async () => {
+    signIn.mockResolvedValueOnce({ error: "totpRequired", ok: false });
+    renderWithI18n(<LoginForm />);
+
+    await submitCredentials();
+    await waitFor(() => expect(codeField()).toBeInTheDocument());
+
+    signIn.mockResolvedValueOnce({ error: null, ok: true });
+    await userEvent.type(codeField()!, "123456");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await waitFor(() =>
+      expect(signIn).toHaveBeenLastCalledWith("credentials", {
+        email: "ada@example.com",
+        password: "secret123",
+        totp: "123456",
+        redirect: false,
+      }),
+    );
+  });
+
+  it("reports a wrong code on the field and keeps it open", async () => {
+    signIn.mockResolvedValue({ error: "totpInvalid", ok: false });
+    renderWithI18n(<LoginForm />);
+
+    await submitCredentials();
+
+    expect(
+      await screen.findByText(/that code isn't valid/i),
+    ).toBeInTheDocument();
+    expect(codeField()).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("still shows the generic message for bad credentials", async () => {
+    signIn.mockResolvedValue({ error: "CredentialsSignin", ok: false });
+    renderWithI18n(<LoginForm />);
+
+    await submitCredentials();
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Invalid email or password"),
+    );
+    // No hint about two-factor for someone who never proved the password.
+    expect(codeField()).not.toBeInTheDocument();
+  });
+});
+
+describe("LoginForm OAuth rejection message", () => {
+  beforeEach(() => {
+    push.mockReset();
+    signIn.mockReset();
+    searchParams = new URLSearchParams();
+  });
+
+  it("says nothing when there is no error in the URL", () => {
+    renderWithI18n(<LoginForm />);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("explains a blocked provider link instead of failing silently", async () => {
+    // NextAuth redirects here with ?error=AccessDenied when the signIn callback
+    // refuses to link a new provider to a two-factor account.
+    searchParams = new URLSearchParams("error=AccessDenied");
+    renderWithI18n(<LoginForm />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /uses two-factor authentication/i,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /connect this provider from your account settings/i,
+    );
+  });
+
+  it("falls back to a generic message for any other OAuth error", async () => {
+    searchParams = new URLSearchParams("error=OAuthCallback");
+    renderWithI18n(<LoginForm />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/something went wrong/i);
+  });
+});
+
+describe("LoginForm recovery code discoverability", () => {
+  beforeEach(() => {
+    push.mockReset();
+    signIn.mockReset();
+    searchParams = new URLSearchParams();
+  });
+
+  it("tells the user a recovery code goes in the same field", async () => {
+    // The label says "6-digit code", but the field also accepts recovery
+    // codes. Someone whose phone is lost would otherwise have no way to know.
+    signIn.mockResolvedValue({ error: "totpRequired", ok: false });
+    renderWithI18n(<LoginForm />);
+
+    await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "secret123");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(
+      await screen.findByText(/lost your phone\? enter one of your recovery codes/i),
+    ).toBeInTheDocument();
   });
 });

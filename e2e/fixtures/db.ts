@@ -59,3 +59,15 @@ export async function cleanupE2eUsers(): Promise<number> {
     return result.rowCount ?? 0;
   });
 }
+
+/**
+ * Clears the rate-limit counters.
+ *
+ * The auth suite signs in many times from one address, which exhausts the
+ * per-IP login budget partway through a run and fails later tests for a reason
+ * that has nothing to do with what they assert. The limiter has its own
+ * dedicated tests; here it is environmental noise.
+ */
+export async function clearRateLimits(): Promise<void> {
+  await withClient((client) => client.query('DELETE FROM "RateLimit"'));
+}

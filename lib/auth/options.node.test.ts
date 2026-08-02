@@ -257,3 +257,90 @@ describe("session callback", () => {
     expect(result.user.name).toBe("Ada");
   });
 });
+
+describe("signIn callback: OAuth linking guard", () => {
+  const signInCallback = authOptions.callbacks!.signIn!;
+
+  // NextAuth's types demand a full User/Account; only the fields the callback
+  // reads matter here.
+  const call = (params: {
+    email?: string | null;
+    provider?: string;
+    type?: string;
+  }) =>
+    signInCallback({
+      // `??` would turn an explicit null back into the default, which is how
+      // the no-email case silently tested the wrong thing.
+      user: {
+        id: "u1",
+        email: "email" in params ? params.email : "ada@example.com",
+      },
+      account:
+        params.type === "none"
+          ? null
+          : ({
+              type: params.type ?? "oauth",
+              provider: params.provider ?? "google",
+              providerAccountId: "g-1",
+            } as never),
+    } as never);
+
+  beforeEach(() => {
+    vi.mocked(prisma.user.findUnique).mockReset();
+  });
+
+  it("allows credentials sign-in, which authorize already guards", async () => {
+    await expect(call({ type: "credentials" })).resolves.toBe(true);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("allows a brand-new account created through the provider", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+    await expect(call({})).resolves.toBe(true);
+  });
+
+  it("allows linking when the account has no two-factor", async () => {
+    // The existing behaviour is preserved for everyone not using 2FA.
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      twoFactorEnabledAt: null,
+      accounts: [],
+    } as never);
+
+    await expect(call({})).resolves.toBe(true);
+  });
+
+  it("allows a provider that is already linked to a two-factor account", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      twoFactorEnabledAt: new Date(),
+      accounts: [{ provider: "google" }],
+    } as never);
+
+    await expect(call({ provider: "google" })).resolves.toBe(true);
+  });
+
+  it("blocks a NEW provider on a two-factor account", async () => {
+    // The attack this closes: someone who controls the mailbox creates a
+    // Google account on that address and signs in, skipping the second factor.
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      twoFactorEnabledAt: new Date(),
+      accounts: [],
+    } as never);
+
+    await expect(call({ provider: "google" })).resolves.toBe(false);
+  });
+
+  it("blocks a second provider even when another is already linked", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      twoFactorEnabledAt: new Date(),
+      accounts: [{ provider: "github" }],
+    } as never);
+
+    await expect(call({ provider: "google" })).resolves.toBe(false);
+  });
+
+  it("allows through when the provider gives no email to match on", async () => {
+    await expect(call({ email: null })).resolves.toBe(true);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+});

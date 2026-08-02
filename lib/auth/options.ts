@@ -35,6 +35,9 @@ function buildProviders(): AuthOptions["providers"] {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        // Only sent on the second attempt, after `authorize` has reported that
+        // the account has two-factor enabled.
+        totp: { label: "Authentication code", type: "text" },
       },
       authorize: (credentials) => authorizeCredentials(credentials),
     }),
@@ -100,6 +103,51 @@ export const authOptions: AuthOptions = {
     error: "/login",
   },
   callbacks: {
+    /**
+     * Guards OAuth sign-in for accounts that have two-factor enabled.
+     *
+     * Policy: signing in through a provider does not ask for our TOTP code —
+     * the provider runs its own second factor. That only holds if the link is
+     * one the account owner actually established. Auto-linking by verified
+     * email otherwise lets anyone who compromises the mailbox mint a fresh
+     * Google account on that address, sign in, and skip the second factor
+     * entirely — precisely the scenario 2FA exists to survive.
+     *
+     * So: linking stays automatic for accounts without 2FA, and an account
+     * with 2FA can only be reached through a provider it is already linked to.
+     * Adding a new provider is still possible from /account, where the session
+     * has already cleared the second factor.
+     *
+     * NextAuth calls this before `callback-handler`, which is what creates the
+     * Account row — returning false prevents the link rather than undoing it.
+     */
+    async signIn({ user, account }) {
+      // Credentials sign-in is handled by `authorize`, which enforces 2FA.
+      if (!account || account.type !== "oauth" || !user.email) {
+        return true;
+      }
+
+      const existing = await prisma.user.findUnique({
+        where: { email: user.email },
+        select: {
+          twoFactorEnabledAt: true,
+          accounts: { select: { provider: true } },
+        },
+      });
+
+      // A brand-new account created through the provider — nothing to hijack.
+      if (!existing?.twoFactorEnabledAt) {
+        return true;
+      }
+
+      const alreadyLinked = existing.accounts.some(
+        (linked) => linked.provider === account.provider,
+      );
+
+      // Surfaces as ?error=AccessDenied on /login, which the form translates.
+      return alreadyLinked;
+    },
+
     async jwt({ token, user, trigger }) {
       // Fresh sign-in: stamp the session so later password changes can outdate
       // it, and skip the revalidation query we just implicitly performed.

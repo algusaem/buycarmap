@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -43,9 +44,16 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = safeRedirectTarget(searchParams.get("callbackUrl"));
 
+  const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
+
+  // A rejected OAuth sign-in redirects here with ?error=. Without this the
+  // user would land back on the login page with no explanation at all.
+  const oauthError = searchParams.get("error");
+
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -55,8 +63,24 @@ export function LoginForm() {
     const result = await signIn("credentials", {
       email: data.email,
       password: data.password,
+      // Empty on the first attempt; the field only appears once the server
+      // says this account has two-factor enabled.
+      totp: data.totp ?? "",
       redirect: false,
     });
+
+    // The password was right and a code is needed. Reveal the field rather
+    // than showing an error — nothing has gone wrong yet.
+    if (result?.error === AUTH_ERROR.totpRequired) {
+      setNeedsTwoFactor(true);
+      return;
+    }
+
+    if (result?.error === AUTH_ERROR.totpInvalid) {
+      setNeedsTwoFactor(true);
+      setError("totp", { message: AUTH_ERROR.totpInvalid });
+      return;
+    }
 
     if (result?.error) {
       // `authorize` returns null for both a wrong password and an unknown
@@ -95,6 +119,17 @@ export function LoginForm() {
         </CardHeader>
 
         <CardContent>
+          {oauthError && (
+            <p
+              className="mb-4 rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-muted-foreground"
+              role="alert"
+            >
+              {oauthError === "AccessDenied"
+                ? t.authErrors.oauthLinkBlocked
+                : t.authErrors.generic}
+            </p>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">{t.auth.email}</Label>
@@ -132,6 +167,34 @@ export function LoginForm() {
                 {...register("password")}
               />
             </div>
+
+            {needsTwoFactor && (
+              <div className="space-y-2" aria-live="polite">
+                <Label htmlFor="totp">{t.account.twoFactor.codeLabel}</Label>
+                <Input
+                  id="totp"
+                  // `one-time-code` lets password managers and iOS autofill
+                  // offer the code; `inputMode` brings up the numeric keypad.
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  placeholder={t.account.twoFactor.codePlaceholder}
+                  className="bg-background/50 font-mono tracking-widest"
+                  {...register("totp")}
+                />
+                {/* Without this, someone who has lost their phone has no way
+                    of knowing a recovery code goes in this same field — the
+                    label only mentions six digits. */}
+                <p className="text-xs text-muted-foreground">
+                  {t.account.twoFactor.recoveryHint}
+                </p>
+                {errors.totp && (
+                  <p className="text-sm text-destructive">
+                    {translateAuthError(t, errors.totp.message)}
+                  </p>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"

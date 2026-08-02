@@ -27,6 +27,11 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
 
+  // Encrypts TOTP secrets at rest. Optional, like email and OAuth: without it
+  // two-factor auth simply cannot be switched on, rather than the app refusing
+  // to boot. 32 bytes, base64.
+  TWO_FACTOR_ENCRYPTION_KEY: z.string().optional(),
+
   // OAuth. Each provider is enabled only when both halves are present.
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
@@ -75,6 +80,20 @@ if (
 ) {
   console.error(
     "[email] EMAIL_FROM uses Resend's sandbox sender (resend.dev), which only delivers to your own Resend account address. Registration and password reset will silently fail for everyone else. Verify a domain at resend.com/domains and use an address on it — or unset RESEND_API_KEY to fall back to immediate account creation.",
+  );
+}
+
+// Two-factor is offered only when a key exists to encrypt secrets with. The
+// alternative — storing them in plaintext when the key is missing — would make
+// a database leak hand over every enrolled secret.
+export const isTwoFactorConfigured = Boolean(env.TWO_FACTOR_ENCRYPTION_KEY);
+
+if (
+  !isTwoFactorConfigured &&
+  process.env.NODE_ENV === "production"
+) {
+  console.warn(
+    "[security] TWO_FACTOR_ENCRYPTION_KEY is not set, so two-factor authentication is unavailable. Generate one with `openssl rand -base64 32`. Note that changing it later makes existing enrolments unreadable.",
   );
 }
 

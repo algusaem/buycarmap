@@ -127,10 +127,11 @@ The whole app lives under `/map` and is orchestrated by `components/map/MapView.
 
 Current schema (`prisma/schema.prisma`) — only these exist:
 
-- **User**: `id`, `email` (unique), `password?` (null for OAuth-only accounts), `name?`, `image?`, `emailVerified?`, `passwordChangedAt`, timestamps.
+- **User**: `id`, `email` (unique), `password?` (null for OAuth-only accounts), `name?`, `image?`, `emailVerified?`, `passwordChangedAt`, `twoFactorSecret?` (encrypted), `twoFactorEnabledAt?`, `twoFactorLastStep?`, timestamps.
 - **Account** / **Session** / **VerificationToken**: the shapes `@next-auth/prisma-adapter` requires. `Session` is unused while the strategy is JWT, but the adapter's types need the model.
 - **PasswordResetToken** / **EmailVerificationToken**: `tokenHash` (sha-256), `expiresAt`, `usedAt`. Single-use; the raw token is never stored. `EmailVerificationToken.newEmail` is null to confirm the current address and set to the target for an email change.
 - **PendingRegistration**: a submitted-but-unconfirmed signup (`email`, bcrypt `password`, `tokenHash`). No `User` row exists until the link is confirmed — this is what makes registration enumeration-resistant.
+- **TwoFactorRecoveryCode**: `codeHash` (sha-256), `usedAt`. Single-use; the plaintext code exists only in the response that created it.
 - **RateLimit**: `key`, `count`, `expiresAt` — fixed-window counters for the auth limiter.
 - **SearchHistory**: `userId`, `query`, `createdAt`.
 
@@ -239,8 +240,11 @@ Stack: **Vitest** (unit/hook/integration/component), **React Testing Library**, 
 ### E2E (Playwright, `e2e/`)
 
 - Runs against a real `next dev` server (Playwright `webServer`). The two source proxies are mocked at the **browser** level via `page.route` (`e2e/fixtures/network.ts`) so e2e never hits live Wallapop/coches.net. Fixture image URLs must use an **allowed `next.config` host** (`**.wallapop.com`, `**.ccdn.es`) or `next/image` throws a client exception.
-- **Three projects**: `chromium` + `mobile` (functional, run by `pnpm test:e2e`) and `visual` (screenshots, run by `pnpm test:visual`). Visual is deliberately excluded from `test:e2e` so pixel diffs never gate functional PRs.
-- **Visual baselines are platform-specific** (`*-win32.png` locally). CI is ubuntu, so regenerate Linux baselines (`--update-snapshots` on Linux) before enabling visual in CI.
+- **Three projects**, all run by `pnpm test:e2e`: `chromium` + `mobile` (functional) and `visual` (screenshots). `pnpm test:visual` runs the screenshots alone.
+- **Visual baselines are platform-specific** (`*-win32.png` locally, CI is ubuntu). Each visual test **skips itself with an explanatory reason** when the current platform has no baseline, so a Linux CI stays green until Linux baselines are committed. Generate them by running `pnpm test:visual --update-snapshots` on that platform.
+- **Screenshots must wait for the page to settle** (`waitForPageToSettle` in `e2e/visual.spec.ts`): the navbar swaps a placeholder for real links when `useSession()` resolves, and `next/font` loads asynchronously. Both raced the camera and made these tests look "inherently flaky" — they aren't.
+- **`maxDiffPixels: 300`** is calibrated, not arbitrary: ~86px of antialiasing noise between identical renders, versus 1,310px for a one-step font-size change. Don't raise it to silence a failure — read the diff PNG in `test-results/`, which points straight at the culprit.
+- `mockListingSources` also stubs `**/_next/image**`. The fixture image URLs use allowed hosts but don't exist, so `next/image` really fetched them and really 404'd, rendering differently by timing.
 - **Auth e2e covers client validation only.** The register→login persistence round-trip is a `test.skip` stub — enable it once a disposable Postgres/Prisma test DB is wired.
 - Known findings the suite surfaced (unfixed, flagged): auth pages fail `color-contrast` (excluded from the a11y gate); malformed-email is caught by native browser validation, not RHF (forms lack `noValidate`).
 
@@ -292,6 +296,19 @@ Length and blocklists, not composition rules. Three layers, all of which must pa
 #### Error codes, not messages
 
 Zod schemas and server actions return **codes** (`AUTH_ERROR` in `lib/validations/auth.ts`), never English prose — server code cannot read the client i18n context, and the default locale is Spanish. Forms resolve them with `translateAuthError(t, code)` from `lib/i18n/errors.ts`, backed by the `authErrors` namespace. When calling `setError`, pass the **raw code**; the field translates it once at render.
+
+#### Two-factor authentication (TOTP)
+
+`lib/auth/two-factor/*`, implemented on `node:crypto` — no dependency in the authentication path. RFC 6238: HMAC-SHA1, 6 digits, 30s step, ±1 step of drift tolerance. The parameters are fixed because they are what real authenticator apps assume.
+
+- **Secrets are encrypted, not hashed** (`encryption.ts`, AES-256-GCM). Verifying a code means recomputing the HMAC, so the secret must be recoverable; `TWO_FACTOR_ENCRYPTION_KEY` is what the database alone lacks. Optional env — without it the feature is hidden rather than the app refusing to boot.
+- **Enrolment is two-step**: `startTwoFactorSetup` stores the secret but leaves `twoFactorEnabledAt` null, so nothing is enforced until `confirmTwoFactorSetup` sees a working code. This is what stops users locking themselves out.
+- **Replay protection**: `twoFactorLastStep` records the highest accepted counter step; anything at or below it is refused, so a code seen over a shoulder is not reusable inside its own 30s window. Consequence worth knowing: the code that *enabled* 2FA is itself consumed, so a user who enrols and immediately signs out and back in within the same 30 seconds must wait for the next code. Rare in practice, and the alternative — not recording the enrolment step — would leave that code usable by anyone who watched the setup screen.
+- **Recovery codes**: 10 × ~73 bits, SHA-256 (not bcrypt — no dictionary to grind, and a unique index makes redemption one indexed lookup). Shown exactly once. Consumed via `updateMany` guarded on `usedAt` so concurrent requests cannot both spend one.
+- **Disabling requires password *and* code**; regenerating codes requires the password only, since losing the codes is the usual reason to be there.
+- **`totpRequired` is thrown only after a correct password**, so it is not an enumeration signal.
+- **Password reset does not bypass 2FA.** If it did, control of the mailbox would defeat the second factor entirely.
+- **OAuth sign-in does not ask for a TOTP code** — the provider runs its own second factor. That policy only holds while the link is one the owner established, so the `signIn` callback in `options.ts` refuses to auto-link a *new* provider to an account that has 2FA on. Without it, anyone who compromised the mailbox could mint a Google account on that address and sign in past the second factor. Adding a provider is still possible from `/account`, where the session has already cleared 2FA. A rejection surfaces as `?error=AccessDenied` on `/login`.
 
 #### Session revocation
 

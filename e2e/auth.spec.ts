@@ -172,6 +172,19 @@ test.describe("client-side validation", () => {
     ).toBeVisible();
   });
 
+  test("the two-factor code field stays hidden until it is needed", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+
+    // Showing it up front would tell every visitor which accounts use 2FA,
+    // and confuse the ones that do not.
+    await expect(
+      page.getByLabel(/enter the 6-digit code|codigo de 6|código de 6/i)
+    ).toHaveCount(0);
+    await expect(page.getByLabel(/password|contraseña/i).first()).toBeVisible();
+  });
+
   test("signed-out visitors are redirected away from /account", async ({
     page,
   }) => {

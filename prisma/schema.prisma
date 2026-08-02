@@ -26,6 +26,18 @@ model User {
   image    String?
 
   emailVerified DateTime?
+
+  // AES-256-GCM ciphertext, not a hash: verifying a code means recomputing the
+  // HMAC from the original secret, so it has to be recoverable. The key lives
+  // in TWO_FACTOR_ENCRYPTION_KEY, so the database alone is not enough.
+  twoFactorSecret String?
+  // Null while enrolment is half-finished — a secret exists but no code has
+  // been verified yet, so 2FA is NOT enforced. Only this field gates login.
+  twoFactorEnabledAt DateTime?
+  // Highest TOTP counter step already accepted. Anything at or below it is
+  // refused, so a code seen over someone's shoulder cannot be replayed inside
+  // its own 30-second window.
+  twoFactorLastStep Int?
   // Bumped on every password change / reset. The JWT callback compares the
   // token's issue time against this and revokes older sessions, which is how
   // "sign out everywhere" works under a stateless JWT strategy.
@@ -40,6 +52,26 @@ model User {
   searchHistories        SearchHistory[]
   passwordResetTokens    PasswordResetToken[]
   emailVerificationToken EmailVerificationToken[]
+  twoFactorRecoveryCodes TwoFactorRecoveryCode[]
+}
+
+// The way back in when the authenticator is lost. Password reset deliberately
+// does not bypass 2FA — if it did, control of the mailbox would defeat the
+// second factor entirely — so without these a lost phone means a lost account.
+//
+// Stored as a plain SHA-256 digest rather than bcrypt: the codes carry ~73 bits
+// of entropy, so there is no dictionary to grind, and a unique index makes
+// redemption a single indexed lookup instead of ten slow comparisons.
+model TwoFactorRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Required by @next-auth/prisma-adapter to link OAuth identities to a User.

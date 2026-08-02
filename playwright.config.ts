@@ -52,6 +52,19 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
+  expect: {
+    toHaveScreenshot: {
+      // A small budget for rasterisation noise, calibrated against measurements
+      // rather than guessed. On a ~920k-pixel screenshot the residual diff
+      // between two identical renders is ~86px, all of it antialiasing on the
+      // blurred gradient orbs. Real regressions measured during this work were
+      // far larger: a navbar caught mid-session-load differed by 2,606px, and a
+      // fallback font by over 20,000. 300 sits ~3x above the noise and ~9x
+      // below the smallest genuine change, so it absorbs the former without
+      // ever hiding the latter.
+      maxDiffPixels: 300,
+    },
+  },
   projects: [
     {
       name: "chromium",
@@ -63,11 +76,12 @@ export default defineConfig({
       use: { ...devices["Pixel 7"] },
       testMatch: /(map|auth)\.spec\.ts/,
     },
-    // NOTE: this project is flaky for reasons that predate the auth work — the
-    // auth pages animate in and the map renders live CARTO tiles, so a
-    // screenshot catches whichever frame it lands on. Emulating
-    // prefers-reduced-motion was tried and did not settle it. Deliberately
-    // excluded from `pnpm test:e2e` so pixel noise never gates a PR.
+    // Runs as part of `pnpm test:e2e` like everything else. It used to be
+    // excluded as "inherently flaky"; it wasn't — the screenshots were racing
+    // the navbar's session placeholder and next/image fetching fixture URLs
+    // that 404. Both are fixed at the source. Each test skips itself with a
+    // reason when the current platform has no baseline, so a Linux CI stays
+    // green until Linux baselines are committed.
     {
       name: "visual",
       use: { ...devices["Desktop Chrome"] },

@@ -8,6 +8,7 @@ import {
   resetRateLimit,
 } from "@/lib/rate-limit";
 import { AUTH_ERROR } from "@/lib/validations/auth";
+import { verifyAndConsumeTwoFactor } from "@/lib/auth/two-factor/verify";
 
 export interface AuthorizedUser {
   id: string;
@@ -30,7 +31,9 @@ export function loginEmailRateKey(email: string): string {
 // user genuinely needs to know why they are being turned away and the signal
 // reveals nothing about whether the account exists.
 export async function authorizeCredentials(
-  credentials: Record<"email" | "password", string> | undefined,
+  credentials:
+    | Partial<Record<"email" | "password" | "totp", string>>
+    | undefined,
 ): Promise<AuthorizedUser | null> {
   if (!credentials?.email || !credentials?.password) {
     return null;
@@ -82,6 +85,44 @@ export async function authorizeCredentials(
   if (!isValidPassword) {
     await consumeRateLimit(emailKey, RATE_LIMITS.loginPerEmail);
     return null;
+  }
+
+  // Second factor, checked only once the password is already correct. That
+  // ordering matters: `totpRequired` tells the caller an account has 2FA on,
+  // which is harmless to someone who has just proved the credentials, and
+  // unreachable to anyone who has not.
+  if (user.twoFactorEnabledAt) {
+    const submittedCode = credentials.totp?.trim();
+
+    if (!submittedCode) {
+      throw new Error(AUTH_ERROR.totpRequired);
+    }
+
+    // Bounded separately from the password limiter: guessing a 6-digit code is
+    // a different attack from guessing a password, and the account is already
+    // identified at this point.
+    const codeBudget = await consumeRateLimit(
+      `two-factor:user:${user.id}`,
+      RATE_LIMITS.twoFactorPerUser,
+    );
+
+    if (!codeBudget.allowed) {
+      throw new Error(AUTH_ERROR.rateLimited);
+    }
+
+    const check = await verifyAndConsumeTwoFactor(
+      {
+        id: user.id,
+        twoFactorSecret: user.twoFactorSecret,
+        twoFactorLastStep: user.twoFactorLastStep,
+      },
+      submittedCode,
+    );
+
+    if (!check.valid) {
+      await consumeRateLimit(emailKey, RATE_LIMITS.loginPerEmail);
+      throw new Error(AUTH_ERROR.totpInvalid);
+    }
   }
 
   // Clear the failure counter so a user who eventually remembers their password

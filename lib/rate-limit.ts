@@ -48,6 +48,11 @@ export const RATE_LIMITS = {
   // Verification and email-change links are user-initiated from a signed-in
   // session, so the account is the unit worth bounding.
   emailVerificationPerUser: { limit: 6, windowMs: 60 * 60 * 1000 },
+  // A 6-digit code is one in a million, and the ±1 drift window makes three
+  // codes live at once — so roughly 1 in 333,000 per guess. Ten attempts per
+  // 15 minutes keeps brute force hopeless while leaving room for a mistyped
+  // code or a phone whose clock has drifted.
+  twoFactorPerUser: { limit: 10, windowMs: 15 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 // Expired rows are harmless but accumulate. Prune opportunistically on a small

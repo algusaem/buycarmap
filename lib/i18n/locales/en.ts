@@ -151,6 +151,51 @@ export const en: Translations = {
       notice:
         "We'll send a link to the new address. Your email only changes once you confirm it there.",
     },
+    twoFactor: {
+      title: "Two-factor authentication",
+      description:
+        "Require a code from your phone in addition to your password.",
+      enabled: "On",
+      disabled: "Off",
+      unavailable:
+        "Not available on this deployment — the server is missing its encryption key.",
+      enableCta: "Set up two-factor",
+      starting: "Preparing…",
+      scanTitle: "Scan this with your authenticator app",
+      scanDescription:
+        "Use Google Authenticator, 1Password, Authy or any other TOTP app.",
+      manualLabel: "Can't scan? Enter this key manually",
+      manualHint: "Type it exactly, without spaces.",
+      codeLabel: "Enter the 6-digit code",
+      codePlaceholder: "123456",
+      recoveryHint:
+        "Lost your phone? Enter one of your recovery codes instead.",
+      confirm: "Turn on two-factor",
+      confirming: "Verifying…",
+      cancel: "Cancel",
+      enabledToast: "Two-factor authentication is on.",
+      recoveryTitle: "Save your recovery codes",
+      recoveryDescription:
+        "Each code works once, and gets you in if you lose your phone.",
+      recoveryWarning:
+        "This is the only time they're shown. Store them somewhere safe before continuing.",
+      copyCodes: "Copy codes",
+      copied: "Copied to clipboard.",
+      copyFailed:
+        "Couldn't copy automatically. Select the codes above and copy them by hand.",
+      recoveryDone: "I've saved them",
+      regenerateCta: "Generate new recovery codes",
+      regenerating: "Generating…",
+      regenerateHint:
+        "Replaces your existing codes. The old ones stop working immediately.",
+      disableCta: "Turn off two-factor",
+      disabling: "Turning off…",
+      disableHint:
+        "Needs your password and a current code, so a stolen session alone can't undo it.",
+      disabledToast: "Two-factor authentication is off.",
+      currentPassword: "Your password",
+      currentPasswordPlaceholder: "Enter your password",
+    },
     sessions: {
       title: "Active sessions",
       description: "Signed in somewhere you no longer use?",
@@ -216,6 +261,14 @@ export const en: Translations = {
     passwordReused: "Choose a password different from your current one",
     currentPasswordIncorrect: "Your current password is incorrect",
     tokenInvalid: "This link is invalid or has expired",
+    totpRequired: "Enter the code from your authenticator app",
+    totpInvalid: "That code isn't valid. Check your app and try again.",
+    totpAlreadyEnabled: "Two-factor authentication is already on",
+    totpNotEnabled: "Two-factor authentication isn't set up",
+    totpUnavailable:
+      "Two-factor authentication isn't available on this deployment",
+    oauthLinkBlocked:
+      "This account uses two-factor authentication. Sign in with your password first, then connect this provider from your account settings.",
     alreadyVerified: "Your email address is already verified",
     sameEmail: "That is already your email address",
     lastSignInMethod:

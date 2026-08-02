@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isTwoFactorConfigured } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { getTranslations } from "@/lib/i18n/server";
 import { ProfileForm } from "@/components/account/ProfileForm";
@@ -10,6 +11,7 @@ import { EmailForm } from "@/components/account/EmailForm";
 import { ChangePasswordForm } from "@/components/account/ChangePasswordForm";
 import { ConnectedAccounts } from "@/components/account/ConnectedAccounts";
 import { SessionsCard } from "@/components/account/SessionsCard";
+import { TwoFactorCard } from "@/components/account/TwoFactorCard";
 import { DeleteAccountForm } from "@/components/account/DeleteAccountForm";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -38,6 +40,7 @@ export default async function AccountPage() {
       name: true,
       email: true,
       emailVerified: true,
+      twoFactorEnabledAt: true,
       accounts: { select: { provider: true } },
     },
   });
@@ -86,6 +89,15 @@ export default async function AccountPage() {
           {/* Hidden rather than disabled for OAuth-only accounts: there is no
               current password to enter, so the form has nothing to act on. */}
           {record.password && <ChangePasswordForm email={record.email} />}
+
+          {/* Only offered to credential accounts: an OAuth-only user signs in
+              through their provider, which owns its own second factor. */}
+          {record.password && (
+            <TwoFactorCard
+              isEnabled={Boolean(record.twoFactorEnabledAt)}
+              isAvailable={isTwoFactorConfigured}
+            />
+          )}
 
           <ConnectedAccounts
             providers={providers}

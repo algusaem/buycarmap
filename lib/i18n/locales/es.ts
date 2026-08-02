@@ -152,6 +152,51 @@ export const es: Translations = {
       notice:
         "Enviaremos un enlace a la nueva dirección. Tu correo solo cambiará cuando lo confirmes allí.",
     },
+    twoFactor: {
+      title: "Verificación en dos pasos",
+      description:
+        "Pide un código de tu móvil además de la contraseña.",
+      enabled: "Activada",
+      disabled: "Desactivada",
+      unavailable:
+        "No disponible en este despliegue: al servidor le falta su clave de cifrado.",
+      enableCta: "Configurar dos pasos",
+      starting: "Preparando…",
+      scanTitle: "Escanea esto con tu app de autenticación",
+      scanDescription:
+        "Vale Google Authenticator, 1Password, Authy o cualquier otra app TOTP.",
+      manualLabel: "¿No puedes escanear? Introduce esta clave a mano",
+      manualHint: "Escríbela tal cual, sin espacios.",
+      codeLabel: "Introduce el código de 6 dígitos",
+      codePlaceholder: "123456",
+      recoveryHint:
+        "¿Has perdido el móvil? Escribe aquí uno de tus códigos de recuperación.",
+      confirm: "Activar dos pasos",
+      confirming: "Verificando…",
+      cancel: "Cancelar",
+      enabledToast: "Verificación en dos pasos activada.",
+      recoveryTitle: "Guarda tus códigos de recuperación",
+      recoveryDescription:
+        "Cada código sirve una vez y te deja entrar si pierdes el móvil.",
+      recoveryWarning:
+        "Es la única vez que se muestran. Guárdalos en un sitio seguro antes de continuar.",
+      copyCodes: "Copiar códigos",
+      copied: "Copiado al portapapeles.",
+      copyFailed:
+        "No se ha podido copiar automáticamente. Selecciona los códigos de arriba y cópialos a mano.",
+      recoveryDone: "Ya los he guardado",
+      regenerateCta: "Generar códigos nuevos",
+      regenerating: "Generando…",
+      regenerateHint:
+        "Sustituye a los actuales. Los anteriores dejan de funcionar de inmediato.",
+      disableCta: "Desactivar dos pasos",
+      disabling: "Desactivando…",
+      disableHint:
+        "Requiere tu contraseña y un código actual, para que una sesión robada no baste para quitarla.",
+      disabledToast: "Verificación en dos pasos desactivada.",
+      currentPassword: "Tu contraseña",
+      currentPasswordPlaceholder: "Introduce tu contraseña",
+    },
     sessions: {
       title: "Sesiones activas",
       description: "¿Has iniciado sesión en algún sitio que ya no usas?",
@@ -217,6 +262,14 @@ export const es: Translations = {
     passwordReused: "Elige una contraseña distinta de la actual",
     currentPasswordIncorrect: "Tu contraseña actual no es correcta",
     tokenInvalid: "Este enlace no es válido o ha caducado",
+    totpRequired: "Introduce el código de tu app de autenticación",
+    totpInvalid: "Ese código no es válido. Revisa tu app e inténtalo de nuevo.",
+    totpAlreadyEnabled: "La verificación en dos pasos ya está activada",
+    totpNotEnabled: "La verificación en dos pasos no está configurada",
+    totpUnavailable:
+      "La verificación en dos pasos no está disponible en este despliegue",
+    oauthLinkBlocked:
+      "Esta cuenta usa verificación en dos pasos. Entra con tu contraseña y luego conecta este proveedor desde los ajustes de tu cuenta.",
     alreadyVerified: "Tu dirección de correo ya está verificada",
     sameEmail: "Esa ya es tu dirección de correo",
     lastSignInMethod:
