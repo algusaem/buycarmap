@@ -53,3 +53,7 @@ nul
 
 # using pnpm — keep npm from re-creating this
 /package-lock.json
+
+# local Claude Code tooling — slash commands, per-user permissions and the
+# dev-server launch config. Personal setup, not project source.
+/.claude/
