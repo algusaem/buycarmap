@@ -164,7 +164,7 @@ describe("register input validation", () => {
 describe("register with email configured (verify-first)", () => {
   beforeEach(() => setEmailConfigured(true));
 
-  it("creates no user, only a pending registration, for a free address", async () => {
+  it("AUTH-1: creates no user, only a pending registration, for a free address", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
     const result = await register(formData(valid));
@@ -188,7 +188,7 @@ describe("register with email configured (verify-first)", () => {
     expect(taken).toEqual({ success: true, pending: true });
   });
 
-  it("emails in both cases, so the send itself is not a signal", async () => {
+  it("AUTH-1: emails in both cases, so the send itself is not a signal", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
     await register(formData(valid));
     expect(sendEmail).toHaveBeenCalledOnce();

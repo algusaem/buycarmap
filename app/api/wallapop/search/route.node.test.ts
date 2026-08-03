@@ -8,7 +8,7 @@ import { GET } from "./route";
 const UPSTREAM = "https://api.wallapop.com/api/v3/search/section";
 
 describe("GET /api/wallapop/search", () => {
-  it("forwards the query string and injects the required Wallapop headers", async () => {
+  it("SRC-9: forwards the query string and injects the required Wallapop headers", async () => {
     let received: Request | undefined;
     server.use(
       http.get(UPSTREAM, ({ request }) => {
@@ -31,7 +31,7 @@ describe("GET /api/wallapop/search", () => {
     expect(url.searchParams.get("brand")).toBe("Seat");
   });
 
-  it("passes through the upstream error status", async () => {
+  it("SRC-11: passes through the upstream error status", async () => {
     server.use(
       http.get(UPSTREAM, () => HttpResponse.json({}, { status: 503 })),
     );
@@ -44,5 +44,23 @@ describe("GET /api/wallapop/search", () => {
     await expect(res.json()).resolves.toEqual({
       error: "Wallapop API error: 503",
     });
+  });
+});
+describe("GET upstream connection failure", () => {
+  it("SRC-12: answers 502 rather than throwing when the connection fails", async () => {
+    server.use(
+      http.get(UPSTREAM, () =>
+        // A rejected fetch, not an error status: DNS failure, reset, timeout.
+        // HttpResponse.error() is what makes fetch itself reject.
+        HttpResponse.error(),
+      ),
+    );
+
+    const res = await GET(
+      new NextRequest("http://localhost:3000/api/wallapop/search?keywords=golf"),
+    );
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ error: expect.stringContaining("failed") });
   });
 });

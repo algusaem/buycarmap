@@ -17,11 +17,13 @@ async function fetchModels(makeId: number): Promise<CochesNetTaxonomyOption[]> {
   const url = new URL("/api/cochesnet/models", window.location.origin);
   url.searchParams.set("makeId", String(makeId));
 
+  // Deliberately NOT cached on failure. Caching an empty list here would make
+  // one transient blip disable model filtering for this make until the page is
+  // reloaded — the cache is module-level and has no expiry, so nothing would
+  // ever retry. Returning empty degrades this search to brand-only; the next
+  // search tries again.
   const response = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!response.ok) {
-    modelsByMake.set(makeId, []);
-    return [];
-  }
+  if (!response.ok) return [];
 
   const data = (await response.json()) as CochesNetTaxonomyResponse;
   const options = data.items ?? [];

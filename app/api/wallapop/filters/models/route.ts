@@ -17,21 +17,31 @@ export async function GET(request: NextRequest) {
   url.searchParams.set("category_id", "100");
   url.searchParams.set("brand", brand);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Accept: "application/json",
-      "x-deviceos": "0",
-      "x-appversion": "85000",
-    },
-  });
+  // A rejected fetch — DNS, reset, timeout — is routine against an upstream we
+  // do not control. Without this it escapes the handler and Next answers with
+  // an unhandled 500 instead of the `{ error }` shape every caller expects.
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        Accept: "application/json",
+        "x-deviceos": "0",
+        "x-appversion": "85000",
+      },
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: `Wallapop API error: ${response.status}` },
+        { status: response.status },
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch {
     return NextResponse.json(
-      { error: `Wallapop API error: ${response.status}` },
-      { status: response.status },
+      { error: "Wallapop request failed" },
+      { status: 502 },
     );
   }
-
-  const data = await response.json();
-  return NextResponse.json(data);
 }

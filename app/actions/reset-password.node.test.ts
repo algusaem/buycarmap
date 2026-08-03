@@ -227,6 +227,22 @@ describe("resetPassword success path", () => {
     });
   });
 
+  it("AUTH-11: leaves two-factor enrolment untouched, so a reset cannot bypass it", async () => {
+    await resetPassword(validRequest());
+
+    // Control of the mailbox is enough to reset a password. If the reset also
+    // cleared the second factor, the mailbox alone would defeat 2FA entirely —
+    // which is the whole thing 2FA exists to prevent. Asserted on the update
+    // payload rather than the outcome because "we forgot to clear it" and "we
+    // deliberately do not clear it" look identical from the outside, and the
+    // plausible future edit is someone adding it as a lockout fix.
+    const [[call]] = vi.mocked(prisma.user.update).mock.calls;
+    expect(Object.keys(call.data).sort()).toEqual([
+      "password",
+      "passwordChangedAt",
+    ]);
+  });
+
   it("marks the token used and clears sessions in one transaction", async () => {
     await resetPassword(validRequest());
 

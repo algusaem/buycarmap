@@ -98,7 +98,7 @@ describe("verifyAndConsumeTwoFactor with a TOTP code", () => {
     ).toEqual({ valid: false, method: null });
   });
 
-  it("accepts the next step after one has been consumed", async () => {
+  it("AUTH-8: accepts the next step after one has been consumed", async () => {
     const step = CURRENT_STEP;
 
     // Drift tolerance still works going forward; only backwards is blocked.
@@ -112,7 +112,7 @@ describe("verifyAndConsumeTwoFactor with a TOTP code", () => {
 });
 
 describe("verifyAndConsumeTwoFactor with a recovery code", () => {
-  it("accepts an unused code belonging to the user and burns it", async () => {
+  it("AUTH-10: accepts an unused code belonging to the user and burns it", async () => {
     vi.mocked(prisma.twoFactorRecoveryCode.findUnique).mockResolvedValue({
       id: "rc-1",
       userId: "user-1",

@@ -70,6 +70,13 @@ if (!Element.prototype.scrollIntoView) {
 }
 window.scrollTo = vi.fn();
 
+// Pointer capture — jsdom implements no part of the Pointer Events API, and
+// Radix Select's trigger calls these directly on pointerdown. Without them the
+// trigger throws before the listbox ever opens.
+Element.prototype.hasPointerCapture = vi.fn(() => false);
+Element.prototype.setPointerCapture = vi.fn();
+Element.prototype.releasePointerCapture = vi.fn();
+
 // axe's colour-contrast rule reaches for a canvas jsdom doesn't implement.
 // Stub getContext so the (skipped-anyway) contrast check stops warning.
 HTMLCanvasElement.prototype.getContext =

@@ -9,13 +9,30 @@ const dbEnabled = !!process.env.E2E_DB;
 // Throwaway, but at least 32 characters: lib/env.ts logs a security warning
 // below that length, and a warning on every e2e run trains people to ignore it.
 const E2E_FALLBACK_SECRET = "e2e-secret-at-least-32-characters-long";
+
+// Registration behaves completely differently depending on whether email is
+// configured: verify-first (no account until a link is clicked) when it is,
+// immediate creation reporting `emailTaken` when it is not. The DB-gated
+// register tests exercise the second path.
+//
+// `webServer.env` MERGES with process.env, and line 1 loads .env into it, so
+// the mode was decided by whatever happened to be in the developer's .env
+// rather than by this file. That went unnoticed until `pnpm db:branch` started
+// copying RESEND_API_KEY into every worktree, at which point both register
+// tests failed against behaviour the app is specified to have. Blanking the
+// pair here makes the mode a property of the test setup instead of the machine.
+// `isEmailConfigured` is a Boolean() of both values, so "" reads as unset.
+const NO_EMAIL = { RESEND_API_KEY: "", EMAIL_FROM: "" };
+
 const serverEnv = dbEnabled
   ? {
+      ...NO_EMAIL,
       DATABASE_URL: process.env.DATABASE_URL ?? "",
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? E2E_FALLBACK_SECRET,
       NEXTAUTH_URL: "http://localhost:3000",
     }
   : {
+      ...NO_EMAIL,
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
       NEXTAUTH_SECRET: E2E_FALLBACK_SECRET,
       NEXTAUTH_URL: "http://localhost:3000",

@@ -38,7 +38,7 @@ describe("mapTransmissionTokensToId", () => {
     expect(mapTransmissionTokensToId(["semiautomatic"])).toBe(1);
   });
 
-  it("returns undefined when no token is recognised", () => {
+  it("SRC-6: returns undefined when no token is recognised", () => {
     expect(mapTransmissionTokensToId(["cvt"])).toBeUndefined();
   });
 });

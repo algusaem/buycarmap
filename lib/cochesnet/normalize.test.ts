@@ -3,7 +3,7 @@ import { normalizeCochesNetItems } from "./normalize";
 import { makeCochesNetItem } from "@/test/fixtures/cochesnet";
 
 describe("normalizeCochesNetItems", () => {
-  it("maps a well-formed item into a CarListing", () => {
+  it("SRC-1: maps a well-formed item into a CarListing", () => {
     const [listing] = normalizeCochesNetItems([makeCochesNetItem()]);
 
     expect(listing).toEqual({

@@ -18,7 +18,7 @@ function captureQuery(): () => URLSearchParams {
 }
 
 describe("searchWallapop", () => {
-  it("always sends coordinates and constant category params", async () => {
+  it("SRC-8: always sends coordinates and constant category params", async () => {
     const params = captureQuery();
     await searchWallapop({});
     const q = params();
@@ -48,7 +48,7 @@ describe("searchWallapop", () => {
     expect(q.get("distance_in_km")).toBe("150");
   });
 
-  it("maps every provided filter to its Wallapop param name", async () => {
+  it("SRC-5: maps every provided filter to its Wallapop param name", async () => {
     const params = captureQuery();
     const input: SearchInput = {
       keywords: "gti",
@@ -91,7 +91,7 @@ describe("searchWallapop", () => {
     expect(params().get("next_page")).toBe("cursor-xyz");
   });
 
-  it("throws when the proxy responds with a non-ok status", async () => {
+  it("SRC-13: throws when the proxy responds with a non-ok status", async () => {
     server.use(
       http.get("*/api/wallapop/search", () =>
         HttpResponse.json({ error: "boom" }, { status: 500 }),

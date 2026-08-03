@@ -5,7 +5,7 @@ import { getToken } from "next-auth/jwt";
 // function must match the filename. Behaviour is unchanged.
 
 // Routes that require a signed-in user.
-const PROTECTED_PREFIXES = ["/account"];
+const PROTECTED_PREFIXES = ["/account", "/favorites"];
 
 // Routes that make no sense once signed in.
 const GUEST_ONLY_PATHS = ["/login", "/register", "/forgot-password"];
@@ -57,5 +57,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account/:path*", "/login", "/register", "/forgot-password"],
+  matcher: [
+    "/account/:path*",
+    "/favorites/:path*",
+    "/login",
+    "/register",
+    "/forgot-password",
+  ],
 };

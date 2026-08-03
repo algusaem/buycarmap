@@ -46,7 +46,7 @@ const wallapopResponseContract = z.object({
 const UPSTREAM = "https://api.wallapop.com/api/v3/search/section";
 
 describe("Wallapop response contract", () => {
-  it("the fixture satisfies the shape the normalizer depends on", () => {
+  it("SRC-15: the fixture satisfies the shape the normalizer depends on", () => {
     const response = makeWallapopResponse([makeWallapopItem()], "page-2");
     expect(wallapopResponseContract.safeParse(response).success).toBe(true);
   });

@@ -19,7 +19,7 @@ beforeEach(() => {
 });
 
 describe("pruneExpiredAuthRows", () => {
-  it("deletes expired rows from all three token tables", async () => {
+  it("AUTH-15: deletes expired rows from all three token tables", async () => {
     await pruneExpiredAuthRows();
 
     // `RateLimit` already self-pruned; these three grew without bound.

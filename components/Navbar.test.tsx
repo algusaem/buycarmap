@@ -77,3 +77,33 @@ describe("Navbar auth controls", () => {
     expect(screen.getByText("ada@example.com")).toBeInTheDocument();
   });
 });
+
+describe("Navbar favorites link", () => {
+  beforeEach(() => useSession.mockReset());
+
+  it("FAV-17: gives a signed-in user a way to reach their saved cars", () => {
+    useSession.mockReturnValue({
+      data: { user: { email: "ada@example.com", name: "Ada" } },
+      status: "authenticated",
+    });
+
+    renderWithI18n(<Navbar />);
+
+    // A real link, not a click handler: Cmd/middle-click has to work.
+    expect(screen.getByRole("link", { name: /saved cars/i })).toHaveAttribute(
+      "href",
+      "/favorites",
+    );
+  });
+
+  it("FAV-17: does not offer it to a signed-out visitor", () => {
+    useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+
+    renderWithI18n(<Navbar />);
+
+    // The page is guarded, so the link would only bounce them to sign-in.
+    expect(
+      screen.queryByRole("link", { name: /saved cars/i }),
+    ).not.toBeInTheDocument();
+  });
+});

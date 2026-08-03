@@ -60,7 +60,7 @@ describe("GET /api/milanuncios/search", () => {
     expect(received?.pathname).toBe("/coches-de-segunda-mano/");
   });
 
-  it("passes through the upstream error status", async () => {
+  it("SRC-11: passes through the upstream error status", async () => {
     server.use(
       http.get(UPSTREAM, () => new HttpResponse(null, { status: 403 })),
     );
@@ -72,7 +72,7 @@ describe("GET /api/milanuncios/search", () => {
     });
   });
 
-  it("returns 502 when the upstream request throws", async () => {
+  it("SRC-12: returns 502 when the upstream request throws", async () => {
     server.use(http.get(UPSTREAM, () => HttpResponse.error()));
 
     const res = await GET(getRequest("slug=coches-de-segunda-mano"));

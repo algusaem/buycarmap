@@ -81,7 +81,7 @@ describe("searchCochesNet", () => {
     expect(payload().filters.vehicles).toEqual([{ makeId: 4, modelId: 5501 }]);
   });
 
-  it("filters by make only when the model name has no exact match", async () => {
+  it("SRC-7: filters by make only when the model name has no exact match", async () => {
     // Seat → makeId 39; model list lacks the requested name.
     server.use(
       http.get("*/api/cochesnet/models", () =>
@@ -94,7 +94,7 @@ describe("searchCochesNet", () => {
     expect(payload().filters.vehicles).toEqual([{ makeId: 39 }]);
   });
 
-  it("throws when the proxy responds with a non-ok status", async () => {
+  it("SRC-13: throws when the proxy responds with a non-ok status", async () => {
     server.use(
       http.post("*/api/cochesnet/search", () =>
         HttpResponse.json({ error: "boom" }, { status: 502 }),

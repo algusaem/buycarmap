@@ -4,7 +4,7 @@
 
 BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, year, mileage, horsepower, fuel, transmission, and recency, then browse results as a synchronized card list + map.
 
-**Current state**: The live data sources are **Wallapop** and **coches.net**, both proxied through Next.js API routes and merged into one result set. Other sources listed below are planned, not yet integrated. Auth is complete (register, login, password reset, account management, optional OAuth) — see **Authentication** below. Listing persistence, saved searches, and favorites are not built yet. Keep this in mind: do not assume `Car`/`Favorite`/`SavedSearch` models exist.
+**Current state**: The live data sources are **Wallapop**, **coches.net** and **Milanuncios**, all proxied through Next.js API routes and merged into one result set. Auth is complete (register, login, password reset, account management, two-factor, optional OAuth) — see **Authentication** below. **Favorites are built**: a `Favorite` model, server actions, a `/favorites` page, and a saved set reconciled into search results (see `docs/specs/favorites.md`). Still not built: normalized `Car` listing persistence, saved searches, notifications. Do not assume `Car`/`SavedSearch` models exist.
 
 ## Tech Stack
 
@@ -33,6 +33,7 @@ pnpm dev              # Start dev server (next dev)
 pnpm build            # prisma generate && next build
 pnpm start            # next start
 pnpm lint             # eslint
+pnpm spec:check       # Assert every approved acceptance criterion still has a test
 pnpm test             # Vitest (unit + hook + integration + component + contract)
 pnpm test:watch       # Vitest watch mode
 pnpm test:coverage    # Vitest with v8 coverage
@@ -54,12 +55,14 @@ app/
   reset-password/page.tsx       # Redeems an emailed reset token
   verify-email/page.tsx         # Confirms a signup and creates the account
   confirm-email/page.tsx        # Verifies an address, or completes an email change
-  actions/                      # Server actions (register, forgot-password, reset-password, account)
+  actions/                      # Server actions (register, forgot-password, reset-password, account, favorites)
+  favorites/page.tsx            # Saved cars (guarded)
   api/
     auth/[...nextauth]/route.ts # NextAuth handler (authOptions live in lib/auth/options.ts)
     wallapop/search/route.ts    # Proxy → Wallapop search/section
     wallapop/filters/models/    # Proxy → Wallapop model list for a brand
     cochesnet/search/route.ts   # Proxy → coches.net search/listing (POST)
+    milanuncios/search/route.ts # Proxy → Milanuncios (HTML, JSON extracted)
   generated/prisma/             # Generated Prisma client (do not edit)
   page.tsx                      # Home (Hero)
   map/page.tsx                  # Main app: <MapView />
@@ -73,7 +76,7 @@ components/
   ui/                           # button, card, input, label, select, separator, toggle-chip, range-input
   Navbar, ThemeProvider, ThemeSwitcher, LanguageSwitcher
 lib/
-  hooks/                        # useListingsSearch, useSearchFilters, useCarModels, useLocationSearch, useOAuthProviders, useMounted, useThemeTransition
+  hooks/                        # useListingsSearch, useSearchFilters, useCarModels, useLocationSearch, useFavorites, useOAuthProviders, useMounted, useThemeTransition
   wallapop/                     # client, filters, normalize, cache
   cochesnet/                    # client, normalize, taxonomy (ID maps), geo (geocoding)
   geo/                          # cities (static), nominatim (geocode), user-location (browser geolocation)
@@ -213,6 +216,80 @@ Semantic aliases also exist: `--success`, `--warning`, `--info`, plus `--chart-1
 - **Light**: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png`
 - `ListingsMap` switches tiles via `useTheme().resolvedTheme` (guarded by `useMounted`).
 
+## Spec-Driven Development
+
+Feature work starts with a spec, not with code. The spec is the agreement about
+*what* the software does; the tests prove it; the implementation follows. Full
+conventions in `docs/specs/README.md`; adoption status in
+`docs/sdd-adoption-plan.md`.
+
+**The loop.** Write the spec from `docs/specs/_template.md` (Status `Draft`) →
+get it approved (`Approved`) → write one **failing** test per acceptance
+criterion → implement until green → fill in "Verified by" and set
+`Implemented`.
+
+**Criteria are identified, not just numbered.** Each spec declares a unique
+`Key` of 2–8 uppercase letters; criteria are `KEY-1`, `KEY-2`, … and are
+**append-only** — never renumber, because test titles point at those ids:
+
+```ts
+it("FAV-3: removes a listing from favorites when the button is toggled off", …)
+```
+
+`pnpm spec:check` (in CI, before the suite) fails when an approved criterion is
+named by no test, or when a test names a criterion no spec declares. It proves
+an id is *mentioned*, not that the assertion is meaningful — the `/check-tests`
+quality bar is still what makes a test worth having.
+
+**When a spec is required:** any change to observable behaviour — a feature, a
+data source, a changed flow, a new failure mode. **Not required:** behaviour-
+preserving refactors, dependency bumps, styling that changes no interaction, or
+fixing a bug an existing criterion already forbids (that is a missing test, not
+a missing spec).
+
+**Changing behaviour means editing the spec first**, then the tests, then the
+code. A spec that disagrees with the code is worse than no spec, because it is
+trusted.
+
+### How this triggers — Claude runs it, the user does not
+
+**Do not wait to be asked for a spec.** When a request would change observable
+behaviour, invoke `/spec` yourself as the first action, before reading further
+into implementation and before writing any code. The user asking for a feature
+*is* the request for a spec.
+
+| The user says | Do this first |
+| --- | --- |
+| "add X", "build X", "I want users to be able to X" | `/spec X` — draft it, then stop and get it approved |
+| "change how X works", "X should also do Y" | Open the governing spec, amend it, re-approve; then `/spec-tests` |
+| "X is broken" | Find the criterion that forbids it. **Exists** → write the failing test, fix, no spec change. **Missing** → the spec has a hole: add a criterion, then fix |
+| "refactor X", "rename X", "bump X" | No spec. Say so in one line and proceed |
+| "why does X do Y?" | No spec. Answer the question |
+
+After a spec is approved, invoke `/spec-tests` yourself — do not implement
+straight from the spec. The tests come first or the process is theatre.
+
+**Two rules that override the urge to be helpful:**
+
+1. **Stop after drafting a spec.** Approval is the user's decision, and it is
+   the only checkpoint in the loop where the cost of being wrong is still low.
+   Drafting a spec and immediately implementing it defeats the entire point.
+2. **When it is genuinely ambiguous whether something needs a spec, say which
+   way you are going and why, in one sentence, then proceed.** Do not stall the
+   work on a process question — but do not silently skip the spec either.
+
+**Commands:** `/spec <feature>` drafts one; `/spec-tests <spec>` turns an
+approved spec's criteria into failing tests. Both live in `.claude/commands/`.
+They are Claude-invoked; the user may also call them directly.
+
+This section is an instruction, not documentation. `pnpm spec:check` in CI is
+the backstop that catches what gets missed — it cannot catch a feature built
+with no spec at all, only a criterion that lost its test.
+
+> `docs/specs/auth-email-and-oauth.md` predates this template — no key, no
+> criteria table — so `spec:check` skips it. It is converted in Wave C of the
+> adoption plan. Do not copy its shape for new specs; copy `_template.md`.
+
 ## Testing
 
 Stack: **Vitest** (unit/hook/integration/component), **React Testing Library**, **MSW** (network mocking), **vitest-axe** (a11y), **Playwright** (e2e + visual). No test runner existed before; this is the house setup — follow it, don't introduce Jest/Cypress.
@@ -234,7 +311,8 @@ Stack: **Vitest** (unit/hook/integration/component), **React Testing Library**, 
 ### Environment gotchas (baked into the setup — know them before writing tests)
 
 - **Module-level caches persist across tests**: `lib/wallapop/cache.ts`, `lib/cochesnet/models.ts` (`modelsByMake`), `lib/geo/user-location.ts`. Use distinct keys/brands per test, or fake timers, to avoid cross-test bleed. MSW handlers + IO observers reset in `afterEach` (`test/setup.jsdom.ts`).
-- **`Date.now()` / 400 ms debounces** → `vi.useFakeTimers()` + `advanceTimersByTimeAsync`.
+- **`Date.now()` / 400 ms debounces** → `vi.useFakeTimers()` + `advanceTimersByTimeAsync`. **But not together with `userEvent`**: Testing Library's async wrapper awaits a `setTimeout` it only advances when it detects *jest's* fake clock, which Vitest doesn't expose, so every interaction hangs until the test times out. Either drive the hook directly (`renderHook` + `act`), or keep real timers and let `findBy*` (1 s default) absorb the debounce — that is what `LocationSearch.test.tsx` does.
+- **Radix Select needs pointer plumbing jsdom lacks**: `hasPointerCapture`/`setPointerCapture`/`releasePointerCapture` are stubbed in `test/setup.jsdom.ts`, and the trigger must be clicked with `userEvent.setup({ pointerEventsCheck: 0 })`. `SelectValue` renders nothing while the content is unmounted, so a closed trigger's accessible name is its label alone — query it as `getByRole("combobox", { name: /Brand/ })`, never by the selected value.
 - **`useListingsSearch.loadMore` is not public** — it fires only via the sentinel. Test it by `sentinelRef(node)` + `triggerIntersection()`.
 - **`<input type="email">` uses native browser validation**: a malformed value is blocked by the browser *before* react-hook-form runs, so RHF's "Invalid email address" message never renders. Assert "did not submit" for malformed input, and use empty/required cases to exercise RHF's own messages. (The forms don't set `noValidate`.)
 - **Controlled inputs** (e.g. `RangeInput`): a value only accumulates if a parent holds state — render a stateful harness, don't pass a static `value`.
@@ -248,7 +326,25 @@ Stack: **Vitest** (unit/hook/integration/component), **React Testing Library**, 
 - **Screenshots must wait for the page to settle** (`waitForPageToSettle` in `e2e/visual.spec.ts`): the navbar swaps a placeholder for real links when `useSession()` resolves, and `next/font` loads asynchronously. Both raced the camera and made these tests look "inherently flaky" — they aren't.
 - **`maxDiffPixels: 300`** is calibrated, not arbitrary: ~86px of antialiasing noise between identical renders, versus 1,310px for a one-step font-size change. Don't raise it to silence a failure — read the diff PNG in `test-results/`, which points straight at the culprit.
 - `mockListingSources` also stubs `**/_next/image**`. The fixture image URLs use allowed hosts but don't exist, so `next/image` really fetched them and really 404'd, rendering differently by timing.
-- **Auth e2e covers client validation only.** The register→login persistence round-trip is a `test.skip` stub — enable it once a disposable Postgres/Prisma test DB is wired.
+- **CI does not run the DB-gated e2e.** `pnpm test:e2e` runs without `E2E_DB`, so those 28 tests
+  skip there and gate nothing. Wiring them needs `NEON_API_KEY` as a GitHub secret plus a job that
+  forks a branch database per run and deletes it afterwards. Until that exists they are a local
+  pre-merge check, not a guard — treat a green CI as saying nothing about persistence.
+- **DB-gated e2e is real now.** `pnpm test:e2e:db` (`E2E_DB=1`) runs the auth, two-factor and
+  favorites round-trips against an actual database — 27 tests. It needs the worktree to have its own
+  Neon branch first (`pnpm db:branch`); without one it would write to whatever `DATABASE_URL` points
+  at. Global teardown deletes every `@e2e.local` account, and `Favorite` rows go with them by cascade.
+  Two traps found while wiring it up:
+  - **The suite exhausts its own login rate limit.** Dozens of sign-ins from one address against a
+    limit of 20 per IP per 15 minutes, so a second run inside that window failed every test with what
+    looked like broken auth. Global setup now clears the `RateLimit` table when `E2E_DB` is set.
+  - **`webServer.env` merges with `process.env`**, and `playwright.config.ts` loads `.env` at line 1.
+    Registration behaves completely differently depending on whether email is configured, so the mode
+    was decided by the developer's `.env` until `RESEND_API_KEY`/`EMAIL_FROM` were pinned to `""` there.
+- **Never assert an optimistic UI toggle to prove a write landed.** The favorite control flips before
+  the server answers and rolls back after a failure, so the assertion passes even when nothing was
+  saved — and navigating away next cancels the request. `e2e/favorites.spec.ts` polls the row count
+  in Postgres instead.
 - Known findings the suite surfaced (unfixed, flagged): auth pages fail `color-contrast` (excluded from the a11y gate); malformed-email is caught by native browser validation, not RHF (forms lack `noValidate`).
 
 ## Rules for Claude
@@ -259,6 +355,14 @@ Stack: **Vitest** (unit/hook/integration/component), **React Testing Library**, 
 recreates the database.** The Neon database holds real accounts, there is no seed script, and
 "reset" rebuilds the schema with zero rows. Prisma offers it for bookkeeping problems that do not
 need it — treat the offer as a bug report, not an instruction.
+
+**This is enforced, not just documented.** `scripts/require-branch-db.mjs` refuses to let a
+database-touching command run from a worktree that has no branch database of its own, and a
+`PreToolUse` hook wires it to every Bash/PowerShell call. If you see "Refusing to run", the fix is
+`pnpm db:branch` -- never work around the guard. It deliberately ignores `prisma generate` (which
+never opens a connection) and `pnpm db:branch` itself (blocking the remedy would deadlock). The
+rule lives in the repository; only the hook wiring is local, so run `node
+scripts/require-branch-db.mjs` by hand if you are working somewhere the hook is not configured.
 
 **Before running any Prisma command or `pnpm dev` from a worktree, run `pnpm db:branch`.** It gives
 the current git branch its own copy-on-write Neon branch and writes `DATABASE_URL` into that

@@ -36,7 +36,7 @@ const cochesNetResponseContract = z.object({
 const UPSTREAM = "https://web.gw.coches.net/search/listing";
 
 describe("coches.net response contract", () => {
-  it("the fixture satisfies the shape the normalizer depends on", () => {
+  it("SRC-15: the fixture satisfies the shape the normalizer depends on", () => {
     const response = makeCochesNetResponse([makeCochesNetItem()], 3);
     expect(cochesNetResponseContract.safeParse(response).success).toBe(true);
   });

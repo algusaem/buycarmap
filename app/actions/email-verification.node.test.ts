@@ -168,7 +168,7 @@ describe("requestEmailChange", () => {
     });
   });
 
-  it("requires the current password", async () => {
+  it("AUTH-13: requires the current password", async () => {
     // A hijacked session alone must not be enough to move the account to an
     // inbox the attacker controls.
     vi.mocked(verifyPassword).mockResolvedValue(false);
@@ -180,7 +180,7 @@ describe("requestEmailChange", () => {
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
-  it("sends the link to the NEW address, never the current one", async () => {
+  it("AUTH-13: sends the link to the NEW address, never the current one", async () => {
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
     await requestEmailChange(changeRequest());

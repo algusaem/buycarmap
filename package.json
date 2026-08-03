@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:branch": "node scripts/db-branch.mjs",
     "db:branch:rm": "node scripts/db-branch.mjs --delete",
+    "spec:check": "node scripts/spec-check.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

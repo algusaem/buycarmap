@@ -71,3 +71,37 @@ export async function cleanupE2eUsers(): Promise<number> {
 export async function clearRateLimits(): Promise<void> {
   await withClient((client) => client.query('DELETE FROM "RateLimit"'));
 }
+
+/**
+ * How many favorites the account currently has, read straight from Postgres.
+ *
+ * The UI's optimistic toggle flips before the server answers and rolls back
+ * afterwards on failure, so no assertion on the page can prove a save landed.
+ * Polling this does, and it is what the test actually claims.
+ */
+export async function favoriteCount(email: string): Promise<number> {
+  return withClient(async (client) => {
+    const result = await client.query(
+      'SELECT COUNT(*)::int AS n FROM "Favorite" f JOIN "User" u ON u.id = f."userId" WHERE u.email = $1',
+      [email]
+    );
+    return result.rows[0].n as number;
+  });
+}
+
+/**
+ * Clears the auth rate limiter.
+ *
+ * The suite signs in dozens of times from one address, and the login limit is
+ * 20 per IP per 15 minutes. Running `pnpm test:e2e:db` twice inside that window
+ * therefore exhausts it, and every subsequent sign-in is refused -- which
+ * presents as "login is broken" rather than "you are rate limited", and cost an
+ * investigation. Starting each run from a clean limiter is test setup, not a
+ * weakening of the limit itself.
+ */
+export async function resetRateLimits(): Promise<number> {
+  return withClient(async (client) => {
+    const result = await client.query('DELETE FROM "RateLimit"');
+    return result.rowCount ?? 0;
+  });
+}

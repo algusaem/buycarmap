@@ -3,7 +3,7 @@ import { normalizeWallapopItems } from "./normalize";
 import { makeWallapopItem } from "@/test/fixtures/wallapop";
 
 describe("normalizeWallapopItems", () => {
-  it("maps a well-formed item into a CarListing", () => {
+  it("SRC-1: maps a well-formed item into a CarListing", () => {
     const [listing] = normalizeWallapopItems([makeWallapopItem()]);
 
     expect(listing).toEqual({
@@ -25,7 +25,7 @@ describe("normalizeWallapopItems", () => {
     });
   });
 
-  it("drops reserved items", () => {
+  it("SRC-2: drops reserved items", () => {
     const items = [
       makeWallapopItem({ id: "keep" }),
       makeWallapopItem({ id: "drop", reserved: { flag: true } }),
@@ -70,7 +70,7 @@ describe("normalizeWallapopItems", () => {
     expect(withNothing.image).toBe("");
   });
 
-  it("geocodes the city when the item has no coordinates", () => {
+  it("SRC-3: geocodes the city when the item has no coordinates", () => {
     const noCoords = makeWallapopItem({
       location: {
         latitude: null as unknown as number,
@@ -99,5 +99,35 @@ describe("normalizeWallapopItems", () => {
 
     expect(slugged.url).toBe("https://es.wallapop.com/item/nice-slug");
     expect(unslugged.url).toBe("https://es.wallapop.com/item/42");
+  });
+});
+
+describe("normalizeWallapopItems with sparse data", () => {
+  it("SRC-4: produces a usable card when the car attributes are absent entirely", () => {
+    // Wallapop omits `type_attributes` on some listings. Every consumer of
+    // CarListing reads these fields unconditionally, so undefined would render
+    // as "undefined km" rather than being hidden by the card's zero checks.
+    const [listing] = normalizeWallapopItems([
+      makeWallapopItem({ type_attributes: undefined }),
+    ]);
+
+    expect(listing).toMatchObject({
+      mileage: 0,
+      year: 0,
+      fuel: "",
+      brand: "",
+      model: "",
+    });
+    // The parts that do not come from type_attributes survive.
+    expect(listing.title).toBe("Audi A3 2.0 TDI");
+    expect(listing.price).toBe(14500);
+  });
+
+  it("SRC-4: falls back to a placeholder title when the item has none", () => {
+    const [listing] = normalizeWallapopItems([
+      makeWallapopItem({ title: undefined }),
+    ]);
+
+    expect(listing.title).toBe("Unknown");
   });
 });

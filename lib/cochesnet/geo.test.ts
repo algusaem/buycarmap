@@ -28,7 +28,7 @@ describe("resolveCochesNetCoords", () => {
     expect(coords).toEqual({ lat: 37.1773, lng: -3.5986 });
   });
 
-  it("falls back to the province-id centroid when names don't match", () => {
+  it("SRC-3: falls back to the province-id centroid when names don't match", () => {
     const coords = resolveCochesNetCoords(
       location({ cityLiteral: "", mainProvince: "", mainProvinceId: 28 }),
     );

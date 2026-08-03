@@ -33,7 +33,7 @@ const SEARCH_URL =
   "https://www.milanuncios.com/coches-de-segunda-mano/";
 
 describe("Milanuncios response contract", () => {
-  it("the fixture satisfies the shape the normalizer depends on", () => {
+  it("SRC-15: the fixture satisfies the shape the normalizer depends on", () => {
     const { ads } = makeMilanunciosResponse([makeMilanunciosAd()]);
     expect(milanunciosAdContract.safeParse(ads[0]).success).toBe(true);
   });

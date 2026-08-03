@@ -1,6 +1,40 @@
 # Spec: Auth completion — transactional email, password reset, OAuth
 
-Status: **Iterations A, B, C and D implemented.**
+Key: AUTH
+Status: Implemented
+Last updated: 2026-08-02.
+
+> Converted to the current spec template in Wave C of the adoption plan. The
+> prose below is the original and is unchanged — it was already rationale-first,
+> which is what the template exists to produce. What it lacked was a criteria
+> table, so the security properties it asserts in paragraphs could not be tied
+> to the tests that hold them up. That table is §0 below; the original numbered
+> sections follow.
+
+## 0. Acceptance criteria
+
+Fifteen load-bearing properties. These are not everything auth does — that is
+several hundred tests — but they are the claims where a silent regression would
+be a security incident rather than a bug.
+
+| AC | Statement | Level | Verified by |
+| --- | --- | --- | --- |
+| AUTH-1 | Registering reveals nothing about whether an address already has an account | node | `app/actions/register.node.test.ts` |
+| AUTH-2 | No account exists until the address is confirmed from the inbox | node | `app/actions/verify-registration.node.test.ts` |
+| AUTH-3 | A password that fails the strength policy is rejected | unit | `lib/auth/password-policy.test.ts` |
+| AUTH-4 | A breach-service outage does not block sign-up | unit | `lib/auth/password-policy.test.ts` |
+| AUTH-5 | Changing a password revokes every session issued before it | node | `app/actions/account.node.test.ts` |
+| AUTH-6 | Failed sign-ins are counted per account and cleared on success | unit | `lib/auth/authorize.test.ts` |
+| AUTH-7 | A correct password alone does not sign in an account with two-factor enabled | unit | `lib/auth/authorize.test.ts` |
+| AUTH-8 | A TOTP code cannot be reused inside its own window | node | `lib/auth/two-factor/verify.node.test.ts` |
+| AUTH-9 | One step of clock drift either way is accepted | unit | `lib/auth/two-factor/totp.test.ts` |
+| AUTH-10 | A recovery code works exactly once | node | `lib/auth/two-factor/verify.node.test.ts` |
+| AUTH-11 | A password reset leaves two-factor enrolment intact | node | `app/actions/reset-password.node.test.ts` |
+| AUTH-12 | OAuth cannot auto-link a new provider to an account with two-factor enabled | node | `lib/auth/options.node.test.ts` |
+| AUTH-13 | An email change requires the current password and is confirmed from the new address | node | `app/actions/email-verification.node.test.ts` |
+| AUTH-14 | The only remaining way to sign in cannot be disconnected | component | `components/account/ConnectedAccounts.test.tsx` |
+| AUTH-15 | Expired tokens are pruned from every token table | node | `lib/auth/cleanup.node.test.ts` |
+
 Last updated: 2026-08-01.
 
 The pages, the backends behind them, and the security layer they sit on are all

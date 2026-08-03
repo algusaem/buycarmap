@@ -203,7 +203,9 @@ export function LocationSearch({
             value={String(distanceInKm)}
             onValueChange={(val) => onDistanceChange(Number(val))}
           >
-            <SelectTrigger>
+            {/* No visible label sits above this one — the trigger shows the
+                distance itself — so it needs an explicit name. */}
+            <SelectTrigger aria-label={t.filters.distance}>
               <SelectValue placeholder={t.filters.distance} />
             </SelectTrigger>
             <SelectContent>

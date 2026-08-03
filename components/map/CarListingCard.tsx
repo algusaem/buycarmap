@@ -2,6 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { Heart, Car } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -9,37 +12,86 @@ import { Button } from "@/components/ui/button";
 import { CarListing } from "@/interfaces/listing";
 import { SourceBadge } from "@/components/map/SourceBadge";
 import { useTranslation } from "@/lib/i18n/client";
+import { removeFavorite, saveFavorite } from "@/app/actions/favorites";
 
 interface CarListingCardProps extends CarListing {
   isFavorite?: boolean;
-  onHover?: (id: string | null) => void;
+  onFavoriteChange?: (listingId: string, saved: boolean) => void;
 }
 
 export function CarListingCard({
-  id,
-  image,
-  title,
-  subtitle,
-  price,
-  mileage,
-  year,
-  fuel,
-  location,
-  source,
-  url,
   isFavorite = false,
-  onHover,
+  onFavoriteChange,
+  ...listing
 }: CarListingCardProps) {
+  const {
+    id,
+    image,
+    title,
+    subtitle,
+    price,
+    mileage,
+    year,
+    fuel,
+    location,
+    source,
+    url,
+  } = listing;
   const { t } = useTranslation();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { status } = useSession();
   const [favorite, setFavorite] = useState(isFavorite);
   const [imgError, setImgError] = useState(false);
   const showImage = image && !imgError;
 
+  // The saved set arrives after the card has already mounted — search results
+  // and saved listings come from different places and resolve at different
+  // times — so seeding useState once would leave an already-saved car showing
+  // as unsaved forever. Adjusting during render is React's documented way to
+  // react to a changed prop; an effect here would render the wrong state first
+  // and then correct it, which is a visible flicker on every search.
+  const [syncedFavorite, setSyncedFavorite] = useState(isFavorite);
+  if (syncedFavorite !== isFavorite) {
+    setSyncedFavorite(isFavorite);
+    setFavorite(isFavorite);
+  }
+
+  async function toggleFavorite() {
+    // A signed-out visitor gets sent to sign in and back, rather than a
+    // disabled control that would be a dead end or a hidden one they would
+    // never discover. Pushed rather than rendered as a <Link> because the whole
+    // card is already an anchor, and an anchor inside an anchor is invalid.
+    if (status !== "authenticated") {
+      router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    // Optimistic: favoriting is low-stakes and high-frequency, so the cost of
+    // being briefly wrong is a heart that flickers back, while the cost of
+    // waiting on a round trip is a control that feels broken.
+    const next = !favorite;
+    setFavorite(next);
+    onFavoriteChange?.(id, next);
+
+    try {
+      const result = next
+        ? await saveFavorite(listing)
+        : await removeFavorite(id);
+      if (!result.success) {
+        setFavorite(!next);
+        onFavoriteChange?.(id, !next);
+        toast.error(t.map.favoriteFailed);
+      }
+    } catch {
+      setFavorite(!next);
+      onFavoriteChange?.(id, !next);
+      toast.error(t.map.favoriteFailed);
+    }
+  }
+
   return (
-    <article
-      onMouseEnter={() => onHover?.(id)}
-      onMouseLeave={() => onHover?.(null)}
-    >
+    <article>
       <Link
         href={url}
         target="_blank"
@@ -70,7 +122,7 @@ export function CarListingCard({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              setFavorite(!favorite);
+              toggleFavorite();
             }}
             className="absolute right-3 top-3 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
             aria-label={favorite ? t.map.removeFavorite : t.map.addFavorite}
