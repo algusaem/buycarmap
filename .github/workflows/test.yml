@@ -33,6 +33,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      # Every acceptance criterion in an approved spec must still be named by a
+      # test title. Runs before the suite: it is a static check and fails fast.
+      - run: pnpm spec:check
+      # Links, referenced source paths and the ownership map. Also static, also
+      # fails fast — and it runs before `prisma generate` on purpose, so that a
+      # fresh clone with no app/generated/prisma is the state it is proven under.
+      - run: pnpm docs:check
       - run: pnpm exec prisma generate
       - run: pnpm test:coverage
 

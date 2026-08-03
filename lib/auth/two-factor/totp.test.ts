@@ -77,7 +77,7 @@ describe("verifyTotp", () => {
     expect(verifyTotp(SECRET, code, { atMs: now }).valid).toBe(false);
   });
 
-  it("accepts the previous step, for a phone running slow", () => {
+  it("AUTH-9: accepts the previous step, for a phone running slow", () => {
     const code = deriveCode(SECRET, stepForTime(now) - 1);
     const result = verifyTotp(SECRET, code, { atMs: now });
 
@@ -87,7 +87,7 @@ describe("verifyTotp", () => {
     expect(result.step).toBe(stepForTime(now) - 1);
   });
 
-  it("accepts the next step, for a phone running fast", () => {
+  it("AUTH-9: accepts the next step, for a phone running fast", () => {
     const code = deriveCode(SECRET, stepForTime(now) + 1);
 
     expect(verifyTotp(SECRET, code, { atMs: now }).valid).toBe(true);

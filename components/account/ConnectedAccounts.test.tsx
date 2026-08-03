@@ -55,7 +55,7 @@ describe("ConnectedAccounts", () => {
     await waitFor(() => expect(refresh).toHaveBeenCalled());
   });
 
-  it("disables disconnect when it is the only way to sign in", () => {
+  it("AUTH-14: disables disconnect when it is the only way to sign in", () => {
     // No password and one provider: removing it would strand the account,
     // and password reset cannot rescue a passwordless user.
     renderWithI18n(

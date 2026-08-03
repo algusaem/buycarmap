@@ -297,6 +297,16 @@ export interface Translations {
     addFavorite: string;
     removeFavorite: string;
     unknownTitle: string;
+    favoriteFailed: string;
+    searchFailed: string;
+    loadMoreFailed: string;
+    invalidSearch: string;
+  };
+  favorites: {
+    title: string;
+    subtitle: string;
+    empty: string;
+    emptyCta: string;
   };
   theme: {
     dark: string;
@@ -363,6 +373,7 @@ export interface Translations {
     signUp: string;
     signOut: string;
     account: string;
+    favorites: string;
   };
   meta: {
     title: string;

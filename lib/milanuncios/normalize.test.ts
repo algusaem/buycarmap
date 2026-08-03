@@ -3,7 +3,7 @@ import { normalizeMilanunciosItems } from "./normalize";
 import { makeMilanunciosAd } from "@/test/fixtures/milanuncios";
 
 describe("normalizeMilanunciosItems", () => {
-  it("maps a well-formed ad into a CarListing", () => {
+  it("SRC-1: maps a well-formed ad into a CarListing", () => {
     const [listing] = normalizeMilanunciosItems([makeMilanunciosAd()]);
 
     expect(listing).toEqual({
@@ -27,7 +27,7 @@ describe("normalizeMilanunciosItems", () => {
     });
   });
 
-  it("drops reserved / sold ads", () => {
+  it("SRC-2: drops reserved / sold ads", () => {
     const listings = normalizeMilanunciosItems([
       makeMilanunciosAd({ id: "keep", isReserved: "RELEASED" }),
       makeMilanunciosAd({ id: "drop", isReserved: "RESERVED" }),
@@ -52,7 +52,7 @@ describe("normalizeMilanunciosItems", () => {
     expect(listing.fuel).toBe("diésel");
   });
 
-  it("defaults km and year to 0 when the tags are missing", () => {
+  it("SRC-4: defaults km and year to 0 when the tags are missing", () => {
     const [listing] = normalizeMilanunciosItems([
       makeMilanunciosAd({ tags: [] }),
     ]);

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 //
 // Gives the current git branch its own Neon database branch.
 //

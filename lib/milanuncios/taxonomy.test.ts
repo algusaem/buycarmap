@@ -40,7 +40,7 @@ describe("mapFuelTokens", () => {
     expect(mapFuelTokens(["hybride", "hybride_plugin"])).toEqual(["hibrido"]);
   });
 
-  it("drops tokens with no Milanuncios equivalent", () => {
+  it("SRC-6: drops tokens with no Milanuncios equivalent", () => {
     expect(mapFuelTokens(["mystery-fuel"])).toEqual([]);
   });
 });

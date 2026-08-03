@@ -9,15 +9,17 @@
     "lint": "eslint",
     "db:branch": "node scripts/db-branch.mjs",
     "db:branch:rm": "node scripts/db-branch.mjs --delete",
+    "spec:check": "node scripts/spec-check.mjs",
+    "docs:check": "node scripts/docs-check.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:db": "E2E_DB=1 playwright test --project=chromium",
+    "test:e2e:db": "cross-env E2E_DB=1 playwright test --project=chromium",
     "test:e2e:ui": "playwright test --ui",
     "test:visual": "playwright test --project=visual",
     "test:contract": "vitest run --project node contract",
-    "test:contract:live": "CONTRACT_LIVE=1 vitest run --project node contract"
+    "test:contract:live": "cross-env CONTRACT_LIVE=1 vitest run --project node contract"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -66,6 +68,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.10",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "jsdom": "^29.1.1",

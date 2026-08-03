@@ -114,12 +114,57 @@ describe("proxy guest-only routes", () => {
   });
 });
 
+describe("proxy favorites route", () => {
+  beforeEach(() => vi.mocked(getToken).mockReset());
+
+  it("FAV-15: sends an anonymous visitor from favorites to sign in", async () => {
+    signedOut();
+
+    const response = await proxy(request("/favorites"));
+
+    // Asserted before parsing the header: an unguarded route returns 200 with
+    // no location, and `new URL(null)` would report that as "Invalid URL".
+    expect(response.status).toBe(307);
+    expect(new URL(response.headers.get("location") as string).pathname).toBe(
+      "/login",
+    );
+  });
+
+  it("FAV-15: carries the favorites path so sign-in returns them there", async () => {
+    signedOut();
+
+    const response = await proxy(request("/favorites"));
+
+    expect(response.status).toBe(307);
+    expect(
+      new URL(
+        response.headers.get("location") as string,
+      ).searchParams.get("callbackUrl"),
+    ).toBe("/favorites");
+  });
+
+  it("FAV-15: lets a signed-in user through", async () => {
+    signedIn();
+
+    expect(
+      (await proxy(request("/favorites"))).headers.get("location"),
+    ).toBeNull();
+  });
+
+  it("FAV-15: the matcher covers favorites, or the guard never runs", () => {
+    expect(
+      config.matcher.some((pattern) => pattern.startsWith("/favorites")),
+    ).toBe(true);
+  });
+});
+
 describe("proxy matcher", () => {
   it("runs on exactly the paths the handler makes decisions about", () => {
     // A path the handler gates but the matcher omits is an unguarded route;
     // the two lists have to be kept in step by hand.
     expect(config.matcher).toEqual([
       "/account/:path*",
+      "/favorites/:path*",
       "/login",
       "/register",
       "/forgot-password",

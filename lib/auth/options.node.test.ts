@@ -294,7 +294,7 @@ describe("signIn callback: OAuth linking guard", () => {
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 
-  it("allows a brand-new account created through the provider", async () => {
+  it("AUTH-12: allows a brand-new account created through the provider", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
     await expect(call({})).resolves.toBe(true);
@@ -319,7 +319,7 @@ describe("signIn callback: OAuth linking guard", () => {
     await expect(call({ provider: "google" })).resolves.toBe(true);
   });
 
-  it("blocks a NEW provider on a two-factor account", async () => {
+  it("AUTH-12: blocks a NEW provider on a two-factor account", async () => {
     // The attack this closes: someone who controls the mailbox creates a
     // Google account on that address and signs in, skipping the second factor.
     vi.mocked(prisma.user.findUnique).mockResolvedValue({

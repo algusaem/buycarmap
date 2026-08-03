@@ -8,6 +8,7 @@ import { CarListingCard } from "@/components/map/CarListingCard";
 import { MobileMapOverlay } from "@/components/map/MobileMapOverlay";
 import { useListingsSearch } from "@/lib/hooks/useListingsSearch";
 import { useSearchFilters } from "@/lib/hooks/useSearchFilters";
+import { useFavorites } from "@/lib/hooks/useFavorites";
 import { useTranslation } from "@/lib/i18n/client";
 import { SearchFiltersProps } from "@/components/map/SearchFilters";
 
@@ -26,6 +27,9 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   const [showMap, setShowMap] = useState(false);
   const { listings, isLoading, isLoadingMore, hasMore, search, sentinelRef } =
     useListingsSearch();
+  // Results know nothing about what this user saved; without this every card
+  // renders unsaved even for a car already in their favorites.
+  const { favoriteIds, setFavorite } = useFavorites();
 
   const getKeywords = useCallback(() => searchQuery, [searchQuery]);
   const filters = useSearchFilters(search, getKeywords);
@@ -99,7 +103,12 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
             <>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 {listings.map((listing) => (
-                  <CarListingCard key={listing.id} {...listing} />
+                  <CarListingCard
+                    key={listing.id}
+                    {...listing}
+                    isFavorite={favoriteIds.has(listing.id)}
+                    onFavoriteChange={setFavorite}
+                  />
                 ))}
               </div>
               {hasMore && (

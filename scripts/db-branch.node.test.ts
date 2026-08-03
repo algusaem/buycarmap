@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-// @ts-expect-error - plain .mjs dev script, deliberately dependency-free and untyped
-import { parseEnv, sanitize, setEnvValue } from "./db-branch.mjs";
+// A plain .mjs dev script, deliberately dependency-free and untyped, so TS
+// infers `{}` for parseEnv's return and every property read fails. Declaring
+// the surface here is narrower than adding a .d.ts for one dev script.
+import * as dbBranch from "./db-branch.mjs";
+
+const { parseEnv, sanitize, setEnvValue } = dbBranch as unknown as {
+  parseEnv: (contents: string) => Record<string, string>;
+  sanitize: (name: string) => string;
+  setEnvValue: (contents: string, key: string, value: string) => string;
+};
 
 // `pnpm db:branch` rewrites a real .env holding NEXTAUTH_SECRET, the Resend key
 // and OAuth secrets. Losing a line here silently breaks auth; matching the wrong

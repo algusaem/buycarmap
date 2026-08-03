@@ -391,6 +391,16 @@ export const es: Translations = {
     addFavorite: "Guardar en favoritos",
     removeFavorite: "Quitar de favoritos",
     unknownTitle: "Desconocido",
+    favoriteFailed: "No se pudo guardar el anuncio. Inténtalo de nuevo.",
+    searchFailed: "No se pudieron cargar los anuncios. Inténtalo de nuevo.",
+    loadMoreFailed: "No se pudieron cargar más anuncios.",
+    invalidSearch: "Esos filtros de búsqueda no son válidos.",
+  },
+  favorites: {
+    title: "Coches guardados",
+    subtitle: "Los precios son del día en que los guardaste.",
+    empty: "Todavía no has guardado ningún coche.",
+    emptyCta: "Buscar coches",
   },
   theme: {
     dark: "Oscuro",
@@ -457,6 +467,7 @@ export const es: Translations = {
     signUp: "Registrarse",
     signOut: "Cerrar sesión",
     account: "Cuenta",
+    favorites: "Coches guardados",
   },
   meta: {
     title: "Buy Car Map",

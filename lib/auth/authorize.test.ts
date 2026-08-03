@@ -176,7 +176,7 @@ describe("authorizeCredentials rate limiting", () => {
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 
-  it("counts a failed attempt against the account", async () => {
+  it("AUTH-6: counts a failed attempt against the account", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser as never);
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
@@ -188,7 +188,7 @@ describe("authorizeCredentials rate limiting", () => {
     );
   });
 
-  it("clears the account's failure counter on a successful sign-in", async () => {
+  it("AUTH-6: clears the account's failure counter on a successful sign-in", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser as never);
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
@@ -244,7 +244,7 @@ describe("authorizeCredentials with two-factor enabled", () => {
     vi.mocked(verifyAndConsumeTwoFactor).mockReset();
   });
 
-  it("asks for a code when the password is right but none was given", async () => {
+  it("AUTH-7: asks for a code when the password is right but none was given", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(twoFactorUser as never);
     vi.mocked(verifyPassword).mockResolvedValue(true);
 

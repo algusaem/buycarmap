@@ -25,7 +25,7 @@ describe("validateNewPassword", () => {
     vi.mocked(checkPasswordBreached).mockResolvedValue(clean);
   });
 
-  it("accepts a strong password absent from the breach corpus", async () => {
+  it("AUTH-3: accepts a strong password absent from the breach corpus", async () => {
     expect(await validateNewPassword(STRONG)).toBeNull();
   });
 
@@ -44,7 +44,7 @@ describe("validateNewPassword", () => {
     expect(await validateNewPassword(STRONG)).toBe("passwordBreached");
   });
 
-  it("accepts the password when the breach API is unreachable", async () => {
+  it("AUTH-4: accepts the password when the breach API is unreachable", async () => {
     // Fails open on purpose: a third-party outage must not block signups. The
     // length rules and the local blocklist still applied above.
     vi.mocked(checkPasswordBreached).mockResolvedValue(unknown);

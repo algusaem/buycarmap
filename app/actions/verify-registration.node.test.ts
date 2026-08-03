@@ -132,7 +132,7 @@ describe("verifyRegistration account creation", () => {
     );
   });
 
-  it("creates the user from the stored hash and marks the email verified", async () => {
+  it("AUTH-2: creates the user from the stored hash and marks the email verified", async () => {
     const result = await verifyRegistration(formData({ token: RAW_TOKEN }));
 
     expect(result).toEqual({ success: true, email: "ada@example.com" });

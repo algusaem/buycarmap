@@ -227,14 +227,24 @@ export function SearchFilters({
 
           {/* Brand */}
           <div className="flex w-full flex-col gap-2 sm:w-56">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span
+              id="filter-brand-label"
+              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
               {t.filters.brand}
             </span>
             <Select
               value={brand || SELECT_ANY}
               onValueChange={handleBrandChange}
             >
-              <SelectTrigger>
+              {/* Naming the trigger by the visible label *and* itself is the
+                  APG select-only combobox pattern: the accessible name becomes
+                  "Brand Audi" rather than a bare "Audi" with no clue what it
+                  selects. Same below for model. */}
+              <SelectTrigger
+                id="filter-brand-trigger"
+                aria-labelledby="filter-brand-label filter-brand-trigger"
+              >
                 <SelectValue placeholder={t.filters.any} />
               </SelectTrigger>
               <SelectContent>
@@ -253,7 +263,10 @@ export function SearchFilters({
           {/* Model (only when brand is selected) */}
           {brand && (
             <div className="flex w-full flex-col gap-2 sm:w-56">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span
+                id="filter-model-label"
+                className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              >
                 {t.filters.model}
               </span>
               <Select
@@ -261,7 +274,10 @@ export function SearchFilters({
                 onValueChange={handleModelChange}
                 disabled={isLoadingModels}
               >
-                <SelectTrigger>
+                <SelectTrigger
+                  id="filter-model-trigger"
+                  aria-labelledby="filter-model-label filter-model-trigger"
+                >
                   <SelectValue
                     placeholder={
                       isLoadingModels ? t.filters.loadingModels : t.filters.any

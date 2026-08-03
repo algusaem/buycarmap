@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { LogOut, User } from "lucide-react";
+import { Heart, LogOut, User } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui/button";
@@ -59,6 +59,15 @@ function AuthNav() {
   // hovered differently from the buttons beside it.
   return (
     <div className="flex items-center gap-1 sm:gap-2">
+      {/* Only for signed-in users: /favorites is guarded, so offering it to a
+          visitor would be a link straight to a sign-in redirect. */}
+      <Button asChild variant="ghost" size="sm" className="min-w-0">
+        <Link href="/favorites">
+          <Heart className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">{t.nav.favorites}</span>
+          <span className="sr-only sm:hidden">{t.nav.favorites}</span>
+        </Link>
+      </Button>
       {/* A real link, so Cmd/middle-click opens the account in a new tab. */}
       <Button asChild variant="ghost" size="sm" className="min-w-0">
         <Link href="/account" title={session.user.email}>

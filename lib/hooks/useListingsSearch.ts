@@ -9,6 +9,7 @@ import { normalizeCochesNetItems } from "@/lib/cochesnet/normalize";
 import { searchMilanuncios } from "@/lib/milanuncios/client";
 import { normalizeMilanunciosItems } from "@/lib/milanuncios/normalize";
 import { getCached, setCached } from "@/lib/wallapop/cache";
+import { useTranslation } from "@/lib/i18n/client";
 
 // Merge the per-source result lists by round-robin, so every source appears
 // near the top instead of one dominating.
@@ -40,6 +41,9 @@ const EMPTY_PAGE: PageState = {
 };
 
 export function useListingsSearch() {
+  // Failure copy has to come from the i18n context, not string literals: the
+  // default locale is Spanish, so hardcoded English was reaching most users.
+  const { t } = useTranslation();
   const [listings, setListings] = useState<CarListing[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -65,7 +69,9 @@ export function useListingsSearch() {
     const parsed = searchSchema.safeParse(sanitized);
 
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
+      // Zod issue messages are English prose written for developers. The user
+      // gets one localised sentence; the detail is not actionable for them.
+      toast.error(t.map.invalidSearch);
       return;
     }
 
@@ -101,7 +107,7 @@ export function useListingsSearch() {
       cnResult.status === "rejected" &&
       mnResult.status === "rejected"
     ) {
-      toast.error("Failed to fetch listings");
+      toast.error(t.map.searchFailed);
       setIsLoading(false);
       return;
     }
@@ -209,12 +215,12 @@ export function useListingsSearch() {
       ]);
       applyHasMore(nextState);
     } catch {
-      toast.error("Failed to load more listings");
+      toast.error(t.map.loadMoreFailed);
     } finally {
       isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [applyHasMore]);
+  }, [applyHasMore, t]);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useCallback(

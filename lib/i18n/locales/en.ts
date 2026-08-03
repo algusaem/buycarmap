@@ -389,6 +389,16 @@ export const en: Translations = {
     addFavorite: "Add to favorites",
     removeFavorite: "Remove from favorites",
     unknownTitle: "Unknown",
+    favoriteFailed: "Could not save that listing. Please try again.",
+    searchFailed: "Could not load listings. Please try again.",
+    loadMoreFailed: "Could not load more listings.",
+    invalidSearch: "Those search filters are not valid.",
+  },
+  favorites: {
+    title: "Saved cars",
+    subtitle: "Prices are from the day you saved them.",
+    empty: "You have not saved any cars yet.",
+    emptyCta: "Search for cars",
   },
   theme: {
     dark: "Dark",
@@ -455,6 +465,7 @@ export const en: Translations = {
     signUp: "Sign up",
     signOut: "Sign out",
     account: "Account",
+    favorites: "Saved cars",
   },
   meta: {
     title: "Buy Car Map",

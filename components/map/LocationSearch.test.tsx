@@ -1,0 +1,161 @@
+import { describe, expect, it, vi } from "vitest";
+import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { axe } from "vitest-axe";
+import { server } from "@/test/msw/server";
+import { renderWithI18n } from "@/test/utils/render";
+import { SelectedLocation } from "@/interfaces/location";
+import { LocationSearch } from "./LocationSearch";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+
+// Real timers here, deliberately. useLocationSearch debounces by 400ms, but
+// userEvent deadlocks under vi.useFakeTimers(): Testing Library's async wrapper
+// waits on a setTimeout it only advances when it detects *jest's* fake clock,
+// which Vitest does not expose. `findBy*` (1s default) covers the debounce.
+const MADRID: SelectedLocation = {
+  placeId: 1,
+  displayName: "Madrid, Comunidad de Madrid",
+  lat: 40.4168,
+  lng: -3.7038,
+};
+
+// The distance trigger is also a combobox, so the text field is addressed by
+// its placeholder.
+const QUERY_PLACEHOLDER = /^City or address/;
+const queryBox = () => screen.getByPlaceholderText(QUERY_PLACEHOLDER);
+const madridOption = () =>
+  screen.findByRole("option", { name: MADRID.displayName });
+
+function renderLocationSearch(
+  overrides: Partial<React.ComponentProps<typeof LocationSearch>> = {},
+) {
+  const props = {
+    selectedLocation: undefined,
+    distanceInKm: 50,
+    onLocationChange: vi.fn(),
+    onDistanceChange: vi.fn(),
+    ...overrides,
+  };
+  return { props, ...renderWithI18n(<LocationSearch {...props} />) };
+}
+
+describe("LocationSearch suggestions", () => {
+  it("stays closed for a one-character query", async () => {
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "M");
+
+    // Below the two-character threshold the panel is closed by construction,
+    // so there is no debounce to wait out.
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(queryBox()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("lists geocoded suggestions once the query settles", async () => {
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+
+    expect(await madridOption()).toBeInTheDocument();
+    expect(queryBox()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("says so when the geocoder finds nothing", async () => {
+    server.use(
+      http.get("https://nominatim.openstreetmap.org/search", () =>
+        HttpResponse.json([]),
+      ),
+    );
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Nowhereville");
+
+    expect(await screen.findByText("No locations found")).toBeInTheDocument();
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+  });
+
+  it("reports the full location when a suggestion is clicked", async () => {
+    const { props } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await userEvent.click(await madridOption());
+
+    expect(props.onLocationChange).toHaveBeenCalledWith(MADRID);
+  });
+
+  it("selects with the keyboard alone", async () => {
+    const { props } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    const option = await madridOption();
+    expect(option).toHaveAttribute("aria-selected", "false");
+
+    await userEvent.keyboard("{ArrowDown}");
+    expect(option).toHaveAttribute("aria-selected", "true");
+
+    await userEvent.keyboard("{Enter}");
+    expect(props.onLocationChange).toHaveBeenCalledWith(MADRID);
+  });
+
+  it("ignores Enter while nothing is highlighted", async () => {
+    const { props } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+    await userEvent.keyboard("{Enter}");
+
+    expect(props.onLocationChange).not.toHaveBeenCalled();
+  });
+
+  it("dismisses the list on Escape without choosing", async () => {
+    const { props } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(props.onLocationChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("LocationSearch selected state", () => {
+  it("shows the chosen place instead of the search box", () => {
+    renderLocationSearch({ selectedLocation: MADRID });
+
+    expect(screen.getByText(MADRID.displayName)).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText(QUERY_PLACEHOLDER),
+    ).not.toBeInTheDocument();
+  });
+
+  it("clears the chosen place", async () => {
+    const { props } = renderLocationSearch({ selectedLocation: MADRID });
+
+    await userEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(props.onLocationChange).toHaveBeenCalledWith(undefined);
+  });
+});
+
+describe("LocationSearch distance", () => {
+  it("reports the radius as a number", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const { props } = renderLocationSearch();
+
+    await user.click(screen.getByRole("combobox", { name: "Distance" }));
+    await user.click(await screen.findByRole("option", { name: /100/ }));
+
+    expect(props.onDistanceChange).toHaveBeenCalledWith(100);
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = renderLocationSearch();
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});

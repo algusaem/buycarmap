@@ -191,7 +191,7 @@ describe("changePassword", () => {
     });
   });
 
-  it("bumps passwordChangedAt and clears sessions on success", async () => {
+  it("AUTH-5: bumps passwordChangedAt and clears sessions on success", async () => {
     vi.mocked(verifyPassword)
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(false);

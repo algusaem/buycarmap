@@ -55,7 +55,7 @@ describe("searchMilanuncios", () => {
     expect(q.get("engineHpFrom")).toBe("90");
   });
 
-  it("maps fuel and transmission tokens and folds the model into palabras", async () => {
+  it("SRC-5: maps fuel and transmission tokens and folds the model into palabras", async () => {
     const query = captureQuery();
     await searchMilanuncios({
       keywords: "familiar",
@@ -84,7 +84,7 @@ describe("searchMilanuncios", () => {
     expect(result.pagination.totalPages).toBe(2);
   });
 
-  it("throws when the proxy responds with a non-ok status", async () => {
+  it("SRC-13: throws when the proxy responds with a non-ok status", async () => {
     server.use(
       http.get("*/api/milanuncios/search", () =>
         HttpResponse.json({ error: "boom" }, { status: 502 }),

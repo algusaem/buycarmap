@@ -34,6 +34,22 @@ export default defineConfig({
         "**/*.d.ts",
         "**/index.ts",
       ],
+      // A ratchet, not a target. Set a point below what the suite measured
+      // when it was introduced, so ordinary variance doesn't fail CI but a
+      // meaningful drop does. Raise these when coverage rises; never lower
+      // them to make a red build green. Route shells (`app/**/page.tsx`,
+      // `layout.tsx`) are deliberately still counted even though Playwright
+      // is what exercises them — excluding them would flatter the number and
+      // hide logic that drifts into a page.
+      // Raised once at the end of the spec backfill (2026-08-02), from the
+      // 87/82/81/87 the suite started at. Same rule as before: a point under
+      // what was measured, so variance does not fail CI but a real drop does.
+      thresholds: {
+        statements: 89,
+        branches: 85,
+        functions: 84,
+        lines: 89,
+      },
     },
     projects: [
       {
