@@ -89,6 +89,121 @@ export async function favoriteCount(email: string): Promise<number> {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Alert queue helpers (ALERT-13, ALERT-14)
+//
+// These drive the claim query directly rather than through the browser: the
+// property under test is what Postgres does when two transactions reach for the
+// same rows, and there is no UI for that.
+// ---------------------------------------------------------------------------
+
+export interface ClaimedJob {
+  id: string;
+  enqueuedMinutesAgo: number;
+}
+
+/** The claim query the runner issues. Kept here so the tests exercise it verbatim. */
+const CLAIM_SQL = `
+  SELECT id, EXTRACT(EPOCH FROM (now() - "enqueuedAt")) / 60 AS minutes
+  FROM "AlertPollJob"
+  WHERE status = 'pending' AND "availableAt" <= now()
+  ORDER BY "enqueuedAt" ASC
+  LIMIT $1
+  FOR UPDATE SKIP LOCKED
+`;
+
+export async function clearAlertQueue(): Promise<void> {
+  await withClient(async (client) => {
+    await client.query('DELETE FROM "AlertPollJob"');
+    await client.query('DELETE FROM "AlertCriteria" WHERE "criteriaHash" LIKE $1', [
+      "e2e-%",
+    ]);
+  });
+}
+
+/**
+ * Inserts `count` pending jobs, each against its own criteria row.
+ *
+ * `enqueuedMinutesAgo` and `availableInMinutes` are per-job when supplied, so a
+ * test can make insertion order disagree with queue order deliberately.
+ */
+export async function seedAlertJobs(
+  count: number,
+  options: {
+    enqueuedMinutesAgo?: number[];
+    availableInMinutes?: number[];
+  } = {},
+): Promise<void> {
+  await withClient(async (client) => {
+    for (let n = 0; n < count; n++) {
+      const criteriaId = `e2e-crit-${Date.now()}-${n}`;
+      const enqueued = options.enqueuedMinutesAgo?.[n] ?? n;
+      const available = options.availableInMinutes?.[n] ?? 0;
+      await client.query(
+        `INSERT INTO "AlertCriteria"(id, "criteriaHash", criteria)
+         VALUES ($1, $2, '{}'::jsonb)`,
+        [criteriaId, `e2e-${criteriaId}`],
+      );
+      await client.query(
+        `INSERT INTO "AlertPollJob"(id, "criteriaId", status, attempts, "availableAt", "enqueuedAt")
+         VALUES ($1, $2, 'pending', 0, now() + ($3 || ' minutes')::interval, now() - ($4 || ' minutes')::interval)`,
+        [`e2e-job-${criteriaId}`, criteriaId, String(available), String(enqueued)],
+      );
+    }
+  });
+}
+
+/** Claims in a single transaction and rolls back, leaving the queue untouched. */
+export async function claimOnce(limit: number): Promise<ClaimedJob[]> {
+  return withClient(async (client) => {
+    await client.query("BEGIN");
+    const result = await client.query(CLAIM_SQL, [limit]);
+    await client.query("ROLLBACK");
+    return result.rows.map((row) => ({
+      id: row.id as string,
+      enqueuedMinutesAgo: Math.round(Number(row.minutes)),
+    }));
+  });
+}
+
+/**
+ * Two overlapping transactions claiming at the same time.
+ *
+ * Both hold their locks until the other has finished claiming, which is the
+ * situation two parallel matrix jobs create and the only one where SKIP LOCKED
+ * differs observably from plain FOR UPDATE.
+ */
+export async function claimConcurrently(
+  firstLimit: number,
+  secondLimit: number,
+): Promise<[string[], string[]]> {
+  const a = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  const b = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await a.connect();
+  await b.connect();
+
+  try {
+    await a.query("BEGIN");
+    await b.query("BEGIN");
+
+    // Sequential statements, overlapping transactions: A still holds its locks
+    // when B runs, so B must skip A's rows rather than block on them.
+    const first = await a.query(CLAIM_SQL, [firstLimit]);
+    const second = await b.query(CLAIM_SQL, [secondLimit]);
+
+    await a.query("ROLLBACK");
+    await b.query("ROLLBACK");
+
+    return [
+      first.rows.map((row) => row.id as string),
+      second.rows.map((row) => row.id as string),
+    ];
+  } finally {
+    await a.end();
+    await b.end();
+  }
+}
+
 /**
  * Clears the auth rate limiter.
  *

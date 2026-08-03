@@ -72,6 +72,14 @@ closes it. Do not point a gap at a loosely related file to make it look covered.
 | `app/favorites/**` | [specs/favorites.md](specs/favorites.md) |
 | `components/favorites/**` | [specs/favorites.md](specs/favorites.md) |
 | `app/actions/favorites.ts` | [specs/favorites.md](specs/favorites.md) |
+| `app/alerts/**` | [specs/alerts.md](specs/alerts.md) |
+| `app/api/alerts/**` | [specs/alerts.md](specs/alerts.md) |
+| `components/alerts/**` | [specs/alerts.md](specs/alerts.md) |
+| `app/actions/alerts.ts` | [specs/alerts.md](specs/alerts.md) |
+| `lib/alerts/**` | [specs/alerts.md](specs/alerts.md) |
+| `lib/validations/alerts.ts` | [specs/alerts.md](specs/alerts.md) |
+| `lib/email/templates/alert-emails.ts` | [specs/alerts.md](specs/alerts.md) |
+| `.github/workflows/alerts.yml` | [decisions/0006-alert-scheduling.md](decisions/0006-alert-scheduling.md) |
 | `lib/auth/**` | [specs/auth-email-and-oauth.md](specs/auth-email-and-oauth.md) |
 | `lib/rate-limit.ts` | [specs/auth-email-and-oauth.md](specs/auth-email-and-oauth.md) |
 | `lib/email/**` | [specs/auth-email-and-oauth.md](specs/auth-email-and-oauth.md) |

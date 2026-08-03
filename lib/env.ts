@@ -32,6 +32,11 @@ const envSchema = z.object({
   // to boot. 32 bytes, base64.
   TWO_FACTOR_ENCRYPTION_KEY: z.string().optional(),
 
+  // Shared secret the alert cron authenticates with. Optional, like the rest:
+  // without it the run endpoint refuses every request, so alerts simply never
+  // fire rather than the app refusing to boot.
+  ALERTS_CRON_SECRET: z.string().optional(),
+
   // OAuth. Each provider is enabled only when both halves are present.
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),

@@ -58,6 +58,7 @@ Optional — each disables a feature rather than blocking startup:
 | `TWO_FACTOR_ENCRYPTION_KEY` | Two-factor is hidden and enrolment refused. **Changing it makes every existing enrolment unreadable** |
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google button does not render |
 | `GITHUB_ID` + `GITHUB_SECRET` | GitHub button does not render |
+| `ALERTS_CRON_SECRET` | The alert run endpoint refuses every request, so alerts never fire. Must match the GitHub repository secret of the same name |
 | `NEON_API_KEY`, `NEON_PROJECT_ID` | Tooling only, never read by the app. `pnpm db:branch` cannot run |
 
 `.env.example` carries the reasoning next to each entry.
@@ -104,6 +105,9 @@ exist.
 | `e2e` | pull requests only | Playwright, chromium, uploads the report as an artifact |
 | `contract-live` | nightly cron (04:00 UTC) | `test:contract:live` against the real upstream APIs |
 
+[`.github/workflows/alerts.yml`](../.github/workflows/alerts.yml) is not a test
+job — it is production scheduling. See [Alerts](#alerts) below.
+
 The static checks run **before** the suite because they fail in seconds.
 `docs:check` runs before `prisma generate` on purpose, so a fresh clone with no
 `app/generated/prisma` is the state it is proven under.
@@ -113,6 +117,65 @@ token. The secret is padded past 32 characters only to keep the length warning
 out of the logs.
 
 **`pnpm test:e2e:db` is not in CI.** See [testing.md](testing.md#the-database-backed-suite).
+
+## Alerts
+
+Saved searches are polled by [`.github/workflows/alerts.yml`](../.github/workflows/alerts.yml)
+on `*/5 * * * *`, a matrix of jobs each POSTing to `/api/alerts/run` with
+`ALERTS_CRON_SECRET`. Why a GitHub cron rather than Vercel Cron, pg_cron or an
+in-process timer: [`decisions/0006-alert-scheduling.md`](decisions/0006-alert-scheduling.md).
+Behaviour: [`specs/alerts.md`](specs/alerts.md).
+
+**Two repository secrets are required**, and neither is the Vercel env var:
+`ALERTS_CRON_SECRET` (matching the deployment's) and `APP_URL`. With either
+missing the workflow exits 0 with a message rather than failing — a red cron
+every five minutes would train everyone to ignore it.
+
+**The run's response is the instrument.** Read it before anything else:
+
+| Field | Means |
+| --- | --- |
+| `intervalMs` | The cadence in force. Above 300000 the criteria count has pushed past the request ceiling and every alert is being polled less often |
+| `oldestPendingAgeMs` | How stale the worst-off criteria set is. The freshness target is ten minutes end to end; sustained values above that mean the lap is not keeping up |
+| `unhealthySources` | Sources returning nothing for three consecutive runs — the silent-death signal |
+| `skippedNoEmail` | Matches found but not sent, because the mailer is unconfigured |
+| `failures` | Per-criteria poll errors, with the upstream message |
+
+**Scheduled runs drift.** GitHub delays schedules under load, sometimes by
+several minutes, so the cadence is approximate. Judge health by
+`oldestPendingAgeMs`, not by wall-clock spacing between runs.
+
+**GitHub disables scheduled workflows after 60 days of repository inactivity.**
+If alerts stop entirely and the endpoint answers fine by hand, check that first.
+
+### Alerts stopped arriving
+
+1. `curl -X POST -H "Authorization: Bearer $ALERTS_CRON_SECRET" $APP_URL/api/alerts/run`.
+   A 401 means the secret differs between Vercel and GitHub.
+2. Check `skippedNoEmail`. Non-zero means matches are being found and the mailer
+   is unconfigured — see the Resend runbook below.
+3. Check `unhealthySources`. A source listed there has returned nothing for
+   three runs, which for Milanuncios usually means the parser broke rather than
+   that there is nothing new.
+4. Check the workflow's run history for the 60-day disable.
+
+### Alerts are late
+
+`oldestPendingAgeMs` climbing while `intervalMs` stays at 300000 means the drain
+is the bottleneck, not the cadence: raise the matrix size in `alerts.yml`. Each
+leg drains its own slice, so more legs is the lever.
+
+`intervalMs` above 300000 means the criteria count has outgrown the 60 req/min
+ceiling and everything is polled less often. That number is a guess documented
+in the spec's open questions — raise it only while watching the nightly
+`contract-live` job, which is the alarm for a source refusing traffic.
+
+### A duplicate alert email went out
+
+The queue is claimed with `FOR UPDATE SKIP LOCKED` and `AlertMatch` has a unique
+index on `(alertId, listingId)`, so this should be impossible. If it happens,
+the second guard failed too — check the migration actually created that index
+before looking at application code.
 
 ## Runbooks
 

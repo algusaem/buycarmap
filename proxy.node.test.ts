@@ -158,6 +158,73 @@ describe("proxy favorites route", () => {
   });
 });
 
+describe("proxy alerts route", () => {
+  beforeEach(() => vi.mocked(getToken).mockReset());
+
+  it("ALERT-30: sends an anonymous visitor from alerts to sign in", async () => {
+    signedOut();
+
+    const response = await proxy(request("/alerts"));
+
+    // Asserted before parsing the header: an unguarded route returns 200 with
+    // no location, and `new URL(null)` would report that as "Invalid URL".
+    expect(response.status).toBe(307);
+    expect(new URL(response.headers.get("location") as string).pathname).toBe(
+      "/login",
+    );
+  });
+
+  it("ALERT-30: carries the alerts path so sign-in returns them there", async () => {
+    signedOut();
+
+    const response = await proxy(request("/alerts"));
+
+    expect(response.status).toBe(307);
+    expect(
+      new URL(
+        response.headers.get("location") as string,
+      ).searchParams.get("callbackUrl"),
+    ).toBe("/alerts");
+  });
+
+  it("ALERT-30: guards a single alert's matches page too", async () => {
+    signedOut();
+
+    const response = await proxy(request("/alerts/alert-1"));
+
+    expect(response.status).toBe(307);
+    expect(
+      new URL(
+        response.headers.get("location") as string,
+      ).searchParams.get("callbackUrl"),
+    ).toBe("/alerts/alert-1");
+  });
+
+  it("ALERT-30: lets a signed-in user through", async () => {
+    signedIn();
+
+    expect(
+      (await proxy(request("/alerts"))).headers.get("location"),
+    ).toBeNull();
+  });
+
+  it("ALERT-30: leaves the emailed unsubscribe endpoint unguarded", async () => {
+    // It is followed from an inbox with no session; gating it would make every
+    // unsubscribe link land on the sign-in page.
+    signedOut();
+
+    expect(
+      config.matcher.some((pattern) => pattern.startsWith("/api/alerts")),
+    ).toBe(false);
+  });
+
+  it("ALERT-30: the matcher covers alerts, or the guard never runs", () => {
+    expect(
+      config.matcher.some((pattern) => pattern.startsWith("/alerts")),
+    ).toBe(true);
+  });
+});
+
 describe("proxy matcher", () => {
   it("runs on exactly the paths the handler makes decisions about", () => {
     // A path the handler gates but the matcher omits is an unguarded route;
@@ -165,6 +232,7 @@ describe("proxy matcher", () => {
     expect(config.matcher).toEqual([
       "/account/:path*",
       "/favorites/:path*",
+      "/alerts/:path*",
       "/login",
       "/register",
       "/forgot-password",

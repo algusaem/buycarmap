@@ -110,8 +110,14 @@ merged into one result set. Auth is complete: register, login, password reset,
 account management, two-factor, optional OAuth. **Favorites are built** — model,
 server actions, `/favorites`, and reconciliation into search results.
 
+**Car alerts are built.** Saved criteria (deduplicated across users), a
+Postgres queue drained by a GitHub Actions cron every five minutes, email
+digests, `/alerts` and `/alerts/[id]`, one-click unsubscribe. The runner cannot
+use `lib/*/client.ts` — those resolve URLs against `window.location.origin` —
+so it goes through `lib/alerts/search.ts`. See `docs/specs/alerts.md`.
+
 Not built, and not to be assumed: normalized `Car` listing persistence,
-`SavedSearch`, notifications.
+in-app notifications, web push.
 
 ## Spec-Driven Development
 

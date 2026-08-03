@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { Heart, LogOut, User } from "lucide-react";
+import { BellRing, Heart, LogOut, User } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui/button";
@@ -66,6 +66,13 @@ function AuthNav() {
           <Heart className="h-4 w-4 shrink-0" />
           <span className="hidden sm:inline">{t.nav.favorites}</span>
           <span className="sr-only sm:hidden">{t.nav.favorites}</span>
+        </Link>
+      </Button>
+      <Button asChild variant="ghost" size="sm" className="min-w-0">
+        <Link href="/alerts">
+          <BellRing className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">{t.alerts.title}</span>
+          <span className="sr-only sm:hidden">{t.alerts.title}</span>
         </Link>
       </Button>
       {/* A real link, so Cmd/middle-click opens the account in a new tab. */}

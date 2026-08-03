@@ -5,7 +5,9 @@ import { getToken } from "next-auth/jwt";
 // function must match the filename. Behaviour is unchanged.
 
 // Routes that require a signed-in user.
-const PROTECTED_PREFIXES = ["/account", "/favorites"];
+// `/api/alerts/*` is deliberately absent: the unsubscribe link is followed from
+// an inbox with no session, and gating it would land every one on /login.
+const PROTECTED_PREFIXES = ["/account", "/favorites", "/alerts"];
 
 // Routes that make no sense once signed in.
 const GUEST_ONLY_PATHS = ["/login", "/register", "/forgot-password"];
@@ -60,6 +62,7 @@ export const config = {
   matcher: [
     "/account/:path*",
     "/favorites/:path*",
+    "/alerts/:path*",
     "/login",
     "/register",
     "/forgot-password",

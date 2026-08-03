@@ -62,6 +62,7 @@ the upstreams reachable at all, and how failures at each boundary behave.
 | SRC-13 | A source client throws when its proxy answers non-ok, so a failed source is never mistaken for an empty one | unit | `lib/{wallapop,cochesnet,milanuncios}/client.test.ts` |
 | SRC-14 | A brand's model list is fetched once per session, and a failed fetch does not permanently disable model filtering for that brand | unit | `lib/cochesnet/models.test.ts` |
 | SRC-15 | The test fixtures still match the shape each normalizer reads | contract | `test/contract/*.contract.test.ts` |
+| SRC-16 | A caller can override Wallapop's result ordering, so a background poll can ask for newest-first where the interactive search asks for relevance | unit | `lib/wallapop/client.test.ts` |
 
 ## 4. Decisions and rationale
 
@@ -110,6 +111,26 @@ visible; forwarding it means they see the wrong ones, which is not.
 coches.net has no separate id for it. Folding it into automatic returns a
 superset — some true automatics the user did not ask for — while dropping the
 filter entirely would return manuals too. The superset is the smaller lie.
+
+### Ordering is the caller's choice, because two callers want opposite things
+
+`searchWallapop` picks `most_relevance` once a location is set and `newest`
+otherwise, and for a human reading a list that is right: relevance surfaces the
+best matches near them, and recency alone would fill the screen with whatever
+happened to be posted last.
+
+A background poll wants the opposite. It reads only the first page, so a listing
+ranked twentieth by relevance is a listing it never sees — and the whole job is
+noticing new ones. `buildWallapopQuery` therefore takes an `orderBy` override
+(SRC-16), and the alert runner forces `newest` even with a location set.
+
+The alternative was a second Wallapop client for the alert path, which would
+have duplicated every filter translation in this spec and let the two drift.
+Exporting the query builder keeps one translation with one caller-supplied knob.
+
+The same divergence is *not* available on the other two: Milanuncios sends no
+ordering parameter at all, and coches.net's date sort is used only by the alert
+path for the same reason. See [alerts.md](alerts.md).
 
 ## 5. Data and contracts
 

@@ -215,6 +215,27 @@ export function parseOwnership(markdown) {
  */
 export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
 
+/**
+ * Whether a doc is a spec that describes software which does not exist yet.
+ *
+ * A spec names the models, actions and routes it proposes before any of them are
+ * written — that is the entire point of writing it first. So path checking keys
+ * off `Status`, and only `Implemented` is checked:
+ *
+ *   Draft        proposed, nothing built
+ *   Approved     agreed and tests written, still nothing built
+ *   Implemented  built and green — a path that does not resolve is a real error
+ *   Superseded   describes code that has since been removed
+ *
+ * `Approved` is the one that looks safe to check and is not. Per the status
+ * table in docs/specs/README.md it means the failing tests have landed and the
+ * implementation has not, which is precisely when §5's paths are all absent.
+ */
+export function isUnbuiltSpec(file, text) {
+  if (!posix(file).startsWith("docs/specs/")) return false;
+  return !/^Status:\s*Implemented\s*$/im.test(text);
+}
+
 async function exists(path) {
   try {
     await stat(path);
@@ -349,6 +370,7 @@ async function main() {
 
   // --- 2. Backticked source paths exist ------------------------------------
   for (const [file, text] of sources) {
+    if (isUnbuiltSpec(file, text)) continue;
     for (const path of extractSourcePaths(text)) {
       if (ALLOWED_MISSING.some((pattern) => pattern.test(path))) continue;
       if (!(await exists(path))) {

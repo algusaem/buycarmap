@@ -43,6 +43,12 @@ order_by=most_relevance | newest
 `order_by` switches to `newest` when the user has picked no location — relevance
 against an arbitrary map centre is not meaningful, recency is.
 
+**A caller can override that choice.** `buildWallapopQuery` takes an `orderBy`
+option, and the alert runner forces `newest` even with a location set: it reads
+only the first page, so anything ranked twentieth by relevance is something it
+never sees. The interactive search does not pass the option and keeps the
+behaviour above. See SRC-16 in [`../specs/data-sources.md`](../specs/data-sources.md).
+
 | Shared filter | Wallapop parameter |
 | --- | --- |
 | keywords | `keywords` |

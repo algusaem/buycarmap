@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { makeWallapopResponse } from "@/test/fixtures/wallapop";
-import { searchWallapop } from "./client";
+import { buildWallapopQuery, searchWallapop } from "./client";
 import { SearchInput } from "@/lib/validations/search";
 
 // Capture the query string the client builds for the proxy route.
@@ -35,6 +35,27 @@ describe("searchWallapop", () => {
     await searchWallapop({});
     expect(params().get("order_by")).toBe("newest");
     expect(params().get("distance_in_km")).toBe("1000");
+  });
+
+  it("SRC-16: an explicit ordering overrides the located default", async () => {
+    // The alert runner reads only page one, so a listing ranked twentieth by
+    // relevance is one it never sees — and noticing new listings is the job.
+    const q = buildWallapopQuery(
+      { latitude: 41.38, longitude: 2.17, distanceInKm: 150 },
+      { lat: 41.38, lng: 2.17, distance: 150, orderBy: "newest" },
+    );
+
+    expect(q.get("order_by")).toBe("newest");
+  });
+
+  it("SRC-16: without an override the located default still wins", async () => {
+    const q = buildWallapopQuery(
+      { latitude: 41.38, longitude: 2.17, distanceInKm: 150 },
+      { lat: 41.38, lng: 2.17, distance: 150 },
+    );
+
+    // Relevance is right for a human reading a list; only the poller differs.
+    expect(q.get("order_by")).toBe("most_relevance");
   });
 
   it("orders by relevance and honours the given radius when located", async () => {

@@ -402,6 +402,38 @@ export const es: Translations = {
     empty: "Todavía no has guardado ningún coche.",
     emptyCta: "Buscar coches",
   },
+  alerts: {
+    title: "Alertas",
+    subtitle:
+      "Comprobamos cada pocos minutos y te avisamos por correo cuando aparece algo nuevo.",
+    empty: "Todavía no tienes ninguna alerta.",
+    emptyCta: "Buscar coches",
+    create: "Avisarme de coches nuevos",
+    delete: "Eliminar alerta",
+    matchCount: "coches encontrados",
+    inactive: "En pausa",
+    noMatchesYet: "Vigilando: todavía no hay nada nuevo.",
+    backToAlerts: "Volver a las alertas",
+    unsubscribed: "Alerta pausada",
+    unsubscribedBody:
+      "No recibirás más correos sobre esta búsqueda. Tus otras alertas no cambian.",
+    email: {
+      subject: "Nuevo coche para tu alerta",
+      heading: "Coches nuevos para tu alerta",
+      intro: "Estos han aparecido desde la última comprobación:",
+      viewAll: "Ver todos los coches",
+      unsubscribe: "Dejar de recibir estos correos",
+      footer: "Recibes esto porque creaste una alerta en BuyCarMap.",
+    },
+  },
+  alertErrors: {
+    unauthenticated: "Inicia sesión para gestionar tus alertas.",
+    invalidCriteria: "Esos filtros de alerta no son válidos.",
+    criteriaTooBroad:
+      "Esa alerta es demasiado amplia. Añade una marca, un precio máximo o una ubicación.",
+    tooManyAlerts: "Has alcanzado el número máximo de alertas.",
+    unexpected: "Algo ha salido mal. Inténtalo de nuevo.",
+  },
   theme: {
     dark: "Oscuro",
     light: "Claro",

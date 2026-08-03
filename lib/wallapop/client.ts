@@ -8,24 +8,41 @@ const BASE_URL = "/api/wallapop/search";
 // and browser geolocation are unavailable (e.g. permissions denied).
 const SPAIN_CENTER = { lat: 40.0, lng: -3.5 };
 
-export async function searchWallapop(
-  params: SearchInput,
-  nextPage?: string,
-): Promise<WallapopSearchResponse> {
-  const url = new URL(BASE_URL, window.location.origin);
-  const hasLocation = params.latitude != null && params.longitude != null;
+export interface WallapopQueryOptions {
+  lat: number;
+  lng: number;
+  distance?: number;
+  /**
+   * Overrides the ordering this function would otherwise pick.
+   *
+   * The alert runner forces `newest` even when a location is set: relevance is
+   * the better ranking for a human reading a list, but an alert polling page one
+   * needs the newest listings at the top or it misses them entirely. See
+   * docs/specs/alerts.md §4.
+   */
+  orderBy?: string;
+  nextPage?: string;
+}
 
-  // Priority: explicit location > browser geolocation > Spain center.
-  // Always send coordinates so Wallapop doesn't geo-filter by server IP
-  // (Vercel servers are in the US, which would return US listings).
-  const userLoc = getUserLocation();
-  const lat = params.latitude ?? userLoc?.lat ?? SPAIN_CENTER.lat;
-  const lng = params.longitude ?? userLoc?.lng ?? SPAIN_CENTER.lng;
-  const distance = hasLocation ? params.distanceInKm : 1000;
+/**
+ * Builds the Wallapop query. Shared by the browser client below and by the
+ * server-side alert runner, which cannot use the client itself because this
+ * module resolves its URL against `window.location.origin`.
+ */
+export function buildWallapopQuery(
+  params: SearchInput,
+  options: WallapopQueryOptions,
+): URLSearchParams {
+  const url = new URL("https://placeholder.invalid");
+  const hasLocation = params.latitude != null && params.longitude != null;
+  const { lat, lng, distance } = options;
 
   url.searchParams.set("category_id", "100");
   url.searchParams.set("source", "deep_link");
-  url.searchParams.set("order_by", hasLocation ? "most_relevance" : "newest");
+  url.searchParams.set(
+    "order_by",
+    options.orderBy ?? (hasLocation ? "most_relevance" : "newest"),
+  );
   url.searchParams.set("section_type", "organic_search_results");
 
   if (params.keywords) url.searchParams.set("keywords", params.keywords);
@@ -57,7 +74,28 @@ export async function searchWallapop(
     url.searchParams.set("gearbox", params.gearbox.join(","));
   if (params.timeFilter)
     url.searchParams.set("time_filter", params.timeFilter);
-  if (nextPage) url.searchParams.set("next_page", nextPage);
+  if (options.nextPage) url.searchParams.set("next_page", options.nextPage);
+
+  return url.searchParams;
+}
+
+export async function searchWallapop(
+  params: SearchInput,
+  nextPage?: string,
+): Promise<WallapopSearchResponse> {
+  const url = new URL(BASE_URL, window.location.origin);
+  const hasLocation = params.latitude != null && params.longitude != null;
+
+  // Priority: explicit location > browser geolocation > Spain center.
+  // Always send coordinates so Wallapop doesn't geo-filter by server IP
+  // (Vercel servers are in the US, which would return US listings).
+  const userLoc = getUserLocation();
+  url.search = buildWallapopQuery(params, {
+    lat: params.latitude ?? userLoc?.lat ?? SPAIN_CENTER.lat,
+    lng: params.longitude ?? userLoc?.lng ?? SPAIN_CENTER.lng,
+    distance: hasLocation ? params.distanceInKm : 1000,
+    nextPage,
+  }).toString();
 
   const response = await fetch(url.toString(), {
     headers: { Accept: "application/json" },

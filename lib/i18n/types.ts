@@ -308,6 +308,35 @@ export interface Translations {
     empty: string;
     emptyCta: string;
   };
+  alerts: {
+    title: string;
+    subtitle: string;
+    empty: string;
+    emptyCta: string;
+    create: string;
+    delete: string;
+    matchCount: string;
+    inactive: string;
+    noMatchesYet: string;
+    backToAlerts: string;
+    unsubscribed: string;
+    unsubscribedBody: string;
+    email: {
+      subject: string;
+      heading: string;
+      intro: string;
+      viewAll: string;
+      unsubscribe: string;
+      footer: string;
+    };
+  };
+  alertErrors: {
+    unauthenticated: string;
+    invalidCriteria: string;
+    criteriaTooBroad: string;
+    tooManyAlerts: string;
+    unexpected: string;
+  };
   theme: {
     dark: string;
     light: string;

@@ -8,6 +8,7 @@ const {
   globToRegExp,
   headingSlugs,
   isGap,
+  isUnbuiltSpec,
   ownableFiles,
   parseOwnership,
   slugify,
@@ -19,6 +20,7 @@ const {
   globToRegExp: (glob: string) => RegExp;
   headingSlugs: (markdown: string) => Set<string>;
   isGap: (doc: string) => boolean;
+  isUnbuiltSpec: (file: string, text: string) => boolean;
   ownableFiles: (tracked: string[]) => string[];
   parseOwnership: (markdown: string) => { glob: string; doc: string }[];
   slugify: (heading: string) => string;
@@ -217,6 +219,40 @@ describe("isGap", () => {
   it("does not treat a real doc path as a gap", () => {
     expect(isGap("data-model.md")).toBe(false);
     expect(isGap("integrations/wallapop.md")).toBe(false);
+  });
+});
+
+describe("isUnbuiltSpec", () => {
+  const header = (status: string) =>
+    `# Spec: Alerts\n\nKey: ALERT\nStatus: ${status}\nLast updated: 2026-08-03.\n`;
+
+  it.each(["Draft", "Approved", "Superseded"])(
+    "skips a %s spec, whose paths describe code that does not exist yet",
+    (status) => {
+      expect(isUnbuiltSpec("docs/specs/alerts.md", header(status))).toBe(true);
+    },
+  );
+
+  it("checks an Implemented spec, where an unresolvable path is a real error", () => {
+    expect(isUnbuiltSpec("docs/specs/alerts.md", header("Implemented"))).toBe(
+      false,
+    );
+  });
+
+  it("skips Approved, which is the status that looks safe to check and is not", () => {
+    // Approved means the failing tests have landed and the code has not — the
+    // one moment every path in §5 is guaranteed absent.
+    expect(isUnbuiltSpec("docs/specs/alerts.md", header("Approved"))).toBe(true);
+  });
+
+  it("does not exempt a guide that merely contains the word Draft", () => {
+    // Only specs declare a Status line, and only under docs/specs/. A guide
+    // discussing drafts must not silently stop having its paths checked.
+    expect(isUnbuiltSpec("docs/architecture.md", header("Draft"))).toBe(false);
+  });
+
+  it("accepts a Windows path separator, since the walk produces them", () => {
+    expect(isUnbuiltSpec("docs\\specs\\alerts.md", header("Draft"))).toBe(true);
   });
 });
 

@@ -48,9 +48,14 @@ errors, they can disable rate limiting.
 
 ## Rows accumulate
 
-There is no scheduler. Expired rows are pruned opportunistically on a small
-fraction of requests, the same approach `lib/auth/cleanup.ts` uses for expired
-tokens. Do not add a cron for this.
+Expired rows are pruned opportunistically on a small fraction of requests, the
+same approach `lib/auth/cleanup.ts` uses for expired tokens. **Do not add a cron
+for this** — the work is cheap and can be arbitrarily late, which is exactly
+what makes piggybacking on traffic the right shape for it.
+
+This governs rate-limit pruning, not the application. The alert runner does have
+a scheduler, for the opposite reasons — it is expensive and its whole value is
+speed. See [0006](0006-alert-scheduling.md).
 
 ## What would change our mind
 

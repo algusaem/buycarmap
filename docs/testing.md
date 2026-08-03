@@ -136,13 +136,21 @@ plus `visual` (screenshots). `pnpm test:visual` runs the screenshots alone.
 
 ### The database-backed suite
 
-`pnpm test:e2e:db` (`E2E_DB=1`) runs the auth, two-factor and favorites round
-trips against a real database — the only tests that prove anything about
-persistence, since Prisma is mocked everywhere in Vitest.
+`pnpm test:e2e:db` (`E2E_DB=1`) runs the auth, two-factor, favorites and
+alert-queue round trips against a real database — the only tests that prove
+anything about persistence, since Prisma is mocked everywhere in Vitest.
+
+**The alert-queue tests are the only ones with no browser in them.** They drive
+`FOR UPDATE SKIP LOCKED` through two overlapping `pg` transactions, because what
+they assert is what Postgres does when both reach for the same rows. There is no
+UI for that, and a Vitest fake would supply the exclusivity and the ordering
+itself — proving the fake. They live here because this is where a real database
+is. See [`specs/alerts.md`](specs/alerts.md).
 
 **It needs `pnpm db:branch` first.** Without its own branch database it writes to
 whatever `DATABASE_URL` points at. Global teardown deletes every `@e2e.local`
-account, and `Favorite` rows go with them by cascade.
+account, and `Favorite` rows go with them by cascade; the alert helpers clear
+their own queue rows before and after each run.
 
 **Env-prefixed scripts need `cross-env`.** `E2E_DB=1 playwright test` is POSIX
 syntax that cmd.exe does not understand, so on Windows the script failed with

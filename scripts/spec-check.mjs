@@ -12,6 +12,7 @@
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const SPEC_DIR = "docs/specs";
 const ENFORCED_STATUSES = new Set(["Approved", "Implemented"]);
@@ -31,10 +32,39 @@ const SKIP_DIRS = new Set([
 const KEY_LINE = /^Key:\s*([A-Z][A-Z0-9]{1,7})\s*$/m;
 const STATUS_LINE = /^Status:\s*\**\s*([A-Za-z]+)/m;
 const ID = /\b([A-Z][A-Z0-9]{1,7}-\d+)\b/g;
-// `it("…")`, `test("…")`, `it.each(…)`, `test.skip("…")`.
-const TEST_TITLE = /\b(?:it|test)(?:\.\w+)*\s*\(\s*(["'`])((?:\\.|(?!\1).)*)\1/g;
+// `it("…")`, `test("…")`, `test.skip("…")`, `it.each([…])("…")`, `dbTest("…")`.
+//
+// Two forms this has to cope with, both load-bearing:
+//
+// The optional `(…)` before the title is the **curried** `it.each` call. The
+// original pattern claimed to support `it.each` but only matched when the title
+// followed the callee directly, so `it.each([…])("KEY-n: …")` — the ordinary
+// way anyone writes a table test — was silently invisible. A criterion covered
+// only that way was reported as having no test at all.
+//
+// The `dbTest` alias is how `e2e/*.spec.ts` gate the database-backed suite
+// (`const dbTest = process.env.E2E_DB ? test : test.skip`). A criterion whose
+// truth is a Postgres behaviour — `FOR UPDATE SKIP LOCKED`, say — can be proven
+// nowhere else, so without this there is no way to satisfy the check short of
+// writing a fake that proves itself.
+const TEST_TITLE =
+  /\b(?:it|test|dbTest)(?:\.\w+)*\s*(?:\([^()]*\)\s*)?\(\s*(["'`])((?:\\.|(?!\1).)*)\1/g;
 
 const posix = (p) => p.replace(/\\/g, "/");
+
+/**
+ * The criterion ids named by test titles in one source file.
+ *
+ * Exported so the matching is pinned by a test: this regex is the entire
+ * mechanism, and quietly narrowing it turns the check green by seeing less.
+ */
+export function criteriaIdsIn(source) {
+  const ids = [];
+  for (const [, , title] of source.matchAll(TEST_TITLE)) {
+    for (const [, id] of title.matchAll(ID)) ids.push(id);
+  }
+  return ids;
+}
 
 async function walk(dir, out = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -92,17 +122,16 @@ async function readTestReferences(files) {
 
   for (const file of files) {
     const source = await readFile(file, "utf8");
-    for (const [, , title] of source.matchAll(TEST_TITLE)) {
-      for (const [, id] of title.matchAll(ID)) {
-        if (!referenced.has(id)) referenced.set(id, new Set());
-        referenced.get(id).add(posix(file));
-      }
+    for (const id of criteriaIdsIn(source)) {
+      if (!referenced.has(id)) referenced.set(id, new Set());
+      referenced.get(id).add(posix(file));
     }
   }
 
   return referenced;
 }
 
+async function main() {
 const specs = [];
 const problems = [];
 
@@ -168,6 +197,14 @@ if (problems.length > 0) {
 console.log(
   `spec:check passed - ${counted} criteria across ${specs.length} enforced spec(s).`,
 );
+
 for (const { name, reason } of skipped) {
   console.log(`  skipped ${name} (${reason})`);
+}
+}
+
+// Guarded so `criteriaIdsIn` can be imported by the colocated test without the
+// check running as a side effect of `import`.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  await main();
 }

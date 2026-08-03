@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { en } from "./locales/en";
 import { es } from "./locales/es";
 import { AUTH_ERROR } from "@/lib/validations/auth";
-import { translateAuthError } from "./errors";
+import { ALERT_ERROR } from "@/lib/validations/alerts";
+import { translateAlertError, translateAuthError } from "./errors";
 
 describe("translateAuthError", () => {
   it("resolves a code to the copy for the active locale", () => {
@@ -41,6 +42,39 @@ describe("translateAuthError", () => {
     // actual reason — so adding to AUTH_ERROR must mean adding to both locales.
     const missing = Object.values(AUTH_ERROR).filter(
       (code) => !(code in en.authErrors) || !(code in es.authErrors),
+    );
+
+    expect(missing).toEqual([]);
+  });
+});
+
+describe("translateAlertError", () => {
+  it("resolves a code to the copy for the active locale", () => {
+    expect(translateAlertError(en, ALERT_ERROR.criteriaTooBroad)).toBe(
+      "That alert is too broad. Narrow it with a make, a maximum price or a location.",
+    );
+    expect(translateAlertError(es, ALERT_ERROR.tooManyAlerts)).toBe(
+      "Has alcanzado el número máximo de alertas.",
+    );
+  });
+
+  it("falls back to the generic message for an unrecognized code", () => {
+    expect(translateAlertError(en, "somethingNobodyDefined")).toBe(
+      "Something went wrong. Please try again.",
+    );
+  });
+
+  it("returns a message even with no code, since this one always renders", () => {
+    // Unlike the auth variant, this feeds toast.error — which would show an
+    // empty toast rather than nothing at all.
+    expect(translateAlertError(en, undefined)).toBe(
+      "Something went wrong. Please try again.",
+    );
+  });
+
+  it("has copy for every alert error code the server can return", () => {
+    const missing = Object.values(ALERT_ERROR).filter(
+      (code) => !(code in en.alertErrors) || !(code in es.alertErrors),
     );
 
     expect(missing).toEqual([]);

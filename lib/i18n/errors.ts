@@ -16,3 +16,14 @@ export function translateAuthError(
   // generic fallback rather than leaking a raw identifier into the UI.
   return messages[code] ?? t.authErrors.generic;
 }
+
+export function translateAlertError(
+  t: Translations,
+  code: string | undefined,
+): string {
+  if (!code) return t.alertErrors.unexpected;
+
+  const messages: Record<string, string> = t.alertErrors;
+
+  return messages[code] ?? t.alertErrors.unexpected;
+}

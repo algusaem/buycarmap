@@ -12,7 +12,10 @@ const BASE_URL = "/api/milanuncios/search";
 // scopes the page to a make (path-based on their side); every other value is a
 // native Milanuncios query-string param. Milanuncios has no lat/lng or distance
 // filter — the map geocodes results client-side instead.
-function buildParams(params: SearchInput, page: number): URLSearchParams {
+export function buildMilanunciosQuery(
+  params: SearchInput,
+  page: number,
+): URLSearchParams {
   const query = new URLSearchParams();
   query.set("slug", mapBrandToSlug(params.brand));
 
@@ -51,7 +54,7 @@ export async function searchMilanuncios(
   page = 1,
 ): Promise<MilanunciosSearchResponse> {
   const url = new URL(BASE_URL, window.location.origin);
-  url.search = buildParams(params, page).toString();
+  url.search = buildMilanunciosQuery(params, page).toString();
 
   const response = await fetch(url, { headers: { Accept: "application/json" } });
 

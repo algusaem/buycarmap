@@ -227,8 +227,9 @@ Spanish or English in components.
 | --- | --- |
 | `app/` | Routes, layouts, server actions, proxy route handlers |
 | `app/actions/` | Server actions — every mutation |
-| `app/api/` | Proxy route handlers for the three upstreams |
+| `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
 | `components/map/` | The search + map feature |
+| `lib/alerts/` | The background poller's own source fan-out and unsubscribe tokens |
 | `components/ui/` | Radix-wrapped primitives |
 | `lib/hooks/` | Every request lifecycle |
 | `lib/wallapop/`, `lib/cochesnet/`, `lib/milanuncios/` | One module per source: client, normalize, taxonomy |
@@ -236,15 +237,38 @@ Spanish or English in components.
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
 | `lib/validations/` | Zod schemas with exported inferred types |
-| `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation` |
+| `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Dependency-free tooling: branch databases, spec and docs checks |
 
 `app/generated/prisma/` is generated and gitignored. `lib/mock/` is dead — do not
 wire anything new to it.
 
+## Path 4 — a poll with no user in it
+
+The three paths above all begin with a request. Alerts do not: a GitHub Actions
+cron POSTs to `app/api/alerts/run/route.ts`, which claims work off a Postgres
+queue and drains it. Two consequences reshape the rules above rather than
+following them.
+
+**It cannot use `lib/*/client.ts`.** Those resolve their URL against
+`window.location.origin` and call the proxy routes — which is precisely what the
+proxies are for. A cron has neither, so `lib/alerts/search.ts` calls the three
+upstreams directly with the same headers the proxies send.
+
+**It cannot use `getCurrentUser()`.** The caller is a machine, so the endpoint
+authenticates with a shared secret in constant time. This is the one place the
+"prefer server actions, route handlers only for proxying" rule does not apply,
+because there is no session and no browser to run an action from.
+
+Everything else it needs — locale for the email, the listing snapshot — is read
+from the database, because there is no request context to infer it from. Full
+behaviour in [`specs/alerts.md`](specs/alerts.md); the scheduling choice and what
+it beat in [`decisions/0006-alert-scheduling.md`](decisions/0006-alert-scheduling.md).
+
 ## See also
 
 - [Data sources](specs/data-sources.md) — what each upstream guarantees
 - [Favorites](specs/favorites.md) — the write path in full
+- [Car alerts](specs/alerts.md) — the background path, the queue, the freshness budget
 - [Auth, email and OAuth](specs/auth-email-and-oauth.md) — the security model
 - [Getting started](getting-started.md) — running any of this locally

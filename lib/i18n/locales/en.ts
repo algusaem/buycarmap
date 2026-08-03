@@ -400,6 +400,37 @@ export const en: Translations = {
     empty: "You have not saved any cars yet.",
     emptyCta: "Search for cars",
   },
+  alerts: {
+    title: "Alerts",
+    subtitle: "We check every few minutes and email you when a new match appears.",
+    empty: "You have no alerts yet.",
+    emptyCta: "Search for cars",
+    create: "Alert me about new matches",
+    delete: "Delete alert",
+    matchCount: "matches found",
+    inactive: "Paused",
+    noMatchesYet: "Watching — nothing new yet.",
+    backToAlerts: "Back to alerts",
+    unsubscribed: "Alert paused",
+    unsubscribedBody:
+      "You will not receive any more emails about this search. Your other alerts are unaffected.",
+    email: {
+      subject: "New match for your alert",
+      heading: "New cars matching your alert",
+      intro: "These have appeared since we last checked:",
+      viewAll: "View all matches",
+      unsubscribe: "Stop these emails",
+      footer: "You are receiving this because you set up an alert on BuyCarMap.",
+    },
+  },
+  alertErrors: {
+    unauthenticated: "Please sign in to manage alerts.",
+    invalidCriteria: "Those alert filters are not valid.",
+    criteriaTooBroad:
+      "That alert is too broad. Narrow it with a make, a maximum price or a location.",
+    tooManyAlerts: "You have reached the maximum number of alerts.",
+    unexpected: "Something went wrong. Please try again.",
+  },
   theme: {
     dark: "Dark",
     light: "Light",

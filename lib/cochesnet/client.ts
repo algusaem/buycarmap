@@ -16,7 +16,7 @@ interface Range {
   to: number | null;
 }
 
-interface CochesNetFilters {
+export interface CochesNetFilters {
   searchText?: string;
   price?: Range;
   year?: Range;
@@ -30,7 +30,7 @@ interface CochesNetFilters {
 // coches.net's `time_filter` equivalent isn't wired; recency is left to the
 // site default ordering. Location is province/name based on their side, so we
 // don't send lat/lng — the map geocodes results client-side instead.
-function buildFilters(params: SearchInput): CochesNetFilters {
+export function buildCochesNetFilters(params: SearchInput): CochesNetFilters {
   const filters: CochesNetFilters = {};
 
   if (params.keywords) filters.searchText = params.keywords;
@@ -72,7 +72,7 @@ export async function searchCochesNet(
   params: SearchInput,
   page = 1,
 ): Promise<CochesNetSearchResponse> {
-  const filters = buildFilters(params);
+  const filters = buildCochesNetFilters(params);
 
   // The shared model filter holds a model name; coches.net needs its numeric
   // modelId, so resolve it against the make's model list. Falls back to

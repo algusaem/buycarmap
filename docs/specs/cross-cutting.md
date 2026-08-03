@@ -65,6 +65,12 @@ so a visitor whose browser announces Japanese is far more likely to be a Spanish
 speaker with an odd browser configuration than an actual Japanese speaker. An
 English default would have been the reflex choice and the wrong one.
 
+**That chain needs a request, and one path has none.** The alert runner is a
+cron: no cookie, no `Accept-Language`, so it would fall straight to Spanish for
+everyone. It reads `User.locale` instead — a stored copy of what the language
+switcher last chose. The switcher writing that column, and what happens when it
+is null, belong to [`alerts.md`](alerts.md) rather than being restated here.
+
 ### An unrecognised cookie value is discarded rather than repaired
 
 `isValidLocale` gates the cookie before it is used. The cookie is user-writable,

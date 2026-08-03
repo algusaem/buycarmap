@@ -27,6 +27,15 @@ model User {
 
   emailVerified DateTime?
 
+  // Which language to write this account's alert emails in. Null on accounts
+  // that predate the column and on anyone who has never touched the language
+  // switcher, in which case DEFAULT_LOCALE applies.
+  //
+  // It has to be stored because the alert runner is a cron: there is no request
+  // to read a cookie or accept-language from, and the default locale is `es`,
+  // so falling back would mail Spanish to every English-speaking user.
+  locale String?
+
   // AES-256-GCM ciphertext, not a hash: verifying a code means recomputing the
   // HMAC from the original secret, so it has to be recoverable. The key lives
   // in TWO_FACTOR_ENCRYPTION_KEY, so the database alone is not enough.
@@ -50,6 +59,7 @@ model User {
   accounts               Account[]
   sessions               Session[]
   favorites              Favorite[]
+  alerts                 Alert[]
   searchHistories        SearchHistory[]
   passwordResetTokens    PasswordResetToken[]
   emailVerificationToken EmailVerificationToken[]
@@ -235,6 +245,170 @@ model Favorite {
   // read-then-write race in application code.
   @@unique([userId, listingId])
   @@index([userId])
+}
+
+// One deduplicated question, polled once however many users subscribe to it.
+//
+// The dedup is not an optimisation, it is what keeps the feature affordable:
+// every poll is three requests to reverse-engineered APIs behind bot
+// protection, so a hundred users watching the same search must cost three
+// requests, not three hundred. Getting the deployment's IP blocked would break
+// search, not merely alerts. See docs/specs/alerts.md §4.
+model AlertCriteria {
+  id String @id @default(cuid())
+
+  // SHA-256 of the canonicalised SearchInput — keys sorted, undefined dropped,
+  // arrays sorted — so filters that mean the same thing hash the same and share
+  // one row regardless of how the object was built.
+  criteriaHash String @unique
+  // The SearchInput itself. Re-validated with searchSchema on read; never
+  // trusted as typed just because it came from our own database.
+  criteria     Json
+
+  // Null until the first successful poll. Drives which criteria are due
+  // (ALERT-10) and the reported lap age (ALERT-31).
+  lastPolledAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  alerts Alert[]
+  seen   AlertSeenListing[]
+  job    AlertPollJob?
+
+  @@index([lastPolledAt])
+}
+
+// A user's subscription to a criteria set.
+model Alert {
+  id         String @id @default(cuid())
+  userId     String
+  criteriaId String
+
+  // Human summary shown on the alerts page. A saved SearchInput is unreadable
+  // as JSON, and someone with several alerts has to tell them apart.
+  label String
+
+  // Unsubscribing flips this rather than deleting, so the matches page still
+  // renders and re-enabling loses no history. Only deleting the alert releases
+  // the criteria set (see AlertCriteria's cascade).
+  active Boolean @default(true)
+
+  // SHA-256 of the token in the unsubscribe link. The raw value exists only in
+  // the email, so a database leak does not hand over working links. Unlike a
+  // password-reset token it never expires: an unsubscribe link in a year-old
+  // email must still work, or the mail cannot be stopped.
+  unsubscribeTokenHash String @unique
+
+  createdAt DateTime @default(now())
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  criteria AlertCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+  matches  AlertMatch[]
+
+  // Makes "saving the same search twice leaves one alert" true in the database
+  // rather than in a read-then-write race.
+  @@unique([userId, criteriaId])
+  @@index([userId])
+  @@index([criteriaId])
+}
+
+// The dedup memory, and the only definition of "new" available.
+//
+// No source exposes a usable publish date, and none can be ordered by recency
+// once a location is set, so an alert cannot ask "what appeared since 09:05?".
+// It asks "what is listed now?" and subtracts this. Deliberately holds no
+// snapshot: these rows are numerous and mostly never emailed.
+model AlertSeenListing {
+  id         String @id @default(cuid())
+  criteriaId String
+  listingId  String
+  // Which source produced it, so a source that failed contributes nothing and
+  // its listings stay new (ALERT-17).
+  source     String
+
+  firstSeenAt DateTime @default(now())
+
+  criteria AlertCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+
+  // The backstop that holds even if two workers race past SKIP LOCKED.
+  @@unique([criteriaId, listingId])
+  @@index([criteriaId])
+}
+
+// One row per user per newly discovered listing, carrying the snapshot for the
+// same reason Favorite does: no source client can fetch a single listing by id,
+// so an email built from a reference alone would have nothing to render.
+model AlertMatch {
+  id        String @id @default(cuid())
+  alertId   String
+  listingId String
+
+  // --- snapshot of CarListing at discovery time ---
+  source   String
+  title    String
+  subtitle String
+  image    String
+  brand    String
+  model    String
+  location String
+  fuel     String
+  url      String
+  price    Int
+  mileage  Int
+  year     Int
+  lat      Float
+  lng      Float
+
+  // Null means pending delivery. Discovery and delivery are separate stages
+  // because sendEmail returns false rather than throwing: a one-stage design
+  // would mark a listing seen with nobody told, and it is never new again.
+  notifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@unique([alertId, listingId])
+  @@index([alertId, notifiedAt])
+}
+
+// The queue. One row per criteria set, reused rather than appended, which makes
+// "enqueuing twice leaves one job" a unique constraint instead of a check.
+model AlertPollJob {
+  id         String @id @default(cuid())
+  criteriaId String @unique
+
+  status   String @default("pending") // pending · running · failed
+  attempts Int    @default(0)
+
+  // Backoff: a retried job is not claimable until this passes. Deliberately
+  // longer than the poll interval — a failing upstream should be polled less.
+  availableAt DateTime @default(now())
+  // Lease timestamp, so a worker killed mid-run does not strand its job.
+  lockedAt    DateTime?
+  lastError   String?
+
+  // Claim order. A fair queue bounds the worst-case lag; an arbitrary one
+  // bounds only the average, and the freshness target is about the worst case.
+  enqueuedAt DateTime @default(now())
+
+  criteria AlertCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+
+  @@index([status, availableAt, enqueuedAt])
+}
+
+// Global, not per criteria: a broken parser breaks every criteria set at once,
+// so recording it per criteria would be a thousand copies of one fact.
+//
+// This exists because a Milanuncios parse failure returns zero ads rather than
+// an error. For search that is fewer results; for an alert it is
+// indistinguishable from "nothing new", so an alert can be dead for weeks while
+// looking healthy.
+model SourceHealth {
+  source               String    @id
+  lastOkAt             DateTime?
+  consecutiveEmptyRuns Int       @default(0)
+  updatedAt            DateTime  @updatedAt
 }
 
 model SearchHistory {

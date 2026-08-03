@@ -1,11 +1,12 @@
 # Data model
 
-Eleven models in [`prisma/schema.prisma`](../prisma/schema.prisma), on Neon
+Seventeen models in [`prisma/schema.prisma`](../prisma/schema.prisma), on Neon
 Postgres, reached through Prisma 7's `@prisma/adapter-pg` driver adapter.
 
-Two things are **not** modelled and should not be assumed: normalised `Car`
-listing storage and `SavedSearch`. Listings are fetched live on every search and
-persisted only as favorite snapshots.
+One thing is **not** modelled and should not be assumed: normalised `Car`
+listing storage. Listings are fetched live on every search and persisted only as
+snapshots — on `Favorite` when someone saves one, and on `AlertMatch` when a
+poll discovers one.
 
 ## The models
 
@@ -18,6 +19,11 @@ erDiagram
     User ||--o{ PasswordResetToken : ""
     User ||--o{ EmailVerificationToken : ""
     User ||--o{ TwoFactorRecoveryCode : ""
+    User ||--o{ Alert : subscribes
+    AlertCriteria ||--o{ Alert : "watched by"
+    AlertCriteria ||--o{ AlertSeenListing : remembers
+    AlertCriteria ||--|| AlertPollJob : "queued as"
+    Alert ||--o{ AlertMatch : "found for"
     PendingRegistration }|..|| User : "becomes, on confirmation"
 ```
 
@@ -102,6 +108,31 @@ would reset constantly and limit nothing.
 adapter's type contract needs the model to exist. `VerificationToken` is likewise
 the adapter's own magic-link table, distinct from our `EmailVerificationToken`.
 
+### The six alert models
+
+Behaviour and reasoning: [`specs/alerts.md`](specs/alerts.md). What matters at
+the schema level is why there are six rather than one.
+
+| Model | Holds | Why separate |
+| --- | --- | --- |
+| `AlertCriteria` | A deduplicated `SearchInput` plus `lastPolledAt` | Keyed by a hash of the **canonicalised** criteria, so a hundred users watching the same search cost one poll, not a hundred. This is the property the upstream request budget depends on |
+| `Alert` | One user's subscription to a criteria set | Unique on `(userId, criteriaId)`, which makes "saving the same search twice leaves one alert" a database fact rather than a read-then-write race |
+| `AlertSeenListing` | `(criteriaId, listingId, source)` | The **only** definition of "new" available: no source exposes a usable publish date, so a listing is new when its id is not here. Deliberately carries no snapshot — these rows are numerous and mostly never emailed |
+| `AlertMatch` | A full `CarListing` snapshot per user per discovery, plus `notifiedAt` | Same reason `Favorite` snapshots: no source client can fetch one listing by id, so an email built from a reference would render nothing. `notifiedAt` is what makes a failed send retry instead of vanishing |
+| `AlertPollJob` | The queue row, unique per criteria set | One row reused rather than appended, so "enqueuing twice leaves one job" is a unique constraint. Claimed with `FOR UPDATE SKIP LOCKED` |
+| `SourceHealth` | Per-source empty-run counter | Global, not per criteria: a broken parser breaks every criteria set at once, so recording it per criteria would be a thousand copies of one fact |
+
+`User.locale` was added alongside these. It exists because the alert runner is a
+cron with no request to resolve a locale from, and the default is `es` — without
+it every English-speaking user would be mailed in Spanish.
+
+**Two indexes are load-bearing rather than performance tuning.**
+`AlertSeenListing @@unique([criteriaId, listingId])` and
+`AlertMatch @@unique([alertId, listingId])` are the second guard against a
+duplicate email if two workers ever race past `SKIP LOCKED`. The queue's
+exclusivity is proven in `e2e/alerts.spec.ts`, which does not run in CI — these
+constraints are what hold when that proof is absent.
+
 ### SearchHistory
 
 `userId`, `query`, `createdAt`. Present but not yet surfaced anywhere.
@@ -109,7 +140,9 @@ the adapter's own magic-link table, distinct from our `EmailVerificationToken`.
 ## Cascades
 
 Every user-owned model uses `onDelete: Cascade`, so deleting a `User` removes
-their favorites, tokens, recovery codes, OAuth links and search history.
+their favorites, alerts, tokens, recovery codes, OAuth links and search history.
+Deleting an `AlertCriteria` takes its seen-list and queue row with it, which is
+what makes releasing an unsubscribed criteria set a single delete.
 
 This is a **schema property enforced by Postgres, not by application code**, and
 no Vitest test in this repo can prove it — Prisma is mocked, so a test would only
