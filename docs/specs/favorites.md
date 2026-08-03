@@ -1,4 +1,4 @@
-# Spec: Favorites + `e2e/favorites.spec.ts` + `e2e/favorites.spec.ts` + `e2e/favorites.spec.ts`
+# Spec: Favorites
 
 Key: FAV
 Status: Implemented
@@ -43,14 +43,14 @@ signed-out and failure behaviours of the control.
 
 | AC | Statement | Level | Verified by |
 | --- | --- | --- | --- |
-| FAV-1 | Saving a listing while signed in records it against that user, and it is still there on the next request | node | `app/actions/favorites.node.test.ts` + `components/map/CarListingCard.test.tsx` |
+| FAV-1 | Saving a listing while signed in records it against that user, and it is still there on the next request | node + e2e | `app/actions/favorites.node.test.ts` + `components/map/CarListingCard.test.tsx` + `e2e/favorites.spec.ts` |
 | FAV-2 | Saving a listing that is already saved leaves exactly one record and reports success | node | `app/actions/favorites.node.test.ts` |
-| FAV-3 | Unsaving a listing removes it, and the user’s other saved listings are untouched | node | `app/actions/favorites.node.test.ts` |
+| FAV-3 | Unsaving a listing removes it, and the user’s other saved listings are untouched | node + e2e | `app/actions/favorites.node.test.ts` + `e2e/favorites.spec.ts` |
 | FAV-4 | Unsaving a listing that was never saved reports success rather than an error | node | `app/actions/favorites.node.test.ts` |
 | FAV-5 | A caller with no session cannot save or unsave anything, and nothing is written | node | `app/actions/favorites.node.test.ts` (save, remove, list) |
 | FAV-6 | A user cannot unsave a listing saved by a different user | node | `app/actions/favorites.node.test.ts` |
 | FAV-7 | A save with a blank listing id, an unknown source, or a missing title is rejected with an error code and writes nothing | node | `app/actions/favorites.node.test.ts` (three cases) |
-| FAV-8 | Listing favorites returns only the caller’s own, newest first | node | `app/actions/favorites.node.test.ts` |
+| FAV-8 | Listing favorites returns only the caller’s own, newest first | node + e2e | `app/actions/favorites.node.test.ts` + `e2e/favorites.spec.ts` |
 | FAV-9 | A card for an already-saved listing renders in the saved state on first paint, without waiting for a request | component | `components/map/CarListingCard.test.tsx` |
 | FAV-10 | Toggling the control updates it immediately, before the server has responded | component | `components/map/CarListingCard.test.tsx` |
 | FAV-11 | When the save fails, the control returns to its previous state and the failure is surfaced as a toast | component | `components/map/CarListingCard.test.tsx` (failure + throw) |
@@ -58,12 +58,16 @@ signed-out and failure behaviours of the control.
 | FAV-13 | The favorites page renders each saved listing from stored data, with no request to any source API | component | `components/favorites/FavoritesList.test.tsx` |
 | FAV-14 | With nothing saved, the favorites page shows an empty state offering a way back to search | component | `components/favorites/FavoritesList.test.tsx` |
 | FAV-15 | Visiting the favorites page without a session redirects to sign-in, carrying the intended path | node | `proxy.node.test.ts` |
-| FAV-16 | A listing the user has already saved appears saved in search results, not just on the favorites page | component | `lib/hooks/useFavorites.test.tsx` + `components/map/MapView.test.tsx` + `components/map/CarListingCard.test.tsx` |
+| FAV-16 | A listing the user has already saved appears saved in search results, not just on the favorites page | component + e2e | `lib/hooks/useFavorites.test.tsx` + `components/map/MapView.test.tsx` + `components/map/CarListingCard.test.tsx` + `e2e/favorites.spec.ts` |
 | FAV-17 | A signed-in user can reach their saved cars from anywhere in the app | component | `components/Navbar.test.tsx` |
+| FAV-18 | A click while the session is still resolving never navigates the user away, and never reports the listing as saved | component | `components/map/CarListingCard.test.tsx` |
 
-Fifteen criteria: eight on the server boundary, six on rendering and
-interaction, one on routing. There is no `e2e` criterion — see the second open
-question.
+Seventeen criteria: eight on the server boundary, eight on rendering and
+interaction, one on routing. No criterion is `e2e`-only — `e2e/favorites.spec.ts`
+re-proves four of them (FAV-1, FAV-3, FAV-8, FAV-16) against real Postgres
+rather than adding criteria of its own, because what the browser adds there is
+durability, not new behaviour. See the second open question for why that suite
+had to exist at all.
 
 ## 4. Decisions and rationale
 
@@ -117,6 +121,26 @@ Because the saved set resolves after the cards have mounted, the card adjusts
 its state during render when the prop changes rather than seeding `useState`
 once. An effect would paint the wrong state and then correct it, which is a
 visible flicker on every search.
+
+### "Loading" is not "signed out"
+
+`useSession()` has three states, and the control originally branched on two:
+anything that was not `authenticated` was sent to sign-in. That is wrong for the
+window before the session request resolves — an already signed-in user was
+pushed to `/login`, which `proxy.ts` then redirects to `/` because `/login` is
+guest-only and they hold a valid token. The click was lost and the user was
+thrown to the home page.
+
+The window is invisible on `/map`, where cards only appear after the source
+fetches resolve, and wide open on `/favorites`, which is server-rendered and
+therefore clickable on first paint. It surfaced as `e2e/favorites.spec.ts`
+FAV-3 failing two runs in three.
+
+A click while `loading` is now ignored. The alternatives were worse: disabling
+the control makes it a dead end the UI bar forbids, and queueing the click until
+the session resolves means a heart that silently acts a second after the user
+gave up on it. FAV-18 pins both halves — no navigation, and no pretending the
+listing was saved.
 
 ### The toggle is optimistic
 

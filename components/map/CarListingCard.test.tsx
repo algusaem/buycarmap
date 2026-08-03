@@ -172,6 +172,34 @@ describe("CarListingCard favorites", () => {
 
     expect(favoriteControl()).toHaveAccessibleName(ADD);
   });
+
+  it("FAV-18: does not send a signed-in user to sign-in while the session is still loading", async () => {
+    // `useSession` reports "loading" before the session request resolves. A
+    // guard of `status !== "authenticated"` treats that as signed out, so a
+    // click in that window pushed an already-signed-in user to /login — which
+    // proxy.ts then bounces to "/" because /login is guest-only and they hold a
+    // valid token. The user lands on the home page and the click is lost.
+    // Found by e2e/favorites.spec.ts FAV-3, which was flaky 2 runs in 3 because
+    // /favorites is server-rendered and therefore clickable immediately.
+    useSession.mockReturnValue({ data: null, status: "loading" });
+    renderWithI18n(<CarListingCard {...listing} />);
+
+    await userEvent.click(favoriteControl());
+
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("FAV-18: does not report the listing as saved while the session is still loading", async () => {
+    useSession.mockReturnValue({ data: null, status: "loading" });
+    renderWithI18n(<CarListingCard {...listing} />);
+
+    await userEvent.click(favoriteControl());
+
+    // Neither optimistically flipped nor written: the outcome is genuinely
+    // unknown until the session resolves, so claiming either would be a lie.
+    expect(favoriteControl()).toHaveAccessibleName(ADD);
+    expect(saveFavorite).not.toHaveBeenCalled();
+  });
 });
 
 describe("CarListingCard favorites input", () => {

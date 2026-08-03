@@ -30,6 +30,25 @@ function audiCard(page: Page) {
 }
 
 /**
+ * Waits until `useSession()` has resolved, so the favorite control is operable.
+ *
+ * A click while the session is still loading is deliberately ignored (FAV-18),
+ * so clicking too early is silently a no-op and the poll below times out. The
+ * navbar swapping in the signed-in controls is the same hydration signal
+ * `waitForPageToSettle` uses in visual.spec.ts.
+ *
+ * This matters on `/favorites` and not on `/map`: the favorites page is
+ * server-rendered, so the card is clickable on first paint, well before the
+ * session request comes back. On the map the cards only exist after the source
+ * fetches resolve, which hides the window.
+ */
+async function waitForSession(page: Page) {
+  await expect(
+    page.getByRole("button", { name: /sign out|cerrar sesión/i }),
+  ).toBeVisible({ timeout: 15_000 });
+}
+
+/**
  * Toggles the Audi card's favorite control and waits for Postgres to agree.
  *
  * The optimistic flip is NOT proof the save landed: the control changes before
@@ -45,6 +64,7 @@ function audiCard(page: Page) {
  * actually about.
  */
 async function toggleFavorite(page: Page, label: RegExp, email: string, expected: number) {
+  await waitForSession(page);
   await audiCard(page).getByRole("button", { name: label }).click();
   await expect
     .poll(() => favoriteCount(email), { timeout: 15_000 })

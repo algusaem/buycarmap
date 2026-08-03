@@ -58,6 +58,14 @@ export function CarListingCard({
   }
 
   async function toggleFavorite() {
+    // `useSession` reports "loading" until the session request resolves, and
+    // "loading" is not "signed out". Treating it as such sent an already
+    // signed-in user to /login — which proxy.ts then bounces to "/" because
+    // /login is guest-only and they hold a valid token — so the click was lost
+    // and the user was thrown to the home page. Ignoring the click costs a
+    // sub-second window; getting it wrong costs the page they were on.
+    if (status === "loading") return;
+
     // A signed-out visitor gets sent to sign in and back, rather than a
     // disabled control that would be a dead end or a hidden one they would
     // never discover. Pushed rather than rendered as a <Link> because the whole
