@@ -497,6 +497,8 @@ export const en: Translations = {
     signOut: "Sign out",
     account: "Account",
     favorites: "Saved cars",
+    menu: "Menu",
+    closeMenu: "Close menu",
   },
   meta: {
     title: "Buy Car Map",

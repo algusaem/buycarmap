@@ -403,6 +403,8 @@ export interface Translations {
     signOut: string;
     account: string;
     favorites: string;
+    menu: string;
+    closeMenu: string;
   };
   meta: {
     title: string;

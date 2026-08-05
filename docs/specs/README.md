@@ -97,4 +97,5 @@ solo project is ceremony.
 | [cross-cutting.md](cross-cutting.md) | CORE | Implemented | Language, geography, theme |
 | [auth-email-and-oauth.md](auth-email-and-oauth.md) | AUTH | Implemented | Auth, email, OAuth, 2FA |
 | [alerts.md](alerts.md) | ALERT | Implemented | Saved criteria, background polling, match emails |
+| [navbar.md](navbar.md) | NAV | Implemented | Navigation bar, mobile menu, account menu |
 

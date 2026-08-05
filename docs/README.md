@@ -114,6 +114,7 @@ closes it. Do not point a gap at a loosely related file to make it look covered.
 | `app/verify-email/**` | [specs/auth-email-and-oauth.md](specs/auth-email-and-oauth.md) |
 | `app/confirm-email/**` | [specs/auth-email-and-oauth.md](specs/auth-email-and-oauth.md) |
 | `components/AuthProvider.tsx` | [specs/auth-email-and-oauth.md](specs/auth-email-and-oauth.md) |
+| `components/Nav*.tsx` | [specs/navbar.md](specs/navbar.md) |
 | `app/page.tsx` | [frontend.md](frontend.md) |
 | `app/layout.tsx` | [frontend.md](frontend.md) |
 | `app/palette/**` | [frontend.md](frontend.md) |

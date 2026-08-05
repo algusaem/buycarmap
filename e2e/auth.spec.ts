@@ -26,6 +26,28 @@ function signOutButton(page: Page) {
   return page.getByRole("navigation").getByRole("button", { name: SIGN_OUT });
 }
 
+/**
+ * Asserts the navbar is offering a visitor a way in and no session controls.
+ *
+ * Viewport-aware since the navbar restructure (docs/specs/navbar.md): below the
+ * `lg` breakpoint sign-in lives inside the collapsed menu, so looking for it in
+ * the bar finds nothing on a phone. Sign out is checked at count 0 rather than
+ * hidden — signed out, it is not rendered anywhere, menu included.
+ */
+async function expectSignedOut(page: Page, isMobile: boolean) {
+  await expect(signOutButton(page)).toHaveCount(0);
+
+  if (!isMobile) {
+    await expect(navSignIn(page)).toBeVisible();
+    return;
+  }
+
+  await page.getByRole("button", { name: /^(menu|menú)$/i }).click();
+  await expect(
+    page.getByRole("dialog").getByRole("link", { name: SIGN_IN }),
+  ).toBeVisible();
+}
+
 async function registerViaUi(page: Page, email: string, name = "E2E User") {
   await page.goto("/register");
   await page.getByLabel(/name|nombre/i).fill(name);
@@ -54,29 +76,33 @@ test.describe("logged-out experience (auth is optional)", () => {
     isMobile,
   }) => {
     await page.goto("/");
-    await expect(navSignIn(page)).toBeVisible();
-    await expect(signOutButton(page)).toHaveCount(0);
 
-    // Sign up is hidden on narrow viewports (hidden sm:inline-flex), shown wider.
-    const signUp = page
-      .getByRole("navigation")
-      .getByRole("link", { name: SIGN_UP });
-    if (isMobile) {
-      await expect(signUp).toBeHidden();
-    } else {
-      await expect(signUp).toBeVisible();
-    }
+    // Sign up is visible at every width. This assertion used to say the
+    // opposite on mobile — `hidden sm:inline-flex` meant the register link was
+    // absent on phones, and the test recorded that as intended. NAV-17 in
+    // docs/specs/navbar.md decided it was a defect: it is the product's primary
+    // conversion action and it was missing on the devices most people arrive on.
+    //
+    // Checked before expectSignedOut, which opens the menu on a phone and puts
+    // an overlay over the bar this is looking at.
+    await expect(
+      page.getByRole("navigation").getByRole("link", { name: SIGN_UP }),
+    ).toBeVisible();
+
+    await expectSignedOut(page, isMobile);
   });
 
-  test("the map is fully usable without an account", async ({ page }) => {
+  test("the map is fully usable without an account", async ({
+    page,
+    isMobile,
+  }) => {
     await mockListingSources(page);
     await page.goto("/map");
 
     // Listings render for an anonymous visitor...
     await expect(page.getByText("Audi A3 2.0 TDI", { exact: false })).toBeVisible();
     // ...and the navbar still offers sign-in rather than a session.
-    await expect(navSignIn(page)).toBeVisible();
-    await expect(signOutButton(page)).toHaveCount(0);
+    await expectSignedOut(page, isMobile);
   });
 });
 

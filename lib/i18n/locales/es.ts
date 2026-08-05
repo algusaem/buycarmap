@@ -500,6 +500,8 @@ export const es: Translations = {
     signOut: "Cerrar sesión",
     account: "Cuenta",
     favorites: "Coches guardados",
+    menu: "Menú",
+    closeMenu: "Cerrar menú",
   },
   meta: {
     title: "Buy Car Map",

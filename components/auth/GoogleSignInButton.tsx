@@ -56,14 +56,30 @@ export function GoogleSignInButton({
         border: `1px solid ${colors.stroke}`,
         color: colors.text,
       }}
-      className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md px-3 text-sm font-medium transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60"
+      // Everything here that is not a colour is copied from `buttonVariants` so
+      // this sits beside the GitHub button without looking foreign: same
+      // cursor, same `transition-all`, same 3px ring, same disabled opacity.
+      // `focus-visible:border-ring` is the one part deliberately left out — the
+      // border is an inline style Google mandates, so a class could not win
+      // against it anyway.
+      className="group relative flex h-10 w-full cursor-pointer items-center justify-center gap-2.5 overflow-hidden rounded-md px-3 text-sm font-medium transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
     >
+      {/* The fill is fixed by the guidelines, so hover cannot recolour the
+          background the way the app's other buttons do. This is Material's
+          state layer instead — a currentColor wash at 8%/12% over the fill,
+          which is what Google's own button does. It also leaves the "G"
+          alone; the previous `hover:opacity-90` faded the mark itself, which
+          is the one thing the guidelines forbid outright. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-current opacity-0 transition-opacity group-hover:opacity-[0.08] group-active:opacity-[0.12]"
+      />
       {isPending ? (
-        <AiOutlineLoading3Quarters className="h-[18px] w-[18px] shrink-0 animate-spin" />
+        <AiOutlineLoading3Quarters className="relative h-[18px] w-[18px] shrink-0 animate-spin" />
       ) : (
-        <FcGoogle className="h-[18px] w-[18px] shrink-0" />
+        <FcGoogle className="relative h-[18px] w-[18px] shrink-0" />
       )}
-      <span className="truncate">{t.auth.continueWithGoogle}</span>
+      <span className="relative truncate">{t.auth.continueWithGoogle}</span>
     </button>
   );
 }

@@ -6,6 +6,14 @@ import { defineConfig, devices } from "@playwright/test";
 // Otherwise the app runs against a throwaway URL (no real persistence needed).
 const dbEnabled = !!process.env.E2E_DB;
 
+// The suite defaults to 3000 and can be moved with E2E_PORT when something else
+// already owns it. This is not just convenience: `reuseExistingServer` is on
+// outside CI, so an unrelated app answering on 3000 is silently adopted as "the
+// dev server" and every assertion runs against someone else's HTML. Moving the
+// port is the difference between a real run and a wall of nonsense failures.
+const PORT = process.env.E2E_PORT ?? "3000";
+const BASE_URL = `http://localhost:${PORT}`;
+
 // Throwaway, but at least 32 characters: lib/env.ts logs a security warning
 // below that length, and a warning on every e2e run trains people to ignore it.
 const E2E_FALLBACK_SECRET = "e2e-secret-at-least-32-characters-long";
@@ -29,13 +37,13 @@ const serverEnv = dbEnabled
       ...NO_EMAIL,
       DATABASE_URL: process.env.DATABASE_URL ?? "",
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? E2E_FALLBACK_SECRET,
-      NEXTAUTH_URL: "http://localhost:3000",
+      NEXTAUTH_URL: BASE_URL,
     }
   : {
       ...NO_EMAIL,
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
       NEXTAUTH_SECRET: E2E_FALLBACK_SECRET,
-      NEXTAUTH_URL: "http://localhost:3000",
+      NEXTAUTH_URL: BASE_URL,
     };
 
 // E2E runs against a real Next dev server; the two source proxies are mocked at
@@ -66,7 +74,7 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: BASE_URL,
     trace: "on-first-retry",
   },
   expect: {
@@ -91,7 +99,7 @@ export default defineConfig({
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },
-      testMatch: /(map|auth)\.spec\.ts/,
+      testMatch: /(map|auth|navbar)\.spec\.ts/,
     },
     // Runs as part of `pnpm test:e2e` like everything else. It used to be
     // excluded as "inherently flaky"; it wasn't — the screenshots were racing
@@ -107,9 +115,11 @@ export default defineConfig({
   ],
   webServer: {
     command: "pnpm dev",
-    url: "http://localhost:3000",
+    url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: serverEnv,
+    // PORT goes through the env object rather than inline in `command`, which
+    // would be POSIX-only syntax and break on Windows. Next reads it directly.
+    env: { ...serverEnv, PORT },
   },
 });
