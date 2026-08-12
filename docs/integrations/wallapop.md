@@ -120,6 +120,11 @@ Accumulated the hard way. None of it is discoverable from the response.
 - **Results are biased toward the search centre**, regardless of
   `distance_in_km`. A Madrid-centred search returns mostly Madrid-area listings
   even at a 1000 km radius.
+- **`distance_in_km` is also a hard bound, including across pagination.**
+  Probed live 2026-08-12: Madrid + 50 km over six `next_page` pages returned
+  zero listings beyond the radius, and a rare-brand query exhausted at 16
+  local items rather than padding with far-away ones. Far results in the
+  merged UI therefore never come from this source.
 - **`distance_in_km > 2000` returns 400.** Values up to 2000 do not meaningfully
   widen the result set beyond the local area — the proximity bias dominates.
 - **`/api/v3/cars/search` is a trap.** The old endpoint returns randomised

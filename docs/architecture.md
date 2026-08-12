@@ -91,6 +91,15 @@ means one being unavailable is a Tuesday, not an outage.
 Results are merged **round-robin**, not concatenated, so every source appears
 near the top instead of whichever returned most dominating the first screen.
 
+**The merge enforces the filters upstream cannot.** Only Wallapop honours the
+radius on its side, and only the structured sources honour the model, so the
+merged list is post-filtered: with a location chosen, listings outside the
+radius — or pinned at the country-centre fallback — are dropped
+(`lib/geo/radius.ts`), and with a model selected, listings naming it neither
+in their model field nor their title are dropped. The behaviour is owned by
+MAP-16..18 in [`specs/map-and-search.md`](specs/map-and-search.md); removing
+the post-filter reverts coches.net and Milanuncios to nationwide results.
+
 **Out-of-order responses.** Every call to `search()` increments
 `searchVersionRef`, and the result is discarded if the version moved on while it
 was in flight. With a 400 ms debounce and three sources of differing latency, a

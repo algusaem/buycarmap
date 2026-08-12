@@ -260,6 +260,335 @@ describe("useListingsSearch validation and copy", () => {
   });
 });
 
+describe("useListingsSearch radius filter", () => {
+  // Search centre for every case: Madrid (40.4168, -3.7038).
+  // Hand-derived great-circle distances from that point:
+  //   Getafe (40.3088, -3.7328)            ≈ 12 km  → inside 100 km
+  //   Alcalá de Henares (40.4818, -3.364)  ≈ 30 km  → inside 100 km
+  //   Valencia (39.4699, -0.3763)          ≈ 302 km → outside
+  //   Barcelona (41.3874, 2.1686)          ≈ 505 km → outside
+  //   Spain centre fallback (40.0, -3.5)   ≈ 49 km  → inside — MAP-17's point
+  const MADRID = { latitude: 40.4168, longitude: -3.7038 };
+
+  it("MAP-16: drops listings outside the chosen radius from every source", async () => {
+    server.use(
+      http.get("*/api/wallapop/search", () =>
+        HttpResponse.json(
+          makeWallapopResponse([
+            makeWallapopItem({ id: "wp-near" }), // fixture default: Madrid, 0 km
+            makeWallapopItem({
+              id: "wp-far",
+              location: {
+                latitude: 41.3874,
+                longitude: 2.1686,
+                postal_code: "08001",
+                city: "Barcelona",
+                region: "Cataluña",
+                country_code: "ES",
+              },
+            }),
+          ]),
+        ),
+      ),
+      http.post("*/api/cochesnet/search", () =>
+        HttpResponse.json(
+          makeCochesNetResponse([
+            makeCochesNetItem({
+              id: "cn-near",
+              location: {
+                provinceIds: [28],
+                regionId: 13,
+                regionLiteral: "Madrid",
+                mainProvince: "Madrid",
+                mainProvinceId: 28,
+                cityId: 2807,
+                cityLiteral: "Getafe",
+              },
+            }),
+            makeCochesNetItem({ id: "cn-far" }), // fixture default: Barcelona
+          ]),
+        ),
+      ),
+      http.get("*/api/milanuncios/search", () =>
+        HttpResponse.json(
+          makeMilanunciosResponse([
+            makeMilanunciosAd({
+              id: "mn-near",
+              location: {
+                city: { id: 1, name: "Alcalá de Henares", slug: "alcala" },
+                province: { id: 28, name: "Madrid", slug: "madrid" },
+                region: { id: 13, name: "Comunidad de Madrid", slug: "madrid" },
+              },
+            }),
+            makeMilanunciosAd({ id: "mn-far" }), // fixture default: Oliva → Valencia
+          ]),
+        ),
+      ),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "radius-drop",
+        ...MADRID,
+        distanceInKm: 100,
+      });
+    });
+
+    const ids = result.current.listings.map((l) => l.id);
+    expect(ids).toContain("wallapop-wp-near");
+    expect(ids).toContain("cochesnet-cn-near");
+    expect(ids).toContain("milanuncios-mn-near");
+    expect(ids).not.toContain("wallapop-wp-far");
+    expect(ids).not.toContain("cochesnet-cn-far");
+    expect(ids).not.toContain("milanuncios-mn-far");
+    expect(ids).toHaveLength(3);
+  });
+
+  it("MAP-16: applies the radius to pages appended by the scroll sentinel", async () => {
+    server.use(
+      http.get("*/api/wallapop/search", ({ request }) => {
+        const isNextPage =
+          new URL(request.url).searchParams.get("next_page") !== null;
+        if (isNextPage) {
+          // Page 2 is entirely outside the radius.
+          return HttpResponse.json(
+            makeWallapopResponse([
+              makeWallapopItem({
+                id: "wp-page2-far",
+                location: {
+                  latitude: 41.3874,
+                  longitude: 2.1686,
+                  postal_code: "08001",
+                  city: "Barcelona",
+                  region: "Cataluña",
+                  country_code: "ES",
+                },
+              }),
+            ]),
+          );
+        }
+        return HttpResponse.json(
+          makeWallapopResponse([makeWallapopItem({ id: "wp-page1-near" })], "page-2"),
+        );
+      }),
+      http.post("*/api/cochesnet/search", () =>
+        HttpResponse.json(makeCochesNetResponse([], 0)),
+      ),
+      http.get("*/api/milanuncios/search", () =>
+        HttpResponse.json(makeMilanunciosResponse([], 0)),
+      ),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "radius-paginate",
+        ...MADRID,
+        distanceInKm: 100,
+      });
+    });
+    expect(result.current.listings.map((l) => l.id)).toEqual([
+      "wallapop-wp-page1-near",
+    ]);
+
+    act(() => result.current.sentinelRef(document.createElement("div")));
+    await act(async () => {
+      triggerIntersection();
+    });
+
+    // Page 2 had no further next_page, so exhaustion is the observable end of
+    // the load — and its far-away item must not have been appended.
+    await waitFor(() => expect(result.current.hasMore).toBe(false));
+    expect(result.current.listings.map((l) => l.id)).toEqual([
+      "wallapop-wp-page1-near",
+    ]);
+  });
+
+  it("MAP-16: leaves results unfiltered when no location is chosen", async () => {
+    // Negative path: the same far-flung items survive when the user picked no
+    // location — the radius must never apply to an unlocated search.
+    server.use(
+      http.get("*/api/wallapop/search", () =>
+        HttpResponse.json(
+          makeWallapopResponse([
+            makeWallapopItem({
+              id: "wp-bcn",
+              location: {
+                latitude: 41.3874,
+                longitude: 2.1686,
+                postal_code: "08001",
+                city: "Barcelona",
+                region: "Cataluña",
+                country_code: "ES",
+              },
+            }),
+          ]),
+        ),
+      ),
+      http.post("*/api/cochesnet/search", () =>
+        HttpResponse.json(makeCochesNetResponse([makeCochesNetItem({ id: "cn-bcn" })])),
+      ),
+      http.get("*/api/milanuncios/search", () =>
+        HttpResponse.json(makeMilanunciosResponse([makeMilanunciosAd({ id: "mn-oliva" })])),
+      ),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({ keywords: "no-location-no-filter" });
+    });
+
+    expect(result.current.listings.map((l) => l.id)).toEqual([
+      "wallapop-wp-bcn",
+      "cochesnet-cn-bcn",
+      "milanuncios-mn-oliva",
+    ]);
+  });
+
+  it("MAP-18: drops listings that name the selected model neither in their model field nor in their title", async () => {
+    // No location in this search — MAP-18 must hold on its own, not ride on
+    // the radius filter. Milanuncios is the source that leaks: its model
+    // filter is free-text upstream, and its normalised model is always "",
+    // so only the title can prove a match. coches.net leaks only when its
+    // model-name resolution fell back to make-only filtering.
+    server.use(
+      http.get("*/api/wallapop/search", () =>
+        HttpResponse.json(
+          makeWallapopResponse([
+            makeWallapopItem({
+              id: "wp-match",
+              title: "BMW 320d",
+              type_attributes: {
+                brand: "BMW",
+                model: "Serie 3",
+                year: 2019,
+                version: "320d",
+                km: 120_000,
+                engine: "gasoil",
+                horsepower: 190,
+              },
+            }),
+          ]),
+        ),
+      ),
+      http.post("*/api/cochesnet/search", () =>
+        HttpResponse.json(
+          makeCochesNetResponse([
+            makeCochesNetItem({ id: "cn-match" }), // fixture default: model "Serie 3"
+            makeCochesNetItem({
+              id: "cn-contradicts",
+              title: "BMW Serie 5 530d",
+              model: "Serie 5",
+            }),
+          ]),
+        ),
+      ),
+      http.get("*/api/milanuncios/search", () =>
+        HttpResponse.json(
+          makeMilanunciosResponse([
+            makeMilanunciosAd({
+              id: "mn-match",
+              title: "BMW Serie 3 318d Touring",
+            }),
+            makeMilanunciosAd({
+              id: "mn-diluted",
+              title: "BMW Serie 5 530d Luxury",
+            }),
+          ]),
+        ),
+      ),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "model-enforced",
+        brand: "BMW",
+        model: "Serie 3",
+      });
+    });
+
+    const ids = result.current.listings.map((l) => l.id);
+    expect(ids).toContain("wallapop-wp-match");
+    expect(ids).toContain("cochesnet-cn-match");
+    expect(ids).toContain("milanuncios-mn-match");
+    expect(ids).not.toContain("cochesnet-cn-contradicts");
+    expect(ids).not.toContain("milanuncios-mn-diluted");
+    expect(ids).toHaveLength(3);
+  });
+
+  it("MAP-17: excludes listings pinned at the country-centre fallback even though it lies inside the radius", async () => {
+    // Neither source recognises "Villarriba" or province id 99, so both geo
+    // resolvers fall through to the Spain centre (40.0, -3.5) — which is only
+    // ≈49 km from Madrid. A plain distance check would let these through; the
+    // criterion is that an unresolvable location is excluded, not radius-checked.
+    server.use(
+      http.get("*/api/wallapop/search", () =>
+        HttpResponse.json(makeWallapopResponse([])),
+      ),
+      http.post("*/api/cochesnet/search", () =>
+        HttpResponse.json(
+          makeCochesNetResponse([
+            makeCochesNetItem({
+              id: "cn-near",
+              location: {
+                provinceIds: [28],
+                regionId: 13,
+                regionLiteral: "Madrid",
+                mainProvince: "Madrid",
+                mainProvinceId: 28,
+                cityId: 2807,
+                cityLiteral: "Getafe",
+              },
+            }),
+            makeCochesNetItem({
+              id: "cn-unresolved",
+              location: {
+                provinceIds: [99],
+                regionId: 99,
+                regionLiteral: "Terra Incognita",
+                mainProvince: "Terra Incognita",
+                mainProvinceId: 99,
+                cityId: 9999,
+                cityLiteral: "Villarriba",
+              },
+            }),
+          ]),
+        ),
+      ),
+      http.get("*/api/milanuncios/search", () =>
+        HttpResponse.json(
+          makeMilanunciosResponse([
+            makeMilanunciosAd({
+              id: "mn-unresolved",
+              location: {
+                city: { id: 1, name: "Villarriba", slug: "villarriba" },
+                province: { id: 99, name: "Terra Incognita", slug: "terra" },
+                region: { id: 99, name: "Terra Incognita", slug: "terra" },
+              },
+              province: { id: 99, name: "Terra Incognita", slug: "terra" },
+            }),
+          ]),
+        ),
+      ),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "fallback-excluded",
+        ...MADRID,
+        distanceInKm: 100,
+      });
+    });
+
+    expect(result.current.listings.map((l) => l.id)).toEqual([
+      "cochesnet-cn-near",
+    ]);
+  });
+});
+
 describe("useListingsSearch pagination guards", () => {
   it("MAP-10: does not fetch the same next page twice when the sentinel fires repeatedly", async () => {
     let pageRequests = 0;

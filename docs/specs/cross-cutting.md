@@ -108,6 +108,13 @@ a user driving to see a car trusts the pin.
 - **`SPANISH_CITIES`** in `lib/geo/cities.ts` — roughly seventy cities keyed by
   lowercased name. Coarse by design; it exists for listings whose seller gave a
   city and nothing more.
+- **`SPAIN_CENTER`** in `lib/geo/cities.ts` — where `lib/cochesnet/geo.ts` and
+  `lib/milanuncios/geo.ts` pin a listing whose location neither the city nor
+  the province lookup recognised. It is exported rather than declared in each
+  because `lib/geo/radius.ts` compares against it *exactly* to exclude unknown
+  locations from a radius search: the three have to agree on the point or that
+  exclusion silently stops working. The behaviour itself is MAP-17's, in
+  [map-and-search.md](map-and-search.md).
 - **Theme** is `next-themes` with `attribute="class"`, dark default, `.light`
   for light. Anything reading `useTheme` must wait for `useMounted` or it
   renders server markup that disagrees with the client.

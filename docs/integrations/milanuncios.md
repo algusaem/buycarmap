@@ -50,7 +50,11 @@ Two consequences of that mapping:
 
 - **There is no structured model filter**, so the model name is folded into the
   free-text `palabras` alongside the keywords. Results skew toward the model
-  rather than being filtered to it.
+  rather than being filtered to it. Quantified live 2026-08-12:
+  `palabras=A110` under the Alpine slug returned 49 ads of which roughly one
+  in four never mentions A110 (mostly A290s) — fuzzy text match, not a
+  filter. Structured params are honoured strictly, though: with `hasta=300`,
+  zero of 41 ads exceeded the price cap.
 - **There is no location or distance filter at all.** Coordinates are dropped for
   this source.
 

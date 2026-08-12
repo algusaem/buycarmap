@@ -80,6 +80,15 @@ const SPANISH_CITIES: Record<string, CityCoordinates> = {
   caceres: { lat: 39.4753, lng: -6.3724 },
 };
 
+/**
+ * Where the per-source geo resolvers pin a listing whose location they could
+ * not recognise. It doubles as a sentinel: `lib/geo/radius.ts` compares
+ * against it exactly to exclude unknown locations from a radius search
+ * (MAP-17), so the resolvers and that filter have to agree on the point — it
+ * lives here rather than in each of them for that reason.
+ */
+export const SPAIN_CENTER: CityCoordinates = { lat: 40.0, lng: -3.5 };
+
 export function getCityCoordinates(
   city: string,
   fallbackLat: number,

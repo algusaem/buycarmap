@@ -51,6 +51,11 @@ set are simply dropped for this source.
 **Recency is not wired.** There is no `time_filter` equivalent in use; ordering
 falls back to the site default.
 
+**Filters are strict — exhausted results are not padded.** Probed live
+2026-08-12: `BMW` capped at 300 € returned exactly 3 matching items and
+`totalResults: 3`, no "related" filler. A narrow filter set returns fewer
+results, never different ones.
+
 ### Taxonomy translation
 
 The shared filter set speaks Wallapop's vocabulary, so everything has to be

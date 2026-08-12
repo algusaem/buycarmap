@@ -9,6 +9,7 @@ import { normalizeCochesNetItems } from "@/lib/cochesnet/normalize";
 import { searchMilanuncios } from "@/lib/milanuncios/client";
 import { normalizeMilanunciosItems } from "@/lib/milanuncios/normalize";
 import { getCached, setCached } from "@/lib/wallapop/cache";
+import { filterByRadius } from "@/lib/geo/radius";
 import { useTranslation } from "@/lib/i18n/client";
 
 // Merge the per-source result lists by round-robin, so every source appears
@@ -22,6 +23,34 @@ function interleave(lists: CarListing[][]): CarListing[] {
     }
   }
   return merged;
+}
+
+// MAP-18: Milanuncios matches the model as free text upstream and coches.net
+// can fall back to make-only filtering, so a model search gets diluted with
+// related-but-wrong cars. Substring on the model field or title, erring
+// permissive — dropping a genuinely matching car is worse than keeping a
+// mislabelled one. Titles matter because Milanuncios carries no structured
+// model at all; descriptions would false-match ("acepto cambio por…").
+function filterByModel(
+  listings: CarListing[],
+  model: string | undefined,
+): CarListing[] {
+  const wanted = model?.trim().toLowerCase();
+  if (!wanted) return listings;
+  return listings.filter(
+    (listing) =>
+      listing.model.toLowerCase().includes(wanted) ||
+      listing.title.toLowerCase().includes(wanted),
+  );
+}
+
+// Every filter the sources cannot be trusted to enforce upstream, applied
+// where the three result lists meet (MAP-16, MAP-17, MAP-18).
+function applyResultFilters(
+  listings: CarListing[],
+  params: SearchInput,
+): CarListing[] {
+  return filterByModel(filterByRadius(listings, params), params.model);
 }
 
 interface PageState {
@@ -121,7 +150,13 @@ export function useListingsSearch() {
     const mnData = mnResult.status === "fulfilled" ? mnResult.value : null;
     const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
 
-    const merged = interleave([wpItems, cnItems, mnItems]);
+    // MAP-16/17/18: only Wallapop honours the radius upstream and only the
+    // structured sources honour the model, so the filter promises are
+    // enforced here, where the lists meet.
+    const merged = applyResultFilters(
+      interleave([wpItems, cnItems, mnItems]),
+      params,
+    );
     const nextState: PageState = {
       wallapopNext:
         wpResult.status === "fulfilled"
@@ -211,7 +246,7 @@ export function useListingsSearch() {
       pageRef.current = nextState;
       setListings((prev) => [
         ...prev,
-        ...interleave([wpItems, cnItems, mnItems]),
+        ...applyResultFilters(interleave([wpItems, cnItems, mnItems]), params),
       ]);
       applyHasMore(nextState);
     } catch {

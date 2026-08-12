@@ -1,13 +1,10 @@
-import { getCityCoordinates } from "@/lib/geo/cities";
+import { getCityCoordinates, SPAIN_CENTER } from "@/lib/geo/cities";
 import { MilanunciosLocation, MilanunciosPlace } from "@/interfaces/milanuncios";
 
 interface Coordinates {
   lat: number;
   lng: number;
 }
-
-// Center of Spain — ultimate fallback.
-const SPAIN_CENTER: Coordinates = { lat: 40.0, lng: -3.5 };
 
 // Milanuncios items carry no latitude/longitude, only city/province names and
 // INE province codes (1–52). We approximate each listing to its province

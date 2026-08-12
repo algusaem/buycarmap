@@ -2,7 +2,16 @@
 
 Key: MAP
 Status: Implemented
-Last updated: 2026-08-02.
+Last updated: 2026-08-12.
+
+> **Amended 2026-08-12: MAP-16, MAP-17 and MAP-18, implemented.** Filtering by
+> location previously constrained only Wallapop — coches.net and Milanuncios
+> were always searched nationwide and merged in unfiltered, so with a radius
+> chosen, two thirds of the visible results could be anywhere in Spain; and
+> the Milanuncios model filter is free-text, so a model search was diluted
+> with related-but-wrong cars. The three criteria make the chosen filters a
+> real promise at the merge: every listing shown respects the radius and the
+> model, whatever its source.
 
 > **This is a backfill.** The behaviour below is already built and working. The
 > spec was written from the code, so it cannot disagree with it — which is the
@@ -42,8 +51,10 @@ listings list, and the map that mirrors it.
 
 ## 3. Acceptance criteria
 
-All fifteen are now proven. Nine already held when the spec was written; six
-were gaps, and two of those (MAP-7) were defects rather than merely untested.
+MAP-1 through MAP-15 are proven. Nine already held when the spec was written;
+six were gaps, and two of those (MAP-7) were defects rather than merely
+untested. MAP-16 through MAP-18 were amended in and implemented test-first on
+2026-08-12.
 
 | AC | Statement | Level | Verified by |
 | --- | --- | --- | --- |
@@ -62,6 +73,9 @@ were gaps, and two of those (MAP-7) were defects rather than merely untested.
 | MAP-13 | A distance radius is sent only when the user has chosen a location | unit | `lib/hooks/useSearchFilters.test.tsx` |
 | MAP-14 | The first search uses a country-wide fallback, re-runs once the browser reports the user's position, and does not override a location the user picked | unit | `lib/hooks/useSearchFilters.test.tsx` (re-search + user choice wins) |
 | MAP-15 | A search returning nothing shows the empty state, and the list and the map always show the same set of listings | component | `components/map/MapView.test.tsx` (empty + map sync) |
+| MAP-16 | When the user has chosen a location, no listing whose map position lies outside the chosen radius appears in the results, whatever its source | unit | `lib/hooks/useListingsSearch.test.tsx` (merge + pagination + no-location guard) + `lib/geo/radius.test.ts` |
+| MAP-17 | When the user has chosen a location, a listing whose position could only be resolved to the country-centre fallback is excluded rather than placed at the country centre | unit | `lib/hooks/useListingsSearch.test.tsx` + `lib/geo/radius.test.ts` |
+| MAP-18 | When a model is selected, a listing that names the chosen model neither in its model field nor in its title does not appear in the results | unit | `lib/hooks/useListingsSearch.test.tsx` |
 
 ## 4. Decisions and rationale
 
@@ -116,6 +130,67 @@ collapses the filter panel — the user has finished choosing and the panel is
 covering the results they asked for. `update()` deliberately does not collapse
 the panel, because closing it under someone still adjusting filters would be
 hostile.
+
+### The radius is enforced at the merge, not upstream (MAP-16, MAP-17)
+
+Only Wallapop accepts coordinates, and it honours them: a live probe
+(2026-08-12, Madrid + 50 km, six pages, including a rare-brand query that
+exhausted) returned zero listings beyond the radius, so `distance_in_km` is a
+hard bound in practice, enforced across pagination. coches.net and Milanuncios
+have no wired location filter at all, so today a search for "Madrid, 50 km"
+returns two nationwide result sets round-robined against one radius-limited
+one — and the more filters the user adds, the worse it gets, because
+Wallapop's local pool shrinks while the national pools do not. Every far-away
+result comes from those two sources. That is the bug this amendment forbids.
+
+The fix is a post-filter where the three lists meet: with a location chosen,
+drop every listing whose resolved position is outside the radius. One rule for
+all three sources, applied to the same coordinates the map pins use, so the
+circle the user asked for and the pins they see can never disagree — MAP-15's
+list/map sync is preserved for free.
+
+Consequences accepted deliberately:
+
+- **The filter is only as precise as the pin.** coches.net and Milanuncios
+  positions are city- or province-capital approximations (SRC-3), so a car
+  pinned at a province capital inside the radius may physically sit outside
+  it, and vice versa. This is still categorically better than no constraint,
+  and it is honest: what is shown inside the circle is what the map claims is
+  inside the circle.
+- **Unknown-location listings are excluded, not shown (MAP-17).** The
+  country-centre fallback (40.0, −3.5) is ~49 km from Madrid, so without this
+  rule every listing whose city failed to resolve would pass a Madrid 50 km
+  filter — the exact complaint, disguised as a pin in Guadalajara province.
+  A separate criterion because a naive radius check gets it wrong silently.
+- **Pages go sparse.** A nationwide coches.net page of 40 may yield a handful
+  of survivors for a tight radius. Pagination already tolerates this — MAP-8
+  keeps fetching from sources that have more — but result counts per scroll
+  will be smaller with narrow radii.
+
+Wiring coches.net's upstream province filter (it exists, unwired —
+`docs/integrations/cochesnet.md`) would reduce the waste, but it is an
+efficiency improvement on top of this rule, not a substitute: province ≠
+radius, Milanuncios would still need the post-filter, and the upstream shape
+is unverified. Left as an open question.
+
+### The model filter is enforced at the merge too (MAP-18)
+
+The other filter that leaks. Milanuncios has no structured model filter — the
+model is folded into free-text `palabras`, and probing live (2026-08-12)
+showed roughly one in four results for a model search never mentioning that
+model. coches.net degrades to make-only filtering when a model name has no
+exact `modelId` match, which is the right upstream behaviour but still lets
+contradicting models through. Every other filter (price, year, km, power,
+fuel, transmission, brand) was probed strict on all three sources; the model
+is the only one that needs enforcing here.
+
+The rule: with a model selected, keep a listing only if its model field or
+its title names that model, case-insensitively. Substring, not equality —
+erring permissive, because dropping a legitimately matching car is worse than
+letting a mislabelled one through. Titles are checked because Milanuncios
+carries no structured model at all (`CarListing.model` is `""` for that
+source); descriptions are not, because "acepto cambio por un Serie 3" would
+false-match.
 
 ### Brand and model are coupled in one direction
 
@@ -177,3 +252,17 @@ No database involvement: nothing on this path is persisted. The contracts are:
    never passes it, so hovering a card highlights nothing on the map. Either it
    was intended to and the wiring was lost, or it should be removed. Not
    specified here because it is not currently a behaviour.
+5. **The alert runner has the same hole (found with MAP-16).**
+   `lib/alerts/search.ts` merges all three sources with no distance filter
+   either, so a location-scoped alert emails nationwide coches.net and
+   Milanuncios matches. It also passes `distanceInKm` straight through: stored
+   criteria with coordinates but no radius reach `lib/wallapop/client.ts`,
+   whose falsy `if (distance)` check then omits `distance_in_km` entirely — an
+   unbounded search around a point. The fix belongs behind an `ALERT`
+   criterion in [alerts.md](alerts.md), not here; ideally sharing the same
+   radius-filter helper. Not folded into this amendment to keep its blast
+   radius reviewable.
+6. **Wiring coches.net's upstream province filter** (and investigating
+   Milanuncios' province URL slugs) would cut the fetched-then-discarded waste
+   that MAP-16 introduces for narrow radii. Efficiency follow-up, needs live
+   probing of unverified upstream shapes; the post-filter stays either way.

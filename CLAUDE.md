@@ -93,6 +93,11 @@ breaking one is silent.
   `SearchInput`; each client translates it. Do not add a per-source filter UI.
 - **coches.net and Milanuncios items carry no coordinates.** Their pins are
   city- or province-level approximations. Wallapop's are exact.
+- **The merge post-filters by radius and model** (`applyResultFilters` in
+  `lib/hooks/useListingsSearch.ts`). It looks redundant — "upstream already
+  filters" — but only Wallapop enforces the radius and Milanuncios matches the
+  model as free text. Removing it silently reverts to nationwide results
+  (MAP-16..18).
 - **Never call `getServerSession` directly** — use `getCurrentUser()`. Only it
   honours revocation. `proxy.ts` is UX, not authorization.
 - **Any flow that changes a password must bump `passwordChangedAt`**, or it
