@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, join, resolve } from "node:path";
+
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import * as guard from "./require-branch-db.mjs";
 
@@ -45,13 +50,42 @@ describe("checkBranchDatabase", () => {
 });
 
 describe("findMainCheckout", () => {
-  it("identifies this worktree as a worktree and locates the main checkout", () => {
-    // This test file runs from inside a linked worktree, so the guard has to
-    // recognise that; if it returned null the whole check would be skipped.
-    const main = findMainCheckout();
+  // Both branches are exercised against a throwaway repository rather than the
+  // checkout the suite happens to be running from: asserting "this is a
+  // worktree" only holds when the tests were started from one, which is not
+  // true on the main checkout or in CI.
+  let repo: string;
+  let worktree: string;
+
+  beforeAll(() => {
+    repo = realpathSync(mkdtempSync(join(tmpdir(), "guard-repo-")));
+    worktree = join(repo, "..", `${basename(repo)}-wt`);
+    const run = (...args: string[]) => execFileSync("git", args, { cwd: repo });
+    run("init", "-q");
+    run("config", "user.email", "guard@example.test");
+    run("config", "user.name", "Guard");
+    run("commit", "-q", "--allow-empty", "-m", "init");
+    run("worktree", "add", "-q", "--detach", worktree);
+  });
+
+  afterAll(() => {
+    execFileSync("git", ["worktree", "remove", "--force", worktree], {
+      cwd: repo,
+    });
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("locates the main checkout from inside a linked worktree", () => {
+    // If this returned null the guard would skip its check entirely, which is
+    // exactly the worktree case it exists to catch.
+    const main = findMainCheckout(worktree);
 
     expect(main).not.toBeNull();
-    expect(main?.toLowerCase()).toContain("buycarmap");
+    expect(resolve(main!).toLowerCase()).toBe(resolve(repo).toLowerCase());
+  });
+
+  it("returns null from the main checkout, which owns the shared database", () => {
+    expect(findMainCheckout(repo)).toBeNull();
   });
 });
 
