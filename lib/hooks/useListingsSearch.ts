@@ -69,6 +69,80 @@ const EMPTY_PAGE: PageState = {
   milanunciosHasMore: false,
 };
 
+function hasMorePages(state: PageState): boolean {
+  return (
+    state.wallapopNext !== null ||
+    state.cochesNetHasMore ||
+    state.milanunciosHasMore
+  );
+}
+
+interface RoundResult {
+  listings: CarListing[];
+  state: PageState;
+}
+
+// One round of pagination: the next page from every source that still has one,
+// normalized, merged and filtered, with the page state advanced past it.
+async function fetchNextRound(
+  params: SearchInput,
+  state: PageState,
+): Promise<RoundResult> {
+  const wpPromise =
+    state.wallapopNext !== null
+      ? searchWallapop(params, state.wallapopNext)
+      : null;
+  const cnPromise = state.cochesNetHasMore
+    ? searchCochesNet(params, state.cochesNetPage + 1)
+    : null;
+  const mnPromise = state.milanunciosHasMore
+    ? searchMilanuncios(params, state.milanunciosPage + 1)
+    : null;
+
+  const [wpResult, cnResult, mnResult] = await Promise.allSettled([
+    wpPromise ?? Promise.resolve(null),
+    cnPromise ?? Promise.resolve(null),
+    mnPromise ?? Promise.resolve(null),
+  ]);
+
+  const wpItems =
+    wpResult.status === "fulfilled" && wpResult.value
+      ? normalizeWallapopItems(wpResult.value.data?.section?.items ?? [])
+      : [];
+  const cnData = cnResult.status === "fulfilled" ? cnResult.value : null;
+  const cnItems = cnData ? normalizeCochesNetItems(cnData.items ?? []) : [];
+  const mnData = mnResult.status === "fulfilled" ? mnResult.value : null;
+  const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
+
+  return {
+    listings: applyResultFilters(
+      interleave([wpItems, cnItems, mnItems]),
+      params,
+    ),
+    state: {
+      wallapopNext: wpPromise
+        ? wpResult.status === "fulfilled" && wpResult.value
+          ? (wpResult.value.meta?.next_page ?? null)
+          : null
+        : state.wallapopNext,
+      cochesNetPage: cnPromise ? state.cochesNetPage + 1 : state.cochesNetPage,
+      cochesNetHasMore: cnPromise
+        ? !!cnData &&
+          cnData.items.length > 0 &&
+          state.cochesNetPage + 1 < (cnData.meta?.totalPages ?? 1)
+        : state.cochesNetHasMore,
+      milanunciosPage: mnPromise
+        ? state.milanunciosPage + 1
+        : state.milanunciosPage,
+      milanunciosHasMore: mnPromise
+        ? !!mnData &&
+          mnData.ads.length > 0 &&
+          state.milanunciosPage + 1 < (mnData.pagination?.totalPages ?? 1)
+        : state.milanunciosHasMore,
+    },
+  };
+}
+
 export function useListingsSearch() {
   // Failure copy has to come from the i18n context, not string literals: the
   // default locale is Spanish, so hardcoded English was reaching most users.
@@ -84,11 +158,7 @@ export function useListingsSearch() {
   const searchVersionRef = useRef(0);
 
   const applyHasMore = useCallback((state: PageState) => {
-    const more =
-      state.wallapopNext !== null ||
-      state.cochesNetHasMore ||
-      state.milanunciosHasMore;
-    setHasMore(more);
+    setHasMore(hasMorePages(state));
   }, []);
 
   async function search(input: SearchInput) {
@@ -153,11 +223,11 @@ export function useListingsSearch() {
     // MAP-16/17/18: only Wallapop honours the radius upstream and only the
     // structured sources honour the model, so the filter promises are
     // enforced here, where the lists meet.
-    const merged = applyResultFilters(
+    const collected = applyResultFilters(
       interleave([wpItems, cnItems, mnItems]),
       params,
     );
-    const nextState: PageState = {
+    let nextState: PageState = {
       wallapopNext:
         wpResult.status === "fulfilled"
           ? (wpResult.value.meta?.next_page ?? null)
@@ -172,10 +242,21 @@ export function useListingsSearch() {
         : false,
     };
 
+    // MAP-19: a first page filtered down to nothing renders the empty state,
+    // and the sentinel is not mounted alongside it — so nothing would ever ask
+    // for page 2 and "no cars found" would be permanent. Keep going until a
+    // round yields something or the sources run out.
+    while (collected.length === 0 && hasMorePages(nextState)) {
+      const round = await fetchNextRound(params, nextState);
+      if (searchVersionRef.current !== version) return;
+      nextState = round.state;
+      collected.push(...round.listings);
+    }
+
     pageRef.current = nextState;
     lastParamsRef.current = params;
-    setListings(merged);
-    setCached(cacheKey, merged);
+    setListings(collected);
+    setCached(cacheKey, collected);
     applyHasMore(nextState);
     setIsLoading(false);
   }
@@ -183,72 +264,30 @@ export function useListingsSearch() {
   const loadMore = useCallback(async () => {
     const params = lastParamsRef.current;
     if (isLoadingMoreRef.current || !params) return;
-    const state = pageRef.current;
-    if (
-      state.wallapopNext === null &&
-      !state.cochesNetHasMore &&
-      !state.milanunciosHasMore
-    )
-      return;
+    if (!hasMorePages(pageRef.current)) return;
 
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
 
     try {
-      const wpPromise =
-        state.wallapopNext !== null
-          ? searchWallapop(params, state.wallapopNext)
-          : null;
-      const cnPromise = state.cochesNetHasMore
-        ? searchCochesNet(params, state.cochesNetPage + 1)
-        : null;
-      const mnPromise = state.milanunciosHasMore
-        ? searchMilanuncios(params, state.milanunciosPage + 1)
-        : null;
+      let state = pageRef.current;
+      const collected: CarListing[] = [];
 
-      const [wpResult, cnResult, mnResult] = await Promise.allSettled([
-        wpPromise ?? Promise.resolve(null),
-        cnPromise ?? Promise.resolve(null),
-        mnPromise ?? Promise.resolve(null),
-      ]);
+      // MAP-19: appending nothing would strand the scroll. The list does not
+      // grow, so the sentinel neither unmounts nor leaves the viewport, and
+      // IntersectionObserver reports crossings rather than states — it will
+      // not fire again. A filtered-away page has to be retried from here.
+      do {
+        const round = await fetchNextRound(params, state);
+        state = round.state;
+        collected.push(...round.listings);
+      } while (collected.length === 0 && hasMorePages(state));
 
-      const wpItems =
-        wpResult.status === "fulfilled" && wpResult.value
-          ? normalizeWallapopItems(wpResult.value.data?.section?.items ?? [])
-          : [];
-      const cnData = cnResult.status === "fulfilled" ? cnResult.value : null;
-      const cnItems = cnData ? normalizeCochesNetItems(cnData.items ?? []) : [];
-      const mnData = mnResult.status === "fulfilled" ? mnResult.value : null;
-      const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
-
-      const nextState: PageState = {
-        wallapopNext: wpPromise
-          ? wpResult.status === "fulfilled" && wpResult.value
-            ? (wpResult.value.meta?.next_page ?? null)
-            : null
-          : state.wallapopNext,
-        cochesNetPage: cnPromise ? state.cochesNetPage + 1 : state.cochesNetPage,
-        cochesNetHasMore: cnPromise
-          ? !!cnData &&
-            cnData.items.length > 0 &&
-            state.cochesNetPage + 1 < (cnData.meta?.totalPages ?? 1)
-          : state.cochesNetHasMore,
-        milanunciosPage: mnPromise
-          ? state.milanunciosPage + 1
-          : state.milanunciosPage,
-        milanunciosHasMore: mnPromise
-          ? !!mnData &&
-            mnData.ads.length > 0 &&
-            state.milanunciosPage + 1 < (mnData.pagination?.totalPages ?? 1)
-          : state.milanunciosHasMore,
-      };
-
-      pageRef.current = nextState;
-      setListings((prev) => [
-        ...prev,
-        ...applyResultFilters(interleave([wpItems, cnItems, mnItems]), params),
-      ]);
-      applyHasMore(nextState);
+      pageRef.current = state;
+      if (collected.length > 0) {
+        setListings((prev) => [...prev, ...collected]);
+      }
+      applyHasMore(state);
     } catch {
       toast.error(t.map.loadMoreFailed);
     } finally {

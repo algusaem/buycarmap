@@ -13,6 +13,14 @@ Last updated: 2026-08-12.
 > real promise at the merge: every listing shown respects the radius and the
 > model, whatever its source.
 
+> **Amended 2026-08-12: MAP-19, implemented.** Post-filtering broke the
+> assumption that fetching a page grows the list, and both readers of that
+> assumption failed: a first page filtered down to nothing showed a permanent
+> empty state with the sentinel unrendered, and a later one stalled the scroll
+> because `IntersectionObserver` reports crossings rather than states. The
+> criterion makes a filtered-away page a reason to keep fetching, not an
+> answer.
+
 > **This is a backfill.** The behaviour below is already built and working. The
 > spec was written from the code, so it cannot disagree with it — which is the
 > one thing a spec is normally for. Its value is elsewhere: the criteria list
@@ -54,7 +62,7 @@ listings list, and the map that mirrors it.
 MAP-1 through MAP-15 are proven. Nine already held when the spec was written;
 six were gaps, and two of those (MAP-7) were defects rather than merely
 untested. MAP-16 through MAP-18 were amended in and implemented test-first on
-2026-08-12.
+2026-08-12, and MAP-19 the same day, to close the failure mode they introduced.
 
 | AC | Statement | Level | Verified by |
 | --- | --- | --- | --- |
@@ -76,6 +84,7 @@ untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 | MAP-16 | When the user has chosen a location, no listing whose map position lies outside the chosen radius appears in the results, whatever its source | unit | `lib/hooks/useListingsSearch.test.tsx` (merge + pagination + no-location guard) + `lib/geo/radius.test.ts` |
 | MAP-17 | When the user has chosen a location, a listing whose position could only be resolved to the country-centre fallback is excluded rather than placed at the country centre | unit | `lib/hooks/useListingsSearch.test.tsx` + `lib/geo/radius.test.ts` |
 | MAP-18 | When a model is selected, a listing that names the chosen model neither in its model field nor in its title does not appear in the results | unit | `lib/hooks/useListingsSearch.test.tsx` |
+| MAP-19 | When every listing on a fetched page is removed by the filters, the search keeps fetching until a page yields a listing or every source is exhausted — on the first search as well as on the sentinel | unit | `lib/hooks/useListingsSearch.test.tsx` (first page + sentinel + exhaustion) |
 
 ## 4. Decisions and rationale
 
@@ -162,10 +171,12 @@ Consequences accepted deliberately:
   rule every listing whose city failed to resolve would pass a Madrid 50 km
   filter — the exact complaint, disguised as a pin in Guadalajara province.
   A separate criterion because a naive radius check gets it wrong silently.
-- **Pages go sparse.** A nationwide coches.net page of 40 may yield a handful
-  of survivors for a tight radius. Pagination already tolerates this — MAP-8
-  keeps fetching from sources that have more — but result counts per scroll
-  will be smaller with narrow radii.
+- **Pages go sparse, and some yield nothing at all (MAP-19).** A nationwide
+  coches.net page of 40 may yield a handful of survivors for a tight radius —
+  or none. MAP-8 keeps fetching from sources that have more, but only while
+  something asks it to, so a page filtered down to nothing needs its own rule;
+  see below. Result counts per scroll are smaller with narrow radii either
+  way.
 
 Wiring coches.net's upstream province filter (it exists, unwired —
 `docs/integrations/cochesnet.md`) would reduce the waste, but it is an
@@ -191,6 +202,40 @@ letting a mislabelled one through. Titles are checked because Milanuncios
 carries no structured model at all (`CarListing.model` is `""` for that
 source); descriptions are not, because "acepto cambio por un Serie 3" would
 false-match.
+
+### A page filtered down to nothing must not end the load (MAP-19)
+
+The post-filter's own failure mode, and the reason it needs a criterion rather
+than a note. Before MAP-16 every fetched page produced listings, so "fetched a
+page" and "the list grew" were the same event. They no longer are, and both
+places that assumed they were break:
+
+- **On the first page**, an empty result renders the empty state, and the
+  scroll sentinel lives in the branch that is not taken when the list is empty
+  (`components/map/MapView.tsx`). Nothing is left on screen that could ask for
+  page 2. "No cars found" becomes permanent while the sources still hold
+  pages — the worst outcome available, because it is indistinguishable from an
+  honest empty result.
+- **On a later page**, the list does not grow, so the sentinel neither
+  unmounts nor moves out of view. `IntersectionObserver` reports crossings,
+  not states, so it does not fire again: loading stops with more still
+  promised.
+
+The rule: a round that yields no survivors is not an answer. Keep fetching
+until a round yields at least one listing or every source is exhausted — on
+the first search and on the sentinel alike.
+
+It terminates. Every round advances Wallapop's cursor and each paged source's
+page number, or clears that source's has-more flag, so the loop is bounded by
+the sources' own page counts. Deliberately **not** capped at N rounds: a cap
+is just the same dead end further away, and the case that would hit it — a
+rare model in a tight radius — is exactly the search where giving up early
+shows "nothing found" about a country that has one.
+
+The cost is honest and accepted: a narrow radius can spend several sequential
+upstream round trips on one gesture, with the spinner showing throughout.
+Wiring the upstream location filters (open question 6) reduces the waste; it
+does not remove the need for this rule.
 
 ### Brand and model are coupled in one direction
 

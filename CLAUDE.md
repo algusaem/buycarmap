@@ -97,7 +97,10 @@ breaking one is silent.
   `lib/hooks/useListingsSearch.ts`). It looks redundant — "upstream already
   filters" — but only Wallapop enforces the radius and Milanuncios matches the
   model as free text. Removing it silently reverts to nationwide results
-  (MAP-16..18).
+  (MAP-16..18). **Because that filter can empty a page**, the first search and
+  `loadMore` both keep fetching until a round yields a listing or the sources
+  run out — collapsing either loop back to one fetch strands the scroll and
+  makes an empty first page permanent (MAP-19).
 - **Never call `getServerSession` directly** — use `getCurrentUser()`. Only it
   honours revocation. `proxy.ts` is UX, not authorization.
 - **Any flow that changes a password must bump `passwordChangedAt`**, or it

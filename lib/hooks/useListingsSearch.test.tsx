@@ -589,6 +589,158 @@ describe("useListingsSearch radius filter", () => {
   });
 });
 
+describe("useListingsSearch filtered-away pages", () => {
+  const MADRID = { latitude: 40.4168, longitude: -3.7038 };
+  const BARCELONA = {
+    latitude: 41.3874,
+    longitude: 2.1686,
+    postal_code: "08001",
+    city: "Barcelona",
+    region: "Cataluña",
+    country_code: "ES",
+  };
+
+  /** Only Wallapop pages; the other two return nothing and stay exhausted. */
+  function onlyWallapop(
+    handler: Parameters<typeof http.get>[1],
+  ): Parameters<typeof server.use> {
+    return [
+      http.get("*/api/wallapop/search", handler),
+      http.post("*/api/cochesnet/search", () =>
+        HttpResponse.json(makeCochesNetResponse([], 0)),
+      ),
+      http.get("*/api/milanuncios/search", () =>
+        HttpResponse.json(makeMilanunciosResponse([], 0)),
+      ),
+    ];
+  }
+
+  it("MAP-19: keeps fetching when the first page is filtered away entirely", async () => {
+    // Without this the empty state renders and MapView never mounts the
+    // sentinel, so "no cars found" would be permanent while page 2 sits there.
+    const pagesServed: string[] = [];
+    server.use(
+      ...onlyWallapop(({ request }) => {
+        const next = new URL(request.url).searchParams.get("next_page");
+        pagesServed.push(next ?? "first");
+        if (next === "page-2") {
+          return HttpResponse.json(
+            makeWallapopResponse([makeWallapopItem({ id: "wp-madrid" })]),
+          );
+        }
+        return HttpResponse.json(
+          makeWallapopResponse(
+            [makeWallapopItem({ id: "wp-bcn", location: BARCELONA })],
+            "page-2",
+          ),
+        );
+      }),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "first-page-empty",
+        ...MADRID,
+        distanceInKm: 100,
+      });
+    });
+
+    expect(pagesServed).toEqual(["first", "page-2"]);
+    expect(result.current.listings.map((l) => l.id)).toEqual([
+      "wallapop-wp-madrid",
+    ]);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("MAP-19: keeps fetching when a page appended by the sentinel is filtered away entirely", async () => {
+    // The stall the sentinel cannot recover from on its own: the list does not
+    // grow, so it neither unmounts nor moves, and IntersectionObserver reports
+    // crossings rather than states — nothing would ask for page 3.
+    const pagesServed: string[] = [];
+    server.use(
+      ...onlyWallapop(({ request }) => {
+        const next = new URL(request.url).searchParams.get("next_page");
+        pagesServed.push(next ?? "first");
+        if (next === "page-2") {
+          return HttpResponse.json(
+            makeWallapopResponse(
+              [makeWallapopItem({ id: "wp-bcn", location: BARCELONA })],
+              "page-3",
+            ),
+          );
+        }
+        if (next === "page-3") {
+          return HttpResponse.json(
+            makeWallapopResponse([makeWallapopItem({ id: "wp-getafe" })]),
+          );
+        }
+        return HttpResponse.json(
+          makeWallapopResponse([makeWallapopItem({ id: "wp-madrid" })], "page-2"),
+        );
+      }),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "later-page-empty",
+        ...MADRID,
+        distanceInKm: 100,
+      });
+    });
+    expect(result.current.listings.map((l) => l.id)).toEqual([
+      "wallapop-wp-madrid",
+    ]);
+
+    act(() => result.current.sentinelRef(document.createElement("div")));
+    await act(async () => {
+      triggerIntersection();
+    });
+
+    await waitFor(() =>
+      expect(result.current.listings.map((l) => l.id)).toEqual([
+        "wallapop-wp-madrid",
+        "wallapop-wp-getafe",
+      ]),
+    );
+    expect(pagesServed).toEqual(["first", "page-2", "page-3"]);
+  });
+
+  it("MAP-19: stops once every source is exhausted rather than fetching forever", async () => {
+    // The negative path, and the proof the loop terminates: two pages exist,
+    // both filtered away, so the search ends empty and honest — no promise of
+    // more, and exactly two requests.
+    const pagesServed: string[] = [];
+    server.use(
+      ...onlyWallapop(({ request }) => {
+        const next = new URL(request.url).searchParams.get("next_page");
+        pagesServed.push(next ?? "first");
+        return HttpResponse.json(
+          makeWallapopResponse(
+            [makeWallapopItem({ id: `wp-bcn-${next ?? "1"}`, location: BARCELONA })],
+            next === "page-2" ? null : "page-2",
+          ),
+        );
+      }),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "all-pages-empty",
+        ...MADRID,
+        distanceInKm: 100,
+      });
+    });
+
+    expect(pagesServed).toEqual(["first", "page-2"]);
+    expect(result.current.listings).toEqual([]);
+    expect(result.current.hasMore).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
+});
+
 describe("useListingsSearch pagination guards", () => {
   it("MAP-10: does not fetch the same next page twice when the sentinel fires repeatedly", async () => {
     let pageRequests = 0;

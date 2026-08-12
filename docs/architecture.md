@@ -112,6 +112,13 @@ sentinel calls `loadMore()`, which only re-requests sources that still have more
 `IntersectionObserver` attached via `sentinelRef`, which is also how it has to be
 tested.
 
+Because the post-filter above can empty a page, fetching a page and growing the
+list are no longer the same event, and both the first search and `loadMore`
+keep fetching rounds until one yields a listing or every source is exhausted.
+Removing that loop reintroduces a dead end rather than merely a short page —
+the reasoning is MAP-19's, in
+[`specs/map-and-search.md`](specs/map-and-search.md).
+
 **One shared filter set drives all three sources.** The UI builds a single
 `SearchInput`; each client translates it into that API's parameters. There is no
 per-source filter UI, and adding one would be the wrong shape — see
