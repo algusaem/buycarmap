@@ -2,7 +2,7 @@
 
 Key: MAP
 Status: Implemented
-Last updated: 2026-08-12.
+Last updated: 2026-09-27.
 
 > **Amended 2026-08-12: MAP-16, MAP-17 and MAP-18, implemented.** Filtering by
 > location previously constrained only Wallapop — coches.net and Milanuncios
@@ -20,6 +20,13 @@ Last updated: 2026-08-12.
 > because `IntersectionObserver` reports crossings rather than states. The
 > criterion makes a filtered-away page a reason to keep fetching, not an
 > answer.
+
+> **Amended 2026-09-27: MAP-20, implemented.** MAP-19's termination
+> argument assumed every round advances Wallapop's cursor, and nothing checked
+> it: the hook stored whatever `next_page` came back. A cursor handed back a
+> second time, on a page the filters empty, would refetch the same page
+> forever with the spinner up. The criterion makes a repeated cursor mean
+> "Wallapop has nothing more", which is what it is.
 
 > **This is a backfill.** The behaviour below is already built and working. The
 > spec was written from the code, so it cannot disagree with it — which is the
@@ -63,6 +70,8 @@ MAP-1 through MAP-15 are proven. Nine already held when the spec was written;
 six were gaps, and two of those (MAP-7) were defects rather than merely
 untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 2026-08-12, and MAP-19 the same day, to close the failure mode they introduced.
+MAP-20 was amended in and implemented test-first on 2026-09-27, to make
+MAP-19's termination argument true.
 
 | AC | Statement | Level | Verified by |
 | --- | --- | --- | --- |
@@ -85,6 +94,7 @@ untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 | MAP-17 | When the user has chosen a location, a listing whose position could only be resolved to the country-centre fallback is excluded rather than placed at the country centre | unit | `lib/hooks/useListingsSearch.test.tsx` + `lib/geo/radius.test.ts` |
 | MAP-18 | When a model is selected, a listing that names the chosen model neither in its model field nor in its title does not appear in the results | unit | `lib/hooks/useListingsSearch.test.tsx` |
 | MAP-19 | When every listing on a fetched page is removed by the filters, the search keeps fetching until a page yields a listing or every source is exhausted — on the first search as well as on the sentinel | unit | `lib/hooks/useListingsSearch.test.tsx` (first page + sentinel + exhaustion) |
+| MAP-20 | When Wallapop returns a next-page cursor that has already been requested in the current search, Wallapop is treated as exhausted for that search: it is not requested again, the listings on that page are kept, and the other sources carry on | unit | `lib/hooks/useListingsSearch.test.tsx` (cycle on first search + repeat on sentinel + other sources continue) |
 
 ## 4. Decisions and rationale
 
@@ -225,9 +235,10 @@ The rule: a round that yields no survivors is not an answer. Keep fetching
 until a round yields at least one listing or every source is exhausted — on
 the first search and on the sentinel alike.
 
-It terminates. Every round advances Wallapop's cursor and each paged source's
-page number, or clears that source's has-more flag, so the loop is bounded by
-the sources' own page counts. Deliberately **not** capped at N rounds: a cap
+It terminates. Every round advances each paged source's page number or clears
+that source's has-more flag, and either moves Wallapop to a cursor not yet
+requested in this search or marks it exhausted (MAP-20), so the loop is bounded
+by the sources' own page counts. Deliberately **not** capped at N rounds: a cap
 is just the same dead end further away, and the case that would hit it — a
 rare model in a tight radius — is exactly the search where giving up early
 shows "nothing found" about a country that has one.
@@ -236,6 +247,47 @@ The cost is honest and accepted: a narrow radius can spend several sequential
 upstream round trips on one gesture, with the spinner showing throughout.
 Wiring the upstream location filters (open question 6) reduces the waste; it
 does not remove the need for this rule.
+
+### A repeated cursor means Wallapop is exhausted (MAP-20)
+
+MAP-19's loop is only as finite as the cursors Wallapop hands back. coches.net
+and Milanuncios page by a number *we* choose and strictly increase, so they
+cannot repeat; Wallapop's cursor is *theirs*, opaque, and was taken on trust.
+If it comes back as one already requested and the filters empty that page, the
+loop refetches the same page with no end and the spinner never clears — the
+exact dead end MAP-19 exists to prevent, reached from the other side.
+
+The rule: a `next_page` equal to **any** cursor already requested in this
+search ends Wallapop for that search. The page it arrived on has already been
+fetched and its listings are kept; coches.net and Milanuncios are unaffected.
+
+- **Any reuse, not only an immediate repeat.** Comparing with the cursor just
+  sent catches `c1 → c1` and misses `c1 → c2 → c1`, which loops just as
+  forever. Remembering every cursor requested in the search costs a handful of
+  strings and closes both.
+- **Exhausted, not failed.** Nothing is shown to the user. A repeated cursor is
+  Wallapop saying it has no further page; treating it as an error would put a
+  toast on a search that worked.
+- **Per search.** A new search starts with nothing remembered, like the rest of
+  the pagination state — a cursor is only meaningful within the query that
+  produced it.
+- **Still no round cap.** This closes the one unbounded input the loop had; it
+  is not a reason to reconsider MAP-19's refusal of a cap.
+
+Worked example. The user searches with a model selected; every listing on
+every page below fails the model filter; coches.net and Milanuncios report a
+single page.
+
+| Round | Wallapop request | `next_page` returned | Already requested | Result |
+| --- | --- | --- | --- | --- |
+| 1 (first page) | no cursor | `c1` | — | 0 survivors; Wallapop continues at `c1` |
+| 2 | `c1` | `c2` | {`c1`} | 0 survivors; continues at `c2` |
+| 3 | `c2` | `c1` | {`c1`, `c2`} | `c1` repeats → Wallapop exhausted; every source exhausted, loop ends |
+
+Three Wallapop requests, then the empty state with nothing further promised.
+Before MAP-20, round 4 would request `c1` again and the search would never
+finish. Had round 3 carried a matching listing, it would be shown, and
+reaching the end of the list would request nothing more from Wallapop.
 
 ### Brand and model are coupled in one direction
 
