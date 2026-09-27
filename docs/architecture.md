@@ -117,7 +117,9 @@ list are no longer the same event, and both the first search and `loadMore`
 keep fetching rounds until one yields a listing or every source is exhausted.
 Removing that loop reintroduces a dead end rather than merely a short page —
 the reasoning is MAP-19's, in
-[`specs/map-and-search.md`](specs/map-and-search.md).
+[`specs/map-and-search.md`](specs/map-and-search.md). The loop stays finite
+because a Wallapop cursor already requested in the search counts as exhausted
+(MAP-20).
 
 **One shared filter set drives all three sources.** The UI builds a single
 `SearchInput`; each client translates it into that API's parameters. There is no

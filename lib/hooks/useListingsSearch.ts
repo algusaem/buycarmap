@@ -55,6 +55,8 @@ function applyResultFilters(
 
 interface PageState {
   wallapopNext: string | null;
+  /** Every cursor already sent to Wallapop in this search (MAP-20). */
+  wallapopRequested: string[];
   cochesNetPage: number;
   cochesNetHasMore: boolean;
   milanunciosPage: number;
@@ -63,6 +65,7 @@ interface PageState {
 
 const EMPTY_PAGE: PageState = {
   wallapopNext: null,
+  wallapopRequested: [],
   cochesNetPage: 0,
   cochesNetHasMore: false,
   milanunciosPage: 0,
@@ -114,17 +117,31 @@ async function fetchNextRound(
   const mnData = mnResult.status === "fulfilled" ? mnResult.value : null;
   const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
 
+  const wallapopRequested =
+    state.wallapopNext !== null
+      ? [...state.wallapopRequested, state.wallapopNext]
+      : state.wallapopRequested;
+  const wallapopReturned =
+    wpResult.status === "fulfilled" && wpResult.value
+      ? (wpResult.value.meta?.next_page ?? null)
+      : null;
+
   return {
     listings: applyResultFilters(
       interleave([wpItems, cnItems, mnItems]),
       params,
     ),
     state: {
+      // MAP-20: MAP-19's loops end only because every round moves on. A cursor
+      // Wallapop hands back a second time — immediately or via a cycle — would
+      // refetch the same page forever, so it means Wallapop is exhausted.
       wallapopNext: wpPromise
-        ? wpResult.status === "fulfilled" && wpResult.value
-          ? (wpResult.value.meta?.next_page ?? null)
+        ? wallapopReturned !== null &&
+          !wallapopRequested.includes(wallapopReturned)
+          ? wallapopReturned
           : null
         : state.wallapopNext,
+      wallapopRequested,
       cochesNetPage: cnPromise ? state.cochesNetPage + 1 : state.cochesNetPage,
       cochesNetHasMore: cnPromise
         ? !!cnData &&
@@ -232,6 +249,7 @@ export function useListingsSearch() {
         wpResult.status === "fulfilled"
           ? (wpResult.value.meta?.next_page ?? null)
           : null,
+      wallapopRequested: [],
       cochesNetPage: 1,
       cochesNetHasMore: cnData
         ? cnData.items.length > 0 && 1 < (cnData.meta?.totalPages ?? 1)

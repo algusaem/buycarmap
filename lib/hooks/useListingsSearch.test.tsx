@@ -739,6 +739,168 @@ describe("useListingsSearch filtered-away pages", () => {
     expect(result.current.hasMore).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
+
+  // A repeated cursor used to loop forever. Past this many requests the
+  // handlers stop handing out cursors, so a regression fails the request-count
+  // assertions instead of hanging the suite.
+  const SAFETY_VALVE = 6;
+
+  it("MAP-20: treats Wallapop as exhausted when a cursor cycles back on a filtered-away first search", async () => {
+    // The spec's worked example: first → c1 → c2 → c1, every page outside the
+    // radius. c1 was already requested, so the third response ends Wallapop.
+    const pagesServed: string[] = [];
+    const cursorAfter: Record<string, string> = { first: "c1", c1: "c2", c2: "c1" };
+    server.use(
+      ...onlyWallapop(({ request }) => {
+        const next = new URL(request.url).searchParams.get("next_page") ?? "first";
+        pagesServed.push(next);
+        return HttpResponse.json(
+          makeWallapopResponse(
+            [makeWallapopItem({ id: `wp-bcn-${next}`, location: BARCELONA })],
+            pagesServed.length < SAFETY_VALVE ? cursorAfter[next] : null,
+          ),
+        );
+      }),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "cursor-cycle",
+        ...MADRID,
+        distanceInKm: 100,
+      });
+    });
+
+    expect(pagesServed).toEqual(["first", "c1", "c2"]);
+    expect(result.current.listings).toEqual([]);
+    expect(result.current.hasMore).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("MAP-20: keeps the listings of the page that repeats a cursor, then requests nothing more from Wallapop", async () => {
+    // Sentinel path. c1 is filtered away and points at c2; c2 carries a
+    // listing inside the radius but points back at c1. The Getafe listing is
+    // kept, and Wallapop is done: no promise of more, and a further sentinel
+    // crossing requests nothing.
+    const pagesServed: string[] = [];
+    server.use(
+      ...onlyWallapop(({ request }) => {
+        const next = new URL(request.url).searchParams.get("next_page") ?? "first";
+        pagesServed.push(next);
+        const more = pagesServed.length < SAFETY_VALVE;
+        if (next === "c1") {
+          return HttpResponse.json(
+            makeWallapopResponse(
+              [makeWallapopItem({ id: "wp-bcn", location: BARCELONA })],
+              more ? "c2" : null,
+            ),
+          );
+        }
+        if (next === "c2") {
+          return HttpResponse.json(
+            makeWallapopResponse(
+              [makeWallapopItem({ id: "wp-getafe" })],
+              more ? "c1" : null,
+            ),
+          );
+        }
+        return HttpResponse.json(
+          makeWallapopResponse([makeWallapopItem({ id: "wp-madrid" })], "c1"),
+        );
+      }),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "cursor-repeat-sentinel",
+        ...MADRID,
+        distanceInKm: 100,
+      });
+    });
+
+    act(() => result.current.sentinelRef(document.createElement("div")));
+    await act(async () => {
+      triggerIntersection();
+    });
+    await waitFor(() =>
+      expect(result.current.listings.map((l) => l.id)).toEqual([
+        "wallapop-wp-madrid",
+        "wallapop-wp-getafe",
+      ]),
+    );
+    await waitFor(() => expect(result.current.isLoadingMore).toBe(false));
+    expect(result.current.hasMore).toBe(false);
+
+    await act(async () => {
+      triggerIntersection();
+    });
+    expect(pagesServed).toEqual(["first", "c1", "c2"]);
+  });
+
+  it("MAP-20: keeps paging the other sources after Wallapop repeats a cursor", async () => {
+    // Wallapop repeats c1 in round 2; coches.net has three pages and only the
+    // third survives the radius. Round 3 must fetch coches.net page 3 without
+    // asking Wallapop for c1 a second time.
+    const wallapopServed: string[] = [];
+    const cochesNetPages: number[] = [];
+    const GETAFE = {
+      provinceIds: [28],
+      regionId: 13,
+      regionLiteral: "Madrid",
+      mainProvince: "Madrid",
+      mainProvinceId: 28,
+      cityId: 2807,
+      cityLiteral: "Getafe",
+    };
+    server.use(
+      http.get("*/api/wallapop/search", ({ request }) => {
+        const next = new URL(request.url).searchParams.get("next_page") ?? "first";
+        wallapopServed.push(next);
+        return HttpResponse.json(
+          makeWallapopResponse(
+            [makeWallapopItem({ id: `wp-bcn-${next}`, location: BARCELONA })],
+            wallapopServed.length < SAFETY_VALVE ? "c1" : null,
+          ),
+        );
+      }),
+      http.post("*/api/cochesnet/search", async ({ request }) => {
+        const body = (await request.json()) as { pagination: { page: number } };
+        const page = body.pagination.page;
+        cochesNetPages.push(page);
+        return HttpResponse.json(
+          makeCochesNetResponse(
+            [
+              page === 3
+                ? makeCochesNetItem({ id: "cn-getafe", location: GETAFE })
+                : makeCochesNetItem({ id: `cn-bcn-${page}` }), // default: Barcelona
+            ],
+            3,
+          ),
+        );
+      }),
+      http.get("*/api/milanuncios/search", () =>
+        HttpResponse.json(makeMilanunciosResponse([], 0)),
+      ),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({
+        keywords: "cursor-repeat-others",
+        ...MADRID,
+        distanceInKm: 100,
+      });
+    });
+
+    expect(wallapopServed).toEqual(["first", "c1"]);
+    expect(cochesNetPages).toEqual([1, 2, 3]);
+    expect(result.current.listings.map((l) => l.id)).toEqual([
+      "cochesnet-cn-getafe",
+    ]);
+    expect(result.current.hasMore).toBe(false);
+  });
 });
 
 describe("useListingsSearch pagination guards", () => {
