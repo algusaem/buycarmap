@@ -59,7 +59,7 @@ to do it in phases, each on its own branch and PR, each closed by `/check-all`.
 | 1 | No `check`, `check:full` or `typecheck` scripts; `test` runs without the coverage threshold. Until phase 3 the local verification is the list in `CLAUDE.md` › Commands, which keeps every step the old checks ran; `/check-all` puts that list in `check-verify`'s brief, since the command's own fallback (`lint`, `typecheck`, `test`, `build`) would miss most of it | `STACK.md` §5 | Phase 3 |
 | 2 | ESLint instead of Biome; no dependency-cruiser, knip, type-coverage or plop | `STACK.md` §1, §5 | Phase 3 (Biome, knip, type-coverage); phase 5 (dependency-cruiser, plop) |
 | 3 | No Husky, lint-staged, commitlint or gitleaks | `STACK.md` §4 | Phase 3 |
-| 4 | CI: Node 20, no typecheck, build, PR-title check or gitleaks; E2E runs on `pull_request` against a local app, with retries (2 in CI, 1 locally) | `STACK.md` §4, §5, §16 | Phase 3 (all but the E2E target); phase 12 (E2E against the preview) |
+| 4 | CI: no typecheck, build, PR-title check or gitleaks; E2E runs on `pull_request` against a local app, with retries (2 in CI, 1 locally) | `STACK.md` §4, §5, §16 | Phase 3 (all but the E2E target); phase 12 (E2E against the preview) |
 | 5 | No PR template, CODEOWNERS, release-please, `CHANGELOG.md` or Renovate; no `packageManager`, `.nvmrc` or `engines` | `STACK.md` §1, §4 | Phase 3 |
 | 6 | The base branch is `master`, not `main`; commits have gone straight to it | `RULES.md` §3, §21; `STACK.md` §2, §4 | PRs from now on; branch protection in phase 3; the rename in phase 12, with Vercel's production branch |
 | 7 | `TODO.md` at the repository root lists pending work outside issues | `RULES.md` §22 item 7; `STACK.md` §6 "Docs" | Phase 3 |

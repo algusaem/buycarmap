@@ -5,7 +5,7 @@ From a fresh clone to a running app. Roughly ten minutes, most of it waiting for
 
 ## Prerequisites
 
-- **Node 20+** and **pnpm 11**. The lockfile is `pnpm-lock.yaml` and there is no
+- **Node 22.18+** (`STACK.md` §1; pnpm 11 itself needs 22.13) and **pnpm 11**. The lockfile is `pnpm-lock.yaml` and there is no
   `package-lock.json` — npm and yarn will resolve a different tree.
 - **A Neon Postgres database.** The free tier is enough. Nothing here runs
   against a local Postgres by default, because branch databases (below) are a
