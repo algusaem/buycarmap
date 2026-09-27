@@ -98,4 +98,5 @@ solo project is ceremony.
 | [auth-email-and-oauth.md](auth-email-and-oauth.md) | AUTH | Implemented | Auth, email, OAuth, 2FA |
 | [alerts.md](alerts.md) | ALERT | Implemented | Saved criteria, background polling, match emails |
 | [navbar.md](navbar.md) | NAV | Implemented | Navigation bar, mobile menu, account menu |
+| [core-rules-and-checks.md](core-rules-and-checks.md) | RULESET | Approved | Migration phase 1: the core rules and checks |
 
