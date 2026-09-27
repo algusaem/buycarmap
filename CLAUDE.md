@@ -87,7 +87,7 @@ pnpm db:branch:rm     # Delete this branch's Neon branch when the work is merged
 baselines) as part of a check. When running `/check-all`, put this list in `check-verify`'s brief:
 the command's own fallback (`lint`, `typecheck`, `test`, `build`) would miss most of it.
 
-> pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` under `onlyBuiltDependencies` (currently prisma, `@prisma/engines`, msw, sharp, unrs-resolver). If you add a dependency with a native/build step and `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
+> pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` under `allowBuilds` (pnpm 11) and `onlyBuiltDependencies` (pnpm 10) — keep both in step (currently prisma, `@prisma/engines`, msw, sharp, unrs-resolver). If you add a dependency with a native/build step and `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
 
 > **A script that sets an env var inline must use `cross-env`.** `FOO=1 cmd` is
 > POSIX syntax that cmd.exe does not understand, so the bare form works in CI

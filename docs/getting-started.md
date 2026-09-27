@@ -161,7 +161,7 @@ which check owns each rule.
 
 **`ERR_PNPM_IGNORED_BUILDS` on install.** pnpm blocks dependency build scripts by
 default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml`
-under `onlyBuiltDependencies`. Add yours there.
+under `allowBuilds` (pnpm 11) and `onlyBuiltDependencies` (pnpm 10). Add yours to both.
 
 **Tests fail at import, mentioning `app/generated/prisma`.** Run
 `pnpm exec prisma generate`.

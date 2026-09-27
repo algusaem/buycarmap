@@ -33,7 +33,8 @@ project rule that lost its enforcer in the move, or a deviation with no end.
   auth spec's TypeScript line), the `/spec` and `/spec-tests` commands, and the comments and output
   of `scripts/docs-check.mjs`.
 - CI on Node 22: the latest pnpm 11 (11.28 when this was written), which CI installs, no longer
-  starts on Node 20, so no workflow could pass. Pulled forward from phase 3 by the owner (2026-09-27); phase 3 still pins the exact version.
+  starts on Node 20, so no workflow could pass. Pulled forward from phase 3 by the owner (2026-09-27); phase 3 still pins the exact version. pnpm 11 also
+  replaced `onlyBuiltDependencies` with `allowBuilds`, so `pnpm-workspace.yaml` carries both.
 
 **Out of scope.**
 
