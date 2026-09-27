@@ -137,6 +137,26 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm db:branch` | Give this git branch its own Neon database |
 | `pnpm db:branch:rm` | Delete it |
 
+## Claude commands and checks
+
+The rules an agent follows are `RULES.md` and `STACK.md` (shared with every project on the
+core) plus `CLAUDE.md` (what is specific to BuyCarMap); [ADR 0007](decisions/0007-adopt-core-rules.md)
+lists where the code still deviates and the phase that removes each deviation.
+
+| Command | Does |
+| --- | --- |
+| `/spec`, `/spec-tests` | Draft a spec; turn an approved one into failing tests |
+| `/check-all` | The pre-commit pass: every `check-*` review in a fresh subagent, the verification, screenshots of UI changes, then the commit message |
+| `/check-pr` | The PR title and description, when opening the PR |
+| `/diff`, `/daily` | A commit message; a daily summary |
+
+`/check-all` and `/check-pr` delegate to two user-level agents, `lacayo-opus` and `lacayo-sonnet`;
+on a new machine, install them once with `node install.mjs` from the `algusaem-claude` repository,
+or `/check-all` stops before running any check. Every `check-*` review follows
+`.claude/review-protocol.md`; `check-docs` and `check-sources` are this project's own (the ADR
+says what differs from the core), and the coverage map in `.claude/commands/check-all.md` says
+which check owns each rule.
+
 ## When something is wrong
 
 **`ERR_PNPM_IGNORED_BUILDS` on install.** pnpm blocks dependency build scripts by
@@ -160,5 +180,6 @@ nothing. Verify a domain instead.
   what CI enforces.
 - [`docs/specs/README.md`](specs/README.md) — how behaviour is agreed and
   recorded before it is built.
-- [`CLAUDE.md`](../CLAUDE.md) — the rules an agent working in this repo follows.
-  Useful to a human as a statement of the house conventions.
+- [`CLAUDE.md`](../CLAUDE.md) — the rules an agent working in this repo follows:
+  `RULES.md` and `STACK.md` from the shared core, plus what is specific to
+  BuyCarMap. Useful to a human as a statement of the house conventions.

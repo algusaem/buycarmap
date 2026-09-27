@@ -241,7 +241,7 @@ change.
   revocations — it is UX, not a security boundary.
 - **i18n**: new strings need keys in both locales plus the `Translations` type.
 - **Toasts** via Sonner. Field-fixable errors go on the field instead.
-- **No `any` / `unknown`**; `interface` over `type`.
+- **TypeScript**: `RULES.md` §7.
 - **Tests**: Vitest two-project split (`*.node.test.ts` for actions and
   anything needing Node globals), MSW for all network — including HIBP and
   Resend, whose handlers are in `test/msw/handlers.ts`.

@@ -54,11 +54,12 @@ nul
 # using pnpm — keep npm from re-creating this
 /package-lock.json
 
-# local Claude Code tooling. Ignored by default, with two exceptions: the slash
-# commands and the project hook config are project source, not personal setup —
+# local Claude Code tooling. Ignored by default, with three exceptions: the slash
+# commands, the review protocol they follow and the project hook config are project source, not personal setup —
 # CLAUDE.md mandates a workflow (/spec, /spec-tests, /check-all) that cannot run
 # without them, and a rule that only exists on one machine is not a rule.
 # Per-user permissions, the dev-server launch config and worktrees stay out.
 /.claude/*
 !/.claude/commands/
+!/.claude/review-protocol.md
 !/.claude/settings.json

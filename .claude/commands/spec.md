@@ -1,5 +1,5 @@
 ---
-description: Draft a spec before writing any code. Claude invokes this automatically — as the FIRST action — whenever a request would change observable behaviour ("add X", "build X", "I want users to be able to X", "X should also do Y"). Not for refactors, renames, dependency bumps, styling with no interaction change, or questions.
+description: Draft a spec before writing any code. Claude invokes this automatically — as the FIRST action — whenever a request would change observable behaviour ("add X", "build X", "I want users to be able to X", "X should also do Y"). For a change that keeps behaviour but that no existing spec covers, ask the user first, then draft. Not for questions.
 allowed-tools: Read, Grep, Glob, Bash(pnpm:*), Bash(npx:*), Bash(git:*), Edit, Write
 ---
 
@@ -29,6 +29,9 @@ it. It is not a design doc, not a task list, and not a description of code.
   is incomplete, and the missing ones are exactly where the bugs will be.
 - **Invented requirements.** If the user did not ask for it and the codebase
   does not imply it, it goes in Open questions, not Acceptance criteria.
+- **Invented expected values.** A critical-path criterion or a bug fix carries
+  exact values the user gave or confirmed (`RULES.md` §4); missing ones are
+  asked for, never made up.
 - **Rationale that says what, not why.** "We use SHA-256 for tokens" is a fact
   already visible in the code. "SHA-256 rather than bcrypt because there is no
   dictionary to grind and a unique index makes redemption one indexed lookup" is
@@ -37,10 +40,9 @@ it. It is not a design doc, not a task list, and not a description of code.
 
 ## Phase 1 — Understand the request
 
-Restate what was asked in one or two sentences. If the request is ambiguous in a
-way that changes the acceptance criteria, ask now — a spec built on the wrong
-reading wastes the whole cycle. Ambiguity that does not change the criteria:
-pick the sensible reading and record it under Decisions.
+Restate what was asked in one or two sentences. If the request is ambiguous, ask now
+(`RULES.md` §1: never assume) — a spec built on the wrong reading wastes the
+whole cycle.
 
 ## Phase 2 — Investigate before writing
 
@@ -49,7 +51,7 @@ Never draft from assumption. Establish, with tools:
 1. **What already exists.** Grep for the models, hooks, actions, components and
    routes the feature would touch. State explicitly what is already built —
    `CLAUDE.md` is the map, but verify against the code; it can lag.
-2. **What constrains it.** Existing conventions in `CLAUDE.md` (server actions
+2. **What constrains it.** Existing conventions in `CLAUDE.md`, `RULES.md` and `STACK.md` (server actions
    over API routes, error codes not prose, `getCurrentUser()` for authorisation,
    i18n keys in both locales, no `any`). A criterion that violates one of these
    is wrong, not innovative.

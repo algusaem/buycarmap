@@ -71,7 +71,7 @@ describe("core rules and checks", () => {
   it("RULESET-2: every review check tells the reviewer to follow the review protocol", () => {
     const reviews = checkFiles().filter((name) => !NOT_REVIEWS.has(name));
     const withoutProtocol = reviews.filter(
-      (name) => !readFileSync(join(COMMANDS, name), "utf8").includes("`.claude/review-protocol.md`"),
+      (name) => !read(`.claude/commands/${name}`).includes("`.claude/review-protocol.md`"),
     );
 
     expect(reviews.length).toBeGreaterThanOrEqual(MIN_REVIEWS);

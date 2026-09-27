@@ -1,7 +1,7 @@
 # Spec: Core rules and checks (migration phase 1)
 
 Key: RULESET
-Status: Approved
+Status: Implemented
 Last updated: 2026-09-27
 
 ---
@@ -36,8 +36,8 @@ project rule that lost its enforcer in the move, or a deviation with no end.
 **Out of scope.**
 
 - Mastermind in `CLAUDE.md` and in every command (phase 2) and the verification scripts and
-  repository tooling (phase 3), each with its own spec. The core's `/check-all` and `/check-pr`,
-  copied here unchanged, already delegate to the `lacayo-*` agents; phase 2 extends that to the
+  repository tooling (phase 3), each with its own spec. The core's `/check-all` and `/check-pr` —
+  copied unchanged, except the two project rows in `check-all.md`'s coverage map — already delegate to the `lacayo-*` agents; phase 2 extends that to the
   rest.
 - Any change to what a user sees or how data behaves: this phase changes none.
 - Keeping `RULES.md`, `STACK.md` and the core checks byte-identical to the core. The core repo is
@@ -51,12 +51,12 @@ network.
 
 | AC | Statement | Level | Verified by |
 | --- | --- | --- | --- |
-| RULESET-1 | `CLAUDE.md` imports `RULES.md` with an `@RULES.md` line and names `STACK.md` and the adoption ADR | unit | — |
-| RULESET-2 | Every review — a `.claude/commands/check-*.md` other than `check-all` (the orchestrator), `check-verify` and `check-visual` (which run, not review), and `check-changelog` and `check-pr` (which write the PR text) — tells the reviewer to follow `.claude/review-protocol.md` | unit | — |
-| RULESET-3 | `.claude/review-protocol.md`, `RULES.md` and `STACK.md` exist and are not ignored by git, so a fresh clone has them | unit | — |
-| RULESET-4 | The legacy commands `check.md` and `check-claudemd.md` do not exist | unit | — |
-| RULESET-5 | Every project check — a `check-*.md` that is not a core command — appears in the coverage map of `check-all.md` | unit | — |
-| RULESET-6 | Every row of ADR 0007's "Accepted deviations" table names the rule it deviates from and a non-empty "Removed in" | unit | — |
+| RULESET-1 | `CLAUDE.md` imports `RULES.md` with an `@RULES.md` line and names `STACK.md` and the adoption ADR | unit | `scripts/core-rules-and-checks.node.test.ts` › RULESET-1 |
+| RULESET-2 | Every review — a `.claude/commands/check-*.md` other than `check-all` (the orchestrator), `check-verify` and `check-visual` (which run, not review), and `check-changelog` and `check-pr` (which write the PR text) — tells the reviewer to follow `.claude/review-protocol.md` | unit | `scripts/core-rules-and-checks.node.test.ts` › RULESET-2 |
+| RULESET-3 | `.claude/review-protocol.md`, `RULES.md` and `STACK.md` exist and are not ignored by git, so a fresh clone has them | unit | `scripts/core-rules-and-checks.node.test.ts` › RULESET-3 |
+| RULESET-4 | The legacy commands `check.md` and `check-claudemd.md` do not exist | unit | `scripts/core-rules-and-checks.node.test.ts` › RULESET-4 |
+| RULESET-5 | Every project check — a `check-*.md` that is not a core command — appears in the coverage map of `check-all.md` | unit | `scripts/core-rules-and-checks.node.test.ts` › RULESET-5 |
+| RULESET-6 | Every row of ADR 0007's "Accepted deviations" table names the rule it deviates from and a non-empty "Removed in" | unit | `scripts/core-rules-and-checks.node.test.ts` › RULESET-6 |
 
 ## 4. Decisions and rationale
 
