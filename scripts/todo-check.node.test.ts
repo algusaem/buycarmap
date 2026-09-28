@@ -102,6 +102,53 @@ describe("todo:check — unreferenced TODO comments", () => {
     expect(result).toEqual([{ path: "x.ts", line: 1 }]);
   });
 
+  it("TOOLING-12: a marker inside a function body is reported at that line", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.ts", text: `function f() {\n  // ${TAG}: x\n}` },
+    ]);
+    expect(result).toEqual([{ path: "x.ts", line: 2 }]);
+  });
+
+  it("TOOLING-12: a marker after a statement inside a function body is reported at that line", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.ts", text: `function f() {\n  g();\n  // ${TAG}: more\n}` },
+    ]);
+    expect(result).toEqual([{ path: "x.ts", line: 3 }]);
+  });
+
+  it("TOOLING-12: a marker before an object literal's closing brace is reported at that line", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.ts", text: `const o = {\n  // ${TAG}: fill\n};` },
+    ]);
+    expect(result).toEqual([{ path: "x.ts", line: 2 }]);
+  });
+
+  it("TOOLING-12: a marker before an array literal's closing bracket is reported at that line", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.ts", text: `const a = [\n  1,\n  // ${TAG}: more\n];` },
+    ]);
+    expect(result).toEqual([{ path: "x.ts", line: 3 }]);
+  });
+
+  it("TOOLING-12: a marker inside a call argument's block comment is reported", () => {
+    const result = findUnreferencedTodos([{ path: "x.ts", text: `foo(/* ${TAG} */);` }]);
+    expect(result).toEqual([{ path: "x.ts", line: 1 }]);
+  });
+
+  it("TOOLING-12: a marker inside a JSX expression container is reported", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.tsx", text: `const e = <div>{/* ${TAG}: x */}</div>;` },
+    ]);
+    expect(result).toEqual([{ path: "x.tsx", line: 1 }]);
+  });
+
+  it("TOOLING-12: a marker-looking word in JSX text is accepted (not a comment)", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.tsx", text: `const e = <p>// ${TAG} later</p>;` },
+    ]);
+    expect(result).toEqual([]);
+  });
+
   it("TOOLING-12: several files report every hit in order", () => {
     const result = findUnreferencedTodos([
       {
