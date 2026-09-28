@@ -61,7 +61,7 @@ describe("verification contract and repository tooling", () => {
     expect(s.typecheck).toContain("type-coverage");
     expect(s.test).toContain("--coverage");
     expect(read("vitest.config.ts")).toMatch(
-      /thresholds:\s*\{[^}]*statements:\s*\d+[^}]*branches:\s*\d+[^}]*functions:\s*\d+[^}]*lines:\s*\d+/s,
+      /thresholds:\s*\{[^}]*statements:\s*\d+[^}]*branches:\s*\d+[^}]*functions:\s*\d+[^}]*lines:\s*\d+/,
     );
   });
 

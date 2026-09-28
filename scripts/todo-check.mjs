@@ -1,4 +1,4 @@
-// Fails when a code comment holds a TODO with no issue reference. Biome has
+// Fails when a code comment holds the to-do marker with no issue reference. Biome has
 // no rule for this, so it runs as its own step in `lint`. See
 // docs/specs/core-tooling.md TOOLING-12 for the worked examples.
 
@@ -16,7 +16,7 @@ const TRACKED_EXTENSIONS = new Set([".ts", ".tsx", ".mjs", ".cjs", ".js", ".css"
  */
 
 /**
- * The lines across the given files that hold a `TODO` comment with no issue
+ * The lines across the given files whose comment holds the to-do marker with no issue
  * reference (`#<number>` on the same line).
  *
  * @param {TodoCheckFile[]} files
