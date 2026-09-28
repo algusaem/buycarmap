@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { SearchInput } from "@/lib/validations/search";
-import { SelectedLocation } from "@/interfaces/location";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import type { SearchInput } from "@/lib/validations/search";
+import type { SelectedLocation } from "@/interfaces/location";
 import { initUserGeolocation, waitForGeolocation } from "@/lib/geo/user-location";
 
 type TimeFilter = "" | "today" | "lastWeek" | "lastMonth";
@@ -92,24 +92,29 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
 
   const activeCount = countActive(filters);
 
-  useEffect(() => {
-    let cancelled = false;
+  const runInitialSearch = useEffectEvent((isCancelled: () => boolean) => {
     // Fire an immediate search (uses Spain-center fallback if geolocation
     // hasn't resolved yet), then re-search once geolocation finishes so
     // results are centered on the user's actual location.
     search(toParams(getKeywords(), INITIAL_FILTERS));
     initUserGeolocation();
     waitForGeolocation().then(() => {
-      if (cancelled) return;
+      if (isCancelled()) return;
       // Only re-search if the user hasn't already picked an explicit location.
       if (!filtersRef.current.selectedLocation) {
         search(toParams(getKeywords(), filtersRef.current));
       }
     });
+  });
+
+  useEffect(() => {
+    // Each run owns its flag, so a StrictMode remount cannot revive the first
+    // run's geolocation callback.
+    let cancelled = false;
+    runInitialSearch(() => cancelled);
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

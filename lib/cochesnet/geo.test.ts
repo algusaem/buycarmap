@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveCochesNetCoords } from "./geo";
-import { CochesNetLocation } from "@/interfaces/cochesnet";
+import type { CochesNetLocation } from "@/interfaces/cochesnet";
 
 function location(overrides: Partial<CochesNetLocation>): CochesNetLocation {
   return {

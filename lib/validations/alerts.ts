@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { searchSchema, SearchInput } from "./search";
+import { searchSchema, type SearchInput } from "./search";
 
 // Codes, not sentences — same reasoning as FAVORITE_ERROR and AUTH_ERROR: a
 // server action cannot read the client's i18n context, and the default locale

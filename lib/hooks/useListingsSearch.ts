@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CarListing } from "@/interfaces/listing";
-import { searchSchema, SearchInput } from "@/lib/validations/search";
+import type { CarListing } from "@/interfaces/listing";
+import { searchSchema, type SearchInput } from "@/lib/validations/search";
 import { searchWallapop } from "@/lib/wallapop/client";
 import { normalizeWallapopItems } from "@/lib/wallapop/normalize";
 import { searchCochesNet } from "@/lib/cochesnet/client";

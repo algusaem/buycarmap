@@ -30,7 +30,8 @@ describe("GET /api/wallapop/filters/models", () => {
     );
 
     expect(res.status).toBe(200);
-    const url = new URL(received!.url);
+    if (!received) throw new Error("expected the upstream request to have been captured");
+    const url = new URL(received.url);
     expect(url.searchParams.get("brand")).toBe("Audi");
     expect(url.searchParams.get("category_id")).toBe("100");
     expect(received?.headers.get("x-deviceos")).toBe("0");

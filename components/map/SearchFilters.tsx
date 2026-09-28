@@ -14,7 +14,7 @@ import {
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { LocationSearch } from "@/components/map/LocationSearch";
 import { useTranslation } from "@/lib/i18n/client";
-import { SelectedLocation } from "@/interfaces/location";
+import type { SelectedLocation } from "@/interfaces/location";
 import {
   FUEL_OPTIONS,
   TRANSMISSION_OPTIONS,

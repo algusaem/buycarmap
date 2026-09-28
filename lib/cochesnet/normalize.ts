@@ -1,5 +1,5 @@
-import { CarListing } from "@/interfaces/listing";
-import { CochesNetItem } from "@/interfaces/cochesnet";
+import type { CarListing } from "@/interfaces/listing";
+import type { CochesNetItem } from "@/interfaces/cochesnet";
 import { resolveCochesNetCoords } from "@/lib/cochesnet/geo";
 
 const COCHESNET_BASE_URL = "https://www.coches.net";

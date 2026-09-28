@@ -1,5 +1,5 @@
 import { getCityCoordinates, SPAIN_CENTER } from "@/lib/geo/cities";
-import { CochesNetLocation } from "@/interfaces/cochesnet";
+import type { CochesNetLocation } from "@/interfaces/cochesnet";
 
 interface Coordinates {
   lat: number;

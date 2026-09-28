@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { useTranslation } from "@/lib/i18n/client";
 import { useLocationSearch } from "@/lib/hooks/useLocationSearch";
-import { SelectedLocation } from "@/interfaces/location";
+import type { SelectedLocation } from "@/interfaces/location";
 
 const DISTANCE_OPTIONS = [
   { value: "10", labelKey: "km10" },
@@ -149,7 +149,7 @@ export function LocationSearch({
               </div>
 
               {showDropdown && (
-                <ul
+                <div
                   id="location-listbox"
                   role="listbox"
                   className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg"
@@ -160,9 +160,10 @@ export function LocationSearch({
                     </li>
                   ) : (
                     results.map((result, index) => (
-                      <li
+                      <div
                         key={result.placeId}
                         role="option"
+                        tabIndex={-1}
                         aria-selected={highlightedIndex === index}
                         className={`cursor-pointer px-3 py-2 text-sm ${
                           highlightedIndex === index
@@ -176,10 +177,10 @@ export function LocationSearch({
                         }}
                       >
                         <span className="line-clamp-1">{result.displayName}</span>
-                      </li>
+                      </div>
                     ))
                   )}
-                </ul>
+                </div>
               )}
             </>
           )}

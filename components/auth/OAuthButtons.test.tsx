@@ -96,7 +96,11 @@ describe("OAuthButtons interaction", () => {
 
   it("locks every provider while one redirect is in flight", async () => {
     // Never resolves, mimicking the full-page redirect.
-    signIn.mockReturnValue(new Promise(() => {}));
+    signIn.mockReturnValue(
+      new Promise(() => {
+        /* deliberately never settles */
+      }),
+    );
     renderWithI18n(<OAuthButtons />);
 
     await userEvent.click(

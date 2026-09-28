@@ -1,4 +1,4 @@
-import { MilanunciosAd, MilanunciosSearchResponse } from "@/interfaces/milanuncios";
+import type { MilanunciosAd, MilanunciosSearchResponse } from "@/interfaces/milanuncios";
 
 // A fully-populated Milanuncios car ad. Like the real API it carries no
 // lat/lng (only city/province names + INE ids) and no structured km/year/fuel —

@@ -1,6 +1,6 @@
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
 import { SPAIN_CENTER } from "@/lib/geo/cities";
-import { SearchInput } from "@/lib/validations/search";
+import type { SearchInput } from "@/lib/validations/search";
 
 const EARTH_RADIUS_KM = 6371;
 

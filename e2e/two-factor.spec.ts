@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { clearRateLimits, e2eEmail, seedUser } from "./fixtures/db";
 import { deriveCode, stepForTime } from "../lib/auth/two-factor/totp";
 

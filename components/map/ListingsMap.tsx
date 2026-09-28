@@ -4,7 +4,7 @@ import L from "leaflet";
 import { MapContainer, TileLayer, ZoomControl, Marker, Popup, useMap } from "react-leaflet";
 import { useTheme } from "next-themes";
 import { useMounted } from "@/lib/hooks/useMounted";
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "@/lib/i18n/client";
 

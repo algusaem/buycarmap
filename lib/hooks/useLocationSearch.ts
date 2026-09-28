@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { GeocodingResult, searchLocations } from "@/lib/geo/nominatim";
+import { type GeocodingResult, searchLocations } from "@/lib/geo/nominatim";
 
 export function useLocationSearch(locale: string = "es") {
   const [query, setQueryState] = useState("");

@@ -28,7 +28,17 @@ const workflows = () =>
 describe("verification contract and repository tooling", () => {
   it("TOOLING-1: the STACK.md §5 scripts exist and check / check:full run in order", () => {
     const s = scripts();
-    const required = ["lint", "typecheck", "test", "test:unit", "test:integration", "test:e2e", "build", "check", "check:full"];
+    const required = [
+      "lint",
+      "typecheck",
+      "test",
+      "test:unit",
+      "test:integration",
+      "test:e2e",
+      "build",
+      "check",
+      "check:full",
+    ];
 
     expect(required.filter((name) => !s[name])).toEqual([]);
     expect(s.check).toBe("pnpm lint && pnpm typecheck && pnpm test && pnpm build");
@@ -108,7 +118,9 @@ describe("verification contract and repository tooling", () => {
   });
 
   it("TOOLING-9: PR template, CODEOWNERS, Renovate and release-please are in place", () => {
-    const template = exists(".github/pull_request_template.md") ? read(".github/pull_request_template.md") : "";
+    const template = exists(".github/pull_request_template.md")
+      ? read(".github/pull_request_template.md")
+      : "";
     const headings = [...template.matchAll(/^## (.+)$/gm)].map(([, heading]) => heading);
 
     expect(headings).toEqual([

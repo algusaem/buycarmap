@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 const WALLAPOP_URL = "https://api.wallapop.com/api/v3/search/filters/model";
 

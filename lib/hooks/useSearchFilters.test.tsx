@@ -6,7 +6,9 @@ import { act, renderHook } from "@testing-library/react";
 // The default is an already-resolved promise, which is what jsdom produces
 // anyway (permission denied), so every other test behaves as before.
 const geo = vi.hoisted(() => ({
-  resolve: () => {},
+  resolve: () => {
+    /* placeholder default: MAP-14 replaces this with the real resolve function */
+  },
   promise: Promise.resolve(),
 }));
 vi.mock("@/lib/geo/user-location", () => ({

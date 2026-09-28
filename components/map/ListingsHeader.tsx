@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
-import { ArrowLeft, Search, SlidersHorizontal, Map, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, SlidersHorizontal, MapIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchFilters, SearchFiltersProps } from "@/components/map/SearchFilters";
+import { SearchFilters, type SearchFiltersProps } from "@/components/map/SearchFilters";
 import { useTranslation } from "@/lib/i18n/client";
 
 interface ListingsHeaderProps {
@@ -103,7 +103,7 @@ export function ListingsHeader({
             onClick={onShowMap}
             aria-label={t.hero.exploreMap}
           >
-            <Map className="h-4 w-4" />
+            <MapIcon className="h-4 w-4" />
           </Button>
         </div>
       </div>

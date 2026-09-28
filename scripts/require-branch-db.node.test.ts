@@ -78,7 +78,8 @@ describe("findMainCheckout", () => {
     const main = findMainCheckout(worktree);
 
     expect(main).not.toBeNull();
-    expect(resolve(main!).toLowerCase()).toBe(resolve(repo).toLowerCase());
+    if (!main) throw new Error("expected findMainCheckout to locate the main checkout");
+    expect(resolve(main).toLowerCase()).toBe(resolve(repo).toLowerCase());
   });
 
   it("returns null from the main checkout, which owns the shared database", () => {

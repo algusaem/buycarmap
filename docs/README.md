@@ -127,7 +127,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `next.config.ts` | [operations.md](operations.md) |
 | `vitest.config.ts` | [testing.md](testing.md) |
 | `playwright.config.ts` | [testing.md](testing.md) |
-| `eslint.config.mjs` | [getting-started.md](getting-started.md) |
+| `biome.json`, `.git-blame-ignore-revs` | [getting-started.md](getting-started.md) |
 | `postcss.config.mjs` | [getting-started.md](getting-started.md) |
 | `.env.example` | [operations.md](operations.md) |
 | `.github/**` | [operations.md](operations.md) |

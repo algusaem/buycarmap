@@ -1,8 +1,8 @@
-import { CarListing } from "@/interfaces/listing";
-import { WallapopSearchResponse } from "@/interfaces/wallapop";
-import { CochesNetSearchResponse, CochesNetTaxonomyResponse } from "@/interfaces/cochesnet";
-import { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
-import { SearchInput } from "@/lib/validations/search";
+import type { CarListing } from "@/interfaces/listing";
+import type { WallapopSearchResponse } from "@/interfaces/wallapop";
+import type { CochesNetSearchResponse, CochesNetTaxonomyResponse } from "@/interfaces/cochesnet";
+import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
+import type { SearchInput } from "@/lib/validations/search";
 import { buildWallapopQuery } from "@/lib/wallapop/client";
 import { normalizeWallapopItems } from "@/lib/wallapop/normalize";
 import { buildCochesNetFilters } from "@/lib/cochesnet/client";

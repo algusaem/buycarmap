@@ -30,9 +30,10 @@ describe("TwoFactorSetup QR rendering", () => {
     const svg = container.querySelector("svg");
 
     expect(svg).not.toBeNull();
+    if (!svg) throw new Error("expected the QR code svg to be rendered");
     // A QR is drawn as many small rects; an empty or failed render would not
     // produce them.
-    expect(svg!.querySelectorAll("path, rect").length).toBeGreaterThan(1);
+    expect(svg.querySelectorAll("path, rect").length).toBeGreaterThan(1);
   });
 
   it("renders on a light plate, which scanners need", () => {

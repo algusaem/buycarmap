@@ -118,7 +118,7 @@ export const authOptions: AuthOptions = {
      */
     async signIn({ user, account }) {
       // Credentials sign-in is handled by `authorize`, which enforces 2FA.
-      if (!account || account.type !== "oauth" || !user.email) {
+      if (account?.type !== "oauth" || !user.email) {
         return true;
       }
 

@@ -24,7 +24,11 @@ import { authorizeCredentials } from "@/lib/auth/authorize";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "./options";
 
-const sessionCallback = authOptions.callbacks!.session!;
+const authCallbacks = authOptions.callbacks;
+if (!authCallbacks) throw new Error("expected authOptions.callbacks to be configured");
+
+const sessionCallback = authCallbacks.session;
+if (!sessionCallback) throw new Error("expected authOptions.callbacks.session to be configured");
 
 // NextAuth 4's types declare `user` as always present on the jwt callback, but
 // at runtime it is set only on the sign-in call — every later invocation (the
@@ -37,9 +41,9 @@ interface JwtCallbackParams {
   trigger?: "signIn" | "signUp" | "update";
 }
 
-const jwtCallback = authOptions.callbacks!.jwt! as unknown as (
-  params: JwtCallbackParams,
-) => Promise<JWT>;
+const jwtCallbackRaw = authCallbacks.jwt;
+if (!jwtCallbackRaw) throw new Error("expected authOptions.callbacks.jwt to be configured");
+const jwtCallback = jwtCallbackRaw as unknown as (params: JwtCallbackParams) => Promise<JWT>;
 
 const HOUR = 60 * 60 * 1000;
 
@@ -149,7 +153,8 @@ describe("jwt callback revalidation", () => {
     const result = await jwtCallback({ token, user: undefined, account: null });
 
     expect(prisma.user.findUnique).toHaveBeenCalled();
-    expect(result.checkedAt).toBeGreaterThan(token.pwdAt!);
+    if (token.pwdAt === undefined) throw new Error("expected pwdAt to be set on the token");
+    expect(result.checkedAt).toBeGreaterThan(token.pwdAt);
   });
 
   it("picks up a profile rename without requiring a re-login", async () => {
@@ -257,7 +262,8 @@ describe("session callback", () => {
 });
 
 describe("signIn callback: OAuth linking guard", () => {
-  const signInCallback = authOptions.callbacks!.signIn!;
+  const signInCallback = authCallbacks.signIn;
+  if (!signInCallback) throw new Error("expected authOptions.callbacks.signIn to be configured");
 
   // NextAuth's types demand a full User/Account; only the fields the callback
   // reads matter here.

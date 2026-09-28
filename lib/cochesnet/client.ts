@@ -1,5 +1,5 @@
-import { CochesNetSearchResponse } from "@/interfaces/cochesnet";
-import { SearchInput } from "@/lib/validations/search";
+import type { CochesNetSearchResponse } from "@/interfaces/cochesnet";
+import type { SearchInput } from "@/lib/validations/search";
 import {
   mapBrandToMakeId,
   mapFuelTokensToIds,

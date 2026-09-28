@@ -6,8 +6,8 @@ import { useState } from "react";
 import { BellRing, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteAlert } from "@/app/actions/alerts";
-import { AlertSummary } from "@/interfaces/alert";
-import { SearchInput } from "@/lib/validations/search";
+import type { AlertSummary } from "@/interfaces/alert";
+import type { SearchInput } from "@/lib/validations/search";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAlertError } from "@/lib/i18n/errors";
 

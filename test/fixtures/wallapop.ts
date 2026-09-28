@@ -1,4 +1,4 @@
-import { WallapopItem, WallapopSearchResponse } from "@/interfaces/wallapop";
+import type { WallapopItem, WallapopSearchResponse } from "@/interfaces/wallapop";
 
 // A fully-populated, non-reserved Wallapop car item. Tests override only the
 // fields they care about so each fixture reads as "the normal case, except…".

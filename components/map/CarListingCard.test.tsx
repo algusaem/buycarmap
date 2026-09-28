@@ -4,16 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { makeFavoriteInput } from "@/test/fixtures/favorites";
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
 import { CarListingCard } from "./CarListingCard";
 
 // next/image needs the Next runtime; a plain img is enough for behaviour tests.
-vi.mock("next/image", () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img alt={alt} src={src} />
-  ),
-}));
+vi.mock("next/image", () => import("@/test/mocks/next-image"));
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -109,7 +104,11 @@ describe("CarListingCard favorites", () => {
   it("FAV-10: flips the control before the save has come back", async () => {
     // Deliberately never resolved: the assertion is about what the user sees
     // while the request is still in flight.
-    vi.mocked(saveFavorite).mockReturnValue(new Promise(() => {}));
+    vi.mocked(saveFavorite).mockReturnValue(
+      new Promise(() => {
+        /* deliberately never settles */
+      }),
+    );
     renderWithI18n(<CarListingCard {...listing} />);
 
     await userEvent.click(favoriteControl());

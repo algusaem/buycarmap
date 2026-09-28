@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveMilanunciosCoords } from "./geo";
-import { MilanunciosLocation, MilanunciosPlace } from "@/interfaces/milanuncios";
+import type { MilanunciosLocation, MilanunciosPlace } from "@/interfaces/milanuncios";
 
 function place(name: string, id = 0): MilanunciosPlace {
   return { id, name, slug: name.toLowerCase() };

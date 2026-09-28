@@ -1,11 +1,11 @@
 import { timingSafeEqual } from "node:crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { appUrl, env, isEmailConfigured } from "@/lib/env";
 import { sendEmail } from "@/lib/email/client";
 import { renderAlertEmail } from "@/lib/email/templates/alert-emails";
 import { DEFAULT_LOCALE, isValidLocale } from "@/lib/i18n/config";
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
 import { parseStoredCriteria } from "@/lib/validations/alerts";
 import { searchAllSources } from "@/lib/alerts/search";
 import { unsubscribeTokenFor } from "@/lib/alerts/unsubscribe-token";

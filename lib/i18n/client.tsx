@@ -1,9 +1,9 @@
 "use client";
 
-import { createContext, useContext, useCallback, useTransition, ReactNode } from "react";
+import { createContext, useContext, useCallback, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Locale, COOKIE_NAME, DEFAULT_LOCALE } from "./config";
-import { translations, Translations } from "./translations";
+import { type Locale, COOKIE_NAME, DEFAULT_LOCALE } from "./config";
+import { translations, type Translations } from "./translations";
 
 interface I18nContextValue {
   locale: Locale;
@@ -25,6 +25,7 @@ export function I18nProvider({ children, locale }: I18nProviderProps) {
 
   const setLocale = useCallback(
     (newLocale: Locale) => {
+      // biome-ignore lint/suspicious/noDocumentCookie: the hand-rolled i18n layer keeps the locale in a client cookie until phase 9 replaces it with next-intl (ADR 0007 row 20)
       document.cookie = `${COOKIE_NAME}=${newLocale};path=/;max-age=31536000`;
       startTransition(() => {
         router.refresh();
@@ -50,7 +51,9 @@ export function useTranslation(): I18nContextValue {
     return {
       locale: DEFAULT_LOCALE,
       t: translations[DEFAULT_LOCALE],
-      setLocale: () => {},
+      setLocale: () => {
+        /* no provider mounted: there is no locale state to change */
+      },
       isPending: false,
     };
   }

@@ -1,5 +1,5 @@
-import { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
-import { SearchInput } from "@/lib/validations/search";
+import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
+import type { SearchInput } from "@/lib/validations/search";
 import { mapBrandToSlug, mapFuelTokens, mapTransmissionToken } from "@/lib/milanuncios/taxonomy";
 
 const BASE_URL = "/api/milanuncios/search";

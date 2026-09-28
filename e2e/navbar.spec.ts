@@ -1,4 +1,4 @@
-import { test, expect, Locator, Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 
 // These three criteria are the ones jsdom cannot reach. Tailwind's `lg:hidden`
 // and `hidden lg:flex` do nothing without a layout engine, and neither does a
@@ -80,8 +80,9 @@ async function assertTouchTargets(root: Locator, label: string) {
     const name = (await control.textContent())?.trim() || "(unnamed)";
 
     expect(box, `${label}: ${name} has no box`).not.toBeNull();
-    expect(box!.width, `${label}: ${name} width`).toBeGreaterThanOrEqual(44);
-    expect(box!.height, `${label}: ${name} height`).toBeGreaterThanOrEqual(44);
+    if (!box) throw new Error(`${label}: ${name} has no box`);
+    expect(box.width, `${label}: ${name} width`).toBeGreaterThanOrEqual(44);
+    expect(box.height, `${label}: ${name} height`).toBeGreaterThanOrEqual(44);
   }
 }
 
@@ -134,11 +135,20 @@ test("NAV-9: the bar does not shift when the session resolves", async ({ page })
   const navAfter = await nav.boundingBox();
   const controlsAfter = await controls.boundingBox();
 
+  if (!navBefore) throw new Error("expected the nav to have a box before the session resolves");
+  if (!controlsBefore) {
+    throw new Error("expected the controls to have a box before the session resolves");
+  }
+  if (!navAfter) throw new Error("expected the nav to have a box after the session resolves");
+  if (!controlsAfter) {
+    throw new Error("expected the controls to have a box after the session resolves");
+  }
+
   // Same box, so nothing slides when the session lands. The cluster is
   // right-aligned, so a placeholder of the wrong width moves everything in it.
-  expect(navAfter!.height).toBe(navBefore!.height);
-  expect(controlsAfter!.width).toBe(controlsBefore!.width);
-  expect(controlsAfter!.x).toBe(controlsBefore!.x);
+  expect(navAfter.height).toBe(navBefore.height);
+  expect(controlsAfter.width).toBe(controlsBefore.width);
+  expect(controlsAfter.x).toBe(controlsBefore.x);
 });
 
 test("NAV-13: the menu trigger and the full control row swap at the breakpoint", async ({

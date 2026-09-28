@@ -5,7 +5,7 @@ import { http, HttpResponse } from "msw";
 import { axe } from "vitest-axe";
 import { server } from "@/test/msw/server";
 import { renderWithI18n } from "@/test/utils/render";
-import { SelectedLocation } from "@/interfaces/location";
+import type { SelectedLocation } from "@/interfaces/location";
 import { LocationSearch } from "./LocationSearch";
 
 vi.mock("next/navigation", () => ({

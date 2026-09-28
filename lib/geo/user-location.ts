@@ -1,4 +1,4 @@
-import { GeoPosition } from "@/interfaces/location";
+import type { GeoPosition } from "@/interfaces/location";
 
 let cachedPosition: GeoPosition | null = null;
 let pending: Promise<void> | null = null;

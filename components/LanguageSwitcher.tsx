@@ -3,7 +3,7 @@
 import { Fragment } from "react";
 import * as motion from "motion/react-client";
 import { useTranslation } from "@/lib/i18n/client";
-import { LOCALES, Locale } from "@/lib/i18n/config";
+import { LOCALES, type Locale } from "@/lib/i18n/config";
 import { Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ export function LanguageSwitcher() {
         <Fragment key={loc}>
           {index > 0 && <span className="text-border">/</span>}
           <button
+            type="button"
             onClick={() => setLocale(loc)}
             aria-current={locale === loc ? "true" : undefined}
             className={cn(

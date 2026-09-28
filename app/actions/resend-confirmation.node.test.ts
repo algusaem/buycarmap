@@ -59,7 +59,9 @@ describe("resendConfirmation", () => {
       data: { tokenHash: string };
     };
     const sent = vi.mocked(sendEmail).mock.calls[0][0];
-    const rawToken = decodeURIComponent(sent.text.match(/token=(\S+)/)![1]);
+    const tokenMatch = sent.text.match(/token=(\S+)/);
+    if (!tokenMatch) throw new Error("expected a token in the emailed link");
+    const rawToken = decodeURIComponent(tokenMatch[1]);
 
     // The emailed token must be the one now stored, hashed.
     expect(updated.data.tokenHash).toBe(hashToken(rawToken));
