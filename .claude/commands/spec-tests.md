@@ -1,12 +1,19 @@
 ---
 description: Turn an approved spec's acceptance criteria into failing tests. Claude invokes this automatically once the user approves a spec, before any implementation — never implement straight from a spec. Requires Status Approved.
-allowed-tools: Read, Grep, Glob, Bash(pnpm:*), Bash(npx:*), Bash(git:*), Edit, Write
+allowed-tools: Read, Grep, Glob, Bash(pnpm:*), Bash(npx:*), Bash(git:*), Edit, Write, Agent
 ---
 
 You are turning the acceptance criteria in `$ARGUMENTS` into tests that fail —
 the step that makes the work test-driven rather than test-accompanied. Work
 through each phase in order. **Do NOT write implementation code in this
 command.** Leaving the tests red is the correct outcome.
+
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+The mastermind decides; it doesn't write or run the tests itself:
+- **Phases 0 and 1 → the mastermind**: the preconditions and where each test goes.
+- **Phase 2 → one `Agent` with `subagent_type: "lacayo-sonnet"`**, briefed with each criterion, its file and the exact expected values, and with `.claude/commands/check-tests.md` Phase 0; it writes the tests.
+- **Phases 3, 3b and 4 → `lacayo-sonnet`**: it runs the suite and `pnpm spec:check` and pastes every failure with its first assertion line. The mastermind judges each failure — assertion or structural, sibling fallout — and decides what changes — the stubs, the sibling fallout, the titles — then applies it: direct for two or three steps in one file, `lacayo-sonnet` for anything longer. A test is never weakened to pass.
+- **Phase 5 → the mastermind** writes the report. Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 sonnet» did not follow this command.
 
 ## Phase 0 — Preconditions
 

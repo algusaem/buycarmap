@@ -1,6 +1,6 @@
 ---
 description: Draft a spec before writing any code. Claude invokes this automatically — as the FIRST action — whenever a request would change observable behaviour ("add X", "build X", "I want users to be able to X", "X should also do Y"). For a change that keeps behaviour but that no existing spec covers, ask the user first, then draft. Not for questions.
-allowed-tools: Read, Grep, Glob, Bash(pnpm:*), Bash(npx:*), Bash(git:*), Edit, Write
+allowed-tools: Read, Grep, Glob, Bash(pnpm:*), Bash(npx:*), Bash(git:*), Edit, Write, Agent
 ---
 
 You are writing a specification for `$ARGUMENTS` — the agreement about what the
@@ -11,6 +11,13 @@ order. Do NOT write implementation code. Do NOT write tests (that is
 Read `docs/specs/README.md` and `docs/specs/_template.md` first. The existing
 `docs/specs/auth-email-and-oauth.md` is the quality bar for prose — dense,
 rationale-first, no filler.
+
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+The mastermind writes the spec — it is a decision — but it doesn't investigate by itself:
+- **Phase 2 → one `Agent` with `subagent_type: "lacayo-opus"`** briefed with the request and the five questions of Phase 2 (what exists, what constrains it, what it collides with, what the data layer needs, what can be proved at which level); it returns the facts with `file:line` evidence. Pure greps and file listings go to `lacayo-sonnet` instead.
+- **Phases 1, 3, 4 and 5 → the mastermind**: the questions to the user, the draft, the self-review and the report. It re-measures the facts it writes into the spec with single read-only commands.
+- **`pnpm spec:check` → `lacayo-sonnet`**, output pasted verbatim.
+Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 opus» did not follow this command.
 
 ## Phase 0 — What a spec is, and what disqualifies one
 

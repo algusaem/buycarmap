@@ -1,5 +1,10 @@
 Genera un resumen de lo que hice hoy para reportar a mis superiores.
 
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+- **Steps 1 and 2 → one `Agent` with `subagent_type: "lacayo-sonnet"`** with those exact commands; the log pasted verbatim, nothing summarised.
+- **The mastermind** handles step 3 and writes the summary in the format below from that log.
+Close with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X») on its own line after the summary, apart from it, so it is never pasted with it; a run with «0 sonnet» did not follow this command.
+
 ## Pasos
 
 1. Obtén el nombre del usuario de git con `git config user.name`
@@ -21,4 +26,4 @@ Implementada la validación del formulario de login con mensajes de error traduc
 Creado el componente Sidebar con navegación colapsable y animaciones
 Corregidos los estilos de los botones para usar las variables del tema
 
-**No ejecutes ningún otro comando. Solo muestra el resumen.**
+**No ejecutes ningún otro comando. Solo muestra el resumen** (y, aparte, la línea de delegación).

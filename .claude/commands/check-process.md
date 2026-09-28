@@ -1,12 +1,18 @@
 ---
 description: Review working changes for process rules — stop-and-ask approvals, escape hatches, branch, scope against the spec, repo tooling, docs and ADRs, CHANGELOG, TODOs
-allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*)
+allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*), Agent
 ---
 
 Review the working changes for the **process** rules. Follow `.claude/review-protocol.md` — read it first: it sets how to load the rules, the scope, the severities and the output.
 
 **Owns:** `RULES.md` §1 (every APPROVAL), §3 (escape hatches, skipping hooks, editing the `CHANGELOG`; pushing to `main` is left to branch protection), §4 (scope against the spec), §21 (branch); `STACK.md` §2 (backup docs), §4, §6 "Docs", §15 "Out of scope"; `TODO`s without an issue.
 **Applies to:** every change.
+
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+Run on its own, the main session does not review the process rules itself, however capable it is of doing so:
+- **The whole review → one `Agent` with `subagent_type: "lacayo-opus"`**, told it is the delegated agent and spawns no agents, and briefed with this file, `.claude/review-protocol.md`, the change set, the task in the user's words and the approvals the user gave, quoted; it returns the output of review protocol §7.
+- **The mastermind** re-measures with its own eyes only the facts it will state (a quoted `file:line`, the changed files: single read-only commands), and writes the report; which findings get fixed is the user's decision when the check runs on its own (review protocol §6). The fixes the user asks for are dictated edits: direct for two or three steps in one file, `lacayo-sonnet` for anything longer.
+Inside `/check-all` this paragraph does not apply: there the agent running this file is already the delegated hand. Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 opus» did not follow this command.
 
 ## 0. Adoption
 

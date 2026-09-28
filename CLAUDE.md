@@ -26,6 +26,45 @@ wins unless the adoption ADR says otherwise.
 - No emojis, filler, or motivational language
 - If something is a bad idea, say it clearly
 
+## Model delegation — spend Opus high on judgement, not on execution (mastermind)
+
+**Opus 5.5 at high effort is the mastermind.** The main session runs on it and does the analysis, decisions
+and review; `lacayo-opus` (Opus 5.5, medium effort) and `lacayo-sonnet` (Sonnet 5, high effort) are its
+hands — user-level agents in `~/.claude/agents/`, installed with `node install.mjs` from `algusaem-claude`,
+because an `Agent` call cannot set the effort level and the agent's frontmatter can. **Mechanical multi-step
+executions go to a subagent** via the `Agent` tool with closed instructions, and the main session only
+reviews the result:
+
+- **`subagent_type: "lacayo-sonnet"` — the default for anything already decided.** Execute a dictated change,
+  run the verification list and report numbers, apply a list of edits with file, anchor and exact
+  before/after text, grep sweeps (every caller of `searchWallapop`, every `t.*` key a change touches), renames
+  and link fixes, run `pnpm db:branch` and a Prisma command in a worktree. Also write record text — a spec's
+  "Verified by" cells, a commit message — when the facts and a peer file to imitate are given. **When in
+  doubt, Sonnet first**; if its report is not enough, re-brief Opus and note why.
+- **`subagent_type: "lacayo-opus"` — only when the brief itself requires judgement:** every `check-*` review,
+  cross-checking an upstream contract doc against the client code and the contract tests, reconciling a spec
+  with the code it describes, adapting a text to a style with no peer to point at.
+- **Direct, no agent:** anything that fits in one call with no chained steps (a read-only command, a quick
+  look at a file, a two- or three-step edit in one file).
+- **Verification never runs in the main session — strict.** Build, lint, typecheck, tests, e2e and
+  screenshots always go to `lacayo-sonnet` with the exact commands and the reference numbers, even right
+  after a direct edit; the main session uses the outputs Sonnet pastes and does not re-run them. A
+  PreToolUse hook (`~/.claude/hooks/mastermind-guard.mjs`) blocks those commands in the main session; if
+  it fires, delegate instead of rephrasing the command to get past it.
+
+Every brief follows the same shape: «You are the hands of a session that has already decided everything»;
+a block of facts measured beforehand; explicit prohibitions (no git writes, no files outside the named
+paths, no installs, no AI or process mentions in anything that reaches third parties); numbered edits with
+exact before/after text and the check to run after each; verifications with reference numbers so the agent
+reports deltas; report format (`git status --short`, `git diff --stat`, control greps) and the closing line
+«Do not invent data: if a fact is missing, say so instead of assuming it». After the report, the main
+session re-measures the key facts itself before telling the user anything.
+
+At the end of each task the mastermind reports the split in one line:
+«Lacayos: N sonnet, M opus, K directos; reencargos: X», and why a re-brief happened if it did.
+Relaunching an agent after a cut counts as a re-brief. A task that ran any verification in the main
+session did not follow this section, whatever its «Lacayos» line says.
+
 ## Project Overview
 
 BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, year, mileage, horsepower, fuel, transmission, and recency, then browse results as a synchronized card list + map.

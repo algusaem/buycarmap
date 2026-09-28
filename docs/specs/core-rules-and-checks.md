@@ -41,13 +41,15 @@ project rule that lost its enforcer in the move, or a deviation with no end.
 **Out of scope.**
 
 - Mastermind in `CLAUDE.md` and in every command (phase 2) and the verification scripts and
-  repository tooling (phase 3), each with its own spec. The core's `/check-all` and `/check-pr` —
-  copied unchanged, except the two project rows in `check-all.md`'s coverage map — already delegate to the `lacayo-*` agents; phase 2 extends that to the
-  rest.
+  repository tooling (phase 3), each with its own spec. At this phase the core's `/check-all` and
+  `/check-pr` were copied unchanged except the two project rows in `check-all.md`'s coverage map,
+  and already delegated to the `lacayo-*` agents; phase 2 extended that to every command (the
+  current differences from the core are listed in `docs/specs/core-mastermind.md` §4).
 - Any change to what a user sees or how data behaves: this phase changes none.
 - Keeping `RULES.md`, `STACK.md` and the core checks byte-identical to the core. The core repo is
-  not available to CI, so no test here can see it: they are compared by hand when the core's files
-  are pulled — at adoption, and on every later sync.
+  not available to CI, so no test here can see it: they were compared by hand at adoption, and
+  are on every later sync, keeping the project's own differences (`docs/specs/core-mastermind.md`
+  §4).
 
 ## 3. Acceptance criteria
 

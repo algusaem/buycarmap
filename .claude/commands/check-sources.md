@@ -1,6 +1,6 @@
 ---
 description: Review working changes against the upstream-source invariants — no marketplace call from the browser, Wallapop coordinates always sent, one shared filter set, the merge post-filter and its fetch-until-non-empty loops
-allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*)
+allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*), Agent
 ---
 
 Review the working changes against the **upstream sources** — the project check for the three marketplaces BuyCarMap aggregates (Wallapop, coches.net, Milanuncios). Follow `.claude/review-protocol.md` — read it first: it sets how to load the rules, the scope, the severities and the output.
@@ -9,6 +9,12 @@ Every rule here fails silently: the app keeps working and quietly shows the wron
 
 **Owns:** `CLAUDE.md` › Upstream sources. Logic defects in these files that break no rule below stay with `check-correctness`; the proxy routes' input validation and secrets with `check-security`.
 **Applies to:** any client code that could reach an upstream (`"use client"` files, `components/**`, `lib/hooks/**`); any server code that could call one (`app/api/**`, `app/actions/**`, server components under `app/**`, `lib/alerts/**`); every source's `app/api/<source>/**` and `lib/<source>/**`, new sources included; `lib/geo/**`; `lib/validations/search.ts` (where `SearchInput` is defined), `lib/validations/alerts.ts` (which rebuilds it), `interfaces/wallapop.ts`, `interfaces/cochesnet.ts`, `interfaces/milanuncios.ts` (the upstream shapes), `interfaces/alert.ts`, `interfaces/listing.ts` (the normalized listing and its pin), `.github/workflows/alerts.yml` and the `contract-live` job in `.github/workflows/test.yml` (the scheduled callers of the real upstreams), `next.config.ts` (its CSP `connect-src` and `images.remotePatterns`, the browser's allowed hosts), `prisma/schema.prisma`, `lib/hooks/useListingsSearch.ts` and any other hook or component that builds a `SearchInput`, `components/map/**`, `test/contract/**`, `test/fixtures/**` and `e2e/fixtures/network.ts` for the sources.
+
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+Run on its own, the main session does not review the upstream-source rules itself, however capable it is of doing so:
+- **The whole review → one `Agent` with `subagent_type: "lacayo-opus"`**, told it is the delegated agent and spawns no agents, and briefed with this file, `.claude/review-protocol.md`, the change set, the task in the user's words and the approvals the user gave, quoted; it returns the output of review protocol §7.
+- **The mastermind** re-measures with its own eyes only the facts it will state (a quoted `file:line`, the changed files: single read-only commands), and writes the report; which findings get fixed is the user's decision when the check runs on its own (review protocol §6). The fixes the user asks for are dictated edits: direct for two or three steps in one file, `lacayo-sonnet` for anything longer.
+Inside `/check-all` this paragraph does not apply: there the agent running this file is already the delegated hand. Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 opus» did not follow this command.
 
 ## 1. Where upstream calls happen
 

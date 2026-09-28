@@ -9,6 +9,10 @@ The pre-commit pass. The usual flow is: plan the work → develop it → **`/che
 
 The hands are the user-level agents `lacayo-opus` (Opus 5.5, medium effort) and `lacayo-sonnet` (Sonnet 5, high effort), installed by `node install.mjs` from `algusaem-claude`.
 
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+This command is mastermind throughout: "Who runs what" below is its delegation. Every review goes to a fresh `Agent` with `subagent_type: "lacayo-opus"`, `check-verify`, `check-visual` and the writing phases of `check-tests` to `lacayo-sonnet`, and the main session keeps Phase 0, the decisions, the questions to the user and the report. Until phase 3 of ADR 0007 adds `pnpm check`, `check-verify`'s brief carries the verification list in `CLAUDE.md` › Commands.
+The main session never runs a verification and never re-runs one to double-check. The Output below ends with the delegation line («Lacayos: …»); a run with «0 opus» did not follow this command.
+
 ## The checks
 
 Core checks — every project has them; `check-erp` only runs in CRM/ERP projects:

@@ -1,8 +1,8 @@
 # Spec: Mastermind delegation (migration phase 2)
 
 Key: MASTER
-Status: Approved
-Last updated: 2026-09-27
+Status: Implemented
+Last updated: 2026-09-28
 
 ---
 
@@ -29,11 +29,11 @@ by the core's `install.mjs`, and not part of this repository. Any change to the 
 
 | AC | Statement | Level | Verified by |
 | --- | --- | --- | --- |
-| MASTER-1 | `CLAUDE.md` has the mastermind delegation section: the main session decides, `lacayo-sonnet` executes what is decided, `lacayo-opus` audits, verification never runs in the main session, and every task closes with the «Lacayos: …» line | unit | — |
-| MASTER-2 | Every `.claude/commands/*.md` carries a Delegation paragraph that names mastermind, or states in one line why the command runs whole in one read-only call | unit | — |
-| MASTER-3 | No command or `CLAUDE.md` delegates in the conditional ("may go to", "might go to") | unit | — |
-| MASTER-4 | No command or `CLAUDE.md` picks a lacayo by `model: "…"`; they are chosen by `subagent_type` | unit | — |
-| MASTER-5 | Every command whose Delegation paragraph delegates ends its report with the «Lacayos: …» line | unit | — |
+| MASTER-1 | `CLAUDE.md` has the mastermind delegation section: the main session decides, `lacayo-sonnet` executes what is decided, `lacayo-opus` audits, verification never runs in the main session, and every task closes with the «Lacayos: …» line | unit | `scripts/core-mastermind.node.test.ts` › MASTER-1 |
+| MASTER-2 | Every `.claude/commands/*.md` carries a Delegation paragraph that names mastermind, or states in one line why the command runs whole in one read-only call | unit | `scripts/core-mastermind.node.test.ts` › MASTER-2 |
+| MASTER-3 | No command or `CLAUDE.md` delegates in the conditional ("may go to", "might go to") | unit | `scripts/core-mastermind.node.test.ts` › MASTER-3 |
+| MASTER-4 | No command or `CLAUDE.md` picks a lacayo by `model: "…"`; they are chosen by `subagent_type` | unit | `scripts/core-mastermind.node.test.ts` › MASTER-4 |
+| MASTER-5 | Every command whose Delegation paragraph delegates ends its report with the «Lacayos: …» line | unit | `scripts/core-mastermind.node.test.ts` › MASTER-5 |
 
 ## 4. Decisions and rationale
 
@@ -44,7 +44,23 @@ ends up doing everything itself, which the control line then shows as «0 sonnet
 
 **The core checks get the paragraph too.** `/check-all` tells its agents to ignore a command's
 Delegation paragraph, so adding one changes nothing inside `/check-all` and makes each check
-delegate correctly when run on its own — the core README's step 2 for an adopting project.
+delegate correctly when run on its own — the core README's step 2 for an adopting project. That
+includes `/check-all` and `/check-pr`, which ADR 0007 had left out ("every other command"): they
+delegate too, and a paragraph in every command keeps one rule for the tests.
+
+**Where the commands differ from the core** — the one place this is recorded:
+
+- every command that has a core copy carries a Delegation paragraph the core copy doesn't, and,
+  where its frontmatter lists `allowed-tools` without the core's `Task`, `Agent` among them
+  (`check-all`, `check-pr` and `check-tests` keep the core's `Task`);
+- `check-all.md` also carries two project rows in its coverage map (`check-docs`, `check-sources`);
+- `check-docs`, `check-sources`, `spec` and `spec-tests` have no core copy.
+
+When a core file is pulled into the project, these differences are re-applied to it.
+
+**A standalone review check leaves the fixes to the user.** The review protocol (§6) says fixing is
+decided by the user when a check runs on its own; the paragraphs say so rather than handing that
+decision to the main session.
 
 ## 5. Data and contracts
 

@@ -1,11 +1,17 @@
 ---
 description: Run the project's verification — pnpm check, pnpm check:full when UI or user flows changed, gitleaks — and report the outputs verbatim
-allowed-tools: Read, Grep, Glob, Bash(pnpm:*), Bash(npm:*), Bash(npx:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*), Bash(gitleaks:*)
+allowed-tools: Read, Grep, Glob, Bash(pnpm:*), Bash(npm:*), Bash(npx:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*), Bash(gitleaks:*), Agent
 ---
 
 Run the verification of the working changes and report exactly what came out. **This command runs, it doesn't review and it doesn't fix**: every output is pasted as it came, a failure is reported, never worked around.
 
 **Owns:** `RULES.md` §22 item 4, and the §3 rule "never claim something works without having run it"; `STACK.md` §5 (the commands).
+
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+The main session never runs the verification itself (the guard hook blocks it):
+- **Everything → one `Agent` with `subagent_type: "lacayo-sonnet"`**, told it is the delegated agent and spawns no agents, and briefed with the exact commands — the `check` scripts, or until they exist the list in `CLAUDE.md` › Commands — and the reference numbers of the last run, so it reports deltas; outputs pasted verbatim, a failure reported, never worked around.
+- **The mastermind** uses the outputs as pasted and never re-runs them; it re-measures only a fact it will quote that is not a verification result.
+Inside `/check-all` this paragraph does not apply: there the agent running this file is already the delegated hand. Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 sonnet» did not follow this command.
 
 ## 1. Find the commands
 

@@ -1,11 +1,18 @@
 ---
 description: Check the CHANGELOG entry the branch will produce through release-please — type by what users perceive, breaking marker, user-facing wording. First step of /check-pr.
-allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*)
+allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*), Agent
 ---
 
 The `CHANGELOG` is never edited by hand (`RULES.md` §3): release-please builds it from the commit that reaches the base branch, and with squash merge that commit is the PR title (plus a `BREAKING CHANGE:` footer from the body). So this command doesn't check the file — it decides the entry the branch will produce and makes sure it is right. **Its output is the title `/check-pr` uses.** It only writes text: never edit `CHANGELOG.md`, never commit.
 
 **The changelog is for users.** Only what a user of the application perceives gets an entry: a new capability, changed behaviour, a visible UI change, a bug they could hit, a noticeably faster response. Internal work (refactors, tooling, tests, docs, dependencies with no visible effect) stays out. The commit type decides which is which, so the failure this command exists to catch is a misclassified type.
+
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+It does not measure the branch or judge the entry itself:
+- **Phase 1's commands → one `Agent` with `subagent_type: "lacayo-sonnet"`**, briefed with that phase's exact commands; outputs pasted verbatim, a source that fails reported as not consulted, never guessed.
+- **Phase 1's judgements and Phases 2–4 → one `Agent` with `subagent_type: "lacayo-opus"`** carrying this file and the Sonnet outputs; it returns the type, the breaking marker and the entry, and every finding with its severity and evidence.
+- **The mastermind** re-measures the facts it will state (the commits, the config: single read-only commands), decides the title where the evidence disagrees, and writes the output.
+Inside `/check-pr` this paragraph does not apply: there one `lacayo-opus` runs this whole file (`check-pr.md` Phase 2). Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 opus» did not follow this command.
 
 ## Phase 1 — Scope
 

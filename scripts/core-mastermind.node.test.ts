@@ -10,61 +10,83 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const COMMANDS = ".claude/commands";
+// The 17 check commands, plus daily, diff, spec and spec-tests.
+const MIN_COMMANDS = 21;
+// MASTER-2's alternative to delegating: the command runs whole in one read-only call.
+const RUNS_WHOLE = /runs whole in one read-only call/;
 
-const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
+const read = (path: string) => readFileSync(join(ROOT, path), "utf8").replace(/\r\n/g, "\n");
 const commands = () =>
   readdirSync(join(ROOT, COMMANDS))
     .filter((name) => name.endsWith(".md"))
     .map((name) => `${COMMANDS}/${name}`);
+const ruleFiles = () => ["CLAUDE.md", ...commands()];
+/** Prose is hand-wrapped: compare phrases with every run of whitespace as one space. */
+const flat = (text: string) => text.replace(/\s+/g, " ");
 
 /** The paragraph that opens with "Delegation", up to the next blank line. */
 function delegationParagraph(markdown: string): string | null {
-  const paragraphs = markdown.replace(/\r\n/g, "\n").split(/\n\s*\n/);
+  const paragraphs = markdown.split(/\n\s*\n/);
   return paragraphs.find((paragraph) => /^Delegation\b/.test(paragraph.trim())) ?? null;
+}
+
+/** From the "## Model delegation" heading up to the next "## " heading, or "" if absent. */
+function delegationSection(claude: string): string {
+  const start = claude.search(/^## Model delegation /m);
+  if (start === -1) return "";
+  const section = claude.slice(start);
+  const next = section.indexOf("\n## ", 1);
+  return next === -1 ? section : section.slice(0, next);
 }
 
 describe("mastermind delegation", () => {
   it("MASTER-1: CLAUDE.md has the mastermind delegation section", () => {
-    const claude = read("CLAUDE.md");
+    const raw = delegationSection(read("CLAUDE.md"));
+    const section = flat(raw);
 
-    expect(claude).toMatch(/^## Model delegation .*mastermind/m);
-    expect(claude).toContain('subagent_type: "lacayo-sonnet"');
-    expect(claude).toContain('subagent_type: "lacayo-opus"');
-    expect(claude).toContain("Verification never runs in the main session");
-    expect(claude).toContain("Lacayos:");
+    expect(raw.split("\n")[0]).toMatch(/^## Model delegation .*\(mastermind\)$/);
+    expect(section).toMatch(/main session runs on it and does the analysis, decisions/);
+    expect(section).toContain('subagent_type: "lacayo-sonnet"` — the default for anything already decided');
+    expect(section).toContain('subagent_type: "lacayo-opus"` — only when the brief itself requires judgement');
+    expect(section).toContain("Verification never runs in the main session");
+    expect(section).toContain("At the end of each task the mastermind reports the split in one line");
+    expect(section).toContain("«Lacayos:");
   });
 
   it("MASTER-2: every command carries a Delegation paragraph that names mastermind", () => {
     const files = commands();
     const missing = files.filter((file) => {
       const paragraph = delegationParagraph(read(file));
-      return paragraph === null || !paragraph.includes("mastermind");
+      if (paragraph === null) return true;
+      const delegates = paragraph.includes("mastermind") && paragraph.includes('subagent_type: "lacayo-');
+      return !delegates && !RUNS_WHOLE.test(flat(paragraph));
     });
 
-    expect(files.length).toBeGreaterThanOrEqual(21);
+    expect(files.length).toBeGreaterThanOrEqual(MIN_COMMANDS);
     expect(missing).toEqual([]);
   });
 
   it("MASTER-3: nothing delegates in the conditional", () => {
-    const conditional = ["CLAUDE.md", ...commands()].filter((file) =>
-      /\b(may|might) go to\b/i.test(read(file)),
-    );
+    const conditional = ruleFiles().filter((file) => /\b(may|might)\s+go\s+to\b/i.test(read(file)));
 
     expect(conditional).toEqual([]);
   });
 
   it("MASTER-4: no lacayo is picked by model name", () => {
-    const byModel = ["CLAUDE.md", ...commands()].filter((file) => read(file).includes('model: "'));
+    const byModel = ruleFiles().filter((file) => read(file).includes('model: "'));
 
     expect(byModel).toEqual([]);
   });
 
   it("MASTER-5: every command that delegates ends its report with the Lacayos line", () => {
-    const delegating = commands().filter((file) =>
-      /lacayo-(sonnet|opus)/.test(delegationParagraph(read(file)) ?? ""),
-    );
-    const withoutLine = delegating.filter((file) => !read(file).includes("Lacayos:"));
+    const paragraphs = commands().map((file) => ({ file, paragraph: delegationParagraph(read(file)) ?? "" }));
+    const delegating = paragraphs.filter(({ paragraph }) => /subagent_type: "lacayo-(sonnet|opus)"/.test(paragraph));
+    const runningWhole = paragraphs.filter(({ paragraph }) => RUNS_WHOLE.test(flat(paragraph)));
+    const withoutLine = delegating
+      .filter(({ paragraph }) => !paragraph.includes("«Lacayos:"))
+      .map(({ file }) => file);
 
+    expect(delegating.length).toBe(paragraphs.length - runningWhole.length);
     expect(delegating.length).toBeGreaterThan(0);
     expect(withoutLine).toEqual([]);
   });
