@@ -115,13 +115,19 @@ describe("todo:check — unreferenced TODO comments", () => {
       },
       {
         path: "b.ts",
-        text: [`/* ${TAG} see #7 */`, ` * ${TAG}: tidy`, `const doc = "${TAG}.md";`].join("\n"),
+        text: [
+          `/* ${TAG} see #7 */`,
+          "/**",
+          ` * ${TAG}: tidy`,
+          " */",
+          `const doc = "${TAG}.md";`,
+        ].join("\n"),
       },
     ]);
 
     expect(result).toEqual([
       { path: "a.ts", line: 2 },
-      { path: "b.ts", line: 2 },
+      { path: "b.ts", line: 3 },
     ]);
   });
 });
