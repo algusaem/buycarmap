@@ -97,4 +97,5 @@ solo project is ceremony.
 | [core-rules-and-checks.md](core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
 | [core-mastermind.md](core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
 | [core-tooling.md](core-tooling.md) | TOOLING | Implemented | Migration phase 3: the verification contract and repository tooling |
+| [core-docs.md](core-docs.md) | DOCS | Approved | Migration phase 4: the core spec format and docs tree |
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import * as check from "./docs-check.mjs";
+import { DOCS_INDEX, unreachableDocs, unresolvedOwnershipDocs } from "./docs-check.mjs";
 
 const {
   extractLinks,
@@ -301,5 +302,38 @@ describe("ownableFiles", () => {
         "pnpm-lock.yaml",
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("DOCS_INDEX", () => {
+  it("DOCS-7: points at the root README, once the index moves there", () => {
+    expect(DOCS_INDEX).toBe("README.md");
+  });
+});
+
+describe("unreachableDocs", () => {
+  it("DOCS-7: a docs/ file linked from nowhere is reported, naming it", () => {
+    const linkGraph = new Map([
+      ["README.md", ["docs/ARCHITECTURE.md"]],
+      ["docs/ARCHITECTURE.md", ["docs/specs/a.md"]],
+    ]);
+    const roots = ["README.md"];
+    const docs = ["docs/ARCHITECTURE.md", "docs/specs/a.md", "docs/specs/orphan.md"];
+
+    expect(unreachableDocs(linkGraph, roots, docs)).toEqual(["docs/specs/orphan.md"]);
+  });
+});
+
+describe("unresolvedOwnershipDocs", () => {
+  it("DOCS-7: a map row whose doc does not exist is reported", () => {
+    const entries = [
+      { glob: "lib/**", doc: "docs/ARCHITECTURE.md" },
+      { glob: "app/**", doc: "docs/missing.md" },
+    ];
+    const existing = new Set(["docs/ARCHITECTURE.md"]);
+
+    const problems = unresolvedOwnershipDocs(entries, "README.md", existing);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("docs/missing.md");
   });
 });

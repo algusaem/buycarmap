@@ -31,6 +31,11 @@ const SCANNED = ["README.md", "CLAUDE.md"];
 const DOC_DIR = "docs";
 const INDEX = "docs/README.md";
 
+// Stub: DOCS-7 (`docs/specs/core-docs.md`) reads the index path through this
+// export rather than the private constant, so the fixture asserting it moves
+// to the root README.md does not need a second source of truth.
+export const DOCS_INDEX = INDEX;
+
 // Backticked paths are only checked when they start with one of these. Anything
 // else is prose, an upstream URL path, or a doc that a plan says will exist
 // later — none of which this script has any business asserting about.
@@ -275,6 +280,39 @@ export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
 export function isUnbuiltSpec(file, text) {
   if (!posix(file).startsWith("docs/specs/")) return false;
   return !/^Status:\s*Implemented\s*$/im.test(text);
+}
+
+/**
+ * The docs unreachable from the index by following `linkGraph` outward from
+ * `roots`, out of the given `docs`.
+ *
+ * Stub: DOCS-7 (`docs/specs/core-docs.md`) exercises the reachability walk on
+ * an in-memory graph rather than the working tree; it will absorb
+ * `checkOrphanedDocs`'s traversal below once the index moves.
+ *
+ * @param {Map<string, string[]>} _linkGraph
+ * @param {string[]} _roots
+ * @param {string[]} _docs
+ * @returns {string[]}
+ */
+export function unreachableDocs(_linkGraph, _roots, _docs) {
+  return [];
+}
+
+/**
+ * The problems in an ownership map's rows whose `doc`, resolved relative to
+ * `indexPath`'s directory, is not in `existing`.
+ *
+ * Stub: DOCS-7 exercises this on an in-memory ownership list; it will absorb
+ * `processOwnershipEntry`'s existence check below once the index moves.
+ *
+ * @param {OwnershipEntry[]} _entries
+ * @param {string} _indexPath
+ * @param {Set<string>} _existing
+ * @returns {string[]}
+ */
+export function unresolvedOwnershipDocs(_entries, _indexPath, _existing) {
+  return [];
 }
 
 /**

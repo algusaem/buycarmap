@@ -66,6 +66,25 @@ export function criteriaIdsIn(source) {
   return ids;
 }
 
+/** @typedef {{ name: string, source: string }} SpecCheckSpecInput */
+/** @typedef {{ path: string, source: string }} SpecCheckTestInput */
+
+/**
+ * The problems `spec:check` would report for the given specs and tests, read
+ * from in-memory sources rather than the working tree.
+ *
+ * Stub: DOCS-2..4 (`docs/specs/core-docs.md`) call this with fixtures built
+ * from the new checklist item format; it will absorb the fs-bound logic above
+ * once that format lands.
+ *
+ * @param {SpecCheckSpecInput[]} _specs
+ * @param {SpecCheckTestInput[]} _tests
+ * @returns {string[]}
+ */
+export function findSpecProblems(_specs, _tests) {
+  return [];
+}
+
 async function walk(dir, out = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     if (entry.name.startsWith(".") && entry.name !== ".github") continue;
