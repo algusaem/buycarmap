@@ -42,6 +42,10 @@ test("NAV-2: every navbar control on a phone is at least 44 by 44 pixels", async
   await page.setViewportSize(MOBILE);
   await page.goto("/");
   await waitForSessionToResolve(page);
+  // The cluster's `aria-hidden` flips before the accessibility tree that
+  // `getByRole(...).all()` reads catches up; waiting on the menu trigger
+  // (not the register link, so NAV-17 stays non-tautological) lets it settle.
+  await expect(page.getByRole("navigation").getByRole("button", { name: MENU })).toBeVisible();
 
   await assertTouchTargets(page.getByRole("navigation").first(), "bar");
 
