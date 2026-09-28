@@ -28,20 +28,6 @@ interface LocationSearchProps {
   onDistanceChange: (distance: number) => void;
 }
 
-// The text an always-mounted `aria-live="polite"` region announces: nothing
-// while the dropdown is closed or already showing results, otherwise the
-// same loading/no-results copy the visible (but aria-hidden) line shows.
-function locationStatusText(
-  showDropdown: boolean,
-  hasResults: boolean,
-  isSearching: boolean,
-  loadingText: string,
-  noResultsText: string,
-): string {
-  if (!showDropdown || hasResults) return "";
-  return isSearching ? loadingText : noResultsText;
-}
-
 export function LocationSearch({
   selectedLocation,
   distanceInKm,
@@ -56,14 +42,9 @@ export function LocationSearch({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const showDropdown = isOpen && query.length >= 2;
-  const listboxOpen = showDropdown && results.length > 0;
-  const statusText = locationStatusText(
-    showDropdown,
-    listboxOpen,
-    isSearching,
-    t.map.loading,
-    t.filters.noResults,
-  );
+  const listboxOpen = showDropdown && !isSearching && results.length > 0;
+  const statusText =
+    showDropdown && !listboxOpen ? (isSearching ? t.map.loading : t.filters.noResults) : "";
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -174,36 +155,38 @@ export function LocationSearch({
                 {statusText}
               </p>
 
-              {showDropdown && (
+              {showDropdown && !listboxOpen && (
                 <div className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg">
-                  {results.length === 0 ? (
-                    <p aria-hidden="true" className="px-3 py-2 text-sm text-muted-foreground">
-                      {isSearching ? t.map.loading : t.filters.noResults}
-                    </p>
-                  ) : (
-                    <div id="location-listbox" role="listbox">
-                      {results.map((result, index) => (
-                        <div
-                          key={result.placeId}
-                          role="option"
-                          tabIndex={-1}
-                          aria-selected={highlightedIndex === index}
-                          className={`cursor-pointer px-3 py-2 text-sm ${
-                            highlightedIndex === index
-                              ? "bg-card text-foreground"
-                              : "text-foreground hover:bg-card/50"
-                          }`}
-                          onMouseEnter={() => setHighlightedIndex(index)}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleSelect(result);
-                          }}
-                        >
-                          <span className="line-clamp-1">{result.displayName}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <p aria-hidden="true" className="px-3 py-2 text-sm text-muted-foreground">
+                    {statusText}
+                  </p>
+                </div>
+              )}
+
+              {listboxOpen && (
+                <div className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg">
+                  <div id="location-listbox" role="listbox">
+                    {results.map((result, index) => (
+                      <div
+                        key={result.placeId}
+                        role="option"
+                        tabIndex={-1}
+                        aria-selected={highlightedIndex === index}
+                        className={`cursor-pointer px-3 py-2 text-sm ${
+                          highlightedIndex === index
+                            ? "bg-card text-foreground"
+                            : "text-foreground hover:bg-card/50"
+                        }`}
+                        onMouseEnter={() => setHighlightedIndex(index)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelect(result);
+                        }}
+                      >
+                        <span className="line-clamp-1">{result.displayName}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </>

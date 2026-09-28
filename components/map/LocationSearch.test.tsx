@@ -69,10 +69,12 @@ describe("LocationSearch suggestions", () => {
 
     await userEvent.type(queryBox(), "Nowhereville");
 
-    // The text now renders twice — the always-mounted sr-only status region
-    // and the visible, aria-hidden line inside the dropdown — so it is no
-    // longer unique enough for a plain text query.
-    expect((await screen.findAllByText("No locations found")).length).toBeGreaterThan(0);
+    // The text renders twice: the always-mounted sr-only status region and
+    // the visible, aria-hidden line inside the dropdown.
+    const matches = await screen.findAllByText("No locations found");
+    expect(matches).toHaveLength(2);
+    expect(screen.getByRole("status")).toHaveTextContent("No locations found");
+    expect(matches.some((el) => el.getAttribute("aria-hidden") === "true")).toBe(true);
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
 
@@ -176,7 +178,7 @@ describe("LocationSearch suggestions accessibility", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it("MAP-20: renders no listbox while the search is loading or has no results", async () => {
+  it("MAP-20: renders no listbox when the search has no results", async () => {
     server.use(http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.json([])));
     renderLocationSearch();
 
@@ -198,5 +200,59 @@ describe("LocationSearch suggestions accessibility", () => {
     expect(queryBox()).toHaveAttribute("aria-controls", "location-listbox");
     expect(queryBox()).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("listbox")).toHaveAttribute("id", "location-listbox");
+  });
+
+  it("MAP-20: the status region is mounted before any search", async () => {
+    renderLocationSearch();
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("");
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    expect(screen.getByRole("status")).toBe(status);
+  });
+
+  it("MAP-20: while loading, no listbox and the status reads Loading…", async () => {
+    server.use(
+      http.get(
+        "https://nominatim.openstreetmap.org/search",
+        () =>
+          new Promise(() => {
+            /* never resolves */
+          }),
+      ),
+    );
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading…");
+    expect(queryBox()).toHaveAttribute("aria-expanded", "false");
+    expect(queryBox()).not.toHaveAttribute("aria-controls");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("MAP-20: typing again hides the previous options while the new search loads", async () => {
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    server.use(
+      http.get(
+        "https://nominatim.openstreetmap.org/search",
+        () =>
+          new Promise(() => {
+            /* never resolves */
+          }),
+      ),
+    );
+    await userEvent.type(queryBox(), " y");
+
+    expect(queryBox()).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("Loading…");
   });
 });

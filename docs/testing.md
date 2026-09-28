@@ -69,7 +69,8 @@ is the app default but makes assertions read strangely.
 `test/contract/*.contract.test.ts` are Zod schemas of the **external** shapes the
 normalizers read — not of our own types.
 
-- `pnpm test:contract` validates the fixtures offline. Runs in CI on every push.
+- `pnpm test:contract` validates the fixtures offline. Runs in CI inside `pnpm check`, on pushes
+  to master and on pull requests.
 - `pnpm test:contract:live` (`CONTRACT_LIVE=1`) hits the real APIs. **Runs
   nightly**, and is the alarm for an upstream changing shape.
 

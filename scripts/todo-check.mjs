@@ -2,175 +2,138 @@
 // no rule for this, so it runs as its own step in `lint`. See
 // docs/specs/core-tooling.md TOOLING-12 for the worked examples.
 
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+
+import ts from "typescript";
 
 import { trackedFiles as gitTrackedFiles } from "./git-files.mjs";
 
 const TODO_WORD = /\bTODO\b/;
 const ISSUE_REFERENCE = /#\d+/;
+const CSS_COMMENT = /\/\*[\s\S]*?\*\//g;
 const TRACKED_EXTENSIONS = new Set([".ts", ".tsx", ".mjs", ".cjs", ".js", ".css"]);
 
-/**
- * @typedef {{ path: string, text: string }} TodoCheckFile
- * @typedef {{ path: string, line: number }} TodoCheckHit
- * @typedef {"code" | "line-comment" | "block-comment" | "string"} ScanState
- * @typedef {{
- *   state: ScanState,
- *   quote: string,
- *   line: number,
- *   atLineStart: boolean,
- *   heuristicLine: boolean,
- *   perLine: Map<number, string>,
- * }} ScanContext
- */
+/** @typedef {{ path: string, text: string }} TodoCheckFile */
+/** @typedef {{ path: string, line: number }} TodoCheckHit */
+/** @typedef {{ pos: number, end: number }} TextRange */
 
 /**
- * @param {ScanContext} ctx
- * @param {string} ch
+ * The `ts.ScriptKind` a path's extension parses as, or `undefined` for an extension
+ * `findUnreferencedTodos` does not scan as a script (CSS, or an unknown extension).
+ *
+ * @param {string} path
+ * @returns {import("typescript").ScriptKind | undefined}
+ */
+function scriptKindForPath(path) {
+  if (path.endsWith(".tsx")) return ts.ScriptKind.TSX;
+  if (path.endsWith(".ts")) return ts.ScriptKind.TS;
+  if (path.endsWith(".mjs") || path.endsWith(".cjs") || path.endsWith(".js")) {
+    return ts.ScriptKind.JS;
+  }
+  return undefined;
+}
+
+/**
+ * @param {Map<number, TextRange>} rangesByPos
+ * @param {readonly TextRange[] | undefined} ranges
  * @returns {void}
  */
-function append(ctx, ch) {
-  ctx.perLine.set(ctx.line, (ctx.perLine.get(ctx.line) ?? "") + ch);
+function addRanges(rangesByPos, ranges) {
+  for (const range of ranges ?? []) {
+    if (!rangesByPos.has(range.pos)) rangesByPos.set(range.pos, range);
+  }
 }
 
 /**
- * A physical line whose only content, once its leading whitespace is skipped, starts
- * with `*` (and not `*\/ `) is treated as a JSDoc continuation line — the convention
- * inside a `/** ... *\/` block — even without a matching opener earlier in the file, so
- * an isolated continuation line still counts as a comment.
+ * Every comment range in a script file, found by walking the parsed AST rather than by
+ * pattern over the text: a regex cannot tell a comment from a regex literal, a string,
+ * or a lone `*` that looks like a JSDoc continuation but is code (a multiplication with
+ * a missing left operand). Trailing comments on the last real token are only reachable
+ * through the source file's `endOfFileToken`, which `ts.forEachChild` does not visit.
  *
- * @param {ScanContext} ctx
- * @param {string} ch
- * @param {string | undefined} next
- * @returns {boolean} whether this character was already handled
+ * @param {string} path
+ * @param {string} text
+ * @param {import("typescript").ScriptKind} scriptKind
+ * @returns {TextRange[]}
  */
-function handleLineStart(ctx, ch, next) {
-  if (!ctx.atLineStart || ctx.state !== "code") return false;
-  if (/\s/.test(ch)) return true;
-  ctx.atLineStart = false;
-  if (ch === "*" && next !== "/") {
-    ctx.heuristicLine = true;
-    append(ctx, ch);
-    return true;
+function scriptCommentRanges(path, text, scriptKind) {
+  const sourceFile = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, scriptKind);
+
+  /** @type {Map<number, TextRange>} */
+  const rangesByPos = new Map();
+
+  /** @param {import("typescript").Node} node */
+  function visit(node) {
+    addRanges(rangesByPos, ts.getLeadingCommentRanges(text, node.getFullStart()));
+    addRanges(rangesByPos, ts.getTrailingCommentRanges(text, node.getEnd()));
+    ts.forEachChild(node, visit);
   }
-  return false;
+  visit(sourceFile);
+
+  const eof = sourceFile.endOfFileToken;
+  addRanges(rangesByPos, ts.getLeadingCommentRanges(text, eof.getFullStart()));
+  addRanges(rangesByPos, ts.getTrailingCommentRanges(text, eof.getEnd()));
+
+  return [...rangesByPos.values()].sort((a, b) => a.pos - b.pos);
 }
 
 /**
- * @param {ScanContext} ctx
- * @param {string} ch
- * @param {string | undefined} next
- * @returns {number} extra characters this consumed
- */
-function handleCode(ctx, ch, next) {
-  if (ch === "/" && next === "/") {
-    ctx.state = "line-comment";
-    return 1;
-  }
-  if (ch === "/" && next === "*") {
-    ctx.state = "block-comment";
-    return 1;
-  }
-  if (ch === '"' || ch === "'" || ch === "`") {
-    ctx.state = "string";
-    ctx.quote = ch;
-  }
-  return 0;
-}
-
-/**
- * @param {ScanContext} ctx
- * @param {string} ch
- * @param {string | undefined} next
- * @returns {number}
- */
-function handleBlockComment(ctx, ch, next) {
-  if (ch === "*" && next === "/") {
-    ctx.state = "code";
-    return 1;
-  }
-  append(ctx, ch);
-  return 0;
-}
-
-/**
- * Closes on its own quote, honouring a backslash escape.
- *
- * @param {ScanContext} ctx
- * @param {string} ch
- * @returns {number}
- */
-function handleString(ctx, ch) {
-  if (ch === "\\") return 1;
-  if (ch === ctx.quote) {
-    ctx.state = "code";
-    ctx.quote = "";
-  }
-  return 0;
-}
-
-/**
- * A non-backtick string does not survive a newline; a line comment always ends there.
- * A block comment does survive — that is the one state that spans lines.
- *
- * @param {ScanContext} ctx
- * @returns {void}
- */
-function handleNewline(ctx) {
-  if (ctx.state === "line-comment") ctx.state = "code";
-  if (ctx.state === "string" && ctx.quote !== "`") ctx.state = "code";
-  ctx.heuristicLine = false;
-  ctx.line++;
-  ctx.atLineStart = true;
-}
-
-/**
- * The comment text found on each line of a file's text: the content of every `//` and
- * `/* ... *\/` comment (block comments may span lines), plus a bare JSDoc continuation
- * line (see `handleLineStart`). String contents are never comment text, even a string
- * that happens to contain the to-do marker.
+ * Every `/* ... *\/` span in a CSS file. CSS has no line comments and no strings a
+ * `/*` could hide inside, so a pattern over the text is enough.
  *
  * @param {string} text
- * @returns {Map<number, string>}
+ * @returns {TextRange[]}
  */
-function scanComments(text) {
-  /** @type {ScanContext} */
-  const ctx = {
-    state: "code",
-    quote: "",
-    line: 1,
-    atLineStart: true,
-    heuristicLine: false,
-    perLine: new Map(),
-  };
+function cssCommentRanges(text) {
+  return [...text.matchAll(CSS_COMMENT)].map((match) => ({
+    pos: match.index,
+    end: match.index + match[0].length,
+  }));
+}
 
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    const next = text[i + 1];
-
-    if (ch === "\n") {
-      handleNewline(ctx);
-      continue;
-    }
-    if (handleLineStart(ctx, ch, next)) continue;
-    if (ctx.heuristicLine) {
-      append(ctx, ch);
-      continue;
-    }
-
-    if (ctx.state === "code") i += handleCode(ctx, ch, next);
-    else if (ctx.state === "line-comment") append(ctx, ch);
-    else if (ctx.state === "block-comment") i += handleBlockComment(ctx, ch, next);
-    else if (ctx.state === "string") i += handleString(ctx, ch);
+/**
+ * The 1-based physical line number of an offset into `text`.
+ *
+ * @param {string} text
+ * @param {number} offset
+ * @returns {number}
+ */
+function lineAt(text, offset) {
+  let line = 1;
+  for (let i = 0; i < offset; i++) {
+    if (text[i] === "\n") line++;
   }
+  return line;
+}
 
-  return ctx.perLine;
+/**
+ * The hits a single comment range holds: every physical line inside it whose text
+ * carries the to-do marker with no issue reference on that same line.
+ *
+ * @param {string} path
+ * @param {string} text
+ * @param {TextRange} range
+ * @returns {TodoCheckHit[]}
+ */
+function hitsInRange(path, text, range) {
+  const startLine = lineAt(text, range.pos);
+  const lines = text.slice(range.pos, range.end).split(/\r?\n/);
+  const hits = [];
+  lines.forEach((lineText, index) => {
+    if (TODO_WORD.test(lineText) && !ISSUE_REFERENCE.test(lineText)) {
+      hits.push({ path, line: startLine + index });
+    }
+  });
+  return hits;
 }
 
 /**
  * The lines across the given files whose comment holds the to-do marker with no issue
- * reference (`#<number>` on the same line, inside the comment).
+ * reference (`#<number>` in the same comment, on the same line). Comments are found by
+ * parsing, not by pattern: TypeScript's own scanner for script files, `/* *\/` spans for
+ * CSS. A path whose extension is neither reports no hits.
  *
  * @param {TodoCheckFile[]} files
  * @returns {TodoCheckHit[]}
@@ -178,13 +141,14 @@ function scanComments(text) {
 export function findUnreferencedTodos(files) {
   const hits = [];
   for (const { path, text } of files) {
-    const perLine = scanComments(text);
-    const lineCount = text.split("\n").length;
-    for (let lineNo = 1; lineNo <= lineCount; lineNo++) {
-      const comment = perLine.get(lineNo);
-      if (comment && TODO_WORD.test(comment) && !ISSUE_REFERENCE.test(comment)) {
-        hits.push({ path, line: lineNo });
-      }
+    if (path.endsWith(".css")) {
+      for (const range of cssCommentRanges(text)) hits.push(...hitsInRange(path, text, range));
+      continue;
+    }
+    const scriptKind = scriptKindForPath(path);
+    if (scriptKind === undefined) continue;
+    for (const range of scriptCommentRanges(path, text, scriptKind)) {
+      hits.push(...hitsInRange(path, text, range));
     }
   }
   return hits;
@@ -198,7 +162,7 @@ function trackedFiles() {
 }
 
 async function main() {
-  const paths = trackedFiles();
+  const paths = trackedFiles().filter((path) => existsSync(path));
   const files = await Promise.all(
     paths.map(async (path) => ({ path, text: await readFile(path, "utf8") })),
   );
