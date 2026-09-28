@@ -65,7 +65,7 @@ const SPANISH_CITIES: Record<string, CityCoordinates> = {
   cadiz: { lat: 36.5271, lng: -6.2886 },
   lleida: { lat: 41.6176, lng: 0.62 },
   girona: { lat: 41.9794, lng: 2.8214 },
-  "castellón": { lat: 39.9864, lng: -0.0513 },
+  castellón: { lat: 39.9864, lng: -0.0513 },
   castellon: { lat: 39.9864, lng: -0.0513 },
   "castellón de la plana": { lat: 39.9864, lng: -0.0513 },
   badajoz: { lat: 38.8794, lng: -6.9707 },

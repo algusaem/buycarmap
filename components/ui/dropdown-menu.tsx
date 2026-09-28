@@ -44,12 +44,7 @@ function DropdownMenuItem({
   className,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Item>) {
-  return (
-    <DropdownMenuPrimitive.Item
-      className={cn(ITEM_CLASSES, className)}
-      {...props}
-    />
-  );
+  return <DropdownMenuPrimitive.Item className={cn(ITEM_CLASSES, className)} {...props} />;
 }
 
 /**
@@ -68,10 +63,7 @@ function DropdownMenuRadioItem({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
   return (
-    <DropdownMenuPrimitive.RadioItem
-      className={cn(ITEM_CLASSES, "pl-8", className)}
-      {...props}
-    >
+    <DropdownMenuPrimitive.RadioItem className={cn(ITEM_CLASSES, "pl-8", className)} {...props}>
       <span className="absolute left-2 flex size-4 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
           <Check className="size-4" />

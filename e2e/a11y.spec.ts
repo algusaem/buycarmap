@@ -8,18 +8,13 @@ import AxeBuilder from "@axe-core/playwright";
 // re-enable contrast once the palette is adjusted. See the "Testing" notes.
 async function seriousViolations(builder: AxeBuilder) {
   const { violations } = await builder.disableRules(["color-contrast"]).analyze();
-  return violations.filter(
-    (v) => v.impact === "serious" || v.impact === "critical",
-  );
+  return violations.filter((v) => v.impact === "serious" || v.impact === "critical");
 }
 
 for (const path of ["/login", "/register"]) {
   test(`no serious accessibility violations on ${path}`, async ({ page }) => {
     await page.goto(path);
     const violations = await seriousViolations(new AxeBuilder({ page }));
-    expect(
-      violations,
-      violations.map((v) => `${v.id}: ${v.help}`).join("\n"),
-    ).toEqual([]);
+    expect(violations, violations.map((v) => `${v.id}: ${v.help}`).join("\n")).toEqual([]);
   });
 }

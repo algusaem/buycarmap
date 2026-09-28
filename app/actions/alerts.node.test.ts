@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  createAlertStore,
-  makeCriteria,
-  makeMatchListing,
-} from "@/test/fixtures/alerts";
+import { createAlertStore, makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
 
 let store: ReturnType<typeof createAlertStore>;
 
@@ -26,12 +22,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email/client";
 import { getLocale } from "@/lib/i18n/server";
 import { searchAllSources } from "@/lib/alerts/search";
-import {
-  createAlert,
-  deleteAlert,
-  listAlerts,
-  setLocale,
-} from "./alerts";
+import { createAlert, deleteAlert, listAlerts, setLocale } from "./alerts";
 
 const ADA = { id: "user-ada", email: "ada@example.com" };
 const GRACE = { id: "user-grace", email: "grace@example.com" };
@@ -93,9 +84,7 @@ describe("createAlert", () => {
 
     const result = await listAlerts();
 
-    expect(result.data?.map((row: { label: string }) => row.label)).toEqual([
-      "Audi A3 under 20k",
-    ]);
+    expect(result.data?.map((row: { label: string }) => row.label)).toEqual(["Audi A3 under 20k"]);
   });
 
   it("ALERT-2: records everything already listed as seen", async () => {
@@ -108,9 +97,12 @@ describe("createAlert", () => {
     await createAlert(makeCriteria(), "Audi A3 under 20k");
 
     const criteriaId = store.criteria()[0].id;
-    expect(store.seenFor(criteriaId).map((row) => row.listingId).sort()).toEqual(
-      ["cochesnet-99", "wallapop-abc123"],
-    );
+    expect(
+      store
+        .seenFor(criteriaId)
+        .map((row) => row.listingId)
+        .sort(),
+    ).toEqual(["cochesnet-99", "wallapop-abc123"]);
   });
 
   it("ALERT-2: emails nobody about what was already there", async () => {
@@ -135,9 +127,7 @@ describe("createAlert", () => {
     expect(store.criteria()).toHaveLength(1);
     expect(store.alerts()).toHaveLength(2);
     const [criteria] = store.criteria();
-    expect(
-      store.alerts().every((alert) => alert.criteriaId === criteria.id),
-    ).toBe(true);
+    expect(store.alerts().every((alert) => alert.criteriaId === criteria.id)).toBe(true);
   });
 
   it("ALERT-3: criteria differing only in key order still share a record", async () => {
@@ -164,10 +154,7 @@ describe("createAlert", () => {
   it("ALERT-6: rejects criteria that fail the search schema", async () => {
     signedInAs(ADA);
 
-    const result = await createAlert(
-      makeCriteria({ maxPrice: -5 }),
-      "Nonsense",
-    );
+    const result = await createAlert(makeCriteria({ maxPrice: -5 }), "Nonsense");
 
     expect(result).toEqual({ success: false, error: "invalidCriteria" });
     expect(store.alerts()).toEqual([]);
@@ -203,10 +190,7 @@ describe("createAlert", () => {
       await createAlert(makeCriteria({ maxPrice: 20000 + n }), `Alert ${n}`);
     }
 
-    const result = await createAlert(
-      makeCriteria({ maxPrice: 99000 }),
-      "One too many",
-    );
+    const result = await createAlert(makeCriteria({ maxPrice: 99000 }), "One too many");
 
     expect(result).toEqual({ success: false, error: "tooManyAlerts" });
     expect(store.alertsFor(ADA.id)).toHaveLength(20);
@@ -292,9 +276,7 @@ describe("listAlerts", () => {
 
     const result = await listAlerts();
 
-    expect(result.data?.map((row: { label: string }) => row.label)).toEqual([
-      "Ada's search",
-    ]);
+    expect(result.data?.map((row: { label: string }) => row.label)).toEqual(["Ada's search"]);
   });
 
   it("ALERT-1: an empty list is a success, not an error", async () => {

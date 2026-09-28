@@ -22,9 +22,7 @@ interface VerifyRegistrationResult {
  * a GET that creates accounts would let a scanner consume the token before the
  * recipient ever sees the page.
  */
-export async function verifyRegistration(
-  formData: FormData,
-): Promise<VerifyRegistrationResult> {
+export async function verifyRegistration(formData: FormData): Promise<VerifyRegistrationResult> {
   const ip = await getClientIp();
   const budget = await consumeRateLimit(
     `verify-registration:ip:${ip}`,
@@ -70,8 +68,7 @@ export async function verifyRegistration(
     // already had an account. Either way the account exists and the holder of
     // this mailbox can sign in, so treat it as done rather than as an error.
     const isDuplicate =
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002";
+      error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 
     if (!isDuplicate) {
       return { success: false, error: AUTH_ERROR.generic };

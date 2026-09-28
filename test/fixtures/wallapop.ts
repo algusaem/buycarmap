@@ -1,13 +1,8 @@
-import {
-  WallapopItem,
-  WallapopSearchResponse,
-} from "@/interfaces/wallapop";
+import { WallapopItem, WallapopSearchResponse } from "@/interfaces/wallapop";
 
 // A fully-populated, non-reserved Wallapop car item. Tests override only the
 // fields they care about so each fixture reads as "the normal case, except…".
-export function makeWallapopItem(
-  overrides: Partial<WallapopItem> = {},
-): WallapopItem {
+export function makeWallapopItem(overrides: Partial<WallapopItem> = {}): WallapopItem {
   return {
     id: "abc123",
     title: "Audi A3 2.0 TDI",

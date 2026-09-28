@@ -68,9 +68,7 @@ describe("AlertsList", () => {
 
   it("ALERT-28: marks an unsubscribed alert as inactive rather than hiding it", () => {
     renderWithI18n(
-      <AlertsList
-        alerts={[makeAlertSummary({ label: "Paused hunt", active: false })]}
-      />,
+      <AlertsList alerts={[makeAlertSummary({ label: "Paused hunt", active: false })]} />,
     );
 
     const [card] = screen.getAllByRole("article");

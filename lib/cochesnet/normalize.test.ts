@@ -42,18 +42,14 @@ describe("normalizeCochesNetItems", () => {
     const [firstResource] = normalizeCochesNetItems([
       makeCochesNetItem({ resources: [{ type: "VIDEO", url: "only.mp4" }] }),
     ]);
-    const [noResources] = normalizeCochesNetItems([
-      makeCochesNetItem({ resources: [] }),
-    ]);
+    const [noResources] = normalizeCochesNetItems([makeCochesNetItem({ resources: [] })]);
 
     expect(firstResource.image).toBe("only.mp4");
     expect(noResources.image).toBe("");
   });
 
   it("builds the subtitle from make + model, dropping blanks", () => {
-    const [listing] = normalizeCochesNetItems([
-      makeCochesNetItem({ make: "", model: "Ibiza" }),
-    ]);
+    const [listing] = normalizeCochesNetItems([makeCochesNetItem({ make: "", model: "Ibiza" })]);
 
     expect(listing.subtitle).toBe("Ibiza");
   });

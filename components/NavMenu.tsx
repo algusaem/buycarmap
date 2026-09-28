@@ -40,12 +40,7 @@ export function NavMenu({ open, onOpenChange, children }: NavMenuProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-11 w-11"
-          aria-label={t.nav.menu}
-        >
+        <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={t.nav.menu}>
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>

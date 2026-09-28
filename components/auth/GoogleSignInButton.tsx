@@ -32,19 +32,14 @@ const PALETTE = {
   dark: { fill: "#131314", stroke: "#8E918F", text: "#E3E3E3" },
 } as const;
 
-export function GoogleSignInButton({
-  isPending,
-  disabled,
-  onClick,
-}: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ isPending, disabled, onClick }: GoogleSignInButtonProps) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   // Without this the server renders one palette and the client another,
   // producing a hydration mismatch — same guard ListingsMap uses.
   const mounted = useMounted();
 
-  const colors =
-    mounted && resolvedTheme === "light" ? PALETTE.light : PALETTE.dark;
+  const colors = mounted && resolvedTheme === "light" ? PALETTE.light : PALETTE.dark;
 
   return (
     <button

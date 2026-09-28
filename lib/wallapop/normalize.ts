@@ -7,14 +7,11 @@ const WALLAPOP_BASE_URL = "https://es.wallapop.com/item";
 const FALLBACK_LAT = 40.4168;
 const FALLBACK_LNG = -3.7038;
 
-export function normalizeWallapopItems(
-  items: WallapopItem[],
-): CarListing[] {
+export function normalizeWallapopItems(items: WallapopItem[]): CarListing[] {
   return items
     .filter((item) => !item.reserved?.flag)
     .map((item): CarListing | null => {
-      const hasCoords =
-        item.location?.latitude != null && item.location?.longitude != null;
+      const hasCoords = item.location?.latitude != null && item.location?.longitude != null;
       const city = item.location?.city ?? "";
 
       let lat: number;
@@ -29,10 +26,7 @@ export function normalizeWallapopItems(
         lng = coords.lng;
       }
 
-      const image =
-        item.images?.[0]?.urls?.big ??
-        item.images?.[0]?.urls?.medium ??
-        "";
+      const image = item.images?.[0]?.urls?.big ?? item.images?.[0]?.urls?.medium ?? "";
       const slug = item.web_slug ?? item.id;
       const attrs = item.type_attributes;
 

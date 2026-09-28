@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  ALL_CARS_SLUG,
-  mapBrandToSlug,
-  mapFuelTokens,
-  mapTransmissionToken,
-} from "./taxonomy";
+import { ALL_CARS_SLUG, mapBrandToSlug, mapFuelTokens, mapTransmissionToken } from "./taxonomy";
 
 describe("mapBrandToSlug", () => {
   it("derives the slug for a regular brand name", () => {
@@ -16,9 +11,7 @@ describe("mapBrandToSlug", () => {
   });
 
   it("slugifies hyphenated and multi-word brands", () => {
-    expect(mapBrandToSlug("Mercedes-Benz")).toBe(
-      "mercedes-benz-de-segunda-mano",
-    );
+    expect(mapBrandToSlug("Mercedes-Benz")).toBe("mercedes-benz-de-segunda-mano");
     expect(mapBrandToSlug("Land Rover")).toBe("land-rover-de-segunda-mano");
   });
 
@@ -29,10 +22,7 @@ describe("mapBrandToSlug", () => {
 
 describe("mapFuelTokens", () => {
   it("maps Wallapop fuel tokens to Milanuncios tokens", () => {
-    expect(mapFuelTokens(["gasoline", "gasoil"])).toEqual([
-      "gasolina",
-      "diesel",
-    ]);
+    expect(mapFuelTokens(["gasoline", "gasoil"])).toEqual(["gasolina", "diesel"]);
   });
 
   it("collapses both hybrid tokens into a single 'hibrido'", () => {

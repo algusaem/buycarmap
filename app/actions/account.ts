@@ -21,9 +21,7 @@ interface AccountResult {
   error?: AuthErrorCode;
 }
 
-export async function updateProfile(
-  formData: FormData,
-): Promise<AccountResult> {
+export async function updateProfile(formData: FormData): Promise<AccountResult> {
   // Never trust middleware for authorization: it only decodes the JWT and
   // cannot see revocations. `getCurrentUser` runs the session callback.
   const user = await getCurrentUser();
@@ -57,9 +55,7 @@ export async function updateProfile(
   return { success: true };
 }
 
-export async function changePassword(
-  formData: FormData,
-): Promise<AccountResult> {
+export async function changePassword(formData: FormData): Promise<AccountResult> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -174,9 +170,7 @@ export async function signOutEverywhere(): Promise<AccountResult> {
  * way back in. Password reset could not rescue them either, since a
  * passwordless account is skipped by that flow.
  */
-export async function unlinkAccount(
-  formData: FormData,
-): Promise<AccountResult> {
+export async function unlinkAccount(formData: FormData): Promise<AccountResult> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -208,8 +202,7 @@ export async function unlinkAccount(
     return { success: true };
   }
 
-  const wouldBeLocallyUnreachable =
-    !record.password && record.accounts.length <= 1;
+  const wouldBeLocallyUnreachable = !record.password && record.accounts.length <= 1;
 
   if (wouldBeLocallyUnreachable) {
     return { success: false, error: AUTH_ERROR.lastSignInMethod };
@@ -224,9 +217,7 @@ export async function unlinkAccount(
   return { success: true };
 }
 
-export async function deleteAccount(
-  formData: FormData,
-): Promise<AccountResult> {
+export async function deleteAccount(formData: FormData): Promise<AccountResult> {
   const user = await getCurrentUser();
 
   if (!user) {

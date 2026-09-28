@@ -12,9 +12,7 @@ const wallapopItemContract = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
   price: z.object({ amount: z.number() }),
-  images: z
-    .array(z.object({ urls: z.object({ big: z.string().optional() }) }))
-    .optional(),
+  images: z.array(z.object({ urls: z.object({ big: z.string().optional() }) })).optional(),
   location: z
     .object({
       latitude: z.number().nullable().optional(),

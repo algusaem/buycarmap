@@ -25,17 +25,9 @@ vi.mock("react-leaflet", () => ({
   MapContainer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="map">{children}</div>
   ),
-  TileLayer: ({ url }: { url: string }) => (
-    <div data-testid="tiles" data-url={url} />
-  ),
+  TileLayer: ({ url }: { url: string }) => <div data-testid="tiles" data-url={url} />,
   ZoomControl: () => null,
-  Marker: ({
-    position,
-    children,
-  }: {
-    position: [number, number];
-    children: React.ReactNode;
-  }) => (
+  Marker: ({ position, children }: { position: [number, number]; children: React.ReactNode }) => (
     <div data-testid="marker" data-position={position.join(",")}>
       {children}
     </div>
@@ -50,8 +42,7 @@ vi.mock("next-themes", () => ({
 }));
 
 const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-const LIGHT_TILES =
-  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+const LIGHT_TILES = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
 function makeListing(overrides: Partial<CarListing> = {}): CarListing {
   return {
@@ -84,16 +75,14 @@ describe("ListingsMap markers", () => {
   it("drops one marker per listing at its own coordinates", () => {
     renderWithI18n(
       <ListingsMap
-        listings={[
-          makeListing(),
-          makeListing({ id: "wallapop-2", lat: 41.3874, lng: 2.1686 }),
-        ]}
+        listings={[makeListing(), makeListing({ id: "wallapop-2", lat: 41.3874, lng: 2.1686 })]}
       />,
     );
 
-    expect(
-      screen.getAllByTestId("marker").map((m) => m.dataset.position),
-    ).toEqual(["40.4168,-3.7038", "41.3874,2.1686"]);
+    expect(screen.getAllByTestId("marker").map((m) => m.dataset.position)).toEqual([
+      "40.4168,-3.7038",
+      "41.3874,2.1686",
+    ]);
   });
 
   it("labels each marker with its title and localised price", () => {
@@ -115,10 +104,7 @@ describe("ListingsMap viewport", () => {
   it("fits the viewport to every listing", () => {
     renderWithI18n(
       <ListingsMap
-        listings={[
-          makeListing(),
-          makeListing({ id: "wallapop-2", lat: 41.3874, lng: 2.1686 }),
-        ]}
+        listings={[makeListing(), makeListing({ id: "wallapop-2", lat: 41.3874, lng: 2.1686 })]}
       />,
     );
 

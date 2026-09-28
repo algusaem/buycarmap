@@ -108,9 +108,7 @@ export function ListingsHeader({
         </div>
       </div>
 
-      <AnimatePresence>
-        {filtersOpen && <SearchFilters {...filterProps} />}
-      </AnimatePresence>
+      <AnimatePresence>{filtersOpen && <SearchFilters {...filterProps} />}</AnimatePresence>
     </div>
   );
 }

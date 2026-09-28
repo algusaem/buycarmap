@@ -55,9 +55,9 @@ describe("validateNewPassword", () => {
   it("forwards the caller's own email and name into the scorer", async () => {
     // Without this the user's own address would sail through as a password —
     // the first thing a targeted attacker tries.
-    expect(
-      await validateNewPassword("ada-lovelace-1815", ["ada@example.com"]),
-    ).toBe("passwordWeak");
+    expect(await validateNewPassword("ada-lovelace-1815", ["ada@example.com"])).toBe(
+      "passwordWeak",
+    );
     expect(checkPasswordBreached).not.toHaveBeenCalled();
   });
 

@@ -28,9 +28,6 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch {
-    return NextResponse.json(
-      { error: "Wallapop request failed" },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: "Wallapop request failed" }, { status: 502 });
   }
 }

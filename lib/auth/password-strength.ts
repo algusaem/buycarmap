@@ -34,18 +34,87 @@ export interface PasswordStrength {
 // The passwords that dominate every credential-stuffing list. This is a
 // short-circuit for instant feedback while typing; HIBP is the real filter.
 const COMMON_PASSWORDS = new Set([
-  "password", "123456", "12345678", "123456789", "1234567890", "qwerty",
-  "abc123", "letmein", "monkey", "dragon", "111111", "iloveyou", "admin",
-  "welcome", "login", "master", "hello", "freedom", "whatever", "trustno",
-  "sunshine", "princess", "football", "baseball", "superman", "batman",
-  "shadow", "michael", "jennifer", "jordan", "harley", "ranger", "hunter",
-  "buster", "soccer", "tigger", "charlie", "andrew", "matthew", "access",
-  "thomas", "robert", "daniel", "starwars", "computer", "internet", "samsung",
-  "google", "facebook", "secret", "summer", "winter", "spring", "autumn",
-  "changeme", "passw0rd", "qwertyuiop", "asdfgh", "zxcvbn", "pokemon",
-  "contrasena", "contraseña", "hola", "amor", "españa", "espana", "madrid",
-  "barcelona", "real", "sevilla", "valencia", "carlos", "javier", "manuel",
-  "antonio", "francisco", "maria", "carmen", "laura", "alejandro", "coche",
+  "password",
+  "123456",
+  "12345678",
+  "123456789",
+  "1234567890",
+  "qwerty",
+  "abc123",
+  "letmein",
+  "monkey",
+  "dragon",
+  "111111",
+  "iloveyou",
+  "admin",
+  "welcome",
+  "login",
+  "master",
+  "hello",
+  "freedom",
+  "whatever",
+  "trustno",
+  "sunshine",
+  "princess",
+  "football",
+  "baseball",
+  "superman",
+  "batman",
+  "shadow",
+  "michael",
+  "jennifer",
+  "jordan",
+  "harley",
+  "ranger",
+  "hunter",
+  "buster",
+  "soccer",
+  "tigger",
+  "charlie",
+  "andrew",
+  "matthew",
+  "access",
+  "thomas",
+  "robert",
+  "daniel",
+  "starwars",
+  "computer",
+  "internet",
+  "samsung",
+  "google",
+  "facebook",
+  "secret",
+  "summer",
+  "winter",
+  "spring",
+  "autumn",
+  "changeme",
+  "passw0rd",
+  "qwertyuiop",
+  "asdfgh",
+  "zxcvbn",
+  "pokemon",
+  "contrasena",
+  "contraseña",
+  "hola",
+  "amor",
+  "españa",
+  "espana",
+  "madrid",
+  "barcelona",
+  "real",
+  "sevilla",
+  "valencia",
+  "carlos",
+  "javier",
+  "manuel",
+  "antonio",
+  "francisco",
+  "maria",
+  "carmen",
+  "laura",
+  "alejandro",
+  "coche",
 ]);
 
 const KEYBOARD_ROWS = [
@@ -96,9 +165,7 @@ function candidateForms(password: string): string[] {
 }
 
 function isCommon(password: string): boolean {
-  return candidateForms(password).some(
-    (form) => form.length > 0 && COMMON_PASSWORDS.has(form),
-  );
+  return candidateForms(password).some((form) => form.length > 0 && COMMON_PASSWORDS.has(form));
 }
 
 // Runs of 4+ characters that step by one in either direction ("abcd", "4321").
@@ -145,10 +212,7 @@ function hasRepeatedRun(password: string): boolean {
 
 // Does the password contain the user's own email or name? Those are the first
 // guesses a targeted attacker makes.
-function containsPersonalInfo(
-  password: string,
-  userInputs: readonly string[],
-): boolean {
+function containsPersonalInfo(password: string, userInputs: readonly string[]): boolean {
   const lower = password.toLowerCase();
 
   return userInputs.some((raw) => {

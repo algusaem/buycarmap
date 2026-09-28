@@ -28,23 +28,21 @@ async function withClient<T>(fn: (client: pg.Client) => Promise<T>): Promise<T> 
 export async function seedUser(
   email: string,
   password: string,
-  name = "Seeded User"
+  name = "Seeded User",
 ): Promise<void> {
   const id = `${e2eEmail("id")}`;
   const hash = await bcrypt.hash(password, 12);
   await withClient((client) =>
     client.query(
       'INSERT INTO "User"(id, email, password, name, "updatedAt") VALUES ($1, $2, $3, $4, now())',
-      [id, email, hash, name]
-    )
+      [id, email, hash, name],
+    ),
   );
 }
 
 export async function userExists(email: string): Promise<boolean> {
   return withClient(async (client) => {
-    const result = await client.query('SELECT 1 FROM "User" WHERE email = $1', [
-      email,
-    ]);
+    const result = await client.query('SELECT 1 FROM "User" WHERE email = $1', [email]);
     return (result.rowCount ?? 0) > 0;
   });
 }
@@ -52,10 +50,9 @@ export async function userExists(email: string): Promise<boolean> {
 /** Delete every account created by this suite. Safe to call repeatedly. */
 export async function cleanupE2eUsers(): Promise<number> {
   return withClient(async (client) => {
-    const result = await client.query(
-      `DELETE FROM "User" WHERE email LIKE $1`,
-      [`%@${E2E_EMAIL_DOMAIN}`]
-    );
+    const result = await client.query(`DELETE FROM "User" WHERE email LIKE $1`, [
+      `%@${E2E_EMAIL_DOMAIN}`,
+    ]);
     return result.rowCount ?? 0;
   });
 }
@@ -83,7 +80,7 @@ export async function favoriteCount(email: string): Promise<number> {
   return withClient(async (client) => {
     const result = await client.query(
       'SELECT COUNT(*)::int AS n FROM "Favorite" f JOIN "User" u ON u.id = f."userId" WHERE u.email = $1',
-      [email]
+      [email],
     );
     return result.rows[0].n as number;
   });
@@ -115,9 +112,7 @@ const CLAIM_SQL = `
 export async function clearAlertQueue(): Promise<void> {
   await withClient(async (client) => {
     await client.query('DELETE FROM "AlertPollJob"');
-    await client.query('DELETE FROM "AlertCriteria" WHERE "criteriaHash" LIKE $1', [
-      "e2e-%",
-    ]);
+    await client.query('DELETE FROM "AlertCriteria" WHERE "criteriaHash" LIKE $1', ["e2e-%"]);
   });
 }
 
@@ -194,10 +189,7 @@ export async function claimConcurrently(
     await a.query("ROLLBACK");
     await b.query("ROLLBACK");
 
-    return [
-      first.rows.map((row) => row.id as string),
-      second.rows.map((row) => row.id as string),
-    ];
+    return [first.rows.map((row) => row.id as string), second.rows.map((row) => row.id as string)];
   } finally {
     await a.end();
     await b.end();

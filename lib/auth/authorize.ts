@@ -31,9 +31,7 @@ export function loginEmailRateKey(email: string): string {
 // user genuinely needs to know why they are being turned away and the signal
 // reveals nothing about whether the account exists.
 export async function authorizeCredentials(
-  credentials:
-    | Partial<Record<"email" | "password" | "totp", string>>
-    | undefined,
+  credentials: Partial<Record<"email" | "password" | "totp", string>> | undefined,
 ): Promise<AuthorizedUser | null> {
   if (!credentials?.email || !credentials?.password) {
     return null;
@@ -45,10 +43,7 @@ export async function authorizeCredentials(
   // Per-IP budget is consumed on every attempt, successful or not, so a single
   // host cannot grind through a password list even across many accounts.
   const ip = await getClientIp();
-  const ipBudget = await consumeRateLimit(
-    `login:ip:${ip}`,
-    RATE_LIMITS.loginPerIp,
-  );
+  const ipBudget = await consumeRateLimit(`login:ip:${ip}`, RATE_LIMITS.loginPerIp);
 
   if (!ipBudget.allowed) {
     throw new Error(AUTH_ERROR.rateLimited);
@@ -77,10 +72,7 @@ export async function authorizeCredentials(
     return null;
   }
 
-  const isValidPassword = await verifyPassword(
-    credentials.password,
-    user.password,
-  );
+  const isValidPassword = await verifyPassword(credentials.password, user.password);
 
   if (!isValidPassword) {
     await consumeRateLimit(emailKey, RATE_LIMITS.loginPerEmail);

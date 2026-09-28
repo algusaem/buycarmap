@@ -21,9 +21,7 @@ describe("extractInitialProps", () => {
   it("survives escaped quotes inside the embedded JSON", () => {
     // A title with a double quote must round-trip through the double-decode.
     const html = makeMilanunciosHtml(
-      makeMilanunciosResponse([
-        makeMilanunciosAd({ title: 'BMW 320d "M Sport"' }),
-      ]),
+      makeMilanunciosResponse([makeMilanunciosAd({ title: 'BMW 320d "M Sport"' })]),
     );
     expect(extractInitialProps(html).ads[0].title).toBe('BMW 320d "M Sport"');
   });

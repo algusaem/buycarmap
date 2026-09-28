@@ -64,16 +64,9 @@ export function Navbar() {
             focusable elements would be an axe violation in its own right.
             It reserves the signed-out width: the first-visit case, and the only
             one that can be guessed before the session says otherwise. */}
-        <div
-          aria-hidden={isLoading}
-          className={cn("flex items-center", isLoading && "invisible")}
-        >
+        <div aria-hidden={isLoading} className={cn("flex items-center", isLoading && "invisible")}>
           {isLoading ? (
-            <SignedOutControls
-              menuOpen={false}
-              onMenuOpenChange={() => {}}
-              pathname={pathname}
-            />
+            <SignedOutControls menuOpen={false} onMenuOpenChange={() => {}} pathname={pathname} />
           ) : session ? (
             <SignedInControls
               name={session.user.name || session.user.email}
@@ -106,11 +99,7 @@ interface SignedInControlsProps extends ControlsProps {
   email: string;
 }
 
-function SignedOutControls({
-  menuOpen,
-  onMenuOpenChange,
-  pathname,
-}: ControlsProps) {
+function SignedOutControls({ menuOpen, onMenuOpenChange, pathname }: ControlsProps) {
   const { t } = useTranslation();
 
   return (
@@ -164,10 +153,7 @@ function SignedInControls({
             destinations a signed-in user came for, and burying a frequent one
             to tidy a row trades against them to buy nothing. */}
         <Button asChild variant="ghost" size="sm">
-          <Link
-            href="/favorites"
-            aria-current={currentPage(pathname, "/favorites")}
-          >
+          <Link href="/favorites" aria-current={currentPage(pathname, "/favorites")}>
             <Heart className="h-4 w-4 shrink-0" />
             {t.nav.favorites}
           </Link>

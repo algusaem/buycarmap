@@ -73,10 +73,7 @@ async function pruneExpired(): Promise<void> {
  * a read-then-write would let concurrent attempts both observe the old count
  * and slip past the limit.
  */
-export async function consumeRateLimit(
-  key: string,
-  rule: RateLimitRule,
-): Promise<RateLimitResult> {
+export async function consumeRateLimit(key: string, rule: RateLimitRule): Promise<RateLimitResult> {
   const expiresAt = new Date(Date.now() + rule.windowMs);
 
   try {
@@ -110,9 +107,7 @@ export async function consumeRateLimit(
     return {
       allowed,
       remaining: Math.max(0, rule.limit - row.count),
-      retryAfterMs: allowed
-        ? 0
-        : Math.max(0, new Date(row.expiresAt).getTime() - Date.now()),
+      retryAfterMs: allowed ? 0 : Math.max(0, new Date(row.expiresAt).getTime() - Date.now()),
     };
   } catch {
     // Fail open. A limiter that hard-fails the request when the database
@@ -123,10 +118,7 @@ export async function consumeRateLimit(
 }
 
 /** Read-only check that does not consume budget. */
-export async function isRateLimited(
-  key: string,
-  rule: RateLimitRule,
-): Promise<boolean> {
+export async function isRateLimited(key: string, rule: RateLimitRule): Promise<boolean> {
   try {
     const row = await prisma.rateLimit.findUnique({ where: { key } });
 

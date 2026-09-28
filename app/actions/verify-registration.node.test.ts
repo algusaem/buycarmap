@@ -56,9 +56,7 @@ beforeEach(() => {
 
 describe("verifyRegistration token handling", () => {
   it("looks the token up by its hash, never by the raw value", async () => {
-    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(
-      pendingRecord() as never,
-    );
+    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(pendingRecord() as never);
 
     await verifyRegistration(formData({ token: RAW_TOKEN }));
 
@@ -127,9 +125,7 @@ describe("verifyRegistration token handling", () => {
 
 describe("verifyRegistration account creation", () => {
   beforeEach(() => {
-    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(
-      pendingRecord() as never,
-    );
+    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(pendingRecord() as never);
   });
 
   it("AUTH-2: creates the user from the stored hash and marks the email verified", async () => {
@@ -175,9 +171,7 @@ describe("verifyRegistration account creation", () => {
   });
 
   it("returns a generic failure on an unexpected DB error, leaving the token", async () => {
-    vi.mocked(prisma.user.create).mockRejectedValue(
-      new Error("connection lost"),
-    );
+    vi.mocked(prisma.user.create).mockRejectedValue(new Error("connection lost"));
 
     expect(await verifyRegistration(formData({ token: RAW_TOKEN }))).toEqual({
       success: false,

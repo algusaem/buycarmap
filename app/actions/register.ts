@@ -4,12 +4,7 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/hash";
 import { validateNewPassword } from "@/lib/auth/password-policy";
-import {
-  REGISTRATION_TTL_MS,
-  generateToken,
-  hashToken,
-  tokenExpiry,
-} from "@/lib/auth/tokens";
+import { REGISTRATION_TTL_MS, generateToken, hashToken, tokenExpiry } from "@/lib/auth/tokens";
 import { appUrl, isEmailConfigured } from "@/lib/env";
 import { maybePruneExpiredAuthRows } from "@/lib/auth/cleanup";
 import { sendEmail } from "@/lib/email/client";
@@ -19,11 +14,7 @@ import {
 } from "@/lib/email/templates/auth-emails";
 import { getLocale } from "@/lib/i18n/server";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/lib/rate-limit";
-import {
-  AUTH_ERROR,
-  type AuthErrorCode,
-  registerSchema,
-} from "@/lib/validations/auth";
+import { AUTH_ERROR, type AuthErrorCode, registerSchema } from "@/lib/validations/auth";
 import { optionalString, requiredString } from "@/lib/validations/form-data";
 
 interface RegisterResult {
@@ -42,10 +33,7 @@ interface RegisterResult {
 // Tells the owner of the address that someone tried to sign up with it.
 async function notifyExistingAccount(email: string): Promise<void> {
   const locale = await getLocale();
-  const { subject, html, text } = renderExistingAccountEmail(
-    locale,
-    `${appUrl}/login`,
-  );
+  const { subject, html, text } = renderExistingAccountEmail(locale, `${appUrl}/login`);
   await sendEmail({ to: email, subject, html, text });
 }
 
@@ -110,10 +98,7 @@ async function registerWithoutEmail(
     });
   } catch (error) {
     // The check above is not atomic: the DB's unique index is the real guard.
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: AUTH_ERROR.emailTaken };
     }
     return { success: false, error: AUTH_ERROR.generic };
@@ -124,10 +109,7 @@ async function registerWithoutEmail(
 
 export async function register(formData: FormData): Promise<RegisterResult> {
   const ip = await getClientIp();
-  const budget = await consumeRateLimit(
-    `register:ip:${ip}`,
-    RATE_LIMITS.registerPerIp,
-  );
+  const budget = await consumeRateLimit(`register:ip:${ip}`, RATE_LIMITS.registerPerIp);
 
   if (!budget.allowed) {
     return { success: false, error: AUTH_ERROR.rateLimited };

@@ -19,8 +19,7 @@ vi.mock("@/app/actions/account", () => ({
   signOutEverywhere: (...args: unknown[]) => signOutEverywhere(...args),
 }));
 
-const button = () =>
-  screen.getByRole("button", { name: "Sign out everywhere" });
+const button = () => screen.getByRole("button", { name: "Sign out everywhere" });
 
 beforeEach(() => {
   signOut.mockReset();
@@ -48,9 +47,7 @@ describe("SessionsCard", () => {
     await waitFor(() => expect(signOutEverywhere).toHaveBeenCalledOnce());
     // The revocation clock now excludes this token too, so drop it here rather
     // than waiting for the next revalidation to notice.
-    await waitFor(() =>
-      expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/" }),
-    );
+    await waitFor(() => expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/" }));
   });
 
   it("stays signed in when the server refuses", async () => {

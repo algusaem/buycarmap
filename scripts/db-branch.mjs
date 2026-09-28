@@ -96,10 +96,7 @@ async function waitForOperations(apiKey, projectId, operations) {
   for (let attempt = 0; attempt < 60; attempt++) {
     const states = await Promise.all(
       pending.map(async (op) => {
-        const { operation } = await neon(
-          apiKey,
-          `/projects/${projectId}/operations/${op.id}`,
-        );
+        const { operation } = await neon(apiKey, `/projects/${projectId}/operations/${op.id}`);
         return operation.status;
       }),
     );
@@ -191,9 +188,7 @@ async function main() {
     }
     // The main checkout's DATABASE_URL is the one thing that must keep working.
     if (mainEnv.DATABASE_URL?.includes(existing.id)) {
-      fail(
-        `Refusing to delete "${target}": the main checkout's DATABASE_URL still points at it.`,
-      );
+      fail(`Refusing to delete "${target}": the main checkout's DATABASE_URL still points at it.`);
     }
 
     await neon(apiKey, `/projects/${projectId}/branches/${existing.id}`, {

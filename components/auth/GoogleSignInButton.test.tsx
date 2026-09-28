@@ -26,9 +26,7 @@ describe("GoogleSignInButton branding", () => {
   // asserted literally rather than against the app's own tokens.
   it("uses Google's dark palette on the dark theme", () => {
     useTheme.mockReturnValue({ resolvedTheme: "dark" });
-    renderWithI18n(
-      <GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />,
-    );
+    renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />);
 
     expect(button()).toHaveStyle({
       backgroundColor: "#131314",
@@ -39,9 +37,7 @@ describe("GoogleSignInButton branding", () => {
 
   it("uses Google's light palette on the light theme", () => {
     useTheme.mockReturnValue({ resolvedTheme: "light" });
-    renderWithI18n(
-      <GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />,
-    );
+    renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />);
 
     expect(button()).toHaveStyle({
       backgroundColor: "#FFFFFF",
@@ -55,31 +51,26 @@ describe("GoogleSignInButton branding", () => {
     // and useMounted holds the first render back regardless. Dark is the app's
     // default, so defaulting there keeps the common case flash-free.
     useTheme.mockReturnValue({ resolvedTheme: undefined });
-    renderWithI18n(
-      <GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />,
-    );
+    renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />);
 
     expect(button()).toHaveStyle({ backgroundColor: "#131314" });
   });
 
   it("uses one of Google's three permitted call-to-action strings", () => {
-    renderWithI18n(
-      <GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />,
-    );
+    renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />);
 
     // "Sign in with", "Sign up with" and "Continue with" are the only phrasings
     // Google permits, each followed by exactly "Google".
-    expect(["Sign in with Google", "Sign up with Google", "Continue with Google"])
-      .toContain(button().textContent?.trim());
+    expect(["Sign in with Google", "Sign up with Google", "Continue with Google"]).toContain(
+      button().textContent?.trim(),
+    );
   });
 });
 
 describe("GoogleSignInButton behaviour", () => {
   it("calls onClick when pressed", async () => {
     const onClick = vi.fn();
-    renderWithI18n(
-      <GoogleSignInButton isPending={false} disabled={false} onClick={onClick} />,
-    );
+    renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={onClick} />);
 
     await userEvent.click(button());
 
@@ -88,9 +79,7 @@ describe("GoogleSignInButton behaviour", () => {
 
   it("does not fire while disabled by another provider's redirect", async () => {
     const onClick = vi.fn();
-    renderWithI18n(
-      <GoogleSignInButton isPending={false} disabled onClick={onClick} />,
-    );
+    renderWithI18n(<GoogleSignInButton isPending={false} disabled onClick={onClick} />);
 
     expect(button()).toBeDisabled();
     await userEvent.click(button());
@@ -99,9 +88,7 @@ describe("GoogleSignInButton behaviour", () => {
   });
 
   it("keeps its label while pending so the button does not collapse", () => {
-    renderWithI18n(
-      <GoogleSignInButton isPending disabled onClick={vi.fn()} />,
-    );
+    renderWithI18n(<GoogleSignInButton isPending disabled onClick={vi.fn()} />);
 
     // The spinner replaces the logo, not the text — a button that empties out
     // mid-click shifts the layout and loses its accessible name.

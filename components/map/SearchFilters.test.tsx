@@ -111,9 +111,7 @@ describe("SearchFilters brand and model", () => {
   it("hides the model selector until a brand is chosen", () => {
     renderWithI18n(<SearchFilters {...makeFilterProps()} />);
 
-    expect(
-      screen.queryByRole("combobox", { name: /Model/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: /Model/ })).not.toBeInTheDocument();
   });
 
   it("offers the models fetched for the selected brand", async () => {
@@ -166,9 +164,7 @@ describe("SearchFilters ranges and reset", () => {
   it("hides the reset control when nothing is filtered", () => {
     renderWithI18n(<SearchFilters {...makeFilterProps()} />);
 
-    expect(
-      screen.queryByRole("button", { name: "Clear filters" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
   });
 
   it("resets everything once a filter is active", async () => {
@@ -182,9 +178,7 @@ describe("SearchFilters ranges and reset", () => {
 
   it("has no accessibility violations", async () => {
     const { container } = renderWithI18n(
-      <SearchFilters
-        {...makeFilterProps({ brand: "Audi", engine: ["gasoil"] })}
-      />,
+      <SearchFilters {...makeFilterProps({ brand: "Audi", engine: ["gasoil"] })} />,
     );
 
     expect(await axe(container)).toHaveNoViolations();

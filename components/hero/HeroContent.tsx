@@ -79,12 +79,7 @@ export function HeroContent() {
               className="border-0 bg-transparent pl-10 text-base shadow-none focus-visible:ring-0"
             />
           </div>
-          <Button
-            type="submit"
-            size="lg"
-            className="gap-2 px-6"
-            aria-label={t.common.search}
-          >
+          <Button type="submit" size="lg" className="gap-2 px-6" aria-label={t.common.search}>
             <span className="hidden sm:inline">{t.common.search}</span>
             <ArrowRight className="h-4 w-4" />
           </Button>
@@ -92,9 +87,7 @@ export function HeroContent() {
 
         {/* Quick filters */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            {t.common.popular}
-          </span>
+          <span className="text-sm text-muted-foreground">{t.common.popular}</span>
           {["Golf", "Seat León", "BMW Serie 3", "Audi A4"].map((term, i) => (
             <motion.button
               key={term}

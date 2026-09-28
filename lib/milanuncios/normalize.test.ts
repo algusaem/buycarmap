@@ -8,8 +8,7 @@ describe("normalizeMilanunciosItems", () => {
 
     expect(listing).toEqual({
       id: "milanuncios-602662777",
-      image:
-        "https://images.milanuncios.com/api/v1/ma-ad-media-pro/images/dc7697b0?rule=hw396_70",
+      image: "https://images.milanuncios.com/api/v1/ma-ad-media-pro/images/dc7697b0?rule=hw396_70",
       title: "AUDI Q5 35 TDI 120kW 163CV S tronic",
       subtitle: "Único propietario, libro de revisiones, garantía 12 meses.",
       price: 34900,
@@ -53,9 +52,7 @@ describe("normalizeMilanunciosItems", () => {
   });
 
   it("SRC-4: defaults km and year to 0 when the tags are missing", () => {
-    const [listing] = normalizeMilanunciosItems([
-      makeMilanunciosAd({ tags: [] }),
-    ]);
+    const [listing] = normalizeMilanunciosItems([makeMilanunciosAd({ tags: [] })]);
 
     expect(listing.mileage).toBe(0);
     expect(listing.year).toBe(0);
@@ -78,9 +75,7 @@ describe("normalizeMilanunciosItems", () => {
   it("does not append a rule when one is already present", () => {
     const [listing] = normalizeMilanunciosItems([
       makeMilanunciosAd({
-        images: [
-          "https://images.milanuncios.com/api/v1/ma-ad-media-pro/images/x?rule=hw800_70",
-        ],
+        images: ["https://images.milanuncios.com/api/v1/ma-ad-media-pro/images/x?rule=hw800_70"],
       }),
     ]);
 
@@ -98,9 +93,7 @@ describe("normalizeMilanunciosItems", () => {
   });
 
   it("falls back to the brand for the subtitle when there is no description", () => {
-    const [listing] = normalizeMilanunciosItems([
-      makeMilanunciosAd({ description: undefined }),
-    ]);
+    const [listing] = normalizeMilanunciosItems([makeMilanunciosAd({ description: undefined })]);
 
     expect(listing.subtitle).toBe("Audi");
   });

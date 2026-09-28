@@ -35,11 +35,7 @@ import { verifyPassword } from "@/lib/auth/hash";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { verifyAndConsumeTwoFactor } from "@/lib/auth/two-factor/verify";
 import { decryptSecret, encryptSecret } from "@/lib/auth/two-factor/encryption";
-import {
-  deriveCode,
-  generateTotpSecret,
-  stepForTime,
-} from "@/lib/auth/two-factor/totp";
+import { deriveCode, generateTotpSecret, stepForTime } from "@/lib/auth/two-factor/totp";
 import {
   confirmTwoFactorSetup,
   disableTwoFactor,
@@ -161,9 +157,7 @@ describe("startTwoFactorSetup", () => {
     const { otpauthUri } = await startTwoFactorSetup();
 
     expect(otpauthUri).toContain("otpauth://totp/");
-    expect(decodeURIComponent(otpauthUri as string)).toContain(
-      "ada@example.com",
-    );
+    expect(decodeURIComponent(otpauthUri as string)).toContain("ada@example.com");
   });
 });
 
@@ -189,15 +183,14 @@ describe("confirmTwoFactorSetup", () => {
       twoFactorEnabledAt: null,
     } as never);
 
-    expect(
-      await confirmTwoFactorSetup(formData({ code: currentCode() })),
-    ).toEqual({ success: false, error: "totpNotEnabled" });
+    expect(await confirmTwoFactorSetup(formData({ code: currentCode() }))).toEqual({
+      success: false,
+      error: "totpNotEnabled",
+    });
   });
 
   it("enables two-factor and returns ten recovery codes on a valid code", async () => {
-    const result = await confirmTwoFactorSetup(
-      formData({ code: currentCode() }),
-    );
+    const result = await confirmTwoFactorSetup(formData({ code: currentCode() }));
 
     expect(result.success).toBe(true);
     expect(result.recoveryCodes).toHaveLength(10);
@@ -205,12 +198,11 @@ describe("confirmTwoFactorSetup", () => {
   });
 
   it("returns codes only in this response, never storing them readable", async () => {
-    const result = await confirmTwoFactorSetup(
-      formData({ code: currentCode() }),
-    );
+    const result = await confirmTwoFactorSetup(formData({ code: currentCode() }));
 
-    const created = vi.mocked(prisma.twoFactorRecoveryCode.createMany).mock
-      .calls[0]?.[0] as { data: { codeHash: string }[] } | undefined;
+    const created = vi.mocked(prisma.twoFactorRecoveryCode.createMany).mock.calls[0]?.[0] as
+      | { data: { codeHash: string }[] }
+      | undefined;
 
     for (const code of result.recoveryCodes ?? []) {
       expect(JSON.stringify(created)).not.toContain(code);
@@ -236,9 +228,10 @@ describe("confirmTwoFactorSetup", () => {
       retryAfterMs: 60_000,
     });
 
-    expect(
-      await confirmTwoFactorSetup(formData({ code: currentCode() })),
-    ).toEqual({ success: false, error: "rateLimited" });
+    expect(await confirmTwoFactorSetup(formData({ code: currentCode() }))).toEqual({
+      success: false,
+      error: "rateLimited",
+    });
   });
 });
 
@@ -260,21 +253,19 @@ describe("disableTwoFactor", () => {
       twoFactorEnabledAt: null,
     } as never);
 
-    expect(
-      await disableTwoFactor(
-        formData({ currentPassword: "pw", code: "123456" }),
-      ),
-    ).toEqual({ success: false, error: "totpNotEnabled" });
+    expect(await disableTwoFactor(formData({ currentPassword: "pw", code: "123456" }))).toEqual({
+      success: false,
+      error: "totpNotEnabled",
+    });
   });
 
   it("rejects a wrong password before looking at the code", async () => {
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
-    expect(
-      await disableTwoFactor(
-        formData({ currentPassword: "wrong", code: "123456" }),
-      ),
-    ).toEqual({ success: false, error: "currentPasswordIncorrect" });
+    expect(await disableTwoFactor(formData({ currentPassword: "wrong", code: "123456" }))).toEqual({
+      success: false,
+      error: "currentPasswordIncorrect",
+    });
     expect(verifyAndConsumeTwoFactor).not.toHaveBeenCalled();
   });
 
@@ -288,9 +279,7 @@ describe("disableTwoFactor", () => {
     });
 
     expect(
-      await disableTwoFactor(
-        formData({ currentPassword: "correct", code: "000000" }),
-      ),
+      await disableTwoFactor(formData({ currentPassword: "correct", code: "000000" })),
     ).toEqual({ success: false, error: "totpInvalid" });
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
@@ -303,9 +292,7 @@ describe("disableTwoFactor", () => {
     });
 
     expect(
-      await disableTwoFactor(
-        formData({ currentPassword: "correct", code: "123456" }),
-      ),
+      await disableTwoFactor(formData({ currentPassword: "correct", code: "123456" })),
     ).toEqual({ success: true });
 
     expect(prisma.user.update).toHaveBeenCalledWith({
@@ -331,25 +318,25 @@ describe("regenerateRecoveryCodes", () => {
   });
 
   it("requires the password", async () => {
-    expect(
-      await regenerateRecoveryCodes(formData({ currentPassword: "" })),
-    ).toEqual({ success: false, error: "passwordRequired" });
+    expect(await regenerateRecoveryCodes(formData({ currentPassword: "" }))).toEqual({
+      success: false,
+      error: "passwordRequired",
+    });
   });
 
   it("rejects a wrong password", async () => {
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
-    expect(
-      await regenerateRecoveryCodes(formData({ currentPassword: "wrong" })),
-    ).toEqual({ success: false, error: "currentPasswordIncorrect" });
+    expect(await regenerateRecoveryCodes(formData({ currentPassword: "wrong" }))).toEqual({
+      success: false,
+      error: "currentPasswordIncorrect",
+    });
   });
 
   it("does not demand a code, since the usual reason to be here is losing them", async () => {
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
-    const result = await regenerateRecoveryCodes(
-      formData({ currentPassword: "correct" }),
-    );
+    const result = await regenerateRecoveryCodes(formData({ currentPassword: "correct" }));
 
     expect(result.success).toBe(true);
     expect(verifyAndConsumeTwoFactor).not.toHaveBeenCalled();
@@ -358,9 +345,7 @@ describe("regenerateRecoveryCodes", () => {
   it("replaces the previous set rather than adding to it", async () => {
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
-    const result = await regenerateRecoveryCodes(
-      formData({ currentPassword: "correct" }),
-    );
+    const result = await regenerateRecoveryCodes(formData({ currentPassword: "correct" }));
 
     expect(result.recoveryCodes).toHaveLength(10);
     expect(prisma.twoFactorRecoveryCode.deleteMany).toHaveBeenCalledWith({
@@ -374,9 +359,10 @@ describe("regenerateRecoveryCodes", () => {
       twoFactorEnabledAt: null,
     } as never);
 
-    expect(
-      await regenerateRecoveryCodes(formData({ currentPassword: "correct" })),
-    ).toEqual({ success: false, error: "totpNotEnabled" });
+    expect(await regenerateRecoveryCodes(formData({ currentPassword: "correct" }))).toEqual({
+      success: false,
+      error: "totpNotEnabled",
+    });
   });
 });
 

@@ -49,9 +49,7 @@ describe("proxy protected routes", () => {
 
     const response = await proxy(request("/account/security"));
 
-    expect(new URL(response.headers.get("location") as string).pathname).toBe(
-      "/login",
-    );
+    expect(new URL(response.headers.get("location") as string).pathname).toBe("/login");
   });
 
   it("does not guard a route that merely starts with the same characters", async () => {
@@ -62,17 +60,13 @@ describe("proxy protected routes", () => {
     expect(await proxy(request("/accounts-help"))).toMatchObject({
       status: 200,
     });
-    expect(
-      (await proxy(request("/accounts-help"))).headers.get("location"),
-    ).toBeNull();
+    expect((await proxy(request("/accounts-help"))).headers.get("location")).toBeNull();
   });
 
   it("lets a signed-in user through", async () => {
     signedIn();
 
-    expect(
-      (await proxy(request("/account"))).headers.get("location"),
-    ).toBeNull();
+    expect((await proxy(request("/account"))).headers.get("location")).toBeNull();
   });
 });
 
@@ -84,9 +78,7 @@ describe("proxy guest-only routes", () => {
 
     const response = await proxy(request("/login"));
 
-    expect(new URL(response.headers.get("location") as string).pathname).toBe(
-      "/",
-    );
+    expect(new URL(response.headers.get("location") as string).pathname).toBe("/");
   });
 
   it("leaves the sign-in page reachable while signed out", async () => {
@@ -100,9 +92,7 @@ describe("proxy guest-only routes", () => {
     // their inbox; bouncing them home would strand the reset.
     signedIn();
 
-    expect(
-      (await proxy(request("/reset-password"))).headers.get("location"),
-    ).toBeNull();
+    expect((await proxy(request("/reset-password"))).headers.get("location")).toBeNull();
   });
 
   it("keeps the emailed confirmation pages reachable while signed in", async () => {
@@ -125,9 +115,7 @@ describe("proxy favorites route", () => {
     // Asserted before parsing the header: an unguarded route returns 200 with
     // no location, and `new URL(null)` would report that as "Invalid URL".
     expect(response.status).toBe(307);
-    expect(new URL(response.headers.get("location") as string).pathname).toBe(
-      "/login",
-    );
+    expect(new URL(response.headers.get("location") as string).pathname).toBe("/login");
   });
 
   it("FAV-15: carries the favorites path so sign-in returns them there", async () => {
@@ -137,24 +125,18 @@ describe("proxy favorites route", () => {
 
     expect(response.status).toBe(307);
     expect(
-      new URL(
-        response.headers.get("location") as string,
-      ).searchParams.get("callbackUrl"),
+      new URL(response.headers.get("location") as string).searchParams.get("callbackUrl"),
     ).toBe("/favorites");
   });
 
   it("FAV-15: lets a signed-in user through", async () => {
     signedIn();
 
-    expect(
-      (await proxy(request("/favorites"))).headers.get("location"),
-    ).toBeNull();
+    expect((await proxy(request("/favorites"))).headers.get("location")).toBeNull();
   });
 
   it("FAV-15: the matcher covers favorites, or the guard never runs", () => {
-    expect(
-      config.matcher.some((pattern) => pattern.startsWith("/favorites")),
-    ).toBe(true);
+    expect(config.matcher.some((pattern) => pattern.startsWith("/favorites"))).toBe(true);
   });
 });
 
@@ -169,9 +151,7 @@ describe("proxy alerts route", () => {
     // Asserted before parsing the header: an unguarded route returns 200 with
     // no location, and `new URL(null)` would report that as "Invalid URL".
     expect(response.status).toBe(307);
-    expect(new URL(response.headers.get("location") as string).pathname).toBe(
-      "/login",
-    );
+    expect(new URL(response.headers.get("location") as string).pathname).toBe("/login");
   });
 
   it("ALERT-30: carries the alerts path so sign-in returns them there", async () => {
@@ -181,9 +161,7 @@ describe("proxy alerts route", () => {
 
     expect(response.status).toBe(307);
     expect(
-      new URL(
-        response.headers.get("location") as string,
-      ).searchParams.get("callbackUrl"),
+      new URL(response.headers.get("location") as string).searchParams.get("callbackUrl"),
     ).toBe("/alerts");
   });
 
@@ -194,18 +172,14 @@ describe("proxy alerts route", () => {
 
     expect(response.status).toBe(307);
     expect(
-      new URL(
-        response.headers.get("location") as string,
-      ).searchParams.get("callbackUrl"),
+      new URL(response.headers.get("location") as string).searchParams.get("callbackUrl"),
     ).toBe("/alerts/alert-1");
   });
 
   it("ALERT-30: lets a signed-in user through", async () => {
     signedIn();
 
-    expect(
-      (await proxy(request("/alerts"))).headers.get("location"),
-    ).toBeNull();
+    expect((await proxy(request("/alerts"))).headers.get("location")).toBeNull();
   });
 
   it("ALERT-30: leaves the emailed unsubscribe endpoint unguarded", async () => {
@@ -213,15 +187,11 @@ describe("proxy alerts route", () => {
     // unsubscribe link land on the sign-in page.
     signedOut();
 
-    expect(
-      config.matcher.some((pattern) => pattern.startsWith("/api/alerts")),
-    ).toBe(false);
+    expect(config.matcher.some((pattern) => pattern.startsWith("/api/alerts"))).toBe(false);
   });
 
   it("ALERT-30: the matcher covers alerts, or the guard never runs", () => {
-    expect(
-      config.matcher.some((pattern) => pattern.startsWith("/alerts")),
-    ).toBe(true);
+    expect(config.matcher.some((pattern) => pattern.startsWith("/alerts"))).toBe(true);
   });
 });
 

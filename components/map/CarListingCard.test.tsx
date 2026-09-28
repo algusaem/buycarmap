@@ -54,8 +54,7 @@ const listing: CarListing = {
 
 const ADD = "Add to favorites";
 const REMOVE = "Remove from favorites";
-const favoriteControl = () =>
-  screen.getByRole("button", { name: new RegExp(`${ADD}|${REMOVE}`) });
+const favoriteControl = () => screen.getByRole("button", { name: new RegExp(`${ADD}|${REMOVE}`) });
 
 beforeEach(() => {
   vi.mocked(saveFavorite).mockReset();
@@ -219,9 +218,7 @@ describe("CarListingCard saved-state sync", () => {
     // The saved set is fetched separately and lands after the card has already
     // rendered. Seeding useState once would leave an already-saved car showing
     // as unsaved forever, which is the bug this criterion exists for.
-    const { rerender } = renderWithI18n(
-      <CarListingCard {...listing} isFavorite={false} />,
-    );
+    const { rerender } = renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
     expect(favoriteControl()).toHaveAccessibleName(ADD);
 
     rerender(<CarListingCard {...listing} isFavorite />);
@@ -231,9 +228,7 @@ describe("CarListingCard saved-state sync", () => {
 
   it("FAV-16: does not undo a toggle the user just made", async () => {
     vi.mocked(saveFavorite).mockResolvedValue({ success: true });
-    const { rerender } = renderWithI18n(
-      <CarListingCard {...listing} isFavorite={false} />,
-    );
+    const { rerender } = renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
 
     await userEvent.click(favoriteControl());
     expect(favoriteControl()).toHaveAccessibleName(REMOVE);
@@ -248,9 +243,7 @@ describe("CarListingCard saved-state sync", () => {
   it("FAV-16: reports the change so the parent's saved set stays in step", async () => {
     vi.mocked(saveFavorite).mockResolvedValue({ success: true });
     const onFavoriteChange = vi.fn();
-    renderWithI18n(
-      <CarListingCard {...listing} onFavoriteChange={onFavoriteChange} />,
-    );
+    renderWithI18n(<CarListingCard {...listing} onFavoriteChange={onFavoriteChange} />);
 
     await userEvent.click(favoriteControl());
 
@@ -263,9 +256,7 @@ describe("CarListingCard saved-state sync", () => {
       error: "unexpected",
     });
     const onFavoriteChange = vi.fn();
-    renderWithI18n(
-      <CarListingCard {...listing} onFavoriteChange={onFavoriteChange} />,
-    );
+    renderWithI18n(<CarListingCard {...listing} onFavoriteChange={onFavoriteChange} />);
 
     await userEvent.click(favoriteControl());
 

@@ -6,10 +6,7 @@ export async function GET(request: NextRequest) {
   const makeId = request.nextUrl.searchParams.get("makeId");
 
   if (!makeId) {
-    return NextResponse.json(
-      { error: "makeId parameter is required" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "makeId parameter is required" }, { status: 400 });
   }
 
   const url = new URL(COCHESNET_URL);
@@ -36,9 +33,6 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch {
-    return NextResponse.json(
-      { error: "Coches.net request failed" },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: "Coches.net request failed" }, { status: 502 });
   }
 }

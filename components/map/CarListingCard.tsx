@@ -24,19 +24,7 @@ export function CarListingCard({
   onFavoriteChange,
   ...listing
 }: CarListingCardProps) {
-  const {
-    id,
-    image,
-    title,
-    subtitle,
-    price,
-    mileage,
-    year,
-    fuel,
-    location,
-    source,
-    url,
-  } = listing;
+  const { id, image, title, subtitle, price, mileage, year, fuel, location, source, url } = listing;
   const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
@@ -83,9 +71,7 @@ export function CarListingCard({
     onFavoriteChange?.(id, next);
 
     try {
-      const result = next
-        ? await saveFavorite(listing)
-        : await removeFavorite(id);
+      const result = next ? await saveFavorite(listing) : await removeFavorite(id);
       if (!result.success) {
         setFavorite(!next);
         onFavoriteChange?.(id, !next);
@@ -100,12 +86,7 @@ export function CarListingCard({
 
   return (
     <article>
-      <Link
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group block"
-      >
+      <Link href={url} target="_blank" rel="noopener noreferrer" className="group block">
         {/* Image container */}
         <div className="relative aspect-4/3 overflow-hidden rounded-xl bg-card">
           {showImage ? (
@@ -138,9 +119,7 @@ export function CarListingCard({
             <Heart
               className={cn(
                 "h-4 w-4 transition-colors",
-                favorite
-                  ? "fill-destructive text-destructive"
-                  : "text-foreground",
+                favorite ? "fill-destructive text-destructive" : "text-foreground",
               )}
             />
           </Button>
@@ -174,9 +153,7 @@ export function CarListingCard({
           {year > 0 && <span>{year}</span>}
           {year > 0 && mileage > 0 && <span>&middot;</span>}
           {mileage > 0 && (
-            <span className="font-mono">
-              {mileage.toLocaleString("es-ES")}&nbsp;km
-            </span>
+            <span className="font-mono">{mileage.toLocaleString("es-ES")}&nbsp;km</span>
           )}
           {(year > 0 || mileage > 0) && fuel && <span>&middot;</span>}
           {fuel && <span>{fuel}</span>}

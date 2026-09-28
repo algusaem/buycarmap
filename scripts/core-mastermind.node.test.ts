@@ -46,10 +46,16 @@ describe("mastermind delegation", () => {
 
     expect(raw.split("\n")[0]).toMatch(/^## Model delegation .*\(mastermind\)$/);
     expect(section).toMatch(/main session runs on it and does the analysis, decisions/);
-    expect(section).toContain('subagent_type: "lacayo-sonnet"` — the default for anything already decided');
-    expect(section).toContain('subagent_type: "lacayo-opus"` — only when the brief itself requires judgement');
+    expect(section).toContain(
+      'subagent_type: "lacayo-sonnet"` — the default for anything already decided',
+    );
+    expect(section).toContain(
+      'subagent_type: "lacayo-opus"` — only when the brief itself requires judgement',
+    );
     expect(section).toContain("Verification never runs in the main session");
-    expect(section).toContain("At the end of each task the mastermind reports the split in one line");
+    expect(section).toContain(
+      "At the end of each task the mastermind reports the split in one line",
+    );
     expect(section).toContain("«Lacayos:");
   });
 
@@ -58,7 +64,8 @@ describe("mastermind delegation", () => {
     const missing = files.filter((file) => {
       const paragraph = delegationParagraph(read(file));
       if (paragraph === null) return true;
-      const delegates = paragraph.includes("mastermind") && paragraph.includes('subagent_type: "lacayo-');
+      const delegates =
+        paragraph.includes("mastermind") && paragraph.includes('subagent_type: "lacayo-');
       return !delegates && !RUNS_WHOLE.test(flat(paragraph));
     });
 
@@ -79,8 +86,13 @@ describe("mastermind delegation", () => {
   });
 
   it("MASTER-5: every command that delegates ends its report with the Lacayos line", () => {
-    const paragraphs = commands().map((file) => ({ file, paragraph: delegationParagraph(read(file)) ?? "" }));
-    const delegating = paragraphs.filter(({ paragraph }) => /subagent_type: "lacayo-(sonnet|opus)"/.test(paragraph));
+    const paragraphs = commands().map((file) => ({
+      file,
+      paragraph: delegationParagraph(read(file)) ?? "",
+    }));
+    const delegating = paragraphs.filter(({ paragraph }) =>
+      /subagent_type: "lacayo-(sonnet|opus)"/.test(paragraph),
+    );
     const runningWhole = paragraphs.filter(({ paragraph }) => RUNS_WHOLE.test(flat(paragraph)));
     const withoutLine = delegating
       .filter(({ paragraph }) => !paragraph.includes("«Lacayos:"))

@@ -52,9 +52,7 @@ function findSuffix(body: string, suffix: string): number {
   return 0;
 }
 
-export async function checkPasswordBreached(
-  password: string,
-): Promise<BreachCheckResult> {
+export async function checkPasswordBreached(password: string): Promise<BreachCheckResult> {
   if (!password) return CLEAN;
 
   const hash = sha1Upper(password);

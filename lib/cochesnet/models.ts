@@ -1,7 +1,4 @@
-import {
-  CochesNetTaxonomyOption,
-  CochesNetTaxonomyResponse,
-} from "@/interfaces/cochesnet";
+import { CochesNetTaxonomyOption, CochesNetTaxonomyResponse } from "@/interfaces/cochesnet";
 
 // coches.net model list per make is static within a session, so cache it.
 const modelsByMake = new Map<number, CochesNetTaxonomyOption[]>();

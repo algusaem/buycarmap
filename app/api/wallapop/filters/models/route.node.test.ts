@@ -8,9 +8,7 @@ const UPSTREAM = "https://api.wallapop.com/api/v3/search/filters/model";
 
 describe("GET /api/wallapop/filters/models", () => {
   it("SRC-10: returns 400 without calling upstream when brand is missing", async () => {
-    const res = await GET(
-      new NextRequest("http://localhost/api/wallapop/filters/models"),
-    );
+    const res = await GET(new NextRequest("http://localhost/api/wallapop/filters/models"));
 
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toEqual({
@@ -28,9 +26,7 @@ describe("GET /api/wallapop/filters/models", () => {
     );
 
     const res = await GET(
-      new NextRequest(
-        "http://localhost/api/wallapop/filters/models?brand=Audi",
-      ),
+      new NextRequest("http://localhost/api/wallapop/filters/models?brand=Audi"),
     );
 
     expect(res.status).toBe(200);
@@ -42,11 +38,7 @@ describe("GET /api/wallapop/filters/models", () => {
 });
 describe("GET upstream error status", () => {
   it("SRC-11: passes through the upstream error status", async () => {
-    server.use(
-      http.get(UPSTREAM, () =>
-        HttpResponse.json({ error: "nope" }, { status: 429 }),
-      ),
-    );
+    server.use(http.get(UPSTREAM, () => HttpResponse.json({ error: "nope" }, { status: 429 })));
 
     const res = await GET(
       new NextRequest("http://localhost:3000/api/wallapop/filters/models?brand=Audi"),

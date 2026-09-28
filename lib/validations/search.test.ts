@@ -46,8 +46,6 @@ describe("searchSchema", () => {
   });
 
   it("rejects an unknown timeFilter value", () => {
-    expect(searchSchema.safeParse({ timeFilter: "lastYear" }).success).toBe(
-      false,
-    );
+    expect(searchSchema.safeParse({ timeFilter: "lastYear" }).success).toBe(false);
   });
 });

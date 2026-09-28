@@ -1,14 +1,9 @@
-import {
-  MilanunciosAd,
-  MilanunciosSearchResponse,
-} from "@/interfaces/milanuncios";
+import { MilanunciosAd, MilanunciosSearchResponse } from "@/interfaces/milanuncios";
 
 // A fully-populated Milanuncios car ad. Like the real API it carries no
 // lat/lng (only city/province names + INE ids) and no structured km/year/fuel —
 // those live as display strings in tags[], so the normalizer parses them out.
-export function makeMilanunciosAd(
-  overrides: Partial<MilanunciosAd> = {},
-): MilanunciosAd {
+export function makeMilanunciosAd(overrides: Partial<MilanunciosAd> = {}): MilanunciosAd {
   return {
     id: "602662777",
     title: "AUDI Q5 35 TDI 120kW 163CV S tronic",
@@ -55,9 +50,7 @@ export function makeMilanunciosResponse(
 // Wrap a response in the SSR page shell the proxy route extracts from: the
 // listings are embedded as window.__INITIAL_PROPS__ = JSON.parse("<escaped>"),
 // which the parser double-decodes.
-export function makeMilanunciosHtml(
-  response: MilanunciosSearchResponse,
-): string {
+export function makeMilanunciosHtml(response: MilanunciosSearchResponse): string {
   const props = {
     adListPagination: {
       adList: { ads: response.ads },

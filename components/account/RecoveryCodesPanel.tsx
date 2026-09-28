@@ -18,10 +18,7 @@ interface RecoveryCodesPanelProps {
  * irreversible, which is why the warning is prominent and the dismiss button
  * is worded as an acknowledgement rather than a close.
  */
-export function RecoveryCodesPanel({
-  codes,
-  onDismiss,
-}: RecoveryCodesPanelProps) {
+export function RecoveryCodesPanel({ codes, onDismiss }: RecoveryCodesPanelProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
@@ -46,9 +43,7 @@ export function RecoveryCodesPanel({
     <div className="space-y-4" aria-live="polite">
       <div className="space-y-1">
         <h3 className="font-semibold">{t.account.twoFactor.recoveryTitle}</h3>
-        <p className="text-sm text-muted-foreground">
-          {t.account.twoFactor.recoveryDescription}
-        </p>
+        <p className="text-sm text-muted-foreground">{t.account.twoFactor.recoveryDescription}</p>
       </div>
 
       <p className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-muted-foreground">
@@ -70,12 +65,7 @@ export function RecoveryCodesPanel({
         </Button>
         {/* Enabled only after copying, so the codes cannot be dismissed by
             reflex before they have been saved anywhere. */}
-        <Button
-          type="button"
-          size="sm"
-          disabled={!copied}
-          onClick={onDismiss}
-        >
+        <Button type="button" size="sm" disabled={!copied} onClick={onDismiss}>
           {t.account.twoFactor.recoveryDone}
         </Button>
       </div>

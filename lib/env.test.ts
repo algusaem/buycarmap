@@ -52,8 +52,6 @@ describe("resolveAppUrl", () => {
 
   it("ignores empty strings rather than treating them as configured", () => {
     // An env var declared but left blank is a common deploy mistake.
-    expect(resolveAppUrl({ APP_URL: "", NEXTAUTH_URL: "" })).toBe(
-      "http://localhost:3000",
-    );
+    expect(resolveAppUrl({ APP_URL: "", NEXTAUTH_URL: "" })).toBe("http://localhost:3000");
   });
 });

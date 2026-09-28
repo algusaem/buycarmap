@@ -66,9 +66,7 @@ export function RegisterForm() {
     const result = await registerUser(formData);
 
     if (!result.success) {
-      toast.error(
-        translateAuthError(t, result.error) ?? t.auth.registrationFailed,
-      );
+      toast.error(translateAuthError(t, result.error) ?? t.auth.registrationFailed);
       return;
     }
 
@@ -134,23 +132,16 @@ export function RegisterForm() {
             {t.auth.return}
           </Link>
           <CardTitle className="text-2xl font-bold">
-            {awaitingConfirmation
-              ? t.verifyEmail.pendingTitle
-              : t.auth.createAccount}
+            {awaitingConfirmation ? t.verifyEmail.pendingTitle : t.auth.createAccount}
           </CardTitle>
           <CardDescription>
-            {awaitingConfirmation
-              ? t.verifyEmail.pendingDescription
-              : t.auth.signUpDescription}
+            {awaitingConfirmation ? t.verifyEmail.pendingDescription : t.auth.signUpDescription}
           </CardDescription>
         </CardHeader>
 
         {awaitingConfirmation && (
           <CardContent>
-            <div
-              className="flex flex-col items-center gap-4 py-4 text-center"
-              aria-live="polite"
-            >
+            <div className="flex flex-col items-center gap-4 py-4 text-center" aria-live="polite">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 ring-1 ring-accent/20">
                 <MailCheck className="h-6 w-6 text-accent" />
               </div>
@@ -228,16 +219,11 @@ export function RegisterForm() {
                   error={translateAuthError(t, errors.password?.message)}
                   {...register("password")}
                 />
-                <PasswordStrengthMeter
-                  password={password}
-                  userInputs={[email, name]}
-                />
+                <PasswordStrengthMeter password={password} userInputs={[email, name]} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">
-                  {t.auth.confirmPassword}
-                </Label>
+                <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
                 <PasswordInput
                   id="confirmPassword"
                   placeholder={t.auth.confirmPasswordPlaceholder}
@@ -248,12 +234,7 @@ export function RegisterForm() {
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />

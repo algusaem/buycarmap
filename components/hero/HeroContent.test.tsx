@@ -16,8 +16,7 @@ vi.mock("next-auth/react", () => ({
 }));
 
 const searchButton = () => screen.getByRole("button", { name: "Search" });
-const signInCta = () =>
-  screen.queryByRole("link", { name: /Sign in to save searches/i });
+const signInCta = () => screen.queryByRole("link", { name: /Sign in to save searches/i });
 
 describe("HeroContent search", () => {
   beforeEach(() => {
@@ -57,9 +56,7 @@ describe("HeroContent search", () => {
   it("searches immediately when a popular chip is clicked", async () => {
     renderWithI18n(<HeroContent />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Seat León" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Seat León" }));
 
     expect(push).toHaveBeenCalledWith("/map?q=Seat%20Le%C3%B3n");
   });
@@ -101,9 +98,7 @@ describe("HeroContent sign-in call to action", () => {
       useSession.mockReturnValue({ data: null, status });
       const { unmount } = renderWithI18n(<HeroContent />);
 
-      expect(
-        screen.getByRole("link", { name: /Explore the map/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /Explore the map/i })).toBeInTheDocument();
       unmount();
     }
   });

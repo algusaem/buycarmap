@@ -8,13 +8,7 @@ import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
@@ -78,9 +72,7 @@ export function DeleteAccountForm({ hasPassword }: DeleteAccountFormProps) {
 
           {hasPassword && (
             <div className="space-y-2">
-              <Label htmlFor="delete-password">
-                {t.account.danger.password}
-              </Label>
+              <Label htmlFor="delete-password">{t.account.danger.password}</Label>
               <PasswordInput
                 id="delete-password"
                 placeholder={t.account.danger.passwordPlaceholder}
@@ -93,9 +85,7 @@ export function DeleteAccountForm({ hasPassword }: DeleteAccountFormProps) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="delete-confirmation">
-              {t.account.danger.confirmLabel}
-            </Label>
+            <Label htmlFor="delete-confirmation">{t.account.danger.confirmLabel}</Label>
             <Input
               id="delete-confirmation"
               type="text"
@@ -105,19 +95,12 @@ export function DeleteAccountForm({ hasPassword }: DeleteAccountFormProps) {
               onChange={(event) => setConfirmation(event.target.value)}
               aria-describedby="delete-confirmation-hint"
             />
-            <p
-              id="delete-confirmation-hint"
-              className="text-xs text-muted-foreground"
-            >
+            <p id="delete-confirmation-hint" className="text-xs text-muted-foreground">
               {t.account.danger.confirmHint}
             </p>
           </div>
 
-          <Button
-            type="submit"
-            variant="destructive"
-            disabled={!canSubmit || isDeleting}
-          >
+          <Button type="submit" variant="destructive" disabled={!canSubmit || isDeleting}>
             {isDeleting ? (
               <span className="flex items-center gap-2">
                 <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />

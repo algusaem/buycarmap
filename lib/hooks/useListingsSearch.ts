@@ -31,25 +31,18 @@ function interleave(lists: CarListing[][]): CarListing[] {
 // permissive — dropping a genuinely matching car is worse than keeping a
 // mislabelled one. Titles matter because Milanuncios carries no structured
 // model at all; descriptions would false-match ("acepto cambio por…").
-function filterByModel(
-  listings: CarListing[],
-  model: string | undefined,
-): CarListing[] {
+function filterByModel(listings: CarListing[], model: string | undefined): CarListing[] {
   const wanted = model?.trim().toLowerCase();
   if (!wanted) return listings;
   return listings.filter(
     (listing) =>
-      listing.model.toLowerCase().includes(wanted) ||
-      listing.title.toLowerCase().includes(wanted),
+      listing.model.toLowerCase().includes(wanted) || listing.title.toLowerCase().includes(wanted),
   );
 }
 
 // Every filter the sources cannot be trusted to enforce upstream, applied
 // where the three result lists meet (MAP-16, MAP-17, MAP-18).
-function applyResultFilters(
-  listings: CarListing[],
-  params: SearchInput,
-): CarListing[] {
+function applyResultFilters(listings: CarListing[], params: SearchInput): CarListing[] {
   return filterByModel(filterByRadius(listings, params), params.model);
 }
 
@@ -70,11 +63,7 @@ const EMPTY_PAGE: PageState = {
 };
 
 function hasMorePages(state: PageState): boolean {
-  return (
-    state.wallapopNext !== null ||
-    state.cochesNetHasMore ||
-    state.milanunciosHasMore
-  );
+  return state.wallapopNext !== null || state.cochesNetHasMore || state.milanunciosHasMore;
 }
 
 interface RoundResult {
@@ -84,14 +73,8 @@ interface RoundResult {
 
 // One round of pagination: the next page from every source that still has one,
 // normalized, merged and filtered, with the page state advanced past it.
-async function fetchNextRound(
-  params: SearchInput,
-  state: PageState,
-): Promise<RoundResult> {
-  const wpPromise =
-    state.wallapopNext !== null
-      ? searchWallapop(params, state.wallapopNext)
-      : null;
+async function fetchNextRound(params: SearchInput, state: PageState): Promise<RoundResult> {
+  const wpPromise = state.wallapopNext !== null ? searchWallapop(params, state.wallapopNext) : null;
   const cnPromise = state.cochesNetHasMore
     ? searchCochesNet(params, state.cochesNetPage + 1)
     : null;
@@ -115,10 +98,7 @@ async function fetchNextRound(
   const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
 
   return {
-    listings: applyResultFilters(
-      interleave([wpItems, cnItems, mnItems]),
-      params,
-    ),
+    listings: applyResultFilters(interleave([wpItems, cnItems, mnItems]), params),
     state: {
       wallapopNext: wpPromise
         ? wpResult.status === "fulfilled" && wpResult.value
@@ -131,9 +111,7 @@ async function fetchNextRound(
           cnData.items.length > 0 &&
           state.cochesNetPage + 1 < (cnData.meta?.totalPages ?? 1)
         : state.cochesNetHasMore,
-      milanunciosPage: mnPromise
-        ? state.milanunciosPage + 1
-        : state.milanunciosPage,
+      milanunciosPage: mnPromise ? state.milanunciosPage + 1 : state.milanunciosPage,
       milanunciosHasMore: mnPromise
         ? !!mnData &&
           mnData.ads.length > 0 &&
@@ -223,15 +201,10 @@ export function useListingsSearch() {
     // MAP-16/17/18: only Wallapop honours the radius upstream and only the
     // structured sources honour the model, so the filter promises are
     // enforced here, where the lists meet.
-    const collected = applyResultFilters(
-      interleave([wpItems, cnItems, mnItems]),
-      params,
-    );
+    const collected = applyResultFilters(interleave([wpItems, cnItems, mnItems]), params);
     let nextState: PageState = {
       wallapopNext:
-        wpResult.status === "fulfilled"
-          ? (wpResult.value.meta?.next_page ?? null)
-          : null,
+        wpResult.status === "fulfilled" ? (wpResult.value.meta?.next_page ?? null) : null,
       cochesNetPage: 1,
       cochesNetHasMore: cnData
         ? cnData.items.length > 0 && 1 < (cnData.meta?.totalPages ?? 1)

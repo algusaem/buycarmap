@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import {
-  createAlertStore,
-  makeCriteria,
-  makeMatchListing,
-} from "@/test/fixtures/alerts";
+import { createAlertStore, makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
 
 let store: ReturnType<typeof createAlertStore>;
 let emailConfigured = true;
@@ -70,19 +66,14 @@ function sourcesReturn(...listings: ReturnType<typeof makeMatchListing>[]) {
 }
 
 /** Minutes before now, for lastPolledAt / enqueuedAt. */
-const minutesAgo = (minutes: number) =>
-  new Date(NOW.getTime() - minutes * 60_000);
+const minutesAgo = (minutes: number) => new Date(NOW.getTime() - minutes * 60_000);
 
 /** One subscribed criteria set with a pending job, ready to be drained. */
-function seedSubscribedCriteria(
-  options: { userId?: string; lastPolledMinutesAgo?: number } = {},
-) {
+function seedSubscribedCriteria(options: { userId?: string; lastPolledMinutesAgo?: number } = {}) {
   const criteria = store.seedCriteria({
     criteria: makeCriteria(),
     lastPolledAt:
-      options.lastPolledMinutesAgo === undefined
-        ? null
-        : minutesAgo(options.lastPolledMinutesAgo),
+      options.lastPolledMinutesAgo === undefined ? null : minutesAgo(options.lastPolledMinutesAgo),
   });
   const alert = store.seedAlert({
     userId: options.userId ?? ADA.id,
@@ -181,9 +172,7 @@ describe("enqueueing", () => {
 
     await run();
 
-    expect(
-      store.jobs().filter((job) => job.criteriaId === criteria.id),
-    ).toHaveLength(1);
+    expect(store.jobs().filter((job) => job.criteriaId === criteria.id)).toHaveLength(1);
   });
 
   it("ALERT-41: a criteria set whose subscribers are all inactive is not enqueued", async () => {
@@ -304,9 +293,7 @@ describe("draining the queue", () => {
 
     expect(body.claimed).toBe(25);
     expect(searchAllSources).toHaveBeenCalledTimes(25);
-    expect(
-      store.jobs().filter((job) => job.status === "pending"),
-    ).toHaveLength(5);
+    expect(store.jobs().filter((job) => job.status === "pending")).toHaveLength(5);
   });
 
   it("ALERT-12: stops at the time budget and releases the claims it did not use", async () => {
@@ -328,9 +315,7 @@ describe("draining the queue", () => {
     expect(searchAllSources).toHaveBeenCalledTimes(5);
     // Released, not stranded in `running` — otherwise they would sit unclaimable
     // until their lease went stale.
-    expect(
-      store.jobs().filter((job) => job.status === "pending"),
-    ).toHaveLength(15);
+    expect(store.jobs().filter((job) => job.status === "pending")).toHaveLength(15);
     expect(store.jobs().filter((job) => job.status === "running")).toEqual([]);
   });
 });
@@ -350,9 +335,7 @@ describe("discovery", () => {
       price: 14500,
       url: "https://es.wallapop.com/item/audi-a3-abc123",
     });
-    expect(
-      store.seenFor(criteria.id).map((row) => row.listingId),
-    ).toEqual(["wallapop-new1"]);
+    expect(store.seenFor(criteria.id).map((row) => row.listingId)).toEqual(["wallapop-new1"]);
   });
 
   it("ALERT-15: every active subscriber to the criteria gets their own match", async () => {
@@ -424,12 +407,8 @@ describe("discovery", () => {
 
     await run();
 
-    expect(store.matchesFor(alert.id).map((row) => row.listingId)).toEqual([
-      "cochesnet-77",
-    ]);
-    expect(store.seenFor(criteria.id).map((row) => row.source)).toEqual([
-      "Coches.net",
-    ]);
+    expect(store.matchesFor(alert.id).map((row) => row.listingId)).toEqual(["cochesnet-77"]);
+    expect(store.seenFor(criteria.id).map((row) => row.source)).toEqual(["Coches.net"]);
   });
 
   it("ALERT-17: nothing from the failed source is recorded as seen", async () => {
@@ -444,9 +423,7 @@ describe("discovery", () => {
 
     // If Wallapop were marked polled, cars listed there during the outage would
     // never be new again — the alert would silently skip them forever.
-    expect(
-      store.seenFor(criteria.id).some((row) => row.source === "Wallapop"),
-    ).toBe(false);
+    expect(store.seenFor(criteria.id).some((row) => row.source === "Wallapop")).toBe(false);
   });
 
   it("ALERT-18: when every source fails nothing is recorded as seen", async () => {
@@ -514,9 +491,7 @@ describe("discovery", () => {
 
     await run();
 
-    const milanuncios = store
-      .health()
-      .find((row) => row.source === "Milanuncios");
+    const milanuncios = store.health().find((row) => row.source === "Milanuncios");
     // Milanuncios returns zero ads on a parse failure rather than erroring, so
     // "quietly broken" and "nothing new" look identical without this.
     expect(milanuncios?.consecutiveEmptyRuns).toBe(1);
@@ -568,10 +543,9 @@ describe("discovery", () => {
 
     await run();
 
-    expect(
-      store.health().find((row) => row.source === "Milanuncios")
-        ?.consecutiveEmptyRuns,
-    ).toBe(0);
+    expect(store.health().find((row) => row.source === "Milanuncios")?.consecutiveEmptyRuns).toBe(
+      0,
+    );
   });
 });
 

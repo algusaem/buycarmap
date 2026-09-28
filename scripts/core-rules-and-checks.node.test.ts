@@ -52,7 +52,10 @@ function tableRows(markdown: string, heading: string): string[][] {
   for (const line of lines.slice(start + 1)) {
     if (/^#{1,6}\s/.test(line)) break;
     if (!line.startsWith("|")) continue;
-    const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+    const cells = line
+      .split("|")
+      .slice(1, -1)
+      .map((cell) => cell.trim());
     if (cells.length > 0 && cells.every((cell) => /^:?-+:?$/.test(cell))) continue;
     rows.push(cells);
   }

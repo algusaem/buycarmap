@@ -9,9 +9,7 @@ describe("password hashing", () => {
 
     expect(hash).not.toBe("correct horse battery staple");
     expect(hash).toMatch(/^\$2[aby]\$/); // bcrypt hash prefix
-    expect(await verifyPassword("correct horse battery staple", hash)).toBe(
-      true,
-    );
+    expect(await verifyPassword("correct horse battery staple", hash)).toBe(true);
   });
 
   it("rejects a wrong password against a real hash", async () => {
@@ -23,8 +21,6 @@ describe("password hashing", () => {
     // Used by the authorize flow to equalize timing for unknown accounts; it
     // must be a real, runnable bcrypt hash so the comparison does real work.
     expect(DUMMY_PASSWORD_HASH).toMatch(/^\$2[aby]\$/);
-    expect(await verifyPassword("anything at all", DUMMY_PASSWORD_HASH)).toBe(
-      false,
-    );
+    expect(await verifyPassword("anything at all", DUMMY_PASSWORD_HASH)).toBe(false);
   });
 });

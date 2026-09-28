@@ -26,17 +26,12 @@ function EmptyState() {
   );
 }
 
-export function AlertMatchesList({
-  alertLabel,
-  matches,
-}: AlertMatchesListProps) {
+export function AlertMatchesList({ alertLabel, matches }: AlertMatchesListProps) {
   const { t } = useTranslation();
 
   // Newest first here rather than relying on the order received, so the page is
   // right whatever the caller hands it.
-  const ordered = [...matches].sort(
-    (a, b) => b.foundAt.getTime() - a.foundAt.getTime(),
-  );
+  const ordered = [...matches].sort((a, b) => b.foundAt.getTime() - a.foundAt.getTime());
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,9 +43,7 @@ export function AlertMatchesList({
           <ArrowLeft className="h-4 w-4" />
           {t.alerts.backToAlerts}
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">
-          {alertLabel}
-        </h1>
+        <h1 className="mt-2 text-2xl font-semibold text-foreground">{alertLabel}</h1>
       </div>
 
       {ordered.length === 0 ? (

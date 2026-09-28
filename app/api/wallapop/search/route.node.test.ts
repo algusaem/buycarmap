@@ -18,9 +18,7 @@ describe("GET /api/wallapop/search", () => {
     );
 
     const res = await GET(
-      new NextRequest(
-        "http://localhost/api/wallapop/search?keywords=golf&brand=Seat",
-      ),
+      new NextRequest("http://localhost/api/wallapop/search?keywords=golf&brand=Seat"),
     );
 
     expect(res.status).toBe(200);
@@ -32,13 +30,9 @@ describe("GET /api/wallapop/search", () => {
   });
 
   it("SRC-11: passes through the upstream error status", async () => {
-    server.use(
-      http.get(UPSTREAM, () => HttpResponse.json({}, { status: 503 })),
-    );
+    server.use(http.get(UPSTREAM, () => HttpResponse.json({}, { status: 503 })));
 
-    const res = await GET(
-      new NextRequest("http://localhost/api/wallapop/search"),
-    );
+    const res = await GET(new NextRequest("http://localhost/api/wallapop/search"));
 
     expect(res.status).toBe(503);
     await expect(res.json()).resolves.toEqual({

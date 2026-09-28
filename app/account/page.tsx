@@ -67,12 +67,8 @@ export default async function AccountPage() {
         </Link>
 
         <header className="mb-8 space-y-1">
-          <h1 className="text-3xl font-extrabold tracking-tight">
-            {t.account.title}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t.account.description}
-          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight">{t.account.title}</h1>
+          <p className="text-sm text-muted-foreground">{t.account.description}</p>
         </header>
 
         <div className="space-y-6">
@@ -99,10 +95,7 @@ export default async function AccountPage() {
             />
           )}
 
-          <ConnectedAccounts
-            providers={providers}
-            hasPassword={Boolean(record.password)}
-          />
+          <ConnectedAccounts providers={providers} hasPassword={Boolean(record.password)} />
 
           <SessionsCard />
 

@@ -8,13 +8,7 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
 import { updateProfileSchema, UpdateProfileInput } from "@/lib/validations/auth";
@@ -58,9 +52,7 @@ export function ProfileForm({ name }: ProfileFormProps) {
   return (
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-lg font-bold">
-          {t.account.profile.title}
-        </CardTitle>
+        <CardTitle className="text-lg font-bold">{t.account.profile.title}</CardTitle>
         <CardDescription>{t.account.profile.description}</CardDescription>
       </CardHeader>
 

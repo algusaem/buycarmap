@@ -54,27 +54,27 @@ async function loginViaUi(page: Page, email: string, code?: string) {
 /** Runs enrolment through the UI and returns the secret and recovery codes. */
 async function enrolTwoFactor(page: Page) {
   await page.goto("/account");
-  await page
-    .getByRole("button", { name: /set up two-factor|configurar dos pasos/i })
-    .click();
+  await page.getByRole("button", { name: /set up two-factor|configurar dos pasos/i }).click();
 
   // The manual-entry key is on screen for anyone who cannot scan — which also
   // makes it the natural way for a test to learn the secret, with no database
   // access and no reliance on internals.
   const secret = (
-    await page.locator("code").filter({ hasText: /^[A-Z2-7]+$/ }).first().innerText()
+    await page
+      .locator("code")
+      .filter({ hasText: /^[A-Z2-7]+$/ })
+      .first()
+      .innerText()
   ).trim();
 
   await page
     .getByLabel(/enter the 6-digit code|código de 6/i)
     .fill(deriveCode(secret, stepForTime(Date.now())));
-  await page
-    .getByRole("button", { name: /turn on two-factor|activar dos pasos/i })
-    .click();
+  await page.getByRole("button", { name: /turn on two-factor|activar dos pasos/i }).click();
 
-  await expect(
-    page.getByText(/save your recovery codes|guarda tus códigos/i),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/save your recovery codes|guarda tus códigos/i)).toBeVisible({
+    timeout: 15_000,
+  });
 
   const recoveryCodes = await page
     .locator("li")
@@ -82,9 +82,7 @@ async function enrolTwoFactor(page: Page) {
     .allInnerTexts();
 
   await page.getByRole("button", { name: /copy codes|copiar códigos/i }).click();
-  await page
-    .getByRole("button", { name: /i've saved them|ya los he guardado/i })
-    .click();
+  await page.getByRole("button", { name: /i've saved them|ya los he guardado/i }).click();
 
   return { secret, recoveryCodes: recoveryCodes.map((c) => c.trim()) };
 }
@@ -117,15 +115,13 @@ test.describe("two-factor authentication (real database)", () => {
     await page.locator('input[type="password"]').fill(PASSWORD);
     await page.getByRole("button", { name: SIGN_IN }).click();
 
-    await expect(
-      page.getByLabel(/enter the 6-digit code|código de 6/i),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByLabel(/enter the 6-digit code|código de 6/i)).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(signOutButton(page)).toHaveCount(0);
 
     // With the code, sign-in completes.
-    await page
-      .getByLabel(/enter the 6-digit code|código de 6/i)
-      .fill(nextCode(secret));
+    await page.getByLabel(/enter the 6-digit code|código de 6/i).fill(nextCode(secret));
     await page.getByRole("button", { name: SIGN_IN }).click();
 
     await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
@@ -176,9 +172,7 @@ test.describe("two-factor authentication (real database)", () => {
     await expect(signOutButton(page)).toHaveCount(0);
   });
 
-  dbTest("refuses to replay a code that already signed someone in", async ({
-    page,
-  }) => {
+  dbTest("refuses to replay a code that already signed someone in", async ({ page }) => {
     const email = e2eEmail("totp-replay");
     await seedUser(email, PASSWORD);
 

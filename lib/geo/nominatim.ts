@@ -26,11 +26,7 @@ export interface GeocodingResult {
 
 function buildDisplayName(address: NominatimAddress): string {
   const place =
-    address.city ??
-    address.town ??
-    address.village ??
-    address.hamlet ??
-    address.municipality;
+    address.city ?? address.town ?? address.village ?? address.hamlet ?? address.municipality;
 
   const region = address.state ?? address.province ?? address.county;
 
@@ -53,15 +49,12 @@ export async function searchLocations(
       countrycodes: "es",
     });
 
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?${params}`,
-      {
-        headers: {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+      headers: {
         "User-Agent": "BuyCarMap/1.0",
         "Accept-Language": locale,
       },
-      },
-    );
+    });
 
     if (!response.ok) return [];
 

@@ -43,9 +43,7 @@ describe("consumeRateLimit", () => {
 
   it("refuses the request past the limit and reports the wait", async () => {
     const expiresAt = new Date(Date.now() + 30_000);
-    vi.mocked(prisma.$queryRaw).mockResolvedValue([
-      { count: 6, expiresAt },
-    ] as never);
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([{ count: 6, expiresAt }] as never);
 
     const result = await consumeRateLimit("k", RULE);
 
@@ -137,9 +135,7 @@ describe("isRateLimited", () => {
 
 describe("resetRateLimit", () => {
   it("swallows a database failure", async () => {
-    vi.mocked(prisma.rateLimit.deleteMany).mockRejectedValue(
-      new Error("connection lost"),
-    );
+    vi.mocked(prisma.rateLimit.deleteMany).mockRejectedValue(new Error("connection lost"));
 
     // Best effort: a stale counter expires on its own, and throwing here would
     // fail an otherwise successful sign-in.
@@ -176,9 +172,7 @@ describe("getClientIp", () => {
 
 describe("configured limits", () => {
   it("keeps the per-account login lockout tighter than the per-IP budget", () => {
-    expect(RATE_LIMITS.loginPerEmail.limit).toBeLessThan(
-      RATE_LIMITS.loginPerIp.limit,
-    );
+    expect(RATE_LIMITS.loginPerEmail.limit).toBeLessThan(RATE_LIMITS.loginPerIp.limit);
   });
 
   it("bounds reset emails per address so we cannot be used to flood an inbox", () => {

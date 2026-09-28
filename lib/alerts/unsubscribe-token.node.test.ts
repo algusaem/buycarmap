@@ -14,9 +14,7 @@ describe("unsubscribeTokenFor", () => {
 
   it("derives a different token for a different alert", () => {
     // Otherwise one leaked link would unsubscribe everyone.
-    expect(unsubscribeTokenFor("alert-1")).not.toBe(
-      unsubscribeTokenFor("alert-2"),
-    );
+    expect(unsubscribeTokenFor("alert-1")).not.toBe(unsubscribeTokenFor("alert-2"));
   });
 
   it("does not embed the alert id, so a link cannot be forged from one", () => {

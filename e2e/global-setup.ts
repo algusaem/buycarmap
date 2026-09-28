@@ -44,8 +44,7 @@ async function waitForServer(baseURL: string): Promise<void> {
 }
 
 export default async function globalSetup(config: FullConfig): Promise<void> {
-  const baseURL =
-    config.projects[0]?.use?.baseURL ?? "http://localhost:3000";
+  const baseURL = config.projects[0]?.use?.baseURL ?? "http://localhost:3000";
 
   await waitForServer(baseURL);
 

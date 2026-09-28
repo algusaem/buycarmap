@@ -1,10 +1,6 @@
 import { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
 import { SearchInput } from "@/lib/validations/search";
-import {
-  mapBrandToSlug,
-  mapFuelTokens,
-  mapTransmissionToken,
-} from "@/lib/milanuncios/taxonomy";
+import { mapBrandToSlug, mapFuelTokens, mapTransmissionToken } from "@/lib/milanuncios/taxonomy";
 
 const BASE_URL = "/api/milanuncios/search";
 
@@ -12,10 +8,7 @@ const BASE_URL = "/api/milanuncios/search";
 // scopes the page to a make (path-based on their side); every other value is a
 // native Milanuncios query-string param. Milanuncios has no lat/lng or distance
 // filter — the map geocodes results client-side instead.
-export function buildMilanunciosQuery(
-  params: SearchInput,
-  page: number,
-): URLSearchParams {
+export function buildMilanunciosQuery(params: SearchInput, page: number): URLSearchParams {
   const query = new URLSearchParams();
   query.set("slug", mapBrandToSlug(params.brand));
 
@@ -30,10 +23,8 @@ export function buildMilanunciosQuery(
   if (params.maxYear != null) query.set("anoh", String(params.maxYear));
   if (params.minKm != null) query.set("kilometersFrom", String(params.minKm));
   if (params.maxKm != null) query.set("kilometersTo", String(params.maxKm));
-  if (params.minHorsePower != null)
-    query.set("engineHpFrom", String(params.minHorsePower));
-  if (params.maxHorsePower != null)
-    query.set("engineHpTo", String(params.maxHorsePower));
+  if (params.minHorsePower != null) query.set("engineHpFrom", String(params.minHorsePower));
+  if (params.maxHorsePower != null) query.set("engineHpTo", String(params.maxHorsePower));
 
   if (params.engine?.length) {
     const fuels = mapFuelTokens(params.engine);

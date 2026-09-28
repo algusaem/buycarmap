@@ -45,9 +45,7 @@ export async function verifyAndConsumeTwoFactor(
   } catch {
     // Wrong key or a tampered row. Refusing is the only safe answer — the
     // alternative is feeding garbage into an HMAC and comparing the result.
-    console.error(
-      `[auth] Could not decrypt the two-factor secret for user ${user.id}`,
-    );
+    console.error(`[auth] Could not decrypt the two-factor secret for user ${user.id}`);
     return { valid: false, method: null };
   }
 
@@ -57,10 +55,7 @@ export async function verifyAndConsumeTwoFactor(
     // Replay guard: a code observed over someone's shoulder is refused once
     // its own step has been used, rather than staying good for the remainder
     // of the window.
-    if (
-      user.twoFactorLastStep !== null &&
-      totp.step <= user.twoFactorLastStep
-    ) {
+    if (user.twoFactorLastStep !== null && totp.step <= user.twoFactorLastStep) {
       return { valid: false, method: null };
     }
 

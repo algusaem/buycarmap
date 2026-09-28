@@ -233,10 +233,7 @@ export function SearchFilters({
             >
               {t.filters.brand}
             </span>
-            <Select
-              value={brand || SELECT_ANY}
-              onValueChange={handleBrandChange}
-            >
+            <Select value={brand || SELECT_ANY} onValueChange={handleBrandChange}>
               {/* Naming the trigger by the visible label *and* itself is the
                   APG select-only combobox pattern: the accessible name becomes
                   "Brand Audi" rather than a bare "Audi" with no clue what it
@@ -248,9 +245,7 @@ export function SearchFilters({
                 <SelectValue placeholder={t.filters.any} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={SELECT_ANY}>
-                  {t.filters.any}
-                </SelectItem>
+                <SelectItem value={SELECT_ANY}>{t.filters.any}</SelectItem>
                 {BRANDS.map((b) => (
                   <SelectItem key={b} value={b}>
                     {b}
@@ -279,15 +274,11 @@ export function SearchFilters({
                   aria-labelledby="filter-model-label filter-model-trigger"
                 >
                   <SelectValue
-                    placeholder={
-                      isLoadingModels ? t.filters.loadingModels : t.filters.any
-                    }
+                    placeholder={isLoadingModels ? t.filters.loadingModels : t.filters.any}
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={SELECT_ANY}>
-                    {t.filters.any}
-                  </SelectItem>
+                  <SelectItem value={SELECT_ANY}>{t.filters.any}</SelectItem>
                   {models.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.title}
@@ -322,9 +313,7 @@ export function SearchFilters({
                 key={opt.value}
                 label={t.filters.timeFilters[opt.labelKey]}
                 active={timeFilter === opt.value}
-                onClick={() =>
-                  onTimeFilterChange(timeFilter === opt.value ? "" : opt.value)
-                }
+                onClick={() => onTimeFilterChange(timeFilter === opt.value ? "" : opt.value)}
               />
             ))}
           </div>

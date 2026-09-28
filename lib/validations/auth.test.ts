@@ -17,18 +17,14 @@ const STRONG_PASSWORD = "harbour-lentil-quilt";
 
 describe("loginSchema", () => {
   it("accepts a valid email + password", () => {
-    expect(
-      loginSchema.safeParse({ email: "a@b.com", password: "secret" }).success,
-    ).toBe(true);
+    expect(loginSchema.safeParse({ email: "a@b.com", password: "secret" }).success).toBe(true);
   });
 
   it("accepts a short password that predates the current policy", () => {
     // Login must never apply strength rules: existing accounts may hold
     // passwords shorter than today's minimum, and a length hint on the sign-in
     // form would leak the policy to an attacker for free.
-    expect(
-      loginSchema.safeParse({ email: "a@b.com", password: "old" }).success,
-    ).toBe(true);
+    expect(loginSchema.safeParse({ email: "a@b.com", password: "old" }).success).toBe(true);
   });
 
   it("rejects an invalid email address", () => {
@@ -220,9 +216,7 @@ describe("changePasswordSchema", () => {
 
 describe("forgotPasswordSchema", () => {
   it("accepts a valid email", () => {
-    expect(forgotPasswordSchema.safeParse({ email: "a@b.com" }).success).toBe(
-      true,
-    );
+    expect(forgotPasswordSchema.safeParse({ email: "a@b.com" }).success).toBe(true);
   });
 
   it("rejects an invalid email address", () => {

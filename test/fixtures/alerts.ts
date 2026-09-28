@@ -83,9 +83,7 @@ export function makeCriteria(overrides: Partial<SearchInput> = {}): SearchInput 
   };
 }
 
-export function makeMatchListing(
-  overrides: Partial<CarListing> = {},
-): CarListing {
+export function makeMatchListing(overrides: Partial<CarListing> = {}): CarListing {
   return {
     id: "wallapop-abc123",
     image: "https://cdn.wallapop.com/img1-big.jpg",
@@ -106,9 +104,7 @@ export function makeMatchListing(
   };
 }
 
-export function makeAlertSummary(
-  overrides: Partial<AlertSummary> = {},
-): AlertSummary {
+export function makeAlertSummary(overrides: Partial<AlertSummary> = {}): AlertSummary {
   return {
     id: "alert-1",
     label: "Audi A3 under 20k",
@@ -170,32 +166,23 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
 
   const client = {
     user: {
-      findUnique: vi.fn(async ({ where }: { where: { id: string } }) =>
-        t.users.find((row) => row.id === where.id) ?? null,
+      findUnique: vi.fn(
+        async ({ where }: { where: { id: string } }) =>
+          t.users.find((row) => row.id === where.id) ?? null,
       ),
-      update: vi.fn(
-        async ({
-          where,
-          data,
-        }: {
-          where: { id: string };
-          data: Partial<UserRow>;
-        }) => {
-          const row = t.users.find((user) => user.id === where.id);
-          if (!row) throw new Error("User not found");
-          Object.assign(row, data);
-          return row;
-        },
-      ),
+      update: vi.fn(async ({ where, data }: { where: { id: string }; data: Partial<UserRow> }) => {
+        const row = t.users.find((user) => user.id === where.id);
+        if (!row) throw new Error("User not found");
+        Object.assign(row, data);
+        return row;
+      }),
     },
 
     alertCriteria: {
       findUnique: vi.fn(
         async ({ where }: { where: { criteriaHash?: string; id?: string } }) =>
           t.criteria.find((row) =>
-            where.id !== undefined
-              ? row.id === where.id
-              : row.criteriaHash === where.criteriaHash,
+            where.id !== undefined ? row.id === where.id : row.criteriaHash === where.criteriaHash,
           ) ?? null,
       ),
       findMany: vi.fn(
@@ -220,38 +207,24 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
             );
           }),
       ),
-      create: vi.fn(
-        async ({
-          data,
-        }: {
-          data: { criteriaHash: string; criteria: SearchInput };
-        }) => {
-          const existing = t.criteria.find(
-            (row) => row.criteriaHash === data.criteriaHash,
-          );
-          if (existing) {
-            throw Object.assign(new Error("Unique constraint failed"), {
-              code: "P2002",
-            });
-          }
-          const row: AlertCriteriaRow = {
-            id: nextId("crit"),
-            criteriaHash: data.criteriaHash,
-            criteria: data.criteria,
-            lastPolledAt: null,
-          };
-          t.criteria.push(row);
-          return row;
-        },
-      ),
+      create: vi.fn(async ({ data }: { data: { criteriaHash: string; criteria: SearchInput } }) => {
+        const existing = t.criteria.find((row) => row.criteriaHash === data.criteriaHash);
+        if (existing) {
+          throw Object.assign(new Error("Unique constraint failed"), {
+            code: "P2002",
+          });
+        }
+        const row: AlertCriteriaRow = {
+          id: nextId("crit"),
+          criteriaHash: data.criteriaHash,
+          criteria: data.criteria,
+          lastPolledAt: null,
+        };
+        t.criteria.push(row);
+        return row;
+      }),
       update: vi.fn(
-        async ({
-          where,
-          data,
-        }: {
-          where: { id: string };
-          data: Partial<AlertCriteriaRow>;
-        }) => {
+        async ({ where, data }: { where: { id: string }; data: Partial<AlertCriteriaRow> }) => {
           const row = t.criteria.find((crit) => crit.id === where.id);
           if (!row) throw new Error("Criteria not found");
           Object.assign(row, data);
@@ -269,8 +242,9 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
     },
 
     alert: {
-      findFirst: vi.fn(async ({ where }: { where: Partial<AlertRow> }) =>
-        t.alerts.find((row) => matches(row, where)) ?? null,
+      findFirst: vi.fn(
+        async ({ where }: { where: Partial<AlertRow> }) =>
+          t.alerts.find((row) => matches(row, where)) ?? null,
       ),
       findMany: vi.fn(
         async ({
@@ -287,26 +261,22 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
               include
                 ? {
                     ...row,
-                    criteria: t.criteria.find(
-                      (crit) => crit.id === row.criteriaId,
-                    ),
+                    criteria: t.criteria.find((crit) => crit.id === row.criteriaId),
                     user: t.users.find((user) => user.id === row.userId),
                     _count: {
-                      matches: t.matches.filter(
-                        (match) => match.alertId === row.id,
-                      ).length,
+                      matches: t.matches.filter((match) => match.alertId === row.id).length,
                     },
                   }
                 : row,
             ),
       ),
-      count: vi.fn(async ({ where }: { where?: Partial<AlertRow> } = {}) =>
-        t.alerts.filter((row) => matches(row, where)).length,
+      count: vi.fn(
+        async ({ where }: { where?: Partial<AlertRow> } = {}) =>
+          t.alerts.filter((row) => matches(row, where)).length,
       ),
       create: vi.fn(async ({ data }: { data: Omit<AlertRow, "id"> }) => {
         const clash = t.alerts.find(
-          (row) =>
-            row.userId === data.userId && row.criteriaId === data.criteriaId,
+          (row) => row.userId === data.userId && row.criteriaId === data.criteriaId,
         );
         if (clash) {
           throw Object.assign(new Error("Unique constraint failed"), {
@@ -317,28 +287,14 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
         t.alerts.push(row);
         return row;
       }),
-      update: vi.fn(
-        async ({
-          where,
-          data,
-        }: {
-          where: { id: string };
-          data: Partial<AlertRow>;
-        }) => {
-          const row = t.alerts.find((alert) => alert.id === where.id);
-          if (!row) throw new Error("Alert not found");
-          Object.assign(row, data);
-          return row;
-        },
-      ),
+      update: vi.fn(async ({ where, data }: { where: { id: string }; data: Partial<AlertRow> }) => {
+        const row = t.alerts.find((alert) => alert.id === where.id);
+        if (!row) throw new Error("Alert not found");
+        Object.assign(row, data);
+        return row;
+      }),
       updateMany: vi.fn(
-        async ({
-          where,
-          data,
-        }: {
-          where: Partial<AlertRow>;
-          data: Partial<AlertRow>;
-        }) => {
+        async ({ where, data }: { where: Partial<AlertRow>; data: Partial<AlertRow> }) => {
           const hit = t.alerts.filter((row) => matches(row, where));
           hit.forEach((row) => Object.assign(row, data));
           return { count: hit.length };
@@ -355,9 +311,8 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
     },
 
     alertSeenListing: {
-      findMany: vi.fn(
-        async ({ where }: { where: { criteriaId: string } }) =>
-          t.seen.filter((row) => row.criteriaId === where.criteriaId),
+      findMany: vi.fn(async ({ where }: { where: { criteriaId: string } }) =>
+        t.seen.filter((row) => row.criteriaId === where.criteriaId),
       ),
       createMany: vi.fn(
         async ({
@@ -369,9 +324,7 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
           let count = 0;
           for (const entry of data) {
             const clash = t.seen.some(
-              (row) =>
-                row.criteriaId === entry.criteriaId &&
-                row.listingId === entry.listingId,
+              (row) => row.criteriaId === entry.criteriaId && row.listingId === entry.listingId,
             );
             if (clash) continue;
             // The schema's @default(now()); callers do not supply it.
@@ -388,11 +341,10 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
     },
 
     alertMatch: {
-      findMany: vi.fn(
-        async ({ where }: { where?: Partial<MatchRow> } = {}) =>
-          t.matches
-            .filter((row) => matches(row, where))
-            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+      findMany: vi.fn(async ({ where }: { where?: Partial<MatchRow> } = {}) =>
+        t.matches
+          .filter((row) => matches(row, where))
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
       ),
       createMany: vi.fn(
         async ({
@@ -404,9 +356,7 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
           let count = 0;
           for (const entry of data) {
             const clash = t.matches.some(
-              (row) =>
-                row.alertId === entry.alertId &&
-                row.listingId === entry.listingId,
+              (row) => row.alertId === entry.alertId && row.listingId === entry.listingId,
             );
             if (clash) continue;
             // The schema's @default(now()); callers do not supply it, and
@@ -430,9 +380,7 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
           data: Partial<MatchRow>;
         }) => {
           const ids = where.id?.in;
-          const hit = t.matches.filter((row) =>
-            ids ? ids.includes(row.id) : matches(row, where),
-          );
+          const hit = t.matches.filter((row) => (ids ? ids.includes(row.id) : matches(row, where)));
           hit.forEach((row) => Object.assign(row, data));
           return { count: hit.length };
         },
@@ -440,16 +388,13 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
     },
 
     alertPollJob: {
-      findMany: vi.fn(
-        async ({ where }: { where?: Partial<JobRow> } = {}) =>
-          t.jobs.filter((row) => matches(row, where)),
+      findMany: vi.fn(async ({ where }: { where?: Partial<JobRow> } = {}) =>
+        t.jobs.filter((row) => matches(row, where)),
       ),
       findUnique: vi.fn(
         async ({ where }: { where: { id?: string; criteriaId?: string } }) =>
           t.jobs.find((row) =>
-            where.id !== undefined
-              ? row.id === where.id
-              : row.criteriaId === where.criteriaId,
+            where.id !== undefined ? row.id === where.id : row.criteriaId === where.criteriaId,
           ) ?? null,
       ),
       updateMany: vi.fn(
@@ -461,9 +406,7 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
           data: Partial<JobRow>;
         }) => {
           const ids = where.id?.in;
-          const hit = t.jobs.filter((row) =>
-            ids ? ids.includes(row.id) : matches(row, where),
-          );
+          const hit = t.jobs.filter((row) => (ids ? ids.includes(row.id) : matches(row, where)));
           hit.forEach((row) => Object.assign(row, data));
           return { count: hit.length };
         },
@@ -477,29 +420,19 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
           create: Omit<JobRow, "id">;
           update: Partial<JobRow>;
         }) => {
-          const existing = t.jobs.find(
-            (row) => row.criteriaId === where.criteriaId,
-          );
+          const existing = t.jobs.find((row) => row.criteriaId === where.criteriaId);
           if (existing) return existing;
           const row: JobRow = { id: nextId("job"), ...create };
           t.jobs.push(row);
           return row;
         },
       ),
-      update: vi.fn(
-        async ({
-          where,
-          data,
-        }: {
-          where: { id: string };
-          data: Partial<JobRow>;
-        }) => {
-          const row = t.jobs.find((job) => job.id === where.id);
-          if (!row) throw new Error("Job not found");
-          Object.assign(row, data);
-          return row;
-        },
-      ),
+      update: vi.fn(async ({ where, data }: { where: { id: string }; data: Partial<JobRow> }) => {
+        const row = t.jobs.find((job) => job.id === where.id);
+        if (!row) throw new Error("Job not found");
+        Object.assign(row, data);
+        return row;
+      }),
       delete: vi.fn(async ({ where }: { where: { id: string } }) => {
         const row = t.jobs.find((job) => job.id === where.id);
         t.jobs = t.jobs.filter((job) => job.id !== where.id);
@@ -567,14 +500,11 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
     client,
     criteria: () => [...t.criteria],
     alerts: () => [...t.alerts],
-    alertsFor: (userId: string) =>
-      t.alerts.filter((row) => row.userId === userId),
+    alertsFor: (userId: string) => t.alerts.filter((row) => row.userId === userId),
     seen: () => [...t.seen],
-    seenFor: (criteriaId: string) =>
-      t.seen.filter((row) => row.criteriaId === criteriaId),
+    seenFor: (criteriaId: string) => t.seen.filter((row) => row.criteriaId === criteriaId),
     matches: () => [...t.matches],
-    matchesFor: (alertId: string) =>
-      t.matches.filter((row) => row.alertId === alertId),
+    matchesFor: (alertId: string) => t.matches.filter((row) => row.alertId === alertId),
     jobs: () => [...t.jobs],
     health: () => [...t.health],
     users: () => [...t.users],

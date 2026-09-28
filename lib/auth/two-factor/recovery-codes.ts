@@ -37,9 +37,7 @@ export function normalizeRecoveryCode(code: string): string {
 
 /** Digest to store and to look up by. Normalized first, so input style is irrelevant. */
 export function hashRecoveryCode(code: string): string {
-  return createHash("sha256")
-    .update(normalizeRecoveryCode(code), "utf8")
-    .digest("hex");
+  return createHash("sha256").update(normalizeRecoveryCode(code), "utf8").digest("hex");
 }
 
 export interface GeneratedRecoveryCodes {
@@ -49,9 +47,7 @@ export interface GeneratedRecoveryCodes {
   hashes: string[];
 }
 
-export function generateRecoveryCodes(
-  count = RECOVERY_CODE_COUNT,
-): GeneratedRecoveryCodes {
+export function generateRecoveryCodes(count = RECOVERY_CODE_COUNT): GeneratedRecoveryCodes {
   const plain = Array.from({ length: count }, generateCode);
 
   return { plain, hashes: plain.map(hashRecoveryCode) };

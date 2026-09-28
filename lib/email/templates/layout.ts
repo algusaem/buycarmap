@@ -33,11 +33,7 @@ export interface EmailLayoutInput {
   footer: string;
 }
 
-export function renderLayout({
-  heading,
-  bodyHtml,
-  footer,
-}: EmailLayoutInput): string {
+export function renderLayout({ heading, bodyHtml, footer }: EmailLayoutInput): string {
   return `<!doctype html>
 <html>
   <body style="margin:0;padding:24px;background-color:#F5F5F4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">

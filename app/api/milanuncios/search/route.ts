@@ -39,10 +39,7 @@ export async function GET(request: NextRequest) {
 
     html = await response.text();
   } catch {
-    return NextResponse.json(
-      { error: "Milanuncios request failed" },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: "Milanuncios request failed" }, { status: 502 });
   }
 
   return NextResponse.json(extractInitialProps(html));

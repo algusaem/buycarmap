@@ -13,13 +13,9 @@ export function BrandHeader() {
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
           <MapPin className="h-6 w-6 text-primary" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          BuyCarMap
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">BuyCarMap</h1>
       </div>
-      <p className="text-sm text-muted-foreground">
-        {t.auth.brandTagline}
-      </p>
+      <p className="text-sm text-muted-foreground">{t.auth.brandTagline}</p>
     </motion.div>
   );
 }

@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import { http, passthrough } from "msw";
 import { z } from "zod";
 import { server } from "../msw/server";
-import {
-  makeCochesNetItem,
-  makeCochesNetResponse,
-} from "../fixtures/cochesnet";
+import { makeCochesNetItem, makeCochesNetResponse } from "../fixtures/cochesnet";
 
 // The subset of the coches.net response normalizeCochesNetItems() + geo.ts read.
 const cochesNetItemContract = z.object({
@@ -18,9 +15,7 @@ const cochesNetItemContract = z.object({
   make: z.string().optional(),
   model: z.string().optional(),
   fuelType: z.string().optional(),
-  resources: z
-    .array(z.object({ type: z.string(), url: z.string() }))
-    .optional(),
+  resources: z.array(z.object({ type: z.string(), url: z.string() })).optional(),
   location: z.object({
     mainProvince: z.string().optional(),
     mainProvinceId: z.number(),

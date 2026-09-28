@@ -8,9 +8,7 @@ const UPSTREAM = "https://web.gw.coches.net/models";
 
 describe("GET /api/cochesnet/models", () => {
   it("SRC-10: returns 400 without calling upstream when makeId is missing", async () => {
-    const res = await GET(
-      new NextRequest("http://localhost/api/cochesnet/models"),
-    );
+    const res = await GET(new NextRequest("http://localhost/api/cochesnet/models"));
 
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toEqual({
@@ -27,9 +25,7 @@ describe("GET /api/cochesnet/models", () => {
       }),
     );
 
-    const res = await GET(
-      new NextRequest("http://localhost/api/cochesnet/models?makeId=4"),
-    );
+    const res = await GET(new NextRequest("http://localhost/api/cochesnet/models?makeId=4"));
 
     expect(res.status).toBe(200);
     expect(new URL(received!.url).searchParams.get("makeId")).toBe("4");
@@ -38,15 +34,9 @@ describe("GET /api/cochesnet/models", () => {
 });
 describe("GET upstream error status", () => {
   it("SRC-11: passes through the upstream error status", async () => {
-    server.use(
-      http.get(UPSTREAM, () =>
-        HttpResponse.json({ error: "nope" }, { status: 429 }),
-      ),
-    );
+    server.use(http.get(UPSTREAM, () => HttpResponse.json({ error: "nope" }, { status: 429 })));
 
-    const res = await GET(
-      new NextRequest("http://localhost:3000/api/cochesnet/models?makeId=101"),
-    );
+    const res = await GET(new NextRequest("http://localhost:3000/api/cochesnet/models?makeId=101"));
 
     expect(res.status).toBe(429);
   });
@@ -62,9 +52,7 @@ describe("GET upstream connection failure", () => {
       ),
     );
 
-    const res = await GET(
-      new NextRequest("http://localhost:3000/api/cochesnet/models?makeId=101"),
-    );
+    const res = await GET(new NextRequest("http://localhost:3000/api/cochesnet/models?makeId=101"));
 
     expect(res.status).toBe(502);
     expect(await res.json()).toEqual({ error: expect.stringContaining("failed") });

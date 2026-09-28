@@ -211,9 +211,7 @@ describe("LoginForm two-factor step", () => {
 
     await submitCredentials();
 
-    expect(
-      await screen.findByText(/that code isn't valid/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/that code isn't valid/i)).toBeInTheDocument();
     expect(codeField()).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
@@ -224,9 +222,7 @@ describe("LoginForm two-factor step", () => {
 
     await submitCredentials();
 
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("Invalid email or password"),
-    );
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Invalid email or password"));
     // No hint about two-factor for someone who never proved the password.
     expect(codeField()).not.toBeInTheDocument();
   });
@@ -251,9 +247,7 @@ describe("LoginForm OAuth rejection message", () => {
     searchParams = new URLSearchParams("error=AccessDenied");
     renderWithI18n(<LoginForm />);
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      /uses two-factor authentication/i,
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent(/uses two-factor authentication/i);
     expect(screen.getByRole("alert")).toHaveTextContent(
       /connect this provider from your account settings/i,
     );

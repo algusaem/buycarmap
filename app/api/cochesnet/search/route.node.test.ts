@@ -36,9 +36,7 @@ describe("POST /api/cochesnet/search", () => {
   });
 
   it("SRC-11: passes through the upstream error status", async () => {
-    server.use(
-      http.post(UPSTREAM, () => HttpResponse.json({}, { status: 500 })),
-    );
+    server.use(http.post(UPSTREAM, () => HttpResponse.json({}, { status: 500 })));
 
     const res = await POST(postRequest("{}"));
 
@@ -59,7 +57,10 @@ describe("POST upstream connection failure", () => {
     );
 
     const res = await POST(
-      new NextRequest("http://localhost:3000/api/cochesnet/search", { method: "POST", body: JSON.stringify({}) }),
+      new NextRequest("http://localhost:3000/api/cochesnet/search", {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
     );
 
     expect(res.status).toBe(502);

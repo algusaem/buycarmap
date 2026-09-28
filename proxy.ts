@@ -14,11 +14,7 @@ const GUEST_ONLY_PATHS = ["/login", "/register", "/forgot-password"];
 
 // Read directly from process.env rather than lib/env.ts: this runs on the Edge
 // runtime, where `dotenv` and Node built-ins are unavailable.
-const secureCookie = (
-  process.env.APP_URL ??
-  process.env.NEXTAUTH_URL ??
-  ""
-).startsWith("https://");
+const secureCookie = (process.env.APP_URL ?? process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(

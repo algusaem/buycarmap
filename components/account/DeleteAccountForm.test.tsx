@@ -20,8 +20,7 @@ vi.mock("@/app/actions/account", () => ({
   deleteAccount: (...args: unknown[]) => deleteAccount(...args),
 }));
 
-const deleteButton = () =>
-  screen.getByRole("button", { name: "Delete my account" });
+const deleteButton = () => screen.getByRole("button", { name: "Delete my account" });
 
 describe("DeleteAccountForm confirmation gate", () => {
   beforeEach(() => {
@@ -43,10 +42,7 @@ describe("DeleteAccountForm confirmation gate", () => {
     await userEvent.type(screen.getByLabelText("Your password"), "hunter2");
     expect(deleteButton()).toBeDisabled();
 
-    await userEvent.type(
-      screen.getByLabelText("Type DELETE to confirm"),
-      "DELETE",
-    );
+    await userEvent.type(screen.getByLabelText("Type DELETE to confirm"), "DELETE");
     expect(deleteButton()).toBeEnabled();
   });
 
@@ -54,10 +50,7 @@ describe("DeleteAccountForm confirmation gate", () => {
     renderWithI18n(<DeleteAccountForm hasPassword />);
 
     await userEvent.type(screen.getByLabelText("Your password"), "hunter2");
-    await userEvent.type(
-      screen.getByLabelText("Type DELETE to confirm"),
-      "delete",
-    );
+    await userEvent.type(screen.getByLabelText("Type DELETE to confirm"), "delete");
 
     // Requiring capitals is the point: it cannot be typed absent-mindedly.
     expect(deleteButton()).toBeDisabled();
@@ -68,10 +61,7 @@ describe("DeleteAccountForm confirmation gate", () => {
 
     expect(screen.queryByLabelText("Your password")).not.toBeInTheDocument();
 
-    await userEvent.type(
-      screen.getByLabelText("Type DELETE to confirm"),
-      "DELETE",
-    );
+    await userEvent.type(screen.getByLabelText("Type DELETE to confirm"), "DELETE");
     expect(deleteButton()).toBeEnabled();
   });
 });
@@ -85,10 +75,7 @@ describe("DeleteAccountForm submission", () => {
 
   async function arm() {
     await userEvent.type(screen.getByLabelText("Your password"), "hunter2");
-    await userEvent.type(
-      screen.getByLabelText("Type DELETE to confirm"),
-      "DELETE",
-    );
+    await userEvent.type(screen.getByLabelText("Type DELETE to confirm"), "DELETE");
   }
 
   it("submits the password and signs the user out on success", async () => {
@@ -104,9 +91,7 @@ describe("DeleteAccountForm submission", () => {
 
     // The user row is gone; clear the cookie now rather than waiting for the
     // next revalidation to notice.
-    await waitFor(() =>
-      expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/" }),
-    );
+    await waitFor(() => expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/" }));
   });
 
   it("surfaces a wrong-password rejection and stays signed in", async () => {
@@ -120,9 +105,7 @@ describe("DeleteAccountForm submission", () => {
     await userEvent.click(deleteButton());
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "Your current password is incorrect",
-      ),
+      expect(toast.error).toHaveBeenCalledWith("Your current password is incorrect"),
     );
     expect(signOut).not.toHaveBeenCalled();
   });

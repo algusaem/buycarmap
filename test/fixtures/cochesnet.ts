@@ -7,9 +7,7 @@ import {
 // A fully-populated coches.net car item. coches.net items never carry
 // lat/lng — only city/province names + INE codes — so the geo layer is what
 // places them on the map.
-export function makeCochesNetItem(
-  overrides: Partial<CochesNetItem> = {},
-): CochesNetItem {
+export function makeCochesNetItem(overrides: Partial<CochesNetItem> = {}): CochesNetItem {
   return {
     id: "cn-987",
     title: "BMW Serie 3 320d",

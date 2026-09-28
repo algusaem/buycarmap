@@ -32,9 +32,9 @@ describe("translateAuthError", () => {
     // The failure mode this guards: a form translating a code before calling
     // setError, so the field receives prose and looks it up as if it were a
     // code. It must not render that prose back as though it were valid.
-    expect(
-      translateAuthError(en, "This link is invalid or has expired"),
-    ).toBe("Something went wrong. Please try again.");
+    expect(translateAuthError(en, "This link is invalid or has expired")).toBe(
+      "Something went wrong. Please try again.",
+    );
   });
 
   it("has copy for every error code the server can return", () => {
@@ -67,9 +67,7 @@ describe("translateAlertError", () => {
   it("returns a message even with no code, since this one always renders", () => {
     // Unlike the auth variant, this feeds toast.error — which would show an
     // empty toast rather than nothing at all.
-    expect(translateAlertError(en, undefined)).toBe(
-      "Something went wrong. Please try again.",
-    );
+    expect(translateAlertError(en, undefined)).toBe("Something went wrong. Please try again.");
   });
 
   it("has copy for every alert error code the server can return", () => {

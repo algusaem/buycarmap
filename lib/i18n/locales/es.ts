@@ -93,8 +93,7 @@ export const es: Translations = {
     submit: "Confirmar esta dirección",
     submitting: "Confirmando…",
     successTitle: "Correo confirmado",
-    successDescription:
-      "Tu dirección de correo está verificada y actualizada.",
+    successDescription: "Tu dirección de correo está verificada y actualizada.",
     backToAccount: "Volver a tu cuenta",
     invalidTitle: "Este enlace ya no es válido",
     invalidDescription:
@@ -153,30 +152,25 @@ export const es: Translations = {
     },
     twoFactor: {
       title: "Verificación en dos pasos",
-      description:
-        "Pide un código de tu móvil además de la contraseña.",
+      description: "Pide un código de tu móvil además de la contraseña.",
       enabled: "Activada",
       disabled: "Desactivada",
-      unavailable:
-        "No disponible en este despliegue: al servidor le falta su clave de cifrado.",
+      unavailable: "No disponible en este despliegue: al servidor le falta su clave de cifrado.",
       enableCta: "Configurar dos pasos",
       starting: "Preparando…",
       scanTitle: "Escanea esto con tu app de autenticación",
-      scanDescription:
-        "Vale Google Authenticator, 1Password, Authy o cualquier otra app TOTP.",
+      scanDescription: "Vale Google Authenticator, 1Password, Authy o cualquier otra app TOTP.",
       manualLabel: "¿No puedes escanear? Introduce esta clave a mano",
       manualHint: "Escríbela tal cual, sin espacios.",
       codeLabel: "Introduce el código de 6 dígitos",
       codePlaceholder: "123456",
-      recoveryHint:
-        "¿Has perdido el móvil? Escribe aquí uno de tus códigos de recuperación.",
+      recoveryHint: "¿Has perdido el móvil? Escribe aquí uno de tus códigos de recuperación.",
       confirm: "Activar dos pasos",
       confirming: "Verificando…",
       cancel: "Cancelar",
       enabledToast: "Verificación en dos pasos activada.",
       recoveryTitle: "Guarda tus códigos de recuperación",
-      recoveryDescription:
-        "Cada código sirve una vez y te deja entrar si pierdes el móvil.",
+      recoveryDescription: "Cada código sirve una vez y te deja entrar si pierdes el móvil.",
       recoveryWarning:
         "Es la única vez que se muestran. Guárdalos en un sitio seguro antes de continuar.",
       copyCodes: "Copiar códigos",
@@ -186,8 +180,7 @@ export const es: Translations = {
       recoveryDone: "Ya los he guardado",
       regenerateCta: "Generar códigos nuevos",
       regenerating: "Generando…",
-      regenerateHint:
-        "Sustituye a los actuales. Los anteriores dejan de funcionar de inmediato.",
+      regenerateHint: "Sustituye a los actuales. Los anteriores dejan de funcionar de inmediato.",
       disableCta: "Desactivar dos pasos",
       disabling: "Desactivando…",
       disableHint:
@@ -265,16 +258,14 @@ export const es: Translations = {
     totpInvalid: "Ese código no es válido. Revisa tu app e inténtalo de nuevo.",
     totpAlreadyEnabled: "La verificación en dos pasos ya está activada",
     totpNotEnabled: "La verificación en dos pasos no está configurada",
-    totpUnavailable:
-      "La verificación en dos pasos no está disponible en este despliegue",
+    totpUnavailable: "La verificación en dos pasos no está disponible en este despliegue",
     oauthLinkBlocked:
       "Esta cuenta usa verificación en dos pasos. Entra con tu contraseña y luego conecta este proveedor desde los ajustes de tu cuenta.",
     alreadyVerified: "Tu dirección de correo ya está verificada",
     sameEmail: "Esa ya es tu dirección de correo",
     lastSignInMethod:
       "Es tu única forma de iniciar sesión. Establece una contraseña antes de desconectarla.",
-    rateLimited:
-      "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+    rateLimited: "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
     unauthorized: "Necesitas iniciar sesión para hacer eso",
     generic: "Algo ha ido mal. Inténtalo de nuevo.",
   },
@@ -404,8 +395,7 @@ export const es: Translations = {
   },
   alerts: {
     title: "Alertas",
-    subtitle:
-      "Comprobamos cada pocos minutos y te avisamos por correo cuando aparece algo nuevo.",
+    subtitle: "Comprobamos cada pocos minutos y te avisamos por correo cuando aparece algo nuevo.",
     empty: "Todavía no tienes ninguna alerta.",
     emptyCta: "Buscar coches",
     create: "Avisarme de coches nuevos",
@@ -415,8 +405,7 @@ export const es: Translations = {
     noMatchesYet: "Vigilando: todavía no hay nada nuevo.",
     backToAlerts: "Volver a las alertas",
     unsubscribed: "Alerta pausada",
-    unsubscribedBody:
-      "No recibirás más correos sobre esta búsqueda. Tus otras alertas no cambian.",
+    unsubscribedBody: "No recibirás más correos sobre esta búsqueda. Tus otras alertas no cambian.",
     email: {
       subject: "Nuevo coche para tu alerta",
       heading: "Coches nuevos para tu alerta",
@@ -505,7 +494,6 @@ export const es: Translations = {
   },
   meta: {
     title: "Buy Car Map",
-    description:
-      "Encuentra coches de segunda mano cerca de ti. Comparador de anuncios en mapa.",
+    description: "Encuentra coches de segunda mano cerca de ti. Comparador de anuncios en mapa.",
   },
 };

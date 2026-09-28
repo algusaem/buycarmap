@@ -192,9 +192,7 @@ describe("jwt callback revocation", () => {
 
   it("keeps a session issued after the last password change", async () => {
     const changedAt = Date.now() - 2 * HOUR;
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      dbUser(new Date(changedAt)) as never,
-    );
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser(new Date(changedAt)) as never);
 
     const result = await jwtCallback({
       token: { id: "user-123", pwdAt: Date.now() - HOUR, checkedAt: 0 } as JWT,
@@ -263,11 +261,7 @@ describe("signIn callback: OAuth linking guard", () => {
 
   // NextAuth's types demand a full User/Account; only the fields the callback
   // reads matter here.
-  const call = (params: {
-    email?: string | null;
-    provider?: string;
-    type?: string;
-  }) =>
+  const call = (params: { email?: string | null; provider?: string; type?: string }) =>
     signInCallback({
       // `??` would turn an explicit null back into the default, which is how
       // the no-email case silently tested the wrong thing.

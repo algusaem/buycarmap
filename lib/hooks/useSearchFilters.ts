@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SearchInput } from "@/lib/validations/search";
 import { SelectedLocation } from "@/interfaces/location";
-import {
-  initUserGeolocation,
-  waitForGeolocation,
-} from "@/lib/geo/user-location";
+import { initUserGeolocation, waitForGeolocation } from "@/lib/geo/user-location";
 
 type TimeFilter = "" | "today" | "lastWeek" | "lastMonth";
 
@@ -87,10 +84,7 @@ function countActive(f: FilterValues): number {
 
 const DEBOUNCE_MS = 400;
 
-export function useSearchFilters(
-  search: (params: SearchInput) => void,
-  getKeywords: () => string,
-) {
+export function useSearchFilters(search: (params: SearchInput) => void, getKeywords: () => string) {
   const [filters, setFilters] = useState<FilterValues>(INITIAL_FILTERS);
   const [isOpen, setIsOpen] = useState(false);
   const filtersRef = useRef<FilterValues>(INITIAL_FILTERS);
@@ -156,46 +150,16 @@ export function useSearchFilters(
 
   const toggle = useCallback(() => setIsOpen((o) => !o), []);
 
-  const setEngine = useCallback(
-    (engine: string[]) => update({ engine }),
-    [update],
-  );
-  const setGearbox = useCallback(
-    (gearbox: string[]) => update({ gearbox }),
-    [update],
-  );
-  const setBrand = useCallback(
-    (brand: string) => update({ brand, model: "" }),
-    [update],
-  );
-  const setModel = useCallback(
-    (model: string) => update({ model }),
-    [update],
-  );
-  const setMinPrice = useCallback(
-    (minPrice: number | undefined) => update({ minPrice }),
-    [update],
-  );
-  const setMaxPrice = useCallback(
-    (maxPrice: number | undefined) => update({ maxPrice }),
-    [update],
-  );
-  const setMinKm = useCallback(
-    (minKm: number | undefined) => update({ minKm }),
-    [update],
-  );
-  const setMaxKm = useCallback(
-    (maxKm: number | undefined) => update({ maxKm }),
-    [update],
-  );
-  const setMinYear = useCallback(
-    (minYear: number | undefined) => update({ minYear }),
-    [update],
-  );
-  const setMaxYear = useCallback(
-    (maxYear: number | undefined) => update({ maxYear }),
-    [update],
-  );
+  const setEngine = useCallback((engine: string[]) => update({ engine }), [update]);
+  const setGearbox = useCallback((gearbox: string[]) => update({ gearbox }), [update]);
+  const setBrand = useCallback((brand: string) => update({ brand, model: "" }), [update]);
+  const setModel = useCallback((model: string) => update({ model }), [update]);
+  const setMinPrice = useCallback((minPrice: number | undefined) => update({ minPrice }), [update]);
+  const setMaxPrice = useCallback((maxPrice: number | undefined) => update({ maxPrice }), [update]);
+  const setMinKm = useCallback((minKm: number | undefined) => update({ minKm }), [update]);
+  const setMaxKm = useCallback((maxKm: number | undefined) => update({ maxKm }), [update]);
+  const setMinYear = useCallback((minYear: number | undefined) => update({ minYear }), [update]);
+  const setMaxYear = useCallback((maxYear: number | undefined) => update({ maxYear }), [update]);
   const setMinHorsePower = useCallback(
     (minHorsePower: number | undefined) => update({ minHorsePower }),
     [update],
@@ -204,19 +168,12 @@ export function useSearchFilters(
     (maxHorsePower: number | undefined) => update({ maxHorsePower }),
     [update],
   );
-  const setTimeFilter = useCallback(
-    (timeFilter: TimeFilter) => update({ timeFilter }),
-    [update],
-  );
+  const setTimeFilter = useCallback((timeFilter: TimeFilter) => update({ timeFilter }), [update]);
   const setLocation = useCallback(
-    (selectedLocation: SelectedLocation | undefined) =>
-      update({ selectedLocation }),
+    (selectedLocation: SelectedLocation | undefined) => update({ selectedLocation }),
     [update],
   );
-  const setDistanceInKm = useCallback(
-    (distanceInKm: number) => update({ distanceInKm }),
-    [update],
-  );
+  const setDistanceInKm = useCallback((distanceInKm: number) => update({ distanceInKm }), [update]);
 
   return {
     ...filters,

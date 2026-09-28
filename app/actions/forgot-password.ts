@@ -4,24 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/env";
 import { sendEmail } from "@/lib/email/client";
 import { renderPasswordResetEmail } from "@/lib/email/templates/auth-emails";
-import {
-  PASSWORD_RESET_TTL_MS,
-  generateToken,
-  hashToken,
-  tokenExpiry,
-} from "@/lib/auth/tokens";
+import { PASSWORD_RESET_TTL_MS, generateToken, hashToken, tokenExpiry } from "@/lib/auth/tokens";
 import { getLocale } from "@/lib/i18n/server";
 import { maybePruneExpiredAuthRows } from "@/lib/auth/cleanup";
-import {
-  RATE_LIMITS,
-  consumeRateLimit,
-  getClientIp,
-} from "@/lib/rate-limit";
-import {
-  AUTH_ERROR,
-  type AuthErrorCode,
-  forgotPasswordSchema,
-} from "@/lib/validations/auth";
+import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/lib/rate-limit";
+import { AUTH_ERROR, type AuthErrorCode, forgotPasswordSchema } from "@/lib/validations/auth";
 import { requiredString } from "@/lib/validations/form-data";
 
 interface ForgotPasswordResult {
@@ -63,9 +50,7 @@ async function issueResetToken(userId: string, email: string): Promise<void> {
   await sendEmail({ to: email, subject, html, text });
 }
 
-export async function requestPasswordReset(
-  formData: FormData,
-): Promise<ForgotPasswordResult> {
+export async function requestPasswordReset(formData: FormData): Promise<ForgotPasswordResult> {
   const parsed = forgotPasswordSchema.safeParse({
     email: requiredString(formData.get("email")),
   });
@@ -83,10 +68,7 @@ export async function requestPasswordReset(
   // Two limits with different jobs: the per-IP one stops a script from farming
   // reset emails, the per-email one stops anyone from using us to flood a
   // specific person's inbox.
-  const ipBudget = await consumeRateLimit(
-    `reset-request:ip:${ip}`,
-    RATE_LIMITS.resetRequestPerIp,
-  );
+  const ipBudget = await consumeRateLimit(`reset-request:ip:${ip}`, RATE_LIMITS.resetRequestPerIp);
   const emailBudget = await consumeRateLimit(
     `reset-request:email:${email}`,
     RATE_LIMITS.resetRequestPerEmail,

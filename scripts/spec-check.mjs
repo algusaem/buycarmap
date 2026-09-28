@@ -132,75 +132,71 @@ async function readTestReferences(files) {
 }
 
 async function main() {
-const specs = [];
-const problems = [];
+  const specs = [];
+  const problems = [];
 
-const { specs: parsed, skipped } = await readSpecs();
-specs.push(...parsed);
+  const { specs: parsed, skipped } = await readSpecs();
+  specs.push(...parsed);
 
-const byKey = new Map();
-for (const spec of specs) {
-  const clash = byKey.get(spec.key);
-  if (clash) {
-    problems.push(
-      `Duplicate key ${spec.key}: used by both ${clash.name} and ${spec.name}. ` +
-        `Keys must be unique — criterion ids are ambiguous otherwise.`,
-    );
-  }
-  byKey.set(spec.key, spec);
-}
-
-const referenced = await readTestReferences(await walk("."));
-
-for (const spec of specs) {
-  if (spec.declared.size === 0) {
-    problems.push(
-      `${spec.path} is ${spec.status} but declares no acceptance criteria. ` +
-        `Add a criteria table, or set Status back to Draft.`,
-    );
-    continue;
-  }
-  for (const id of spec.declared) {
-    if (!referenced.has(id)) {
+  const byKey = new Map();
+  for (const spec of specs) {
+    const clash = byKey.get(spec.key);
+    if (clash) {
       problems.push(
-        `${id} (${spec.path}) is not named by any test title. ` +
-          `Add a test titled "${id}: …", or remove the criterion.`,
+        `Duplicate key ${spec.key}: used by both ${clash.name} and ${spec.name}. ` +
+          `Keys must be unique — criterion ids are ambiguous otherwise.`,
       );
     }
+    byKey.set(spec.key, spec);
   }
-}
 
-// Dangling references: a test names KEY-n for a key we know, but the spec no
-// longer declares it. Unknown prefixes are ignored — they belong to something
-// else entirely (a ticket id, "SHA-1", a spec still in Draft).
-for (const [id, files] of referenced) {
-  const key = id.slice(0, id.lastIndexOf("-"));
-  const spec = byKey.get(key);
-  if (!spec || spec.declared.has(id)) continue;
-  problems.push(
-    `${id} is named by ${[...files].join(", ")} but ${spec.path} does not ` +
-      `declare it. Criteria are append-only — was it renumbered?`,
-  );
-}
+  const referenced = await readTestReferences(await walk("."));
 
-const counted = specs.reduce((n, spec) => n + spec.declared.size, 0);
+  for (const spec of specs) {
+    if (spec.declared.size === 0) {
+      problems.push(
+        `${spec.path} is ${spec.status} but declares no acceptance criteria. ` +
+          `Add a criteria table, or set Status back to Draft.`,
+      );
+      continue;
+    }
+    for (const id of spec.declared) {
+      if (!referenced.has(id)) {
+        problems.push(
+          `${id} (${spec.path}) is not named by any test title. ` +
+            `Add a test titled "${id}: …", or remove the criterion.`,
+        );
+      }
+    }
+  }
 
-if (problems.length > 0) {
-  console.error("spec:check failed\n");
-  for (const problem of problems) console.error(`  - ${problem}`);
-  console.error(
-    `\n${problems.length} problem(s) across ${specs.length} enforced spec(s).`,
-  );
-  process.exit(1);
-}
+  // Dangling references: a test names KEY-n for a key we know, but the spec no
+  // longer declares it. Unknown prefixes are ignored — they belong to something
+  // else entirely (a ticket id, "SHA-1", a spec still in Draft).
+  for (const [id, files] of referenced) {
+    const key = id.slice(0, id.lastIndexOf("-"));
+    const spec = byKey.get(key);
+    if (!spec || spec.declared.has(id)) continue;
+    problems.push(
+      `${id} is named by ${[...files].join(", ")} but ${spec.path} does not ` +
+        `declare it. Criteria are append-only — was it renumbered?`,
+    );
+  }
 
-console.log(
-  `spec:check passed - ${counted} criteria across ${specs.length} enforced spec(s).`,
-);
+  const counted = specs.reduce((n, spec) => n + spec.declared.size, 0);
 
-for (const { name, reason } of skipped) {
-  console.log(`  skipped ${name} (${reason})`);
-}
+  if (problems.length > 0) {
+    console.error("spec:check failed\n");
+    for (const problem of problems) console.error(`  - ${problem}`);
+    console.error(`\n${problems.length} problem(s) across ${specs.length} enforced spec(s).`);
+    process.exit(1);
+  }
+
+  console.log(`spec:check passed - ${counted} criteria across ${specs.length} enforced spec(s).`);
+
+  for (const { name, reason } of skipped) {
+    console.log(`  skipped ${name} (${reason})`);
+  }
 }
 
 // Guarded so `criteriaIdsIn` can be imported by the colocated test without the

@@ -5,21 +5,13 @@ test.beforeEach(async ({ page }) => {
   await mockListingSources(page);
 });
 
-test("renders interleaved listings from all sources on the map page", async ({
-  page,
-}) => {
+test("renders interleaved listings from all sources on the map page", async ({ page }) => {
   await page.goto("/map");
 
   // One listing from each source proves the three-way fan-out renders.
-  await expect(
-    page.getByText("Audi A3 2.0 TDI", { exact: false }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("BMW Serie 3 320d", { exact: false }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("SEAT León 1.5 TSI", { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText("Audi A3 2.0 TDI", { exact: false })).toBeVisible();
+  await expect(page.getByText("BMW Serie 3 320d", { exact: false })).toBeVisible();
+  await expect(page.getByText("SEAT León 1.5 TSI", { exact: false })).toBeVisible();
 });
 
 test("renders the Leaflet map surface", async ({ page, isMobile }) => {

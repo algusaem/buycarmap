@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useCallback,
-  useTransition,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useCallback, useTransition, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Locale, COOKIE_NAME, DEFAULT_LOCALE } from "./config";
 import { translations, Translations } from "./translations";
@@ -36,7 +30,7 @@ export function I18nProvider({ children, locale }: I18nProviderProps) {
         router.refresh();
       });
     },
-    [router]
+    [router],
   );
 
   const value: I18nContextValue = {

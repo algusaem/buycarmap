@@ -37,8 +37,9 @@ describe("pruneExpiredAuthRows", () => {
   it("only targets rows whose expiry has already passed", async () => {
     await pruneExpiredAuthRows();
 
-    const call = vi.mocked(prisma.pendingRegistration.deleteMany).mock
-      .calls[0][0] as { where: { expiresAt: { lte: Date } } };
+    const call = vi.mocked(prisma.pendingRegistration.deleteMany).mock.calls[0][0] as {
+      where: { expiresAt: { lte: Date } };
+    };
 
     // A live token must survive; deleting one would break a link mid-flight.
     expect(call.where.expiresAt.lte.getTime()).toBeLessThanOrEqual(Date.now());

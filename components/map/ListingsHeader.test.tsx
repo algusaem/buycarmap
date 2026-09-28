@@ -113,10 +113,7 @@ describe("ListingsHeader", () => {
   it("links back to the home page", () => {
     renderHeader();
 
-    expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute(
-      "href",
-      "/",
-    );
+    expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
   });
 
   it("has no accessibility violations with the filter panel open", async () => {

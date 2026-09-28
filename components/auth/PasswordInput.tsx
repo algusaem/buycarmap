@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/lib/i18n/client";
 
-interface PasswordInputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
@@ -32,16 +31,12 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           aria-label={showPassword ? t.password.hide : t.password.show}
         >
-          {showPassword ? (
-            <EyeOff className="h-4 w-4" />
-          ) : (
-            <Eye className="h-4 w-4" />
-          )}
+          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </Button>
         {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
       </div>
     );
-  }
+  },
 );
 
 PasswordInput.displayName = "PasswordInput";

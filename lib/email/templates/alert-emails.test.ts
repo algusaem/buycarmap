@@ -107,21 +107,15 @@ describe("renderAlertEmail", () => {
       unsubscribeUrl: "https://buycarmap.test/api/alerts/unsubscribe?token=t0k",
     });
 
-    expect(email.html).toContain(
-      "https://buycarmap.test/api/alerts/unsubscribe?token=t0k",
-    );
-    expect(email.text).toContain(
-      "https://buycarmap.test/api/alerts/unsubscribe?token=t0k",
-    );
+    expect(email.html).toContain("https://buycarmap.test/api/alerts/unsubscribe?token=t0k");
+    expect(email.text).toContain("https://buycarmap.test/api/alerts/unsubscribe?token=t0k");
   });
 
   it("ALERT-22: escapes a title containing markup rather than emitting it", async () => {
     const email = await renderAlertEmail({
       locale: "en",
       alertLabel: "Audi A3 under 20k",
-      matches: [
-        makeMatchListing({ title: "Audi <script>alert(1)</script> A3" }),
-      ],
+      matches: [makeMatchListing({ title: "Audi <script>alert(1)</script> A3" })],
       unsubscribeUrl: "https://buycarmap.test/api/alerts/unsubscribe?token=t0k",
     });
 

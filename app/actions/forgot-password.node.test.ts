@@ -49,38 +49,29 @@ describe("requestPasswordReset action", () => {
   });
 
   it("mints a token and emails a link for a known credential account", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      credentialUser as never,
-    );
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(credentialUser as never);
 
-    const result = await requestPasswordReset(
-      formData({ email: "ada@example.com" }),
-    );
+    const result = await requestPasswordReset(formData({ email: "ada@example.com" }));
 
     expect(result).toEqual({ success: true });
     expect(prisma.passwordResetToken.create).toHaveBeenCalledOnce();
-    expect(sendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "ada@example.com" }),
-    );
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com" }));
   });
 
   it("stores only the token's hash, never the token itself", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      credentialUser as never,
-    );
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(credentialUser as never);
 
     await requestPasswordReset(formData({ email: "ada@example.com" }));
 
-    const stored = vi.mocked(prisma.passwordResetToken.create).mock
-      .calls[0][0] as { data: { tokenHash: string } };
+    const stored = vi.mocked(prisma.passwordResetToken.create).mock.calls[0][0] as {
+      data: { tokenHash: string };
+    };
     const emailed = vi.mocked(sendEmail).mock.calls[0][0];
 
     // Pull the raw token back out of the emailed link and derive what the row
     // should hold. Hand-deriving it this way proves the column holds a digest
     // and not the token — a leaked database yields no working links.
-    const rawToken = decodeURIComponent(
-      emailed.text.match(/token=(\S+)/)![1],
-    );
+    const rawToken = decodeURIComponent(emailed.text.match(/token=(\S+)/)![1]);
 
     expect(stored.data.tokenHash).toBe(hashToken(rawToken));
     expect(stored.data.tokenHash).not.toBe(rawToken);
@@ -89,9 +80,7 @@ describe("requestPasswordReset action", () => {
   });
 
   it("invalidates outstanding tokens before issuing a new one", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      credentialUser as never,
-    );
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(credentialUser as never);
 
     await requestPasswordReset(formData({ email: "ada@example.com" }));
 
@@ -105,9 +94,7 @@ describe("requestPasswordReset action", () => {
   it("returns success without issuing anything for an unknown address", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
-    const result = await requestPasswordReset(
-      formData({ email: "nobody-here@example.com" }),
-    );
+    const result = await requestPasswordReset(formData({ email: "nobody-here@example.com" }));
 
     // Identical response to the known-account case: that is the whole point.
     expect(result).toEqual({ success: true });
@@ -121,25 +108,17 @@ describe("requestPasswordReset action", () => {
       password: null,
     } as never);
 
-    const result = await requestPasswordReset(
-      formData({ email: "oauth@example.com" }),
-    );
+    const result = await requestPasswordReset(formData({ email: "oauth@example.com" }));
 
     expect(result).toEqual({ success: true });
     expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
   });
 
   it("still reports success when issuing the token throws", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      credentialUser as never,
-    );
-    vi.mocked(prisma.passwordResetToken.create).mockRejectedValue(
-      new Error("database down"),
-    );
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(credentialUser as never);
+    vi.mocked(prisma.passwordResetToken.create).mockRejectedValue(new Error("database down"));
 
-    const result = await requestPasswordReset(
-      formData({ email: "ada@example.com" }),
-    );
+    const result = await requestPasswordReset(formData({ email: "ada@example.com" }));
 
     // An error response here would tell an attacker the account exists.
     expect(result).toEqual({ success: true });
@@ -152,9 +131,7 @@ describe("requestPasswordReset action", () => {
       retryAfterMs: 60_000,
     });
 
-    const result = await requestPasswordReset(
-      formData({ email: "ada@example.com" }),
-    );
+    const result = await requestPasswordReset(formData({ email: "ada@example.com" }));
 
     expect(result).toEqual({ success: false, error: "rateLimited" });
     expect(sendEmail).not.toHaveBeenCalled();

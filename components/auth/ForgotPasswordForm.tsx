@@ -12,19 +12,10 @@ import { fadeInUp } from "@/lib/animations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import {
-  forgotPasswordSchema,
-  ForgotPasswordInput,
-} from "@/lib/validations/auth";
+import { forgotPasswordSchema, ForgotPasswordInput } from "@/lib/validations/auth";
 import { requestPasswordReset } from "@/app/actions/forgot-password";
 
 export function ForgotPasswordForm() {
@@ -45,9 +36,7 @@ export function ForgotPasswordForm() {
 
     const result = await requestPasswordReset(formData);
     if (!result.success) {
-      toast.error(
-        translateAuthError(t, result.error) ?? t.forgotPassword.genericError,
-      );
+      toast.error(translateAuthError(t, result.error) ?? t.forgotPassword.genericError);
       return;
     }
 
@@ -66,23 +55,16 @@ export function ForgotPasswordForm() {
             {t.forgotPassword.backToLogin}
           </Link>
           <CardTitle className="text-2xl font-bold">
-            {submitted
-              ? t.forgotPassword.successTitle
-              : t.forgotPassword.title}
+            {submitted ? t.forgotPassword.successTitle : t.forgotPassword.title}
           </CardTitle>
           <CardDescription>
-            {submitted
-              ? t.forgotPassword.successDescription
-              : t.forgotPassword.description}
+            {submitted ? t.forgotPassword.successDescription : t.forgotPassword.description}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           {submitted ? (
-            <div
-              className="flex flex-col items-center gap-4 py-4 text-center"
-              aria-live="polite"
-            >
+            <div className="flex flex-col items-center gap-4 py-4 text-center" aria-live="polite">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 ring-1 ring-accent/20">
                 <MailCheck className="h-6 w-6 text-accent" />
               </div>
@@ -109,12 +91,7 @@ export function ForgotPasswordForm() {
                 )}
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />

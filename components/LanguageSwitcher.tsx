@@ -33,7 +33,7 @@ export function LanguageSwitcher() {
               // `outline-none` with no replacement left keyboard users with no
               // focus indicator at all.
               "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-              locale === loc ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              locale === loc ? "text-primary" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {LOCALE_NAMES[loc]}

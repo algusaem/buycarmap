@@ -44,9 +44,7 @@ function toListing(row: FavoriteRow): CarListing {
   };
 }
 
-export async function saveFavorite(
-  listing: CarListing,
-): Promise<FavoriteResult> {
+export async function saveFavorite(listing: CarListing): Promise<FavoriteResult> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: FAVORITE_ERROR.unauthenticated };
 
@@ -74,9 +72,7 @@ export async function saveFavorite(
   }
 }
 
-export async function removeFavorite(
-  listingId: string,
-): Promise<FavoriteResult> {
+export async function removeFavorite(listingId: string): Promise<FavoriteResult> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: FAVORITE_ERROR.unauthenticated };
 

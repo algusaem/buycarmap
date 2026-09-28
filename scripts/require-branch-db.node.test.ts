@@ -7,16 +7,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import * as guard from "./require-branch-db.mjs";
 
-const { checkBranchDatabase, findMainCheckout, touchesDatabase } =
-  guard as unknown as {
-    checkBranchDatabase: (
-      worktreeUrl: string | undefined,
-      mainUrl: string | undefined,
-      isWorktree: boolean,
-    ) => string | null;
-    findMainCheckout: (cwd?: string) => string | null;
-    touchesDatabase: (command: string) => boolean;
-  };
+const { checkBranchDatabase, findMainCheckout, touchesDatabase } = guard as unknown as {
+  checkBranchDatabase: (
+    worktreeUrl: string | undefined,
+    mainUrl: string | undefined,
+    isWorktree: boolean,
+  ) => string | null;
+  findMainCheckout: (cwd?: string) => string | null;
+  touchesDatabase: (command: string) => boolean;
+};
 
 const SHARED = "postgresql://user:pw@ep-shared.neon.tech/neondb";
 const BRANCH = "postgresql://user:pw@ep-branch.neon.tech/neondb";
@@ -33,9 +32,7 @@ describe("checkBranchDatabase", () => {
   });
 
   it("blocks a worktree still pointing at the main database", () => {
-    expect(checkBranchDatabase(SHARED, SHARED, true)).toMatch(
-      /points at the main checkout/,
-    );
+    expect(checkBranchDatabase(SHARED, SHARED, true)).toMatch(/points at the main checkout/);
   });
 
   it("lets a worktree with its own database through", () => {

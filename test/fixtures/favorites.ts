@@ -10,9 +10,7 @@ export interface FavoriteRow extends CarListing {
   createdAt: Date;
 }
 
-export function makeFavoriteInput(
-  overrides: Partial<CarListing> = {},
-): CarListing {
+export function makeFavoriteInput(overrides: Partial<CarListing> = {}): CarListing {
   return {
     id: "wallapop-abc123",
     image: "https://cdn.wallapop.com/img1-big.jpg",
@@ -73,8 +71,7 @@ export function createFavoriteStore(seed: FavoriteRow[] = []) {
     create: vi.fn(async ({ data }: { data: FavoriteRow | (CarListing & { userId: string }) }) => {
       const userId = (data as { userId: string }).userId;
       const listing = data as unknown as CarListing;
-      const listingId =
-        (data as { listingId?: string }).listingId ?? listing.id;
+      const listingId = (data as { listingId?: string }).listingId ?? listing.id;
       if (indexOf(userId, listingId) !== -1) throw uniqueViolation();
       const row = toRow(userId, { ...listing, id: listingId });
       rows.push(row);
@@ -99,16 +96,13 @@ export function createFavoriteStore(seed: FavoriteRow[] = []) {
       },
     ),
 
-    deleteMany: vi.fn(
-      async ({ where }: { where: { userId: string; listingId: string } }) => {
-        const before = rows.length;
-        rows = rows.filter(
-          (row) =>
-            !(row.userId === where.userId && row.listingId === where.listingId),
-        );
-        return { count: before - rows.length };
-      },
-    ),
+    deleteMany: vi.fn(async ({ where }: { where: { userId: string; listingId: string } }) => {
+      const before = rows.length;
+      rows = rows.filter(
+        (row) => !(row.userId === where.userId && row.listingId === where.listingId),
+      );
+      return { count: before - rows.length };
+    }),
 
     findMany: vi.fn(async ({ where }: { where: { userId: string } }) =>
       rows

@@ -77,9 +77,7 @@ describe("AlertMatchesList", () => {
   it("ALERT-39: renders every match the alert has found", () => {
     const sourceCalls = countSourceCalls();
 
-    renderWithI18n(
-      <AlertMatchesList alertLabel="Audi A3 under 20k" matches={MATCHES} />,
-    );
+    renderWithI18n(<AlertMatchesList alertLabel="Audi A3 under 20k" matches={MATCHES} />);
 
     expect(screen.getAllByRole("article")).toHaveLength(3);
     expect(screen.getByText("Audi A3 Cabrio")).toBeInTheDocument();
@@ -89,30 +87,22 @@ describe("AlertMatchesList", () => {
   });
 
   it("ALERT-39: orders matches newest first", () => {
-    renderWithI18n(
-      <AlertMatchesList alertLabel="Audi A3 under 20k" matches={MATCHES} />,
-    );
+    renderWithI18n(<AlertMatchesList alertLabel="Audi A3 under 20k" matches={MATCHES} />);
 
-    const titles = screen
-      .getAllByRole("article")
-      .map((card) => card.textContent);
+    const titles = screen.getAllByRole("article").map((card) => card.textContent);
     expect(titles[0]).toContain("Audi A3 Cabrio");
     expect(titles[1]).toContain("Seat Leon FR");
     expect(titles[2]).toContain("Audi A3 Sportback");
   });
 
   it("ALERT-39: shows the price the match was found at", () => {
-    renderWithI18n(
-      <AlertMatchesList alertLabel="Audi A3 under 20k" matches={[MATCHES[1]]} />,
-    );
+    renderWithI18n(<AlertMatchesList alertLabel="Audi A3 under 20k" matches={[MATCHES[1]]} />);
 
     expect(screen.getByText(/11[.,]200/)).toBeInTheDocument();
   });
 
   it("ALERT-39: links each match back to its source listing", () => {
-    renderWithI18n(
-      <AlertMatchesList alertLabel="Audi A3 under 20k" matches={[MATCHES[0]]} />,
-    );
+    renderWithI18n(<AlertMatchesList alertLabel="Audi A3 under 20k" matches={[MATCHES[0]]} />);
 
     const link = screen
       .getAllByRole("link")
@@ -122,9 +112,7 @@ describe("AlertMatchesList", () => {
   });
 
   it("ALERT-40: an alert that has found nothing says it is watching", () => {
-    renderWithI18n(
-      <AlertMatchesList alertLabel="Audi A3 under 20k" matches={[]} />,
-    );
+    renderWithI18n(<AlertMatchesList alertLabel="Audi A3 under 20k" matches={[]} />);
 
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
     // "Nothing yet" and "broken" look identical without this — the empty state
@@ -133,9 +121,7 @@ describe("AlertMatchesList", () => {
   });
 
   it("ALERT-40: names the alert so an empty page is still identifiable", () => {
-    renderWithI18n(
-      <AlertMatchesList alertLabel="Audi A3 under 20k" matches={[]} />,
-    );
+    renderWithI18n(<AlertMatchesList alertLabel="Audi A3 under 20k" matches={[]} />);
 
     expect(screen.getByText("Audi A3 under 20k")).toBeInTheDocument();
   });

@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
-import {
-  makeCochesNetResponse,
-  makeCochesNetTaxonomy,
-} from "@/test/fixtures/cochesnet";
+import { makeCochesNetResponse, makeCochesNetTaxonomy } from "@/test/fixtures/cochesnet";
 import { searchCochesNet } from "./client";
 
 interface CochesNetPayload {
@@ -100,8 +97,6 @@ describe("searchCochesNet", () => {
         HttpResponse.json({ error: "boom" }, { status: 502 }),
       ),
     );
-    await expect(searchCochesNet({})).rejects.toThrow(
-      /Coches\.net API error: 502/,
-    );
+    await expect(searchCochesNet({})).rejects.toThrow(/Coches\.net API error: 502/);
   });
 });

@@ -75,9 +75,7 @@ describe("resetPassword token validation", () => {
   });
 
   it("looks the token up by its hash, never by the raw value", async () => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(
-      tokenRecord() as never,
-    );
+    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(tokenRecord() as never);
 
     await resetPassword(validRequest());
 
@@ -134,9 +132,7 @@ describe("resetPassword token validation", () => {
       tokenRecord({ expiresAt: new Date(Date.now() - 1000) }),
       tokenRecord({ usedAt: new Date() }),
     ]) {
-      vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(
-        record as never,
-      );
+      vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(record as never);
       outcomes.push(await resetPassword(validRequest()));
     }
 
@@ -150,9 +146,7 @@ describe("resetPassword token validation", () => {
 
 describe("resetPassword password rules", () => {
   beforeEach(() => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(
-      tokenRecord() as never,
-    );
+    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(tokenRecord() as never);
     vi.mocked(prisma.$transaction).mockClear();
     vi.mocked(verifyPassword).mockResolvedValue(false);
     vi.mocked(consumeRateLimit).mockResolvedValue({
@@ -165,19 +159,16 @@ describe("resetPassword password rules", () => {
   it("rejects a password below the minimum length", async () => {
     const short = "abcdefghijk";
 
-    expect(
-      await resetPassword(
-        validRequest({ password: short, confirmPassword: short }),
-      ),
-    ).toEqual({ success: false, error: "passwordTooShort" });
+    expect(await resetPassword(validRequest({ password: short, confirmPassword: short }))).toEqual({
+      success: false,
+      error: "passwordTooShort",
+    });
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("rejects mismatched confirmation", async () => {
     expect(
-      await resetPassword(
-        validRequest({ confirmPassword: "something-else-entirely" }),
-      ),
+      await resetPassword(validRequest({ confirmPassword: "something-else-entirely" })),
     ).toEqual({ success: false, error: "passwordsDoNotMatch" });
   });
 
@@ -196,9 +187,7 @@ describe("resetPassword password rules", () => {
 
 describe("resetPassword success path", () => {
   beforeEach(() => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(
-      tokenRecord() as never,
-    );
+    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(tokenRecord() as never);
     vi.mocked(prisma.$transaction).mockClear();
     vi.mocked(prisma.user.update).mockClear();
     vi.mocked(prisma.passwordResetToken.update).mockClear();
@@ -237,10 +226,7 @@ describe("resetPassword success path", () => {
     // deliberately do not clear it" look identical from the outside, and the
     // plausible future edit is someone adding it as a lockout fix.
     const [[call]] = vi.mocked(prisma.user.update).mock.calls;
-    expect(Object.keys(call.data).sort()).toEqual([
-      "password",
-      "passwordChangedAt",
-    ]);
+    expect(Object.keys(call.data).sort()).toEqual(["password", "passwordChangedAt"]);
   });
 
   it("marks the token used and clears sessions in one transaction", async () => {
@@ -269,9 +255,7 @@ describe("resetPassword success path", () => {
   it("notifies the account owner that the password changed", async () => {
     await resetPassword(validRequest());
 
-    expect(sendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "ada@example.com" }),
-    );
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com" }));
   });
 });
 

@@ -10,14 +10,10 @@ import {
 } from "./totp";
 
 // RFC 6238 Appendix B uses the ASCII seed "12345678901234567890" for SHA-1.
-const RFC_SECRET = encodeBase32(
-  new TextEncoder().encode("12345678901234567890"),
-);
+const RFC_SECRET = encodeBase32(new TextEncoder().encode("12345678901234567890"));
 
 // A secret unrelated to the RFC, for the behavioural tests.
-const SECRET = encodeBase32(
-  Uint8Array.from({ length: 20 }, (_, i) => (i * 11) % 256),
-);
+const SECRET = encodeBase32(Uint8Array.from({ length: 20 }, (_, i) => (i * 11) % 256));
 
 describe("deriveCode against RFC 6238 vectors", () => {
   // The RFC tabulates 8-digit codes. A 6-digit code is the same dynamic
@@ -142,10 +138,9 @@ describe("generateTotpSecret", () => {
     const secret = generateTotpSecret();
     const now = Date.now();
 
-    expect(
-      verifyTotp(secret, deriveCode(secret, stepForTime(now)), { atMs: now })
-        .valid,
-    ).toBe(true);
+    expect(verifyTotp(secret, deriveCode(secret, stepForTime(now)), { atMs: now }).valid).toBe(
+      true,
+    );
   });
 });
 

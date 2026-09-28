@@ -67,9 +67,7 @@ describe("sendEmail when configured", () => {
   });
 
   it("reports failure without throwing when the network errors", async () => {
-    server.use(
-      http.post("https://api.resend.com/emails", () => HttpResponse.error()),
-    );
+    server.use(http.post("https://api.resend.com/emails", () => HttpResponse.error()));
 
     const { sendEmail } = await loadClient();
 

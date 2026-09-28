@@ -13,9 +13,7 @@ describe("LegalContent", () => {
   it("renders the Terms document with its heading and sections", () => {
     renderWithI18n(<LegalContent doc="terms" />);
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Terms of Service" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Terms of Service" })).toBeInTheDocument();
     // First and last section headings render, so the sections list is mapped.
     expect(screen.getByText("About the service")).toBeInTheDocument();
     expect(screen.getByText("Contact")).toBeInTheDocument();
@@ -25,9 +23,7 @@ describe("LegalContent", () => {
   it("renders the Privacy document when doc='privacy'", () => {
     renderWithI18n(<LegalContent doc="privacy" />);
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Privacy Policy" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeInTheDocument();
     expect(screen.getByText("Information we collect")).toBeInTheDocument();
   });
 
@@ -36,8 +32,6 @@ describe("LegalContent", () => {
 
     // "About the service" is a Terms-only heading; it must not appear here.
     expect(screen.queryByText("About the service")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "Terms of Service" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Terms of Service" })).not.toBeInTheDocument();
   });
 });

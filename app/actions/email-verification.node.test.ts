@@ -36,11 +36,7 @@ import { verifyPassword } from "@/lib/auth/hash";
 import { hashToken } from "@/lib/auth/tokens";
 import { sendEmail } from "@/lib/email/client";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import {
-  confirmEmail,
-  requestEmailChange,
-  requestEmailVerification,
-} from "./email-verification";
+import { confirmEmail, requestEmailChange, requestEmailVerification } from "./email-verification";
 
 const SESSION_USER = { id: "user-1", email: "ada@example.com" };
 const RAW_TOKEN = "a-raw-verification-token";
@@ -110,9 +106,7 @@ describe("requestEmailVerification", () => {
     } as never);
 
     expect(await requestEmailVerification()).toEqual({ success: true });
-    expect(sendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "ada@example.com" }),
-    );
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com" }));
   });
 
   it("refuses when the address is already verified", async () => {
@@ -197,17 +191,19 @@ describe("requestEmailChange", () => {
 
     await requestEmailChange(changeRequest());
 
-    const created = vi.mocked(prisma.emailVerificationToken.create).mock
-      .calls[0][0] as { data: { newEmail: string | null } };
+    const created = vi.mocked(prisma.emailVerificationToken.create).mock.calls[0][0] as {
+      data: { newEmail: string | null };
+    };
     expect(created.data.newEmail).toBe("new@example.com");
   });
 
   it("rejects changing to the address already in use", async () => {
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
-    expect(
-      await requestEmailChange(changeRequest({ email: "ada@example.com" })),
-    ).toEqual({ success: false, error: "sameEmail" });
+    expect(await requestEmailChange(changeRequest({ email: "ada@example.com" }))).toEqual({
+      success: false,
+      error: "sameEmail",
+    });
   });
 
   it("returns the same success for a taken target, and sends nothing", async () => {
@@ -288,9 +284,7 @@ describe("confirmEmail", () => {
   });
 
   it("verifies the existing address when newEmail is null", async () => {
-    vi.mocked(prisma.emailVerificationToken.findUnique).mockResolvedValue(
-      tokenRecord() as never,
-    );
+    vi.mocked(prisma.emailVerificationToken.findUnique).mockResolvedValue(tokenRecord() as never);
 
     expect(await confirmEmail(formData({ token: RAW_TOKEN }))).toEqual({
       success: true,
@@ -319,9 +313,7 @@ describe("confirmEmail", () => {
       },
     });
     // The previous owner has to hear about it to react if it wasn't them.
-    expect(sendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "ada@example.com" }),
-    );
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com" }));
   });
 
   it("reports a taken address if it was claimed in the meantime", async () => {

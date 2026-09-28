@@ -181,18 +181,16 @@ export function parseOwnership(markdown) {
   const scope =
     start === -1
       ? lines
-      : lines
-          .slice(start + 1)
-          .slice(
-            0,
-            (() => {
-              const level = lines[start].match(/^#+/)[0].length;
-              const end = lines
-                .slice(start + 1)
-                .findIndex((line) => new RegExp(`^#{1,${level}}\\s`).test(line));
-              return end === -1 ? undefined : end;
-            })(),
-          );
+      : lines.slice(start + 1).slice(
+          0,
+          (() => {
+            const level = lines[start].match(/^#+/)[0].length;
+            const end = lines
+              .slice(start + 1)
+              .findIndex((line) => new RegExp(`^#{1,${level}}\\s`).test(line));
+            return end === -1 ? undefined : end;
+          })(),
+        );
 
   const entries = [];
   for (const line of scope) {
@@ -290,8 +288,7 @@ export function ownableFiles(tracked) {
     (file) =>
       !NOT_SOURCE.test(file) &&
       !file.startsWith("app/generated/") &&
-      (SOURCE_ROOTS.some((root) => file.startsWith(`${root}/`)) ||
-        OWNED_ROOT_FILE.test(file)),
+      (SOURCE_ROOTS.some((root) => file.startsWith(`${root}/`)) || OWNED_ROOT_FILE.test(file)),
   );
 }
 
@@ -358,9 +355,7 @@ async function main() {
       if (anchor && target.endsWith(".md")) {
         const slugs = await slugsFor(target);
         if (!slugs.has(anchor.toLowerCase())) {
-          problems.push(
-            `${file} links to ${link}, but ${target} has no heading "#${anchor}".`,
-          );
+          problems.push(`${file} links to ${link}, but ${target} has no heading "#${anchor}".`);
         }
       }
     }
@@ -374,8 +369,7 @@ async function main() {
       if (ALLOWED_MISSING.some((pattern) => pattern.test(path))) continue;
       if (!(await exists(path))) {
         problems.push(
-          `${file} refers to \`${path}\`, which does not exist. ` +
-            `Was it moved or deleted?`,
+          `${file} refers to \`${path}\`, which does not exist. ` + `Was it moved or deleted?`,
         );
       }
     }
@@ -423,9 +417,7 @@ async function main() {
     for (const { glob, doc } of ownership) {
       const pattern = globToRegExp(glob);
       if (!repoFiles.some((file) => pattern.test(file))) {
-        problems.push(
-          `${INDEX} maps \`${glob}\` to ${doc}, but that pattern matches no file.`,
-        );
+        problems.push(`${INDEX} maps \`${glob}\` to ${doc}, but that pattern matches no file.`);
       }
       if (isGap(doc)) {
         gaps.push(glob);
@@ -474,9 +466,7 @@ async function main() {
   );
 
   if (gaps.length > 0) {
-    console.log(
-      `\n${gaps.length} area(s) declared undocumented in ${INDEX}:`,
-    );
+    console.log(`\n${gaps.length} area(s) declared undocumented in ${INDEX}:`);
     for (const glob of gaps) console.log(`  - ${glob}`);
   }
 }

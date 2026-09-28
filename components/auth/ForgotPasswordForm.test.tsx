@@ -16,8 +16,7 @@ vi.mock("@/app/actions/forgot-password", () => ({
 }));
 import { toast } from "sonner";
 
-const submit = () =>
-  userEvent.click(screen.getByRole("button", { name: "Send reset link" }));
+const submit = () => userEvent.click(screen.getByRole("button", { name: "Send reset link" }));
 
 describe("ForgotPasswordForm", () => {
   beforeEach(() => {
@@ -51,9 +50,7 @@ describe("ForgotPasswordForm", () => {
     await submit();
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "Something went wrong. Please try again.",
-      ),
+      expect(toast.error).toHaveBeenCalledWith("Something went wrong. Please try again."),
     );
     // Still on the form, not the confirmation.
     expect(screen.getByLabelText("Email")).toBeInTheDocument();

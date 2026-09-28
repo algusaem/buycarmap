@@ -8,17 +8,8 @@ import { loginEmailRateKey } from "@/lib/auth/authorize";
 import { sendEmail } from "@/lib/email/client";
 import { renderPasswordChangedEmail } from "@/lib/email/templates/auth-emails";
 import { getLocale } from "@/lib/i18n/server";
-import {
-  RATE_LIMITS,
-  consumeRateLimit,
-  getClientIp,
-  resetRateLimit,
-} from "@/lib/rate-limit";
-import {
-  AUTH_ERROR,
-  type AuthErrorCode,
-  resetPasswordSchema,
-} from "@/lib/validations/auth";
+import { RATE_LIMITS, consumeRateLimit, getClientIp, resetRateLimit } from "@/lib/rate-limit";
+import { AUTH_ERROR, type AuthErrorCode, resetPasswordSchema } from "@/lib/validations/auth";
 import { requiredString } from "@/lib/validations/form-data";
 
 interface ResetPasswordResult {
@@ -26,14 +17,9 @@ interface ResetPasswordResult {
   error?: AuthErrorCode;
 }
 
-export async function resetPassword(
-  formData: FormData,
-): Promise<ResetPasswordResult> {
+export async function resetPassword(formData: FormData): Promise<ResetPasswordResult> {
   const ip = await getClientIp();
-  const budget = await consumeRateLimit(
-    `reset-redeem:ip:${ip}`,
-    RATE_LIMITS.resetRedeemPerIp,
-  );
+  const budget = await consumeRateLimit(`reset-redeem:ip:${ip}`, RATE_LIMITS.resetRedeemPerIp);
 
   if (!budget.allowed) {
     return { success: false, error: AUTH_ERROR.rateLimited };
@@ -64,17 +50,11 @@ export async function resetPassword(
 
   // Expired, already redeemed, and never-existed all collapse to one error, so
   // a probe cannot tell a real-but-stale token from a fabricated one.
-  if (
-    !record ||
-    record.usedAt !== null ||
-    record.expiresAt.getTime() <= Date.now()
-  ) {
+  if (!record || record.usedAt !== null || record.expiresAt.getTime() <= Date.now()) {
     return { success: false, error: AUTH_ERROR.tokenInvalid };
   }
 
-  const passwordError = await validateNewPassword(password, [
-    record.user.email,
-  ]);
+  const passwordError = await validateNewPassword(password, [record.user.email]);
 
   if (passwordError) {
     return { success: false, error: passwordError };
@@ -82,10 +62,7 @@ export async function resetPassword(
 
   // Reusing the current password would leave the account exactly as exposed as
   // whatever prompted the reset.
-  if (
-    record.user.password &&
-    (await verifyPassword(password, record.user.password))
-  ) {
+  if (record.user.password && (await verifyPassword(password, record.user.password))) {
     return { success: false, error: AUTH_ERROR.passwordReused };
   }
 

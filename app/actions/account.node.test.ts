@@ -154,9 +154,7 @@ describe("changePassword", () => {
 
   it("rejects setting the same password again", async () => {
     // First call verifies the current password, second is the reuse check.
-    vi.mocked(verifyPassword)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(true);
+    vi.mocked(verifyPassword).mockResolvedValueOnce(true).mockResolvedValueOnce(true);
 
     expect(await changePassword(changeRequest())).toEqual({
       success: false,
@@ -166,17 +164,14 @@ describe("changePassword", () => {
   });
 
   it("rejects a weak new password", async () => {
-    vi.mocked(verifyPassword)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false);
+    vi.mocked(verifyPassword).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
     const weak = "qwertyuiopasdfgh";
 
-    expect(
-      await changePassword(
-        changeRequest({ password: weak, confirmPassword: weak }),
-      ),
-    ).toEqual({ success: false, error: "passwordWeak" });
+    expect(await changePassword(changeRequest({ password: weak, confirmPassword: weak }))).toEqual({
+      success: false,
+      error: "passwordWeak",
+    });
   });
 
   it("refuses for an OAuth-only account with no password set", async () => {
@@ -192,9 +187,7 @@ describe("changePassword", () => {
   });
 
   it("AUTH-5: bumps passwordChangedAt and clears sessions on success", async () => {
-    vi.mocked(verifyPassword)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false);
+    vi.mocked(verifyPassword).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
     expect(await changePassword(changeRequest())).toEqual({ success: true });
 

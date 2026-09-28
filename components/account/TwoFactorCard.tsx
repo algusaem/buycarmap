@@ -8,13 +8,7 @@ import { ShieldCheck, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
@@ -134,9 +128,7 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
 
       <CardContent className="space-y-4">
         {!isAvailable && (
-          <p className="text-sm text-muted-foreground">
-            {t.account.twoFactor.unavailable}
-          </p>
+          <p className="text-sm text-muted-foreground">{t.account.twoFactor.unavailable}</p>
         )}
 
         {/* Recovery codes take over the card entirely: they are shown once, so
@@ -170,9 +162,7 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
         {isAvailable && !recoveryCodes && !setup && isEnabled && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="two-factor-password">
-                {t.account.twoFactor.currentPassword}
-              </Label>
+              <Label htmlFor="two-factor-password">{t.account.twoFactor.currentPassword}</Label>
               <PasswordInput
                 id="two-factor-password"
                 autoComplete="current-password"
@@ -184,9 +174,7 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
             </div>
 
             <div className="space-y-2 border-t border-border/50 pt-4">
-              <p className="text-xs text-muted-foreground">
-                {t.account.twoFactor.regenerateHint}
-              </p>
+              <p className="text-xs text-muted-foreground">{t.account.twoFactor.regenerateHint}</p>
               <Button
                 type="button"
                 variant="outline"
@@ -206,9 +194,7 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
             </div>
 
             <div className="space-y-2 border-t border-border/50 pt-4">
-              <Label htmlFor="two-factor-disable-code">
-                {t.account.twoFactor.codeLabel}
-              </Label>
+              <Label htmlFor="two-factor-disable-code">{t.account.twoFactor.codeLabel}</Label>
               <Input
                 id="two-factor-disable-code"
                 inputMode="numeric"
@@ -218,16 +204,12 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                {t.account.twoFactor.disableHint}
-              </p>
+              <p className="text-xs text-muted-foreground">{t.account.twoFactor.disableHint}</p>
               <Button
                 type="button"
                 variant="destructive"
                 size="sm"
-                disabled={
-                  pending !== null || password.length === 0 || code.length === 0
-                }
+                disabled={pending !== null || password.length === 0 || code.length === 0}
                 onClick={onDisable}
               >
                 {pending === "disable" ? (

@@ -25,11 +25,7 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
 
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, DUMMY_PASSWORD_HASH } from "@/lib/auth/hash";
-import {
-  consumeRateLimit,
-  isRateLimited,
-  resetRateLimit,
-} from "@/lib/rate-limit";
+import { consumeRateLimit, isRateLimited, resetRateLimit } from "@/lib/rate-limit";
 import { verifyAndConsumeTwoFactor } from "@/lib/auth/two-factor/verify";
 import { authorizeCredentials, loginEmailRateKey } from "./authorize";
 
@@ -199,9 +195,7 @@ describe("authorizeCredentials rate limiting", () => {
 
     // Otherwise earlier typos would keep counting toward a lockout the user
     // has just demonstrably earned their way out of.
-    expect(resetRateLimit).toHaveBeenCalledWith(
-      loginEmailRateKey("ada@example.com"),
-    );
+    expect(resetRateLimit).toHaveBeenCalledWith(loginEmailRateKey("ada@example.com"));
   });
 
   it("does not count a successful sign-in as a failure", async () => {
@@ -215,9 +209,7 @@ describe("authorizeCredentials rate limiting", () => {
 
     const emailKeyCalls = vi
       .mocked(consumeRateLimit)
-      .mock.calls.filter(
-        ([key]) => key === loginEmailRateKey("ada@example.com"),
-      );
+      .mock.calls.filter(([key]) => key === loginEmailRateKey("ada@example.com"));
     expect(emailKeyCalls).toHaveLength(0);
   });
 });

@@ -33,14 +33,10 @@ export default async function FavoritesPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t.favorites.title}
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t.favorites.title}</h1>
           {/* The snapshot is deliberately not refreshed (see the spec), so the
               staleness is stated rather than hidden. */}
-          <p className="text-sm text-muted-foreground">
-            {t.favorites.subtitle}
-          </p>
+          <p className="text-sm text-muted-foreground">{t.favorites.subtitle}</p>
         </div>
       </div>
 

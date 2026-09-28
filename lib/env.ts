@@ -48,12 +48,8 @@ function loadEnv() {
   const parsed = envSchema.safeParse(process.env);
 
   if (!parsed.success) {
-    const details = parsed.error.issues
-      .map((issue) => `  - ${issue.message}`)
-      .join("\n");
-    throw new Error(
-      `Invalid server environment. Fix your .env (see .env.example):\n${details}`,
-    );
+    const details = parsed.error.issues.map((issue) => `  - ${issue.message}`).join("\n");
+    throw new Error(`Invalid server environment. Fix your .env (see .env.example):\n${details}`);
   }
 
   return parsed.data;
@@ -93,18 +89,13 @@ if (
 // a database leak hand over every enrolled secret.
 export const isTwoFactorConfigured = Boolean(env.TWO_FACTOR_ENCRYPTION_KEY);
 
-if (
-  !isTwoFactorConfigured &&
-  process.env.NODE_ENV === "production"
-) {
+if (!isTwoFactorConfigured && process.env.NODE_ENV === "production") {
   console.warn(
     "[security] TWO_FACTOR_ENCRYPTION_KEY is not set, so two-factor authentication is unavailable. Generate one with `openssl rand -base64 32`. Note that changing it later makes existing enrolments unreadable.",
   );
 }
 
-export const isGoogleConfigured = Boolean(
-  env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET,
-);
+export const isGoogleConfigured = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
 export const isGitHubConfigured = Boolean(env.GITHUB_ID && env.GITHUB_SECRET);
 

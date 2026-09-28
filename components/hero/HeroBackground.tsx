@@ -25,8 +25,7 @@ export function HeroBackground() {
       <div
         className="absolute -right-[10%] -top-[20%] h-[50%] w-[40%] opacity-[0.04]"
         style={{
-          background:
-            "radial-gradient(ellipse at center, oklch(0.62 0.12 160), transparent 70%)",
+          background: "radial-gradient(ellipse at center, oklch(0.62 0.12 160), transparent 70%)",
           filter: "blur(60px)",
         }}
       />
