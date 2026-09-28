@@ -192,9 +192,10 @@ default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` u
 **`gitleaks: command not found` when committing.** Install gitleaks
 ([Prerequisites](#prerequisites)) and open a new shell so the PATH change applies.
 
-**knip reports `lint-staged` as unused.** A clone made before `.gitattributes`
-existed keeps its `.husky/pre-commit` and `.husky/commit-msg` as CRLF. Delete
-those two files and run `git checkout -- .husky` to restore them LF.
+**knip reports `lint-staged` as unused.** On a checkout with `core.autocrlf=true`
+(the Git for Windows default), a clone made before `.gitattributes` existed
+keeps its `.husky/pre-commit` and `.husky/commit-msg` as CRLF. Delete those two
+files and run `git checkout -- .husky` to restore them LF.
 
 **`Invalid server environment`** at boot lists exactly which variables are
 missing. `lib/env.ts` is the schema.
@@ -445,6 +446,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `playwright.config.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `biome.json` | [README.md](README.md) |
 | `.git-blame-ignore-revs` | [README.md](README.md) |
+| `.gitattributes` | [README.md](README.md) |
 | `commitlint.config.mjs` | [README.md](README.md) |
 | `.husky/**` | [README.md](README.md) |
 | `postcss.config.mjs` | [README.md](README.md) |

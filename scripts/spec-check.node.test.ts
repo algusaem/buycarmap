@@ -99,7 +99,9 @@ describe("checkSpecs", () => {
 
     const problems = checkSpecs(specs, tests).problems;
     expect(problems).toHaveLength(1);
-    expect(problems.some((p) => p.includes("FAV-3") && p.includes("level"))).toBe(true);
+    expect(problems[0]).toContain("FAV-3");
+    expect(problems[0]).toContain("has no level");
+    expect(problems[0]).not.toContain("has no statement");
   });
 
   it.each(["unit", "node", "component", "contract", "e2e"])(
@@ -131,12 +133,26 @@ describe("checkSpecs", () => {
 
     const problems = checkSpecs(specs, tests).problems;
     expect(problems).toHaveLength(1);
-    expect(problems.some((p) => p.includes("FAV-3") && p.includes("level"))).toBe(true);
+    expect(problems[0]).toContain("FAV-3");
+    expect(problems[0]).toContain("has no level");
+    expect(problems[0]).not.toContain("has no statement");
   });
 
   it("DOCS-2: a checklist item with a level but no statement is rejected, naming the criterion", () => {
     const specs = [
       { name: "favorites.md", source: spec("FAV", "Approved", "- [x] FAV-3 · node — ") },
+    ];
+    const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
+
+    const problems = checkSpecs(specs, tests).problems;
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("FAV-3");
+    expect(problems[0]).toContain("has no statement");
+  });
+
+  it("DOCS-2: a level followed by a bare dash is reported as a missing statement", () => {
+    const specs = [
+      { name: "favorites.md", source: spec("FAV", "Approved", "- [x] FAV-3 · node —") },
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 

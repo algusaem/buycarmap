@@ -42,7 +42,7 @@ const LEVEL_WITH_STATEMENT = new RegExp(`^ · ${LEVEL_CLAUSE} — \\S`);
 // left over (an invalid level, or extra text before " — ") fails this too, so
 // it falls through to "has no level" rather than being mistaken for a blank
 // statement.
-const LEVEL_WITHOUT_STATEMENT = new RegExp(`^ · ${LEVEL_CLAUSE}(?: — \\s*)?$`);
+const LEVEL_WITHOUT_STATEMENT = new RegExp(`^ · ${LEVEL_CLAUSE}(?: —\\s*)?$`);
 const ID = /\b([A-Z][A-Z0-9]{1,7}-\d+)\b/g;
 // `it("…")`, `test("…")`, `test.skip("…")`, `it.each([…])("…")`, `dbTest("…")`.
 //
@@ -135,20 +135,21 @@ function parseEnforcedSpec(spec, { key, status }, problems) {
   for (const { id, checked, rest } of checklistItemsIn(spec.source, key)) {
     declared.add(id);
 
-    if (!LEVEL_WITH_STATEMENT.test(rest)) {
-      if (LEVEL_WITHOUT_STATEMENT.test(rest)) {
-        problems.push(
-          `${id} (${spec.name}) has no statement. Write it as "- [ ] ${id} · <level> — <statement>".`,
-        );
-      } else {
-        problems.push(
-          `${id} (${spec.name}) has no level. Write it as "- [ ] ${id} · <${LEVEL_ALTERNATION}>[ + <level>…] — <statement>".`,
-        );
-      }
-    }
     if (!checked && status === "Implemented") {
       problems.push(
         `${id} (${spec.name}) is unchecked in an Implemented spec. Tick it once its test is green, or set Status back to Approved.`,
+      );
+    }
+
+    if (LEVEL_WITH_STATEMENT.test(rest)) continue;
+
+    if (LEVEL_WITHOUT_STATEMENT.test(rest)) {
+      problems.push(
+        `${id} (${spec.name}) has no statement. Write it as "- [ ] ${id} · <level> — <statement>".`,
+      );
+    } else {
+      problems.push(
+        `${id} (${spec.name}) has no level. Write it as "- [ ] ${id} · <${LEVEL_ALTERNATION}>[ + <level>…] — <statement>".`,
       );
     }
   }
@@ -267,8 +268,7 @@ export function checkSpecs(specs, tests) {
   const skipped = [];
 
   for (const spec of specs) {
-    const header = specHeader(spec.source);
-    const { key, status } = header;
+    const { key, status } = specHeader(spec.source);
     if (key && ENFORCED_STATUSES.has(status ?? "")) {
       enforced.push(parseEnforcedSpec(spec, { key, status }, problems));
       continue;

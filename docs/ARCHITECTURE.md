@@ -456,10 +456,11 @@ remember — see [Refusing to run](../README.md#refusing-to-run).
 - **`prisma migrate status` does not catch drift.** It reported "Database schema
   is up to date!" against a stale checksum *and* a migration missing locally. It
   validates neither. Only `migrate dev` does.
-- **Checksums are SHA-256 of `migration.sql` with CRLF normalised to LF.**
-  `.gitattributes` has no rule for `prisma/migrations/`, so migration files stay
-  CRLF on disk and LF in git. That is **not** a source of drift. Do not chase
-  it. The only rule `.gitattributes` does carry is `.husky/* text eol=lf`, which
+- **Checksums are SHA-256 of `migration.sql` with CRLF normalised to LF.** On a
+  checkout with `core.autocrlf=true` (the Git for Windows default), migration
+  files stay CRLF on disk and LF in git, because `.gitattributes` has no rule
+  for `prisma/migrations/`. That is **not** a source of drift. Do not chase it.
+  The only rule `.gitattributes` does carry is `.husky/* text eol=lf`, which
   keeps the Git hooks LF so knip reads `lint-staged` cleanly.
 
 #### Repairing a stale checksum
@@ -530,7 +531,13 @@ TOTP secrets are
 ### Rules that are easy to break
 
 The defences a plausible-looking change can quietly remove are listed in
-[specs/auth-email-and-oauth.md › Cross-cutting conventions (do not violate)](specs/auth-email-and-oauth.md#cross-cutting-conventions-do-not-violate).
+[specs/auth-email-and-oauth.md › Cross-cutting conventions (do not violate)](specs/auth-email-and-oauth.md#cross-cutting-conventions-do-not-violate),
+its [Permissions](specs/auth-email-and-oauth.md#permissions) section — a
+password reset leaves two-factor enrolment intact (AUTH-11), and an email
+change goes to the new address with the current password required to start it
+(AUTH-13) — and its
+[Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation)
+subsection, which bumping `passwordChangedAt` depends on.
 
 ### Read next
 
@@ -1216,17 +1223,18 @@ alone is empty, suspect the scrape before you suspect the filters —
 
 The Have I Been Pwned check **fails open** — a network failure or HIBP outage
 lets the password through rather than blocking registration. So an outage there
-is not the cause. Look at the length rule (12–72; 72 is bcrypt's truncation
-limit) and the strength scorer, which rejects below 2 of 4.
+is not the cause. Look at the length rule and the strength scorer instead —
+[specs/auth-email-and-oauth.md › Password policy (NIST SP 800-63B)](specs/auth-email-and-oauth.md#password-policy-nist-sp-800-63b).
 
 The rate limiter also fails open on a database error, so it is not the cause
 either.
 
 #### Someone is locked out
 
-Login is limited per IP (20 / 15 min) and per account (8 failures / 15 min,
-cleared on success). Both are rows in the `RateLimit` table keyed by `key`;
-deleting the row clears the window.
+Login is limited per IP and per account — see
+[specs/auth-email-and-oauth.md › Rate limiting](specs/auth-email-and-oauth.md#rate-limiting).
+Both are rows in the `RateLimit` table keyed by `key`; deleting the row clears
+the window.
 
 The e2e suite exhausts its own login limit — see
 [The database-backed suite](#the-database-backed-suite).

@@ -75,8 +75,14 @@ changes no authorization (see Out of scope: no behaviour change).
 **Out of scope.** Each of these becomes a GitHub issue once this spec is approved, not part of
 this diff.
 
-- **No behaviour change.** No criterion changes meaning, no id is renumbered, and no test other
-  than the fixtures of `spec-check` and `docs-check` changes.
+- **No behaviour change.** No criterion changes meaning and no id is renumbered. The only edits to
+  existing tests are:
+  - the two import statements that drop `as unknown as`;
+  - the SRC-12 assertion in `app/api/wallapop/search/route.node.test.ts`, tightened to the exact
+    body of the SRC-12 worked example refined in this phase;
+  - comment-only re-points of stale spec section references.
+
+  All are the owner's decisions, 2026-09-28.
 - **The privacy gaps the inventory exposes are recorded, not fixed.**
   - There is no account data export (`RULES.md` §12).
   - `AlertCriteria` rows, which can hold the user's coordinates, survive account deletion.
@@ -143,9 +149,11 @@ Regions other than Neon's, and every DPA link, read "phase 12".
 **Neon, as measured on 2026-09-28:** the project is `buycarmap`, in region `aws-eu-central-1`, with
 `history_retention_seconds` 21600 (6 hours), on the `free_v3` plan.
 
-**Fixtures.** The new `spec-check` and `docs-check` cases use checklist items. No existing
-assertion changes; the only edits to existing test lines are the two import statements that drop
-`as unknown as` (the owner's decision, 2026-09-28).
+**Fixtures.** The new `spec-check` and `docs-check` cases use checklist items. The only edits to
+existing test lines are the two import statements that drop `as unknown as`, the SRC-12 assertion
+in `app/api/wallapop/search/route.node.test.ts` tightened to the exact body of the SRC-12 worked
+example refined in this phase, and comment-only re-points of stale spec section references (the
+owner's decisions, 2026-09-28).
 
 ## Decisions and rationale
 

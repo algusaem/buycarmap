@@ -24,14 +24,14 @@ import { fileURLToPath } from "node:url";
 
 import { trackedFiles as gitTrackedFiles } from "./git-files.mjs";
 
-// Docs are scanned for both links and source references. CLAUDE.md is in here
-// deliberately: it carries more path references than any doc, and the 2026-08-03
-// audit found two of them stale.
-const SCANNED = ["README.md", "CLAUDE.md"];
 const DOC_DIR = "docs";
 // The documentation index: every doc under docs/ must be reachable from it, and
 // it carries the ownership map under its "Ownership map" heading.
 export const INDEX = "README.md";
+// Docs are scanned for both links and source references. CLAUDE.md is in here
+// deliberately: it carries more path references than any doc, and the 2026-08-03
+// audit found two of them stale.
+const SCANNED = [INDEX, "CLAUDE.md"];
 
 // Backticked paths are only checked when they start with one of these. Anything
 // else is prose, an upstream URL path, or a doc that a plan says will exist
@@ -583,14 +583,15 @@ function processOwnershipEntry(entry, repoFiles, problems, gaps, patterns) {
  * the repository root — the set `unresolvedOwnershipDocs` checks against.
  *
  * @param {OwnershipEntry[]} entries
+ * @param {string} indexPath
  * @returns {Promise<Set<string>>}
  */
-async function existingOwnershipDocs(entries) {
+async function existingOwnershipDocs(entries, indexPath) {
   /** @type {Set<string>} */
   const existing = new Set();
   for (const { doc } of entries) {
     if (isGap(doc)) continue;
-    const target = ownershipDocPath(INDEX, doc);
+    const target = ownershipDocPath(indexPath, doc);
     if (await exists(target)) existing.add(target);
   }
   return existing;
@@ -657,7 +658,7 @@ async function checkOwnershipMap(sources, problems, gaps) {
     processOwnershipEntry(entry, repoFiles, problems, gaps, patterns);
   }
   problems.push(
-    ...unresolvedOwnershipDocs(ownership, INDEX, await existingOwnershipDocs(ownership)),
+    ...unresolvedOwnershipDocs(ownership, INDEX, await existingOwnershipDocs(ownership, INDEX)),
   );
 
   reportUnclaimedFiles(tracked, patterns, problems);

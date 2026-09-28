@@ -311,7 +311,7 @@ describe("ownableFiles", () => {
 });
 
 describe("INDEX", () => {
-  it("DOCS-7: points at the root README, once the index moves there", () => {
+  it("DOCS-7: the index is the root README", () => {
     expect(INDEX).toBe("README.md");
   });
 });
