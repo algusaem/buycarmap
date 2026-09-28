@@ -1,16 +1,16 @@
-export interface WallapopImageUrls {
+interface WallapopImageUrls {
   small: string;
   medium: string;
   big: string;
 }
 
-export interface WallapopItemImage {
+interface WallapopItemImage {
   id: string;
   average_color: string;
   urls: WallapopImageUrls;
 }
 
-export interface WallapopItemLocation {
+interface WallapopItemLocation {
   latitude: number;
   longitude: number;
   postal_code: string;
@@ -19,16 +19,16 @@ export interface WallapopItemLocation {
   country_code: string;
 }
 
-export interface WallapopItemPrice {
+interface WallapopItemPrice {
   amount: number;
   currency: string;
 }
 
-export interface WallapopFlagValue {
+interface WallapopFlagValue {
   flag: boolean;
 }
 
-export interface WallapopTypeAttributes {
+interface WallapopTypeAttributes {
   brand?: string;
   model?: string;
   year?: number;
@@ -55,17 +55,17 @@ export interface WallapopItem {
   type_attributes: WallapopTypeAttributes;
 }
 
-export interface WallapopSearchSection {
+interface WallapopSearchSection {
   type: string;
   title: string;
   items: WallapopItem[];
 }
 
-export interface WallapopSearchData {
+interface WallapopSearchData {
   section: WallapopSearchSection;
 }
 
-export interface WallapopSearchMeta {
+interface WallapopSearchMeta {
   next_page: string | null;
 }
 

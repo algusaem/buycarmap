@@ -56,6 +56,8 @@ describe("GET upstream connection failure", () => {
     const res = await GET(new NextRequest("http://localhost:3000/api/cochesnet/models?makeId=101"));
 
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: expect.stringContaining("failed") });
+    const body: { error: string } = await res.json();
+    const expected: { error: string } = { error: expect.stringContaining("failed") };
+    expect(body).toEqual(expected);
   });
 });

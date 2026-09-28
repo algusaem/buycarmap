@@ -26,22 +26,10 @@ export const fadeInDown = {
   transition: { duration: duration.slow, ease },
 };
 
-export const scaleIn = {
-  initial: { opacity: 0, scale: 0.8 },
-  animate: { opacity: 1, scale: 1 },
-  transition: { duration: duration.normal, ease },
-};
-
 // Animations with configurable delay
 export const fadeIn = (delay = 0) => ({
   initial: { opacity: 0 },
   animate: { opacity: 1 },
-  transition: { duration: duration.normal, delay },
-});
-
-export const slideInLeft = (delay = 0) => ({
-  initial: { opacity: 0, x: -10 },
-  animate: { opacity: 1, x: 0 },
   transition: { duration: duration.normal, delay },
 });
 

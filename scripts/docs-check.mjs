@@ -68,6 +68,12 @@ const EXTENSION = /\.(tsx?|mjs|cjs|jsx?|json|md|prisma|css|ya?ml|example|sql)$/;
 // (`docs/specs/<area>.md`) all name a shape, not a file.
 const IS_PATTERN = /[*{}<>$]/;
 
+/** @typedef {{ glob: string, doc: string }} OwnershipEntry */
+
+/**
+ * @param {string} p
+ * @returns {string}
+ */
 const posix = (p) => p.replace(/\\/g, "/");
 
 /**
@@ -76,6 +82,9 @@ const posix = (p) => p.replace(/\\/g, "/");
  * The directory trees in CLAUDE.md live in fences and are written relative to
  * their parent (`wallapop/search/route.ts`), so scanning them would produce
  * nothing but false positives.
+ *
+ * @param {string} markdown
+ * @returns {string}
  */
 export function stripFences(markdown) {
   const out = [];
@@ -97,6 +106,9 @@ export function stripFences(markdown) {
  * Removing punctuation leaves the spaces around it behind, so "Data & contracts"
  * anchors as `#data--contracts` with two. Collapsing here would reject that
  * perfectly valid link as pointing at a heading that does not exist.
+ *
+ * @param {string} heading
+ * @returns {string}
  */
 export function slugify(heading) {
   return heading
@@ -106,6 +118,10 @@ export function slugify(heading) {
     .replace(/\s/g, "-");
 }
 
+/**
+ * @param {string} markdown
+ * @returns {Set<string>}
+ */
 export function headingSlugs(markdown) {
   const slugs = new Set();
   const seen = new Map();
@@ -119,7 +135,12 @@ export function headingSlugs(markdown) {
   return slugs;
 }
 
-/** `[text](target)` links, excluding external schemes and bare anchors handled separately. */
+/**
+ * `[text](target)` links, excluding external schemes and bare anchors handled separately.
+ *
+ * @param {string} markdown
+ * @returns {string[]}
+ */
 export function extractLinks(markdown) {
   const links = [];
   for (const [, , target] of stripFences(markdown).matchAll(
@@ -131,7 +152,12 @@ export function extractLinks(markdown) {
   return links;
 }
 
-/** Backticked strings that look like a path into this repository. */
+/**
+ * Backticked strings that look like a path into this repository.
+ *
+ * @param {string} markdown
+ * @returns {Set<string>}
+ */
 export function extractSourcePaths(markdown) {
   const paths = new Set();
   for (const [, code] of stripFences(markdown).matchAll(/`([^`\n]+)`/g)) {
@@ -146,7 +172,12 @@ export function extractSourcePaths(markdown) {
   return paths;
 }
 
-/** Converts a glob with `*` and `**` into an anchored regular expression. */
+/**
+ * Converts a glob with `*` and `**` into an anchored regular expression.
+ *
+ * @param {string} glob
+ * @returns {RegExp}
+ */
 export function globToRegExp(glob) {
   let out = "";
   for (let i = 0; i < glob.length; i++) {
@@ -171,6 +202,9 @@ export function globToRegExp(glob) {
  *
  * Rows look like `| \`lib/wallapop/**\` | [integrations/wallapop.md](…) |`, under
  * a heading whose slug contains "ownership".
+ *
+ * @param {string} markdown
+ * @returns {OwnershipEntry[]}
  */
 export function parseOwnership(markdown) {
   const lines = stripFences(markdown).split("\n");
@@ -192,6 +226,7 @@ export function parseOwnership(markdown) {
           })(),
         );
 
+  /** @type {OwnershipEntry[]} */
   const entries = [];
   for (const line of scope) {
     const match = line.match(/^\|\s*`([^`]+)`\s*\|\s*(.+?)\s*\|/);
@@ -209,6 +244,9 @@ export function parseOwnership(markdown) {
  * so the check goes green — would make the map lie, and the map is what
  * /check-all reads to decide which docs a change must touch. An explicit gap is
  * honest, stays visible in every run's output, and can be counted down.
+ *
+ * @param {string} doc
+ * @returns {boolean}
  */
 export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
 
@@ -227,12 +265,20 @@ export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
  * `Approved` is the one that looks safe to check and is not. Per the status
  * table in docs/specs/README.md it means the failing tests have landed and the
  * implementation has not, which is precisely when §5's paths are all absent.
+ *
+ * @param {string} file
+ * @param {string} text
+ * @returns {boolean}
  */
 export function isUnbuiltSpec(file, text) {
   if (!posix(file).startsWith("docs/specs/")) return false;
   return !/^Status:\s*Implemented\s*$/im.test(text);
 }
 
+/**
+ * @param {string} path
+ * @returns {Promise<boolean>}
+ */
 async function exists(path) {
   try {
     await stat(path);
@@ -255,6 +301,11 @@ const SKIP_DIRS = new Set([
   "blob-report",
 ]);
 
+/**
+ * @param {string} dir
+ * @param {string[]} [out]
+ * @returns {Promise<string[]>}
+ */
 async function walk(dir, out = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
@@ -268,7 +319,9 @@ async function walk(dir, out = []) {
   return out;
 }
 
+/** @returns {Promise<string[]>} */
 async function listRepoFiles() {
+  /** @type {string[]} */
   const files = [];
   for (const root of SOURCE_ROOTS) {
     if (await exists(root)) await walk(root, files);
@@ -282,6 +335,9 @@ async function listRepoFiles() {
  * `git ls-files` rather than a filesystem walk: it is exactly "what is in the
  * repository", so generated and gitignored output cannot drift into the list and
  * demand a doc. The same reasoning `db-branch.mjs` uses for shelling out to git.
+ *
+ * @param {string[]} tracked
+ * @returns {string[]}
  */
 export function ownableFiles(tracked) {
   return tracked.filter(
@@ -292,6 +348,7 @@ export function ownableFiles(tracked) {
   );
 }
 
+/** @returns {string[]} */
 function trackedFiles() {
   return execFileSync("git", ["ls-files"], { encoding: "utf8" })
     .split(/\r?\n/)
@@ -305,6 +362,9 @@ function trackedFiles() {
  * Tests sit next to their subject by house convention, so they inherit its
  * governing doc. Without this, every single-file ownership row would need a twin
  * for its test — and the twin would be forgotten.
+ *
+ * @param {string} file
+ * @returns {string | null}
  */
 export function testSubject(file) {
   const match = file.match(/^(.*?)\.(?:node\.)?(?:test|spec)\.(tsx?)$/);
@@ -312,12 +372,16 @@ export function testSubject(file) {
   return `${match[1]}.${match[2]}`;
 }
 
+/** @typedef {(path: string) => Promise<Set<string>>} SlugsFor */
+
+/** @returns {Promise<{ markdownDocs: string[], sources: Map<string, string> }>} */
 async function loadScannedSources() {
   const docFiles = (await exists(DOC_DIR)) ? await walk(DOC_DIR) : [];
   const markdownDocs = docFiles.filter((f) => f.endsWith(".md"));
   const scanned = [...SCANNED, ...markdownDocs];
 
   // Read every scanned file once.
+  /** @type {Map<string, string>} */
   const sources = new Map();
   for (const file of scanned) {
     if (!(await exists(file))) continue;
@@ -327,10 +391,16 @@ async function loadScannedSources() {
   return { markdownDocs, sources };
 }
 
+/**
+ * @param {Map<string, string>} sources
+ * @returns {SlugsFor}
+ */
 function createSlugsFor(sources) {
+  /** @type {Map<string, Set<string>>} */
   const slugCache = new Map();
   return async (path) => {
-    if (slugCache.has(path)) return slugCache.get(path);
+    const cached = slugCache.get(path);
+    if (cached) return cached;
     const text = sources.get(path) ?? (await readFile(path, "utf8"));
     const slugs = headingSlugs(text);
     slugCache.set(path, slugs);
@@ -338,6 +408,14 @@ function createSlugsFor(sources) {
   };
 }
 
+/**
+ * @param {string} file
+ * @param {string} link
+ * @param {SlugsFor} slugsFor
+ * @param {string[]} targets
+ * @param {string[]} problems
+ * @returns {Promise<void>}
+ */
 async function checkLink(file, link, slugsFor, targets, problems) {
   const [rawPath, anchor] = link.split("#");
   const target = rawPath ? posix(relative(process.cwd(), resolve(dirname(file), rawPath))) : file;
@@ -357,9 +435,17 @@ async function checkLink(file, link, slugsFor, targets, problems) {
 }
 
 // --- 1. Internal links resolve, anchors included ---------------------------
+/**
+ * @param {Map<string, string>} sources
+ * @param {SlugsFor} slugsFor
+ * @param {string[]} problems
+ * @returns {Promise<Map<string, string[]>>}
+ */
 async function checkLinks(sources, slugsFor, problems) {
+  /** @type {Map<string, string[]>} */
   const linkGraph = new Map();
   for (const [file, text] of sources) {
+    /** @type {string[]} */
     const targets = [];
     for (const link of extractLinks(text)) {
       await checkLink(file, link, slugsFor, targets, problems);
@@ -370,6 +456,11 @@ async function checkLinks(sources, slugsFor, problems) {
 }
 
 // --- 2. Backticked source paths exist ---------------------------------------
+/**
+ * @param {Map<string, string>} sources
+ * @param {string[]} problems
+ * @returns {Promise<void>}
+ */
 async function checkSourcePaths(sources, problems) {
   for (const [file, text] of sources) {
     if (isUnbuiltSpec(file, text)) continue;
@@ -385,16 +476,26 @@ async function checkSourcePaths(sources, problems) {
 }
 
 // --- 3. No orphaned docs -----------------------------------------------------
+/**
+ * @param {Map<string, string>} sources
+ * @param {string[]} markdownDocs
+ * @param {Map<string, string[]>} linkGraph
+ * @param {string[]} problems
+ * @returns {Promise<void>}
+ */
 async function checkOrphanedDocs(sources, markdownDocs, linkGraph, problems) {
   if (!(await exists(INDEX))) {
     problems.push(`${INDEX} is missing — it is the documentation index.`);
     return;
   }
 
+  /** @type {Set<string>} */
   const reachable = new Set();
+  /** @type {string[]} */
   const queue = [INDEX, ...SCANNED.filter((f) => sources.has(f))];
   while (queue.length > 0) {
     const current = queue.pop();
+    if (current === undefined) break;
     if (reachable.has(current)) continue;
     reachable.add(current);
     for (const target of linkGraph.get(current) ?? []) queue.push(target);
@@ -409,6 +510,14 @@ async function checkOrphanedDocs(sources, markdownDocs, linkGraph, problems) {
   }
 }
 
+/**
+ * @param {OwnershipEntry} entry
+ * @param {string[]} repoFiles
+ * @param {string[]} problems
+ * @param {string[]} gaps
+ * @param {RegExp[]} patterns
+ * @returns {Promise<void>}
+ */
 async function processOwnershipEntry(entry, repoFiles, problems, gaps, patterns) {
   const { glob, doc } = entry;
   const pattern = globToRegExp(glob);
@@ -426,9 +535,16 @@ async function processOwnershipEntry(entry, repoFiles, problems, gaps, patterns)
   patterns.push(pattern);
 }
 
+/**
+ * @param {string[]} tracked
+ * @param {RegExp[]} patterns
+ * @param {string[]} problems
+ * @returns {void}
+ */
 function reportUnclaimedFiles(tracked, patterns, problems) {
   // Every tracked source file, not merely every top-level directory. A
   // colocated test is claimed by whatever claims the file it tests.
+  /** @param {string} file */
   const isClaimed = (file) => patterns.some((pattern) => pattern.test(file));
   const unclaimed = ownableFiles(tracked).filter((file) => {
     if (isClaimed(file)) return false;
@@ -451,6 +567,12 @@ function reportUnclaimedFiles(tracked, patterns, problems) {
 }
 
 // --- 4. The ownership map is complete and resolves ---------------------------
+/**
+ * @param {Map<string, string>} sources
+ * @param {string[]} problems
+ * @param {string[]} gaps
+ * @returns {Promise<void>}
+ */
 async function checkOwnershipMap(sources, problems, gaps) {
   const index = sources.get(INDEX);
   if (!index) return;
@@ -467,6 +589,7 @@ async function checkOwnershipMap(sources, problems, gaps) {
   // keeps a row valid when it names something legitimately untracked.
   const tracked = trackedFiles();
   const repoFiles = [...new Set([...tracked, ...(await listRepoFiles())])];
+  /** @type {RegExp[]} */
   const patterns = [];
 
   for (const entry of ownership) {
@@ -476,6 +599,13 @@ async function checkOwnershipMap(sources, problems, gaps) {
   reportUnclaimedFiles(tracked, patterns, problems);
 }
 
+/**
+ * @param {string[]} problems
+ * @param {string[]} gaps
+ * @param {Map<string, string>} sources
+ * @param {string[]} markdownDocs
+ * @returns {void}
+ */
 function reportResult(problems, gaps, sources, markdownDocs) {
   if (problems.length > 0) {
     console.error("docs:check failed\n");
@@ -495,8 +625,11 @@ function reportResult(problems, gaps, sources, markdownDocs) {
   }
 }
 
+/** @returns {Promise<void>} */
 async function main() {
+  /** @type {string[]} */
   const problems = [];
+  /** @type {string[]} */
   const gaps = [];
 
   const { markdownDocs, sources } = await loadScannedSources();

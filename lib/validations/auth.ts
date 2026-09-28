@@ -142,5 +142,3 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangeEmailInput = z.infer<typeof changeEmailSchema>;
-export type TwoFactorCodeInput = z.infer<typeof twoFactorCodeSchema>;
-export type DisableTwoFactorInput = z.infer<typeof disableTwoFactorSchema>;

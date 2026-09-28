@@ -32,6 +32,17 @@ const NOW = new Date("2026-08-03T10:00:00.000Z");
 const ADA = { id: "user-ada", email: "ada@example.com" };
 const GRACE = { id: "user-grace", email: "grace@example.com" };
 
+// The subset of the route's RunSummary this file's assertions read.
+interface RunSummaryBody {
+  intervalMs: number;
+  criteriaCount: number;
+  oldestPendingAgeMs: number;
+  claimed: number;
+  unhealthySources: string[];
+  emailed: number;
+  skippedNoEmail: number;
+}
+
 function run(secret: string | null = "cron-secret"): Promise<Response> {
   return POST(
     new NextRequest("http://localhost:3000/api/alerts/run", {
@@ -208,7 +219,7 @@ describe("cadence", () => {
       store.seedAlert({ userId: ADA.id, criteriaId: criteria.id });
     }
 
-    const body = await (await run()).json();
+    const body: RunSummaryBody = await (await run()).json();
 
     expect(body.intervalMs).toBe(5 * 60_000);
   });
@@ -221,7 +232,7 @@ describe("cadence", () => {
       store.seedAlert({ userId: ADA.id, criteriaId: criteria.id });
     }
 
-    const body = await (await run()).json();
+    const body: RunSummaryBody = await (await run()).json();
 
     expect(body.intervalMs).toBe(10 * 60_000);
   });
@@ -249,7 +260,7 @@ describe("cadence", () => {
       store.seedAlert({ userId: ADA.id, criteriaId: criteria.id });
     }
 
-    const body = await (await run()).json();
+    const body: RunSummaryBody = await (await run()).json();
 
     // Degradation has to be a number someone can watch, not something inferred
     // from users complaining their alerts are slow.
@@ -263,7 +274,7 @@ describe("cadence", () => {
     const fresh = store.seedCriteria({ lastPolledAt: minutesAgo(6) });
     store.seedAlert({ userId: ADA.id, criteriaId: fresh.id });
 
-    const body = await (await run()).json();
+    const body: RunSummaryBody = await (await run()).json();
 
     expect(body.oldestPendingAgeMs).toBe(17 * 60_000);
   });
@@ -272,7 +283,7 @@ describe("cadence", () => {
     const criteria = store.seedCriteria({ lastPolledAt: minutesAgo(1) });
     store.seedAlert({ userId: ADA.id, criteriaId: criteria.id });
 
-    const body = await (await run()).json();
+    const body: RunSummaryBody = await (await run()).json();
 
     expect(body.oldestPendingAgeMs).toBe(0);
   });
@@ -289,7 +300,7 @@ describe("draining the queue", () => {
       });
     }
 
-    const body = await (await run()).json();
+    const body: RunSummaryBody = await (await run()).json();
 
     expect(body.claimed).toBe(25);
     expect(searchAllSources).toHaveBeenCalledTimes(25);
@@ -517,7 +528,7 @@ describe("discovery", () => {
       perSourceCounts: { Wallapop: 4, "Coches.net": 2, Milanuncios: 0 },
     });
 
-    const body = await (await run()).json();
+    const body: RunSummaryBody = await (await run()).json();
 
     // In the response, not just the table: nobody goes looking for a source
     // that has quietly stopped parsing.
@@ -651,7 +662,7 @@ describe("delivery", () => {
     seedSubscribedCriteria();
     sourcesReturn(makeMatchListing({ id: "wallapop-new1" }));
 
-    const body = await (await run()).json();
+    const body: RunSummaryBody = await (await run()).json();
 
     expect(body.emailed).toBe(0);
     expect(body.skippedNoEmail).toBe(1);

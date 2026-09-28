@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 
 // Every account this suite touches lives under this domain so a single
 // pattern-delete can sweep them all, even if a run crashes mid-way.
-export const E2E_EMAIL_DOMAIN = "e2e.local";
+const E2E_EMAIL_DOMAIN = "e2e.local";
 
 let counter = 0;
 

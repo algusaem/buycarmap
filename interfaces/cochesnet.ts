@@ -1,4 +1,4 @@
-export interface CochesNetImage {
+interface CochesNetImage {
   type: string;
   url: string;
 }
@@ -13,7 +13,7 @@ export interface CochesNetLocation {
   cityLiteral: string;
 }
 
-export interface CochesNetPrice {
+interface CochesNetPrice {
   amount: number;
   hasTaxes: boolean;
 }
@@ -38,7 +38,7 @@ export interface CochesNetItem {
   isProfessional: boolean;
 }
 
-export interface CochesNetMeta {
+interface CochesNetMeta {
   totalPages: number;
   totalResults: number;
 }

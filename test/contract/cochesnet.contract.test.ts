@@ -55,7 +55,7 @@ describe("coches.net response contract", () => {
       });
       expect(res.ok).toBe(true);
 
-      const body = await res.json();
+      const body: unknown = await res.json();
       const parsed = cochesNetResponseContract.safeParse(body);
       if (!parsed.success) {
         throw new Error(

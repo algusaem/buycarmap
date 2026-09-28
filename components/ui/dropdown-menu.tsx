@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
-const DropdownMenuLabel = DropdownMenuPrimitive.Label;
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 // Shared so a radio item is visually identical to a plain one — only the
@@ -91,7 +90,6 @@ export {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,

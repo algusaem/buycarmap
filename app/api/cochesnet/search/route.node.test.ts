@@ -64,6 +64,8 @@ describe("POST upstream connection failure", () => {
     );
 
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: expect.stringContaining("failed") });
+    const body: { error: string } = await res.json();
+    const expected: { error: string } = { error: expect.stringContaining("failed") };
+    expect(body).toEqual(expected);
   });
 });

@@ -1,9 +1,9 @@
-export interface LegalSection {
+interface LegalSection {
   heading: string;
   body: string;
 }
 
-export interface LegalDocument {
+interface LegalDocument {
   title: string;
   updated: string;
   intro: string;

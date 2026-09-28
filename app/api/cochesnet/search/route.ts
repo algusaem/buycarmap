@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import type { CochesNetSearchResponse } from "@/interfaces/cochesnet";
+
 const COCHESNET_URL = "https://web.gw.coches.net/search/listing";
 
 export async function POST(request: NextRequest) {
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    const data: CochesNetSearchResponse = await response.json();
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ error: "Coches.net request failed" }, { status: 502 });

@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import type { WallapopFilterResponse } from "@/interfaces/wallapop";
+
 const WALLAPOP_URL = "https://api.wallapop.com/api/v3/search/filters/model";
 
 export async function GET(request: NextRequest) {
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    const data: WallapopFilterResponse = await response.json();
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ error: "Wallapop request failed" }, { status: 502 });

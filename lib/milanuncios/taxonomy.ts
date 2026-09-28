@@ -33,7 +33,7 @@ export function mapBrandToSlug(brand?: string): string {
 
 // Wallapop fuel token (FUEL_OPTIONS value) -> Milanuncios `fuels` token.
 // Milanuncios has no plug-in-hybrid token, so it collapses into `hibrido`.
-export const FUEL_TOKEN_TO_MILANUNCIOS: Record<string, string> = {
+const FUEL_TOKEN_TO_MILANUNCIOS: Record<string, string> = {
   gasoline: "gasolina",
   gasoil: "diesel",
   "electric-hybrid": "electrico",
@@ -44,7 +44,7 @@ export const FUEL_TOKEN_TO_MILANUNCIOS: Record<string, string> = {
 // Wallapop transmission token (TRANSMISSION_OPTIONS value) -> Milanuncios
 // `cajacambio` token. Milanuncios only distinguishes manual/automatic, so
 // semi-automatic maps to automatic.
-export const TRANSMISSION_TOKEN_TO_MILANUNCIOS: Record<string, string> = {
+const TRANSMISSION_TOKEN_TO_MILANUNCIOS: Record<string, string> = {
   manual: "manual",
   automatic: "automatico",
   semiautomatic: "automatico",
