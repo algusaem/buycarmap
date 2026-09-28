@@ -122,7 +122,7 @@ Accepted until their phase: `next-auth`, `@next-auth/prisma-adapter`, `bcryptjs`
 
 Found while adopting; fixed when touched, or in the phase named:
 
-- `lib/mock/listings.ts` is dead code (`RULES.md` §6) — removed with knip in phase 3.
+- lib/mock/listings.ts is dead code (`RULES.md` §6) — removed with knip in phase 3.
 - The map draws every listing as its own marker, with no clustering or limit
   (`components/map/ListingsMap.tsx`) — fixed when a change makes it cost performance (`CLAUDE.md` ›
   Upstream sources).

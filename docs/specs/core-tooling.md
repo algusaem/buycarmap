@@ -43,7 +43,7 @@ into issues; branch protection and squash-only merges on the repository.
 | TOOLING-2 | `lint` runs Biome, knip, `spec:check` and `docs:check`; `typecheck` runs `tsc --noEmit` and type-coverage; `test` enforces the coverage thresholds | unit | `scripts/core-tooling.node.test.ts` › TOOLING-2 |
 | TOOLING-3 | ESLint is gone: no `eslint*` dependency and no `eslint.config.*`; `biome.json` bans `any`, `console.log` and empty blocks, and caps cognitive complexity | unit | `scripts/core-tooling.node.test.ts` › TOOLING-3 |
 | TOOLING-4 | type-coverage has a minimum no lower than the coverage measured when it was added, and ratchets toward 99% | unit | `scripts/core-tooling.node.test.ts` › TOOLING-4 |
-| TOOLING-5 | knip reports nothing: no unused file, export or dependency (so `lib/mock/listings.ts` is gone) | unit | `scripts/core-tooling.node.test.ts` › TOOLING-5 |
+| TOOLING-5 | knip reports nothing: no unused file, export or dependency (so lib/mock/listings.ts is gone) | unit | `scripts/core-tooling.node.test.ts` › TOOLING-5 |
 | TOOLING-6 | Husky runs lint-staged (Biome on staged files), `vitest related --run --project unit` and gitleaks on pre-commit, and commitlint on commit-msg | unit | `scripts/core-tooling.node.test.ts` › TOOLING-6 |
 | TOOLING-7 | `package.json` pins pnpm in `packageManager` and Node ≥ 22.18 in `engines`, and `.nvmrc` matches it; every CI job runs on that Node | unit | `scripts/core-tooling.node.test.ts` › TOOLING-7 |
 | TOOLING-8 | The PR workflow runs `pnpm check`, gitleaks and the Conventional Commits title check; the nightly live contract job still runs | unit | `scripts/core-tooling.node.test.ts` › TOOLING-8 |
