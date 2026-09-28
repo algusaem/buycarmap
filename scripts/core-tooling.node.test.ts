@@ -48,12 +48,21 @@ describe("verification contract and repository tooling", () => {
   it("TOOLING-2: lint, typecheck and test do what the contract says", () => {
     const s = scripts();
 
-    for (const step of ["biome check", "knip", "pnpm spec:check", "pnpm docs:check"]) {
+    for (const step of [
+      "biome check",
+      "knip",
+      "pnpm spec:check",
+      "pnpm docs:check",
+      "pnpm todo:check",
+    ]) {
       expect(s.lint).toContain(step);
     }
     expect(s.typecheck).toContain("tsc --noEmit");
     expect(s.typecheck).toContain("type-coverage");
     expect(s.test).toContain("--coverage");
+    expect(read("vitest.config.ts")).toMatch(
+      /thresholds:\s*\{[^}]*statements:\s*\d+[^}]*branches:\s*\d+[^}]*functions:\s*\d+[^}]*lines:\s*\d+/s,
+    );
   });
 
   it("TOOLING-3: ESLint is gone and biome.json bans any, console.log and empty blocks and caps complexity", () => {
@@ -98,13 +107,15 @@ describe("verification contract and repository tooling", () => {
   it("TOOLING-7: pnpm and Node are pinned and CI runs on the pinned Node", () => {
     const p = pkg();
     const nvmrc = exists(".nvmrc") ? read(".nvmrc").trim() : "";
-    const setupNode = workflows().filter((text) => text.includes("actions/setup-node"));
+    const countOf = (text: string, needle: string) => text.split(needle).length - 1;
 
     expect(p.packageManager ?? "").toMatch(/^pnpm@11\.\d+\.\d+$/);
     expect(p.engines?.node).toBe(">=22.18.0");
     expect(nvmrc).toMatch(/^22\.(1[89]|[2-9]\d)\.\d+$/);
-    expect(setupNode.length).toBeGreaterThan(0);
-    expect(setupNode.filter((text) => !text.includes("node-version-file: .nvmrc"))).toEqual([]);
+    for (const text of workflows()) {
+      expect(countOf(text, "actions/setup-node")).toBe(countOf(text, "node-version-file: .nvmrc"));
+    }
+    expect(workflows().some((text) => text.includes("actions/setup-node"))).toBe(true);
   });
 
   it("TOOLING-8: the PR workflow runs pnpm check, gitleaks and the title check; the nightly contract job stays", () => {

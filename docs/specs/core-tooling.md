@@ -49,7 +49,8 @@ into issues; branch protection and squash-only merges on the repository.
 | TOOLING-8 | The PR workflow runs `pnpm check`, gitleaks and the Conventional Commits title check; the nightly live contract job still runs | unit | `scripts/core-tooling.node.test.ts` › TOOLING-8 |
 | TOOLING-9 | The repository has `.github/pull_request_template.md` with the sections Description · Main changes · Impact · Tests · Validation · Decisions and open questions · Checklist, `.github/CODEOWNERS`, `renovate.json`, and release-please (config, manifest and workflow) | unit | `scripts/core-tooling.node.test.ts` › TOOLING-9 |
 | TOOLING-10 | `TODO.md` is gone; each item it held is a GitHub issue | unit | `scripts/core-tooling.node.test.ts` › TOOLING-10 |
-| TOOLING-11 | A failing hook or check is never bypassed: `--no-verify` and `HUSKY=0` appear in no script, workflow or doc except as a prohibition | unit | `scripts/core-tooling.node.test.ts` › TOOLING-11 |
+| TOOLING-11 | A failing hook or check is never bypassed: `--no-verify` and `HUSKY=0` appear in no `package.json` script, workflow or Git hook | unit | `scripts/core-tooling.node.test.ts` › TOOLING-11 |
+| TOOLING-12 | `lint` fails when a code comment holds a `TODO` with no issue reference (`#<number>` on the same line), as `STACK.md` §5 requires and Biome cannot express (`scripts/todo-check.mjs`, the owner's decision, 2026-09-28). Worked examples: `// TODO: handle retries` → reported; `// TODO(#42): handle retries` → accepted; `/* TODO see #7 */` → accepted; `const doc = "TODO.md";` → accepted (not a comment); `* TODO: tidy` inside a JSDoc block → reported. | unit | `scripts/todo-check.node.test.ts` › TOOLING-12 and `scripts/core-tooling.node.test.ts` › TOOLING-2 |
 
 ## 4. Decisions and rationale
 
@@ -78,6 +79,10 @@ client, which is gitignored; the build regenerates it anyway.
 
 **E2E without retries.** ADR 0007 row 4 scheduled it for this phase (approved by the owner,
 2026-09-28): a flaky test is a broken test (`STACK.md` §16).
+
+**TOOLING-11 covers where a bypass takes effect.** A skip flag written in a doc runs nothing; the
+docs that name the flags do so as prohibitions, which `check-process` reviews (the owner's
+decision, 2026-09-28).
 
 ## 5. Data and contracts
 
