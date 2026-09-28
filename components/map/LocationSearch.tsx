@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useTranslation } from "@/lib/i18n/client";
 import { useLocationSearch } from "@/lib/hooks/useLocationSearch";
-import { fadeInDown } from "@/lib/animations";
+import { crossFade, dropdownReveal } from "@/lib/animations";
 import type { SelectedLocation } from "@/interfaces/location";
 
 const DISTANCE_OPTIONS = [
@@ -170,37 +170,49 @@ export function LocationSearch({
                 {showDropdown && (
                   <motion.div
                     className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg"
-                    {...fadeInDown}
+                    {...dropdownReveal}
                   >
-                    {!listboxOpen && (
-                      <p aria-hidden="true" className="px-3 py-2 text-sm text-muted-foreground">
-                        {statusText}
-                      </p>
-                    )}
-                    {listboxOpen && (
-                      <div id="location-listbox" role="listbox">
-                        {results.map((result, index) => (
-                          <div
-                            key={result.placeId}
-                            role="option"
-                            tabIndex={-1}
-                            aria-selected={highlightedIndex === index}
-                            className={`cursor-pointer px-3 py-2 text-sm ${
-                              highlightedIndex === index
-                                ? "bg-card text-foreground"
-                                : "text-foreground hover:bg-card/50"
-                            }`}
-                            onMouseEnter={() => setHighlightedIndex(index)}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              handleSelect(result);
-                            }}
-                          >
-                            <span className="line-clamp-1">{result.displayName}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <AnimatePresence mode="wait" initial={false}>
+                      {!listboxOpen && (
+                        <motion.p
+                          key="status"
+                          aria-hidden="true"
+                          className="px-3 py-2 text-sm text-muted-foreground"
+                          {...crossFade}
+                        >
+                          {statusText}
+                        </motion.p>
+                      )}
+                      {listboxOpen && (
+                        <motion.div
+                          key="listbox"
+                          id="location-listbox"
+                          role="listbox"
+                          {...crossFade}
+                        >
+                          {results.map((result, index) => (
+                            <div
+                              key={result.placeId}
+                              role="option"
+                              tabIndex={-1}
+                              aria-selected={highlightedIndex === index}
+                              className={`cursor-pointer px-3 py-2 text-sm ${
+                                highlightedIndex === index
+                                  ? "bg-card text-foreground"
+                                  : "text-foreground hover:bg-card/50"
+                              }`}
+                              onMouseEnter={() => setHighlightedIndex(index)}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleSelect(result);
+                              }}
+                            >
+                              <span className="line-clamp-1">{result.displayName}</span>
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 )}
               </AnimatePresence>

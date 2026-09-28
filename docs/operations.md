@@ -126,9 +126,8 @@ out of the logs.
 
 **`pnpm test:e2e:db` is not in CI.** See [testing.md](testing.md#the-database-backed-suite).
 
-**Branch protection on `master`**: The policy — pull requests only, green CI, one approving review,
-branch up to date, squash merges only — is [specs/core-tooling.md](specs/core-tooling.md) §4. The
-required checks are `Check`, `Secrets (gitleaks)`, `End-to-end (Playwright)` and `Conventional
+**Branch protection on `master`**: the policy is [specs/core-tooling.md](specs/core-tooling.md) §4.
+The required checks are `Check`, `Secrets (gitleaks)`, `End-to-end (Playwright)` and `Conventional
 Commits title`. `.github/CODEOWNERS` requests the owner's review on every pull request, and
 `.github/pull_request_template.md` is the description `/check-pr` fills in.
 

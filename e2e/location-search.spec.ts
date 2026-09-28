@@ -18,7 +18,6 @@ const FILTERS_BUTTON = /filters|filtros/i;
 const LOCATION_PLACEHOLDER = /city or address|ciudad o dirección/i;
 
 async function openLocationSearch(page: Page) {
-  await mockListingSources(page);
   await page.goto("/map");
   await page.getByRole("button", { name: FILTERS_BUTTON }).first().click();
   return page.getByPlaceholder(LOCATION_PLACEHOLDER);

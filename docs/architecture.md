@@ -254,7 +254,7 @@ Spanish or English in components.
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
 | `lib/validations/` | Zod schemas with exported inferred types |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
-| `scripts/` | Dependency-free tooling: branch databases, spec, docs and TODO checks |
+| `scripts/` | Tooling: branch databases, spec, docs and TODO checks — dependency-free except the TODO check, which loads `typescript` |
 
 `app/generated/prisma/` is generated and gitignored.
 

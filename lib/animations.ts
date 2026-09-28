@@ -26,6 +26,20 @@ export const fadeInDown = {
   transition: { duration: duration.slow, ease },
 };
 
+export const dropdownReveal = {
+  initial: { opacity: 0, y: -4 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -4 },
+  transition: { duration: duration.fast },
+};
+
+export const crossFade = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: duration.fast },
+};
+
 // Animations with configurable delay
 export const fadeIn = (delay = 0) => ({
   initial: { opacity: 0 },

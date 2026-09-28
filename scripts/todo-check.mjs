@@ -78,16 +78,16 @@ function cssCommentRanges(text) {
 }
 
 /**
- * The 1-based physical line number of an offset into `text`. Delegates to a parsed
- * source file so `\r\n` and a lone `\r` both count as one line break.
+ * The 1-based physical line number of an offset into `text`, given that text's line
+ * starts (see `ts.computeLineStarts`). `\r\n` and a lone `\r` both count as one line
+ * break, matching `ts.getLineAndCharacterOfPosition`.
  *
- * @param {string} text
+ * @param {number[]} lineStarts
  * @param {number} offset
  * @returns {number}
  */
-function lineAt(text, offset) {
-  const sourceFile = ts.createSourceFile("line-lookup.ts", text, ts.ScriptTarget.Latest, false);
-  return sourceFile.getLineAndCharacterOfPosition(offset).line + 1;
+function lineAt(lineStarts, offset) {
+  return ts.computeLineAndCharacterOfPosition(lineStarts, offset).line + 1;
 }
 
 /**
@@ -96,19 +96,18 @@ function lineAt(text, offset) {
  *
  * @param {string} path
  * @param {string} text
+ * @param {number[]} lineStarts
  * @param {TextRange} range
  * @returns {TodoCheckHit[]}
  */
-function hitsInRange(path, text, range) {
-  const startLine = lineAt(text, range.pos);
-  const lines = text.slice(range.pos, range.end).split(/\r?\n/);
-  const hits = [];
-  lines.forEach((lineText, index) => {
-    if (TODO_WORD.test(lineText) && !ISSUE_REFERENCE.test(lineText)) {
-      hits.push({ path, line: startLine + index });
-    }
-  });
-  return hits;
+function hitsInRange(path, text, lineStarts, range) {
+  const startLine = lineAt(lineStarts, range.pos);
+  const lines = text.slice(range.pos, range.end).split(/\r\n|\r|\n/);
+  return lines.flatMap((lineText, index) =>
+    TODO_WORD.test(lineText) && !ISSUE_REFERENCE.test(lineText)
+      ? [{ path, line: startLine + index }]
+      : [],
+  );
 }
 
 /**
@@ -121,19 +120,18 @@ function hitsInRange(path, text, range) {
  * @returns {TodoCheckHit[]}
  */
 export function findUnreferencedTodos(files) {
-  const hits = [];
-  for (const { path, text } of files) {
+  return files.flatMap(({ path, text }) => {
     if (path.endsWith(".css")) {
-      for (const range of cssCommentRanges(text)) hits.push(...hitsInRange(path, text, range));
-      continue;
+      const lineStarts = ts.computeLineStarts(text);
+      return cssCommentRanges(text).flatMap((range) => hitsInRange(path, text, lineStarts, range));
     }
     const extension = path.slice(path.lastIndexOf("."));
-    if (!SCRIPT_EXTENSIONS.has(extension)) continue;
-    for (const range of scriptCommentRanges(path, text)) {
-      hits.push(...hitsInRange(path, text, range));
-    }
-  }
-  return hits;
+    if (!SCRIPT_EXTENSIONS.has(extension)) return [];
+    const lineStarts = ts.computeLineStarts(text);
+    return scriptCommentRanges(path, text).flatMap((range) =>
+      hitsInRange(path, text, lineStarts, range),
+    );
+  });
 }
 
 /** @returns {string[]} */

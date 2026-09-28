@@ -367,5 +367,5 @@ Any change here needs approval first (`RULES.md` §1).
   Tailwind (`h-4 w-4`).
 - **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }
   from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `fadeInDown`,
-  `fadeIn(delay)`, `staggerContainer(delay)`, `buttonTap`)
+  `dropdownReveal`, `crossFade`, `fadeIn(delay)`, `staggerContainer(delay)`, `buttonTap`)
   instead of re-declaring `initial`/`animate` inline.

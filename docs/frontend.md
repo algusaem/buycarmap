@@ -127,7 +127,8 @@ Motion (`motion/react-client`, with `AnimatePresence` from `motion/react`) rathe
 than CSS animations for React components.
 
 **Reuse the presets in [`lib/animations.ts`](../lib/animations.ts)** —
-`fadeInUp`, `fadeInDown`, `fadeIn(delay)`, `staggerContainer(delay)`, `buttonTap`
+`fadeInUp`, `fadeInDown`, `dropdownReveal`, `crossFade`, `fadeIn(delay)`,
+`staggerContainer(delay)`, `buttonTap`
 — instead of re-declaring `initial`/`animate` inline.
 
 Animate only `transform` and `opacity`. Never animate layout properties, and

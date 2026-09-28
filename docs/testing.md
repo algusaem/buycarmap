@@ -121,12 +121,17 @@ typing to work.
 Spain-centre fallback is what you get), matchMedia and canvas. All are stubbed in
 `test/setup.jsdom.ts`.
 
+Motion runs with instant animations in jsdom (`test/setup.jsdom.ts`); tests assert end states, and
+animations are exercised by E2E.
+
 **Leaflet cannot run in jsdom.** Mock `react-leaflet` in component tests; render
 it for real only in Playwright.
 
 ## End-to-end
 
 `e2e/`, run against a real `next dev` server via Playwright's `webServer`.
+`E2E_PORT` (default 3000) sets the port Playwright starts the app on and reuses
+locally; set it when another app already listens on 3000.
 
 **The source proxies are mocked at the browser level** (`page.route`, in
 `e2e/fixtures/network.ts`), so e2e never touches live Wallapop, coches.net or
