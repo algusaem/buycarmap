@@ -149,6 +149,31 @@ describe("todo:check — unreferenced TODO comments", () => {
     expect(result).toEqual([]);
   });
 
+  it("TOOLING-12: an unreferenced marker is reported in a .mjs file", () => {
+    const result = findUnreferencedTodos([{ path: "x.mjs", text: `// ${TAG}: x` }]);
+    expect(result).toEqual([{ path: "x.mjs", line: 1 }]);
+  });
+
+  it("TOOLING-12: an unreferenced marker is reported in a .cjs file", () => {
+    const result = findUnreferencedTodos([{ path: "x.cjs", text: `// ${TAG}: x` }]);
+    expect(result).toEqual([{ path: "x.cjs", line: 1 }]);
+  });
+
+  it("TOOLING-12: an unreferenced marker is reported in a .js file", () => {
+    const result = findUnreferencedTodos([{ path: "x.js", text: `// ${TAG}: x` }]);
+    expect(result).toEqual([{ path: "x.js", line: 1 }]);
+  });
+
+  it("TOOLING-12: a marker in a .md file is accepted (not scanned)", () => {
+    const result = findUnreferencedTodos([{ path: "notes.md", text: `// ${TAG}: x` }]);
+    expect(result).toEqual([]);
+  });
+
+  it("TOOLING-12: a marker in a Makefile is accepted (not scanned)", () => {
+    const result = findUnreferencedTodos([{ path: "Makefile", text: `// ${TAG}: x` }]);
+    expect(result).toEqual([]);
+  });
+
   it("TOOLING-12: several files report every hit in order", () => {
     const result = findUnreferencedTodos([
       {
