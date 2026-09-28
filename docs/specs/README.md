@@ -96,4 +96,5 @@ solo project is ceremony.
 | [navbar.md](navbar.md) | NAV | Implemented | Navigation bar, mobile menu, account menu |
 | [core-rules-and-checks.md](core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
 | [core-mastermind.md](core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
+| [core-tooling.md](core-tooling.md) | TOOLING | Approved | Migration phase 3: the verification contract and repository tooling |
 
