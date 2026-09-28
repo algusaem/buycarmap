@@ -33,8 +33,8 @@ into issues; branch protection and squash-only merges on the repository.
 - Any change to what a user sees. Biome's formatting pass reformats files without changing what
   they do.
 
-MAP-20 and MAP-21 (`docs/specs/map-and-search.md`) were added in this phase with the owner's
-approval (2026-09-28); they are its only user-visible changes.
+MAP-20, MAP-21 and MAP-22 (`docs/specs/map-and-search.md`) were added in this phase with the owner's
+approval (2026-09-28); MAP-20 is its only user-visible change.
 
 ## 3. Acceptance criteria
 

@@ -44,6 +44,28 @@ function holdNominatimPending() {
   );
 }
 
+/**
+ * Runs `run` with Motion's real exit animation enabled instead of the
+ * jsdom-wide `skipAnimations` from `test/setup.jsdom.ts`, restoring it
+ * afterwards even if `run` throws.
+ *
+ * A frozen clock (`vi.useFakeTimers({ toFake: ["requestAnimationFrame",
+ * "cancelAnimationFrame", "performance"] })`) was tried so the 0.3s exit
+ * could never complete mid-test, but Motion's exit timing in jsdom rides a
+ * real `setTimeout`, not the faked rAF/performance clock: a probe that waited
+ * a real second with the clock frozen still found the option gone. So this
+ * only toggles `skipAnimations`; the three tests below stay correct because
+ * their assertions run synchronously, before the real 0.3s exit can finish.
+ */
+async function withAnimations(run: () => Promise<void>) {
+  MotionGlobalConfig.skipAnimations = false;
+  try {
+    await run();
+  } finally {
+    MotionGlobalConfig.skipAnimations = true;
+  }
+}
+
 function renderLocationSearch(
   overrides: Partial<React.ComponentProps<typeof LocationSearch>> = {},
 ) {
@@ -278,8 +300,7 @@ describe("LocationSearch suggestions accessibility", () => {
     // (test/setup.jsdom.ts), so an exiting element is unmounted at once and
     // there is nothing mid-fade to assert against. This is the one test that
     // needs the exit to actually still be in flight.
-    MotionGlobalConfig.skipAnimations = false;
-    try {
+    await withAnimations(async () => {
       const { props } = renderLocationSearch();
 
       await userEvent.type(queryBox(), "Madrid");
@@ -295,14 +316,11 @@ describe("LocationSearch suggestions accessibility", () => {
       fireEvent.mouseDown(option);
 
       expect(props.onLocationChange).not.toHaveBeenCalled();
-    } finally {
-      MotionGlobalConfig.skipAnimations = true;
-    }
+    });
   });
 
   it("MAP-20: after Escape, the fading options are not a listbox and a click selects nothing", async () => {
-    MotionGlobalConfig.skipAnimations = false;
-    try {
+    await withAnimations(async () => {
       const { props } = renderLocationSearch();
 
       await userEvent.type(queryBox(), "Madrid");
@@ -316,14 +334,11 @@ describe("LocationSearch suggestions accessibility", () => {
       fireEvent.mouseDown(option);
 
       expect(props.onLocationChange).not.toHaveBeenCalled();
-    } finally {
-      MotionGlobalConfig.skipAnimations = true;
-    }
+    });
   });
 
   it("MAP-20: after selecting an option, the fading dropdown is not a listbox", async () => {
-    MotionGlobalConfig.skipAnimations = false;
-    try {
+    await withAnimations(async () => {
       function ControlledLocationSearch() {
         const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | undefined>();
         return (
@@ -348,8 +363,6 @@ describe("LocationSearch suggestions accessibility", () => {
       // document, no longer a listbox, until its exit animation finishes.
       expect(screen.queryByRole("listbox")).toBeNull();
       expect(option).toBeInTheDocument();
-    } finally {
-      MotionGlobalConfig.skipAnimations = true;
-    }
+    });
   });
 });

@@ -133,9 +133,7 @@ export function findUnreferencedTodos(files) {
 
 /** @returns {string[]} */
 function trackedFiles() {
-  return gitTrackedFiles().filter((path) =>
-    TRACKED_EXTENSIONS.has(path.slice(path.lastIndexOf("."))),
-  );
+  return gitTrackedFiles().filter((path) => TRACKED_EXTENSIONS.has(extname(path)));
 }
 
 async function main() {

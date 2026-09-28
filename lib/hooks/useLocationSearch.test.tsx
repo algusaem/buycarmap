@@ -19,6 +19,53 @@ function waitForNextMockedResponse(): Promise<void> {
   });
 }
 
+/**
+ * Installs a Nominatim handler whose `gatedQuery` (default `"Madr"`) blocks
+ * until the returned `release()` is called, while every other query resolves
+ * at once with `fallback`. `release()` unblocks the gate, then synchronises
+ * on the response actually reaching the hook — MSW firing "response:mocked"
+ * once it has resolved the gated request, the only one still pending —
+ * rather than on the handler merely starting to unblock, then flushes the
+ * microtasks that carry it through the hook's own `await response.json()`.
+ */
+function holdMadrResponse(fallback: unknown[], gatedQuery = "Madr") {
+  let releaseGate: (() => void) | undefined;
+  const gate = new Promise<void>((resolve) => {
+    releaseGate = resolve;
+  });
+
+  server.use(
+    http.get("https://nominatim.openstreetmap.org/search", async ({ request }) => {
+      const q = new URL(request.url).searchParams.get("q");
+      if (q === gatedQuery) {
+        await gate;
+        return HttpResponse.json([
+          {
+            place_id: 1,
+            display_name: "Madrid, España",
+            lat: "40.4168",
+            lon: "-3.7038",
+            address: { city: "Madrid", state: "Comunidad de Madrid" },
+          },
+        ]);
+      }
+      return HttpResponse.json(fallback);
+    }),
+  );
+
+  return async function release() {
+    const gatedMocked = waitForNextMockedResponse();
+    releaseGate?.();
+    await act(async () => {
+      await gatedMocked;
+    });
+    await act(async () => {
+      // Empty on purpose: just flushing the microtasks queued by the
+      // response:mocked event above before we assert on the hook's state.
+    });
+  };
+}
+
 describe("useLocationSearch", () => {
   it("does not search for queries shorter than 2 characters", () => {
     const { result } = renderHook(() => useLocationSearch());
@@ -52,37 +99,15 @@ describe("useLocationSearch", () => {
   it("MAP-20: a late response for an earlier query is discarded", async () => {
     vi.useFakeTimers();
 
-    let releaseMadr: (() => void) | undefined;
-    const madrGate = new Promise<void>((resolve) => {
-      releaseMadr = resolve;
-    });
-
-    server.use(
-      http.get("https://nominatim.openstreetmap.org/search", async ({ request }) => {
-        const q = new URL(request.url).searchParams.get("q");
-        if (q === "Madr") {
-          await madrGate;
-          return HttpResponse.json([
-            {
-              place_id: 1,
-              display_name: "Madrid, España",
-              lat: "40.4168",
-              lon: "-3.7038",
-              address: { city: "Madrid", state: "Comunidad de Madrid" },
-            },
-          ]);
-        }
-        return HttpResponse.json([
-          {
-            place_id: 2,
-            display_name: "Madridejos, Castilla-La Mancha",
-            lat: "39.4650",
-            lon: "-3.5323",
-            address: { city: "Madridejos", state: "Castilla-La Mancha" },
-          },
-        ]);
-      }),
-    );
+    const release = holdMadrResponse([
+      {
+        place_id: 2,
+        display_name: "Madridejos, Castilla-La Mancha",
+        lat: "39.4650",
+        lon: "-3.5323",
+        address: { city: "Madridejos", state: "Castilla-La Mancha" },
+      },
+    ]);
 
     const { result } = renderHook(() => useLocationSearch());
 
@@ -105,21 +130,7 @@ describe("useLocationSearch", () => {
       },
     ]);
 
-    // Synchronise on the response actually reaching the hook — MSW firing
-    // "response:mocked" once it has resolved the gated "Madr" request, the
-    // only one still pending — rather than on the handler merely starting to
-    // unblock, then flush the microtasks that carry it through the hook's
-    // own `await response.json()`.
-    const madrMocked = waitForNextMockedResponse();
-
-    releaseMadr?.();
-    await act(async () => {
-      await madrMocked;
-    });
-    await act(async () => {
-      // Empty on purpose: just flushing the microtasks queued by the
-      // response:mocked event above before we assert on the hook's state.
-    });
+    await release();
 
     // The "Madr" response resolved after "Madri"'s, but it must not overwrite
     // the later query's results.
@@ -137,29 +148,7 @@ describe("useLocationSearch", () => {
   it("MAP-20: a late response is discarded after the query is shortened below two characters", async () => {
     vi.useFakeTimers();
 
-    let releaseMadr: (() => void) | undefined;
-    const madrGate = new Promise<void>((resolve) => {
-      releaseMadr = resolve;
-    });
-
-    server.use(
-      http.get("https://nominatim.openstreetmap.org/search", async ({ request }) => {
-        const q = new URL(request.url).searchParams.get("q");
-        if (q === "Madr") {
-          await madrGate;
-          return HttpResponse.json([
-            {
-              place_id: 1,
-              display_name: "Madrid, España",
-              lat: "40.4168",
-              lon: "-3.7038",
-              address: { city: "Madrid", state: "Comunidad de Madrid" },
-            },
-          ]);
-        }
-        return HttpResponse.json([]);
-      }),
-    );
+    const release = holdMadrResponse([]);
 
     const { result } = renderHook(() => useLocationSearch());
 
@@ -170,17 +159,7 @@ describe("useLocationSearch", () => {
 
     act(() => result.current.setQuery("M"));
 
-    // As above: synchronise on the response reaching the hook, then flush.
-    const madrMocked = waitForNextMockedResponse();
-
-    releaseMadr?.();
-    await act(async () => {
-      await madrMocked;
-    });
-    await act(async () => {
-      // Empty on purpose: just flushing the microtasks queued by the
-      // response:mocked event above before we assert on the hook's state.
-    });
+    await release();
 
     expect(result.current.results).toEqual([]);
     expect(result.current.isSearching).toBe(false);
@@ -248,5 +227,48 @@ describe("useLocationSearch", () => {
 
     expect(result.current.query).toBe("");
     expect(result.current.results).toEqual([]);
+  });
+
+  it("clear() empties the query and results after a search", async () => {
+    vi.useFakeTimers();
+    const requested = waitForNextMockedResponse();
+
+    const { result } = renderHook(() => useLocationSearch());
+
+    act(() => result.current.setQuery("Madrid"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+    await act(async () => {
+      await requested;
+    });
+
+    expect(result.current.results).toHaveLength(1);
+
+    act(() => result.current.clear());
+
+    expect(result.current.query).toBe("");
+    expect(result.current.results).toEqual([]);
+    expect(result.current.isSearching).toBe(false);
+  });
+
+  it("MAP-20: clearing while a search is pending discards its late response", async () => {
+    vi.useFakeTimers();
+
+    const release = holdMadrResponse([], "Madrid");
+
+    const { result } = renderHook(() => useLocationSearch());
+
+    act(() => result.current.setQuery("Madrid"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    act(() => result.current.clear());
+
+    await release();
+
+    expect(result.current.results).toEqual([]);
+    expect(result.current.isSearching).toBe(false);
   });
 });
