@@ -125,6 +125,7 @@ export function slugify(heading) {
  */
 export function headingSlugs(markdown) {
   const slugs = new Set();
+  /** @type {Map<string, number>} */
   const seen = new Map();
   for (const [, text] of stripFences(markdown).matchAll(/^#{1,6}\s+(.+?)\s*$/gm)) {
     const base = slugify(text.replace(/`/g, ""));

@@ -36,8 +36,8 @@ function append(ctx, ch) {
 
 /**
  * A physical line whose only content, once its leading whitespace is skipped, starts
- * with `*` (and not `*/ `) is treated as a JSDoc continuation line — the convention
- * inside a `; /** ... *\/` block — even without a matching opener earlier in the file, so
+ * with `*` (and not `*\/ `) is treated as a JSDoc continuation line — the convention
+ * inside a `/** ... *\/` block — even without a matching opener earlier in the file, so
  * an isolated continuation line still counts as a comment.
  *
  * @param {ScanContext} ctx

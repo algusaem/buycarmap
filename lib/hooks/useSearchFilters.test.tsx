@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
+import type { SearchInput } from "@/lib/validations/search";
 
 // Geolocation is a dependency of the mount sequence, not a thing these tests
 // are about — except MAP-14, which needs to control exactly when it resolves.
@@ -260,7 +261,7 @@ describe("useSearchFilters geolocation", () => {
 
   it("MAP-14: does not override a location the user chose first", async () => {
     pendingGeolocation();
-    const search = vi.fn();
+    const search = vi.fn<(params: SearchInput) => void>();
     const { result } = renderHook(() => useSearchFilters(search, () => ""));
     search.mockClear();
 
