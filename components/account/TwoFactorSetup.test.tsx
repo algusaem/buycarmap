@@ -72,8 +72,6 @@ describe("TwoFactorSetup QR rendering", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: /turn on two-factor/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: /turn on two-factor/i })).toBeDisabled();
   });
 });

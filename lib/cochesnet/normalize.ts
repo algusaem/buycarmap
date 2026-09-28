@@ -8,9 +8,7 @@ export function normalizeCochesNetItems(items: CochesNetItem[]): CarListing[] {
   return items.map((item): CarListing => {
     const { lat, lng } = resolveCochesNetCoords(item.location);
     const image =
-      item.resources?.find((r) => r.type === "IMAGE")?.url ??
-      item.resources?.[0]?.url ??
-      "";
+      item.resources?.find((r) => r.type === "IMAGE")?.url ?? item.resources?.[0]?.url ?? "";
     const city = item.location?.cityLiteral ?? item.location?.mainProvince ?? "";
 
     return {

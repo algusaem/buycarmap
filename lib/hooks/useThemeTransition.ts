@@ -22,7 +22,7 @@ export function useThemeTransition() {
       // Calculate the radius needed to cover the entire screen
       const maxRadius = Math.hypot(
         Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y)
+        Math.max(y, window.innerHeight - y),
       );
 
       isAnimating.current = true;
@@ -34,16 +34,13 @@ export function useThemeTransition() {
       transition.ready.then(() => {
         document.documentElement.animate(
           {
-            clipPath: [
-              `circle(0px at ${x}px ${y}px)`,
-              `circle(${maxRadius}px at ${x}px ${y}px)`,
-            ],
+            clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${maxRadius}px at ${x}px ${y}px)`],
           },
           {
             duration: 400,
             easing: "ease-out",
             pseudoElement: "::view-transition-new(root)",
-          }
+          },
         );
       });
 
@@ -51,7 +48,7 @@ export function useThemeTransition() {
         isAnimating.current = false;
       });
     },
-    [resolvedTheme, setTheme]
+    [resolvedTheme, setTheme],
   );
 
   return { resolvedTheme, toggleTheme };

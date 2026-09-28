@@ -53,11 +53,8 @@ vi.stubGlobal(
 Object.defineProperty(navigator, "geolocation", {
   configurable: true,
   value: {
-    getCurrentPosition: vi.fn(
-      (
-        _success: PositionCallback,
-        error?: PositionErrorCallback | null,
-      ) => error?.({ code: 1, message: "denied" } as GeolocationPositionError),
+    getCurrentPosition: vi.fn((_success: PositionCallback, error?: PositionErrorCallback | null) =>
+      error?.({ code: 1, message: "denied" } as GeolocationPositionError),
     ),
     watchPosition: vi.fn(),
     clearWatch: vi.fn(),

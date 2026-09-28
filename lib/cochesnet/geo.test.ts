@@ -37,9 +37,7 @@ describe("resolveCochesNetCoords", () => {
   });
 
   it("falls back to the Spain center when nothing resolves", () => {
-    const coords = resolveCochesNetCoords(
-      location({ mainProvinceId: 999 }),
-    );
+    const coords = resolveCochesNetCoords(location({ mainProvinceId: 999 }));
     expect(coords).toEqual({ lat: 40.0, lng: -3.5 });
   });
 });

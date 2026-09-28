@@ -18,18 +18,11 @@ const STRONG_PASSWORD = "harbour-lentil-quilt";
 const TOKEN = "token-from-the-emailed-link";
 
 async function fillValid() {
-  await userEvent.type(
-    screen.getByLabelText("New password"),
-    STRONG_PASSWORD,
-  );
-  await userEvent.type(
-    screen.getByLabelText("Confirm password"),
-    STRONG_PASSWORD,
-  );
+  await userEvent.type(screen.getByLabelText("New password"), STRONG_PASSWORD);
+  await userEvent.type(screen.getByLabelText("Confirm password"), STRONG_PASSWORD);
 }
 
-const submit = () =>
-  userEvent.click(screen.getByRole("button", { name: "Update password" }));
+const submit = () => userEvent.click(screen.getByRole("button", { name: "Update password" }));
 
 describe("ResetPasswordForm", () => {
   beforeEach(() => {
@@ -62,19 +55,11 @@ describe("ResetPasswordForm", () => {
   it("blocks submission when the confirmation does not match", async () => {
     renderWithI18n(<ResetPasswordForm token={TOKEN} />);
 
-    await userEvent.type(
-      screen.getByLabelText("New password"),
-      STRONG_PASSWORD,
-    );
-    await userEvent.type(
-      screen.getByLabelText("Confirm password"),
-      "something-different",
-    );
+    await userEvent.type(screen.getByLabelText("New password"), STRONG_PASSWORD);
+    await userEvent.type(screen.getByLabelText("Confirm password"), "something-different");
     await submit();
 
-    expect(
-      await screen.findByText("Passwords do not match"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Passwords do not match")).toBeInTheDocument();
     expect(resetPassword).not.toHaveBeenCalled();
   });
 
@@ -82,15 +67,10 @@ describe("ResetPasswordForm", () => {
     renderWithI18n(<ResetPasswordForm token={TOKEN} />);
 
     await userEvent.type(screen.getByLabelText("New password"), "abcdefghijk");
-    await userEvent.type(
-      screen.getByLabelText("Confirm password"),
-      "abcdefghijk",
-    );
+    await userEvent.type(screen.getByLabelText("Confirm password"), "abcdefghijk");
     await submit();
 
-    expect(
-      await screen.findByText("Use at least 12 characters"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Use at least 12 characters")).toBeInTheDocument();
     expect(resetPassword).not.toHaveBeenCalled();
   });
 
@@ -122,9 +102,7 @@ describe("ResetPasswordForm", () => {
     await submit();
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "This link is invalid or has expired",
-      ),
+      expect(toast.error).toHaveBeenCalledWith("This link is invalid or has expired"),
     );
     expect(push).not.toHaveBeenCalled();
   });

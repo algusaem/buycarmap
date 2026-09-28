@@ -9,9 +9,7 @@ interface VerifyEmailPageProps {
   searchParams: Promise<{ token?: string }>;
 }
 
-export default async function VerifyEmailPage({
-  searchParams,
-}: VerifyEmailPageProps) {
+export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
   const { token } = await searchParams;
 
   // Only presence is checked here. Whether the token is real and unexpired is
@@ -25,11 +23,7 @@ export default async function VerifyEmailPage({
       <div className="relative z-10 flex min-h-full items-center justify-center px-4 py-6">
         <div className="w-full max-w-md space-y-6">
           <BrandHeader />
-          {token ? (
-            <VerifyRegistrationForm token={token} />
-          ) : (
-            <InvalidVerifyLink />
-          )}
+          {token ? <VerifyRegistrationForm token={token} /> : <InvalidVerifyLink />}
           <LegalNotice />
         </div>
       </div>

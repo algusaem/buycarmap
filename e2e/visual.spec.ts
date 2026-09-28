@@ -3,11 +3,7 @@ import path from "node:path";
 import { test, expect, Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
 
-const SNAPSHOT_DIR = path.join(
-  process.cwd(),
-  "e2e",
-  "visual.spec.ts-snapshots",
-);
+const SNAPSHOT_DIR = path.join(process.cwd(), "e2e", "visual.spec.ts-snapshots");
 
 /**
  * Whether a baseline exists for the platform currently running.
@@ -18,9 +14,7 @@ const SNAPSHOT_DIR = path.join(
  * has no baseline yet, and runs normally as soon as one is committed.
  */
 function hasBaseline(name: string): boolean {
-  return fs.existsSync(
-    path.join(SNAPSHOT_DIR, `${name}-visual-${process.platform}.png`),
-  );
+  return fs.existsSync(path.join(SNAPSHOT_DIR, `${name}-visual-${process.platform}.png`));
 }
 
 const missingBaseline = (name: string) =>

@@ -9,9 +9,7 @@ interface ResetPasswordPageProps {
   searchParams: Promise<{ token?: string }>;
 }
 
-export default async function ResetPasswordPage({
-  searchParams,
-}: ResetPasswordPageProps) {
+export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
   const { token } = await searchParams;
 
   // Only presence is checked here. Whether the token is real, unexpired and

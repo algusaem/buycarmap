@@ -23,9 +23,7 @@ describe("PasswordStrengthMeter", () => {
     renderWithI18n(<PasswordStrengthMeter password="password" />);
 
     expect(screen.getByText("Very weak")).toBeInTheDocument();
-    expect(
-      screen.getByText("This is a commonly used password"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("This is a commonly used password")).toBeInTheDocument();
   });
 
   it("rates an unpredictable passphrase as the top band", () => {
@@ -40,40 +38,24 @@ describe("PasswordStrengthMeter", () => {
     // below are the only reason it scores low — the user needs to be told which.
     renderWithI18n(<PasswordStrengthMeter password="abcdefgh1111" />);
 
-    expect(
-      screen.getByText("Avoid sequences like “abcd” or “1234”"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Avoid repeating the same character"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Avoid sequences like “abcd” or “1234”")).toBeInTheDocument();
+    expect(screen.getByText("Avoid repeating the same character")).toBeInTheDocument();
   });
 
   it("flags a password built out of the user's own email", () => {
     renderWithI18n(
-      <PasswordStrengthMeter
-        password="ada-lovelace-1815"
-        userInputs={["ada@example.com"]}
-      />,
+      <PasswordStrengthMeter password="ada-lovelace-1815" userInputs={["ada@example.com"]} />,
     );
 
-    expect(
-      screen.getByText("Avoid using your name or email"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Avoid using your name or email")).toBeInTheDocument();
     expect(screen.getByText("Very weak")).toBeInTheDocument();
   });
 
   it("does not flag a password merely because inputs were supplied", () => {
     // Guards the check above against passing for any non-empty userInputs.
-    renderWithI18n(
-      <PasswordStrengthMeter
-        password={STRONG}
-        userInputs={["ada@example.com"]}
-      />,
-    );
+    renderWithI18n(<PasswordStrengthMeter password={STRONG} userInputs={["ada@example.com"]} />);
 
-    expect(
-      screen.queryByText("Avoid using your name or email"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Avoid using your name or email")).not.toBeInTheDocument();
   });
 
   it("states the strength as text, not by colour alone", () => {

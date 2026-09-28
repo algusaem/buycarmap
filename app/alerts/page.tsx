@@ -33,9 +33,7 @@ export default async function AlertsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t.alerts.title}
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t.alerts.title}</h1>
           {/* Cadence is approximate — GitHub's scheduler drifts under load — so
               the copy says "every few minutes" rather than promising five. */}
           <p className="text-sm text-muted-foreground">{t.alerts.subtitle}</p>

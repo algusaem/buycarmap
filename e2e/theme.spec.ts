@@ -5,9 +5,7 @@ import { test, expect } from "@playwright/test";
 // is wired. This is the only place the real thing runs.
 const THEME_TOGGLE = /dark|light|oscuro|claro/i;
 
-test("CORE-10: toggling the theme switches it and survives a reload", async ({
-  page,
-}) => {
+test("CORE-10: toggling the theme switches it and survives a reload", async ({ page }) => {
   await page.goto("/");
 
   const html = page.locator("html");

@@ -6,9 +6,7 @@ import { ToggleChip } from "./toggle-chip";
 
 describe("ToggleChip", () => {
   it("reflects the active state via aria-pressed", () => {
-    const { rerender } = render(
-      <ToggleChip label="Diésel" active={false} onClick={() => {}} />,
-    );
+    const { rerender } = render(<ToggleChip label="Diésel" active={false} onClick={() => {}} />);
     expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "false");
 
     rerender(<ToggleChip label="Diésel" active onClick={() => {}} />);
@@ -25,9 +23,7 @@ describe("ToggleChip", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = render(
-      <ToggleChip label="Gasolina" active onClick={() => {}} />,
-    );
+    const { container } = render(<ToggleChip label="Gasolina" active onClick={() => {}} />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

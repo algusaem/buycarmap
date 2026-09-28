@@ -1,9 +1,6 @@
 import { CarListing } from "@/interfaces/listing";
 import { WallapopSearchResponse } from "@/interfaces/wallapop";
-import {
-  CochesNetSearchResponse,
-  CochesNetTaxonomyResponse,
-} from "@/interfaces/cochesnet";
+import { CochesNetSearchResponse, CochesNetTaxonomyResponse } from "@/interfaces/cochesnet";
 import { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
 import { SearchInput } from "@/lib/validations/search";
 import { buildWallapopQuery } from "@/lib/wallapop/client";
@@ -70,16 +67,12 @@ async function fetchJson<T>(url: string, init: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function searchWallapopUpstream(
-  criteria: SearchInput,
-): Promise<CarListing[]> {
+async function searchWallapopUpstream(criteria: SearchInput): Promise<CarListing[]> {
   const query = buildWallapopQuery(criteria, {
     lat: criteria.latitude ?? SPAIN_CENTER.lat,
     lng: criteria.longitude ?? SPAIN_CENTER.lng,
     distance:
-      criteria.latitude != null && criteria.longitude != null
-        ? criteria.distanceInKm
-        : 1000,
+      criteria.latitude != null && criteria.longitude != null ? criteria.distanceInKm : 1000,
     // Forced, unlike the interactive path. Relevance ranks better for a human
     // reading a list; an alert polling page one needs the newest at the top or
     // it never sees them.
@@ -89,16 +82,13 @@ async function searchWallapopUpstream(
   // of the three gets. Wallapop is the only source that honours it.
   if (!criteria.timeFilter) query.set("time_filter", "today");
 
-  const data = await fetchJson<WallapopSearchResponse>(
-    `${WALLAPOP_URL}?${query.toString()}`,
-    {
-      headers: {
-        Accept: "application/json",
-        "x-deviceos": "0",
-        "x-appversion": "85000",
-      },
+  const data = await fetchJson<WallapopSearchResponse>(`${WALLAPOP_URL}?${query.toString()}`, {
+    headers: {
+      Accept: "application/json",
+      "x-deviceos": "0",
+      "x-appversion": "85000",
     },
-  );
+  });
   return normalizeWallapopItems(data.data?.section?.items ?? []);
 }
 
@@ -110,19 +100,14 @@ async function searchWallapopUpstream(
  * straight to the taxonomy API. Falls back to make-only filtering, exactly as
  * the browser path does when a name has no exact match.
  */
-async function resolveModelId(
-  makeId: number,
-  modelName: string,
-): Promise<number | undefined> {
+async function resolveModelId(makeId: number, modelName: string): Promise<number | undefined> {
   try {
     const data = await fetchJson<CochesNetTaxonomyResponse>(
       `${COCHESNET_MODELS_URL}?makeId=${makeId}`,
       { headers: { Accept: "application/json", "X-Schibsted-Tenant": "coches" } },
     );
     const target = modelName.toLowerCase().trim();
-    return (data.items ?? []).find(
-      (option) => option.label.toLowerCase().trim() === target,
-    )?.id;
+    return (data.items ?? []).find((option) => option.label.toLowerCase().trim() === target)?.id;
   } catch {
     // Model filtering is a refinement; losing it degrades the poll to
     // make-only rather than failing the source outright.
@@ -130,9 +115,7 @@ async function resolveModelId(
   }
 }
 
-async function searchCochesNetUpstream(
-  criteria: SearchInput,
-): Promise<CarListing[]> {
+async function searchCochesNetUpstream(criteria: SearchInput): Promise<CarListing[]> {
   const filters = buildCochesNetFilters(criteria);
 
   if (criteria.brand && criteria.model) {
@@ -162,9 +145,7 @@ async function searchCochesNetUpstream(
   return normalizeCochesNetItems(data.items ?? []);
 }
 
-async function searchMilanunciosUpstream(
-  criteria: SearchInput,
-): Promise<CarListing[]> {
+async function searchMilanunciosUpstream(criteria: SearchInput): Promise<CarListing[]> {
   const query = buildMilanunciosQuery(criteria, 1);
   const slug = query.get("slug") || ALL_CARS_SLUG;
   query.delete("slug");
@@ -184,9 +165,7 @@ async function searchMilanunciosUpstream(
     throw new Error(`Milanuncios responded ${response.status}`);
   }
 
-  const parsed = extractInitialProps(
-    await response.text(),
-  ) as MilanunciosSearchResponse;
+  const parsed = extractInitialProps(await response.text()) as MilanunciosSearchResponse;
   return normalizeMilanunciosItems(parsed.ads ?? []);
 }
 
@@ -199,9 +178,7 @@ async function searchMilanunciosUpstream(
  * *which* source failed so the seen-list is only advanced for the ones that
  * answered.
  */
-export async function searchAllSources(
-  criteria: SearchInput,
-): Promise<AlertSearchResult> {
+export async function searchAllSources(criteria: SearchInput): Promise<AlertSearchResult> {
   const searches = [
     { source: "Wallapop", run: () => searchWallapopUpstream(criteria) },
     { source: "Coches.net", run: () => searchCochesNetUpstream(criteria) },

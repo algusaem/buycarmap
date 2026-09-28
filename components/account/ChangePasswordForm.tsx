@@ -7,22 +7,12 @@ import { toast } from "sonner";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import {
-  AUTH_ERROR,
-  changePasswordSchema,
-  ChangePasswordInput,
-} from "@/lib/validations/auth";
+import { AUTH_ERROR, changePasswordSchema, ChangePasswordInput } from "@/lib/validations/auth";
 import { changePassword } from "@/app/actions/account";
 
 interface ChangePasswordFormProps {
@@ -94,9 +84,7 @@ export function ChangePasswordForm({ email }: ChangePasswordFormProps) {
   return (
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-lg font-bold">
-          {t.account.security.title}
-        </CardTitle>
+        <CardTitle className="text-lg font-bold">{t.account.security.title}</CardTitle>
         <CardDescription>{t.account.security.description}</CardDescription>
       </CardHeader>
 
@@ -104,19 +92,10 @@ export function ChangePasswordForm({ email }: ChangePasswordFormProps) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Password managers need a username field adjacent to the password
               fields to associate the credential with the right account. */}
-          <input
-            type="email"
-            name="email"
-            value={email}
-            autoComplete="username"
-            readOnly
-            hidden
-          />
+          <input type="email" name="email" value={email} autoComplete="username" readOnly hidden />
 
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">
-              {t.account.security.currentPassword}
-            </Label>
+            <Label htmlFor="currentPassword">{t.account.security.currentPassword}</Label>
             <PasswordInput
               id="currentPassword"
               placeholder={t.account.security.currentPasswordPlaceholder}
@@ -128,9 +107,7 @@ export function ChangePasswordForm({ email }: ChangePasswordFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">
-              {t.account.security.newPassword}
-            </Label>
+            <Label htmlFor="newPassword">{t.account.security.newPassword}</Label>
             <PasswordInput
               id="newPassword"
               placeholder={t.account.security.newPasswordPlaceholder}
@@ -143,9 +120,7 @@ export function ChangePasswordForm({ email }: ChangePasswordFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmNewPassword">
-              {t.account.security.confirmPassword}
-            </Label>
+            <Label htmlFor="confirmNewPassword">{t.account.security.confirmPassword}</Label>
             <PasswordInput
               id="confirmNewPassword"
               placeholder={t.account.security.confirmPasswordPlaceholder}
@@ -156,9 +131,7 @@ export function ChangePasswordForm({ email }: ChangePasswordFormProps) {
             />
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            {t.account.security.signOutNotice}
-          </p>
+          <p className="text-xs text-muted-foreground">{t.account.security.signOutNotice}</p>
 
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (

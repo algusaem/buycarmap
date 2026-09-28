@@ -15,10 +15,7 @@ import {
   MAX_ALERTS_PER_USER,
   parseStoredCriteria,
 } from "@/lib/validations/alerts";
-import {
-  hashUnsubscribeToken,
-  unsubscribeTokenFor,
-} from "@/lib/alerts/unsubscribe-token";
+import { hashUnsubscribeToken, unsubscribeTokenFor } from "@/lib/alerts/unsubscribe-token";
 import { searchAllSources } from "@/lib/alerts/search";
 
 interface AlertResult {
@@ -39,10 +36,7 @@ interface AlertListResult extends AlertResult {
  * which the first real poll fills — a noisy first alert is a far better outcome
  * than refusing to create the alert at all.
  */
-async function seedSeenListings(
-  criteriaId: string,
-  criteria: SearchInput,
-): Promise<void> {
+async function seedSeenListings(criteriaId: string, criteria: SearchInput): Promise<void> {
   try {
     const { listings } = await searchAllSources(criteria);
     if (listings.length === 0) return;
@@ -60,10 +54,7 @@ async function seedSeenListings(
   }
 }
 
-export async function createAlert(
-  criteria: SearchInput,
-  label: string,
-): Promise<AlertResult> {
+export async function createAlert(criteria: SearchInput, label: string): Promise<AlertResult> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: ALERT_ERROR.unauthenticated };
 
@@ -112,9 +103,7 @@ export async function createAlert(
           criteriaId: criteriaRow.id,
           label: trimmedLabel,
           active: true,
-          unsubscribeTokenHash: hashUnsubscribeToken(
-            unsubscribeTokenFor(alertId),
-          ),
+          unsubscribeTokenHash: hashUnsubscribeToken(unsubscribeTokenFor(alertId)),
         },
       });
     } catch (error) {

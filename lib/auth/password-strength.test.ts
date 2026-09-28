@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  MAX_PASSWORD_LENGTH,
-  MIN_PASSWORD_LENGTH,
-  evaluatePassword,
-} from "./password-strength";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, evaluatePassword } from "./password-strength";
 
 describe("evaluatePassword length rules", () => {
   it("reports an empty password as the bottom band", () => {
@@ -56,9 +52,7 @@ describe("evaluatePassword blocklist", () => {
   });
 
   it("does not flag an ordinary passphrase as common", () => {
-    expect(evaluatePassword("harbour-lentil-quilt").issues).not.toContain(
-      "common",
-    );
+    expect(evaluatePassword("harbour-lentil-quilt").issues).not.toContain("common");
   });
 });
 
@@ -70,9 +64,7 @@ describe("evaluatePassword pattern detection", () => {
 
   it("does not flag a run shorter than four characters", () => {
     // "abc" appears constantly in ordinary words; only longer runs are signal.
-    expect(evaluatePassword("abc-thunder-Rug9").issues).not.toContain(
-      "sequential",
-    );
+    expect(evaluatePassword("abc-thunder-Rug9").issues).not.toContain("sequential");
   });
 
   it("flags keyboard rows in both directions", () => {
@@ -99,15 +91,13 @@ describe("evaluatePassword personal information", () => {
   });
 
   it("ignores the email's domain, which every user at that host shares", () => {
-    expect(
-      evaluatePassword("example-harbour-quilt", ["ada@example.com"]).issues,
-    ).not.toContain("personal");
+    expect(evaluatePassword("example-harbour-quilt", ["ada@example.com"]).issues).not.toContain(
+      "personal",
+    );
   });
 
   it("ignores user inputs shorter than three characters", () => {
-    expect(evaluatePassword("harbour-lentil-quilt", ["ad"]).issues).not.toContain(
-      "personal",
-    );
+    expect(evaluatePassword("harbour-lentil-quilt", ["ad"]).issues).not.toContain("personal");
   });
 });
 

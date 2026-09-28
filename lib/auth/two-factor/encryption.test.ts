@@ -46,10 +46,7 @@ describe("decryptSecret rejects what it should", () => {
     // This is why GCM and not CBC: corrupted input fails loudly rather than
     // decrypting to nonsense that would then be fed into an HMAC.
     expect(() =>
-      decryptSecret(
-        [version, iv, tag, flipped.toString("base64")].join(":"),
-        KEY,
-      ),
+      decryptSecret([version, iv, tag, flipped.toString("base64")].join(":"), KEY),
     ).toThrow();
   });
 
@@ -59,10 +56,7 @@ describe("decryptSecret rejects what it should", () => {
     flipped[0] ^= 0xff;
 
     expect(() =>
-      decryptSecret(
-        [version, iv, flipped.toString("base64"), ciphertext].join(":"),
-        KEY,
-      ),
+      decryptSecret([version, iv, flipped.toString("base64"), ciphertext].join(":"), KEY),
     ).toThrow();
   });
 

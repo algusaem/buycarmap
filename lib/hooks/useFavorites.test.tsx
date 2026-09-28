@@ -14,8 +14,7 @@ const signedIn = () =>
     data: { user: { id: "user-ada" } },
     status: "authenticated",
   });
-const signedOut = () =>
-  useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+const signedOut = () => useSession.mockReturnValue({ data: null, status: "unauthenticated" });
 
 beforeEach(() => {
   vi.mocked(listFavorites).mockReset();

@@ -43,9 +43,7 @@ async function expectSignedOut(page: Page, isMobile: boolean) {
   }
 
   await page.getByRole("button", { name: /^(menu|menú)$/i }).click();
-  await expect(
-    page.getByRole("dialog").getByRole("link", { name: SIGN_IN }),
-  ).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("link", { name: SIGN_IN })).toBeVisible();
 }
 
 async function registerViaUi(page: Page, email: string, name = "E2E User") {
@@ -71,10 +69,7 @@ async function loginViaUi(page: Page, email: string, password: string) {
 // ---------------------------------------------------------------------------
 
 test.describe("logged-out experience (auth is optional)", () => {
-  test("home shows signed-out controls, not a session", async ({
-    page,
-    isMobile,
-  }) => {
+  test("home shows signed-out controls, not a session", async ({ page, isMobile }) => {
     await page.goto("/");
 
     // Sign up is visible at every width. This assertion used to say the
@@ -85,17 +80,12 @@ test.describe("logged-out experience (auth is optional)", () => {
     //
     // Checked before expectSignedOut, which opens the menu on a phone and puts
     // an overlay over the bar this is looking at.
-    await expect(
-      page.getByRole("navigation").getByRole("link", { name: SIGN_UP }),
-    ).toBeVisible();
+    await expect(page.getByRole("navigation").getByRole("link", { name: SIGN_UP })).toBeVisible();
 
     await expectSignedOut(page, isMobile);
   });
 
-  test("the map is fully usable without an account", async ({
-    page,
-    isMobile,
-  }) => {
+  test("the map is fully usable without an account", async ({ page, isMobile }) => {
     await mockListingSources(page);
     await page.goto("/map");
 
@@ -110,9 +100,7 @@ test.describe("client-side validation", () => {
   test("login shows a required-field error on empty submit", async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("button", { name: SIGN_IN }).click();
-    await expect(
-      page.getByText(/required|obligatorio|requerido/i).first()
-    ).toBeVisible();
+    await expect(page.getByText(/required|obligatorio|requerido/i).first()).toBeVisible();
   });
 
   test("register blocks mismatched passwords", async ({ page }) => {
@@ -138,82 +126,58 @@ test.describe("client-side validation", () => {
     await page.getByRole("button", { name: SIGN_UP }).click();
     // Two elements say this: the field's validation error and the strength
     // meter's issue hint. Either one proves the floor is enforced in the UI.
-    await expect(
-      page.getByText(/at least 12 characters|al menos 12/i).first()
-    ).toBeVisible();
+    await expect(page.getByText(/at least 12 characters|al menos 12/i).first()).toBeVisible();
   });
 
-  test("the strength meter rates passwords as the user types", async ({
-    page,
-  }) => {
+  test("the strength meter rates passwords as the user types", async ({ page }) => {
     await page.goto("/register");
     const password = page.locator('input[type="password"]').nth(0);
 
     await password.fill("password");
-    await expect(
-      page.getByText(/very weak|muy débil/i)
-    ).toBeVisible();
+    await expect(page.getByText(/very weak|muy débil/i)).toBeVisible();
 
     await password.fill(PASSWORD);
     await expect(page.getByText(/strong|muy segura/i)).toBeVisible();
   });
 
-  test("reset-password without a token offers a way forward", async ({
-    page,
-  }) => {
+  test("reset-password without a token offers a way forward", async ({ page }) => {
     await page.goto("/reset-password");
 
     // No dead ends: the page must route the user to a fresh link.
+    await expect(page.getByText(/no longer valid|ya no es válido/i)).toBeVisible();
     await expect(
-      page.getByText(/no longer valid|ya no es válido/i)
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /request a new link|solicitar un enlace/i })
+      page.getByRole("link", { name: /request a new link|solicitar un enlace/i }),
     ).toBeVisible();
   });
 
-  test("verify-email without a token offers a way forward", async ({
-    page,
-  }) => {
+  test("verify-email without a token offers a way forward", async ({ page }) => {
     await page.goto("/verify-email");
 
+    await expect(page.getByText(/no longer valid|ya no es válido/i)).toBeVisible();
     await expect(
-      page.getByText(/no longer valid|ya no es válido/i)
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /back to sign up|volver al registro/i })
+      page.getByRole("link", { name: /back to sign up|volver al registro/i }),
     ).toBeVisible();
   });
 
-  test("confirm-email without a token offers a way forward", async ({
-    page,
-  }) => {
+  test("confirm-email without a token offers a way forward", async ({ page }) => {
     await page.goto("/confirm-email");
 
+    await expect(page.getByText(/no longer valid|ya no es válido/i)).toBeVisible();
     await expect(
-      page.getByText(/no longer valid|ya no es válido/i)
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /back to your account|volver a tu cuenta/i })
+      page.getByRole("link", { name: /back to your account|volver a tu cuenta/i }),
     ).toBeVisible();
   });
 
-  test("the two-factor code field stays hidden until it is needed", async ({
-    page,
-  }) => {
+  test("the two-factor code field stays hidden until it is needed", async ({ page }) => {
     await page.goto("/login");
 
     // Showing it up front would tell every visitor which accounts use 2FA,
     // and confuse the ones that do not.
-    await expect(
-      page.getByLabel(/enter the 6-digit code|codigo de 6|código de 6/i)
-    ).toHaveCount(0);
+    await expect(page.getByLabel(/enter the 6-digit code|codigo de 6|código de 6/i)).toHaveCount(0);
     await expect(page.getByLabel(/password|contraseña/i).first()).toBeVisible();
   });
 
-  test("signed-out visitors are redirected away from /account", async ({
-    page,
-  }) => {
+  test("signed-out visitors are redirected away from /account", async ({ page }) => {
     await page.goto("/account");
 
     await expect(page).toHaveURL(/\/login/);
@@ -233,9 +197,7 @@ test.describe("authenticated flows (real database)", () => {
     test.skip(!!isMobile, "DB auth flows run on desktop only");
   });
 
-  dbTest("register signs the user in, persists across reload, and signs out", async ({
-    page,
-  }) => {
+  dbTest("register signs the user in, persists across reload, and signs out", async ({ page }) => {
     const email = e2eEmail("register");
 
     await registerViaUi(page, email);
@@ -268,17 +230,13 @@ test.describe("authenticated flows (real database)", () => {
     await expect(navSignIn(page)).toHaveCount(0);
   });
 
-  dbTest("a wrong password is rejected and no session is created", async ({
-    page,
-  }) => {
+  dbTest("a wrong password is rejected and no session is created", async ({ page }) => {
     const email = e2eEmail("wrongpw");
     await seedUser(email, PASSWORD);
 
     await loginViaUi(page, email, "not-the-password");
 
-    await expect(
-      page.getByText(/invalid email or password|incorrect/i)
-    ).toBeVisible();
+    await expect(page.getByText(/invalid email or password|incorrect/i)).toBeVisible();
     await expect(signOutButton(page)).toHaveCount(0);
     await expect(page).toHaveURL(/\/login$/);
   });

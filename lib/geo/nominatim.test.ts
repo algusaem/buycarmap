@@ -48,17 +48,11 @@ describe("searchLocations", () => {
 
     const results = await searchLocations("x");
 
-    expect(results.map((r) => r.displayName)).toEqual([
-      "Ronda",
-      "Málaga",
-      "Full Raw Name",
-    ]);
+    expect(results.map((r) => r.displayName)).toEqual(["Ronda", "Málaga", "Full Raw Name"]);
   });
 
   it("returns an empty array on a non-ok response", async () => {
-    server.use(
-      http.get(ENDPOINT, () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.get(ENDPOINT, () => new HttpResponse(null, { status: 500 })));
     expect(await searchLocations("x")).toEqual([]);
   });
 

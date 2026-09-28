@@ -31,9 +31,7 @@ describe("generateRecoveryCodes", () => {
   });
 
   it("never repeats across sets", () => {
-    const all = Array.from({ length: 20 }, () =>
-      generateRecoveryCodes().plain,
-    ).flat();
+    const all = Array.from({ length: 20 }, () => generateRecoveryCodes().plain).flat();
 
     expect(new Set(all).size).toBe(all.length);
   });
@@ -52,9 +50,7 @@ describe("generateRecoveryCodes", () => {
 
 describe("normalizeRecoveryCode", () => {
   it("accepts the code as displayed", () => {
-    expect(normalizeRecoveryCode("ABCDE-FGHJK-MNPQR")).toBe(
-      "ABCDEFGHJKMNPQR",
-    );
+    expect(normalizeRecoveryCode("ABCDE-FGHJK-MNPQR")).toBe("ABCDEFGHJKMNPQR");
   });
 
   it("accepts lowercase and missing dashes", () => {
@@ -63,17 +59,13 @@ describe("normalizeRecoveryCode", () => {
   });
 
   it("ignores stray whitespace from a copy-paste", () => {
-    expect(normalizeRecoveryCode(" ABCDE FGHJK\tMNPQR \n")).toBe(
-      "ABCDEFGHJKMNPQR",
-    );
+    expect(normalizeRecoveryCode(" ABCDE FGHJK\tMNPQR \n")).toBe("ABCDEFGHJKMNPQR");
   });
 });
 
 describe("hashRecoveryCode", () => {
   it("is stable, so a code can be looked up by its digest", () => {
-    expect(hashRecoveryCode("ABCDE-FGHJK-MNPQR")).toBe(
-      hashRecoveryCode("ABCDE-FGHJK-MNPQR"),
-    );
+    expect(hashRecoveryCode("ABCDE-FGHJK-MNPQR")).toBe(hashRecoveryCode("ABCDE-FGHJK-MNPQR"));
   });
 
   it("treats formatting variants of one code as the same code", () => {
@@ -85,9 +77,7 @@ describe("hashRecoveryCode", () => {
   });
 
   it("gives different codes different digests", () => {
-    expect(hashRecoveryCode("ABCDE-FGHJK-MNPQR")).not.toBe(
-      hashRecoveryCode("ABCDE-FGHJK-MNPQS"),
-    );
+    expect(hashRecoveryCode("ABCDE-FGHJK-MNPQR")).not.toBe(hashRecoveryCode("ABCDE-FGHJK-MNPQS"));
   });
 
   it("matches the known SHA-256 of the normalized input", () => {

@@ -20,8 +20,7 @@ import { GET } from "./route";
 
 const ADA = { id: "user-ada", email: "ada@example.com" };
 
-const hashOf = (token: string) =>
-  createHash("sha256").update(token).digest("hex");
+const hashOf = (token: string) => createHash("sha256").update(token).digest("hex");
 
 function visit(token: string | null): Promise<Response> {
   const url = new URL("http://localhost:3000/api/alerts/unsubscribe");
@@ -53,9 +52,7 @@ describe("GET /api/alerts/unsubscribe", () => {
     const response = await visit("raw-token-ada");
 
     expect(response.status).toBe(200);
-    expect(store.alerts().find((row) => row.id === alert.id)?.active).toBe(
-      false,
-    );
+    expect(store.alerts().find((row) => row.id === alert.id)?.active).toBe(false);
   });
 
   it("ALERT-26: works with no session, because it is followed from an inbox", async () => {
@@ -94,12 +91,8 @@ describe("GET /api/alerts/unsubscribe", () => {
 
     // The raw token exists only in the email, so a database leak does not hand
     // over working unsubscribe links.
-    expect(store.alerts()[0].unsubscribeTokenHash).not.toContain(
-      "raw-token-ada",
-    );
-    expect(store.alerts()[0].unsubscribeTokenHash).toBe(
-      hashOf("raw-token-ada"),
-    );
+    expect(store.alerts()[0].unsubscribeTokenHash).not.toContain("raw-token-ada");
+    expect(store.alerts()[0].unsubscribeTokenHash).toBe(hashOf("raw-token-ada"));
   });
 
   it("ALERT-27: an unknown token changes nothing", async () => {
@@ -127,9 +120,7 @@ describe("GET /api/alerts/unsubscribe", () => {
     const response = await visit("raw-token-ada");
 
     expect(response.status).toBe(200);
-    expect(store.alerts().find((row) => row.id === alert.id)?.active).toBe(
-      false,
-    );
+    expect(store.alerts().find((row) => row.id === alert.id)?.active).toBe(false);
   });
 
   it("ALERT-27: an invalid token is answered identically to a valid one", async () => {

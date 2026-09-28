@@ -45,11 +45,10 @@ describe("OAuthButtons visibility", () => {
     getProviders.mockResolvedValue({ google: provider("google") });
     renderWithI18n(<OAuthButtons />);
 
-    expect(await screen.findByRole("button", { name: /continue with google/i }))
-      .toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /continue with github/i }),
-    ).not.toBeInTheDocument();
+      await screen.findByRole("button", { name: /continue with google/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /continue with github/i })).not.toBeInTheDocument();
   });
 
   it("ignores the credentials provider, which is not an OAuth button", async () => {
@@ -74,9 +73,11 @@ describe("OAuthButtons interaction", () => {
   it("starts the provider round-trip with the requested callback", async () => {
     renderWithI18n(<OAuthButtons callbackUrl="/account" />);
 
-    await userEvent.click(await screen.findByRole("button", {
-      name: /continue with google/i,
-    }));
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /continue with google/i,
+      }),
+    );
 
     expect(signIn).toHaveBeenCalledWith("google", { callbackUrl: "/account" });
   });
@@ -84,9 +85,11 @@ describe("OAuthButtons interaction", () => {
   it("sends GitHub to its own provider id, not Google's", async () => {
     renderWithI18n(<OAuthButtons />);
 
-    await userEvent.click(await screen.findByRole("button", {
-      name: /continue with github/i,
-    }));
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /continue with github/i,
+      }),
+    );
 
     expect(signIn).toHaveBeenCalledWith("github", { callbackUrl: "/" });
   });
@@ -96,14 +99,14 @@ describe("OAuthButtons interaction", () => {
     signIn.mockReturnValue(new Promise(() => {}));
     renderWithI18n(<OAuthButtons />);
 
-    await userEvent.click(await screen.findByRole("button", {
-      name: /continue with google/i,
-    }));
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /continue with google/i,
+      }),
+    );
 
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /continue with github/i }),
-      ).toBeDisabled(),
+      expect(screen.getByRole("button", { name: /continue with github/i })).toBeDisabled(),
     );
   });
 
@@ -113,14 +116,14 @@ describe("OAuthButtons interaction", () => {
     signIn.mockResolvedValue(undefined);
     renderWithI18n(<OAuthButtons />);
 
-    await userEvent.click(await screen.findByRole("button", {
-      name: /continue with google/i,
-    }));
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /continue with google/i,
+      }),
+    );
 
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /continue with github/i }),
-      ).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /continue with github/i })).toBeEnabled(),
     );
   });
 

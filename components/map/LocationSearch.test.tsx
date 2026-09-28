@@ -27,8 +27,7 @@ const MADRID: SelectedLocation = {
 // its placeholder.
 const QUERY_PLACEHOLDER = /^City or address/;
 const queryBox = () => screen.getByPlaceholderText(QUERY_PLACEHOLDER);
-const madridOption = () =>
-  screen.findByRole("option", { name: MADRID.displayName });
+const madridOption = () => screen.findByRole("option", { name: MADRID.displayName });
 
 function renderLocationSearch(
   overrides: Partial<React.ComponentProps<typeof LocationSearch>> = {},
@@ -65,11 +64,7 @@ describe("LocationSearch suggestions", () => {
   });
 
   it("says so when the geocoder finds nothing", async () => {
-    server.use(
-      http.get("https://nominatim.openstreetmap.org/search", () =>
-        HttpResponse.json([]),
-      ),
-    );
+    server.use(http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.json([])));
     renderLocationSearch();
 
     await userEvent.type(queryBox(), "Nowhereville");
@@ -128,9 +123,7 @@ describe("LocationSearch selected state", () => {
     renderLocationSearch({ selectedLocation: MADRID });
 
     expect(screen.getByText(MADRID.displayName)).toBeInTheDocument();
-    expect(
-      screen.queryByPlaceholderText(QUERY_PLACEHOLDER),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(QUERY_PLACEHOLDER)).not.toBeInTheDocument();
   });
 
   it("clears the chosen place", async () => {

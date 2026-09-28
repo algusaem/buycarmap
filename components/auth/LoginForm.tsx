@@ -112,9 +112,7 @@ export function LoginForm() {
             <ArrowLeft className="h-3 w-3" />
             {t.auth.return}
           </Link>
-          <CardTitle className="text-2xl font-bold">
-            {t.auth.welcomeBack}
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">{t.auth.welcomeBack}</CardTitle>
           <CardDescription>{t.auth.signInDescription}</CardDescription>
         </CardHeader>
 
@@ -124,9 +122,7 @@ export function LoginForm() {
               className="mb-4 rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-muted-foreground"
               role="alert"
             >
-              {oauthError === "AccessDenied"
-                ? t.authErrors.oauthLinkBlocked
-                : t.authErrors.generic}
+              {oauthError === "AccessDenied" ? t.authErrors.oauthLinkBlocked : t.authErrors.generic}
             </p>
           )}
 
@@ -185,9 +181,7 @@ export function LoginForm() {
                 {/* Without this, someone who has lost their phone has no way
                     of knowing a recovery code goes in this same field — the
                     label only mentions six digits. */}
-                <p className="text-xs text-muted-foreground">
-                  {t.account.twoFactor.recoveryHint}
-                </p>
+                <p className="text-xs text-muted-foreground">{t.account.twoFactor.recoveryHint}</p>
                 {errors.totp && (
                   <p className="text-sm text-destructive">
                     {translateAuthError(t, errors.totp.message)}
@@ -196,12 +190,7 @@ export function LoginForm() {
               </div>
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />

@@ -83,14 +83,10 @@ function AlertRow({ alert }: { alert: AlertSummary }) {
         >
           {alert.label}
         </Link>
-        <p className="mt-1 truncate text-xs text-muted-foreground">
-          {summarise(alert.criteria)}
-        </p>
+        <p className="mt-1 truncate text-xs text-muted-foreground">{summarise(alert.criteria)}</p>
         <p className="mt-2 text-xs text-muted-foreground">
           {/* tabular-nums so counts line up down the list */}
-          <span className="font-semibold tabular-nums text-foreground">
-            {alert.matchCount}
-          </span>{" "}
+          <span className="font-semibold tabular-nums text-foreground">{alert.matchCount}</span>{" "}
           {t.alerts.matchCount}
           {/* Not colour alone — an unsubscribed alert says so in words, and is
               shown rather than hidden so nobody wonders where it went. */}

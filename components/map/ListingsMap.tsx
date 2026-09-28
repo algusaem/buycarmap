@@ -74,11 +74,7 @@ export function ListingsMap({ listings = [] }: ListingsMapProps) {
         <FitBounds listings={listings} />
         {carIcon &&
           listings.map((listing) => (
-            <Marker
-              key={listing.id}
-              position={[listing.lat, listing.lng]}
-              icon={carIcon}
-            >
+            <Marker key={listing.id} position={[listing.lat, listing.lng]} icon={carIcon}>
               <Popup>
                 <div className="text-sm">
                   <p className="font-semibold">{listing.title}</p>

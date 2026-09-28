@@ -33,10 +33,7 @@ export function SourceBadge({ source, className }: SourceBadgeProps) {
         className,
       )}
     >
-      <span
-        aria-hidden
-        className="h-1.5 w-1.5 rounded-full bg-white/90"
-      />
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-white/90" />
       {style.label}
     </span>
   );

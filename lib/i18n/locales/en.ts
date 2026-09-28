@@ -71,8 +71,7 @@ export const en: Translations = {
     pendingDescription:
       "If that address can be used for a new account, we've sent a link to confirm it. The link expires in 24 hours.",
     title: "Confirm your account",
-    description:
-      "One last step — confirm you own this address to finish creating your account.",
+    description: "One last step — confirm you own this address to finish creating your account.",
     submit: "Confirm my account",
     submitting: "Confirming…",
     success: "Account created. You can sign in now.",
@@ -152,41 +151,34 @@ export const en: Translations = {
     },
     twoFactor: {
       title: "Two-factor authentication",
-      description:
-        "Require a code from your phone in addition to your password.",
+      description: "Require a code from your phone in addition to your password.",
       enabled: "On",
       disabled: "Off",
-      unavailable:
-        "Not available on this deployment — the server is missing its encryption key.",
+      unavailable: "Not available on this deployment — the server is missing its encryption key.",
       enableCta: "Set up two-factor",
       starting: "Preparing…",
       scanTitle: "Scan this with your authenticator app",
-      scanDescription:
-        "Use Google Authenticator, 1Password, Authy or any other TOTP app.",
+      scanDescription: "Use Google Authenticator, 1Password, Authy or any other TOTP app.",
       manualLabel: "Can't scan? Enter this key manually",
       manualHint: "Type it exactly, without spaces.",
       codeLabel: "Enter the 6-digit code",
       codePlaceholder: "123456",
-      recoveryHint:
-        "Lost your phone? Enter one of your recovery codes instead.",
+      recoveryHint: "Lost your phone? Enter one of your recovery codes instead.",
       confirm: "Turn on two-factor",
       confirming: "Verifying…",
       cancel: "Cancel",
       enabledToast: "Two-factor authentication is on.",
       recoveryTitle: "Save your recovery codes",
-      recoveryDescription:
-        "Each code works once, and gets you in if you lose your phone.",
+      recoveryDescription: "Each code works once, and gets you in if you lose your phone.",
       recoveryWarning:
         "This is the only time they're shown. Store them somewhere safe before continuing.",
       copyCodes: "Copy codes",
       copied: "Copied to clipboard.",
-      copyFailed:
-        "Couldn't copy automatically. Select the codes above and copy them by hand.",
+      copyFailed: "Couldn't copy automatically. Select the codes above and copy them by hand.",
       recoveryDone: "I've saved them",
       regenerateCta: "Generate new recovery codes",
       regenerating: "Generating…",
-      regenerateHint:
-        "Replaces your existing codes. The old ones stop working immediately.",
+      regenerateHint: "Replaces your existing codes. The old ones stop working immediately.",
       disableCta: "Turn off two-factor",
       disabling: "Turning off…",
       disableHint:
@@ -210,8 +202,7 @@ export const en: Translations = {
       unlink: "Disconnect",
       unlinking: "Disconnecting…",
       unlinked: "Account disconnected.",
-      lastMethodHint:
-        "This is your only way to sign in. Set a password before disconnecting it.",
+      lastMethodHint: "This is your only way to sign in. Set a password before disconnecting it.",
     },
     security: {
       title: "Password",
@@ -255,8 +246,7 @@ export const en: Translations = {
     emailTaken: "An account with this email already exists",
     passwordBreached:
       "This password has appeared in a known data breach. Please choose a different one.",
-    passwordWeak:
-      "This password is too easy to guess. Try a longer or less predictable one.",
+    passwordWeak: "This password is too easy to guess. Try a longer or less predictable one.",
     passwordReused: "Choose a password different from your current one",
     currentPasswordIncorrect: "Your current password is incorrect",
     tokenInvalid: "This link is invalid or has expired",
@@ -264,14 +254,12 @@ export const en: Translations = {
     totpInvalid: "That code isn't valid. Check your app and try again.",
     totpAlreadyEnabled: "Two-factor authentication is already on",
     totpNotEnabled: "Two-factor authentication isn't set up",
-    totpUnavailable:
-      "Two-factor authentication isn't available on this deployment",
+    totpUnavailable: "Two-factor authentication isn't available on this deployment",
     oauthLinkBlocked:
       "This account uses two-factor authentication. Sign in with your password first, then connect this provider from your account settings.",
     alreadyVerified: "Your email address is already verified",
     sameEmail: "That is already your email address",
-    lastSignInMethod:
-      "That's your only way to sign in. Set a password before disconnecting it.",
+    lastSignInMethod: "That's your only way to sign in. Set a password before disconnecting it.",
     rateLimited: "Too many attempts. Please wait a few minutes and try again.",
     unauthorized: "You need to sign in to do that",
     generic: "Something went wrong. Please try again.",

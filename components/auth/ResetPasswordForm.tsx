@@ -11,22 +11,12 @@ import { ArrowLeft } from "lucide-react";
 import { fadeInUp } from "@/lib/animations";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "./PasswordInput";
 import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import {
-  AUTH_ERROR,
-  resetPasswordSchema,
-  ResetPasswordInput,
-} from "@/lib/validations/auth";
+import { AUTH_ERROR, resetPasswordSchema, ResetPasswordInput } from "@/lib/validations/auth";
 import { resetPassword } from "@/app/actions/reset-password";
 
 interface ResetPasswordFormProps {
@@ -97,9 +87,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             <ArrowLeft className="h-3 w-3" />
             {t.resetPassword.backToLogin}
           </Link>
-          <CardTitle className="text-2xl font-bold">
-            {t.resetPassword.title}
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">{t.resetPassword.title}</CardTitle>
           <CardDescription>{t.resetPassword.description}</CardDescription>
         </CardHeader>
 
@@ -119,9 +107,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">
-                {t.resetPassword.confirmPassword}
-              </Label>
+              <Label htmlFor="confirmPassword">{t.resetPassword.confirmPassword}</Label>
               <PasswordInput
                 id="confirmPassword"
                 placeholder={t.resetPassword.confirmPasswordPlaceholder}
@@ -132,12 +118,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               />
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />

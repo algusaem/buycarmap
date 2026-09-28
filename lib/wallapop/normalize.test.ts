@@ -38,9 +38,7 @@ describe("normalizeWallapopItems", () => {
 
   it("truncates the subtitle to 80 characters", () => {
     const long = "x".repeat(200);
-    const [listing] = normalizeWallapopItems([
-      makeWallapopItem({ description: long }),
-    ]);
+    const [listing] = normalizeWallapopItems([makeWallapopItem({ description: long })]);
 
     expect(listing.subtitle).toHaveLength(80);
   });
@@ -107,9 +105,7 @@ describe("normalizeWallapopItems with sparse data", () => {
     // Wallapop omits `type_attributes` on some listings. Every consumer of
     // CarListing reads these fields unconditionally, so undefined would render
     // as "undefined km" rather than being hidden by the card's zero checks.
-    const [listing] = normalizeWallapopItems([
-      makeWallapopItem({ type_attributes: undefined }),
-    ]);
+    const [listing] = normalizeWallapopItems([makeWallapopItem({ type_attributes: undefined })]);
 
     expect(listing).toMatchObject({
       mileage: 0,
@@ -124,9 +120,7 @@ describe("normalizeWallapopItems with sparse data", () => {
   });
 
   it("SRC-4: falls back to a placeholder title when the item has none", () => {
-    const [listing] = normalizeWallapopItems([
-      makeWallapopItem({ title: undefined }),
-    ]);
+    const [listing] = normalizeWallapopItems([makeWallapopItem({ title: undefined })]);
 
     expect(listing.title).toBe("Unknown");
   });

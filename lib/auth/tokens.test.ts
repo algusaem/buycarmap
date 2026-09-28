@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  PASSWORD_RESET_TTL_MS,
-  generateToken,
-  hashToken,
-  tokenExpiry,
-} from "./tokens";
+import { PASSWORD_RESET_TTL_MS, generateToken, hashToken, tokenExpiry } from "./tokens";
 
 describe("generateToken", () => {
   it("produces a URL-safe token with 256 bits of entropy", () => {

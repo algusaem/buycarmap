@@ -5,13 +5,7 @@ import { signOut } from "next-auth/react";
 import { toast } from "sonner";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
 import { signOutEverywhere } from "@/app/actions/account";
@@ -39,16 +33,12 @@ export function SessionsCard() {
   return (
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-lg font-bold">
-          {t.account.sessions.title}
-        </CardTitle>
+        <CardTitle className="text-lg font-bold">{t.account.sessions.title}</CardTitle>
         <CardDescription>{t.account.sessions.description}</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          {t.account.sessions.warning}
-        </p>
+        <p className="text-sm text-muted-foreground">{t.account.sessions.warning}</p>
 
         <Button
           type="button"

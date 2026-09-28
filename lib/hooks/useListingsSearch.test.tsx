@@ -3,14 +3,8 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse, delay } from "msw";
 import { server } from "@/test/msw/server";
 import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
-import {
-  makeCochesNetItem,
-  makeCochesNetResponse,
-} from "@/test/fixtures/cochesnet";
-import {
-  makeMilanunciosAd,
-  makeMilanunciosResponse,
-} from "@/test/fixtures/milanuncios";
+import { makeCochesNetItem, makeCochesNetResponse } from "@/test/fixtures/cochesnet";
+import { makeMilanunciosAd, makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
 import { triggerIntersection } from "@/test/mocks/intersection-observer";
 import { I18nProvider } from "@/lib/i18n/client";
 import { useListingsSearch } from "./useListingsSearch";
@@ -59,10 +53,7 @@ describe("useListingsSearch", () => {
       await result.current.search({ keywords: "partial-failure" });
     });
 
-    expect(result.current.listings.map((l) => l.source)).toEqual([
-      "Coches.net",
-      "Milanuncios",
-    ]);
+    expect(result.current.listings.map((l) => l.source)).toEqual(["Coches.net", "Milanuncios"]);
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -102,15 +93,9 @@ describe("useListingsSearch", () => {
 
     // Every endpoint now fails — a cache hit means we never touch them.
     server.use(
-      http.get("*/api/wallapop/search", () =>
-        HttpResponse.json({}, { status: 500 }),
-      ),
-      http.post("*/api/cochesnet/search", () =>
-        HttpResponse.json({}, { status: 500 }),
-      ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json({}, { status: 500 }),
-      ),
+      http.get("*/api/wallapop/search", () => HttpResponse.json({}, { status: 500 })),
+      http.post("*/api/cochesnet/search", () => HttpResponse.json({}, { status: 500 })),
+      http.get("*/api/milanuncios/search", () => HttpResponse.json({}, { status: 500 })),
     );
 
     await act(async () => {
@@ -128,17 +113,11 @@ describe("useListingsSearch", () => {
         call += 1;
         if (call === 1) {
           await delay(80); // the stale, slow first search
-          return HttpResponse.json(
-            makeWallapopResponse([makeWallapopItem({ id: "stale" })]),
-          );
+          return HttpResponse.json(makeWallapopResponse([makeWallapopItem({ id: "stale" })]));
         }
-        return HttpResponse.json(
-          makeWallapopResponse([makeWallapopItem({ id: "fresh" })]),
-        );
+        return HttpResponse.json(makeWallapopResponse([makeWallapopItem({ id: "fresh" })]));
       }),
-      http.post("*/api/cochesnet/search", () =>
-        HttpResponse.json(makeCochesNetResponse([])),
-      ),
+      http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([]))),
     );
 
     const { result } = renderHook(() => useListingsSearch());
@@ -157,9 +136,7 @@ describe("useListingsSearch", () => {
   it("MAP-8: appends the next page when the scroll sentinel intersects", async () => {
     server.use(
       http.get("*/api/wallapop/search", () =>
-        HttpResponse.json(
-          makeWallapopResponse([makeWallapopItem()], "page-2"),
-        ),
+        HttpResponse.json(makeWallapopResponse([makeWallapopItem()], "page-2")),
       ),
       http.post("*/api/cochesnet/search", () =>
         HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 3)),
@@ -224,9 +201,7 @@ describe("useListingsSearch validation and copy", () => {
       ),
     );
     const { result } = renderHook(() => useListingsSearch(), {
-      wrapper: ({ children }) => (
-        <I18nProvider locale="es">{children}</I18nProvider>
-      ),
+      wrapper: ({ children }) => <I18nProvider locale="es">{children}</I18nProvider>,
     });
 
     await act(async () => {
@@ -243,9 +218,7 @@ describe("useListingsSearch validation and copy", () => {
 
   it("MAP-7: reports invalid filters in the user's language", async () => {
     const { result } = renderHook(() => useListingsSearch(), {
-      wrapper: ({ children }) => (
-        <I18nProvider locale="es">{children}</I18nProvider>
-      ),
+      wrapper: ({ children }) => <I18nProvider locale="es">{children}</I18nProvider>,
     });
 
     await act(async () => {
@@ -254,9 +227,7 @@ describe("useListingsSearch validation and copy", () => {
 
     // Previously this surfaced the raw Zod issue message, which is English
     // prose written for developers.
-    expect(toast.error).toHaveBeenCalledWith(
-      "Esos filtros de búsqueda no son válidos.",
-    );
+    expect(toast.error).toHaveBeenCalledWith("Esos filtros de búsqueda no son válidos.");
   });
 });
 
@@ -348,8 +319,7 @@ describe("useListingsSearch radius filter", () => {
   it("MAP-16: applies the radius to pages appended by the scroll sentinel", async () => {
     server.use(
       http.get("*/api/wallapop/search", ({ request }) => {
-        const isNextPage =
-          new URL(request.url).searchParams.get("next_page") !== null;
+        const isNextPage = new URL(request.url).searchParams.get("next_page") !== null;
         if (isNextPage) {
           // Page 2 is entirely outside the radius.
           return HttpResponse.json(
@@ -372,12 +342,8 @@ describe("useListingsSearch radius filter", () => {
           makeWallapopResponse([makeWallapopItem({ id: "wp-page1-near" })], "page-2"),
         );
       }),
-      http.post("*/api/cochesnet/search", () =>
-        HttpResponse.json(makeCochesNetResponse([], 0)),
-      ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json(makeMilanunciosResponse([], 0)),
-      ),
+      http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([], 0))),
+      http.get("*/api/milanuncios/search", () => HttpResponse.json(makeMilanunciosResponse([], 0))),
     );
     const { result } = renderHook(() => useListingsSearch());
 
@@ -388,9 +354,7 @@ describe("useListingsSearch radius filter", () => {
         distanceInKm: 100,
       });
     });
-    expect(result.current.listings.map((l) => l.id)).toEqual([
-      "wallapop-wp-page1-near",
-    ]);
+    expect(result.current.listings.map((l) => l.id)).toEqual(["wallapop-wp-page1-near"]);
 
     act(() => result.current.sentinelRef(document.createElement("div")));
     await act(async () => {
@@ -400,9 +364,7 @@ describe("useListingsSearch radius filter", () => {
     // Page 2 had no further next_page, so exhaustion is the observable end of
     // the load — and its far-away item must not have been appended.
     await waitFor(() => expect(result.current.hasMore).toBe(false));
-    expect(result.current.listings.map((l) => l.id)).toEqual([
-      "wallapop-wp-page1-near",
-    ]);
+    expect(result.current.listings.map((l) => l.id)).toEqual(["wallapop-wp-page1-near"]);
   });
 
   it("MAP-16: leaves results unfiltered when no location is chosen", async () => {
@@ -524,9 +486,7 @@ describe("useListingsSearch radius filter", () => {
     // ≈49 km from Madrid. A plain distance check would let these through; the
     // criterion is that an unresolvable location is excluded, not radius-checked.
     server.use(
-      http.get("*/api/wallapop/search", () =>
-        HttpResponse.json(makeWallapopResponse([])),
-      ),
+      http.get("*/api/wallapop/search", () => HttpResponse.json(makeWallapopResponse([]))),
       http.post("*/api/cochesnet/search", () =>
         HttpResponse.json(
           makeCochesNetResponse([
@@ -583,9 +543,7 @@ describe("useListingsSearch radius filter", () => {
       });
     });
 
-    expect(result.current.listings.map((l) => l.id)).toEqual([
-      "cochesnet-cn-near",
-    ]);
+    expect(result.current.listings.map((l) => l.id)).toEqual(["cochesnet-cn-near"]);
   });
 });
 
@@ -601,17 +559,11 @@ describe("useListingsSearch filtered-away pages", () => {
   };
 
   /** Only Wallapop pages; the other two return nothing and stay exhausted. */
-  function onlyWallapop(
-    handler: Parameters<typeof http.get>[1],
-  ): Parameters<typeof server.use> {
+  function onlyWallapop(handler: Parameters<typeof http.get>[1]): Parameters<typeof server.use> {
     return [
       http.get("*/api/wallapop/search", handler),
-      http.post("*/api/cochesnet/search", () =>
-        HttpResponse.json(makeCochesNetResponse([], 0)),
-      ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json(makeMilanunciosResponse([], 0)),
-      ),
+      http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([], 0))),
+      http.get("*/api/milanuncios/search", () => HttpResponse.json(makeMilanunciosResponse([], 0))),
     ];
   }
 
@@ -624,15 +576,10 @@ describe("useListingsSearch filtered-away pages", () => {
         const next = new URL(request.url).searchParams.get("next_page");
         pagesServed.push(next ?? "first");
         if (next === "page-2") {
-          return HttpResponse.json(
-            makeWallapopResponse([makeWallapopItem({ id: "wp-madrid" })]),
-          );
+          return HttpResponse.json(makeWallapopResponse([makeWallapopItem({ id: "wp-madrid" })]));
         }
         return HttpResponse.json(
-          makeWallapopResponse(
-            [makeWallapopItem({ id: "wp-bcn", location: BARCELONA })],
-            "page-2",
-          ),
+          makeWallapopResponse([makeWallapopItem({ id: "wp-bcn", location: BARCELONA })], "page-2"),
         );
       }),
     );
@@ -647,9 +594,7 @@ describe("useListingsSearch filtered-away pages", () => {
     });
 
     expect(pagesServed).toEqual(["first", "page-2"]);
-    expect(result.current.listings.map((l) => l.id)).toEqual([
-      "wallapop-wp-madrid",
-    ]);
+    expect(result.current.listings.map((l) => l.id)).toEqual(["wallapop-wp-madrid"]);
     expect(result.current.isLoading).toBe(false);
   });
 
@@ -671,9 +616,7 @@ describe("useListingsSearch filtered-away pages", () => {
           );
         }
         if (next === "page-3") {
-          return HttpResponse.json(
-            makeWallapopResponse([makeWallapopItem({ id: "wp-getafe" })]),
-          );
+          return HttpResponse.json(makeWallapopResponse([makeWallapopItem({ id: "wp-getafe" })]));
         }
         return HttpResponse.json(
           makeWallapopResponse([makeWallapopItem({ id: "wp-madrid" })], "page-2"),
@@ -689,9 +632,7 @@ describe("useListingsSearch filtered-away pages", () => {
         distanceInKm: 100,
       });
     });
-    expect(result.current.listings.map((l) => l.id)).toEqual([
-      "wallapop-wp-madrid",
-    ]);
+    expect(result.current.listings.map((l) => l.id)).toEqual(["wallapop-wp-madrid"]);
 
     act(() => result.current.sentinelRef(document.createElement("div")));
     await act(async () => {
@@ -746,19 +687,14 @@ describe("useListingsSearch pagination guards", () => {
     let pageRequests = 0;
     server.use(
       http.get("*/api/wallapop/search", ({ request }) => {
-        const isNextPage =
-          new URL(request.url).searchParams.get("next_page") !== null;
+        const isNextPage = new URL(request.url).searchParams.get("next_page") !== null;
         if (isNextPage) pageRequests += 1;
         return HttpResponse.json(
           makeWallapopResponse([makeWallapopItem()], isNextPage ? null : "page-2"),
         );
       }),
-      http.post("*/api/cochesnet/search", () =>
-        HttpResponse.json(makeCochesNetResponse([], 0)),
-      ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json(makeMilanunciosResponse([], 0)),
-      ),
+      http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([], 0))),
+      http.get("*/api/milanuncios/search", () => HttpResponse.json(makeMilanunciosResponse([], 0))),
     );
     const { result } = renderHook(() => useListingsSearch());
 

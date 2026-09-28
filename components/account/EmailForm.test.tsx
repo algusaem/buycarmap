@@ -14,22 +14,17 @@ const requestEmailChange = vi.fn();
 const requestEmailVerification = vi.fn();
 vi.mock("@/app/actions/email-verification", () => ({
   requestEmailChange: (...args: unknown[]) => requestEmailChange(...args),
-  requestEmailVerification: (...args: unknown[]) =>
-    requestEmailVerification(...args),
+  requestEmailVerification: (...args: unknown[]) => requestEmailVerification(...args),
 }));
 
 const CURRENT = "ada@example.com";
 
 async function fillChange(newEmail = "new@example.com") {
   await userEvent.type(screen.getByLabelText("New email address"), newEmail);
-  await userEvent.type(
-    screen.getByLabelText("Current password"),
-    "the-current-password",
-  );
+  await userEvent.type(screen.getByLabelText("Current password"), "the-current-password");
 }
 
-const submit = () =>
-  userEvent.click(screen.getByRole("button", { name: "Change email" }));
+const submit = () => userEvent.click(screen.getByRole("button", { name: "Change email" }));
 
 beforeEach(() => {
   requestEmailChange.mockReset();
@@ -50,20 +45,14 @@ describe("EmailForm verification state", () => {
 
   it("offers verification when the address is unverified", async () => {
     requestEmailVerification.mockResolvedValue({ success: true });
-    renderWithI18n(
-      <EmailForm email={CURRENT} isVerified={false} canChange />,
-    );
+    renderWithI18n(<EmailForm email={CURRENT} isVerified={false} canChange />);
 
     expect(screen.getByText("Not verified")).toBeInTheDocument();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Send verification email" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Send verification email" }));
 
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith(
-        "Verification email sent. Check your inbox.",
-      ),
+      expect(toast.success).toHaveBeenCalledWith("Verification email sent. Check your inbox."),
     );
   });
 
@@ -78,27 +67,18 @@ describe("EmailForm verification state", () => {
 describe("EmailForm change flow", () => {
   it("hides the change form for OAuth-only accounts", () => {
     // No password to prove identity with, and the provider owns the address.
-    renderWithI18n(
-      <EmailForm email={CURRENT} isVerified canChange={false} />,
-    );
+    renderWithI18n(<EmailForm email={CURRENT} isVerified canChange={false} />);
 
-    expect(
-      screen.queryByLabelText("New email address"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("New email address")).not.toBeInTheDocument();
   });
 
   it("requires the current password alongside the new address", async () => {
     renderWithI18n(<EmailForm email={CURRENT} isVerified canChange />);
 
-    await userEvent.type(
-      screen.getByLabelText("New email address"),
-      "new@example.com",
-    );
+    await userEvent.type(screen.getByLabelText("New email address"), "new@example.com");
     await submit();
 
-    expect(
-      await screen.findByText("Password is required"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Password is required")).toBeInTheDocument();
     expect(requestEmailChange).not.toHaveBeenCalled();
   });
 
@@ -123,9 +103,7 @@ describe("EmailForm change flow", () => {
     await submit();
 
     // Same wording whether the address was free or already taken.
-    expect(
-      await screen.findByText(/If that address is available/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/If that address is available/i)).toBeInTheDocument();
   });
 
   it("puts a wrong-password rejection on the password field", async () => {
@@ -138,9 +116,7 @@ describe("EmailForm change flow", () => {
     await fillChange();
     await submit();
 
-    expect(
-      await screen.findByText("Your current password is incorrect"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Your current password is incorrect")).toBeInTheDocument();
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -154,9 +130,7 @@ describe("EmailForm change flow", () => {
     await fillChange(CURRENT);
     await submit();
 
-    expect(
-      await screen.findByText("That is already your email address"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("That is already your email address")).toBeInTheDocument();
   });
 
   it("has no accessibility violations", async () => {

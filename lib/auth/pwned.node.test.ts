@@ -23,9 +23,7 @@ describe("checkPasswordBreached k-anonymity", () => {
 
     await checkPasswordBreached("password");
 
-    expect(requestedUrl).toBe(
-      `https://api.pwnedpasswords.com/range/${PASSWORD_PREFIX}`,
-    );
+    expect(requestedUrl).toBe(`https://api.pwnedpasswords.com/range/${PASSWORD_PREFIX}`);
 
     // Assert on the path, not the whole URL: the host "pwnedpasswords.com"
     // contains the literal "password" and would make a naive check pass here
@@ -100,9 +98,7 @@ describe("checkPasswordBreached matching", () => {
   it("handles the CRLF line endings HIBP actually returns", async () => {
     server.use(
       http.get("https://api.pwnedpasswords.com/range/*", () =>
-        HttpResponse.text(
-          `0018A45C4D1DEF81644B54AB7F969B88D65:1\r\n${PASSWORD_SUFFIX}:42\r\n`,
-        ),
+        HttpResponse.text(`0018A45C4D1DEF81644B54AB7F969B88D65:1\r\n${PASSWORD_SUFFIX}:42\r\n`),
       ),
     );
 
@@ -132,11 +128,7 @@ describe("checkPasswordBreached failure handling", () => {
   });
 
   it("fails open when the request throws", async () => {
-    server.use(
-      http.get("https://api.pwnedpasswords.com/range/*", () =>
-        HttpResponse.error(),
-      ),
-    );
+    server.use(http.get("https://api.pwnedpasswords.com/range/*", () => HttpResponse.error()));
 
     expect(await checkPasswordBreached("password")).toEqual({
       breached: false,

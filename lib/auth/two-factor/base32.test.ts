@@ -2,8 +2,7 @@ import { describe, expect, it } from "vitest";
 import { decodeBase32, encodeBase32 } from "./base32";
 
 const encode = (text: string) => encodeBase32(new TextEncoder().encode(text));
-const decodeToText = (value: string) =>
-  new TextDecoder().decode(decodeBase32(value));
+const decodeToText = (value: string) => new TextDecoder().decode(decodeBase32(value));
 
 // The expectations below are the published RFC 4648 §10 test vectors, not
 // values produced by this implementation — so a bug here cannot make the test

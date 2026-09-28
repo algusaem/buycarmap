@@ -68,9 +68,7 @@ export function mapBrandToMakeId(brand: string): number | undefined {
 }
 
 export function mapFuelTokensToIds(tokens: string[]): number[] {
-  return tokens
-    .map((t) => FUEL_TOKEN_TO_ID[t])
-    .filter((id): id is number => id !== undefined);
+  return tokens.map((t) => FUEL_TOKEN_TO_ID[t]).filter((id): id is number => id !== undefined);
 }
 
 export function mapTransmissionTokensToId(tokens: string[]): number | undefined {

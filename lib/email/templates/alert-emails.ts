@@ -1,12 +1,7 @@
 import { CarListing } from "@/interfaces/listing";
 import { Locale } from "@/lib/i18n/config";
 import { getTranslationsSync } from "@/lib/i18n/server";
-import {
-  escapeHtml,
-  renderLayout,
-  renderParagraph,
-  renderRawLink,
-} from "./layout";
+import { escapeHtml, renderLayout, renderParagraph, renderRawLink } from "./layout";
 
 // The alert digest.
 //
@@ -92,8 +87,7 @@ export async function renderAlertEmail({
     `${t.alerts.email.heading} — ${alertLabel}`,
     "",
     ...matches.map(
-      (listing) =>
-        `${listing.title} — ${formatNumber(listing.price)} € — ${listing.url}`,
+      (listing) => `${listing.title} — ${formatNumber(listing.price)} € — ${listing.url}`,
     ),
     "",
     `${t.alerts.email.unsubscribe}: ${unsubscribeUrl}`,

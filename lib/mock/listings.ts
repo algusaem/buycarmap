@@ -14,8 +14,7 @@ export interface CarListing {
 export const MOCK_LISTINGS: CarListing[] = [
   {
     id: "1",
-    image:
-      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80",
     title: "2019 Volkswagen Golf",
     subtitle: "1.6 TDI Business Edition",
     price: 14500,
@@ -27,8 +26,7 @@ export const MOCK_LISTINGS: CarListing[] = [
   },
   {
     id: "2",
-    image:
-      "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=800&q=80",
     title: "2020 Seat León",
     subtitle: "1.5 TSI FR",
     price: 18900,
@@ -40,8 +38,7 @@ export const MOCK_LISTINGS: CarListing[] = [
   },
   {
     id: "3",
-    image:
-      "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80",
     title: "2018 BMW Serie 3",
     subtitle: "320d xDrive",
     price: 24500,
@@ -53,8 +50,7 @@ export const MOCK_LISTINGS: CarListing[] = [
   },
   {
     id: "4",
-    image:
-      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&q=80",
     title: "2021 Audi A4",
     subtitle: "35 TFSI S line",
     price: 32000,
@@ -66,8 +62,7 @@ export const MOCK_LISTINGS: CarListing[] = [
   },
   {
     id: "5",
-    image:
-      "https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?w=800&q=80",
     title: "2017 Mercedes Clase C",
     subtitle: "220d AMG Line",
     price: 22800,
@@ -79,8 +74,7 @@ export const MOCK_LISTINGS: CarListing[] = [
   },
   {
     id: "6",
-    image:
-      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&q=80",
     title: "2020 Toyota Corolla",
     subtitle: "Hybrid Active",
     price: 19500,

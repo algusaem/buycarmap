@@ -20,11 +20,7 @@ import {
 } from "@/lib/email/templates/auth-emails";
 import { getLocale } from "@/lib/i18n/server";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/lib/rate-limit";
-import {
-  AUTH_ERROR,
-  type AuthErrorCode,
-  changeEmailSchema,
-} from "@/lib/validations/auth";
+import { AUTH_ERROR, type AuthErrorCode, changeEmailSchema } from "@/lib/validations/auth";
 import { requiredString } from "@/lib/validations/form-data";
 
 interface EmailVerificationResult {
@@ -34,10 +30,7 @@ interface EmailVerificationResult {
 
 // One row per user at a time: issuing a new link retires any earlier one, so a
 // stale link in an old email cannot still move the account later.
-async function replaceVerificationToken(
-  userId: string,
-  newEmail: string | null,
-): Promise<string> {
+async function replaceVerificationToken(userId: string, newEmail: string | null): Promise<string> {
   await maybePruneExpiredAuthRows();
 
   await prisma.emailVerificationToken.updateMany({
@@ -115,9 +108,7 @@ export async function requestEmailVerification(): Promise<EmailVerificationResul
  * permanently. Password plus control of the target mailbox is a much higher
  * bar than either alone.
  */
-export async function requestEmailChange(
-  formData: FormData,
-): Promise<EmailVerificationResult> {
+export async function requestEmailChange(formData: FormData): Promise<EmailVerificationResult> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -195,14 +186,9 @@ export async function requestEmailChange(
  * A POST, like signup confirmation, because mail scanners follow every link in
  * an inbox and would otherwise consume the token before the user sees it.
  */
-export async function confirmEmail(
-  formData: FormData,
-): Promise<EmailVerificationResult> {
+export async function confirmEmail(formData: FormData): Promise<EmailVerificationResult> {
   const ip = await getClientIp();
-  const budget = await consumeRateLimit(
-    `confirm-email:ip:${ip}`,
-    RATE_LIMITS.resetRedeemPerIp,
-  );
+  const budget = await consumeRateLimit(`confirm-email:ip:${ip}`, RATE_LIMITS.resetRedeemPerIp);
 
   if (!budget.allowed) {
     return { success: false, error: AUTH_ERROR.rateLimited };
@@ -220,11 +206,7 @@ export async function confirmEmail(
   });
 
   // Missing, expired and already-used collapse to one error.
-  if (
-    !record ||
-    record.usedAt !== null ||
-    record.expiresAt.getTime() <= Date.now()
-  ) {
+  if (!record || record.usedAt !== null || record.expiresAt.getTime() <= Date.now()) {
     return { success: false, error: AUTH_ERROR.tokenInvalid };
   }
 
@@ -248,10 +230,7 @@ export async function confirmEmail(
     ]);
   } catch (error) {
     // The target address was claimed between request and confirmation.
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: AUTH_ERROR.emailTaken };
     }
     return { success: false, error: AUTH_ERROR.generic };

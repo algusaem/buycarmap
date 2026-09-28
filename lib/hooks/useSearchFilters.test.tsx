@@ -43,9 +43,7 @@ describe("useSearchFilters", () => {
     const search = vi.fn();
     renderHook(() => useSearchFilters(search, () => "golf"));
 
-    expect(search).toHaveBeenCalledWith(
-      expect.objectContaining({ keywords: "golf" }),
-    );
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ keywords: "golf" }));
   });
 
   it("MAP-11: debounces filter updates by 400ms before searching", async () => {
@@ -136,9 +134,7 @@ describe("useSearchFilters panel visibility", () => {
     act(() => result.current.triggerSearch());
 
     expect(result.current.isOpen).toBe(false);
-    expect(search).toHaveBeenCalledWith(
-      expect.objectContaining({ keywords: "golf" }),
-    );
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ keywords: "golf" }));
   });
 
   it("leaves the panel open while filters are being adjusted", () => {
@@ -210,9 +206,7 @@ describe("useSearchFilters filter coupling", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(400);
     });
-    expect(search).toHaveBeenLastCalledWith(
-      expect.objectContaining({ distanceInKm: undefined }),
-    );
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ distanceInKm: undefined }));
 
     act(() =>
       result.current.setLocation({
@@ -283,9 +277,7 @@ describe("useSearchFilters geolocation", () => {
 
     // An explicit choice outranks the browser's guess; re-searching here would
     // silently drag the map back to wherever the user physically is.
-    const withUserPosition = search.mock.calls.filter(
-      ([params]) => params.latitude !== 41.3874,
-    );
+    const withUserPosition = search.mock.calls.filter(([params]) => params.latitude !== 41.3874);
     expect(withUserPosition).toEqual([]);
   });
 });

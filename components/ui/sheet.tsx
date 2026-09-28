@@ -29,18 +29,12 @@ function SheetOverlay({
   );
 }
 
-interface SheetContentProps
-  extends React.ComponentProps<typeof DialogPrimitive.Content> {
+interface SheetContentProps extends React.ComponentProps<typeof DialogPrimitive.Content> {
   /** Accessible name for the close button — callers own their own copy. */
   closeLabel: string;
 }
 
-function SheetContent({
-  className,
-  children,
-  closeLabel,
-  ...props
-}: SheetContentProps) {
+function SheetContent({ className, children, closeLabel, ...props }: SheetContentProps) {
   return (
     <DialogPrimitive.Portal>
       <SheetOverlay />
@@ -73,11 +67,4 @@ function SheetContent({
   );
 }
 
-export {
-  Sheet,
-  SheetTrigger,
-  SheetClose,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-};
+export { Sheet, SheetTrigger, SheetClose, SheetContent, SheetTitle, SheetDescription };

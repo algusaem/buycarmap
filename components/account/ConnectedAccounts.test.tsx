@@ -16,8 +16,7 @@ vi.mock("@/app/actions/account", () => ({
   unlinkAccount: (...args: unknown[]) => unlinkAccount(...args),
 }));
 
-const disconnectButtons = () =>
-  screen.queryAllByRole("button", { name: "Disconnect" });
+const disconnectButtons = () => screen.queryAllByRole("button", { name: "Disconnect" });
 
 beforeEach(() => {
   refresh.mockReset();
@@ -34,9 +33,7 @@ describe("ConnectedAccounts", () => {
   });
 
   it("lists each linked provider", () => {
-    renderWithI18n(
-      <ConnectedAccounts providers={["google", "github"]} hasPassword />,
-    );
+    renderWithI18n(<ConnectedAccounts providers={["google", "github"]} hasPassword />);
 
     expect(screen.getByText("Google")).toBeInTheDocument();
     expect(screen.getByText("GitHub")).toBeInTheDocument();
@@ -58,22 +55,16 @@ describe("ConnectedAccounts", () => {
   it("AUTH-14: disables disconnect when it is the only way to sign in", () => {
     // No password and one provider: removing it would strand the account,
     // and password reset cannot rescue a passwordless user.
-    renderWithI18n(
-      <ConnectedAccounts providers={["google"]} hasPassword={false} />,
-    );
+    renderWithI18n(<ConnectedAccounts providers={["google"]} hasPassword={false} />);
 
     expect(disconnectButtons()[0]).toBeDisabled();
     expect(
-      screen.getByText(
-        "This is your only way to sign in. Set a password before disconnecting it.",
-      ),
+      screen.getByText("This is your only way to sign in. Set a password before disconnecting it."),
     ).toBeInTheDocument();
   });
 
   it("allows disconnecting when a second provider remains", () => {
-    renderWithI18n(
-      <ConnectedAccounts providers={["google", "github"]} hasPassword={false} />,
-    );
+    renderWithI18n(<ConnectedAccounts providers={["google", "github"]} hasPassword={false} />);
 
     for (const button of disconnectButtons()) {
       expect(button).toBeEnabled();

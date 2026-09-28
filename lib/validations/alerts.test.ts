@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  hashCriteria,
-  isSpecificEnough,
-  MAX_ALERTS_PER_USER,
-  parseStoredCriteria,
-} from "./alerts";
+import { hashCriteria, isSpecificEnough, MAX_ALERTS_PER_USER, parseStoredCriteria } from "./alerts";
 
 describe("hashCriteria", () => {
   it("gives the same hash regardless of key order", () => {

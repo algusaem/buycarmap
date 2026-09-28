@@ -21,9 +21,7 @@ describe("useCarModels", () => {
 
   it("resolves to an empty model list when the request fails", async () => {
     server.use(
-      http.get("*/api/wallapop/filters/models", () =>
-        HttpResponse.json({}, { status: 500 }),
-      ),
+      http.get("*/api/wallapop/filters/models", () => HttpResponse.json({}, { status: 500 })),
     );
     const { result } = renderHook(() => useCarModels("BMW"));
 

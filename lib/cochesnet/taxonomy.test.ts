@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  mapBrandToMakeId,
-  mapFuelTokensToIds,
-  mapTransmissionTokensToId,
-} from "./taxonomy";
+import { mapBrandToMakeId, mapFuelTokensToIds, mapTransmissionTokensToId } from "./taxonomy";
 
 describe("mapBrandToMakeId", () => {
   it("resolves a known brand to its coches.net makeId", () => {
@@ -18,9 +14,7 @@ describe("mapBrandToMakeId", () => {
 
 describe("mapFuelTokensToIds", () => {
   it("maps known fuel tokens and drops unknown ones", () => {
-    expect(mapFuelTokensToIds(["gasoline", "gasoil", "unknown"])).toEqual([
-      2, 1,
-    ]);
+    expect(mapFuelTokensToIds(["gasoline", "gasoil", "unknown"])).toEqual([2, 1]);
   });
 
   it("returns an empty array when no token is recognised", () => {

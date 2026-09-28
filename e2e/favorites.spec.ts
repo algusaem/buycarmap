@@ -43,9 +43,9 @@ function audiCard(page: Page) {
  * fetches resolve, which hides the window.
  */
 async function waitForSession(page: Page) {
-  await expect(
-    page.getByRole("button", { name: /sign out|cerrar sesión/i }),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: /sign out|cerrar sesión/i })).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 /**
@@ -66,9 +66,7 @@ async function waitForSession(page: Page) {
 async function toggleFavorite(page: Page, label: RegExp, email: string, expected: number) {
   await waitForSession(page);
   await audiCard(page).getByRole("button", { name: label }).click();
-  await expect
-    .poll(() => favoriteCount(email), { timeout: 15_000 })
-    .toBe(expected);
+  await expect.poll(() => favoriteCount(email), { timeout: 15_000 }).toBe(expected);
 }
 
 async function openMapWithListings(page: Page) {
@@ -82,9 +80,7 @@ test.beforeEach(async ({ page, isMobile }) => {
 });
 
 test.describe("favorites (real database)", () => {
-  dbTest("FAV-1: a saved listing survives a reload and a fresh page load", async ({
-    page,
-  }) => {
+  dbTest("FAV-1: a saved listing survives a reload and a fresh page load", async ({ page }) => {
     const email = e2eEmail("fav-save");
     await seedUser(email, PASSWORD);
     await signIn(page, email);
@@ -101,9 +97,7 @@ test.describe("favorites (real database)", () => {
     await expect(page.getByText(AUDI)).toBeVisible({ timeout: 15_000 });
   });
 
-  dbTest("FAV-16: a saved car still looks saved when the search runs again", async ({
-    page,
-  }) => {
+  dbTest("FAV-16: a saved car still looks saved when the search runs again", async ({ page }) => {
     const email = e2eEmail("fav-reconcile");
     await seedUser(email, PASSWORD);
     await signIn(page, email);
@@ -115,14 +109,12 @@ test.describe("favorites (real database)", () => {
     // this user, so a fresh search has to be reconciled against what they saved.
     await page.goto("/map");
     await expect(page.getByText(AUDI)).toBeVisible({ timeout: 15_000 });
-    await expect(
-      audiCard(page).getByRole("button", { name: UNFAVORITE }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(audiCard(page).getByRole("button", { name: UNFAVORITE })).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
-  dbTest("FAV-3: unsaving a listing removes it from the favorites page", async ({
-    page,
-  }) => {
+  dbTest("FAV-3: unsaving a listing removes it from the favorites page", async ({ page }) => {
     const email = e2eEmail("fav-remove");
     await seedUser(email, PASSWORD);
     await signIn(page, email);
@@ -137,14 +129,10 @@ test.describe("favorites (real database)", () => {
     await page.goto("/favorites");
     await expect(page.getByText(AUDI)).toHaveCount(0);
     // The empty state, not a broken grid.
-    await expect(
-      page.getByRole("link", { name: /search for cars|buscar coches/i }),
-    ).toBeVisible();
+    await expect(page.getByRole("link", { name: /search for cars|buscar coches/i })).toBeVisible();
   });
 
-  dbTest("FAV-8: one user never sees another user's saved listings", async ({
-    page,
-  }) => {
+  dbTest("FAV-8: one user never sees another user's saved listings", async ({ page }) => {
     const owner = e2eEmail("fav-owner");
     const other = e2eEmail("fav-other");
     await seedUser(owner, PASSWORD);

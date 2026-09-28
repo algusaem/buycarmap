@@ -13,8 +13,7 @@ vi.mock("next/navigation", () => ({
 const signIn = vi.fn().mockResolvedValue({ error: null, ok: true });
 // OAuthButtons asks which providers exist. Mutable so one test can put the
 // page in the configured state without the rest paying for the extra buttons.
-let oauthProviders: Record<string, { id: string; name: string; type: string }> =
-  {};
+let oauthProviders: Record<string, { id: string; name: string; type: string }> = {};
 vi.mock("next-auth/react", () => ({
   signIn: (...args: unknown[]) => signIn(...args),
   getProviders: async () => oauthProviders,
@@ -35,14 +34,10 @@ const STRONG_PASSWORD = "harbour-lentil-quilt";
 async function fillValid() {
   await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
   await userEvent.type(screen.getByLabelText("Password"), STRONG_PASSWORD);
-  await userEvent.type(
-    screen.getByLabelText("Confirm password"),
-    STRONG_PASSWORD,
-  );
+  await userEvent.type(screen.getByLabelText("Confirm password"), STRONG_PASSWORD);
 }
 
-const submit = () =>
-  userEvent.click(screen.getByRole("button", { name: "Sign up" }));
+const submit = () => userEvent.click(screen.getByRole("button", { name: "Sign up" }));
 
 describe("RegisterForm", () => {
   beforeEach(() => {
@@ -61,9 +56,7 @@ describe("RegisterForm", () => {
     };
     renderWithI18n(<RegisterForm />);
 
-    expect(
-      await screen.findByRole("button", { name: "Continue with Google" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
     // The password form is still the primary path, not replaced by it.
     expect(screen.getByRole("button", { name: "Sign up" })).toBeInTheDocument();
   });
@@ -72,9 +65,7 @@ describe("RegisterForm", () => {
     renderWithI18n(<RegisterForm />);
 
     await screen.findByRole("button", { name: "Sign up" });
-    expect(
-      screen.queryByRole("button", { name: /continue with/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /continue with/i })).not.toBeInTheDocument();
   });
 
   it("blocks submission and shows an error when passwords do not match", async () => {
@@ -82,15 +73,10 @@ describe("RegisterForm", () => {
 
     await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
     await userEvent.type(screen.getByLabelText("Password"), STRONG_PASSWORD);
-    await userEvent.type(
-      screen.getByLabelText("Confirm password"),
-      "different",
-    );
+    await userEvent.type(screen.getByLabelText("Confirm password"), "different");
     await submit();
 
-    expect(
-      await screen.findByText("Passwords do not match"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Passwords do not match")).toBeInTheDocument();
     expect(registerUser).not.toHaveBeenCalled();
   });
 
@@ -106,9 +92,7 @@ describe("RegisterForm", () => {
     await submit();
 
     expect(await screen.findByText("Check your email")).toBeInTheDocument();
-    expect(
-      screen.getByText(/If that address can be used for a new account/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/If that address can be used for a new account/i)).toBeInTheDocument();
     expect(signIn).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
   });
@@ -121,9 +105,7 @@ describe("RegisterForm", () => {
     await submit();
 
     await waitFor(() =>
-      expect(
-        screen.queryByRole("button", { name: "Sign up" }),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByRole("button", { name: "Sign up" })).not.toBeInTheDocument(),
     );
   });
 
@@ -153,9 +135,7 @@ describe("RegisterForm", () => {
     await submit();
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "An account with this email already exists",
-      ),
+      expect(toast.error).toHaveBeenCalledWith("An account with this email already exists"),
     );
     expect(signIn).not.toHaveBeenCalled();
   });
@@ -170,9 +150,7 @@ describe("RegisterForm", () => {
 
     // A raw identifier must never reach the UI.
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "Something went wrong. Please try again.",
-      ),
+      expect(toast.error).toHaveBeenCalledWith("Something went wrong. Please try again."),
     );
   });
 
@@ -182,9 +160,7 @@ describe("RegisterForm", () => {
 
     await userEvent.type(passwordField, "password");
     expect(await screen.findByText("Very weak")).toBeInTheDocument();
-    expect(
-      screen.getByText("This is a commonly used password"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("This is a commonly used password")).toBeInTheDocument();
 
     await userEvent.clear(passwordField);
     await userEvent.type(passwordField, STRONG_PASSWORD);
@@ -197,9 +173,7 @@ describe("RegisterForm", () => {
     await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
     await userEvent.type(screen.getByLabelText("Password"), "ada-is-my-name-99");
 
-    expect(
-      await screen.findByText("Avoid using your name or email"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Avoid using your name or email")).toBeInTheDocument();
   });
 
   it("includes the name in the submitted form data when one is entered", async () => {

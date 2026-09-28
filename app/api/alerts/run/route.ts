@@ -74,8 +74,7 @@ function isAuthorised(request: NextRequest): boolean {
  * demoting quiet alerts would delay exactly the ones that matter most.
  */
 function effectiveIntervalMs(criteriaCount: number): number {
-  const minutesNeeded =
-    (criteriaCount * REQUESTS_PER_POLL) / REQUESTS_PER_MINUTE_CEILING;
+  const minutesNeeded = (criteriaCount * REQUESTS_PER_POLL) / REQUESTS_PER_MINUTE_CEILING;
   return Math.max(BASE_INTERVAL_MS, Math.ceil(minutesNeeded) * 60_000);
 }
 
@@ -106,10 +105,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(summary);
 }
 
-async function enqueueDueCriteria(
-  now: Date,
-  summary: RunSummary,
-): Promise<void> {
+async function enqueueDueCriteria(now: Date, summary: RunSummary): Promise<void> {
   // Only criteria with at least one *active* subscriber. An alert everyone has
   // unsubscribed from must stop consuming upstream requests.
   const subscribed = await prisma.alertCriteria.findMany({
@@ -187,11 +183,7 @@ async function releaseUnprocessed(jobIds: string[]): Promise<void> {
   });
 }
 
-async function pollOne(
-  jobId: string,
-  now: Date,
-  summary: RunSummary,
-): Promise<void> {
+async function pollOne(jobId: string, now: Date, summary: RunSummary): Promise<void> {
   const job = await prisma.alertPollJob.findUnique({ where: { id: jobId } });
   if (!job) return;
 
@@ -257,8 +249,7 @@ async function pollOne(
         lockedAt: null,
         availableAt: new Date(
           now.getTime() +
-            BACKOFF_MINUTES[Math.min(attempts - 1, BACKOFF_MINUTES.length - 1)] *
-              60_000,
+            BACKOFF_MINUTES[Math.min(attempts - 1, BACKOFF_MINUTES.length - 1)] * 60_000,
         ),
       },
     });
@@ -299,10 +290,7 @@ async function createMatches(
  * this "quietly broken" and "nothing new" are the same observation and an alert
  * can be dead for weeks while looking healthy.
  */
-async function recordSourceHealth(
-  counts: Record<string, number>,
-  now: Date,
-): Promise<void> {
+async function recordSourceHealth(counts: Record<string, number>, now: Date): Promise<void> {
   await Promise.all(
     Object.entries(counts).map(([source, count]) =>
       prisma.sourceHealth.upsert({
@@ -366,9 +354,7 @@ async function deliverPendingMatches(summary: RunSummary): Promise<void> {
     }
 
     const locale =
-      alert.user.locale && isValidLocale(alert.user.locale)
-        ? alert.user.locale
-        : DEFAULT_LOCALE;
+      alert.user.locale && isValidLocale(alert.user.locale) ? alert.user.locale : DEFAULT_LOCALE;
 
     const token = unsubscribeTokenFor(alert.id);
     const email = await renderAlertEmail({

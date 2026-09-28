@@ -25,8 +25,7 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [showMap, setShowMap] = useState(false);
-  const { listings, isLoading, isLoadingMore, hasMore, search, sentinelRef } =
-    useListingsSearch();
+  const { listings, isLoading, isLoadingMore, hasMore, search, sentinelRef } = useListingsSearch();
   // Results know nothing about what this user saved; without this every card
   // renders unsaved even for a car already in their favorites.
   const { favoriteIds, setFavorite } = useFavorites();
@@ -95,9 +94,7 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
             </div>
           ) : listings.length === 0 ? (
             <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-muted-foreground">
-                {t.map.emptyState}
-              </p>
+              <p className="text-sm text-muted-foreground">{t.map.emptyState}</p>
             </div>
           ) : (
             <>
@@ -116,9 +113,7 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
                   {isLoadingMore && (
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm text-muted-foreground">
-                        {t.map.loading}
-                      </span>
+                      <span className="text-sm text-muted-foreground">{t.map.loading}</span>
                     </div>
                   )}
                 </div>

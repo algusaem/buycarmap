@@ -37,10 +37,7 @@ describe("criteriaIdsIn", () => {
   });
 
   it("reads several ids named by one title", () => {
-    expect(criteriaIdsIn('it("FAV-1 and FAV-2: both hold", () => {})')).toEqual([
-      "FAV-1",
-      "FAV-2",
-    ]);
+    expect(criteriaIdsIn('it("FAV-1 and FAV-2: both hold", () => {})')).toEqual(["FAV-1", "FAV-2"]);
   });
 
   it("ignores an id outside a test title", () => {
@@ -62,15 +59,11 @@ describe("criteriaIdsIn", () => {
   });
 
   it("does not treat an arbitrary hyphenated token as a criterion", () => {
-    expect(criteriaIdsIn('it("uses SHA-256 for the digest", () => {})')).toEqual([
-      "SHA-256",
-    ]);
+    expect(criteriaIdsIn('it("uses SHA-256 for the digest", () => {})')).toEqual(["SHA-256"]);
   });
 
   it("handles single quotes and template literals", () => {
-    expect(criteriaIdsIn("it('FAV-5: single quoted', () => {})")).toEqual([
-      "FAV-5",
-    ]);
+    expect(criteriaIdsIn("it('FAV-5: single quoted', () => {})")).toEqual(["FAV-5"]);
     expect(criteriaIdsIn("it(`FAV-6: templated`, () => {})")).toEqual(["FAV-6"]);
   });
 

@@ -85,8 +85,7 @@ describe("extractLinks", () => {
   });
 
   it("ignores external schemes and bare anchors", () => {
-    const source =
-      "[web](https://example.com) [mail](mailto:a@b.c) [top](#intro) [real](x.md)";
+    const source = "[web](https://example.com) [mail](mailto:a@b.c) [top](#intro) [real](x.md)";
 
     expect(extractLinks(source)).toEqual(["x.md"]);
   });
@@ -127,9 +126,7 @@ describe("extractSourcePaths", () => {
   });
 
   it("ignores a backticked value that is not a path at all", () => {
-    expect(extractSourcePaths("`category_id=100` `next_page` `DATABASE_URL`")).toEqual(
-      new Set(),
-    );
+    expect(extractSourcePaths("`category_id=100` `next_page` `DATABASE_URL`")).toEqual(new Set());
   });
 
   it("ignores a source-root file with no recognised extension", () => {
@@ -209,12 +206,9 @@ describe("parseOwnership", () => {
 });
 
 describe("isGap", () => {
-  it.each(["—", "-", "--", "TBD", "tbd", "none"])(
-    "treats %s as a declared gap",
-    (doc) => {
-      expect(isGap(doc)).toBe(true);
-    },
-  );
+  it.each(["—", "-", "--", "TBD", "tbd", "none"])("treats %s as a declared gap", (doc) => {
+    expect(isGap(doc)).toBe(true);
+  });
 
   it("does not treat a real doc path as a gap", () => {
     expect(isGap("data-model.md")).toBe(false);
@@ -234,9 +228,7 @@ describe("isUnbuiltSpec", () => {
   );
 
   it("checks an Implemented spec, where an unresolvable path is a real error", () => {
-    expect(isUnbuiltSpec("docs/specs/alerts.md", header("Implemented"))).toBe(
-      false,
-    );
+    expect(isUnbuiltSpec("docs/specs/alerts.md", header("Implemented"))).toBe(false);
   });
 
   it("skips Approved, which is the status that looks safe to check and is not", () => {
@@ -282,9 +274,12 @@ describe("ownableFiles", () => {
   it("keeps source under a governed root and at the repo root", () => {
     // proxy.ts is route protection and the configs decide how the app builds —
     // checking only directories is what let 38 files go unclaimed unnoticed.
-    expect(
-      ownableFiles(["lib/env.ts", "proxy.ts", "next.config.ts", "e2e/map.spec.ts"]),
-    ).toEqual(["lib/env.ts", "proxy.ts", "next.config.ts", "e2e/map.spec.ts"]);
+    expect(ownableFiles(["lib/env.ts", "proxy.ts", "next.config.ts", "e2e/map.spec.ts"])).toEqual([
+      "lib/env.ts",
+      "proxy.ts",
+      "next.config.ts",
+      "e2e/map.spec.ts",
+    ]);
   });
 
   it("keeps committed tooling that changes how the project behaves", () => {
@@ -292,16 +287,8 @@ describe("ownableFiles", () => {
     // commands define the workflow, and .env.example is what every deployment
     // copies from. Excluding them was the earlier, weaker rule.
     expect(
-      ownableFiles([
-        ".github/workflows/test.yml",
-        ".claude/commands/spec.md",
-        ".env.example",
-      ]),
-    ).toEqual([
-      ".github/workflows/test.yml",
-      ".claude/commands/spec.md",
-      ".env.example",
-    ]);
+      ownableFiles([".github/workflows/test.yml", ".claude/commands/spec.md", ".env.example"]),
+    ).toEqual([".github/workflows/test.yml", ".claude/commands/spec.md", ".env.example"]);
   });
 
   it("drops assets, generated output, and docs", () => {

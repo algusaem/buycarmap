@@ -1,22 +1,13 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import {
-  REGISTRATION_TTL_MS,
-  generateToken,
-  hashToken,
-  tokenExpiry,
-} from "@/lib/auth/tokens";
+import { REGISTRATION_TTL_MS, generateToken, hashToken, tokenExpiry } from "@/lib/auth/tokens";
 import { appUrl } from "@/lib/env";
 import { sendEmail } from "@/lib/email/client";
 import { renderVerifyRegistrationEmail } from "@/lib/email/templates/auth-emails";
 import { getLocale } from "@/lib/i18n/server";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/lib/rate-limit";
-import {
-  AUTH_ERROR,
-  type AuthErrorCode,
-  forgotPasswordSchema,
-} from "@/lib/validations/auth";
+import { AUTH_ERROR, type AuthErrorCode, forgotPasswordSchema } from "@/lib/validations/auth";
 import { requiredString } from "@/lib/validations/form-data";
 
 interface ResendConfirmationResult {
@@ -37,9 +28,7 @@ interface ResendConfirmationResult {
  * whether a pending signup exists, the address already has an account, or the
  * address is entirely unknown.
  */
-export async function resendConfirmation(
-  formData: FormData,
-): Promise<ResendConfirmationResult> {
+export async function resendConfirmation(formData: FormData): Promise<ResendConfirmationResult> {
   const parsed = forgotPasswordSchema.safeParse({
     email: requiredString(formData.get("email")),
   });

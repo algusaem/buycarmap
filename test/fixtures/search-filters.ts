@@ -4,9 +4,7 @@ import { SearchFiltersProps } from "@/components/map/SearchFilters";
 // Every filter cleared, every callback a spy. `SearchFiltersProps` has 15
 // values and 16 handlers, so tests override only the two or three that the
 // case is actually about.
-export function makeFilterProps(
-  overrides: Partial<SearchFiltersProps> = {},
-): SearchFiltersProps {
+export function makeFilterProps(overrides: Partial<SearchFiltersProps> = {}): SearchFiltersProps {
   return {
     engine: [],
     gearbox: [],

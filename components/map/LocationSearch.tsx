@@ -35,8 +35,7 @@ export function LocationSearch({
   onDistanceChange,
 }: LocationSearchProps) {
   const { t, locale } = useTranslation();
-  const { query, setQuery, results, isSearching, clear } =
-    useLocationSearch(locale);
+  const { query, setQuery, results, isSearching, clear } = useLocationSearch(locale);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,10 +45,7 @@ export function LocationSearch({
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     }
@@ -83,15 +79,11 @@ export function LocationSearch({
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev < results.length - 1 ? prev + 1 : 0,
-        );
+        setHighlightedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
         break;
       case "ArrowUp":
         e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev > 0 ? prev - 1 : results.length - 1,
-        );
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
         break;
       case "Enter":
         e.preventDefault();
@@ -117,9 +109,7 @@ export function LocationSearch({
           {selectedLocation ? (
             <div className="flex h-10 items-center gap-2 rounded-md border border-border/50 bg-card/50 px-3 text-sm">
               <MapPin className="h-4 w-4 shrink-0 text-primary" />
-              <span className="min-w-0 flex-1 truncate">
-                {selectedLocation.displayName}
-              </span>
+              <span className="min-w-0 flex-1 truncate">{selectedLocation.displayName}</span>
               <button
                 type="button"
                 onClick={handleClear}
@@ -185,9 +175,7 @@ export function LocationSearch({
                           handleSelect(result);
                         }}
                       >
-                        <span className="line-clamp-1">
-                          {result.displayName}
-                        </span>
+                        <span className="line-clamp-1">{result.displayName}</span>
                       </li>
                     ))
                   )}

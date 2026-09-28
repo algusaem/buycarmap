@@ -24,14 +24,10 @@ const NEW_PASSWORD = "harbour-lentil-quilt";
 async function fillValid() {
   await userEvent.type(screen.getByLabelText("Current password"), CURRENT);
   await userEvent.type(screen.getByLabelText("New password"), NEW_PASSWORD);
-  await userEvent.type(
-    screen.getByLabelText("Confirm new password"),
-    NEW_PASSWORD,
-  );
+  await userEvent.type(screen.getByLabelText("Confirm new password"), NEW_PASSWORD);
 }
 
-const submit = () =>
-  userEvent.click(screen.getByRole("button", { name: "Update password" }));
+const submit = () => userEvent.click(screen.getByRole("button", { name: "Update password" }));
 
 describe("ChangePasswordForm", () => {
   beforeEach(() => {
@@ -60,15 +56,10 @@ describe("ChangePasswordForm", () => {
 
     await userEvent.type(screen.getByLabelText("Current password"), CURRENT);
     await userEvent.type(screen.getByLabelText("New password"), NEW_PASSWORD);
-    await userEvent.type(
-      screen.getByLabelText("Confirm new password"),
-      "something-different",
-    );
+    await userEvent.type(screen.getByLabelText("Confirm new password"), "something-different");
     await submit();
 
-    expect(
-      await screen.findByText("Passwords do not match"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Passwords do not match")).toBeInTheDocument();
     expect(changePassword).not.toHaveBeenCalled();
   });
 
@@ -82,9 +73,7 @@ describe("ChangePasswordForm", () => {
     await fillValid();
     await submit();
 
-    expect(
-      await screen.findByText("Your current password is incorrect"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Your current password is incorrect")).toBeInTheDocument();
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -137,9 +126,7 @@ describe("ChangePasswordForm", () => {
         redirect: false,
       }),
     );
-    await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith("Password updated."),
-    );
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Password updated."));
   });
 
   it("clears the fields once the change succeeded", async () => {
@@ -150,9 +137,7 @@ describe("ChangePasswordForm", () => {
 
     // Leaving the old and new passwords sitting in the form of a shared or
     // unattended browser is exactly what this page exists to prevent.
-    await waitFor(() =>
-      expect(screen.getByLabelText("New password")).toHaveValue(""),
-    );
+    await waitFor(() => expect(screen.getByLabelText("New password")).toHaveValue(""));
     expect(screen.getByLabelText("Current password")).toHaveValue("");
   });
 

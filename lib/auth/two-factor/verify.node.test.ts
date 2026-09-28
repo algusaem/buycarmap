@@ -193,27 +193,18 @@ describe("verifyAndConsumeTwoFactor edge cases", () => {
   });
 
   it("rejects when the account has no secret", async () => {
-    expect(
-      await verifyAndConsumeTwoFactor(
-        user({ twoFactorSecret: null }),
-        currentCode(),
-      ),
-    ).toEqual({ valid: false, method: null });
+    expect(await verifyAndConsumeTwoFactor(user({ twoFactorSecret: null }), currentCode())).toEqual(
+      { valid: false, method: null },
+    );
   });
 
   it("rejects rather than throwing when the secret cannot be decrypted", async () => {
     // Wrong key or a tampered row. Feeding garbage into an HMAC and comparing
     // the result would be the alternative.
-    const encryptedElsewhere = encryptSecret(
-      SECRET,
-      randomBytes(32).toString("base64"),
-    );
+    const encryptedElsewhere = encryptSecret(SECRET, randomBytes(32).toString("base64"));
 
     expect(
-      await verifyAndConsumeTwoFactor(
-        user({ twoFactorSecret: encryptedElsewhere }),
-        currentCode(),
-      ),
+      await verifyAndConsumeTwoFactor(user({ twoFactorSecret: encryptedElsewhere }), currentCode()),
     ).toEqual({ valid: false, method: null });
   });
 });

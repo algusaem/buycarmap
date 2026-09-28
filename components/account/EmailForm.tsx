@@ -9,21 +9,12 @@ import { BadgeCheck, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
 import { AUTH_ERROR, changeEmailSchema, ChangeEmailInput } from "@/lib/validations/auth";
-import {
-  requestEmailChange,
-  requestEmailVerification,
-} from "@/app/actions/email-verification";
+import { requestEmailChange, requestEmailVerification } from "@/app/actions/email-verification";
 
 interface EmailFormProps {
   email: string;
@@ -107,9 +98,7 @@ export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
   return (
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-lg font-bold">
-          {t.account.email.title}
-        </CardTitle>
+        <CardTitle className="text-lg font-bold">{t.account.email.title}</CardTitle>
         <CardDescription>{t.account.email.description}</CardDescription>
       </CardHeader>
 
@@ -179,9 +168,7 @@ export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email-current-password">
-                {t.account.email.currentPassword}
-              </Label>
+              <Label htmlFor="email-current-password">{t.account.email.currentPassword}</Label>
               {/* Required as well as the emailed link: a hijacked session alone
                   must not be enough to move the account to another inbox. */}
               <PasswordInput
@@ -194,9 +181,7 @@ export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
               />
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              {t.account.email.notice}
-            </p>
+            <p className="text-xs text-muted-foreground">{t.account.email.notice}</p>
 
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (

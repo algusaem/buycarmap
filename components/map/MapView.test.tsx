@@ -21,9 +21,10 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 // and calls the favorites actions. Neither is what these tests are about.
 // Typed so a test can widen it to an authenticated session; inferring from the
 // default would pin `data` to null.
-const useSession = vi.fn<
-  () => { data: { user: { id: string } } | null; status: string }
->(() => ({ data: null, status: "unauthenticated" }));
+const useSession = vi.fn<() => { data: { user: { id: string } } | null; status: string }>(() => ({
+  data: null,
+  status: "unauthenticated",
+}));
 vi.mock("next-auth/react", () => ({ useSession: () => useSession() }));
 vi.mock("@/app/actions/favorites", () => ({
   saveFavorite: vi.fn(),
@@ -52,12 +53,8 @@ const WALLAPOP_TITLE = "Audi A3 2.0 TDI";
 
 // Narrow the search to Wallapop so a case can control a single source.
 const onlyWallapop = [
-  http.post("*/api/cochesnet/search", () =>
-    HttpResponse.json(makeCochesNetResponse([], 0)),
-  ),
-  http.get("*/api/milanuncios/search", () =>
-    HttpResponse.json(makeMilanunciosResponse([], 0)),
-  ),
+  http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([], 0))),
+  http.get("*/api/milanuncios/search", () => HttpResponse.json(makeMilanunciosResponse([], 0))),
 ];
 
 // Records the keywords of every Wallapop call so a case can assert what the
@@ -86,16 +83,12 @@ describe("MapView results", () => {
   it("MAP-15: shows the empty state when no source has anything", async () => {
     server.use(
       ...onlyWallapop,
-      http.get("*/api/wallapop/search", () =>
-        HttpResponse.json(makeWallapopResponse([], null)),
-      ),
+      http.get("*/api/wallapop/search", () => HttpResponse.json(makeWallapopResponse([], null))),
     );
 
     renderWithI18n(<MapView initialQuery="case-empty" />);
 
-    expect(
-      await screen.findByText("Search for cars to see results"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Search for cars to see results")).toBeInTheDocument();
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
   });
 
@@ -105,10 +98,7 @@ describe("MapView results", () => {
     await screen.findByText(WALLAPOP_TITLE);
 
     await waitFor(() =>
-      expect(screen.getByTestId("listings-map")).toHaveAttribute(
-        "data-count",
-        "3",
-      ),
+      expect(screen.getByTestId("listings-map")).toHaveAttribute("data-count", "3"),
     );
   });
 });
@@ -145,8 +135,7 @@ describe("MapView infinite scroll", () => {
     server.use(
       ...onlyWallapop,
       http.get("*/api/wallapop/search", ({ request }) => {
-        const isNextPage =
-          new URL(request.url).searchParams.get("next_page") !== null;
+        const isNextPage = new URL(request.url).searchParams.get("next_page") !== null;
         return HttpResponse.json(
           isNextPage
             ? makeWallapopResponse(
@@ -173,9 +162,7 @@ describe("MapView infinite scroll", () => {
       ...onlyWallapop,
       http.get("*/api/wallapop/search", () => {
         calls += 1;
-        return HttpResponse.json(
-          makeWallapopResponse([makeWallapopItem()], null),
-        );
+        return HttpResponse.json(makeWallapopResponse([makeWallapopItem()], null));
       }),
     );
     renderWithI18n(<MapView initialQuery="case-exhausted" />);
@@ -196,9 +183,7 @@ describe("MapView mobile map", () => {
 
     expect(screen.getAllByTestId("listings-map")).toHaveLength(1);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Explore the map" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Explore the map" }));
     expect(screen.getAllByTestId("listings-map")).toHaveLength(2);
 
     await userEvent.click(screen.getByRole("button", { name: "Close map" }));
@@ -224,9 +209,7 @@ describe("MapView favorites", () => {
     // Before this criterion existed, MapView passed no isFavorite at all, so a
     // saved car came back from a search looking unsaved.
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Remove from favorites" }),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: "Remove from favorites" })).toBeInTheDocument(),
     );
   });
 
@@ -239,9 +222,7 @@ describe("MapView favorites", () => {
     renderWithI18n(<MapView initialQuery="case-signed-out" />);
     await screen.findByText(WALLAPOP_TITLE);
 
-    expect(
-      screen.queryByRole("button", { name: "Remove from favorites" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove from favorites" })).not.toBeInTheDocument();
     expect(listFavorites).not.toHaveBeenCalled();
   });
 });

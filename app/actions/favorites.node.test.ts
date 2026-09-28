@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  createFavoriteStore,
-  makeFavoriteInput,
-} from "@/test/fixtures/favorites";
+import { createFavoriteStore, makeFavoriteInput } from "@/test/fixtures/favorites";
 
 // The store is created per test in beforeEach; this indirection lets the module
 // mock reach whichever one is current.
@@ -106,9 +103,7 @@ describe("saveFavorite", () => {
   it("FAV-7: rejects a listing from an unrecognised source", async () => {
     signedInAs(ADA);
 
-    const result = await saveFavorite(
-      makeFavoriteInput({ source: "Craigslist" }),
-    );
+    const result = await saveFavorite(makeFavoriteInput({ source: "Craigslist" }));
 
     expect(result).toEqual({ success: false, error: "invalidListing" });
     expect(store.all()).toHaveLength(0);
@@ -128,16 +123,12 @@ describe("removeFavorite", () => {
   it("FAV-3: removes the listing and leaves the user's others alone", async () => {
     signedInAs(ADA);
     await saveFavorite(makeFavoriteInput());
-    await saveFavorite(
-      makeFavoriteInput({ id: "cochesnet-99", source: "Coches.net" }),
-    );
+    await saveFavorite(makeFavoriteInput({ id: "cochesnet-99", source: "Coches.net" }));
 
     const result = await removeFavorite("wallapop-abc123");
 
     expect(result.success).toBe(true);
-    expect(store.forUser(ADA.id).map((row) => row.listingId)).toEqual([
-      "cochesnet-99",
-    ]);
+    expect(store.forUser(ADA.id).map((row) => row.listingId)).toEqual(["cochesnet-99"]);
   });
 
   it("FAV-4: removing something that was never saved reports success", async () => {

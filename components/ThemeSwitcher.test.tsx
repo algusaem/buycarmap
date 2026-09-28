@@ -36,8 +36,6 @@ describe("ThemeSwitcher", () => {
     resolvedTheme.mockReturnValue("light");
     renderWithI18n(<ThemeSwitcher />);
 
-    await waitFor(() =>
-      expect(screen.getByRole("button")).toHaveTextContent("Light"),
-    );
+    await waitFor(() => expect(screen.getByRole("button")).toHaveTextContent("Light"));
   });
 });

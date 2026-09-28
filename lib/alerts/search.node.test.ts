@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
-import {
-  makeCochesNetItem,
-  makeCochesNetResponse,
-} from "@/test/fixtures/cochesnet";
+import { makeCochesNetItem, makeCochesNetResponse } from "@/test/fixtures/cochesnet";
 import { makeCriteria } from "@/test/fixtures/alerts";
 import { searchAllSources } from "./search";
 
@@ -37,8 +34,7 @@ function captureCochesNetBody(): () => Record<string, unknown> {
   return () => captured;
 }
 
-const failWith = (status: number) => () =>
-  new HttpResponse(null, { status });
+const failWith = (status: number) => () => new HttpResponse(null, { status });
 
 describe("searchAllSources", () => {
   it("forces newest-first on Wallapop even when a location is set", async () => {
@@ -90,10 +86,7 @@ describe("searchAllSources", () => {
     server.use(
       http.get(WALLAPOP, () =>
         HttpResponse.json(
-          makeWallapopResponse([
-            makeWallapopItem({ id: "w1" }),
-            makeWallapopItem({ id: "w2" }),
-          ]),
+          makeWallapopResponse([makeWallapopItem({ id: "w1" }), makeWallapopItem({ id: "w2" })]),
         ),
       ),
       http.post(COCHESNET, () =>
@@ -123,10 +116,7 @@ describe("searchAllSources", () => {
   });
 
   it("survives two of the three failing", async () => {
-    server.use(
-      http.get(WALLAPOP, failWith(503)),
-      http.post(COCHESNET, failWith(500)),
-    );
+    server.use(http.get(WALLAPOP, failWith(503)), http.post(COCHESNET, failWith(500)));
 
     const result = await searchAllSources(makeCriteria());
 
@@ -144,9 +134,7 @@ describe("searchAllSources", () => {
     // The caller must treat this as "no information", not "nothing new" — a
     // total outage that looked like an empty poll would advance nothing while
     // reporting success.
-    await expect(searchAllSources(makeCriteria())).rejects.toThrow(
-      /every source failed/i,
-    );
+    await expect(searchAllSources(makeCriteria())).rejects.toThrow(/every source failed/i);
   });
 
   it("falls back to make-only filtering when the model taxonomy is unreachable", async () => {

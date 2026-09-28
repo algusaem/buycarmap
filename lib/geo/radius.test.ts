@@ -34,12 +34,8 @@ describe("filterByRadius", () => {
     const boundary = makeMatchListing({ id: "boundary", lat: 41, lng: 0 });
     const centre = { keywords: "", latitude: 40, longitude: 0 };
 
-    expect(
-      filterByRadius([boundary], { ...centre, distanceInKm: 111.2 }),
-    ).toHaveLength(1);
-    expect(
-      filterByRadius([boundary], { ...centre, distanceInKm: 111.1 }),
-    ).toHaveLength(0);
+    expect(filterByRadius([boundary], { ...centre, distanceInKm: 111.2 })).toHaveLength(1);
+    expect(filterByRadius([boundary], { ...centre, distanceInKm: 111.1 })).toHaveLength(0);
   });
 
   it("drops a country-centre fallback pin even when it is inside the radius", () => {

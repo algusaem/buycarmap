@@ -22,16 +22,12 @@ describe("GET /api/milanuncios/search", () => {
       http.get(UPSTREAM, ({ request }) => {
         received = new URL(request.url);
         return HttpResponse.html(
-          makeMilanunciosHtml(
-            makeMilanunciosResponse([makeMilanunciosAd({ id: "77" })], 4),
-          ),
+          makeMilanunciosHtml(makeMilanunciosResponse([makeMilanunciosAd({ id: "77" })], 4)),
         );
       }),
     );
 
-    const res = await GET(
-      getRequest("slug=audi-de-segunda-mano&anod=2018&palabras=familiar"),
-    );
+    const res = await GET(getRequest("slug=audi-de-segunda-mano&anod=2018&palabras=familiar"));
 
     expect(res.status).toBe(200);
     // slug becomes the path segment; it must not leak into the query.
@@ -50,9 +46,7 @@ describe("GET /api/milanuncios/search", () => {
     server.use(
       http.get(UPSTREAM, ({ request }) => {
         received = new URL(request.url);
-        return HttpResponse.html(
-          makeMilanunciosHtml(makeMilanunciosResponse([])),
-        );
+        return HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([])));
       }),
     );
 
@@ -61,9 +55,7 @@ describe("GET /api/milanuncios/search", () => {
   });
 
   it("SRC-11: passes through the upstream error status", async () => {
-    server.use(
-      http.get(UPSTREAM, () => new HttpResponse(null, { status: 403 })),
-    );
+    server.use(http.get(UPSTREAM, () => new HttpResponse(null, { status: 403 })));
 
     const res = await GET(getRequest("slug=coches-de-segunda-mano"));
     expect(res.status).toBe(403);

@@ -18,8 +18,7 @@ vi.mock("@/app/actions/verify-registration", () => ({
 
 const TOKEN = "token-from-the-emailed-link";
 
-const confirmButton = () =>
-  screen.getByRole("button", { name: "Confirm my account" });
+const confirmButton = () => screen.getByRole("button", { name: "Confirm my account" });
 
 describe("VerifyRegistrationForm", () => {
   beforeEach(() => {
@@ -61,9 +60,7 @@ describe("VerifyRegistrationForm", () => {
     await userEvent.click(confirmButton());
 
     expect(await screen.findByText("You're all set")).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Go to sign in" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to sign in" })).toBeInTheDocument();
   });
 
   it("surfaces an expired link and keeps the button available", async () => {
@@ -76,9 +73,7 @@ describe("VerifyRegistrationForm", () => {
     await userEvent.click(confirmButton());
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "This link is invalid or has expired",
-      ),
+      expect(toast.error).toHaveBeenCalledWith("This link is invalid or has expired"),
     );
     // No dead end: the user can retry rather than being stranded.
     await waitFor(() => expect(confirmButton()).toBeEnabled());
@@ -98,9 +93,7 @@ describe("VerifyRegistrationForm", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = renderWithI18n(
-      <VerifyRegistrationForm token={TOKEN} />,
-    );
+    const { container } = renderWithI18n(<VerifyRegistrationForm token={TOKEN} />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

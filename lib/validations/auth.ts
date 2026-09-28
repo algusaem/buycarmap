@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  MAX_PASSWORD_LENGTH,
-  MIN_PASSWORD_LENGTH,
-} from "@/lib/auth/password-strength";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/lib/auth/password-strength";
 
 // Validation messages are *error codes*, not sentences. Zod runs on the server
 // too, and a server action cannot read the client's React i18n context — before

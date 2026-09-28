@@ -3,10 +3,7 @@ import { http, passthrough } from "msw";
 import { z } from "zod";
 import { server } from "../msw/server";
 import { extractInitialProps } from "@/lib/milanuncios/parse";
-import {
-  makeMilanunciosAd,
-  makeMilanunciosResponse,
-} from "@/test/fixtures/milanuncios";
+import { makeMilanunciosAd, makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
 
 // The subset of a Milanuncios ad that normalize.ts + geo.ts read. km/year/fuel
 // live inside tags[] as display strings; there is no lat/lng or structured
@@ -16,9 +13,7 @@ const milanunciosAdContract = z.object({
   title: z.string(),
   url: z.string(),
   category: z.object({ name: z.string() }).optional(),
-  price: z
-    .object({ cashPrice: z.object({ value: z.number() }).optional() })
-    .optional(),
+  price: z.object({ cashPrice: z.object({ value: z.number() }).optional() }).optional(),
   images: z.array(z.string()).optional(),
   tags: z.array(z.object({ type: z.string(), text: z.string() })).optional(),
   location: z
@@ -29,8 +24,7 @@ const milanunciosAdContract = z.object({
     .optional(),
 });
 
-const SEARCH_URL =
-  "https://www.milanuncios.com/coches-de-segunda-mano/";
+const SEARCH_URL = "https://www.milanuncios.com/coches-de-segunda-mano/";
 
 describe("Milanuncios response contract", () => {
   it("SRC-15: the fixture satisfies the shape the normalizer depends on", () => {

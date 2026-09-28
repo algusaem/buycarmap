@@ -137,18 +137,10 @@ export async function mockListingSources(page: Page) {
   // than in each caller.
   await mockListingImages(page);
 
-  await page.route("**/api/wallapop/search**", (route) =>
-    route.fulfill({ json: wallapop }),
-  );
-  await page.route("**/api/cochesnet/search**", (route) =>
-    route.fulfill({ json: cochesnet }),
-  );
-  await page.route("**/api/milanuncios/search**", (route) =>
-    route.fulfill({ json: milanuncios }),
-  );
-  await page.route("**/api/cochesnet/models**", (route) =>
-    route.fulfill({ json: { items: [] } }),
-  );
+  await page.route("**/api/wallapop/search**", (route) => route.fulfill({ json: wallapop }));
+  await page.route("**/api/cochesnet/search**", (route) => route.fulfill({ json: cochesnet }));
+  await page.route("**/api/milanuncios/search**", (route) => route.fulfill({ json: milanuncios }));
+  await page.route("**/api/cochesnet/models**", (route) => route.fulfill({ json: { items: [] } }));
   await page.route("**/api/wallapop/filters/models**", (route) =>
     route.fulfill({ json: { type: "model", id: "model", title: "Model", options: [] } }),
   );

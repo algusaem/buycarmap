@@ -44,11 +44,7 @@ interface NoticeEmailCopy {
  * confirmation, existing-account notice, address verification and email
  * change — all differing only in their copy and target URL.
  */
-function renderLinkEmail(
-  copy: LinkEmailCopy,
-  url: string,
-  locale: Locale,
-): RenderedEmail {
+function renderLinkEmail(copy: LinkEmailCopy, url: string, locale: Locale): RenderedEmail {
   return {
     subject: copy.subject,
     html: renderLayout({
@@ -77,28 +73,19 @@ function renderLinkEmail(
 }
 
 /** A security notice with no link, so it cannot be mistaken for phishing. */
-function renderNoticeEmail(
-  copy: NoticeEmailCopy,
-  locale: Locale,
-): RenderedEmail {
+function renderNoticeEmail(copy: NoticeEmailCopy, locale: Locale): RenderedEmail {
   return {
     subject: copy.subject,
     html: renderLayout({
       heading: copy.heading,
       footer: emailCopy[locale].footer,
-      bodyHtml: [
-        renderParagraph(copy.intro),
-        renderMutedParagraph(copy.action),
-      ].join("\n"),
+      bodyHtml: [renderParagraph(copy.intro), renderMutedParagraph(copy.action)].join("\n"),
     }),
     text: [copy.heading, "", copy.intro, "", copy.action].join("\n"),
   };
 }
 
-export function renderPasswordResetEmail(
-  locale: Locale,
-  resetUrl: string,
-): RenderedEmail {
+export function renderPasswordResetEmail(locale: Locale, resetUrl: string): RenderedEmail {
   return renderLinkEmail(emailCopy[locale].passwordReset, resetUrl, locale);
 }
 
@@ -107,15 +94,8 @@ export function renderPasswordResetEmail(
  * is what lets the registration form answer identically for a free address and
  * a taken one — the distinction reaches only the mailbox.
  */
-export function renderVerifyRegistrationEmail(
-  locale: Locale,
-  verifyUrl: string,
-): RenderedEmail {
-  return renderLinkEmail(
-    emailCopy[locale].verifyRegistration,
-    verifyUrl,
-    locale,
-  );
+export function renderVerifyRegistrationEmail(locale: Locale, verifyUrl: string): RenderedEmail {
+  return renderLinkEmail(emailCopy[locale].verifyRegistration, verifyUrl, locale);
 }
 
 /**
@@ -124,23 +104,13 @@ export function renderVerifyRegistrationEmail(
  * taken": the person who owns the inbox learns what happened, while the person
  * at the keyboard learns nothing they could use to enumerate accounts.
  */
-export function renderExistingAccountEmail(
-  locale: Locale,
-  loginUrl: string,
-): RenderedEmail {
+export function renderExistingAccountEmail(locale: Locale, loginUrl: string): RenderedEmail {
   return renderLinkEmail(emailCopy[locale].existingAccount, loginUrl, locale);
 }
 
 /** Confirms the address already on an account (sets `emailVerified`). */
-export function renderVerifyEmailAddressEmail(
-  locale: Locale,
-  verifyUrl: string,
-): RenderedEmail {
-  return renderLinkEmail(
-    emailCopy[locale].verifyEmailAddress,
-    verifyUrl,
-    locale,
-  );
+export function renderVerifyEmailAddressEmail(locale: Locale, verifyUrl: string): RenderedEmail {
+  return renderLinkEmail(emailCopy[locale].verifyEmailAddress, verifyUrl, locale);
 }
 
 /**
@@ -150,10 +120,7 @@ export function renderVerifyEmailAddressEmail(
  * is what stops a hijacked session moving an account to an inbox the attacker
  * already controls without ever proving they own it.
  */
-export function renderEmailChangeEmail(
-  locale: Locale,
-  confirmUrl: string,
-): RenderedEmail {
+export function renderEmailChangeEmail(locale: Locale, confirmUrl: string): RenderedEmail {
   return renderLinkEmail(emailCopy[locale].emailChange, confirmUrl, locale);
 }
 

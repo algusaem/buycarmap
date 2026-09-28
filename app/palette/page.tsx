@@ -75,9 +75,7 @@ export default function PalettePage() {
     <div className="flex-1 bg-background p-8 md:p-12">
       <div className="mx-auto max-w-4xl space-y-12">
         <div className="space-y-2">
-          <h1 className="font-bold text-4xl text-foreground">
-            Cartographic Modern
-          </h1>
+          <h1 className="font-bold text-4xl text-foreground">Cartographic Modern</h1>
           <p className="text-muted-foreground">
             Color palette for BuyCarMap - inspired by night maps and discovery
           </p>
@@ -85,28 +83,17 @@ export default function PalettePage() {
 
         {/* Main colors */}
         <section className="space-y-4">
-          <h2 className="text-lg font-medium text-foreground">
-            Surface & Accent Colors
-          </h2>
+          <h2 className="text-lg font-medium text-foreground">Surface & Accent Colors</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {colors.map((color) => (
-              <div
-                key={color.name}
-                className="overflow-hidden rounded-xl border border-border"
-              >
+              <div key={color.name} className="overflow-hidden rounded-xl border border-border">
                 <div className={`h-24 ${color.variable}`} />
                 <div className="space-y-1 bg-card p-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-foreground">
-                      {color.name}
-                    </span>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {color.hex}
-                    </span>
+                    <span className="font-medium text-foreground">{color.name}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{color.hex}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {color.description}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{color.description}</p>
                 </div>
               </div>
             ))}
@@ -125,16 +112,10 @@ export default function PalettePage() {
                 <p className={`text-2xl font-medium ${color.variable}`}>Aa</p>
                 <div className="mt-3 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">
-                      {color.name}
-                    </span>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {color.hex}
-                    </span>
+                    <span className="text-sm font-medium text-foreground">{color.name}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{color.hex}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {color.description}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{color.description}</p>
                 </div>
               </div>
             ))}
@@ -151,9 +132,7 @@ export default function PalettePage() {
                 <div className="h-10 w-10 rounded-lg bg-primary/10 ring-1 ring-primary/20" />
                 <div>
                   <p className="font-medium text-foreground">Card Title</p>
-                  <p className="text-sm text-muted-foreground">
-                    Secondary information
-                  </p>
+                  <p className="text-sm text-muted-foreground">Secondary information</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -187,9 +166,7 @@ export default function PalettePage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-destructive" />
-                  <span className="text-sm text-foreground">
-                    Destructive: Alerts, price drops
-                  </span>
+                  <span className="text-sm text-foreground">Destructive: Alerts, price drops</span>
                 </div>
               </div>
             </div>

@@ -75,9 +75,7 @@ beforeEach(() => {
 
 describe("register input validation", () => {
   it("rejects mismatched passwords without touching the database", async () => {
-    const result = await register(
-      formData({ ...valid, confirmPassword: "different" }),
-    );
+    const result = await register(formData({ ...valid, confirmPassword: "different" }));
 
     expect(result).toEqual({
       success: false,
@@ -90,11 +88,9 @@ describe("register input validation", () => {
   it("rejects a password below the 12-character minimum", async () => {
     const short = "harbour1";
 
-    expect(
-      await register(
-        formData({ ...valid, password: short, confirmPassword: short }),
-      ),
-    ).toEqual({ success: false, error: "passwordTooShort" });
+    expect(await register(formData({ ...valid, password: short, confirmPassword: short }))).toEqual(
+      { success: false, error: "passwordTooShort" },
+    );
   });
 
   it("rejects a long-but-trivial password on strength grounds", async () => {
@@ -102,11 +98,10 @@ describe("register input validation", () => {
     // the case a length-only policy would wave through.
     const weak = "qwertyuiopasdfgh";
 
-    expect(
-      await register(
-        formData({ ...valid, password: weak, confirmPassword: weak }),
-      ),
-    ).toEqual({ success: false, error: "passwordWeak" });
+    expect(await register(formData({ ...valid, password: weak, confirmPassword: weak }))).toEqual({
+      success: false,
+      error: "passwordWeak",
+    });
   });
 
   it("accepts a signup with no name field at all", async () => {
@@ -140,8 +135,9 @@ describe("register input validation", () => {
       }),
     );
 
-    const stored = vi.mocked(prisma.pendingRegistration.create).mock
-      .calls[0][0] as { data: { name: string | null } };
+    const stored = vi.mocked(prisma.pendingRegistration.create).mock.calls[0][0] as {
+      data: { name: string | null };
+    };
     expect(stored.data.name).toBeNull();
   });
 
@@ -226,8 +222,7 @@ describe("register with email configured (verify-first)", () => {
 
     await register(formData(valid));
 
-    const stored = vi.mocked(prisma.pendingRegistration.create).mock
-      .calls[0][0] as {
+    const stored = vi.mocked(prisma.pendingRegistration.create).mock.calls[0][0] as {
       data: { tokenHash: string; password: string; email: string };
     };
     const sent = vi.mocked(sendEmail).mock.calls[0][0];
@@ -254,9 +249,7 @@ describe("register with email configured (verify-first)", () => {
   });
 
   it("still reports the neutral result when the follow-up throws", async () => {
-    vi.mocked(prisma.user.findUnique).mockRejectedValue(
-      new Error("database down"),
-    );
+    vi.mocked(prisma.user.findUnique).mockRejectedValue(new Error("database down"));
 
     // An error response would differ between the two branches and hand back
     // the oracle this design removes.
@@ -338,9 +331,7 @@ describe("register without email configured (fallback)", () => {
 
   it("returns a generic failure on an unexpected DB error", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
-    vi.mocked(prisma.user.create).mockRejectedValue(
-      new Error("connection lost"),
-    );
+    vi.mocked(prisma.user.create).mockRejectedValue(new Error("connection lost"));
 
     // No detail escapes, so internals stay unexposed.
     expect(await register(formData(valid))).toEqual({

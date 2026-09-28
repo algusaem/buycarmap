@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
-import {
-  makeMilanunciosAd,
-  makeMilanunciosResponse,
-} from "@/test/fixtures/milanuncios";
+import { makeMilanunciosAd, makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
 import { searchMilanuncios } from "./client";
 
 // Capture the query string the client sends to the proxy route.
@@ -73,9 +70,7 @@ describe("searchMilanuncios", () => {
   it("resolves and returns the proxy JSON", async () => {
     server.use(
       http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json(
-          makeMilanunciosResponse([makeMilanunciosAd({ id: "42" })], 2),
-        ),
+        HttpResponse.json(makeMilanunciosResponse([makeMilanunciosAd({ id: "42" })], 2)),
       ),
     );
 
@@ -90,8 +85,6 @@ describe("searchMilanuncios", () => {
         HttpResponse.json({ error: "boom" }, { status: 502 }),
       ),
     );
-    await expect(searchMilanuncios({})).rejects.toThrow(
-      /Milanuncios API error: 502/,
-    );
+    await expect(searchMilanuncios({})).rejects.toThrow(/Milanuncios API error: 502/);
   });
 });

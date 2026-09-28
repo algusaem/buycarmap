@@ -26,9 +26,7 @@ vi.mock("@/app/actions/two-factor", () => ({
 // react-qr-code renders an SVG via canvas-adjacent APIs jsdom lacks; the QR
 // image itself is not what these tests are about.
 vi.mock("react-qr-code", () => ({
-  default: ({ value }: { value: string }) => (
-    <div data-testid="qr-code" data-value={value} />
-  ),
+  default: ({ value }: { value: string }) => <div data-testid="qr-code" data-value={value} />,
 }));
 
 const CODES = Array.from({ length: 10 }, (_, i) => `AAAAA-BBBBB-CCCC${i}`);
@@ -50,12 +48,8 @@ describe("TwoFactorCard availability", () => {
   it("explains itself when the server has no encryption key", () => {
     renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable={false} />);
 
-    expect(
-      screen.getByText(/missing its encryption key/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /set up two-factor/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText(/missing its encryption key/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /set up two-factor/i })).not.toBeInTheDocument();
   });
 
   it("shows the current state when available", () => {
@@ -75,9 +69,7 @@ describe("TwoFactorCard enrolment", () => {
     });
     renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /set up two-factor/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
 
     expect(await screen.findByTestId("qr-code")).toHaveAttribute(
       "data-value",
@@ -94,14 +86,10 @@ describe("TwoFactorCard enrolment", () => {
     });
     renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /set up two-factor/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "Two-factor authentication is already on",
-      ),
+      expect(toast.error).toHaveBeenCalledWith("Two-factor authentication is already on"),
     );
   });
 
@@ -117,20 +105,11 @@ describe("TwoFactorCard enrolment", () => {
     });
     renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /set up two-factor/i }),
-    );
-    await userEvent.type(
-      await screen.findByLabelText(/enter the 6-digit code/i),
-      "000000",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: /turn on two-factor/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
+    await userEvent.type(await screen.findByLabelText(/enter the 6-digit code/i), "000000");
+    await userEvent.click(screen.getByRole("button", { name: /turn on two-factor/i }));
 
-    expect(
-      await screen.findByText(/that code isn't valid/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/that code isn't valid/i)).toBeInTheDocument();
     // Still on the setup step, so the user can retype without rescanning.
     expect(screen.getByTestId("qr-code")).toBeInTheDocument();
   });
@@ -147,16 +126,9 @@ describe("TwoFactorCard enrolment", () => {
     });
     renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /set up two-factor/i }),
-    );
-    await userEvent.type(
-      await screen.findByLabelText(/enter the 6-digit code/i),
-      "123456",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: /turn on two-factor/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
+    await userEvent.type(await screen.findByLabelText(/enter the 6-digit code/i), "123456");
+    await userEvent.click(screen.getByRole("button", { name: /turn on two-factor/i }));
 
     expect(await screen.findByText(/save your recovery codes/i)).toBeInTheDocument();
     for (const code of CODES) {
@@ -178,16 +150,9 @@ describe("TwoFactorCard recovery codes", () => {
     });
     renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /set up two-factor/i }),
-    );
-    await userEvent.type(
-      await screen.findByLabelText(/enter the 6-digit code/i),
-      "123456",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: /turn on two-factor/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
+    await userEvent.type(await screen.findByLabelText(/enter the 6-digit code/i), "123456");
+    await userEvent.click(screen.getByRole("button", { name: /turn on two-factor/i }));
     await screen.findByText(/save your recovery codes/i);
   }
 
@@ -203,13 +168,9 @@ describe("TwoFactorCard recovery codes", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /copy codes/i }));
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      CODES.join("\n"),
-    );
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(CODES.join("\n"));
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /i've saved them/i }),
-      ).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /i've saved them/i })).toBeEnabled(),
     );
   });
 
@@ -225,9 +186,7 @@ describe("TwoFactorCard recovery codes", () => {
     await userEvent.click(screen.getByRole("button", { name: /copy codes/i }));
 
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /i've saved them/i }),
-      ).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /i've saved them/i })).toBeEnabled(),
     );
     expect(toast.error).toHaveBeenCalledWith(
       "Couldn't copy automatically. Select the codes above and copy them by hand.",
@@ -240,14 +199,10 @@ describe("TwoFactorCard recovery codes", () => {
     // and the card would never show its enabled state.
     await reachRecoveryCodes();
     await userEvent.click(screen.getByRole("button", { name: /copy codes/i }));
-    await userEvent.click(
-      screen.getByRole("button", { name: /i've saved them/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /i've saved them/i }));
 
     await waitFor(() =>
-      expect(
-        screen.queryByText(/save your recovery codes/i),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByText(/save your recovery codes/i)).not.toBeInTheDocument(),
     );
     // The card re-reads its enabled state from the server component.
     expect(refresh).toHaveBeenCalled();
@@ -270,10 +225,7 @@ describe("TwoFactorCard when enabled", () => {
     await userEvent.type(screen.getByLabelText(/your password/i), "hunter2");
     expect(disable).toBeDisabled();
 
-    await userEvent.type(
-      screen.getByLabelText(/enter the 6-digit code/i),
-      "123456",
-    );
+    await userEvent.type(screen.getByLabelText(/enter the 6-digit code/i), "123456");
     expect(disable).toBeEnabled();
   });
 
@@ -282,13 +234,8 @@ describe("TwoFactorCard when enabled", () => {
     renderWithI18n(<TwoFactorCard isEnabled isAvailable />);
 
     await userEvent.type(screen.getByLabelText(/your password/i), "hunter2");
-    await userEvent.type(
-      screen.getByLabelText(/enter the 6-digit code/i),
-      "123456",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: /turn off two-factor/i }),
-    );
+    await userEvent.type(screen.getByLabelText(/enter the 6-digit code/i), "123456");
+    await userEvent.click(screen.getByRole("button", { name: /turn off two-factor/i }));
 
     await waitFor(() => expect(disableTwoFactor).toHaveBeenCalledOnce());
     const submitted = disableTwoFactor.mock.calls[0][0] as FormData;
@@ -306,19 +253,13 @@ describe("TwoFactorCard when enabled", () => {
     renderWithI18n(<TwoFactorCard isEnabled isAvailable />);
 
     await userEvent.type(screen.getByLabelText(/your password/i), "hunter2");
-    await userEvent.click(
-      screen.getByRole("button", { name: /generate new recovery codes/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /generate new recovery codes/i }));
 
-    expect(
-      await screen.findByText(/save your recovery codes/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/save your recovery codes/i)).toBeInTheDocument();
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = renderWithI18n(
-      <TwoFactorCard isEnabled isAvailable />,
-    );
+    const { container } = renderWithI18n(<TwoFactorCard isEnabled isAvailable />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

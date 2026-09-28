@@ -18,9 +18,7 @@ export function haversineKm(
   const dLng = toRadians(toLng - fromLng);
   const h =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRadians(fromLat)) *
-      Math.cos(toRadians(toLat)) *
-      Math.sin(dLng / 2) ** 2;
+    Math.cos(toRadians(fromLat)) * Math.cos(toRadians(toLat)) * Math.sin(dLng / 2) ** 2;
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
 }
 
@@ -31,10 +29,7 @@ export function haversineKm(
  * nationwide, so this filter at the merge is what makes the radius a real
  * promise. Without a chosen location it filters nothing.
  */
-export function filterByRadius(
-  listings: CarListing[],
-  params: SearchInput,
-): CarListing[] {
+export function filterByRadius(listings: CarListing[], params: SearchInput): CarListing[] {
   const { latitude, longitude, distanceInKm } = params;
   if (latitude == null || longitude == null || distanceInKm == null) {
     return listings;
@@ -48,9 +43,6 @@ export function filterByRadius(
     if (listing.lat === SPAIN_CENTER.lat && listing.lng === SPAIN_CENTER.lng) {
       return false;
     }
-    return (
-      haversineKm(latitude, longitude, listing.lat, listing.lng) <=
-      distanceInKm
-    );
+    return haversineKm(latitude, longitude, listing.lat, listing.lng) <= distanceInKm;
   });
 }

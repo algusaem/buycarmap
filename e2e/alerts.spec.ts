@@ -1,10 +1,5 @@
 import { test, expect } from "@playwright/test";
-import {
-  clearAlertQueue,
-  seedAlertJobs,
-  claimConcurrently,
-  claimOnce,
-} from "./fixtures/db";
+import { clearAlertQueue, seedAlertJobs, claimConcurrently, claimOnce } from "./fixtures/db";
 
 // The queue's safety property is the one thing Vitest cannot reach. Prisma is
 // mocked there, so a node test would assert that the right query was issued

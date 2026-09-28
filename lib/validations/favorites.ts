@@ -9,17 +9,12 @@ export const FAVORITE_ERROR = {
   unexpected: "unexpected",
 } as const;
 
-export type FavoriteErrorCode =
-  (typeof FAVORITE_ERROR)[keyof typeof FAVORITE_ERROR];
+export type FavoriteErrorCode = (typeof FAVORITE_ERROR)[keyof typeof FAVORITE_ERROR];
 
 // Exactly the values lib/*/normalize.ts writes into `CarListing.source`.
 // Anything else did not come from this app's own normalizers, so it is not a
 // listing we can render back.
-export const FAVORITE_SOURCES = [
-  "Wallapop",
-  "Coches.net",
-  "Milanuncios",
-] as const;
+export const FAVORITE_SOURCES = ["Wallapop", "Coches.net", "Milanuncios"] as const;
 
 // The fields that must survive the round trip for the favorites page to render
 // a card without asking any source API. Numeric fields allow zero because

@@ -22,12 +22,7 @@ interface TwoFactorSetupProps {
  * The enrolment step: scan, then prove the app works before anything is
  * enforced. Nothing here changes how login behaves until the code is accepted.
  */
-export function TwoFactorSetup({
-  otpauthUri,
-  secret,
-  onConfirmed,
-  onCancel,
-}: TwoFactorSetupProps) {
+export function TwoFactorSetup({ otpauthUri, secret, onConfirmed, onCancel }: TwoFactorSetupProps) {
   const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,9 +52,7 @@ export function TwoFactorSetup({
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-1">
         <h3 className="font-semibold">{t.account.twoFactor.scanTitle}</h3>
-        <p className="text-sm text-muted-foreground">
-          {t.account.twoFactor.scanDescription}
-        </p>
+        <p className="text-sm text-muted-foreground">{t.account.twoFactor.scanDescription}</p>
       </div>
 
       {/* Rendered as inline SVG on a white plate: QR scanners need the light
@@ -69,21 +62,15 @@ export function TwoFactorSetup({
       </div>
 
       <div className="space-y-1">
-        <p className="text-sm font-medium">
-          {t.account.twoFactor.manualLabel}
-        </p>
+        <p className="text-sm font-medium">{t.account.twoFactor.manualLabel}</p>
         <code className="block break-all rounded-md border border-border/50 bg-background/50 p-2 font-mono text-sm">
           {secret}
         </code>
-        <p className="text-xs text-muted-foreground">
-          {t.account.twoFactor.manualHint}
-        </p>
+        <p className="text-xs text-muted-foreground">{t.account.twoFactor.manualHint}</p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="two-factor-code">
-          {t.account.twoFactor.codeLabel}
-        </Label>
+        <Label htmlFor="two-factor-code">{t.account.twoFactor.codeLabel}</Label>
         <Input
           id="two-factor-code"
           // `inputMode` brings up the numeric keypad; `one-time-code` lets
@@ -110,12 +97,7 @@ export function TwoFactorSetup({
             t.account.twoFactor.confirm
           )}
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={isSubmitting}
-          onClick={onCancel}
-        >
+        <Button type="button" variant="ghost" disabled={isSubmitting} onClick={onCancel}>
           {t.account.twoFactor.cancel}
         </Button>
       </div>

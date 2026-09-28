@@ -60,8 +60,7 @@ export const emailCopy: Record<Locale, EmailCopy> = {
       heading: "Your password was changed",
       intro:
         "The password for your BuyCarMap account was just changed. You have been signed out on all other devices.",
-      action:
-        "If this wasn't you, reset your password immediately and contact us.",
+      action: "If this wasn't you, reset your password immediately and contact us.",
     },
     existingAccount: {
       subject: "Someone tried to sign up with your email",
@@ -91,8 +90,7 @@ export const emailCopy: Record<Locale, EmailCopy> = {
         "Confirm this address so we can reach you about your account — for example if you ever need to reset your password.",
       button: "Verify my email",
       expiry: "This link expires in 24 hours and can only be used once.",
-      ignore:
-        "If you didn't request this, you can safely ignore this email. Nothing will change.",
+      ignore: "If you didn't request this, you can safely ignore this email. Nothing will change.",
       fallback: "If the button doesn't work, paste this link into your browser:",
     },
     emailChange: {
@@ -124,8 +122,7 @@ export const emailCopy: Record<Locale, EmailCopy> = {
         "Hemos recibido una solicitud para establecer una nueva contraseña en tu cuenta de BuyCarMap. Pulsa el botón para elegir una.",
       button: "Elegir una nueva contraseña",
       expiry: "Este enlace caduca en una hora y solo puede usarse una vez.",
-      ignore:
-        "Si no has sido tú, puedes ignorar este correo: tu contraseña no cambiará.",
+      ignore: "Si no has sido tú, puedes ignorar este correo: tu contraseña no cambiará.",
       fallback: "Si el botón no funciona, pega este enlace en tu navegador:",
     },
     passwordChanged: {
@@ -133,8 +130,7 @@ export const emailCopy: Record<Locale, EmailCopy> = {
       heading: "Tu contraseña ha cambiado",
       intro:
         "La contraseña de tu cuenta de BuyCarMap acaba de cambiar. Se ha cerrado la sesión en el resto de dispositivos.",
-      action:
-        "Si no has sido tú, restablece tu contraseña de inmediato y contacta con nosotros.",
+      action: "Si no has sido tú, restablece tu contraseña de inmediato y contacta con nosotros.",
     },
     existingAccount: {
       subject: "Alguien ha intentado registrarse con tu correo",
@@ -153,8 +149,7 @@ export const emailCopy: Record<Locale, EmailCopy> = {
         "Alguien —esperamos que tú— se ha registrado en BuyCarMap con esta dirección de correo. Confirma abajo para terminar de crear tu cuenta.",
       button: "Confirmar mi cuenta",
       expiry: "Este enlace caduca en 24 horas y solo puede usarse una vez.",
-      ignore:
-        "Si no has sido tú, puedes ignorar este correo. No se ha creado ninguna cuenta.",
+      ignore: "Si no has sido tú, puedes ignorar este correo. No se ha creado ninguna cuenta.",
       fallback: "Si el botón no funciona, pega este enlace en tu navegador:",
     },
     verifyEmailAddress: {
@@ -164,8 +159,7 @@ export const emailCopy: Record<Locale, EmailCopy> = {
         "Confirma esta dirección para que podamos contactarte sobre tu cuenta, por ejemplo si alguna vez necesitas restablecer tu contraseña.",
       button: "Verificar mi correo",
       expiry: "Este enlace caduca en 24 horas y solo puede usarse una vez.",
-      ignore:
-        "Si no has solicitado esto, puedes ignorar este correo. No cambiará nada.",
+      ignore: "Si no has solicitado esto, puedes ignorar este correo. No cambiará nada.",
       fallback: "Si el botón no funciona, pega este enlace en tu navegador:",
     },
     emailChange: {

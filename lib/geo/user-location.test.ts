@@ -25,9 +25,7 @@ beforeEach(() => vi.resetModules());
 
 describe("initUserGeolocation", () => {
   it("CORE-8: asks the browser once however many callers there are", async () => {
-    const getCurrentPosition = stubGeolocation((success) =>
-      success(MADRID as GeolocationPosition),
-    );
+    const getCurrentPosition = stubGeolocation((success) => success(MADRID as GeolocationPosition));
     const { initUserGeolocation, waitForGeolocation } = await freshModule();
 
     initUserGeolocation();
@@ -41,8 +39,7 @@ describe("initUserGeolocation", () => {
 
   it("CORE-8: exposes the position once it has arrived", async () => {
     stubGeolocation((success) => success(MADRID as GeolocationPosition));
-    const { initUserGeolocation, waitForGeolocation, getUserLocation } =
-      await freshModule();
+    const { initUserGeolocation, waitForGeolocation, getUserLocation } = await freshModule();
 
     initUserGeolocation();
     await waitForGeolocation();
@@ -54,8 +51,7 @@ describe("initUserGeolocation", () => {
     stubGeolocation((_success, error) =>
       error?.({ code: 1, message: "denied" } as GeolocationPositionError),
     );
-    const { initUserGeolocation, waitForGeolocation, getUserLocation } =
-      await freshModule();
+    const { initUserGeolocation, waitForGeolocation, getUserLocation } = await freshModule();
 
     initUserGeolocation();
 
@@ -70,8 +66,7 @@ describe("initUserGeolocation", () => {
       configurable: true,
       value: undefined,
     });
-    const { initUserGeolocation, waitForGeolocation, getUserLocation } =
-      await freshModule();
+    const { initUserGeolocation, waitForGeolocation, getUserLocation } = await freshModule();
 
     initUserGeolocation();
 

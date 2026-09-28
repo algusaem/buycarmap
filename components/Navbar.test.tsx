@@ -44,8 +44,7 @@ const LOADING = { data: null, status: "loading" };
 const menuTrigger = () => screen.getByRole("button", { name: /^menu$/i });
 
 // The desktop account dropdown, labelled by whoever is signed in.
-const accountTrigger = () =>
-  screen.getByRole("button", { name: /ada lovelace|ada@example\.com/i });
+const accountTrigger = () => screen.getByRole("button", { name: /ada lovelace|ada@example\.com/i });
 
 async function openMenu(user: UserEvent) {
   await user.click(menuTrigger());
@@ -71,14 +70,8 @@ describe("Navbar destinations", () => {
 
     const menu = await openMenu(user);
 
-    expect(menu.getByRole("link", { name: /sign in/i })).toHaveAttribute(
-      "href",
-      "/login",
-    );
-    expect(menu.getByRole("link", { name: /sign up/i })).toHaveAttribute(
-      "href",
-      "/register",
-    );
+    expect(menu.getByRole("link", { name: /sign in/i })).toHaveAttribute("href", "/login");
+    expect(menu.getByRole("link", { name: /sign up/i })).toHaveAttribute("href", "/register");
   });
 
   // NAV-17 is deliberately absent here and lives in e2e/navbar.spec.ts. The
@@ -93,18 +86,9 @@ describe("Navbar destinations", () => {
 
     const menu = await openMenu(user);
 
-    expect(menu.getByRole("link", { name: /saved cars/i })).toHaveAttribute(
-      "href",
-      "/favorites",
-    );
-    expect(menu.getByRole("link", { name: /alerts/i })).toHaveAttribute(
-      "href",
-      "/alerts",
-    );
-    expect(menu.getByRole("link", { name: /account/i })).toHaveAttribute(
-      "href",
-      "/account",
-    );
+    expect(menu.getByRole("link", { name: /saved cars/i })).toHaveAttribute("href", "/favorites");
+    expect(menu.getByRole("link", { name: /alerts/i })).toHaveAttribute("href", "/alerts");
+    expect(menu.getByRole("link", { name: /account/i })).toHaveAttribute("href", "/account");
     expect(menu.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
   });
 
@@ -116,20 +100,12 @@ describe("Navbar destinations", () => {
     // Not an access-control assertion — both pages are guarded server-side.
     // These links would lead a visitor to a sign-in redirect, which is a dead
     // end dressed as a destination.
-    expect(
-      screen.queryByRole("link", { name: /saved cars/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: /alerts/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /saved cars/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /alerts/i })).not.toBeInTheDocument();
 
     const menu = await openMenu(user);
-    expect(
-      menu.queryByRole("link", { name: /saved cars/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      menu.queryByRole("link", { name: /alerts/i }),
-    ).not.toBeInTheDocument();
+    expect(menu.queryByRole("link", { name: /saved cars/i })).not.toBeInTheDocument();
+    expect(menu.queryByRole("link", { name: /alerts/i })).not.toBeInTheDocument();
   });
 
   it("NAV-14: puts the theme and language controls inside the menu", async () => {
@@ -203,12 +179,8 @@ describe("Navbar menu behaviour", () => {
     useSession.mockReturnValue(SIGNED_OUT);
     rerender(<Navbar />);
 
-    expect(
-      screen.queryByRole("button", { name: /sign out/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: /account/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /sign out/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /account/i })).not.toBeInTheDocument();
   });
 });
 
@@ -217,15 +189,9 @@ describe("Navbar session states", () => {
     useSession.mockReturnValue(LOADING);
     renderWithI18n(<Navbar />);
 
-    expect(
-      screen.queryByRole("link", { name: /sign in/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: /sign up/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /sign out/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /sign in/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /sign up/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /sign out/i })).not.toBeInTheDocument();
   });
 
   it("NAV-6: signs out and returns to the home page", async () => {
@@ -255,9 +221,7 @@ describe("Navbar session states", () => {
     await user.keyboard("{Enter}");
     await screen.findByRole("menu");
 
-    expect(
-      screen.getByRole("menuitemradio", { name: "English" }),
-    ).toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "English" })).toBeChecked();
 
     // Arrow-keyed rather than focused directly. Focusing the option by hand
     // would sidestep the menu's own keyboard model, which is the thing that
@@ -296,9 +260,7 @@ describe("Navbar current page", () => {
       "aria-current",
       "page",
     );
-    expect(
-      screen.getByRole("link", { name: /alerts/i }),
-    ).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /alerts/i })).not.toHaveAttribute("aria-current");
   });
 });
 
@@ -309,9 +271,7 @@ describe("Navbar language", () => {
     // The contract this asserts: a `nav.menu` key exists in both locales, with
     // the Spanish value "Menú".
     render(<Navbar />, {
-      wrapper: ({ children }) => (
-        <I18nProvider locale="es">{children}</I18nProvider>
-      ),
+      wrapper: ({ children }) => <I18nProvider locale="es">{children}</I18nProvider>,
     });
 
     expect(screen.getByRole("button", { name: "Menú" })).toBeInTheDocument();
@@ -330,10 +290,7 @@ describe("Navbar favorites link", () => {
     renderWithI18n(<Navbar />);
 
     // A real link, not a click handler: Cmd/middle-click has to work.
-    expect(screen.getByRole("link", { name: /saved cars/i })).toHaveAttribute(
-      "href",
-      "/favorites",
-    );
+    expect(screen.getByRole("link", { name: /saved cars/i })).toHaveAttribute("href", "/favorites");
   });
 
   it("FAV-17: does not offer it to a signed-out visitor", () => {
@@ -342,8 +299,6 @@ describe("Navbar favorites link", () => {
     renderWithI18n(<Navbar />);
 
     // The page is guarded, so the link would only bounce them to sign-in.
-    expect(
-      screen.queryByRole("link", { name: /saved cars/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /saved cars/i })).not.toBeInTheDocument();
   });
 });

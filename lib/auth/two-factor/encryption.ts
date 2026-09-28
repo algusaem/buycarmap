@@ -1,8 +1,4 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  randomBytes,
-} from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 // TOTP secrets are encrypted at rest, not hashed: verifying a code requires
 // recomputing the HMAC from the original secret, so it has to be recoverable.
@@ -44,10 +40,7 @@ export function encryptSecret(plaintext: string, rawKey: string): string {
   const iv = randomBytes(IV_BYTES);
   const cipher = createCipheriv(ALGORITHM, key, iv);
 
-  const ciphertext = Buffer.concat([
-    cipher.update(plaintext, "utf8"),
-    cipher.final(),
-  ]);
+  const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
 
   return [
     FORMAT_VERSION,
@@ -66,11 +59,7 @@ export function decryptSecret(payload: string, rawKey: string): string {
     throw new Error("Malformed encrypted secret");
   }
 
-  const decipher = createDecipheriv(
-    ALGORITHM,
-    key,
-    Buffer.from(iv, "base64"),
-  );
+  const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(iv, "base64"));
   // `final()` throws when the tag does not match, which is what turns silent
   // corruption into a detectable error.
   decipher.setAuthTag(Buffer.from(authTag, "base64"));

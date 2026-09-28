@@ -38,9 +38,7 @@ async function waitForSessionToResolve(page: Page) {
   });
 }
 
-test("NAV-2: every navbar control on a phone is at least 44 by 44 pixels", async ({
-  page,
-}) => {
+test("NAV-2: every navbar control on a phone is at least 44 by 44 pixels", async ({ page }) => {
   await page.setViewportSize(MOBILE);
   await page.goto("/");
   await waitForSessionToResolve(page);
@@ -87,9 +85,7 @@ async function assertTouchTargets(root: Locator, label: string) {
   }
 }
 
-test("NAV-17: a visitor on a phone can register without opening the menu", async ({
-  page,
-}) => {
+test("NAV-17: a visitor on a phone can register without opening the menu", async ({ page }) => {
   await page.setViewportSize(MOBILE);
   await page.goto("/");
   await waitForSessionToResolve(page);
@@ -99,14 +95,10 @@ test("NAV-17: a visitor on a phone can register without opening the menu", async
   // exactly the devices most people arrive on — and absent in a way no jsdom
   // test could see, because jsdom applies no CSS and the element was always in
   // the DOM. `toBeVisible` is the whole point of this assertion.
-  await expect(
-    page.getByRole("navigation").getByRole("link", { name: SIGN_UP }),
-  ).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: SIGN_UP })).toBeVisible();
 });
 
-test("NAV-9: the bar does not shift when the session resolves", async ({
-  page,
-}) => {
+test("NAV-9: the bar does not shift when the session resolves", async ({ page }) => {
   // Hold the session request open so the placeholder state is measurable
   // rather than a frame that has already passed.
   await page.route("**/api/auth/session", async (route) => {

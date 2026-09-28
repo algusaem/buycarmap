@@ -8,13 +8,7 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { CircleCheck } from "lucide-react";
 import { fadeInUp } from "@/lib/animations";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
 import { confirmEmail } from "@/app/actions/email-verification";
@@ -55,18 +49,13 @@ export function ConfirmEmailForm({ token }: ConfirmEmailFormProps) {
             {confirmed ? t.confirmEmail.successTitle : t.confirmEmail.title}
           </CardTitle>
           <CardDescription>
-            {confirmed
-              ? t.confirmEmail.successDescription
-              : t.confirmEmail.description}
+            {confirmed ? t.confirmEmail.successDescription : t.confirmEmail.description}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           {confirmed && (
-            <div
-              className="flex flex-col items-center gap-4 py-2 text-center"
-              aria-live="polite"
-            >
+            <div className="flex flex-col items-center gap-4 py-2 text-center" aria-live="polite">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 ring-1 ring-accent/20">
                 <CircleCheck className="h-6 w-6 text-accent" />
               </div>

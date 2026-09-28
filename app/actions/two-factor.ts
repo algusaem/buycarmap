@@ -4,16 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/hash";
 import { env, isTwoFactorConfigured } from "@/lib/env";
-import {
-  decryptSecret,
-  encryptSecret,
-} from "@/lib/auth/two-factor/encryption";
+import { decryptSecret, encryptSecret } from "@/lib/auth/two-factor/encryption";
 import { verifyAndConsumeTwoFactor } from "@/lib/auth/two-factor/verify";
-import {
-  buildOtpAuthUri,
-  generateTotpSecret,
-  verifyTotp,
-} from "@/lib/auth/two-factor/totp";
+import { buildOtpAuthUri, generateTotpSecret, verifyTotp } from "@/lib/auth/two-factor/totp";
 import { generateRecoveryCodes } from "@/lib/auth/two-factor/recovery-codes";
 import { RATE_LIMITS, consumeRateLimit } from "@/lib/rate-limit";
 import {
@@ -82,10 +75,7 @@ export async function startTwoFactorSetup(): Promise<SetupResult> {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      twoFactorSecret: encryptSecret(
-        secret,
-        env.TWO_FACTOR_ENCRYPTION_KEY as string,
-      ),
+      twoFactorSecret: encryptSecret(secret, env.TWO_FACTOR_ENCRYPTION_KEY as string),
       twoFactorLastStep: null,
     },
   });
@@ -104,9 +94,7 @@ export async function startTwoFactorSetup(): Promise<SetupResult> {
  * `verifyAndConsumeTwoFactor`: recovery codes do not exist yet, and burning
  * the step before enabling would reject the very next login.
  */
-export async function confirmTwoFactorSetup(
-  formData: FormData,
-): Promise<ConfirmResult> {
+export async function confirmTwoFactorSetup(formData: FormData): Promise<ConfirmResult> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -154,10 +142,7 @@ export async function confirmTwoFactorSetup(
   let secret: string;
 
   try {
-    secret = decryptSecret(
-      record.twoFactorSecret,
-      env.TWO_FACTOR_ENCRYPTION_KEY as string,
-    );
+    secret = decryptSecret(record.twoFactorSecret, env.TWO_FACTOR_ENCRYPTION_KEY as string);
   } catch {
     return { success: false, error: AUTH_ERROR.generic };
   }
@@ -192,9 +177,7 @@ export async function confirmTwoFactorSetup(
  * Either alone would undo the protection: a stolen session has no password,
  * and someone who only knows the password still cannot produce a code.
  */
-export async function disableTwoFactor(
-  formData: FormData,
-): Promise<TwoFactorResult> {
+export async function disableTwoFactor(formData: FormData): Promise<TwoFactorResult> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -236,10 +219,7 @@ export async function disableTwoFactor(
     return { success: false, error: AUTH_ERROR.totpNotEnabled };
   }
 
-  if (
-    !record.password ||
-    !(await verifyPassword(parsed.data.currentPassword, record.password))
-  ) {
+  if (!record.password || !(await verifyPassword(parsed.data.currentPassword, record.password))) {
     return { success: false, error: AUTH_ERROR.currentPasswordIncorrect };
   }
 
@@ -278,9 +258,7 @@ export async function disableTwoFactor(
  * codes were lost or exposed, and demanding the authenticator as well would
  * lock out exactly the person this is meant to help.
  */
-export async function regenerateRecoveryCodes(
-  formData: FormData,
-): Promise<ConfirmResult> {
+export async function regenerateRecoveryCodes(formData: FormData): Promise<ConfirmResult> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -311,10 +289,7 @@ export async function regenerateRecoveryCodes(
     return { success: false, error: AUTH_ERROR.totpNotEnabled };
   }
 
-  if (
-    !record.password ||
-    !(await verifyPassword(currentPassword, record.password))
-  ) {
+  if (!record.password || !(await verifyPassword(currentPassword, record.password))) {
     return { success: false, error: AUTH_ERROR.currentPasswordIncorrect };
   }
 

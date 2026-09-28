@@ -33,9 +33,7 @@ describe("resolveCochesNetModelId", () => {
     server.use(
       http.get("*/api/cochesnet/models", () => {
         calls += 1;
-        return HttpResponse.json(
-          makeCochesNetTaxonomy([{ id: 4321, label: "Serie 3" }]),
-        );
+        return HttpResponse.json(makeCochesNetTaxonomy([{ id: 4321, label: "Serie 3" }]));
       }),
     );
 
@@ -52,9 +50,7 @@ describe("resolveCochesNetModelId", () => {
         calls += 1;
         // Fail once, then recover — the shape of a transient upstream blip.
         if (calls === 1) return HttpResponse.json({}, { status: 503 });
-        return HttpResponse.json(
-          makeCochesNetTaxonomy([{ id: 4321, label: "Serie 3" }]),
-        );
+        return HttpResponse.json(makeCochesNetTaxonomy([{ id: 4321, label: "Serie 3" }]));
       }),
     );
 

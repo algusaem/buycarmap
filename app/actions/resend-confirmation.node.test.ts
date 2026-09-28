@@ -49,16 +49,15 @@ beforeEach(() => {
 
 describe("resendConfirmation", () => {
   it("rotates the token and emails a fresh link", async () => {
-    vi.mocked(prisma.pendingRegistration.findFirst).mockResolvedValue(
-      pending as never,
-    );
+    vi.mocked(prisma.pendingRegistration.findFirst).mockResolvedValue(pending as never);
 
-    expect(
-      await resendConfirmation(formData({ email: "ada@example.com" })),
-    ).toEqual({ success: true });
+    expect(await resendConfirmation(formData({ email: "ada@example.com" }))).toEqual({
+      success: true,
+    });
 
-    const updated = vi.mocked(prisma.pendingRegistration.update).mock
-      .calls[0][0] as { data: { tokenHash: string } };
+    const updated = vi.mocked(prisma.pendingRegistration.update).mock.calls[0][0] as {
+      data: { tokenHash: string };
+    };
     const sent = vi.mocked(sendEmail).mock.calls[0][0];
     const rawToken = decodeURIComponent(sent.text.match(/token=(\S+)/)![1]);
 
@@ -67,9 +66,7 @@ describe("resendConfirmation", () => {
   });
 
   it("updates in place rather than adding a row, so one link is live", async () => {
-    vi.mocked(prisma.pendingRegistration.findFirst).mockResolvedValue(
-      pending as never,
-    );
+    vi.mocked(prisma.pendingRegistration.findFirst).mockResolvedValue(pending as never);
 
     await resendConfirmation(formData({ email: "ada@example.com" }));
 
@@ -79,14 +76,13 @@ describe("resendConfirmation", () => {
   });
 
   it("never re-collects the password", async () => {
-    vi.mocked(prisma.pendingRegistration.findFirst).mockResolvedValue(
-      pending as never,
-    );
+    vi.mocked(prisma.pendingRegistration.findFirst).mockResolvedValue(pending as never);
 
     await resendConfirmation(formData({ email: "ada@example.com" }));
 
-    const updated = vi.mocked(prisma.pendingRegistration.update).mock
-      .calls[0][0] as { data: Record<string, unknown> };
+    const updated = vi.mocked(prisma.pendingRegistration.update).mock.calls[0][0] as {
+      data: Record<string, unknown>;
+    };
     // The hash from the original submission is reused untouched.
     expect(updated.data).not.toHaveProperty("password");
   });
@@ -96,9 +92,9 @@ describe("resendConfirmation", () => {
 
     // Identical to the found case: this must not become a second way to learn
     // whether an address has a signup in flight.
-    expect(
-      await resendConfirmation(formData({ email: "nobody@example.com" })),
-    ).toEqual({ success: true });
+    expect(await resendConfirmation(formData({ email: "nobody@example.com" }))).toEqual({
+      success: true,
+    });
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
@@ -107,20 +103,19 @@ describe("resendConfirmation", () => {
 
     await resendConfirmation(formData({ email: "ada@example.com" }));
 
-    const query = vi.mocked(prisma.pendingRegistration.findFirst).mock
-      .calls[0][0] as { where: { expiresAt: { gt: Date } } };
+    const query = vi.mocked(prisma.pendingRegistration.findFirst).mock.calls[0][0] as {
+      where: { expiresAt: { gt: Date } };
+    };
     // Resending would otherwise revive a signup the user abandoned days ago.
     expect(query.where.expiresAt.gt).toBeInstanceOf(Date);
   });
 
   it("returns success when the database throws", async () => {
-    vi.mocked(prisma.pendingRegistration.findFirst).mockRejectedValue(
-      new Error("database down"),
-    );
+    vi.mocked(prisma.pendingRegistration.findFirst).mockRejectedValue(new Error("database down"));
 
-    expect(
-      await resendConfirmation(formData({ email: "ada@example.com" })),
-    ).toEqual({ success: true });
+    expect(await resendConfirmation(formData({ email: "ada@example.com" }))).toEqual({
+      success: true,
+    });
   });
 
   it("refuses once the rate limit is spent", async () => {
@@ -130,9 +125,10 @@ describe("resendConfirmation", () => {
       retryAfterMs: 60_000,
     });
 
-    expect(
-      await resendConfirmation(formData({ email: "ada@example.com" })),
-    ).toEqual({ success: false, error: "rateLimited" });
+    expect(await resendConfirmation(formData({ email: "ada@example.com" }))).toEqual({
+      success: false,
+      error: "rateLimited",
+    });
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
