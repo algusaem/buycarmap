@@ -58,6 +58,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      # next dev imports the generated Prisma client; without it every page
+      # renders the Module-not-found overlay and nearly every test fails behind it.
+      - run: pnpm exec prisma generate
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

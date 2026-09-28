@@ -2,7 +2,7 @@
 
 Key: RULESET
 Status: Implemented
-Last updated: 2026-09-27
+Last updated: 2026-09-28
 
 ---
 
@@ -34,7 +34,9 @@ project rule that lost its enforcer in the move, or a deviation with no end.
   of `scripts/docs-check.mjs`.
 - CI on Node 22: the latest pnpm 11 (11.28 when this was written), which CI installs, no longer
   starts on Node 20, so no workflow could pass. Pulled forward from phase 3 by the owner (2026-09-27); phase 3 still pins the exact version. pnpm 11 also
-  replaced `onlyBuiltDependencies` with `allowBuilds`, so `pnpm-workspace.yaml` carries both.
+  replaced `onlyBuiltDependencies` with `allowBuilds`, so `pnpm-workspace.yaml` carries both. And the E2E job gains the
+  `prisma generate` step the unit job already had: without it `next dev` cannot resolve the generated
+  client and nearly every E2E test fails behind the error overlay.
 
 **Out of scope.**
 

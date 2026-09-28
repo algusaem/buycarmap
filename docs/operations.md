@@ -102,7 +102,7 @@ exist.
 | Job | Runs on | Does |
 | --- | --- | --- |
 | `unit` | push to master, pull requests | `lint` → `spec:check` → `docs:check` → `prisma generate` → `test:coverage` |
-| `e2e` | pull requests only | Playwright, chromium, uploads the report as an artifact |
+| `e2e` | pull requests only | `prisma generate` → Playwright, chromium; uploads the report as an artifact |
 | `contract-live` | nightly cron (04:00 UTC) | `test:contract:live` against the real upstream APIs |
 
 [`.github/workflows/alerts.yml`](../.github/workflows/alerts.yml) is not a test
