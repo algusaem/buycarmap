@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
 
 const SNAPSHOT_DIR = path.join(process.cwd(), "e2e", "visual.spec.ts-snapshots");

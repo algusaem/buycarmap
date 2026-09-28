@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
 import {
   FAVORITE_ERROR,
   type FavoriteErrorCode,

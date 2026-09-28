@@ -9,7 +9,7 @@ import { Heart, Car } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
 import { SourceBadge } from "@/components/map/SourceBadge";
 import { useTranslation } from "@/lib/i18n/client";
 import { removeFavorite, saveFavorite } from "@/app/actions/favorites";

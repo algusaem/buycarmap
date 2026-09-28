@@ -30,6 +30,9 @@ Split by environment, not by kind — see [`vitest.config.ts`](../vitest.config.
 **`node`** is opt-in **by filename**: `*.node.test.ts`. Route handlers and server
 actions need Node's real `Request`/`Response`, which jsdom does not provide.
 
+`pnpm test:unit` runs the `unit` (jsdom) project alone and `pnpm test:integration` the `node`
+project; the pre-commit hook runs the unit tests related to the staged files.
+
 Two entries in the `node` include list are worth knowing:
 
 - `proxy.node.test.ts` is listed explicitly, because Next's file convention
@@ -49,6 +52,7 @@ Two entries in the `node` include list are worth knowing:
 | `test/msw/server.ts` | The server instance |
 | `test/fixtures/*.ts` | Typed builders — `makeWallapopItem`, `makeCochesNetItem`, … |
 | `test/mocks/intersection-observer.ts` | Controllable IO; `triggerIntersection()` drives infinite scroll |
+| `test/mocks/next-image.tsx` | Stands in for next/image in jsdom tests: `vi.mock("next/image", () => import("@/test/mocks/next-image"))` |
 | `test/utils/render.tsx` | `renderWithI18n(ui)` |
 
 Override per-test with `server.use(...)`. Handlers reset in `afterEach`.
@@ -65,7 +69,8 @@ is the app default but makes assertions read strangely.
 `test/contract/*.contract.test.ts` are Zod schemas of the **external** shapes the
 normalizers read — not of our own types.
 
-- `pnpm test:contract` validates the fixtures offline. Runs in CI on every push.
+- `pnpm test:contract` validates the fixtures offline. Runs in CI inside `pnpm check`, on pushes
+  to master and on pull requests.
 - `pnpm test:contract:live` (`CONTRACT_LIVE=1`) hits the real APIs. **Runs
   nightly**, and is the alarm for an upstream changing shape.
 
@@ -116,12 +121,17 @@ typing to work.
 Spain-centre fallback is what you get), matchMedia and canvas. All are stubbed in
 `test/setup.jsdom.ts`.
 
+Motion runs with instant animations in jsdom (`test/setup.jsdom.ts`); tests assert end states, and
+animations are exercised by E2E.
+
 **Leaflet cannot run in jsdom.** Mock `react-leaflet` in component tests; render
 it for real only in Playwright.
 
 ## End-to-end
 
 `e2e/`, run against a real `next dev` server via Playwright's `webServer`.
+`E2E_PORT` (default 3000) sets the port Playwright starts the app on and reuses
+locally; set it when another app already listens on 3000.
 
 **The source proxies are mocked at the browser level** (`page.route`, in
 `e2e/fixtures/network.ts`), so e2e never touches live Wallapop, coches.net or

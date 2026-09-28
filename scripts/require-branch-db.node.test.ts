@@ -5,17 +5,7 @@ import { basename, join, resolve } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import * as guard from "./require-branch-db.mjs";
-
-const { checkBranchDatabase, findMainCheckout, touchesDatabase } = guard as unknown as {
-  checkBranchDatabase: (
-    worktreeUrl: string | undefined,
-    mainUrl: string | undefined,
-    isWorktree: boolean,
-  ) => string | null;
-  findMainCheckout: (cwd?: string) => string | null;
-  touchesDatabase: (command: string) => boolean;
-};
+import { checkBranchDatabase, findMainCheckout, touchesDatabase } from "./require-branch-db.mjs";
 
 const SHARED = "postgresql://user:pw@ep-shared.neon.tech/neondb";
 const BRANCH = "postgresql://user:pw@ep-branch.neon.tech/neondb";
@@ -78,7 +68,8 @@ describe("findMainCheckout", () => {
     const main = findMainCheckout(worktree);
 
     expect(main).not.toBeNull();
-    expect(resolve(main!).toLowerCase()).toBe(resolve(repo).toLowerCase());
+    if (!main) throw new Error("expected findMainCheckout to locate the main checkout");
+    expect(resolve(main).toLowerCase()).toBe(resolve(repo).toLowerCase());
   });
 
   it("returns null from the main checkout, which owns the shared database", () => {

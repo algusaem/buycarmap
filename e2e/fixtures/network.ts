@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // Deterministic proxy responses so e2e never touches live Wallapop/coches.net.
 // Kept intentionally small and self-contained (e2e can't import Vitest fixtures

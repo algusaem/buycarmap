@@ -4,9 +4,9 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getLocale } from "@/lib/i18n/server";
-import { isValidLocale, Locale } from "@/lib/i18n/config";
-import { AlertSummary } from "@/interfaces/alert";
-import { searchSchema, SearchInput } from "@/lib/validations/search";
+import { isValidLocale, type Locale } from "@/lib/i18n/config";
+import type { AlertSummary } from "@/interfaces/alert";
+import { searchSchema, type SearchInput } from "@/lib/validations/search";
 import {
   ALERT_ERROR,
   type AlertErrorCode,

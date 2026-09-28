@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterAll, afterEach, beforeAll, expect, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { MotionGlobalConfig } from "motion/react";
 import * as axeMatchers from "vitest-axe/matchers";
 import { server } from "./msw/server";
 import {
@@ -9,6 +10,10 @@ import {
 } from "./mocks/intersection-observer";
 
 expect.extend(axeMatchers);
+
+// Animations are verified in E2E; unit tests assert end states, so make
+// Motion's animations (including AnimatePresence exits) complete instantly.
+MotionGlobalConfig.skipAnimations = true;
 
 // --- MSW lifecycle: unhandled requests fail loudly so tests stay deterministic.
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));

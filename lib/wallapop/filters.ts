@@ -1,4 +1,4 @@
-import { WallapopFilterResponse } from "@/interfaces/wallapop";
+import type { WallapopFilterResponse } from "@/interfaces/wallapop";
 
 export async function fetchModelsByBrand(brand: string): Promise<WallapopFilterResponse> {
   const url = new URL("/api/wallapop/filters/models", window.location.origin);

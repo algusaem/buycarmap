@@ -10,7 +10,7 @@ import { useListingsSearch } from "@/lib/hooks/useListingsSearch";
 import { useSearchFilters } from "@/lib/hooks/useSearchFilters";
 import { useFavorites } from "@/lib/hooks/useFavorites";
 import { useTranslation } from "@/lib/i18n/client";
-import { SearchFiltersProps } from "@/components/map/SearchFilters";
+import type { SearchFiltersProps } from "@/components/map/SearchFilters";
 
 const ListingsMap = dynamic(
   () => import("@/components/map/ListingsMap").then((mod) => mod.ListingsMap),

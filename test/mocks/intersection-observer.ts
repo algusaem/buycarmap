@@ -18,16 +18,20 @@ export class ControlledIntersectionObserver implements IntersectionObserver {
   observe = () => {
     observers.push({ cb: this.cb, instance: this });
   };
-  unobserve = () => {};
-  disconnect = () => {};
+  unobserve = () => {
+    /* tests reset observers via resetIntersectionObservers instead */
+  };
+  disconnect = () => {
+    /* tests reset observers via resetIntersectionObservers instead */
+  };
   takeRecords = () => [];
 }
 
 /** Simulate every observed sentinel becoming visible. */
 export function triggerIntersection() {
-  observers.forEach(({ cb, instance }) =>
-    cb([{ isIntersecting: true } as IntersectionObserverEntry], instance),
-  );
+  observers.forEach(({ cb, instance }) => {
+    cb([{ isIntersecting: true } as IntersectionObserverEntry], instance);
+  });
 }
 
 export function resetIntersectionObservers() {

@@ -1,5 +1,5 @@
-import { WallapopSearchResponse } from "@/interfaces/wallapop";
-import { SearchInput } from "@/lib/validations/search";
+import type { WallapopSearchResponse } from "@/interfaces/wallapop";
+import type { SearchInput } from "@/lib/validations/search";
 import { getUserLocation } from "@/lib/geo/user-location";
 
 const BASE_URL = "/api/wallapop/search";
@@ -24,6 +24,25 @@ export interface WallapopQueryOptions {
   nextPage?: string;
 }
 
+function addWallapopRangeParams(params: SearchInput, searchParams: URLSearchParams): void {
+  if (params.minPrice) searchParams.set("min_sale_price", String(params.minPrice));
+  if (params.maxPrice) searchParams.set("max_sale_price", String(params.maxPrice));
+  if (params.minKm) searchParams.set("min_km", String(params.minKm));
+  if (params.maxKm) searchParams.set("max_km", String(params.maxKm));
+  if (params.minYear) searchParams.set("min_year", String(params.minYear));
+  if (params.maxYear) searchParams.set("max_year", String(params.maxYear));
+  if (params.minHorsePower) searchParams.set("min_horse_power", String(params.minHorsePower));
+  if (params.maxHorsePower) searchParams.set("max_horse_power", String(params.maxHorsePower));
+}
+
+function addWallapopAttributeParams(params: SearchInput, searchParams: URLSearchParams): void {
+  if (params.brand) searchParams.set("brand", params.brand);
+  if (params.model) searchParams.set("model", params.model);
+  if (params.engine?.length) searchParams.set("engine", params.engine.join(","));
+  if (params.gearbox?.length) searchParams.set("gearbox", params.gearbox.join(","));
+  if (params.timeFilter) searchParams.set("time_filter", params.timeFilter);
+}
+
 /**
  * Builds the Wallapop query. Shared by the browser client below and by the
  * server-side alert runner, which cannot use the client itself because this
@@ -46,19 +65,8 @@ export function buildWallapopQuery(
   url.searchParams.set("latitude", String(lat));
   url.searchParams.set("longitude", String(lng));
   if (distance) url.searchParams.set("distance_in_km", String(distance));
-  if (params.minPrice) url.searchParams.set("min_sale_price", String(params.minPrice));
-  if (params.maxPrice) url.searchParams.set("max_sale_price", String(params.maxPrice));
-  if (params.minKm) url.searchParams.set("min_km", String(params.minKm));
-  if (params.maxKm) url.searchParams.set("max_km", String(params.maxKm));
-  if (params.minYear) url.searchParams.set("min_year", String(params.minYear));
-  if (params.maxYear) url.searchParams.set("max_year", String(params.maxYear));
-  if (params.minHorsePower) url.searchParams.set("min_horse_power", String(params.minHorsePower));
-  if (params.maxHorsePower) url.searchParams.set("max_horse_power", String(params.maxHorsePower));
-  if (params.brand) url.searchParams.set("brand", params.brand);
-  if (params.model) url.searchParams.set("model", params.model);
-  if (params.engine?.length) url.searchParams.set("engine", params.engine.join(","));
-  if (params.gearbox?.length) url.searchParams.set("gearbox", params.gearbox.join(","));
-  if (params.timeFilter) url.searchParams.set("time_filter", params.timeFilter);
+  addWallapopRangeParams(params, url.searchParams);
+  addWallapopAttributeParams(params, url.searchParams);
   if (options.nextPage) url.searchParams.set("next_page", options.nextPage);
 
   return url.searchParams;

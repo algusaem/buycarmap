@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import type * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
@@ -8,9 +8,7 @@ import { cn } from "@/lib/utils";
 
 const Sheet = DialogPrimitive.Root;
 const SheetTrigger = DialogPrimitive.Trigger;
-const SheetClose = DialogPrimitive.Close;
 const SheetTitle = DialogPrimitive.Title;
-const SheetDescription = DialogPrimitive.Description;
 
 function SheetOverlay({
   className,
@@ -67,4 +65,4 @@ function SheetContent({ className, children, closeLabel, ...props }: SheetConten
   );
 }
 
-export { Sheet, SheetTrigger, SheetClose, SheetContent, SheetTitle, SheetDescription };
+export { Sheet, SheetTrigger, SheetContent, SheetTitle };

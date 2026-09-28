@@ -1,5 +1,5 @@
-import { CarListing } from "@/interfaces/listing";
-import { Locale } from "@/lib/i18n/config";
+import type { CarListing } from "@/interfaces/listing";
+import type { Locale } from "@/lib/i18n/config";
 import { getTranslationsSync } from "@/lib/i18n/server";
 import { escapeHtml, renderLayout, renderParagraph, renderRawLink } from "./layout";
 

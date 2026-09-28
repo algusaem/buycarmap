@@ -71,7 +71,9 @@ describe("requestPasswordReset action", () => {
     // Pull the raw token back out of the emailed link and derive what the row
     // should hold. Hand-deriving it this way proves the column holds a digest
     // and not the token — a leaked database yields no working links.
-    const rawToken = decodeURIComponent(emailed.text.match(/token=(\S+)/)![1]);
+    const tokenMatch = emailed.text.match(/token=(\S+)/);
+    if (!tokenMatch) throw new Error("expected a token in the emailed link");
+    const rawToken = decodeURIComponent(tokenMatch[1]);
 
     expect(stored.data.tokenHash).toBe(hashToken(rawToken));
     expect(stored.data.tokenHash).not.toBe(rawToken);

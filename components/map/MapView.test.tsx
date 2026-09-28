@@ -31,12 +31,7 @@ vi.mock("@/app/actions/favorites", () => ({
   removeFavorite: vi.fn(),
   listFavorites: vi.fn(async () => ({ success: true, data: [] })),
 }));
-vi.mock("next/image", () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img alt={alt} src={src} />
-  ),
-}));
+vi.mock("next/image", () => import("@/test/mocks/next-image"));
 
 // Leaflet cannot run in jsdom. MapView loads the map through next/dynamic, so
 // the stub stands in for the whole module and reports what it was handed.

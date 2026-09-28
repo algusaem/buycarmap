@@ -1,4 +1,4 @@
-import { test, expect, Locator, Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 
 // These three criteria are the ones jsdom cannot reach. Tailwind's `lg:hidden`
 // and `hidden lg:flex` do nothing without a layout engine, and neither does a
@@ -42,6 +42,10 @@ test("NAV-2: every navbar control on a phone is at least 44 by 44 pixels", async
   await page.setViewportSize(MOBILE);
   await page.goto("/");
   await waitForSessionToResolve(page);
+  // The cluster's `aria-hidden` flips before the accessibility tree that
+  // `getByRole(...).all()` reads catches up; waiting on the menu trigger
+  // (not the register link, so NAV-17 stays non-tautological) lets it settle.
+  await expect(page.getByRole("navigation").getByRole("button", { name: MENU })).toBeVisible();
 
   await assertTouchTargets(page.getByRole("navigation").first(), "bar");
 
@@ -58,6 +62,16 @@ test("NAV-2: every navbar control on a phone is at least 44 by 44 pixels", async
   // under parallel load — two workers contending for one dev server was enough
   // to measure an empty panel.
   await expect(menu.getByRole("button", { name: THEME })).toBeVisible();
+  // The Sheet slides in with a transform animation, and a bounding box read mid-
+  // animation can come out a sub-pixel short (43.99998px measured), so wait for it to finish.
+  await menu.evaluate((element) =>
+    Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+        .map((animation) => animation.finished),
+    ),
+  );
 
   await assertTouchTargets(menu, "menu");
 });
@@ -80,8 +94,9 @@ async function assertTouchTargets(root: Locator, label: string) {
     const name = (await control.textContent())?.trim() || "(unnamed)";
 
     expect(box, `${label}: ${name} has no box`).not.toBeNull();
-    expect(box!.width, `${label}: ${name} width`).toBeGreaterThanOrEqual(44);
-    expect(box!.height, `${label}: ${name} height`).toBeGreaterThanOrEqual(44);
+    if (!box) throw new Error(`${label}: ${name} has no box`);
+    expect(box.width, `${label}: ${name} width`).toBeGreaterThanOrEqual(44);
+    expect(box.height, `${label}: ${name} height`).toBeGreaterThanOrEqual(44);
   }
 }
 
@@ -134,11 +149,20 @@ test("NAV-9: the bar does not shift when the session resolves", async ({ page })
   const navAfter = await nav.boundingBox();
   const controlsAfter = await controls.boundingBox();
 
+  if (!navBefore) throw new Error("expected the nav to have a box before the session resolves");
+  if (!controlsBefore) {
+    throw new Error("expected the controls to have a box before the session resolves");
+  }
+  if (!navAfter) throw new Error("expected the nav to have a box after the session resolves");
+  if (!controlsAfter) {
+    throw new Error("expected the controls to have a box after the session resolves");
+  }
+
   // Same box, so nothing slides when the session lands. The cluster is
   // right-aligned, so a placeholder of the wrong width moves everything in it.
-  expect(navAfter!.height).toBe(navBefore!.height);
-  expect(controlsAfter!.width).toBe(controlsBefore!.width);
-  expect(controlsAfter!.x).toBe(controlsBefore!.x);
+  expect(navAfter.height).toBe(navBefore.height);
+  expect(controlsAfter.width).toBe(controlsBefore.width);
+  expect(controlsAfter.x).toBe(controlsBefore.x);
 });
 
 test("NAV-13: the menu trigger and the full control row swap at the breakpoint", async ({

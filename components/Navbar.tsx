@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useTranslation } from "@/lib/i18n/client";
-import { LOCALES, Locale } from "@/lib/i18n/config";
+import { LOCALES, type Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
 // Language names are conventionally written in their own language rather than
@@ -66,7 +66,13 @@ export function Navbar() {
             one that can be guessed before the session says otherwise. */}
         <div aria-hidden={isLoading} className={cn("flex items-center", isLoading && "invisible")}>
           {isLoading ? (
-            <SignedOutControls menuOpen={false} onMenuOpenChange={() => {}} pathname={pathname} />
+            <SignedOutControls
+              menuOpen={false}
+              onMenuOpenChange={() => {
+                /* aria-hidden and invisible while loading: the placeholder is never interactive */
+              }}
+              pathname={pathname}
+            />
           ) : session ? (
             <SignedInControls
               name={session.user.name || session.user.email}

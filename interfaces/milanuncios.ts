@@ -17,7 +17,7 @@ export interface MilanunciosLocation {
   region?: MilanunciosPlace;
 }
 
-export interface MilanunciosPrice {
+interface MilanunciosPrice {
   cashPrice?: { value: number; includeTaxes?: boolean };
   financedPrice?: { value: number };
 }

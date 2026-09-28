@@ -7,7 +7,7 @@ import { verifyTotp } from "./totp";
 // Shared by the login path and by the account actions, so the rules about
 // replay and single-use recovery codes cannot drift between them.
 
-export type TwoFactorMethod = "totp" | "recoveryCode";
+type TwoFactorMethod = "totp" | "recoveryCode";
 
 export interface TwoFactorCheck {
   valid: boolean;

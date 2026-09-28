@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
+import type { SearchInput } from "@/lib/validations/search";
 
 // Geolocation is a dependency of the mount sequence, not a thing these tests
 // are about — except MAP-14, which needs to control exactly when it resolves.
 // The default is an already-resolved promise, which is what jsdom produces
 // anyway (permission denied), so every other test behaves as before.
 const geo = vi.hoisted(() => ({
-  resolve: () => {},
+  resolve: () => {
+    /* placeholder default: MAP-14 replaces this with the real resolve function */
+  },
   promise: Promise.resolve(),
 }));
 vi.mock("@/lib/geo/user-location", () => ({
@@ -258,7 +261,7 @@ describe("useSearchFilters geolocation", () => {
 
   it("MAP-14: does not override a location the user chose first", async () => {
     pendingGeolocation();
-    const search = vi.fn();
+    const search = vi.fn<(params: SearchInput) => void>();
     const { result } = renderHook(() => useSearchFilters(search, () => ""));
     search.mockClear();
 
@@ -279,5 +282,20 @@ describe("useSearchFilters geolocation", () => {
     // silently drag the map back to wherever the user physically is.
     const withUserPosition = search.mock.calls.filter(([params]) => params.latitude !== 41.3874);
     expect(withUserPosition).toEqual([]);
+  });
+
+  it("MAP-21: does not re-search after unmounting before geolocation resolves", async () => {
+    pendingGeolocation();
+    const search = vi.fn();
+    const { unmount } = renderHook(() => useSearchFilters(search, () => ""));
+
+    unmount();
+
+    await act(async () => {
+      geo.resolve();
+      await geo.promise;
+    });
+
+    expect(search).toHaveBeenCalledTimes(1);
   });
 });

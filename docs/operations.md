@@ -101,22 +101,35 @@ exist.
 
 | Job | Runs on | Does |
 | --- | --- | --- |
-| `unit` | push to master, pull requests | `lint` → `spec:check` → `docs:check` → `prisma generate` → `test:coverage` |
-| `e2e` | pull requests only | `prisma generate` → Playwright, chromium; uploads the report as an artifact |
+| `check` | push to master, pull requests | `prisma generate` → `pnpm check`: lint → typecheck → test → build |
+| `gitleaks` | push to master, pull requests | gitleaks over the pushed commits |
+| `e2e` | pull requests only | `prisma generate` → Playwright, chromium, no retries; uploads the report as an artifact |
 | `contract-live` | nightly cron (04:00 UTC) | `test:contract:live` against the real upstream APIs |
 
 [`.github/workflows/alerts.yml`](../.github/workflows/alerts.yml) is not a test
 job — it is production scheduling. See [Alerts](#alerts) below.
 
-The static checks run **before** the suite because they fail in seconds.
-`docs:check` runs before `prisma generate` on purpose, so a fresh clone with no
-`app/generated/prisma` is the state it is proven under.
+[`.github/workflows/pr-title.yml`](../.github/workflows/pr-title.yml) checks that the pull request
+title is a Conventional Commit — it becomes the squash commit on master.
+[`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) opens and updates
+the release PR on every push to master; merging it tags the release and writes `CHANGELOG.md`,
+which is never edited by hand. Renovate (`renovate.json`) proposes dependency updates once the
+Renovate GitHub app is installed on the repository.
+
+`pnpm check` stops at the first failing stage, and its static checks come first because they fail
+in seconds. `prisma generate` runs before it because `typecheck` and the tests import the
+generated client.
 
 CI env vars are dummies — nothing connects to a real database or signs a real
 token. The secret is padded past 32 characters only to keep the length warning
 out of the logs.
 
 **`pnpm test:e2e:db` is not in CI.** See [testing.md](testing.md#the-database-backed-suite).
+
+**Branch protection on `master`**: the policy is [specs/core-tooling.md](specs/core-tooling.md) §4.
+The required checks are `Check`, `Secrets (gitleaks)`, `End-to-end (Playwright)` and `Conventional
+Commits title`. `.github/CODEOWNERS` requests the owner's review on every pull request, and
+`.github/pull_request_template.md` is the description `/check-pr` fills in.
 
 ## Alerts
 

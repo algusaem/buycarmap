@@ -24,7 +24,8 @@ describe("GET /api/wallapop/search", () => {
     expect(res.status).toBe(200);
     expect(received?.headers.get("x-deviceos")).toBe("0");
     expect(received?.headers.get("x-appversion")).toBe("85000");
-    const url = new URL(received!.url);
+    if (!received) throw new Error("expected the upstream request to have been captured");
+    const url = new URL(received.url);
     expect(url.searchParams.get("keywords")).toBe("golf");
     expect(url.searchParams.get("brand")).toBe("Seat");
   });
@@ -55,6 +56,7 @@ describe("GET upstream connection failure", () => {
     );
 
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: expect.stringContaining("failed") });
+    const body: { error: string } = await res.json();
+    expect(body).toEqual({ error: expect.stringContaining("failed") });
   });
 });

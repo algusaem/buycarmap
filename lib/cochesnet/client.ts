@@ -1,5 +1,5 @@
-import { CochesNetSearchResponse } from "@/interfaces/cochesnet";
-import { SearchInput } from "@/lib/validations/search";
+import type { CochesNetSearchResponse } from "@/interfaces/cochesnet";
+import type { SearchInput } from "@/lib/validations/search";
 import {
   mapBrandToMakeId,
   mapFuelTokensToIds,
@@ -27,20 +27,16 @@ export interface CochesNetFilters {
   vehicles?: { makeId: number; modelId?: number }[];
 }
 
-// coches.net's `time_filter` equivalent isn't wired; recency is left to the
-// site default ordering. Location is province/name based on their side, so we
-// don't send lat/lng — the map geocodes results client-side instead.
-export function buildCochesNetFilters(params: SearchInput): CochesNetFilters {
-  const filters: CochesNetFilters = {};
-
-  if (params.keywords) filters.searchText = params.keywords;
-
+function addPriceAndYearFilters(params: SearchInput, filters: CochesNetFilters): void {
   if (params.minPrice != null || params.maxPrice != null) {
     filters.price = { from: params.minPrice ?? null, to: params.maxPrice ?? null };
   }
   if (params.minYear != null || params.maxYear != null) {
     filters.year = { from: params.minYear ?? null, to: params.maxYear ?? null };
   }
+}
+
+function addKmAndHorsePowerFilters(params: SearchInput, filters: CochesNetFilters): void {
   if (params.minKm != null || params.maxKm != null) {
     filters.km = { from: params.minKm ?? null, to: params.maxKm ?? null };
   }
@@ -50,7 +46,9 @@ export function buildCochesNetFilters(params: SearchInput): CochesNetFilters {
       to: params.maxHorsePower ?? null,
     };
   }
+}
 
+function addFuelAndTransmissionFilters(params: SearchInput, filters: CochesNetFilters): void {
   if (params.engine?.length) {
     const ids = mapFuelTokensToIds(params.engine);
     if (ids.length) filters.fuelTypeIds = ids;
@@ -59,11 +57,27 @@ export function buildCochesNetFilters(params: SearchInput): CochesNetFilters {
     const id = mapTransmissionTokensToId(params.gearbox);
     if (id !== undefined) filters.transmissionTypeId = id;
   }
+}
 
+function addVehicleFilter(params: SearchInput, filters: CochesNetFilters): void {
   if (params.brand) {
     const makeId = mapBrandToMakeId(params.brand);
     if (makeId !== undefined) filters.vehicles = [{ makeId }];
   }
+}
+
+// coches.net's `time_filter` equivalent isn't wired; recency is left to the
+// site default ordering. Location is province/name based on their side, so we
+// don't send lat/lng — the map geocodes results client-side instead.
+export function buildCochesNetFilters(params: SearchInput): CochesNetFilters {
+  const filters: CochesNetFilters = {};
+
+  if (params.keywords) filters.searchText = params.keywords;
+
+  addPriceAndYearFilters(params, filters);
+  addKmAndHorsePowerFilters(params, filters);
+  addFuelAndTransmissionFilters(params, filters);
+  addVehicleFilter(params, filters);
 
   return filters;
 }

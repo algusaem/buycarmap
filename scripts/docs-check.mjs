@@ -18,10 +18,11 @@
 // Kept dependency-free, like spec-check.mjs and db-branch.mjs, so it runs in a
 // fresh worktree with no node_modules.
 
-import { execFileSync } from "node:child_process";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { trackedFiles as gitTrackedFiles } from "./git-files.mjs";
 
 // Docs are scanned for both links and source references. CLAUDE.md is in here
 // deliberately: it carries more path references than any doc, and the 2026-08-03
@@ -57,8 +58,8 @@ const OWNED_ROOT_FILE = /^([^/]+\.(tsx?|mjs|cjs)|\.env\.example)$/;
 // Assets have no prose to govern them.
 const NOT_SOURCE = /\.(ico|png|jpe?g|gif|svg|woff2?|ttf|webp)$/i;
 
-// Generated at build time and gitignored, so it is legitimately absent in a
-// fresh clone — which is exactly when this check runs in CI.
+// Generated and gitignored, so it is legitimately absent from a fresh clone
+// until `prisma generate` runs.
 const ALLOWED_MISSING = [/^app\/generated\//];
 
 const EXTENSION = /\.(tsx?|mjs|cjs|jsx?|json|md|prisma|css|ya?ml|example|sql)$/;
@@ -68,6 +69,12 @@ const EXTENSION = /\.(tsx?|mjs|cjs|jsx?|json|md|prisma|css|ya?ml|example|sql)$/;
 // (`docs/specs/<area>.md`) all name a shape, not a file.
 const IS_PATTERN = /[*{}<>$]/;
 
+/** @typedef {{ glob: string, doc: string }} OwnershipEntry */
+
+/**
+ * @param {string} p
+ * @returns {string}
+ */
 const posix = (p) => p.replace(/\\/g, "/");
 
 /**
@@ -76,6 +83,9 @@ const posix = (p) => p.replace(/\\/g, "/");
  * The directory trees in CLAUDE.md live in fences and are written relative to
  * their parent (`wallapop/search/route.ts`), so scanning them would produce
  * nothing but false positives.
+ *
+ * @param {string} markdown
+ * @returns {string}
  */
 export function stripFences(markdown) {
   const out = [];
@@ -97,6 +107,9 @@ export function stripFences(markdown) {
  * Removing punctuation leaves the spaces around it behind, so "Data & contracts"
  * anchors as `#data--contracts` with two. Collapsing here would reject that
  * perfectly valid link as pointing at a heading that does not exist.
+ *
+ * @param {string} heading
+ * @returns {string}
  */
 export function slugify(heading) {
   return heading
@@ -106,8 +119,13 @@ export function slugify(heading) {
     .replace(/\s/g, "-");
 }
 
+/**
+ * @param {string} markdown
+ * @returns {Set<string>}
+ */
 export function headingSlugs(markdown) {
   const slugs = new Set();
+  /** @type {Map<string, number>} */
   const seen = new Map();
   for (const [, text] of stripFences(markdown).matchAll(/^#{1,6}\s+(.+?)\s*$/gm)) {
     const base = slugify(text.replace(/`/g, ""));
@@ -119,7 +137,12 @@ export function headingSlugs(markdown) {
   return slugs;
 }
 
-/** `[text](target)` links, excluding external schemes and bare anchors handled separately. */
+/**
+ * `[text](target)` links, excluding external schemes and bare anchors handled separately.
+ *
+ * @param {string} markdown
+ * @returns {string[]}
+ */
 export function extractLinks(markdown) {
   const links = [];
   for (const [, , target] of stripFences(markdown).matchAll(
@@ -131,7 +154,12 @@ export function extractLinks(markdown) {
   return links;
 }
 
-/** Backticked strings that look like a path into this repository. */
+/**
+ * Backticked strings that look like a path into this repository.
+ *
+ * @param {string} markdown
+ * @returns {Set<string>}
+ */
 export function extractSourcePaths(markdown) {
   const paths = new Set();
   for (const [, code] of stripFences(markdown).matchAll(/`([^`\n]+)`/g)) {
@@ -146,7 +174,12 @@ export function extractSourcePaths(markdown) {
   return paths;
 }
 
-/** Converts a glob with `*` and `**` into an anchored regular expression. */
+/**
+ * Converts a glob with `*` and `**` into an anchored regular expression.
+ *
+ * @param {string} glob
+ * @returns {RegExp}
+ */
 export function globToRegExp(glob) {
   let out = "";
   for (let i = 0; i < glob.length; i++) {
@@ -171,6 +204,9 @@ export function globToRegExp(glob) {
  *
  * Rows look like `| \`lib/wallapop/**\` | [integrations/wallapop.md](…) |`, under
  * a heading whose slug contains "ownership".
+ *
+ * @param {string} markdown
+ * @returns {OwnershipEntry[]}
  */
 export function parseOwnership(markdown) {
   const lines = stripFences(markdown).split("\n");
@@ -192,6 +228,7 @@ export function parseOwnership(markdown) {
           })(),
         );
 
+  /** @type {OwnershipEntry[]} */
   const entries = [];
   for (const line of scope) {
     const match = line.match(/^\|\s*`([^`]+)`\s*\|\s*(.+?)\s*\|/);
@@ -209,6 +246,9 @@ export function parseOwnership(markdown) {
  * so the check goes green — would make the map lie, and the map is what
  * /check-all reads to decide which docs a change must touch. An explicit gap is
  * honest, stays visible in every run's output, and can be counted down.
+ *
+ * @param {string} doc
+ * @returns {boolean}
  */
 export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
 
@@ -227,12 +267,20 @@ export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
  * `Approved` is the one that looks safe to check and is not. Per the status
  * table in docs/specs/README.md it means the failing tests have landed and the
  * implementation has not, which is precisely when §5's paths are all absent.
+ *
+ * @param {string} file
+ * @param {string} text
+ * @returns {boolean}
  */
 export function isUnbuiltSpec(file, text) {
   if (!posix(file).startsWith("docs/specs/")) return false;
   return !/^Status:\s*Implemented\s*$/im.test(text);
 }
 
+/**
+ * @param {string} path
+ * @returns {Promise<boolean>}
+ */
 async function exists(path) {
   try {
     await stat(path);
@@ -255,6 +303,11 @@ const SKIP_DIRS = new Set([
   "blob-report",
 ]);
 
+/**
+ * @param {string} dir
+ * @param {string[]} [out]
+ * @returns {Promise<string[]>}
+ */
 async function walk(dir, out = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
@@ -268,7 +321,9 @@ async function walk(dir, out = []) {
   return out;
 }
 
+/** @returns {Promise<string[]>} */
 async function listRepoFiles() {
+  /** @type {string[]} */
   const files = [];
   for (const root of SOURCE_ROOTS) {
     if (await exists(root)) await walk(root, files);
@@ -282,6 +337,9 @@ async function listRepoFiles() {
  * `git ls-files` rather than a filesystem walk: it is exactly "what is in the
  * repository", so generated and gitignored output cannot drift into the list and
  * demand a doc. The same reasoning `db-branch.mjs` uses for shelling out to git.
+ *
+ * @param {string[]} tracked
+ * @returns {string[]}
  */
 export function ownableFiles(tracked) {
   return tracked.filter(
@@ -292,11 +350,9 @@ export function ownableFiles(tracked) {
   );
 }
 
+/** @returns {string[]} */
 function trackedFiles() {
-  return execFileSync("git", ["ls-files"], { encoding: "utf8" })
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map(posix);
+  return gitTrackedFiles().map(posix);
 }
 
 /**
@@ -305,6 +361,9 @@ function trackedFiles() {
  * Tests sit next to their subject by house convention, so they inherit its
  * governing doc. Without this, every single-file ownership row would need a twin
  * for its test — and the twin would be forgotten.
+ *
+ * @param {string} file
+ * @returns {string | null}
  */
 export function testSubject(file) {
   const match = file.match(/^(.*?)\.(?:node\.)?(?:test|spec)\.(tsx?)$/);
@@ -312,147 +371,241 @@ export function testSubject(file) {
   return `${match[1]}.${match[2]}`;
 }
 
-async function main() {
-  const problems = [];
-  const gaps = [];
+/** @typedef {(path: string) => Promise<Set<string>>} SlugsFor */
 
+/** @returns {Promise<{ markdownDocs: string[], sources: Map<string, string> }>} */
+async function loadScannedSources() {
   const docFiles = (await exists(DOC_DIR)) ? await walk(DOC_DIR) : [];
   const markdownDocs = docFiles.filter((f) => f.endsWith(".md"));
   const scanned = [...SCANNED, ...markdownDocs];
 
   // Read every scanned file once.
+  /** @type {Map<string, string>} */
   const sources = new Map();
   for (const file of scanned) {
     if (!(await exists(file))) continue;
     sources.set(posix(file), await readFile(file, "utf8"));
   }
 
+  return { markdownDocs, sources };
+}
+
+/**
+ * @param {Map<string, string>} sources
+ * @returns {SlugsFor}
+ */
+function createSlugsFor(sources) {
+  /** @type {Map<string, Set<string>>} */
   const slugCache = new Map();
-  const slugsFor = async (path) => {
-    if (slugCache.has(path)) return slugCache.get(path);
+  return async (path) => {
+    const cached = slugCache.get(path);
+    if (cached) return cached;
     const text = sources.get(path) ?? (await readFile(path, "utf8"));
     const slugs = headingSlugs(text);
     slugCache.set(path, slugs);
     return slugs;
   };
+}
 
-  // --- 1. Internal links resolve, anchors included -------------------------
+/**
+ * @param {string} file
+ * @param {string} link
+ * @param {SlugsFor} slugsFor
+ * @param {string[]} targets
+ * @param {string[]} problems
+ * @returns {Promise<void>}
+ */
+async function checkLink(file, link, slugsFor, targets, problems) {
+  const [rawPath, anchor] = link.split("#");
+  const target = rawPath ? posix(relative(process.cwd(), resolve(dirname(file), rawPath))) : file;
+
+  if (!(await exists(target))) {
+    problems.push(`${file} links to ${link}, which does not exist.`);
+    return;
+  }
+  targets.push(target);
+
+  if (anchor && target.endsWith(".md")) {
+    const slugs = await slugsFor(target);
+    if (!slugs.has(anchor.toLowerCase())) {
+      problems.push(`${file} links to ${link}, but ${target} has no heading "#${anchor}".`);
+    }
+  }
+}
+
+// --- 1. Internal links resolve, anchors included ---------------------------
+/**
+ * @param {Map<string, string>} sources
+ * @param {SlugsFor} slugsFor
+ * @param {string[]} problems
+ * @returns {Promise<Map<string, string[]>>}
+ */
+async function checkLinks(sources, slugsFor, problems) {
+  /** @type {Map<string, string[]>} */
   const linkGraph = new Map();
   for (const [file, text] of sources) {
+    /** @type {string[]} */
     const targets = [];
     for (const link of extractLinks(text)) {
-      const [rawPath, anchor] = link.split("#");
-      const target = rawPath
-        ? posix(relative(process.cwd(), resolve(dirname(file), rawPath)))
-        : file;
-
-      if (!(await exists(target))) {
-        problems.push(`${file} links to ${link}, which does not exist.`);
-        continue;
-      }
-      targets.push(target);
-
-      if (anchor && target.endsWith(".md")) {
-        const slugs = await slugsFor(target);
-        if (!slugs.has(anchor.toLowerCase())) {
-          problems.push(`${file} links to ${link}, but ${target} has no heading "#${anchor}".`);
-        }
-      }
+      await checkLink(file, link, slugsFor, targets, problems);
     }
     linkGraph.set(file, targets);
   }
+  return linkGraph;
+}
 
-  // --- 2. Backticked source paths exist ------------------------------------
+// --- 2. Backticked source paths exist ---------------------------------------
+/**
+ * @param {Map<string, string>} sources
+ * @param {string[]} problems
+ * @returns {Promise<void>}
+ */
+async function checkSourcePaths(sources, problems) {
   for (const [file, text] of sources) {
     if (isUnbuiltSpec(file, text)) continue;
     for (const path of extractSourcePaths(text)) {
       if (ALLOWED_MISSING.some((pattern) => pattern.test(path))) continue;
       if (!(await exists(path))) {
         problems.push(
-          `${file} refers to \`${path}\`, which does not exist. ` + `Was it moved or deleted?`,
+          `${file} refers to \`${path}\`, which does not exist. Was it moved or deleted?`,
         );
       }
     }
   }
+}
 
-  // --- 3. No orphaned docs -------------------------------------------------
-  if (await exists(INDEX)) {
-    const reachable = new Set();
-    const queue = [INDEX, ...SCANNED.filter((f) => sources.has(f))];
-    while (queue.length > 0) {
-      const current = queue.pop();
-      if (reachable.has(current)) continue;
-      reachable.add(current);
-      for (const target of linkGraph.get(current) ?? []) queue.push(target);
-    }
-    for (const doc of markdownDocs) {
-      if (reachable.has(doc)) continue;
-      problems.push(
-        `${doc} is not reachable by links from ${INDEX}. ` +
-          `An unlinked doc stops being read and starts being wrong — ` +
-          `add it to the index or delete it.`,
-      );
-    }
-  } else {
+// --- 3. No orphaned docs -----------------------------------------------------
+/**
+ * @param {Map<string, string>} sources
+ * @param {string[]} markdownDocs
+ * @param {Map<string, string[]>} linkGraph
+ * @param {string[]} problems
+ * @returns {Promise<void>}
+ */
+async function checkOrphanedDocs(sources, markdownDocs, linkGraph, problems) {
+  if (!(await exists(INDEX))) {
     problems.push(`${INDEX} is missing — it is the documentation index.`);
+    return;
   }
 
-  // --- 4. The ownership map is complete and resolves -----------------------
+  /** @type {Set<string>} */
+  const reachable = new Set();
+  /** @type {string[]} */
+  const queue = [INDEX, ...SCANNED.filter((f) => sources.has(f))];
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (current === undefined) break;
+    if (reachable.has(current)) continue;
+    reachable.add(current);
+    for (const target of linkGraph.get(current) ?? []) queue.push(target);
+  }
+  for (const doc of markdownDocs) {
+    if (reachable.has(doc)) continue;
+    problems.push(
+      `${doc} is not reachable by links from ${INDEX}. ` +
+        `An unlinked doc stops being read and starts being wrong — ` +
+        `add it to the index or delete it.`,
+    );
+  }
+}
+
+/**
+ * @param {OwnershipEntry} entry
+ * @param {string[]} repoFiles
+ * @param {string[]} problems
+ * @param {string[]} gaps
+ * @param {RegExp[]} patterns
+ * @returns {Promise<void>}
+ */
+async function processOwnershipEntry(entry, repoFiles, problems, gaps, patterns) {
+  const { glob, doc } = entry;
+  const pattern = globToRegExp(glob);
+  if (!repoFiles.some((file) => pattern.test(file))) {
+    problems.push(`${INDEX} maps \`${glob}\` to ${doc}, but that pattern matches no file.`);
+  }
+  if (isGap(doc)) {
+    gaps.push(glob);
+  } else {
+    const target = posix(relative(process.cwd(), resolve(dirname(INDEX), doc)));
+    if (!(await exists(target))) {
+      problems.push(`${INDEX} maps \`${glob}\` to ${doc}, which does not exist.`);
+    }
+  }
+  patterns.push(pattern);
+}
+
+/**
+ * @param {string[]} tracked
+ * @param {RegExp[]} patterns
+ * @param {string[]} problems
+ * @returns {void}
+ */
+function reportUnclaimedFiles(tracked, patterns, problems) {
+  // Every tracked source file, not merely every top-level directory. A
+  // colocated test is claimed by whatever claims the file it tests.
+  /** @param {string} file */
+  const isClaimed = (file) => patterns.some((pattern) => pattern.test(file));
+  const unclaimed = ownableFiles(tracked).filter((file) => {
+    if (isClaimed(file)) return false;
+    const subject = testSubject(file);
+    return !(subject && isClaimed(subject));
+  });
+
+  if (unclaimed.length > 0) {
+    const shown = unclaimed.slice(0, 12);
+    problems.push(
+      `${unclaimed.length} tracked source file(s) are covered by no entry in ` +
+        `${INDEX}'s ownership map:\n` +
+        shown.map((f) => `      ${f}`).join("\n") +
+        (unclaimed.length > shown.length
+          ? `\n      … and ${unclaimed.length - shown.length} more`
+          : "") +
+        `\n    Add a row naming the governing doc, or \`—\` if there is none yet.`,
+    );
+  }
+}
+
+// --- 4. The ownership map is complete and resolves ---------------------------
+/**
+ * @param {Map<string, string>} sources
+ * @param {string[]} problems
+ * @param {string[]} gaps
+ * @returns {Promise<void>}
+ */
+async function checkOwnershipMap(sources, problems, gaps) {
   const index = sources.get(INDEX);
-  if (index) {
-    const ownership = parseOwnership(index);
-    if (ownership.length === 0) {
-      problems.push(
-        `${INDEX} declares no ownership map. /check-all reads it to work out ` +
-          `which docs govern a change.`,
-      );
-    }
+  if (!index) return;
 
-    // Tracked files, plus anything walked from the source roots — the latter
-    // keeps a row valid when it names something legitimately untracked.
-    const tracked = trackedFiles();
-    const repoFiles = [...new Set([...tracked, ...(await listRepoFiles())])];
-    const patterns = [];
-
-    for (const { glob, doc } of ownership) {
-      const pattern = globToRegExp(glob);
-      if (!repoFiles.some((file) => pattern.test(file))) {
-        problems.push(`${INDEX} maps \`${glob}\` to ${doc}, but that pattern matches no file.`);
-      }
-      if (isGap(doc)) {
-        gaps.push(glob);
-      } else {
-        const target = posix(relative(process.cwd(), resolve(dirname(INDEX), doc)));
-        if (!(await exists(target))) {
-          problems.push(`${INDEX} maps \`${glob}\` to ${doc}, which does not exist.`);
-        }
-      }
-      patterns.push(pattern);
-    }
-
-    // Every tracked source file, not merely every top-level directory. A
-    // colocated test is claimed by whatever claims the file it tests.
-    const isClaimed = (file) => patterns.some((pattern) => pattern.test(file));
-    const unclaimed = ownableFiles(tracked).filter((file) => {
-      if (isClaimed(file)) return false;
-      const subject = testSubject(file);
-      return !(subject && isClaimed(subject));
-    });
-
-    if (unclaimed.length > 0) {
-      const shown = unclaimed.slice(0, 12);
-      problems.push(
-        `${unclaimed.length} tracked source file(s) are covered by no entry in ` +
-          `${INDEX}'s ownership map:\n` +
-          shown.map((f) => `      ${f}`).join("\n") +
-          (unclaimed.length > shown.length
-            ? `\n      … and ${unclaimed.length - shown.length} more`
-            : "") +
-          `\n    Add a row naming the governing doc, or \`—\` if there is none yet.`,
-      );
-    }
+  const ownership = parseOwnership(index);
+  if (ownership.length === 0) {
+    problems.push(
+      `${INDEX} declares no ownership map. /check-all reads it to work out ` +
+        `which docs govern a change.`,
+    );
   }
 
+  // Tracked files, plus anything walked from the source roots — the latter
+  // keeps a row valid when it names something legitimately untracked.
+  const tracked = trackedFiles();
+  const repoFiles = [...new Set([...tracked, ...(await listRepoFiles())])];
+  /** @type {RegExp[]} */
+  const patterns = [];
+
+  for (const entry of ownership) {
+    await processOwnershipEntry(entry, repoFiles, problems, gaps, patterns);
+  }
+
+  reportUnclaimedFiles(tracked, patterns, problems);
+}
+
+/**
+ * @param {string[]} problems
+ * @param {string[]} gaps
+ * @param {Map<string, string>} sources
+ * @param {string[]} markdownDocs
+ * @returns {void}
+ */
+function reportResult(problems, gaps, sources, markdownDocs) {
   if (problems.length > 0) {
     console.error("docs:check failed\n");
     for (const problem of problems) console.error(`  - ${problem}`);
@@ -469,6 +622,24 @@ async function main() {
     console.log(`\n${gaps.length} area(s) declared undocumented in ${INDEX}:`);
     for (const glob of gaps) console.log(`  - ${glob}`);
   }
+}
+
+/** @returns {Promise<void>} */
+async function main() {
+  /** @type {string[]} */
+  const problems = [];
+  /** @type {string[]} */
+  const gaps = [];
+
+  const { markdownDocs, sources } = await loadScannedSources();
+  const slugsFor = createSlugsFor(sources);
+
+  const linkGraph = await checkLinks(sources, slugsFor, problems);
+  await checkSourcePaths(sources, problems);
+  await checkOrphanedDocs(sources, markdownDocs, linkGraph, problems);
+  await checkOwnershipMap(sources, problems, gaps);
+
+  reportResult(problems, gaps, sources, markdownDocs);
 }
 
 // Guarded so the helpers above can be imported by the colocated test without

@@ -1,11 +1,12 @@
 import { timingSafeEqual } from "node:crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { appUrl, env, isEmailConfigured } from "@/lib/env";
 import { sendEmail } from "@/lib/email/client";
 import { renderAlertEmail } from "@/lib/email/templates/alert-emails";
 import { DEFAULT_LOCALE, isValidLocale } from "@/lib/i18n/config";
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
+import type { RunSummary } from "@/interfaces/alert";
 import { parseStoredCriteria } from "@/lib/validations/alerts";
 import { searchAllSources } from "@/lib/alerts/search";
 import { unsubscribeTokenFor } from "@/lib/alerts/unsubscribe-token";
@@ -31,26 +32,6 @@ const MAX_ATTEMPTS = 3;
 /** Deliberately longer than the interval: a failing upstream is polled less. */
 const BACKOFF_MINUTES = [5, 15, 45];
 const EMPTY_RUNS_BEFORE_UNHEALTHY = 3;
-
-interface RunSummary {
-  claimed: number;
-  polled: number;
-  matched: number;
-  emailed: number;
-  skippedNoEmail: number;
-  criteriaCount: number;
-  intervalMs: number;
-  oldestPendingAgeMs: number;
-  /**
-   * Sources that have returned nothing for several consecutive runs.
-   *
-   * Surfaced in the response rather than left in the table, because the failure
-   * this guards against is silent by construction: nobody goes looking for a
-   * source that has quietly stopped parsing.
-   */
-  unhealthySources: string[];
-  failures: string[];
-}
 
 function isAuthorised(request: NextRequest): boolean {
   const secret = env.ALERTS_CRON_SECRET;

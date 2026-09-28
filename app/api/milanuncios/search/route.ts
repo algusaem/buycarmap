@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { extractInitialProps } from "@/lib/milanuncios/parse";
 import { ALL_CARS_SLUG } from "@/lib/milanuncios/taxonomy";
 

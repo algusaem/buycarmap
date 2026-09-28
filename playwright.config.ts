@@ -64,11 +64,9 @@ export default defineConfig({
   // The DB-gated flows additionally open real connections, so they run serially.
   workers: process.env.E2E_DB ? 1 : 2,
   forbidOnly: !!process.env.CI,
-  // One local retry so a machine-contention flake is reported as "flaky"
-  // rather than "failed". Playwright still lists every retried test, so this
-  // classifies the noise instead of hiding it — a genuinely broken test fails
-  // both attempts and still goes red.
-  retries: process.env.CI ? 2 : 1,
+  // No retries: a flaky test is a broken test (STACK.md §16). Retrying would
+  // report machine-contention flakes as passing instead of surfacing them.
+  retries: 0,
   reporter: process.env.CI ? [["html"], ["list"]] : "list",
   // Pre-compiles every route so no test pays the cold-start cost. See the file.
   globalSetup: "./e2e/global-setup.ts",

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { WallapopFilterOption } from "@/interfaces/wallapop";
+import type { WallapopFilterOption } from "@/interfaces/wallapop";
 import { fetchModelsByBrand } from "@/lib/wallapop/filters";
 
 interface ModelsState {

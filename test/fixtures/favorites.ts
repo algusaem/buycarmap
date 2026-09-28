@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
 
 // A stored favorite: every CarListing field, snapshotted at save time (see
 // docs/specs/favorites.md §4), plus the row's own identity and ordering.

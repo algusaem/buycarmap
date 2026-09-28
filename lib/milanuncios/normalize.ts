@@ -1,5 +1,5 @@
-import { CarListing } from "@/interfaces/listing";
-import { MilanunciosAd, MilanunciosTag } from "@/interfaces/milanuncios";
+import type { CarListing } from "@/interfaces/listing";
+import type { MilanunciosAd, MilanunciosTag } from "@/interfaces/milanuncios";
 import { resolveMilanunciosCoords } from "@/lib/milanuncios/geo";
 
 const MILANUNCIOS_BASE_URL = "https://www.milanuncios.com";

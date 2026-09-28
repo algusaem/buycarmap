@@ -46,6 +46,7 @@ export function HeroBackground() {
         viewBox="0 0 1400 900"
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
       >
         {/* Converging perspective lines */}
         <g className="stroke-foreground/3" fill="none" strokeWidth="1">
@@ -80,7 +81,7 @@ export function HeroBackground() {
       />
 
       {/* Grain texture */}
-      <svg className="absolute inset-0 h-full w-full opacity-[0.025]">
+      <svg className="absolute inset-0 h-full w-full opacity-[0.025]" aria-hidden="true">
         <filter id="hero-noise">
           <feTurbulence
             type="fractalNoise"

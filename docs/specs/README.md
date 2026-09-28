@@ -41,7 +41,7 @@ Changing behaviour later means editing the spec *first*, then step 3 onward.
 
 ## Enforcement
 
-`pnpm spec:check` (in CI, next to `pnpm lint`) asserts that every acceptance
+`pnpm spec:check` (part of `pnpm lint`, so of `pnpm check`) asserts that every acceptance
 criterion in an `Approved` or `Implemented` spec is named by at least one test
 title, and that no test references a criterion that no longer exists.
 
@@ -96,4 +96,5 @@ solo project is ceremony.
 | [navbar.md](navbar.md) | NAV | Implemented | Navigation bar, mobile menu, account menu |
 | [core-rules-and-checks.md](core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
 | [core-mastermind.md](core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
+| [core-tooling.md](core-tooling.md) | TOOLING | Implemented | Migration phase 3: the verification contract and repository tooling |
 

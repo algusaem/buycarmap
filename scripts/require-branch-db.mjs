@@ -27,6 +27,9 @@ function git(args, cwd) {
  * In a linked worktree `--git-common-dir` points at the main checkout's .git
  * while `--git-dir` points at .git/worktrees/<name>; in the main checkout they
  * agree. Comparing them is how you tell without parsing `git worktree list`.
+ *
+ * @param {string} [cwd]
+ * @returns {string | null}
  */
 export function findMainCheckout(cwd = process.cwd()) {
   const gitDir = git(["rev-parse", "--absolute-git-dir"], cwd);
@@ -48,6 +51,9 @@ function readDatabaseUrl(dir) {
  * `prisma generate`, which only reads schema.prisma and never opens a
  * connection -- and a guard that fires on safe commands is a guard people
  * learn to bypass.
+ *
+ * @param {string} command
+ * @returns {boolean}
  */
 export function touchesDatabase(command) {
   if (!command) return false;
@@ -64,6 +70,11 @@ export function touchesDatabase(command) {
  * Returns a refusal message, or null when the command may proceed.
  *
  * Exported so the decision is testable without spawning anything.
+ *
+ * @param {string | undefined} worktreeUrl
+ * @param {string | undefined} mainUrl
+ * @param {boolean} isWorktree
+ * @returns {string | null}
  */
 export function checkBranchDatabase(worktreeUrl, mainUrl, isWorktree) {
   // The main checkout owns the shared database. Only worktrees need their own.

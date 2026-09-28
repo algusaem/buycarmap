@@ -5,7 +5,7 @@
 // /makes taxonomy and by sampling /search/listing.
 
 // Brand name (as listed in BRANDS) -> coches.net makeId.
-export const BRAND_TO_MAKE_ID: Record<string, number> = {
+const BRAND_TO_MAKE_ID: Record<string, number> = {
   "Alfa Romeo": 1,
   "Aston Martin": 3,
   Audi: 4,
@@ -44,7 +44,7 @@ export const BRAND_TO_MAKE_ID: Record<string, number> = {
 };
 
 // Wallapop fuel token (FUEL_OPTIONS value) -> coches.net fuelTypeId.
-export const FUEL_TOKEN_TO_ID: Record<string, number> = {
+const FUEL_TOKEN_TO_ID: Record<string, number> = {
   gasoline: 2, // Gasolina
   gasoil: 1, // Diésel
   "electric-hybrid": 3, // Eléctrico
@@ -57,7 +57,7 @@ export const FUEL_TOKEN_TO_ID: Record<string, number> = {
 // Wallapop transmission token (TRANSMISSION_OPTIONS value) -> coches.net id.
 // coches.net only distinguishes automatic (1) and manual (2); it has no
 // separate semi-automatic value, so that token maps to automatic.
-export const TRANSMISSION_TOKEN_TO_ID: Record<string, number> = {
+const TRANSMISSION_TOKEN_TO_ID: Record<string, number> = {
   automatic: 1,
   semiautomatic: 1,
   manual: 2,

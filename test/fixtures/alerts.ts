@@ -1,7 +1,7 @@
 import { vi } from "vitest";
-import { AlertSummary } from "@/interfaces/alert";
-import { CarListing } from "@/interfaces/listing";
-import { SearchInput } from "@/lib/validations/search";
+import type { AlertSummary } from "@/interfaces/alert";
+import type { CarListing } from "@/interfaces/listing";
+import type { SearchInput } from "@/lib/validations/search";
 
 // In-memory stand-ins for the six models in docs/specs/alerts.md §5.
 //
@@ -145,7 +145,10 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
   };
 
   let sequence = 0;
-  const nextId = (prefix: string) => `${prefix}-${(sequence += 1)}`;
+  const nextId = (prefix: string) => {
+    sequence += 1;
+    return `${prefix}-${sequence}`;
+  };
 
   // Models the subset of Prisma's `where` the alert code actually uses:
   // equality, `{ not }` and `{ in }`. Anything richer belongs in a real
@@ -296,7 +299,9 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
       updateMany: vi.fn(
         async ({ where, data }: { where: Partial<AlertRow>; data: Partial<AlertRow> }) => {
           const hit = t.alerts.filter((row) => matches(row, where));
-          hit.forEach((row) => Object.assign(row, data));
+          hit.forEach((row) => {
+            Object.assign(row, data);
+          });
           return { count: hit.length };
         },
       ),
@@ -381,7 +386,9 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
         }) => {
           const ids = where.id?.in;
           const hit = t.matches.filter((row) => (ids ? ids.includes(row.id) : matches(row, where)));
-          hit.forEach((row) => Object.assign(row, data));
+          hit.forEach((row) => {
+            Object.assign(row, data);
+          });
           return { count: hit.length };
         },
       ),
@@ -407,7 +414,9 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
         }) => {
           const ids = where.id?.in;
           const hit = t.jobs.filter((row) => (ids ? ids.includes(row.id) : matches(row, where)));
-          hit.forEach((row) => Object.assign(row, data));
+          hit.forEach((row) => {
+            Object.assign(row, data);
+          });
           return { count: hit.length };
         },
       ),

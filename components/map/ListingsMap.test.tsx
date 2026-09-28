@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import { renderWithI18n } from "@/test/utils/render";
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
 import { ListingsMap } from "./ListingsMap";
 
 vi.mock("next/navigation", () => ({

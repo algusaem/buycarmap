@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { forgotPasswordSchema, ForgotPasswordInput } from "@/lib/validations/auth";
+import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validations/auth";
 import { requestPasswordReset } from "@/app/actions/forgot-password";
 
 export function ForgotPasswordForm() {

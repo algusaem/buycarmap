@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 const WALLAPOP_URL = "https://api.wallapop.com/api/v3/search/filters/model";
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    const data: unknown = await response.json();
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ error: "Wallapop request failed" }, { status: 502 });

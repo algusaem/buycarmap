@@ -28,7 +28,8 @@ describe("GET /api/cochesnet/models", () => {
     const res = await GET(new NextRequest("http://localhost/api/cochesnet/models?makeId=4"));
 
     expect(res.status).toBe(200);
-    expect(new URL(received!.url).searchParams.get("makeId")).toBe("4");
+    if (!received) throw new Error("expected the upstream request to have been captured");
+    expect(new URL(received.url).searchParams.get("makeId")).toBe("4");
     expect(received?.headers.get("X-Schibsted-Tenant")).toBe("coches");
   });
 });
@@ -55,6 +56,7 @@ describe("GET upstream connection failure", () => {
     const res = await GET(new NextRequest("http://localhost:3000/api/cochesnet/models?makeId=101"));
 
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: expect.stringContaining("failed") });
+    const body: { error: string } = await res.json();
+    expect(body).toEqual({ error: expect.stringContaining("failed") });
   });
 });

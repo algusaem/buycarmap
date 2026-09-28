@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, BellRing } from "lucide-react";
-import { AlertMatch } from "@/interfaces/alert";
+import type { AlertMatch } from "@/interfaces/alert";
 import { CarListingCard } from "@/components/map/CarListingCard";
 import { useTranslation } from "@/lib/i18n/client";
 

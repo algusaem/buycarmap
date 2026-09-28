@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from "react";
 
-const emptySubscribe = () => () => {};
+const emptySubscribe = () => () => {
+  /* nothing to subscribe to: mounted state never changes after mount */
+};
 
 export function useMounted() {
   return useSyncExternalStore(

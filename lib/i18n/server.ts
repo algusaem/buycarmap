@@ -1,6 +1,6 @@
 import { cookies, headers } from "next/headers";
-import { COOKIE_NAME, DEFAULT_LOCALE, isValidLocale, Locale, LOCALES } from "./config";
-import { translations, Translations } from "./translations";
+import { COOKIE_NAME, DEFAULT_LOCALE, isValidLocale, type Locale, LOCALES } from "./config";
+import { translations, type Translations } from "./translations";
 
 function parseAcceptLanguage(header: string): Locale | null {
   const languages = header

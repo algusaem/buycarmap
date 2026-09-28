@@ -5,11 +5,14 @@ From a fresh clone to a running app. Roughly ten minutes, most of it waiting for
 
 ## Prerequisites
 
-- **Node 22.18+** (`STACK.md` §1; pnpm 11 itself needs 22.13) and **pnpm 11**. The lockfile is `pnpm-lock.yaml` and there is no
-  `package-lock.json` — npm and yarn will resolve a different tree.
+- **Node 22.18+** (`.nvmrc` pins the exact version; `STACK.md` §1) and **pnpm 11**, pinned in
+  `package.json`'s `packageManager` — an older pnpm hands the install over to it. The lockfile is
+  `pnpm-lock.yaml` and there is no `package-lock.json` — npm and yarn will resolve a different tree.
 - **A Neon Postgres database.** The free tier is enough. Nothing here runs
   against a local Postgres by default, because branch databases (below) are a
   Neon feature the workflow depends on.
+- **gitleaks** on your PATH — `winget install Gitleaks.Gitleaks` on Windows, `brew install gitleaks`
+  on macOS. The pre-commit hook runs it.
 
 ## The four steps
 
@@ -30,7 +33,7 @@ The Prisma client is generated into `app/generated/prisma`, which is gitignored.
 Nothing prompts you for it, and skipping it fails in a way that points at the
 wrong thing: **four test files fail at *import* while every test that does run
 passes.** That reads like an unrelated breakage rather than a missing bootstrap
-step. `pnpm build` runs it for you; `pnpm dev` and `pnpm test` do not.
+step. `pnpm build` runs it for you; `pnpm dev`, `pnpm typecheck` and `pnpm test` do not.
 
 ### The minimum env
 
@@ -123,10 +126,14 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | --- | --- |
 | `pnpm dev` | Dev server |
 | `pnpm build` | `prisma generate && next build` |
-| `pnpm lint` | ESLint |
-| `pnpm test` | Vitest — unit, hook, component, node, contract |
+| `pnpm check` | The verification contract: `lint` → `typecheck` → `test` → `build`, stopping at the first failure |
+| `pnpm check:full` | `check`, then `test:e2e` |
+| `pnpm lint` | Biome (lint and format), knip, `spec:check`, `docs:check`, `todo:check` |
+| `pnpm typecheck` | `tsc --noEmit` and type-coverage (minimum in `package.json` › `typeCoverage`) |
+| `pnpm test` | Vitest, both projects, with v8 coverage and the ratchet thresholds |
+| `pnpm test:unit` | The jsdom project alone |
+| `pnpm test:integration` | The node project alone (route handlers, actions, scripts, contracts) |
 | `pnpm test:watch` | Vitest in watch mode |
-| `pnpm test:coverage` | Vitest with v8 coverage and the ratchet thresholds |
 | `pnpm test:e2e` | Playwright, all three projects |
 | `pnpm test:e2e:db` | The database-backed e2e round trips. Needs `pnpm db:branch` first |
 | `pnpm test:visual` | Screenshot comparisons alone |
@@ -134,8 +141,25 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm test:contract:live` | The same, against the real upstream APIs |
 | `pnpm spec:check` | Every approved acceptance criterion is still named by a test |
 | `pnpm docs:check` | Doc links, referenced source paths, the ownership map |
+| `pnpm todo:check` | Every `TODO` comment names its issue (`#n`) |
 | `pnpm db:branch` | Give this git branch its own Neon database |
 | `pnpm db:branch:rm` | Delete it |
+
+## Git hooks
+
+Husky installs the hooks on `pnpm install` (the `prepare` script). See
+[specs/core-tooling.md](specs/core-tooling.md) TOOLING-6 for the contract these are checked against.
+
+**Pre-commit**: three steps — lint-staged (`biome check --write` on the staged files), then
+`vitest related --run --project unit` on the staged `.ts`/`.tsx`, then `gitleaks git --pre-commit
+--staged`.
+
+**Commit-msg**: commitlint checks the message is a Conventional Commit (`commitlint.config.mjs`).
+
+A failing hook is fixed, never skipped (`RULES.md` §3).
+
+Formatting-only commits are listed in `.git-blame-ignore-revs` — GitHub skips them in blame; run
+`git config blame.ignoreRevsFile .git-blame-ignore-revs` once for local `git blame`.
 
 ## Claude commands and checks
 
@@ -163,11 +187,14 @@ says which check owns each rule.
 ## When something is wrong
 
 **`ERR_PNPM_IGNORED_BUILDS` on install.** pnpm blocks dependency build scripts by
-default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml`
-under `allowBuilds` (pnpm 11) and `onlyBuiltDependencies` (pnpm 10). Add yours to both.
+default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` under `allowBuilds`
+([ADR 0009](decisions/0009-pnpm-pinned-allow-builds.md)). Add yours there.
 
 **Tests fail at import, mentioning `app/generated/prisma`.** Run
 `pnpm exec prisma generate`.
+
+**`gitleaks: command not found` when committing.** Install gitleaks (Prerequisites) and open a new
+shell so the PATH change applies.
 
 **`Invalid server environment`** at boot lists exactly which variables are
 missing. `lib/env.ts` is the schema.

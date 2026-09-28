@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { http, HttpResponse } from "msw";
+import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
 import { server } from "@/test/msw/server";
 import {
   makeMilanunciosAd,
@@ -36,7 +37,7 @@ describe("GET /api/milanuncios/search", () => {
     expect(received?.searchParams.get("palabras")).toBe("familiar");
     expect(received?.searchParams.has("slug")).toBe(false);
 
-    const body = await res.json();
+    const body: MilanunciosSearchResponse = await res.json();
     expect(body.ads[0].id).toBe("77");
     expect(body.pagination.totalPages).toBe(4);
   });

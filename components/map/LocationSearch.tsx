@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import * as motion from "motion/react-client";
+import { AnimatePresence, useIsPresent } from "motion/react";
 import { MapPin, X, Loader2 } from "lucide-react";
 import {
   Select,
@@ -11,7 +13,9 @@ import {
 } from "@/components/ui/select";
 import { useTranslation } from "@/lib/i18n/client";
 import { useLocationSearch } from "@/lib/hooks/useLocationSearch";
-import { SelectedLocation } from "@/interfaces/location";
+import { crossFade, dropdownReveal } from "@/lib/animations";
+import type { SelectedLocation } from "@/interfaces/location";
+import type { GeocodingResult } from "@/lib/geo/nominatim";
 
 const DISTANCE_OPTIONS = [
   { value: "10", labelKey: "km10" },
@@ -28,6 +32,91 @@ interface LocationSearchProps {
   onDistanceChange: (distance: number) => void;
 }
 
+interface LocationListboxProps {
+  ref?: React.Ref<HTMLDivElement>;
+  results: GeocodingResult[];
+  highlightedIndex: number;
+  onHighlight: (index: number) => void;
+  onSelect: (result: GeocodingResult) => void;
+}
+
+// While present, this is the interactive listbox. While AnimatePresence keeps
+// it mounted to animate it out, useIsPresent() flips and it renders the same
+// visuals inert: no role/id to claim the listbox semantics, aria-hidden so
+// screen readers skip it, and no onMouseDown so a click on a still-fading
+// option cannot select it (MAP-20).
+function LocationListbox({
+  ref,
+  results,
+  highlightedIndex,
+  onHighlight,
+  onSelect,
+}: LocationListboxProps) {
+  const isPresent = useIsPresent();
+
+  return (
+    <motion.div
+      ref={ref}
+      id={isPresent ? "location-listbox" : undefined}
+      role={isPresent ? "listbox" : undefined}
+      aria-hidden={isPresent ? undefined : "true"}
+      inert={isPresent ? undefined : true}
+      className={isPresent ? undefined : "pointer-events-none"}
+      {...crossFade}
+    >
+      {results.map((result, index) => (
+        <div
+          key={result.placeId}
+          tabIndex={-1}
+          className={`cursor-pointer px-3 py-2 text-sm ${
+            highlightedIndex === index
+              ? "bg-card text-foreground"
+              : "text-foreground hover:bg-card/50"
+          }`}
+          // Interactivity (role, selection state, hover and click) exists only
+          // while present. Spreading it means an exiting option has none of
+          // these props at all, rather than a role that resolves to nothing.
+          {...(isPresent
+            ? {
+                role: "option" as const,
+                "aria-selected": highlightedIndex === index,
+                onMouseEnter: () => onHighlight(index),
+                onMouseDown: (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  onSelect(result);
+                },
+              }
+            : {})}
+        >
+          <span className="line-clamp-1">{result.displayName}</span>
+        </div>
+      ))}
+    </motion.div>
+  );
+}
+
+interface LocationStatusProps {
+  ref?: React.Ref<HTMLParagraphElement>;
+  text: string;
+}
+
+// AnimatePresence renders an exiting child from the last element it had, so
+// once this is removed from the tree (statusText goes blank the instant the
+// listbox takes over) it keeps showing its last text rather than going blank
+// mid-fade — no manual "last value" bookkeeping needed here.
+function LocationStatus({ ref, text }: LocationStatusProps) {
+  return (
+    <motion.p
+      ref={ref}
+      aria-hidden="true"
+      className="px-3 py-2 text-sm text-muted-foreground"
+      {...crossFade}
+    >
+      {text}
+    </motion.p>
+  );
+}
+
 export function LocationSearch({
   selectedLocation,
   distanceInKm,
@@ -42,6 +131,12 @@ export function LocationSearch({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const showDropdown = isOpen && query.length >= 2;
+  const listboxOpen = showDropdown && !isSearching && results.length > 0;
+
+  let statusText = "";
+  if (showDropdown && !listboxOpen) {
+    statusText = isSearching ? t.map.loading : t.filters.noResults;
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -54,7 +149,7 @@ export function LocationSearch({
   }, []);
 
   const handleSelect = useCallback(
-    (result: { placeId: number; displayName: string; lat: number; lng: number }) => {
+    (result: GeocodingResult) => {
       onLocationChange({
         placeId: result.placeId,
         displayName: result.displayName,
@@ -74,7 +169,12 @@ export function LocationSearch({
   }, [onLocationChange, clear]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showDropdown) return;
+    // The listbox's own options are the only thing ArrowDown/ArrowUp/Enter can
+    // act on, so they are no-ops while it is hidden (loading, no results, or a
+    // still-loading refinement showing the previous options' stale indices).
+    const navigatesListbox = e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter";
+    if (navigatesListbox && !listboxOpen) return;
+    if (e.key === "Escape" && !showDropdown) return;
 
     switch (e.key) {
       case "ArrowDown":
@@ -141,48 +241,40 @@ export function LocationSearch({
                   placeholder={t.filters.locationPlaceholder}
                   className="flex h-10 w-full rounded-md border border-border/50 bg-card/50 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                   role="combobox"
-                  aria-expanded={showDropdown}
+                  aria-expanded={listboxOpen}
                   aria-autocomplete="list"
-                  aria-controls="location-listbox"
+                  aria-controls={listboxOpen ? "location-listbox" : undefined}
                   autoComplete="off"
                 />
               </div>
 
-              {showDropdown && (
-                <ul
-                  id="location-listbox"
-                  role="listbox"
-                  className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg"
-                >
-                  {results.length === 0 ? (
-                    <li className="px-3 py-2 text-sm text-muted-foreground">
-                      {isSearching ? t.map.loading : t.filters.noResults}
-                    </li>
-                  ) : (
-                    results.map((result, index) => (
-                      <li
-                        key={result.placeId}
-                        role="option"
-                        aria-selected={highlightedIndex === index}
-                        className={`cursor-pointer px-3 py-2 text-sm ${
-                          highlightedIndex === index
-                            ? "bg-card text-foreground"
-                            : "text-foreground hover:bg-card/50"
-                        }`}
-                        onMouseEnter={() => setHighlightedIndex(index)}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          handleSelect(result);
-                        }}
-                      >
-                        <span className="line-clamp-1">{result.displayName}</span>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              )}
+              <p role="status" aria-live="polite" className="sr-only">
+                {statusText}
+              </p>
             </>
           )}
+
+          <AnimatePresence>
+            {showDropdown && (
+              <motion.div
+                className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg"
+                {...dropdownReveal}
+              >
+                <AnimatePresence mode="popLayout" initial={false} propagate>
+                  {!listboxOpen && <LocationStatus key="status" text={statusText} />}
+                  {listboxOpen && (
+                    <LocationListbox
+                      key="listbox"
+                      results={results}
+                      highlightedIndex={highlightedIndex}
+                      onHighlight={setHighlightedIndex}
+                      onSelect={handleSelect}
+                    />
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Distance select */}

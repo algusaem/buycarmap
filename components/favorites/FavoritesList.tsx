@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { CarListing } from "@/interfaces/listing";
+import type { CarListing } from "@/interfaces/listing";
 import { CarListingCard } from "@/components/map/CarListingCard";
 import { useTranslation } from "@/lib/i18n/client";
 

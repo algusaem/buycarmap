@@ -192,7 +192,9 @@ describe("LoginForm two-factor step", () => {
     await waitFor(() => expect(codeField()).toBeInTheDocument());
 
     signIn.mockResolvedValueOnce({ error: null, ok: true });
-    await userEvent.type(codeField()!, "123456");
+    const codeInput = codeField();
+    if (!codeInput) throw new Error("expected the 6-digit code field to be present");
+    await userEvent.type(codeInput, "123456");
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() =>

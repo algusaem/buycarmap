@@ -30,7 +30,7 @@ Inside `/check-all` this paragraph does not apply: there the agent running this 
 
 - A new tracked source file (outside `app/generated/`) that no row of the ownership map claims → BLOCKER: `pnpm docs:check` fails on it.
 - A row pointing at a doc that doesn't exist, or a glob that matches nothing → BLOCKER.
-- A changed doc with a link or anchor that doesn't resolve, or a backticked source path that doesn't exist → BLOCKER. (`pnpm docs:check` finds these mechanically and is part of the project's verification — `pnpm check` from phase 3, the list in `CLAUDE.md` › Commands until then — which `check-verify` runs. Report what you see in the diff; don't run it.)
+- A changed doc with a link or anchor that doesn't resolve, or a backticked source path that doesn't exist → BLOCKER. (`pnpm docs:check` finds these mechanically and is part of the project's verification — `pnpm check` — which `check-verify` runs. Report what you see in the diff; don't run it.)
 - A new doc not reachable by links from `docs/README.md` → BLOCKER.
 
 ## Definition of done

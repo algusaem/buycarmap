@@ -1,5 +1,5 @@
 import { getCityCoordinates, SPAIN_CENTER } from "@/lib/geo/cities";
-import { MilanunciosLocation, MilanunciosPlace } from "@/interfaces/milanuncios";
+import type { MilanunciosLocation, MilanunciosPlace } from "@/interfaces/milanuncios";
 
 interface Coordinates {
   lat: number;

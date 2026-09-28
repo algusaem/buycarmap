@@ -1,5 +1,5 @@
-import { CarListing } from "@/interfaces/listing";
-import { WallapopItem } from "@/interfaces/wallapop";
+import type { CarListing } from "@/interfaces/listing";
+import type { WallapopItem } from "@/interfaces/wallapop";
 import { getCityCoordinates } from "@/lib/geo/cities";
 
 const WALLAPOP_BASE_URL = "https://es.wallapop.com/item";

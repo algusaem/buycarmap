@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { MotionGlobalConfig } from "motion/react";
 import { axe } from "vitest-axe";
 import { server } from "@/test/msw/server";
 import { renderWithI18n } from "@/test/utils/render";
-import { SelectedLocation } from "@/interfaces/location";
+import type { SelectedLocation } from "@/interfaces/location";
 import { LocationSearch } from "./LocationSearch";
 
 vi.mock("next/navigation", () => ({
@@ -28,6 +30,41 @@ const MADRID: SelectedLocation = {
 const QUERY_PLACEHOLDER = /^City or address/;
 const queryBox = () => screen.getByPlaceholderText(QUERY_PLACEHOLDER);
 const madridOption = () => screen.findByRole("option", { name: MADRID.displayName });
+
+/** A search that never resolves, so the caller stays in its loading state. */
+function holdNominatimPending() {
+  server.use(
+    http.get(
+      "https://nominatim.openstreetmap.org/search",
+      () =>
+        new Promise(() => {
+          /* never resolves */
+        }),
+    ),
+  );
+}
+
+/**
+ * Runs `run` with Motion's real exit animation enabled instead of the
+ * jsdom-wide `skipAnimations` from `test/setup.jsdom.ts`, restoring it
+ * afterwards even if `run` throws.
+ *
+ * A frozen clock (`vi.useFakeTimers({ toFake: ["requestAnimationFrame",
+ * "cancelAnimationFrame", "performance"] })`) was tried so the 0.3s exit
+ * could never complete mid-test, but Motion's exit timing in jsdom rides a
+ * real `setTimeout`, not the faked rAF/performance clock: a probe that waited
+ * a real second with the clock frozen still found the option gone. So this
+ * only toggles `skipAnimations`; the three tests below stay correct because
+ * their assertions run synchronously, before the real 0.3s exit can finish.
+ */
+async function withAnimations(run: () => Promise<void>) {
+  MotionGlobalConfig.skipAnimations = false;
+  try {
+    await run();
+  } finally {
+    MotionGlobalConfig.skipAnimations = true;
+  }
+}
 
 function renderLocationSearch(
   overrides: Partial<React.ComponentProps<typeof LocationSearch>> = {},
@@ -69,7 +106,12 @@ describe("LocationSearch suggestions", () => {
 
     await userEvent.type(queryBox(), "Nowhereville");
 
-    expect(await screen.findByText("No locations found")).toBeInTheDocument();
+    // The text renders twice: the always-mounted sr-only status region and
+    // the visible, aria-hidden line inside the dropdown.
+    const matches = await screen.findAllByText("No locations found");
+    expect(matches).toHaveLength(2);
+    expect(screen.getByRole("status")).toHaveTextContent("No locations found");
+    expect(matches.some((el) => el.getAttribute("aria-hidden") === "true")).toBe(true);
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
 
@@ -150,5 +192,177 @@ describe("LocationSearch distance", () => {
     const { container } = renderLocationSearch();
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe("LocationSearch suggestions accessibility", () => {
+  it("MAP-20: has no accessibility violations with a result showing", async () => {
+    const { container } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("MAP-20: has no accessibility violations with no results", async () => {
+    server.use(http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.json([])));
+    const { container } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Nowhereville");
+    await screen.findAllByText("No locations found");
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("MAP-20: renders no listbox when the search has no results", async () => {
+    server.use(http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.json([])));
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Nowhereville");
+    await screen.findAllByText("No locations found");
+
+    expect(queryBox()).toHaveAttribute("aria-expanded", "false");
+    expect(queryBox()).not.toHaveAttribute("aria-controls");
+    expect(screen.getByRole("status")).toHaveTextContent("No locations found");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("MAP-20: points the combobox at the listbox once results arrive", async () => {
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    expect(queryBox()).toHaveAttribute("aria-controls", "location-listbox");
+    expect(queryBox()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("listbox")).toHaveAttribute("id", "location-listbox");
+  });
+
+  it("MAP-20: the status region is mounted before any search", async () => {
+    renderLocationSearch();
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("");
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    expect(screen.getByRole("status")).toBe(status);
+  });
+
+  it("MAP-20: while loading, no listbox and the status reads Loading…", async () => {
+    holdNominatimPending();
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading…");
+    expect(queryBox()).toHaveAttribute("aria-expanded", "false");
+    expect(queryBox()).not.toHaveAttribute("aria-controls");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("MAP-20: typing again hides the previous options while the new search loads", async () => {
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    holdNominatimPending();
+    await userEvent.type(queryBox(), " y");
+
+    expect(queryBox()).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("Loading…");
+  });
+
+  it("MAP-20: while a new search loads, ArrowDown then Enter selects nothing", async () => {
+    const { props } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    holdNominatimPending();
+    await userEvent.type(queryBox(), " y");
+
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+
+    // The hidden options from the previous search are not selectable, so no
+    // location is ever reported back — the chip that would replace this box
+    // is driven entirely by that call.
+    expect(props.onLocationChange).not.toHaveBeenCalled();
+    expect(queryBox()).toHaveValue("Madrid y");
+  });
+
+  it("MAP-20: while the previous options animate out, they are not a listbox and a click selects nothing", async () => {
+    // The other tests in this file run with Motion's animations skipped
+    // (test/setup.jsdom.ts), so an exiting element is unmounted at once and
+    // there is nothing mid-fade to assert against. This is the one test that
+    // needs the exit to actually still be in flight.
+    await withAnimations(async () => {
+      const { props } = renderLocationSearch();
+
+      await userEvent.type(queryBox(), "Madrid");
+      const option = await madridOption();
+
+      holdNominatimPending();
+      await userEvent.type(queryBox(), " y");
+
+      expect(screen.queryByRole("listbox")).toBeNull();
+
+      // `option` still points at the fading node: same element, mid-exit.
+      expect(option).toBeInTheDocument();
+      fireEvent.mouseDown(option);
+
+      expect(props.onLocationChange).not.toHaveBeenCalled();
+    });
+  });
+
+  it("MAP-20: after Escape, the fading options are not a listbox and a click selects nothing", async () => {
+    await withAnimations(async () => {
+      const { props } = renderLocationSearch();
+
+      await userEvent.type(queryBox(), "Madrid");
+      const option = await madridOption();
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(screen.queryByRole("listbox")).toBeNull();
+      // `option` still points at the fading node: same element, mid-exit.
+      expect(option).toBeInTheDocument();
+      fireEvent.mouseDown(option);
+
+      expect(props.onLocationChange).not.toHaveBeenCalled();
+    });
+  });
+
+  it("MAP-20: after selecting an option, the fading dropdown is not a listbox", async () => {
+    await withAnimations(async () => {
+      function ControlledLocationSearch() {
+        const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | undefined>();
+        return (
+          <LocationSearch
+            selectedLocation={selectedLocation}
+            distanceInKm={50}
+            onLocationChange={setSelectedLocation}
+            onDistanceChange={vi.fn()}
+          />
+        );
+      }
+      renderWithI18n(<ControlledLocationSearch />);
+
+      await userEvent.type(queryBox(), "Madrid");
+      const option = await madridOption();
+
+      await userEvent.click(option);
+
+      // The chip has replaced the search box…
+      expect(screen.getByRole("button", { name: "Clear filters" })).toBeInTheDocument();
+      // …but the dropdown is still fading out: the same node is still in the
+      // document, no longer a listbox, until its exit animation finishes.
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(option).toBeInTheDocument();
+    });
   });
 });
