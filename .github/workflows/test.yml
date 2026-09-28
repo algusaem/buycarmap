@@ -8,6 +8,9 @@ on:
     # Nightly upstream-drift check against the real Wallapop/coches.net APIs.
     - cron: "0 4 * * *"
 
+permissions:
+  contents: read
+
 # Dummy values so `prisma generate` + `next build` don't fail on missing env —
 # lib/env.ts validates these at import and refuses to boot without them.
 # Nothing here connects to a real database or signs a real token. The secret is
@@ -38,6 +41,13 @@ jobs:
     name: Secrets (gitleaks)
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    # gitleaks-action's own GITHUB_TOKEN use is a pulls-create-review-comment
+    # call to comment on the PR (its README, "Environment Variables" ›
+    # GITHUB_TOKEN) — contents: read for the checkout below, pull-requests:
+    # write for that comment.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
         with:

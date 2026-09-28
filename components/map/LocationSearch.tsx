@@ -141,44 +141,44 @@ export function LocationSearch({
                   placeholder={t.filters.locationPlaceholder}
                   className="flex h-10 w-full rounded-md border border-border/50 bg-card/50 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                   role="combobox"
-                  aria-expanded={showDropdown}
+                  aria-expanded={showDropdown && results.length > 0}
                   aria-autocomplete="list"
-                  aria-controls="location-listbox"
+                  aria-controls={
+                    showDropdown && results.length > 0 ? "location-listbox" : undefined
+                  }
                   autoComplete="off"
                 />
               </div>
 
               {showDropdown && (
-                <div
-                  id="location-listbox"
-                  role="listbox"
-                  className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg"
-                >
+                <div className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg">
                   {results.length === 0 ? (
-                    <li className="px-3 py-2 text-sm text-muted-foreground">
+                    <p role="status" className="px-3 py-2 text-sm text-muted-foreground">
                       {isSearching ? t.map.loading : t.filters.noResults}
-                    </li>
+                    </p>
                   ) : (
-                    results.map((result, index) => (
-                      <div
-                        key={result.placeId}
-                        role="option"
-                        tabIndex={-1}
-                        aria-selected={highlightedIndex === index}
-                        className={`cursor-pointer px-3 py-2 text-sm ${
-                          highlightedIndex === index
-                            ? "bg-card text-foreground"
-                            : "text-foreground hover:bg-card/50"
-                        }`}
-                        onMouseEnter={() => setHighlightedIndex(index)}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          handleSelect(result);
-                        }}
-                      >
-                        <span className="line-clamp-1">{result.displayName}</span>
-                      </div>
-                    ))
+                    <div id="location-listbox" role="listbox">
+                      {results.map((result, index) => (
+                        <div
+                          key={result.placeId}
+                          role="option"
+                          tabIndex={-1}
+                          aria-selected={highlightedIndex === index}
+                          className={`cursor-pointer px-3 py-2 text-sm ${
+                            highlightedIndex === index
+                              ? "bg-card text-foreground"
+                              : "text-foreground hover:bg-card/50"
+                          }`}
+                          onMouseEnter={() => setHighlightedIndex(index)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSelect(result);
+                          }}
+                        >
+                          <span className="line-clamp-1">{result.displayName}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}

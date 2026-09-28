@@ -57,8 +57,8 @@ const OWNED_ROOT_FILE = /^([^/]+\.(tsx?|mjs|cjs)|\.env\.example)$/;
 // Assets have no prose to govern them.
 const NOT_SOURCE = /\.(ico|png|jpe?g|gif|svg|woff2?|ttf|webp)$/i;
 
-// Generated at build time and gitignored, so it is legitimately absent in a
-// fresh clone — which is exactly when this check runs in CI.
+// Generated and gitignored, so it is legitimately absent from a fresh clone
+// until `prisma generate` runs.
 const ALLOWED_MISSING = [/^app\/generated\//];
 
 const EXTENSION = /\.(tsx?|mjs|cjs|jsx?|json|md|prisma|css|ya?ml|example|sql)$/;

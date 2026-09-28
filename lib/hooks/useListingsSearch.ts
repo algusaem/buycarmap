@@ -82,16 +82,18 @@ interface SourcePageState {
 // Normalizes the three Promise.allSettled results into one merged, filtered
 // listing set, and hands back each structured source's raw response so the
 // per-source page-state helpers below don't have to re-derive it.
+interface RoundCollection {
+  listings: CarListing[];
+  cnData: CochesNetSearchResponse | null;
+  mnData: MilanunciosSearchResponse | null;
+}
+
 function collectRoundResults(
   wpResult: PromiseSettledResult<WallapopSearchResponse | null>,
   cnResult: PromiseSettledResult<CochesNetSearchResponse | null>,
   mnResult: PromiseSettledResult<MilanunciosSearchResponse | null>,
   params: SearchInput,
-): {
-  listings: CarListing[];
-  cnData: CochesNetSearchResponse | null;
-  mnData: MilanunciosSearchResponse | null;
-} {
+): RoundCollection {
   const wpItems =
     wpResult.status === "fulfilled" && wpResult.value
       ? normalizeWallapopItems(wpResult.value.data?.section?.items ?? [])
@@ -122,28 +124,47 @@ function nextWallapopPage(
     : null;
 }
 
-function nextCochesNetPageState(
+function nextPageState(
   wasRequested: boolean,
-  cnData: CochesNetSearchResponse | null,
+  itemCount: number | null,
+  totalPages: number | undefined,
   previousPage: number,
   previousHasMore: boolean,
 ): SourcePageState {
   if (!wasRequested) return { page: previousPage, hasMore: previousHasMore };
   const page = previousPage + 1;
-  const hasMore = !!cnData && cnData.items.length > 0 && page < (cnData.meta?.totalPages ?? 1);
+  const hasMore = itemCount !== null && itemCount > 0 && page < (totalPages ?? 1);
   return { page, hasMore };
 }
 
-function nextMilanunciosPageState(
-  wasRequested: boolean,
+// The page state after the first round from every source, before any
+// pagination has happened.
+function initialPageState(
+  wpResult: PromiseSettledResult<WallapopSearchResponse | null>,
+  cnData: CochesNetSearchResponse | null,
   mnData: MilanunciosSearchResponse | null,
-  previousPage: number,
-  previousHasMore: boolean,
-): SourcePageState {
-  if (!wasRequested) return { page: previousPage, hasMore: previousHasMore };
-  const page = previousPage + 1;
-  const hasMore = !!mnData && mnData.ads.length > 0 && page < (mnData.pagination?.totalPages ?? 1);
-  return { page, hasMore };
+): PageState {
+  const cnNext = nextPageState(
+    true,
+    cnData ? cnData.items.length : null,
+    cnData?.meta?.totalPages,
+    0,
+    false,
+  );
+  const mnNext = nextPageState(
+    true,
+    mnData ? mnData.ads.length : null,
+    mnData?.pagination?.totalPages,
+    0,
+    false,
+  );
+  return {
+    wallapopNext: nextWallapopPage(true, wpResult, null),
+    cochesNetPage: cnNext.page,
+    cochesNetHasMore: cnNext.hasMore,
+    milanunciosPage: mnNext.page,
+    milanunciosHasMore: mnNext.hasMore,
+  };
 }
 
 interface InitialFetchResult {
@@ -170,6 +191,14 @@ async function fetchInitialResults(params: SearchInput): Promise<InitialFetchRes
   return { wpResult, cnResult, mnResult, allRejected };
 }
 
+interface CachedSearchContext {
+  searchVersionRef: { current: number };
+  pageRef: { current: PageState };
+  lastParamsRef: { current: SearchInput | null };
+  setHasMore: (value: boolean) => void;
+  setListings: (value: CarListing[]) => void;
+}
+
 // A cache hit only ever holds page 1, so applying it resets pagination to
 // this query — else the sentinel would keep paging with the previous
 // search's params. Skipped entirely when a newer search has superseded this
@@ -178,17 +207,13 @@ function applyCachedSearch(
   cached: CarListing[],
   params: SearchInput,
   version: number,
-  searchVersionRef: { current: number },
-  pageRef: { current: PageState },
-  lastParamsRef: { current: SearchInput | null },
-  setHasMore: (value: boolean) => void,
-  setListings: (value: CarListing[]) => void,
+  ctx: CachedSearchContext,
 ): void {
-  if (searchVersionRef.current !== version) return;
-  pageRef.current = EMPTY_PAGE;
-  lastParamsRef.current = params;
-  setHasMore(false);
-  setListings(cached);
+  if (ctx.searchVersionRef.current !== version) return;
+  ctx.pageRef.current = EMPTY_PAGE;
+  ctx.lastParamsRef.current = params;
+  ctx.setHasMore(false);
+  ctx.setListings(cached);
 }
 
 // One round of pagination: the next page from every source that still has one,
@@ -209,15 +234,17 @@ async function fetchNextRound(params: SearchInput, state: PageState): Promise<Ro
   ]);
 
   const { listings, cnData, mnData } = collectRoundResults(wpResult, cnResult, mnResult, params);
-  const cnNext = nextCochesNetPageState(
+  const cnNext = nextPageState(
     cnPromise !== null,
-    cnData,
+    cnData ? cnData.items.length : null,
+    cnData?.meta?.totalPages,
     state.cochesNetPage,
     state.cochesNetHasMore,
   );
-  const mnNext = nextMilanunciosPageState(
+  const mnNext = nextPageState(
     mnPromise !== null,
-    mnData,
+    mnData ? mnData.ads.length : null,
+    mnData?.pagination?.totalPages,
     state.milanunciosPage,
     state.milanunciosHasMore,
   );
@@ -244,12 +271,13 @@ interface PaginationRunResult {
 // (MAP-19), bailing out early if a newer search has superseded this one.
 async function runPaginationUntilResults(
   params: SearchInput,
-  collected: CarListing[],
+  initial: CarListing[],
   initialState: PageState,
   version: number,
   searchVersionRef: { current: number },
 ): Promise<PaginationRunResult> {
   let state = initialState;
+  const collected = [...initial];
 
   // MAP-19: a first page filtered down to nothing renders the empty state,
   // and the sentinel is not mounted alongside it — so nothing would ever ask
@@ -301,16 +329,13 @@ export function useListingsSearch() {
 
     const cached = getCached<CarListing[]>(cacheKey);
     if (cached) {
-      applyCachedSearch(
-        cached,
-        params,
-        version,
+      applyCachedSearch(cached, params, version, {
         searchVersionRef,
         pageRef,
         lastParamsRef,
         setHasMore,
         setListings,
-      );
+      });
       return;
     }
 
@@ -332,23 +357,15 @@ export function useListingsSearch() {
     // structured sources honour the model, so the filter promises are
     // enforced here, where the lists meet.
     const {
-      listings: collected,
+      listings: initialListings,
       cnData,
       mnData,
     } = collectRoundResults(wpResult, cnResult, mnResult, params);
-    const cnNext = nextCochesNetPageState(true, cnData, 0, false);
-    const mnNext = nextMilanunciosPageState(true, mnData, 0, false);
-    let nextState: PageState = {
-      wallapopNext: nextWallapopPage(true, wpResult, null),
-      cochesNetPage: cnNext.page,
-      cochesNetHasMore: cnNext.hasMore,
-      milanunciosPage: mnNext.page,
-      milanunciosHasMore: mnNext.hasMore,
-    };
+    let nextState: PageState = initialPageState(wpResult, cnData, mnData);
 
     const paginationResult = await runPaginationUntilResults(
       params,
-      collected,
+      initialListings,
       nextState,
       version,
       searchVersionRef,
@@ -358,8 +375,8 @@ export function useListingsSearch() {
 
     pageRef.current = nextState;
     lastParamsRef.current = params;
-    setListings(collected);
-    setCached(cacheKey, collected);
+    setListings(paginationResult.collected);
+    setCached(cacheKey, paginationResult.collected);
     applyHasMore(nextState);
     setIsLoading(false);
   }

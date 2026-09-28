@@ -282,4 +282,19 @@ describe("useSearchFilters geolocation", () => {
     const withUserPosition = search.mock.calls.filter(([params]) => params.latitude !== 41.3874);
     expect(withUserPosition).toEqual([]);
   });
+
+  it("MAP-14: does not re-search after unmounting before geolocation resolves", async () => {
+    pendingGeolocation();
+    const search = vi.fn();
+    const { unmount } = renderHook(() => useSearchFilters(search, () => ""));
+
+    unmount();
+
+    await act(async () => {
+      geo.resolve();
+      await geo.promise;
+    });
+
+    expect(search).toHaveBeenCalledTimes(1);
+  });
 });

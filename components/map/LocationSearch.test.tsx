@@ -152,3 +152,24 @@ describe("LocationSearch distance", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 });
+
+describe("LocationSearch suggestions accessibility", () => {
+  it("has no accessibility violations with a result showing", async () => {
+    const { container } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("has no accessibility violations with no results", async () => {
+    server.use(http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.json([])));
+    const { container } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Nowhereville");
+    await screen.findByText("No locations found");
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});

@@ -1,6 +1,3 @@
 pnpm exec lint-staged
-staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx')
-if [ -n "$staged" ]; then
-  pnpm exec vitest related --run --project unit --passWithNoTests $staged
-fi
+git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' | xargs -0 -r pnpm exec vitest related --run --project unit --passWithNoTests
 gitleaks git --pre-commit --staged --redact --no-banner

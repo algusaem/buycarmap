@@ -147,7 +147,8 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 
 ## Git hooks
 
-Husky installs the hooks on `pnpm install` (the `prepare` script).
+Husky installs the hooks on `pnpm install` (the `prepare` script). See
+[specs/core-tooling.md](specs/core-tooling.md) TOOLING-6 for the contract these are checked against.
 
 **Pre-commit**: lint-staged runs `biome check --write` on the staged files, then
 `vitest related --run --project unit` on the staged `.ts`/`.tsx`, then `gitleaks git --pre-commit

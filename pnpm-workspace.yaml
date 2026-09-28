@@ -1,10 +1,8 @@
 # Build scripts pnpm is allowed to run on install. Everything else is blocked
 # by default (pnpm's supply-chain guard). prisma/@prisma/engines generate the
-# client, sharp powers next/image optimization, unrs-resolver is a native
-# resolver used by ESLint, msw's postinstall is harmless.
+# client, sharp powers next/image optimization, msw's postinstall is harmless.
 allowBuilds:
   '@prisma/engines': true
   prisma: true
   msw: true
   sharp: true
-  unrs-resolver: true

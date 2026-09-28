@@ -69,7 +69,7 @@ export function Navbar() {
             <SignedOutControls
               menuOpen={false}
               onMenuOpenChange={() => {
-                /* aria-hidden and inert while loading: the placeholder is never interactive */
+                /* aria-hidden and invisible while loading: the placeholder is never interactive */
               }}
               pathname={pathname}
             />

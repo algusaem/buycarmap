@@ -98,7 +98,8 @@
   "typeCoverage": {
     "atLeast": 99.3,
     "ignoreFiles": [
-      "app/generated/**"
+      "app/generated/**",
+      ".next/**"
     ]
   },
   "lint-staged": {

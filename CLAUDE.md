@@ -129,7 +129,7 @@ pnpm db:branch:rm     # Delete this branch's Neon branch when the work is merged
 
 > pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are
 > allowlisted in `pnpm-workspace.yaml` under `allowBuilds` — currently `@prisma/engines`, `prisma`,
-> `msw`, `sharp` and `unrs-resolver`. If you add a dependency with a native/build step and
+> `msw` and `sharp`. If you add a dependency with a native/build step and
 > `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
 
 > **Git hooks** (Husky) run on every commit: Biome on the staged files, the related unit tests,

@@ -52,6 +52,7 @@ Two entries in the `node` include list are worth knowing:
 | `test/msw/server.ts` | The server instance |
 | `test/fixtures/*.ts` | Typed builders — `makeWallapopItem`, `makeCochesNetItem`, … |
 | `test/mocks/intersection-observer.ts` | Controllable IO; `triggerIntersection()` drives infinite scroll |
+| `test/mocks/next-image.tsx` | Stands in for next/image in jsdom tests: `vi.mock("next/image", () => import("@/test/mocks/next-image"))` |
 | `test/utils/render.tsx` | `renderWithI18n(ui)` |
 
 Override per-test with `server.use(...)`. Handlers reset in `afterEach`.

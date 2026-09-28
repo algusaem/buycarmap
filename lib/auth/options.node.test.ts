@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Session, User, Awaitable } from "next-auth";
+import type { AuthOptions, Session, User, Awaitable } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import type { CredentialsConfig } from "next-auth/providers/credentials";
 
@@ -30,20 +30,27 @@ if (!authCallbacks) throw new Error("expected authOptions.callbacks to be config
 const sessionCallback = authCallbacks.session;
 if (!sessionCallback) throw new Error("expected authOptions.callbacks.session to be configured");
 
-// NextAuth 4's types declare `user` as always present on the jwt callback, but
-// at runtime it is set only on the sign-in call — every later invocation (the
-// revalidation path this file exercises) passes undefined. Calling through this
-// signature models the real shape without loosening the production types.
-interface JwtCallbackParams {
+const jwtCallback = authCallbacks.jwt;
+if (!jwtCallback) throw new Error("expected authOptions.callbacks.jwt to be configured");
+
+type JwtCallbackParams = Parameters<NonNullable<NonNullable<AuthOptions["callbacks"]>["jwt"]>>[0];
+
+interface JwtCallbackFixture {
   token: JWT;
   user?: User;
   account?: null;
   trigger?: "signIn" | "signUp" | "update";
 }
 
-const jwtCallbackRaw = authCallbacks.jwt;
-if (!jwtCallbackRaw) throw new Error("expected authOptions.callbacks.jwt to be configured");
-const jwtCallback = jwtCallbackRaw as unknown as (params: JwtCallbackParams) => Promise<JWT>;
+// NextAuth 4's types declare `user` as always present on the jwt callback, but
+// at runtime it is set only on the sign-in call — every later invocation (the
+// revalidation path this file exercises) passes undefined. This factory builds
+// the full callback param shape from just the fields a case cares about; the
+// one narrow `as` needed to bridge that gap lives here, over this partial test
+// fixture, not on the production types.
+function jwtParams(fixture: JwtCallbackFixture): JwtCallbackParams {
+  return fixture as JwtCallbackParams;
+}
 
 const HOUR = 60 * 60 * 1000;
 
@@ -102,16 +109,18 @@ describe("jwt callback on sign-in", () => {
   });
 
   it("stamps the user id and issue time, without a database round-trip", async () => {
-    const token = await jwtCallback({
-      token: {} as JWT,
-      user: {
-        id: "user-123",
-        email: "ada@example.com",
-        name: "Ada",
-        image: null,
-      },
-      account: null,
-    });
+    const token = await jwtCallback(
+      jwtParams({
+        token: {} as JWT,
+        user: {
+          id: "user-123",
+          email: "ada@example.com",
+          name: "Ada",
+          image: null,
+        },
+        account: null,
+      }),
+    );
 
     expect(token.id).toBe("user-123");
     expect(typeof token.pwdAt).toBe("number");
@@ -132,7 +141,7 @@ describe("jwt callback revalidation", () => {
       checkedAt: Date.now(),
     } as JWT;
 
-    await jwtCallback({ token, user: undefined, account: null });
+    await jwtCallback(jwtParams({ token, user: undefined, account: null }));
 
     // One query per request on every authenticated page load would be a real
     // cost; the check is interval-bounded instead.
@@ -150,7 +159,7 @@ describe("jwt callback revalidation", () => {
       checkedAt: Date.now() - 10 * 60 * 1000,
     } as JWT;
 
-    const result = await jwtCallback({ token, user: undefined, account: null });
+    const result = await jwtCallback(jwtParams({ token, user: undefined, account: null }));
 
     expect(prisma.user.findUnique).toHaveBeenCalled();
     if (token.pwdAt === undefined) throw new Error("expected pwdAt to be set on the token");
@@ -162,11 +171,13 @@ describe("jwt callback revalidation", () => {
       dbUser(new Date(Date.now() - HOUR)) as never,
     );
 
-    const result = await jwtCallback({
-      token: { id: "user-123", pwdAt: Date.now(), checkedAt: 0 } as JWT,
-      user: undefined,
-      account: null,
-    });
+    const result = await jwtCallback(
+      jwtParams({
+        token: { id: "user-123", pwdAt: Date.now(), checkedAt: 0 } as JWT,
+        user: undefined,
+        account: null,
+      }),
+    );
 
     expect(result.name).toBe("Ada");
   });
@@ -187,11 +198,13 @@ describe("jwt callback revocation", () => {
     // NextAuth's session route catches this, clears the cookie and returns a
     // null session — the only way to revoke a stateless JWT server-side.
     await expect(
-      jwtCallback({
-        token: { id: "user-123", pwdAt: signedInAt, checkedAt: 0 } as JWT,
-        user: undefined,
-        account: null,
-      }),
+      jwtCallback(
+        jwtParams({
+          token: { id: "user-123", pwdAt: signedInAt, checkedAt: 0 } as JWT,
+          user: undefined,
+          account: null,
+        }),
+      ),
     ).rejects.toThrow("SessionRevoked");
   });
 
@@ -199,11 +212,13 @@ describe("jwt callback revocation", () => {
     const changedAt = Date.now() - 2 * HOUR;
     vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser(new Date(changedAt)) as never);
 
-    const result = await jwtCallback({
-      token: { id: "user-123", pwdAt: Date.now() - HOUR, checkedAt: 0 } as JWT,
-      user: undefined,
-      account: null,
-    });
+    const result = await jwtCallback(
+      jwtParams({
+        token: { id: "user-123", pwdAt: Date.now() - HOUR, checkedAt: 0 } as JWT,
+        user: undefined,
+        account: null,
+      }),
+    );
 
     expect(result.id).toBe("user-123");
   });
@@ -212,11 +227,13 @@ describe("jwt callback revocation", () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
     await expect(
-      jwtCallback({
-        token: { id: "deleted-user", pwdAt: Date.now(), checkedAt: 0 } as JWT,
-        user: undefined,
-        account: null,
-      }),
+      jwtCallback(
+        jwtParams({
+          token: { id: "deleted-user", pwdAt: Date.now(), checkedAt: 0 } as JWT,
+          user: undefined,
+          account: null,
+        }),
+      ),
     ).rejects.toThrow("SessionRevoked");
   });
 
@@ -227,11 +244,13 @@ describe("jwt callback revocation", () => {
       dbUser(new Date(Date.now() - HOUR)) as never,
     );
 
-    const result = await jwtCallback({
-      token: { id: "user-123" } as JWT,
-      user: undefined,
-      account: null,
-    });
+    const result = await jwtCallback(
+      jwtParams({
+        token: { id: "user-123" } as JWT,
+        user: undefined,
+        account: null,
+      }),
+    );
 
     expect(typeof result.pwdAt).toBe("number");
   });
@@ -291,6 +310,11 @@ describe("signIn callback: OAuth linking guard", () => {
 
   it("allows credentials sign-in, which authorize already guards", async () => {
     await expect(call({ type: "credentials" })).resolves.toBe(true);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("signIn lets a sign-in with no account through without a lookup", async () => {
+    await expect(call({ type: "none" })).resolves.toBe(true);
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 
