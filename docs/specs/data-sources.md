@@ -1,18 +1,12 @@
-# Spec: Data sources
+# Data sources
 
 Key: SRC
 Status: Implemented
-Last updated: 2026-08-02.
-
-> **This is a backfill.** The code exists and works. This area turned out to be
-> the best-tested in the project — roughly eighty existing tests across three
-> source integrations, five proxy routes and three contract suites. The spec
-> found four gaps rather than the dozen Wave A produced, and two of them are
-> defects. See §6.
+Last updated: 2026-09-28
 
 ---
 
-## 1. Problem
+## Problem
 
 The listings on this map do not belong to us. They come from three Spanish
 marketplaces that never agreed to be aggregated: none publishes a documented
@@ -24,13 +18,63 @@ Everything downstream — the list, the map, the filters, favorites — assumes 
 listing shape and one filter set. Something has to absorb the difference, and
 absorb it without letting one flaky upstream take the page down with it.
 
-## 2. Scope
-
-**In scope.** Translating the shared filter set into each source's dialect,
+In scope: translating the shared filter set into each source's dialect,
 mapping each source's results back into `CarListing`, the proxy routes that make
 the upstreams reachable at all, and how failures at each boundary behave.
 
-**Out of scope, deliberately:**
+## Acceptance criteria
+
+- [x] SRC-1 · unit — Each source maps a well-formed result into the same listing shape the rest of the app consumes
+- [x] SRC-2 · unit — Listings a source marks as reserved or sold never reach the user
+- [x] SRC-3 · unit — A listing with no coordinates is placed by city, then by province, then at the country centre
+- [x] SRC-4 · unit — A listing missing optional attributes still produces a usable card rather than blanks or undefined values
+- [x] SRC-5 · unit — The one shared filter set is translated into each source's own parameter names
+- [x] SRC-6 · unit — A filter value a source has no equivalent for is dropped, never passed through raw
+- [x] SRC-7 · unit — A model name that matches nothing in a source falls back to filtering by brand alone
+- [x] SRC-8 · unit — A search always sends coordinates to Wallapop, even when the user has chosen no location
+- [x] SRC-9 · node — Each proxy adds the headers its upstream refuses to answer without
+- [x] SRC-10 · node — A proxy called without its required parameter answers 400 and does not contact the upstream
+- [x] SRC-11 · node — An upstream error status is passed through unchanged, on every proxy
+- [x] SRC-12 · node — When the upstream connection itself fails, every proxy answers 502 rather than throwing
+- [x] SRC-13 · unit — A source client throws when its proxy answers non-ok, so a failed source is never mistaken for an empty one
+- [x] SRC-14 · unit — A brand's model list is fetched once per session, and a failed fetch does not permanently disable model filtering for that brand
+- [x] SRC-15 · contract — The test fixtures still match the shape each normalizer reads
+- [x] SRC-16 · unit — A caller can override Wallapop's result ordering, so a background poll can ask for newest-first where the interactive search asks for relevance
+
+## Worked examples
+
+- **SRC-12** — Upstream connection fails; GET /api/wallapop/search?keywords=golf → 502 with the body `{ error: "Wallapop request failed" }`, never a thrown 500.
+- **SRC-14** — /api/cochesnet/models returns [{ id: 4321, label: "Serie 3" }]; resolveCochesNetModelId(103, "Serie 3") twice → 1 upstream call; make 104 with a first 503 then success → first call undefined, second 4321, 2 calls in total.
+
+## Data model
+
+None: this feature adds or changes no table or column.
+
+## Permissions
+
+None: this area handles only public marketplace listings through the proxy
+routes and stores no user data; no criterion here concerns who may do what to
+which records.
+
+## Edge cases
+
+- SRC-2 — reserved or sold listings are dropped.
+- SRC-3 — a listing with no coordinates falls back to city, province, then country centre.
+- SRC-4 — a listing missing optional attributes still produces a usable card.
+- SRC-6 — a filter value with no equivalent in a source is dropped.
+- SRC-7 — a model name that matches nothing falls back to brand-only filtering.
+- SRC-10 — a proxy called without its required parameter answers 400.
+- SRC-11 — an upstream error status is passed through unchanged.
+- SRC-12 — a failed upstream connection answers 502.
+- SRC-13 — a non-ok proxy response makes the client throw, not return empty.
+- SRC-14 — a failed model fetch does not disable model filtering for the brand.
+- Failure versus empty: see Decisions › A failed source must throw, not return empty.
+- Unrecognised filter tokens: see Decisions › Unmapped filter values are dropped, not forwarded.
+- Semi-automatic on coches.net: see Decisions › Semi-automatic folds into automatic for coches.net.
+
+## Out of scope
+
+Out of scope, deliberately:
 
 - **The search lifecycle that calls all this.** Fan-out, merging, caching and
   pagination are [map-and-search.md](map-and-search.md), which treats each
@@ -43,28 +87,452 @@ the upstreams reachable at all, and how failures at each boundary behave.
 - **Live upstream drift.** `CONTRACT_LIVE=1` runs nightly against the real APIs;
   that is a monitoring concern, not a behaviour this spec can assert.
 
-## 3. Acceptance criteria
+## Contracts
 
-| AC | Statement | Level | Verified by |
-| --- | --- | --- | --- |
-| SRC-1 | Each source maps a well-formed result into the same listing shape the rest of the app consumes | unit | `lib/{wallapop,cochesnet,milanuncios}/normalize.test.ts` |
-| SRC-2 | Listings a source marks as reserved or sold never reach the user | unit | `lib/wallapop/normalize.test.ts` + `lib/milanuncios/normalize.test.ts` |
-| SRC-3 | A listing with no coordinates is placed by city, then by province, then at the country centre | unit | `lib/wallapop/normalize.test.ts` + `lib/cochesnet/geo.test.ts` |
-| SRC-4 | A listing missing optional attributes still produces a usable card rather than blanks or undefined values | unit | `lib/wallapop/normalize.test.ts` + `lib/milanuncios/normalize.test.ts` |
-| SRC-5 | The one shared filter set is translated into each source's own parameter names | unit | `lib/{wallapop,milanuncios}/client.test.ts` |
-| SRC-6 | A filter value a source has no equivalent for is dropped, never passed through raw | unit | `lib/{cochesnet,milanuncios}/taxonomy.test.ts` |
-| SRC-7 | A model name that matches nothing in a source falls back to filtering by brand alone | unit | `lib/cochesnet/client.test.ts` + `lib/cochesnet/models.test.ts` |
-| SRC-8 | A search always sends coordinates to Wallapop, even when the user has chosen no location | unit | `lib/wallapop/client.test.ts` |
-| SRC-9 | Each proxy adds the headers its upstream refuses to answer without | node | all five `app/api/**/route.node.test.ts` |
-| SRC-10 | A proxy called without its required parameter answers 400 and does not contact the upstream | node | `app/api/{wallapop/filters,cochesnet}/models/route.node.test.ts` |
-| SRC-11 | An upstream error status is passed through unchanged, on every proxy | node | all five `app/api/**/route.node.test.ts` |
-| SRC-12 | When the upstream connection itself fails, every proxy answers 502 rather than throwing | node | all five `app/api/**/route.node.test.ts` |
-| SRC-13 | A source client throws when its proxy answers non-ok, so a failed source is never mistaken for an empty one | unit | `lib/{wallapop,cochesnet,milanuncios}/client.test.ts` |
-| SRC-14 | A brand's model list is fetched once per session, and a failed fetch does not permanently disable model filtering for that brand | unit | `lib/cochesnet/models.test.ts` |
-| SRC-15 | The test fixtures still match the shape each normalizer reads | contract | `test/contract/*.contract.test.ts` |
-| SRC-16 | A caller can override Wallapop's result ordering, so a background poll can ask for newest-first where the interactive search asks for relevance | unit | `lib/wallapop/client.test.ts` |
+- **`CarListing`** (`interfaces/listing.ts`) is the shape all three normalize
+  into, and the only shape anything downstream knows about.
+- **Upstream shapes** are captured as Zod schemas in `test/contract/*` — they
+  describe only the fields the normalizers actually read, so an upstream adding
+  a field does not fail the suite while removing one does.
+- **Endpoints:** `GET api.wallapop.com/api/v3/search/section` and
+  `.../search/filters/model`; `POST web.gw.coches.net/search/listing` and
+  `GET .../models`; `GET www.milanuncios.com/<slug>` returning HTML with the
+  results embedded in `__INITIAL_PROPS__`.
+- **Pagination is per-source and cannot be unified:** an opaque `next_page`
+  cursor for Wallapop, page numbers plus a total for the other two.
+- **Image hosts** must stay listed in `next.config.ts` (`**.wallapop.com`,
+  `**.ccdn.es`, the Milanuncios CDN) or `next/image` refuses to render them.
 
-## 4. Decisions and rationale
+What each upstream actually does, as observed. The criteria above are what we
+guarantee; this is the behaviour underneath them, none of it documented by the
+sources themselves. The nightly contract test (`pnpm test:contract:live`) is the
+alarm when any of it changes.
+
+### Wallapop
+
+Reverse-engineered. There is no public API, no documentation and no agreement
+that any of this keeps working — the nightly contract test is the alarm.
+
+#### The endpoints
+
+| Purpose | Upstream | Proxied at |
+| --- | --- | --- |
+| Search | `GET https://api.wallapop.com/api/v3/search/section` | `/api/wallapop/search` |
+| Models for a brand | `GET …/api/v3/search/filters/model` | `/api/wallapop/filters/models?brand=` |
+
+**Two headers are mandatory.** Without them CloudFront answers 403:
+
+```
+x-deviceos: 0
+x-appversion: 85000
+```
+
+They are added by the proxy route
+([`app/api/wallapop/search/route.ts`](../../app/api/wallapop/search/route.ts)),
+never by the browser.
+
+**Never call Wallapop from the browser.** CORS and CloudFront both block it. That
+is the entire reason the proxy routes exist.
+
+#### Request
+
+Built by [`lib/wallapop/client.ts`](../../lib/wallapop/client.ts). Four constants
+identify a car search:
+
+```
+category_id=100
+source=deep_link
+section_type=organic_search_results
+order_by=most_relevance | newest
+```
+
+`order_by` switches to `newest` when the user has picked no location — relevance
+against an arbitrary map centre is not meaningful, recency is.
+
+**A caller can override that choice.** `buildWallapopQuery` takes an `orderBy`
+option, and the alert runner forces `newest` even with a location set: it reads
+only the first page, so anything ranked twentieth by relevance is something it
+never sees. The interactive search does not pass the option and keeps the
+behaviour above. See SRC-16.
+
+| Shared filter | Wallapop parameter |
+| --- | --- |
+| keywords | `keywords` |
+| location | `latitude`, `longitude`, `distance_in_km` |
+| price | `min_sale_price`, `max_sale_price` |
+| mileage | `min_km`, `max_km` |
+| year | `min_year`, `max_year` |
+| power | `min_horse_power`, `max_horse_power` |
+| brand / model | `brand`, `model` |
+| fuel / transmission | `engine`, `gearbox` (comma-joined) |
+| recency | `time_filter` |
+| pagination | `next_page` (opaque cursor) |
+
+Wallapop is the source whose vocabulary the shared filter set borrows: `engine`,
+`gearbox` and the model *name* as its own id all come from here. The other two
+sources translate away from it, not towards it.
+
+##### Coordinates are always sent
+
+Even when the user has chosen no location. The fallback chain is **explicit
+location → browser geolocation → Spain centre (40.0, −3.5)**, with
+`distance_in_km` defaulting to 1000 when there is no explicit location.
+
+This is not a nicety. Without coordinates Wallapop geo-filters by the caller's IP
+— and in production that is a Vercel server in the United States, so a Spanish
+user would get American listings. The bug is invisible locally, where your own IP
+is Spanish.
+
+#### Response
+
+The item shape is **flat — there is no `.content` wrapper.** An older shape had
+one; anything you remember about `item.content.price` is out of date.
+
+```
+data.section.items[]
+  id
+  title
+  description
+  web_slug
+  price.amount
+  images[].urls.big | .medium
+  location.latitude | .longitude | .city
+  reserved.flag
+  type_attributes.{ brand, model, year, km, engine, horsepower }
+meta.next_page
+```
+
+`reserved.flag` replaced an older `flags.{sold,reserved,banned,expired}` object.
+
+#### Normalisation
+
+[`lib/wallapop/normalize.ts`](../../lib/wallapop/normalize.ts) maps items into
+`CarListing`:
+
+- **Reserved items are dropped** (`reserved.flag`).
+- Car data comes from `type_attributes`, not from the title.
+- Image prefers `urls.big`, falls back to `urls.medium`, then empty string.
+- Missing coordinates fall back to `getCityCoordinates(city)`, then to Madrid.
+- `id` becomes `wallapop-<id>`; `url` becomes
+  `https://es.wallapop.com/item/<web_slug>`.
+
+Wallapop is the **only** source whose coordinates are genuinely per-listing. The
+other two are approximated to a city or province.
+
+#### Known behaviour
+
+Accumulated the hard way. None of it is discoverable from the response.
+
+- **Results are biased toward the search centre**, regardless of
+  `distance_in_km`. A Madrid-centred search returns mostly Madrid-area listings
+  even at a 1000 km radius.
+- **`distance_in_km` is also a hard bound, including across pagination.**
+  Probed live 2026-08-12: Madrid + 50 km over six `next_page` pages returned
+  zero listings beyond the radius, and a rare-brand query exhausted at 16
+  local items rather than padding with far-away ones. Far results in the
+  merged UI therefore never come from this source.
+- **`distance_in_km > 2000` returns 400.** Values up to 2000 do not meaningfully
+  widen the result set beyond the local area — the proximity bias dominates.
+- **`/api/v3/cars/search` is a trap.** The old endpoint returns randomised
+  coordinates and wrong data. Coordinates from `search/section` are accurate. Do
+  not use it, however plausible its name looks.
+- **A city-centre fan-out was tried and rejected.** Firing parallel requests from
+  ten Spanish city centres and deduplicating by id yields ~400 items across ~86
+  cities. It works; it was not wanted. Do not rebuild it without asking.
+
+#### Failure handling
+
+The proxy wraps the upstream call in `try`/`catch` and returns
+`{ error }` with status 502 on a rejected fetch, or the upstream status when the
+response is not ok. A dropped connection is routine against an API we do not
+control — without the catch it escapes the handler and Next answers with an
+unhandled 500 instead of the shape every caller expects.
+
+Client-side, a rejection from `searchWallapop` is absorbed by
+`Promise.allSettled` in `useListingsSearch`, so the other two sources still
+render.
+
+#### Images
+
+`cdn.wallapop.com`, allowed in `next.config.ts` via `**.wallapop.com`. A fixture
+image URL in a test must use an allowed host or `next/image` throws.
+
+### coches.net
+
+Reverse-engineered, like the other two. A Schibsted property, which shows in the
+API design: it is a clean JSON gateway with numeric taxonomy ids for everything.
+
+#### The endpoints
+
+| Purpose | Upstream | Proxied at |
+| --- | --- | --- |
+| Search | `POST https://web.gw.coches.net/search/listing` | `/api/cochesnet/search` |
+| Models for a make | `GET https://web.gw.coches.net/models?makeId=` | `/api/cochesnet/models` |
+
+**One mandatory header**, added by the proxy:
+
+```
+X-Schibsted-Tenant: coches
+```
+
+Search is a **POST with a JSON body**, not a query string — the only source that
+works this way.
+
+#### Request
+
+Built by [`lib/cochesnet/client.ts`](../../lib/cochesnet/client.ts):
+
+```json
+{
+  "pagination": { "page": 1, "size": 40 },
+  "sort": { "order": "desc", "term": "relevance" },
+  "filters": { }
+}
+```
+
+| Shared filter | coches.net filter |
+| --- | --- |
+| keywords | `searchText` |
+| price / year / km / power | `price`, `year`, `km`, `hp` — each `{ from, to }`, nulls allowed |
+| fuel | `fuelTypeIds: number[]` |
+| transmission | `transmissionTypeId: number` |
+| brand / model | `vehicles: [{ makeId, modelId }]` |
+
+**The vehicle filter is flat.** `vehicles: [{ makeId, modelId }]` — not nested
+under a make object, which is the shape you would guess.
+
+**Location is not sent.** coches.net filters by province name on their side, and
+there is no lat/lng parameter. Distance and coordinates from the shared filter
+set are simply dropped for this source.
+
+**Recency is not wired.** There is no `time_filter` equivalent in use; ordering
+falls back to the site default.
+
+**Filters are strict — exhausted results are not padded.** Probed live
+2026-08-12: `BMW` capped at 300 € returned exactly 3 matching items and
+`totalResults: 3`, no "related" filler. A narrow filter set returns fewer
+results, never different ones.
+
+##### Taxonomy translation
+
+The shared filter set speaks Wallapop's vocabulary, so everything has to be
+mapped:
+
+- [`lib/cochesnet/taxonomy.ts`](../../lib/cochesnet/taxonomy.ts) — brand name →
+  `makeId`, and Wallapop fuel/transmission tokens → coches.net numeric ids.
+- [`lib/cochesnet/models.ts`](../../lib/cochesnet/models.ts) — model **name** →
+  `modelId`, resolved against `GET /models?makeId=`.
+
+The model dropdown stores the model *name*, because Wallapop uses the name as its
+own option id. That happens to make the shared value source-agnostic: coches.net
+resolves the name to a number, Milanuncios folds it into free text.
+
+**No exact name match means make-only filtering**, not an empty result. A model
+this source does not recognise degrades the search rather than breaking it.
+
+**A failed model fetch is deliberately not cached.** `modelsByMake` is a
+module-level `Map` with no expiry, so caching an empty list on a transient blip
+would disable model filtering for that make until the page reloaded, with nothing
+ever retrying. This was a real bug.
+
+#### Response
+
+```
+items[]
+  id
+  title
+  url                       (path only — prefix with https://www.coches.net)
+  make | model
+  price.amount
+  km | year | fuelType
+  resources[].{ type, url }  (type "IMAGE")
+  location.{ cityLiteral, mainProvince, mainProvinceId }
+meta.totalPages
+```
+
+#### Normalisation
+
+[`lib/cochesnet/normalize.ts`](../../lib/cochesnet/normalize.ts):
+
+- `id` becomes `cochesnet-<id>`; `url` is a path and gets the origin prefixed.
+- Image is the first `resources[]` entry of type `IMAGE`, else the first
+  resource, else empty.
+- `subtitle` is `make + model` joined — this source has no free-text description
+  to trim, unlike Wallapop.
+
+##### Items carry no coordinates
+
+The single most important fact about this source. Every listing has to be placed
+on the map by name, in [`lib/cochesnet/geo.ts`](../../lib/cochesnet/geo.ts):
+
+1. Exact city name via `getCityCoordinates(cityLiteral)`
+2. Province name via `getCityCoordinates(mainProvince)`
+3. **Province-capital centroid** keyed by `mainProvinceId` — the INE province
+   code, 1–52, hardcoded as a full table
+4. Spain centre (40.0, −3.5)
+
+So **coches.net pins are city- or province-level approximations, not real
+positions.** Two listings in the same province can land on the exact same
+coordinate. Anything that treats marker position as meaningful — clustering,
+distance sorting, "cars near this pin" — has to account for that.
+
+#### Failure handling
+
+Same shape as the other proxies: `try`/`catch` around the upstream fetch, `502`
+with `{ error }` on rejection, upstream status passed through otherwise. The
+models route additionally returns `400` when `makeId` is absent.
+
+#### Images
+
+`**.ccdn.es`, allowed in `next.config.ts`.
+
+### Milanuncios
+
+The most fragile of the three, and the only one that is genuinely **scraping**
+rather than calling an undocumented API.
+
+#### There is no API
+
+Milanuncios exposes no JSON search endpoint. The cars search page is
+server-rendered HTML with the results embedded in a script tag:
+
+```js
+window.__INITIAL_PROPS__ = JSON.parse("{…escaped json…}")
+```
+
+[`app/api/milanuncios/search/route.ts`](../../app/api/milanuncios/search/route.ts)
+fetches that page server-side and returns the extracted node as clean JSON, so
+the client never knows the difference.
+
+**Browser-like headers are required.** The site gates datacenter IPs behind bot
+protection, so the proxy sends a full desktop Chrome `User-Agent`, an HTML
+`Accept`, and `Accept-Language: es-ES`. A bare `fetch` gets blocked.
+
+This is the source most likely to break without warning: any change to the page's
+script layout kills it, and unlike a JSON contract there is nothing to version.
+
+#### Request
+
+The make is selected by **URL path**, everything else by query string. Built in
+[`lib/milanuncios/client.ts`](../../lib/milanuncios/client.ts):
+
+```
+https://www.milanuncios.com/<make-slug>/?palabras=…&desde=…
+```
+
+| Shared filter | Milanuncios parameter |
+| --- | --- |
+| brand | path slug — `audi-de-segunda-mano`, or `coches-de-segunda-mano` for all |
+| keywords **+ model** | `palabras` |
+| price | `desde`, `hasta` |
+| year | `anod`, `anoh` |
+| mileage | `kilometersFrom`, `kilometersTo` |
+| power | `engineHpFrom`, `engineHpTo` |
+| fuel | `fuels` (comma-joined tokens) |
+| transmission | `cajacambio` |
+| pagination | `pagina` (omitted on page 1) |
+
+Two consequences of that mapping:
+
+- **There is no structured model filter**, so the model name is folded into the
+  free-text `palabras` alongside the keywords. Results skew toward the model
+  rather than being filtered to it. Quantified live 2026-08-12:
+  `palabras=A110` under the Alpine slug returned 49 ads of which roughly one
+  in four never mentions A110 (mostly A290s) — fuzzy text match, not a
+  filter. Structured params are honoured strictly, though: with `hasta=300`,
+  zero of 41 ads exceeded the price cap.
+- **There is no location or distance filter at all.** Coordinates are dropped for
+  this source.
+
+**The make slug is mechanical**, not a lookup table:
+`<name>-de-segunda-mano`, lowercased, accents stripped, non-alphanumerics
+collapsed to hyphens. Every brand in the app's list was verified against live
+data to match that rule, which is why
+[`lib/milanuncios/taxonomy.ts`](../../lib/milanuncios/taxonomy.ts) has no
+per-brand overrides. A brand added later needs checking.
+
+#### Parsing
+
+[`lib/milanuncios/parse.ts`](../../lib/milanuncios/parse.ts) extracts the props
+node without `eval`:
+
+1. Find `window.__INITIAL_PROPS__`, then the `JSON.parse(` after it.
+2. Read the double-quoted JS string literal, respecting backslash escapes.
+3. **Decode twice** — the literal is a JSON string whose *content* is itself
+   JSON.
+4. Read `adListPagination.adList.ads` and `adListPagination.pagination`.
+
+Every failure at every step returns an empty result rather than throwing. This is
+scraped external data: only the node actually consumed is typed, and every field
+is read through optional chaining.
+
+#### Response
+
+```
+ads[]
+  id | title | description | url
+  price.cashPrice.value
+  images[]                      (scheme-less URLs)
+  category.name                 (the make)
+  location.{ city, province }
+  tags[].{ type, text }         (Spanish labels)
+  isReserved
+pagination.{ page, resultsPerPage, totalAds, totalPages }
+```
+
+#### Normalisation
+
+[`lib/milanuncios/normalize.ts`](../../lib/milanuncios/normalize.ts). Three
+things here exist nowhere else:
+
+**Numbers live in display strings.** Mileage, year and fuel are not fields — they
+are entries in `tags[]` keyed by a **Spanish label** (`kilómetros`, `año`,
+`combustible`) holding text like `"76.852 kms"`. They are parsed by stripping
+non-digits, so `"76.852 kms"` → `76852`. Anything unparseable becomes `0`, which
+is this codebase's "unknown" for numeric listing fields.
+
+**Images need a size rule.** Photo URLs arrive without a scheme
+(`images.milanuncios.com/api/v1/ma-ad-media-pro/images/<id>`). The normalizer
+prepends `https://` and appends `?rule=hw396_70` — the rule the site's own result
+cards use. **Without a rule the image API 404s.**
+
+**Model is always empty.** Milanuncios results carry no structured model; it
+exists only inside the title text. `CarListing.model` is left `""` for this
+source rather than guessed at.
+
+Reserved ads are filtered out: an ad is kept when `isReserved` is null or
+`"RELEASED"`.
+
+##### No coordinates
+
+Like coches.net, and resolved the same way in
+[`lib/milanuncios/geo.ts`](../../lib/milanuncios/geo.ts): city name → province
+name → **province-capital centroid by INE code** (the same 1–52 table) → Spain
+centre.
+
+The two province tables are duplicated deliberately-ish rather than shared. If
+you touch one, check the other.
+
+#### Failure handling
+
+`try`/`catch` around the page fetch, `502` with `{ error }` on rejection,
+upstream status passed through otherwise. A parse failure is **not** an error —
+it returns zero ads, so a layout change degrades this source to empty rather than
+failing the whole search.
+
+That is the right trade-off for a scraper, but it has a cost worth knowing:
+**Milanuncios going quietly empty looks identical to Milanuncios having no
+matches.** The contract test is what distinguishes them.
+
+## Decisions and rationale
+
+### About this spec
+
+> **This is a backfill.** The code exists and works. This area turned out to be
+> the best-tested in the project — roughly eighty existing tests across three
+> source integrations, five proxy routes and three contract suites. The spec
+> found four gaps rather than the dozen Wave A produced, and two of them are
+> defects. See Open questions.
 
 ### Everything goes through a proxy route, and that is not optional
 
@@ -132,23 +600,7 @@ The same divergence is *not* available on the other two: Milanuncios sends no
 ordering parameter at all, and coches.net's date sort is used only by the alert
 path for the same reason. See [alerts.md](alerts.md).
 
-## 5. Data and contracts
-
-- **`CarListing`** (`interfaces/listing.ts`) is the shape all three normalize
-  into, and the only shape anything downstream knows about.
-- **Upstream shapes** are captured as Zod schemas in `test/contract/*` — they
-  describe only the fields the normalizers actually read, so an upstream adding
-  a field does not fail the suite while removing one does.
-- **Endpoints:** `GET api.wallapop.com/api/v3/search/section` and
-  `.../search/filters/model`; `POST web.gw.coches.net/search/listing` and
-  `GET .../models`; `GET www.milanuncios.com/<slug>` returning HTML with the
-  results embedded in `__INITIAL_PROPS__`.
-- **Pagination is per-source and cannot be unified:** an opaque `next_page`
-  cursor for Wallapop, page numbers plus a total for the other two.
-- **Image hosts** must stay listed in `next.config.ts` (`**.wallapop.com`,
-  `**.ccdn.es`, the Milanuncios CDN) or `next/image` refuses to render them.
-
-## 6. Open questions
+## Open questions
 
 1. ~~SRC-12 is a defect, in four places.~~ **Fixed** — all four routes now
    match Milanuncios and answer 502. Original finding: Only

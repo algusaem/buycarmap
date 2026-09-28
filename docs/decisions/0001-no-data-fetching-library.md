@@ -48,5 +48,5 @@ Consistency is maintained by convention, which means by review.
 
 ## See also
 
-- [architecture.md](../architecture.md#path-1--a-search)
+- [ARCHITECTURE.md](../ARCHITECTURE.md#path-1--a-search)
 - [`specs/map-and-search.md`](../specs/map-and-search.md)

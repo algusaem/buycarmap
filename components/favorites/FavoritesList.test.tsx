@@ -63,8 +63,8 @@ describe("FavoritesList", () => {
     expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
     expect(screen.getByText("Seat Leon FR")).toBeInTheDocument();
     expect(screen.getAllByRole("article")).toHaveLength(2);
-    // The whole reason favorites are snapshotted (spec section 4): the page
-    // must render with every source API unreachable.
+    // The whole reason favorites are snapshotted (spec › Decisions and
+    // rationale): the page must render with every source API unreachable.
     expect(sourceCalls).toEqual([]);
   });
 

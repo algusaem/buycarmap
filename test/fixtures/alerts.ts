@@ -3,7 +3,7 @@ import type { AlertSummary } from "@/interfaces/alert";
 import type { CarListing } from "@/interfaces/listing";
 import type { SearchInput } from "@/lib/validations/search";
 
-// In-memory stand-ins for the six models in docs/specs/alerts.md §5.
+// In-memory stand-ins for the six models in docs/specs/alerts.md › Data model.
 //
 // Same reasoning as test/fixtures/favorites.ts: asserting that
 // `prisma.alertMatch.create` was called proves nothing about ALERT-16 ("no new

@@ -1,18 +1,12 @@
-# Spec: Cross-cutting — language, geography, theme
+# Cross-cutting — language, geography, theme
 
 Key: CORE
 Status: Implemented
-Last updated: 2026-08-02.
-
-> **This is a backfill**, and the smallest of the four waves. The gap I expected
-> to find here — locale files drifting apart — does not exist: both `en.ts` and
-> `es.ts` are typed `: Translations`, so a missing key fails the build. That is
-> recorded in §5 rather than as a criterion, because a test for it would only
-> re-assert what the compiler already refuses to let through.
+Last updated: 2026-09-28
 
 ---
 
-## 1. Problem
+## Problem
 
 Three things run underneath every page and are noticed only when wrong: what
 language the interface is in, where on the map a car without coordinates
@@ -20,13 +14,51 @@ belongs, and whether the page is readable at night. Each has a fallback chain
 several steps deep, each chain has a step that is hard to reach on purpose, and
 between them they had almost no tests.
 
-## 2. Scope
-
-**In scope.** Locale resolution and switching; the static city and province
+In scope: locale resolution and switching; the static city and province
 lookups that place listings without coordinates; browser geolocation; theme
 switching.
 
-**Out of scope, deliberately:**
+## Acceptance criteria
+
+- [x] CORE-1 · unit — An explicit language choice wins over the browser's preference
+- [x] CORE-2 · unit — With no choice made, the browser's preferred language is used if it is one we support
+- [x] CORE-3 · unit — With neither, the interface is Spanish
+- [x] CORE-4 · unit — A language cookie holding an unsupported or malformed value is ignored, not trusted
+- [x] CORE-5 · component — Choosing a language persists the choice and re-renders the page in it
+- [x] CORE-6 · unit — A listing's city resolves to coordinates regardless of case or surrounding whitespace
+- [x] CORE-7 · unit — A city we do not know falls back to the coordinates the caller supplied, never to a wrong city
+- [x] CORE-8 · unit — The browser is asked for the user's position at most once per session, however many searches run
+- [x] CORE-9 · unit — A denied or unavailable position resolves rather than leaving callers waiting
+- [x] CORE-10 · component — Switching the theme changes it, and the choice survives a re-render
+
+## Worked examples
+
+None: no criterion here is on the critical list (a permission boundary, or a bug fix), and none carries an exact value.
+
+## Data model
+
+None: this feature adds or changes no table or column.
+
+## Permissions
+
+None: locale, geography and theme carry no authorization check and store no
+user data here; the language cookie is user-writable input, which CORE-4 treats
+as untrusted.
+
+## Edge cases
+
+- CORE-3 — neither a choice nor a supported browser language; the interface is Spanish.
+- CORE-4 — an unsupported or malformed language cookie is ignored.
+- CORE-7 — an unknown city falls back to the caller's coordinates.
+- CORE-8 — concurrent searches ask the browser for a position at most once.
+- CORE-9 — a denied or unavailable position still resolves.
+- A request with no cookie or `Accept-Language` (the alert runner): see Decisions › Spanish is the default, and the fallback order encodes who is being served.
+- A tampered cookie: see Decisions › An unrecognised cookie value is discarded rather than repaired.
+- A denied permission prompt: see Decisions › Geolocation is requested once and shared.
+
+## Out of scope
+
+Out of scope, deliberately:
 
 - **Nominatim geocoding for the location search box.** Already covered by
   `lib/geo/nominatim.test.ts` and by the `LocationSearch` component tests in
@@ -40,22 +72,37 @@ switching.
   not implement. Asserting the fallback path would test the stub, not the
   feature. Playwright is where this belongs, if anywhere.
 
-## 3. Acceptance criteria
+## Contracts
 
-| AC | Statement | Level | Verified by |
-| --- | --- | --- | --- |
-| CORE-1 | An explicit language choice wins over the browser's preference | unit | `lib/i18n/server.node.test.ts` |
-| CORE-2 | With no choice made, the browser's preferred language is used if it is one we support | unit | `lib/i18n/server.node.test.ts` (supported + q-order) |
-| CORE-3 | With neither, the interface is Spanish | unit | `lib/i18n/server.node.test.ts` |
-| CORE-4 | A language cookie holding an unsupported or malformed value is ignored, not trusted | unit | `lib/i18n/server.node.test.ts` (unsupported + malformed) |
-| CORE-5 | Choosing a language persists the choice and re-renders the page in it | component | `components/LanguageSwitcher.test.tsx` |
-| CORE-6 | A listing's city resolves to coordinates regardless of case or surrounding whitespace | unit | `lib/geo/cities.test.ts` |
-| CORE-7 | A city we do not know falls back to the coordinates the caller supplied, never to a wrong city | unit | `lib/geo/cities.test.ts` |
-| CORE-8 | The browser is asked for the user's position at most once per session, however many searches run | unit | `lib/geo/user-location.test.ts` |
-| CORE-9 | A denied or unavailable position resolves rather than leaving callers waiting | unit | `lib/geo/user-location.test.ts` |
-| CORE-10 | Switching the theme changes it, and the choice survives a re-render | component | `components/ThemeSwitcher.test.tsx` + `e2e/theme.spec.ts` |
+- **`LOCALES`, `DEFAULT_LOCALE`, `COOKIE_NAME`** in `lib/i18n/config.ts`. Adding
+  a locale means a new file, a `LOCALES` entry, and every key in `Translations`.
+- **Key parity between locales is enforced by the type system, not by a test.**
+  `en.ts` and `es.ts` are both declared `: Translations`, so a missing or
+  misspelled key is a build failure. This is why no criterion covers it: the
+  test would assert something the compiler will not let you commit.
+- **`SPANISH_CITIES`** in `lib/geo/cities.ts` — roughly seventy cities keyed by
+  lowercased name. Coarse by design; it exists for listings whose seller gave a
+  city and nothing more.
+- **`SPAIN_CENTER`** in `lib/geo/cities.ts` — where `lib/cochesnet/geo.ts` and
+  `lib/milanuncios/geo.ts` pin a listing whose location neither the city nor
+  the province lookup recognised. It is exported rather than declared in each
+  because `lib/geo/radius.ts` compares against it *exactly* to exclude unknown
+  locations from a radius search: the three have to agree on the point or that
+  exclusion silently stops working. The behaviour itself is MAP-17's, in
+  [map-and-search.md](map-and-search.md).
+- **Theme** is `next-themes` with `attribute="class"`, dark default, `.light`
+  for light. Anything reading `useTheme` must wait for `useMounted` or it
+  renders server markup that disagrees with the client.
 
-## 4. Decisions and rationale
+## Decisions and rationale
+
+### About this spec
+
+> **This is a backfill**, and the smallest of the four waves. The gap I expected
+> to find here — locale files drifting apart — does not exist: both `en.ts` and
+> `es.ts` are typed `: Translations`, so a missing key fails the build. That is
+> recorded in Contracts rather than as a criterion, because a test for it would only
+> re-assert what the compiler already refuses to let through.
 
 ### Spanish is the default, and the fallback order encodes who is being served
 
@@ -97,29 +144,7 @@ coches.net can offer a province capital. Picking a wrong city would put a pin
 somewhere specific and confidently incorrect, which is worse than a coarse one —
 a user driving to see a car trusts the pin.
 
-## 5. Data and contracts
-
-- **`LOCALES`, `DEFAULT_LOCALE`, `COOKIE_NAME`** in `lib/i18n/config.ts`. Adding
-  a locale means a new file, a `LOCALES` entry, and every key in `Translations`.
-- **Key parity between locales is enforced by the type system, not by a test.**
-  `en.ts` and `es.ts` are both declared `: Translations`, so a missing or
-  misspelled key is a build failure. This is why no criterion covers it: the
-  test would assert something the compiler will not let you commit.
-- **`SPANISH_CITIES`** in `lib/geo/cities.ts` — roughly seventy cities keyed by
-  lowercased name. Coarse by design; it exists for listings whose seller gave a
-  city and nothing more.
-- **`SPAIN_CENTER`** in `lib/geo/cities.ts` — where `lib/cochesnet/geo.ts` and
-  `lib/milanuncios/geo.ts` pin a listing whose location neither the city nor
-  the province lookup recognised. It is exported rather than declared in each
-  because `lib/geo/radius.ts` compares against it *exactly* to exclude unknown
-  locations from a radius search: the three have to agree on the point or that
-  exclusion silently stops working. The behaviour itself is MAP-17's, in
-  [map-and-search.md](map-and-search.md).
-- **Theme** is `next-themes` with `attribute="class"`, dark default, `.light`
-  for light. Anything reading `useTheme` must wait for `useMounted` or it
-  renders server markup that disagrees with the client.
-
-## 6. Open questions
+## Open questions
 
 1. ~~`useThemeTransition` is untested and will stay that way~~ **Closed.**
    `e2e/theme.spec.ts` runs the real hook in a browser: it toggles, asserts the

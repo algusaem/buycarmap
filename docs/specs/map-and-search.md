@@ -1,8 +1,131 @@
-# Spec: Map and search
+# Map and search
 
 Key: MAP
 Status: Implemented
-Last updated: 2026-09-28.
+Last updated: 2026-09-28
+
+---
+
+## Problem
+
+Someone looking for a second-hand car in Spain has to search Wallapop,
+coches.net and Milanuncios separately, in three tabs, with three different
+filter vocabularies, and none of them show where the cars actually are. Comparing
+a Madrid listing against a Valencia one means holding both in your head.
+
+The map is the whole product: one filter set fanned out across every source,
+results merged into one list, and every car placed geographically so distance is
+something you see rather than calculate.
+
+In scope: the search lifecycle — validation, fan-out, merging, caching,
+stale-response handling, pagination — plus the filter panel that drives it, the
+listings list, and the map that mirrors it.
+
+## Acceptance criteria
+
+MAP-1 through MAP-15 are proven. Nine already held when the spec was written;
+six were gaps, and two of those (MAP-7) were defects rather than merely
+untested. MAP-16 through MAP-18 were amended in and implemented test-first on
+2026-08-12, and MAP-19 the same day, to close the failure mode they introduced.
+
+- [x] MAP-1 · unit — A search queries all three sources and interleaves the results, so no single source fills the top of the list
+- [x] MAP-2 · unit — When some sources fail, the results from the rest still render
+- [x] MAP-3 · unit — When every source fails, no listings render and the user is told the search failed
+- [x] MAP-4 · unit — A response belonging to a superseded search is discarded rather than overwriting newer results
+- [x] MAP-5 · unit — Repeating an identical search within the cache window reuses the previous results instead of refetching
+- [x] MAP-6 · unit — A search whose parameters fail validation makes no request to any source
+- [x] MAP-7 · unit — Every message shown when a search fails is in the user's language
+- [x] MAP-8 · component — Scrolling to the end of the list appends the next page from each source that has one
+- [x] MAP-9 · component — Once every source is exhausted, reaching the end of the list requests nothing further
+- [x] MAP-10 · unit — Overlapping requests for the next page do not fetch the same page twice
+- [x] MAP-11 · unit — Adjusting a filter re-searches after a pause, while pressing search re-searches at once
+- [x] MAP-12 · unit — Changing the brand clears the selected model, so the two cannot contradict each other
+- [x] MAP-13 · unit — A distance radius is sent only when the user has chosen a location
+- [x] MAP-14 · unit — The first search uses a country-wide fallback, re-runs once the browser reports the user's position, and does not override a location the user picked
+- [x] MAP-15 · component — A search returning nothing shows the empty state, and the list and the map always show the same set of listings
+- [x] MAP-16 · unit — When the user has chosen a location, no listing whose map position lies outside the chosen radius appears in the results, whatever its source
+- [x] MAP-17 · unit — When the user has chosen a location, a listing whose position could only be resolved to the country-centre fallback is excluded rather than placed at the country centre
+- [x] MAP-18 · unit — When a model is selected, a listing that names the chosen model neither in its model field nor in its title does not appear in the results
+- [x] MAP-19 · unit — When every listing on a fetched page is removed by the filters, the search keeps fetching until a page yields a listing or every source is exhausted — on the first search as well as on the sentinel
+- [x] MAP-20 · unit — While the location search is loading or has no results, no listbox is rendered: the combobox reports `aria-expanded="false"` with no `aria-controls`, and the loading or no-results text is announced through a polite status region that stays mounted. With results, `aria-controls="location-listbox"` and `aria-expanded="true"` point at the listbox of options. After the "Madrid" options show, typing more starts a new search: while it loads, no listbox is rendered (the previous options are not shown), `aria-expanded="false"`, and the status region reads "Loading…". While that new search loads, ArrowDown then Enter selects nothing — hidden options are not selectable. A response for an earlier query that arrives after a later query was typed is discarded: the listbox shows only the latest query's options, and while the latest search is pending it stays hidden. While options animate out — after a new query, Escape, a click outside, or a selection — they are no longer a listbox and cannot be selected; a click on a fading option selects nothing. A late response for "Madr" that arrives after the query was shortened to "M" is discarded: results stay empty and nothing is loading.
+- [x] MAP-21 · unit — If the map unmounts before the browser's geolocation resolves, the search is not repeated when it does.
+- [x] MAP-22 · unit — If the location search unmounts before its 400 ms debounce fires, no geocoding request is sent.
+
+## Worked examples
+
+- **MAP-7** — Locale es, all three proxies 500 → toast "No se pudieron cargar los anuncios. Inténtalo de nuevo."; latitude 999 → "Esos filtros de búsqueda no son válidos."
+- **MAP-16** — Centre Madrid (40.4168, −3.7038), radius 100 km, each source one near and one far item (far Wallapop in Barcelona 41.3874, 2.1686) → exactly wallapop-wp-near, cochesnet-cn-near, milanuncios-mn-near.
+- **MAP-17** — Madrid, 100 km; coches.net Getafe cn-near plus coches.net and Milanuncios items with unresolvable "Villarriba" / province 99 (pinned at the Spain centre 40.0, −3.5, ~49 km away) → exactly ["cochesnet-cn-near"].
+- **MAP-18** — Brand "BMW", model "Serie 3", no location; coches.net cn-contradicts (model "Serie 5", title "BMW Serie 5 530d") and Milanuncios mn-diluted (title "BMW Serie 5 530d Luxury") among matches → exactly wallapop-wp-match, cochesnet-cn-match, milanuncios-mn-match.
+- **MAP-19** — Madrid, 100 km, only Wallapop answers; page 1 = one Barcelona item wp-bcn with next_page "page-2", page 2 = wp-madrid → pages requested ["first","page-2"], listings ["wallapop-wp-madrid"], isLoading false; both pages Barcelona-only → exactly 2 requests, listings [], hasMore false.
+- **MAP-20** — typing "Nowhereville" (no results) → no listbox, `aria-expanded="false"`, the status region reads "No locations found", axe reports no violations; typing "Madrid" → listbox `location-listbox` with the option, `aria-expanded="true"`, axe reports no violations.
+- **MAP-21** — mount, unmount, then resolve geolocation → `search` was called exactly once (the immediate mount search).
+- **MAP-22** — type "Madrid", unmount, advance 400 ms → 0 requests to Nominatim.
+
+## Data model
+
+None: this feature adds or changes no table or column. No database involvement:
+nothing on this path is persisted.
+
+## Permissions
+
+None: search reads public marketplace listings through the proxy routes and
+persists nothing (see Data model and Contracts); no criterion here concerns who
+may do what to which records.
+
+## Edge cases
+
+- MAP-2 — some sources fail; the rest still render.
+- MAP-3 — every source fails; nothing renders and the user is told.
+- MAP-4 — a response from a superseded search is discarded.
+- MAP-6 — invalid parameters make no request.
+- MAP-7 — failure messages are in the user's language.
+- MAP-9 — every source exhausted; nothing further is requested.
+- MAP-10 — overlapping next-page requests do not fetch the same page twice.
+- MAP-15 — an empty result shows the empty state.
+- MAP-17 — a listing resolved only to the country-centre fallback is excluded under a radius.
+- MAP-19 — a page filtered down to nothing keeps the search fetching until a listing or exhaustion.
+- MAP-20 — no results, a pending search, and a late response for an earlier query.
+- MAP-21 — the map unmounts before geolocation resolves.
+- MAP-22 — the location search unmounts before its debounce fires.
+- Partial source failure: see Decisions › Sources fail independently.
+- Out-of-order responses: see Decisions › A version counter, not cancellation.
+- Pagination on a cache hit: see Decisions › The cache holds page 1 only, and resets pagination on a hit.
+- Termination of the fetch loop: see Decisions › A page filtered down to nothing must not end the load (MAP-19).
+
+## Out of scope
+
+Out of scope, deliberately:
+
+- **How each source is called and normalised.** `lib/wallapop/*`,
+  `lib/cochesnet/*` and `lib/milanuncios/*` translate the shared filter set into
+  each API's dialect and map results back to `CarListing`. That is Wave B; this
+  spec treats the sources as three functions that return listings or fail.
+- **Geocoding.** `lib/geo/*` and Nominatim belong with Wave D.
+- **Favorites.** The heart on a listing card is [favorites.md](favorites.md).
+- **Search history and saved searches.** A `SearchHistory` model exists in the
+  schema and nothing writes to it. Out of scope until someone specifies it.
+
+## Contracts
+
+The contracts are:
+
+- **`SearchInput`** (`lib/validations/search.ts`) — the one filter set all three
+  sources translate from. Bounds worth keeping: latitude ±90, longitude ±180,
+  `distanceInKm` positive, `minYear` at least 1900, `timeFilter` one of
+  `today` / `lastWeek` / `lastMonth`.
+- **`CarListing`** (`interfaces/listing.ts`) — what every source normalises to
+  and what both the list and the map consume.
+- **Pagination differs per source and cannot be unified**: Wallapop returns an
+  opaque `next_page` cursor, coches.net and Milanuncios use page numbers with a
+  total. `PageState` tracks all three separately; "there is more" is the OR of
+  them.
+- **The proxy routes** (`/api/*/search`) are the only way these APIs are
+  reachable — CORS and CloudFront block the browser directly.
+
+## Decisions and rationale
+
+### About this spec
 
 > **Amended 2026-08-12: MAP-16, MAP-17 and MAP-18, implemented.** Filtering by
 > location previously constrained only Wallapop — coches.net and Milanuncios
@@ -25,71 +148,7 @@ Last updated: 2026-09-28.
 > spec was written from the code, so it cannot disagree with it — which is the
 > one thing a spec is normally for. Its value is elsewhere: the criteria list
 > flushed out six behaviours nothing tests, and two of those turned out to be
-> defects rather than gaps. Read §6 before approving.
-
----
-
-## 1. Problem
-
-Someone looking for a second-hand car in Spain has to search Wallapop,
-coches.net and Milanuncios separately, in three tabs, with three different
-filter vocabularies, and none of them show where the cars actually are. Comparing
-a Madrid listing against a Valencia one means holding both in your head.
-
-The map is the whole product: one filter set fanned out across every source,
-results merged into one list, and every car placed geographically so distance is
-something you see rather than calculate.
-
-## 2. Scope
-
-**In scope.** The search lifecycle — validation, fan-out, merging, caching,
-stale-response handling, pagination — plus the filter panel that drives it, the
-listings list, and the map that mirrors it.
-
-**Out of scope, deliberately:**
-
-- **How each source is called and normalised.** `lib/wallapop/*`,
-  `lib/cochesnet/*` and `lib/milanuncios/*` translate the shared filter set into
-  each API's dialect and map results back to `CarListing`. That is Wave B; this
-  spec treats the sources as three functions that return listings or fail.
-- **Geocoding.** `lib/geo/*` and Nominatim belong with Wave D.
-- **Favorites.** The heart on a listing card is [favorites.md](favorites.md).
-- **Search history and saved searches.** A `SearchHistory` model exists in the
-  schema and nothing writes to it. Out of scope until someone specifies it.
-
-## 3. Acceptance criteria
-
-MAP-1 through MAP-15 are proven. Nine already held when the spec was written;
-six were gaps, and two of those (MAP-7) were defects rather than merely
-untested. MAP-16 through MAP-18 were amended in and implemented test-first on
-2026-08-12, and MAP-19 the same day, to close the failure mode they introduced.
-
-| AC | Statement | Level | Verified by |
-| --- | --- | --- | --- |
-| MAP-1 | A search queries all three sources and interleaves the results, so no single source fills the top of the list | unit | `lib/hooks/useListingsSearch.test.tsx` |
-| MAP-2 | When some sources fail, the results from the rest still render | unit | `lib/hooks/useListingsSearch.test.tsx` |
-| MAP-3 | When every source fails, no listings render and the user is told the search failed | unit | `lib/hooks/useListingsSearch.test.tsx` |
-| MAP-4 | A response belonging to a superseded search is discarded rather than overwriting newer results | unit | `lib/hooks/useListingsSearch.test.tsx` |
-| MAP-5 | Repeating an identical search within the cache window reuses the previous results instead of refetching | unit | `lib/hooks/useListingsSearch.test.tsx` |
-| MAP-6 | A search whose parameters fail validation makes no request to any source | unit | `lib/hooks/useListingsSearch.test.tsx` |
-| MAP-7 | Every message shown when a search fails is in the user's language | unit | `lib/hooks/useListingsSearch.test.tsx` (failure + invalid filters) |
-| MAP-8 | Scrolling to the end of the list appends the next page from each source that has one | component | `lib/hooks/useListingsSearch.test.tsx` + `components/map/MapView.test.tsx` |
-| MAP-9 | Once every source is exhausted, reaching the end of the list requests nothing further | component | `components/map/MapView.test.tsx` |
-| MAP-10 | Overlapping requests for the next page do not fetch the same page twice | unit | `lib/hooks/useListingsSearch.test.tsx` |
-| MAP-11 | Adjusting a filter re-searches after a pause, while pressing search re-searches at once | unit | `lib/hooks/useSearchFilters.test.tsx` (debounced + immediate) |
-| MAP-12 | Changing the brand clears the selected model, so the two cannot contradict each other | unit | `lib/hooks/useSearchFilters.test.tsx` |
-| MAP-13 | A distance radius is sent only when the user has chosen a location | unit | `lib/hooks/useSearchFilters.test.tsx` |
-| MAP-14 | The first search uses a country-wide fallback, re-runs once the browser reports the user's position, and does not override a location the user picked | unit | `lib/hooks/useSearchFilters.test.tsx` (re-search + user choice wins) |
-| MAP-15 | A search returning nothing shows the empty state, and the list and the map always show the same set of listings | component | `components/map/MapView.test.tsx` (empty + map sync) |
-| MAP-16 | When the user has chosen a location, no listing whose map position lies outside the chosen radius appears in the results, whatever its source | unit | `lib/hooks/useListingsSearch.test.tsx` (merge + pagination + no-location guard) + `lib/geo/radius.test.ts` |
-| MAP-17 | When the user has chosen a location, a listing whose position could only be resolved to the country-centre fallback is excluded rather than placed at the country centre | unit | `lib/hooks/useListingsSearch.test.tsx` + `lib/geo/radius.test.ts` |
-| MAP-18 | When a model is selected, a listing that names the chosen model neither in its model field nor in its title does not appear in the results | unit | `lib/hooks/useListingsSearch.test.tsx` |
-| MAP-19 | When every listing on a fetched page is removed by the filters, the search keeps fetching until a page yields a listing or every source is exhausted — on the first search as well as on the sentinel | unit | `lib/hooks/useListingsSearch.test.tsx` (first page + sentinel + exhaustion) |
-| MAP-20 | While the location search is loading or has no results, no listbox is rendered: the combobox reports `aria-expanded="false"` with no `aria-controls`, and the loading or no-results text is announced through a polite status region that stays mounted. With results, `aria-controls="location-listbox"` and `aria-expanded="true"` point at the listbox of options. Worked example: typing "Nowhereville" (no results) → no listbox, `aria-expanded="false"`, the status region reads "No locations found", axe reports no violations; typing "Madrid" → listbox `location-listbox` with the option, `aria-expanded="true"`, axe reports no violations. After the "Madrid" options show, typing more starts a new search: while it loads, no listbox is rendered (the previous options are not shown), `aria-expanded="false"`, and the status region reads "Loading…". While that new search loads, ArrowDown then Enter selects nothing — hidden options are not selectable. A response for an earlier query that arrives after a later query was typed is discarded: the listbox shows only the latest query's options, and while the latest search is pending it stays hidden. While options animate out — after a new query, Escape, a click outside, or a selection — they are no longer a listbox and cannot be selected; a click on a fading option selects nothing. A late response for "Madr" that arrives after the query was shortened to "M" is discarded: results stay empty and nothing is loading. | unit | `components/map/LocationSearch.test.tsx`, `lib/hooks/useLocationSearch.test.tsx` and `e2e/location-search.spec.ts` |
-| MAP-21 | If the map unmounts before the browser's geolocation resolves, the search is not repeated when it does. Worked example: mount, unmount, then resolve geolocation → `search` was called exactly once (the immediate mount search). | unit | `lib/hooks/useSearchFilters.test.tsx` |
-| MAP-22 | If the location search unmounts before its 400 ms debounce fires, no geocoding request is sent. Worked example: type "Madrid", unmount, advance 400 ms → 0 requests to Nominatim. | unit | `lib/hooks/useLocationSearch.test.tsx` |
-
-## 4. Decisions and rationale
+> defects rather than gaps. Read Open questions before approving.
 
 ### Results are interleaved, not concatenated
 
@@ -182,7 +241,7 @@ Consequences accepted deliberately:
   way.
 
 Wiring coches.net's upstream province filter (it exists, unwired —
-`docs/integrations/cochesnet.md`) would reduce the waste, but it is an
+`docs/specs/data-sources.md` › Contracts › coches.net) would reduce the waste, but it is an
 efficiency improvement on top of this rule, not a substitute: province ≠
 radius, Milanuncios would still need the post-filter, and the upstream shape
 is unverified. Left as an open question.
@@ -247,24 +306,7 @@ brand. Model ids are only meaningful within a brand — `lib/cochesnet/models.ts
 resolves them per `makeId` — so a model left over from the previous brand is
 either meaningless or, worse, silently matches something unintended.
 
-## 5. Data and contracts
-
-No database involvement: nothing on this path is persisted. The contracts are:
-
-- **`SearchInput`** (`lib/validations/search.ts`) — the one filter set all three
-  sources translate from. Bounds worth keeping: latitude ±90, longitude ±180,
-  `distanceInKm` positive, `minYear` at least 1900, `timeFilter` one of
-  `today` / `lastWeek` / `lastMonth`.
-- **`CarListing`** (`interfaces/listing.ts`) — what every source normalises to
-  and what both the list and the map consume.
-- **Pagination differs per source and cannot be unified**: Wallapop returns an
-  opaque `next_page` cursor, coches.net and Milanuncios use page numbers with a
-  total. `PageState` tracks all three separately; "there is more" is the OR of
-  them.
-- **The proxy routes** (`/api/*/search`) are the only way these APIs are
-  reachable — CORS and CloudFront block the browser directly.
-
-## 6. Open questions
+## Open questions
 
 1. ~~Approving this commits you to retitling nine existing tests.~~ **Settled:
    retitled.** Nine existing test titles now carry their `MAP-n` prefix, so one

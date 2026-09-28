@@ -5,8 +5,8 @@
 //   1. Every internal markdown link resolves — the file exists, and the #anchor
 //      exists in it.
 //   2. Every source path a doc names in backticks exists.
-//   3. Every .md under docs/ is reachable by links from docs/README.md.
-//   4. The ownership map in docs/README.md resolves, and claims every tracked
+//   3. Every .md under docs/ is reachable by links from the root README.md.
+//   4. The ownership map in README.md resolves, and claims every tracked
 //      source file — not merely every top-level directory, which was the
 //      original rule and let 38 files go unclaimed while this reported green.
 //
@@ -24,12 +24,14 @@ import { fileURLToPath } from "node:url";
 
 import { trackedFiles as gitTrackedFiles } from "./git-files.mjs";
 
+const DOC_DIR = "docs";
+// The documentation index: every doc under docs/ must be reachable from it, and
+// it carries the ownership map under its "Ownership map" heading.
+export const INDEX = "README.md";
 // Docs are scanned for both links and source references. CLAUDE.md is in here
 // deliberately: it carries more path references than any doc, and the 2026-08-03
 // audit found two of them stale.
-const SCANNED = ["README.md", "CLAUDE.md"];
-const DOC_DIR = "docs";
-const INDEX = "docs/README.md";
+const SCANNED = [INDEX, "CLAUDE.md"];
 
 // Backticked paths are only checked when they start with one of these. Anything
 // else is prose, an upstream URL path, or a doc that a plan says will exist
@@ -200,9 +202,9 @@ export function globToRegExp(glob) {
 }
 
 /**
- * Reads the ownership table from docs/README.md.
+ * Reads the ownership table from the index, the root README.md.
  *
- * Rows look like `| \`lib/wallapop/**\` | [integrations/wallapop.md](…) |`, under
+ * Rows look like `| \`lib/wallapop/**\` | [docs/specs/data-sources.md](…) |`, under
  * a heading whose slug contains "ownership".
  *
  * @param {string} markdown
@@ -265,8 +267,9 @@ export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
  *   Superseded   describes code that has since been removed
  *
  * `Approved` is the one that looks safe to check and is not. Per the status
- * table in docs/specs/README.md it means the failing tests have landed and the
- * implementation has not, which is precisely when §5's paths are all absent.
+ * table in the root README.md it means the failing tests have landed and the
+ * implementation has not, which is precisely when the paths named in Data
+ * model and Contracts are all absent.
  *
  * @param {string} file
  * @param {string} text
@@ -275,6 +278,66 @@ export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
 export function isUnbuiltSpec(file, text) {
   if (!posix(file).startsWith("docs/specs/")) return false;
   return !/^Status:\s*Implemented\s*$/im.test(text);
+}
+
+/**
+ * The docs not reached by following `linkGraph` outward from `roots`, out of
+ * the given `docs`, in input order.
+ *
+ * A breadth-first walk: each file in `linkGraph` maps to the files it links to.
+ * Kept pure so it can be exercised on an in-memory graph.
+ *
+ * @param {Map<string, string[]>} linkGraph
+ * @param {string[]} roots
+ * @param {string[]} docs
+ * @returns {string[]}
+ */
+export function unreachableDocs(linkGraph, roots, docs) {
+  /** @type {Set<string>} */
+  const reachable = new Set(roots);
+  /** @type {string[]} */
+  const queue = [...reachable];
+  // An array iterator re-reads the length on every step, so targets pushed
+  // during the walk are visited in turn: breadth-first.
+  for (const current of queue) {
+    for (const target of linkGraph.get(current) ?? []) {
+      if (reachable.has(target)) continue;
+      reachable.add(target);
+      queue.push(target);
+    }
+  }
+  return docs.filter((doc) => !reachable.has(doc));
+}
+
+/**
+ * The repo-relative posix path a `doc` cell in the ownership map resolves to,
+ * relative to `indexPath`'s directory — the same resolution a markdown link
+ * written in the index would get. The single source of truth both
+ * `unresolvedOwnershipDocs` and `existingOwnershipDocs` resolve against, so
+ * the two can never disagree about what a row points at.
+ *
+ * @param {string} indexPath
+ * @param {string} doc
+ * @returns {string}
+ */
+function ownershipDocPath(indexPath, doc) {
+  return posix(relative(process.cwd(), resolve(dirname(posix(indexPath)), doc)));
+}
+
+/**
+ * One problem per ownership row whose `doc` is not in `existing`.
+ *
+ * Declared gaps (`—`) name no doc and are skipped.
+ *
+ * @param {OwnershipEntry[]} entries
+ * @param {string} indexPath
+ * @param {Set<string>} existing
+ * @returns {string[]}
+ */
+export function unresolvedOwnershipDocs(entries, indexPath, existing) {
+  return entries
+    .filter(({ doc }) => !isGap(doc) && !existing.has(ownershipDocPath(indexPath, doc)))
+    .map(({ glob, doc }) => `${indexPath} maps \`${glob}\` to ${doc}, which does not exist.`);
 }
 
 /**
@@ -476,31 +539,19 @@ async function checkSourcePaths(sources, problems) {
 
 // --- 3. No orphaned docs -----------------------------------------------------
 /**
- * @param {Map<string, string>} sources
  * @param {string[]} markdownDocs
  * @param {Map<string, string[]>} linkGraph
  * @param {string[]} problems
  * @returns {Promise<void>}
  */
-async function checkOrphanedDocs(sources, markdownDocs, linkGraph, problems) {
+async function checkOrphanedDocs(markdownDocs, linkGraph, problems) {
   if (!(await exists(INDEX))) {
     problems.push(`${INDEX} is missing — it is the documentation index.`);
     return;
   }
 
-  /** @type {Set<string>} */
-  const reachable = new Set();
-  /** @type {string[]} */
-  const queue = [INDEX, ...SCANNED.filter((f) => sources.has(f))];
-  while (queue.length > 0) {
-    const current = queue.pop();
-    if (current === undefined) break;
-    if (reachable.has(current)) continue;
-    reachable.add(current);
-    for (const target of linkGraph.get(current) ?? []) queue.push(target);
-  }
-  for (const doc of markdownDocs) {
-    if (reachable.has(doc)) continue;
+  const roots = [INDEX];
+  for (const doc of unreachableDocs(linkGraph, roots, markdownDocs)) {
     problems.push(
       `${doc} is not reachable by links from ${INDEX}. ` +
         `An unlinked doc stops being read and starts being wrong — ` +
@@ -515,23 +566,35 @@ async function checkOrphanedDocs(sources, markdownDocs, linkGraph, problems) {
  * @param {string[]} problems
  * @param {string[]} gaps
  * @param {RegExp[]} patterns
- * @returns {Promise<void>}
+ * @returns {void}
  */
-async function processOwnershipEntry(entry, repoFiles, problems, gaps, patterns) {
+function processOwnershipEntry(entry, repoFiles, problems, gaps, patterns) {
   const { glob, doc } = entry;
   const pattern = globToRegExp(glob);
   if (!repoFiles.some((file) => pattern.test(file))) {
     problems.push(`${INDEX} maps \`${glob}\` to ${doc}, but that pattern matches no file.`);
   }
-  if (isGap(doc)) {
-    gaps.push(glob);
-  } else {
-    const target = posix(relative(process.cwd(), resolve(dirname(INDEX), doc)));
-    if (!(await exists(target))) {
-      problems.push(`${INDEX} maps \`${glob}\` to ${doc}, which does not exist.`);
-    }
-  }
+  if (isGap(doc)) gaps.push(glob);
   patterns.push(pattern);
+}
+
+/**
+ * The docs the ownership map names that exist on disk, as paths relative to
+ * the repository root — the set `unresolvedOwnershipDocs` checks against.
+ *
+ * @param {OwnershipEntry[]} entries
+ * @param {string} indexPath
+ * @returns {Promise<Set<string>>}
+ */
+async function existingOwnershipDocs(entries, indexPath) {
+  /** @type {Set<string>} */
+  const existing = new Set();
+  for (const { doc } of entries) {
+    if (isGap(doc)) continue;
+    const target = ownershipDocPath(indexPath, doc);
+    if (await exists(target)) existing.add(target);
+  }
+  return existing;
 }
 
 /**
@@ -592,8 +655,11 @@ async function checkOwnershipMap(sources, problems, gaps) {
   const patterns = [];
 
   for (const entry of ownership) {
-    await processOwnershipEntry(entry, repoFiles, problems, gaps, patterns);
+    processOwnershipEntry(entry, repoFiles, problems, gaps, patterns);
   }
+  problems.push(
+    ...unresolvedOwnershipDocs(ownership, INDEX, await existingOwnershipDocs(ownership, INDEX)),
+  );
 
   reportUnclaimedFiles(tracked, patterns, problems);
 }
@@ -636,7 +702,7 @@ async function main() {
 
   const linkGraph = await checkLinks(sources, slugsFor, problems);
   await checkSourcePaths(sources, problems);
-  await checkOrphanedDocs(sources, markdownDocs, linkGraph, problems);
+  await checkOrphanedDocs(markdownDocs, linkGraph, problems);
   await checkOwnershipMap(sources, problems, gaps);
 
   reportResult(problems, gaps, sources, markdownDocs);

@@ -1,12 +1,12 @@
-# Spec: Car alerts
+# Car alerts
 
 Key: ALERT
 Status: Implemented
-Last updated: 2026-08-04.
+Last updated: 2026-09-28
 
 ---
 
-## 1. Problem
+## Problem
 
 The cars worth buying are gone in hours. Someone hunting for a specific car —
 a manual diesel Golf under €12,000 within 50 km of Valencia — has no way to be
@@ -24,78 +24,57 @@ be automated.
 Favorites solved the adjacent problem: keeping a car you have already found.
 This is about the cars you have not found yet.
 
-## 2. Scope
-
-**In scope.** Saving a set of search criteria as an alert; a background poller
+In scope: Saving a set of search criteria as an alert; a background poller
 that discovers listings matching it that the alert has not been shown before;
 an email telling the user about them; managing and unsubscribing from alerts.
 
-**Out of scope, deliberately:**
+## Acceptance criteria
 
-- **Real-time or push delivery.** No upstream offers webhooks or a stream, so
-  discovery is polling and the freshness floor is the poll interval. A WebSocket
-  would make the last hop instant while the first hop stayed minutes long. See
-  §4.
-- **Price-drop alerts on a specific listing.** That is favorites plus polling,
-  a different feature with a different data model. Nothing here blocks it.
-- **In-app notification centre, badges, or web push.** Email is the only
-  *notification* channel. The matches page (ALERT-39) shows what an alert has
-  found on demand; it does not tell anyone anything has arrived.
-- **Per-source alert criteria.** The project invariant is one shared filter set
-  driving all three sources, and an alert is a saved `SearchInput` for exactly
-  that reason.
-- **Alerts for signed-out visitors.** Delivery is email, and the address comes
-  from the account.
-- **Guaranteeing that every matching listing is found.** See the honesty note in
-  §4 — detection is best-effort and the spec says so rather than implying
-  completeness.
+ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed suite
+(`pnpm test:e2e:db`, `E2E_DB=1`), which CI does not run.
 
-## 3. Acceptance criteria
-
-| AC | Statement | Level | Verified by |
-| --- | --- | --- | --- |
-| ALERT-1 | A signed-in user can save the current search criteria as an alert, and it is listed against their account on the next request | node + e2e | `app/actions/alerts.node.test.ts` + `e2e/alerts.spec.ts` (E2E_DB only) |
-| ALERT-2 | Creating an alert records every listing currently matching the criteria as already-seen, and sends no email | node | `app/actions/alerts.node.test.ts` |
-| ALERT-3 | Two users saving identical criteria share one criteria record, so the criteria are polled once rather than twice | node | `app/actions/alerts.node.test.ts` |
-| ALERT-4 | A caller with no session cannot create, list or delete an alert, and nothing is written | node | `app/actions/alerts.node.test.ts` |
-| ALERT-5 | A user cannot delete or deactivate an alert belonging to a different user | node | `app/actions/alerts.node.test.ts` |
-| ALERT-6 | Criteria that fail `searchSchema` are rejected with an error code and nothing is written | node | `app/actions/alerts.node.test.ts` |
-| ALERT-7 | Saving criteria the user has already saved reports success and leaves exactly one alert | node | `app/actions/alerts.node.test.ts` |
-| ALERT-8 | Creating an alert beyond the per-user cap is rejected with a distinct error code, and the existing alerts are untouched | node | `app/actions/alerts.node.test.ts` |
-| ALERT-9 | A request to the run endpoint without the shared secret is refused, and enqueues and processes nothing | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-10 | A run enqueues every active criteria set last polled longer ago than the poll interval, and skips those polled more recently | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-11 | Enqueuing a criteria set that already has a pending job leaves one job, not a second | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-12 | A worker processes at most the configured slice, returns within its time budget, and leaves the remainder queued | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-13 | Two workers draining the queue concurrently never both process the same job | e2e | `e2e/alerts.spec.ts` (E2E_DB only) |
-| ALERT-14 | The criteria set waiting longest is claimed before one that was polled more recently | e2e | `e2e/alerts.spec.ts` (E2E_DB only) |
-| ALERT-15 | A listing matching the criteria that is not in the seen-set produces a pending match for every active subscriber, and is recorded as seen | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-16 | A listing already in the seen-set produces no new match, however many runs it appears in | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-17 | When one source fails, matches from the surviving sources are still produced, and nothing from the failed source is recorded as seen | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-18 | When every source fails, the job is retried with backoff and nothing is recorded as seen | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-19 | A job that exhausts its retry budget is marked failed, stops being retried, and does not block the rest of the queue | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-20 | A source that returns zero results having previously returned some is recorded as unhealthy rather than treated as "nothing new" | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-21 | Several matches for one user in one run produce a single email, not one per listing | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-22 | The email renders each listing from the stored snapshot, making no request to any source API | unit | `lib/email/templates/alert-emails.test.ts` |
-| ALERT-23 | A match already notified is not emailed again on any later run | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-24 | When the send fails, the match stays un-notified and is retried on the next run rather than being lost | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-25 | With email unconfigured, matches are still recorded and the run reports that nothing was sent, rather than silently succeeding | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-26 | Following the unsubscribe link in an email deactivates exactly that alert, with no session required | node | `app/api/alerts/unsubscribe/route.node.test.ts` |
-| ALERT-27 | An unsubscribe link with an unknown, malformed or already-used token changes nothing and reports the same response as a valid one | node | `app/api/alerts/unsubscribe/route.node.test.ts` |
-| ALERT-28 | The alerts page lists the user's alerts with a readable summary of the criteria and how many matches each has found | component | `components/alerts/AlertsList.test.tsx` |
-| ALERT-29 | With no alerts saved, the page shows an empty state offering a route to create one from a search | component | `components/alerts/AlertsList.test.tsx` |
-| ALERT-30 | Visiting the alerts page without a session redirects to sign-in, carrying the intended path | node | `proxy.node.test.ts` |
-| ALERT-31 | A run reports the age of the oldest un-polled criteria set, so a lap exceeding the freshness target is observable rather than silent | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-32 | The email is written in the locale stored on the user, falling back to the default when none is stored | node | `app/api/alerts/run/route.node.test.ts` + `lib/email/templates/alert-emails.test.ts` |
-| ALERT-33 | Changing the language while signed in persists the choice to the account, not only to the cookie | node | `app/actions/alerts.node.test.ts` |
-| ALERT-34 | Creating an alert with no locale yet stored records the one the request resolves to, so the first email is not a guess | node | `app/actions/alerts.node.test.ts` |
-| ALERT-35 | While the active criteria count is within the request-rate ceiling, every criteria set is polled at the base interval | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-36 | When the criteria count would exceed the ceiling, the interval stretches by the same factor for every criteria set, so none is polled preferentially | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-37 | A run reports the interval in force, so a stretched cadence is visible rather than inferred from the lap age | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-38 | Criteria naming no brand, no maximum price and no location are rejected with a distinct error code, and nothing is written | node | `app/actions/alerts.node.test.ts` |
-| ALERT-39 | Selecting an alert lists what it has found, newest first, rendered from stored snapshots with no request to any source API | component | `components/alerts/AlertMatchesList.test.tsx` |
-| ALERT-40 | An alert that has found nothing shows an empty state explaining it is watching, not a blank list | component | `components/alerts/AlertMatchesList.test.tsx` |
-| ALERT-41 | A criteria set whose subscribers are all inactive is not enqueued, and stops consuming upstream requests | node | `app/api/alerts/run/route.node.test.ts` |
-| ALERT-42 | Deleting the last alert that references a criteria set deletes the criteria set and its seen-list | node | `app/actions/alerts.node.test.ts` |
+- [x] ALERT-1 · node + e2e — A signed-in user can save the current search criteria as an alert, and it is listed against their account on the next request
+- [x] ALERT-2 · node — Creating an alert records every listing currently matching the criteria as already-seen, and sends no email
+- [x] ALERT-3 · node — Two users saving identical criteria share one criteria record, so the criteria are polled once rather than twice
+- [x] ALERT-4 · node — A caller with no session cannot create, list or delete an alert, and nothing is written
+- [x] ALERT-5 · node — A user cannot delete or deactivate an alert belonging to a different user
+- [x] ALERT-6 · node — Criteria that fail `searchSchema` are rejected with an error code and nothing is written
+- [x] ALERT-7 · node — Saving criteria the user has already saved reports success and leaves exactly one alert
+- [x] ALERT-8 · node — Creating an alert beyond the per-user cap is rejected with a distinct error code, and the existing alerts are untouched
+- [x] ALERT-9 · node — A request to the run endpoint without the shared secret is refused, and enqueues and processes nothing
+- [x] ALERT-10 · node — A run enqueues every active criteria set last polled longer ago than the poll interval, and skips those polled more recently
+- [x] ALERT-11 · node — Enqueuing a criteria set that already has a pending job leaves one job, not a second
+- [x] ALERT-12 · node — A worker processes at most the configured slice, returns within its time budget, and leaves the remainder queued
+- [x] ALERT-13 · e2e — Two workers draining the queue concurrently never both process the same job
+- [x] ALERT-14 · e2e — The criteria set waiting longest is claimed before one that was polled more recently
+- [x] ALERT-15 · node — A listing matching the criteria that is not in the seen-set produces a pending match for every active subscriber, and is recorded as seen
+- [x] ALERT-16 · node — A listing already in the seen-set produces no new match, however many runs it appears in
+- [x] ALERT-17 · node — When one source fails, matches from the surviving sources are still produced, and nothing from the failed source is recorded as seen
+- [x] ALERT-18 · node — When every source fails, the job is retried with backoff and nothing is recorded as seen
+- [x] ALERT-19 · node — A job that exhausts its retry budget is marked failed, stops being retried, and does not block the rest of the queue
+- [x] ALERT-20 · node — A source that returns zero results having previously returned some is recorded as unhealthy rather than treated as "nothing new"
+- [x] ALERT-21 · node — Several matches for one user in one run produce a single email, not one per listing
+- [x] ALERT-22 · unit — The email renders each listing from the stored snapshot, making no request to any source API
+- [x] ALERT-23 · node — A match already notified is not emailed again on any later run
+- [x] ALERT-24 · node — When the send fails, the match stays un-notified and is retried on the next run rather than being lost
+- [x] ALERT-25 · node — With email unconfigured, matches are still recorded and the run reports that nothing was sent, rather than silently succeeding
+- [x] ALERT-26 · node — Following the unsubscribe link in an email deactivates exactly that alert, with no session required
+- [x] ALERT-27 · node — An unsubscribe link with an unknown, malformed or already-used token changes nothing and reports the same response as a valid one
+- [x] ALERT-28 · component — The alerts page lists the user's alerts with a readable summary of the criteria and how many matches each has found
+- [x] ALERT-29 · component — With no alerts saved, the page shows an empty state offering a route to create one from a search
+- [x] ALERT-30 · node — Visiting the alerts page without a session redirects to sign-in, carrying the intended path
+- [x] ALERT-31 · node — A run reports the age of the oldest un-polled criteria set, so a lap exceeding the freshness target is observable rather than silent
+- [x] ALERT-32 · node — The email is written in the locale stored on the user, falling back to the default when none is stored
+- [x] ALERT-33 · node — Changing the language while signed in persists the choice to the account, not only to the cookie
+- [x] ALERT-34 · node — Creating an alert with no locale yet stored records the one the request resolves to, so the first email is not a guess
+- [x] ALERT-35 · node — While the active criteria count is within the request-rate ceiling, every criteria set is polled at the base interval
+- [x] ALERT-36 · node — When the criteria count would exceed the ceiling, the interval stretches by the same factor for every criteria set, so none is polled preferentially
+- [x] ALERT-37 · node — A run reports the interval in force, so a stretched cadence is visible rather than inferred from the lap age
+- [x] ALERT-38 · node — Criteria naming no brand, no maximum price and no location are rejected with a distinct error code, and nothing is written
+- [x] ALERT-39 · component — Selecting an alert lists what it has found, newest first, rendered from stored snapshots with no request to any source API
+- [x] ALERT-40 · component — An alert that has found nothing shows an empty state explaining it is watching, not a blank list
+- [x] ALERT-41 · node — A criteria set whose subscribers are all inactive is not enqueued, and stops consuming upstream requests
+- [x] ALERT-42 · node — Deleting the last alert that references a criteria set deletes the criteria set and its seen-list
 
 Forty-two criteria: thirty-five on the server boundary, four on rendering, one on
 the email template, two on real Postgres. Nine cover the management surface, ten
@@ -110,12 +89,335 @@ that as wrong, because `ORDER BY "enqueuedAt"` lives in SQL and a fake sorting
 its own rows proves only that the fake sorts.
 
 Both need `pnpm test:e2e:db`, which **does not run in CI** (see
-[testing.md](../testing.md)) — so a green CI does not prove exclusivity or
+[ARCHITECTURE.md › The database-backed suite](../ARCHITECTURE.md#the-database-backed-suite)) — so a green CI does not prove exclusivity or
 fairness. That is the same trade the favorites spec made for its cascade, and it
-is why the unique constraints in §5 exist as a second, independent guard rather
+is why the unique constraints in Data model exist as a second, independent guard rather
 than as documentation.
 
-## 4. Decisions and rationale
+## Worked examples
+
+- **ALERT-4** — No session; createAlert({brand:"Audi", model:"A3", maxPrice:20000, latitude:40.4168, longitude:-3.7038, distanceInKm:50}, "Audi A3 under 20k") → { success: false, error: "unauthenticated" }; 0 alerts, 0 criteria rows.
+- **ALERT-5** — Ada (user-ada) owns "Ada's search"; Grace (user-grace) calls deleteAlert(<Ada's id>) → success: true (nothing leaked), Ada still has 1 alert.
+- **ALERT-9** — ALERTS_CRON_SECRET="cron-secret"; POST /api/alerts/run with no Authorization → 401, no source searched, job stays "pending"; "Bearer not-the-secret" → 401; "Bearer cron-secret" → 200.
+- **ALERT-26** — Alert stored with unsubscribeTokenHash = sha256("raw-token-ada"); GET /api/alerts/unsubscribe?token=raw-token-ada, no session → 200, that alert active=false; unsubscribing raw-token-one leaves the raw-token-two alert active.
+- **ALERT-27** — GET ?token=some-token-nobody-issued → 200, Ada's alert stays active; token=garbage returns the same status and body as token=raw-token-ada.
+
+## Data model
+
+### Schema
+
+Six new models. `User` gains `alerts Alert[]` and one new column:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `locale` | `String?` | `es` · `en`, validated against `LOCALES` on write. Written by the language switcher (ALERT-33) and backfilled on alert creation (ALERT-34); null falls back to `DEFAULT_LOCALE` (ALERT-32) |
+
+**`AlertCriteria`** — one deduplicated question, polled once however many users
+subscribe.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `String @id @default(cuid())` | |
+| `criteriaHash` | `String @unique` | SHA-256 of the canonicalised `SearchInput` — keys sorted, `undefined` dropped, arrays sorted, so equivalent filters hash alike |
+| `criteria` | `Json` | The `SearchInput` itself, re-validated with `searchSchema` on read; never trusted as typed |
+| `lastPolledAt` | `DateTime?` | Null until the first successful poll. Drives ALERT-10 and ALERT-14 |
+| `createdAt` | `DateTime @default(now())` | |
+
+**`Alert`** — a user's subscription.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `String @id @default(cuid())` | |
+| `userId` | `String` | Indexed; cascade on user delete |
+| `criteriaId` | `String` | Indexed; cascade |
+| `label` | `String` | Human summary shown on the alerts page (ALERT-28) |
+| `active` | `Boolean @default(true)` | Unsubscribe flips this rather than deleting, so the seen-set survives a re-subscribe |
+| `unsubscribeTokenHash` | `String @unique` | SHA-256; the raw token exists only in the email |
+| `createdAt` | `DateTime @default(now())` | |
+
+Constraints: `@@unique([userId, criteriaId])` makes ALERT-7 true in the database
+rather than in a read-then-write race; `@@index([userId])`, `@@index([criteriaId])`.
+
+**`AlertSeenListing`** — the dedup memory. Deliberately holds no snapshot: these
+rows are numerous and mostly never emailed, and the snapshot belongs on the
+delivery row.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `String @id @default(cuid())` | |
+| `criteriaId` | `String` | Cascade |
+| `listingId` | `String` | The normalized source-prefixed id — `wallapop-abc123`, already unique across sources |
+| `source` | `String` | Which source produced it, so ALERT-17 can update per source |
+| `firstSeenAt` | `DateTime @default(now())` | |
+
+Constraints: `@@unique([criteriaId, listingId])` — the backstop that makes
+ALERT-16 hold even if two workers race past `SKIP LOCKED`; `@@index([criteriaId])`.
+
+**`AlertMatch`** — one row per user per newly discovered listing, carrying the
+snapshot because no source client can fetch a single listing by id, so an email
+built from a reference alone would have nothing to render. Fields derived
+field-by-field from `CarListing`, which has fifteen; `id` becomes `listingId`
+and the other fourteen are copied.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `String @id @default(cuid())` | |
+| `alertId` | `String` | Indexed; cascade |
+| `listingId` | `String` | Normalized id |
+| `source`, `title`, `subtitle`, `image`, `brand`, `model`, `location`, `fuel`, `url` | `String` | Snapshot. `subtitle`, `image` and `fuel` may be empty strings, matching `CarListing` |
+| `price`, `mileage`, `year` | `Int` | Snapshot; zero means unknown, as in `CarListing` |
+| `lat`, `lng` | `Float` | Snapshot |
+| `notifiedAt` | `DateTime?` | Null means pending delivery. ALERT-23, ALERT-24 |
+| `createdAt` | `DateTime @default(now())` | |
+
+Constraints: `@@unique([alertId, listingId])` — the delivery-side guard against
+a duplicate email; `@@index([alertId, notifiedAt])` for the drain query.
+
+**`AlertPollJob`** — the queue. One row per criteria set, reused rather than
+appended, which is what makes ALERT-11 a unique constraint instead of a check.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `String @id @default(cuid())` | |
+| `criteriaId` | `String @unique` | One live job per criteria set |
+| `status` | `String` | `pending` · `running` · `failed` |
+| `attempts` | `Int @default(0)` | ALERT-18, ALERT-19 |
+| `availableAt` | `DateTime @default(now())` | Backoff: a retried job is not claimable until this passes |
+| `lockedAt` | `DateTime?` | Lease timestamp; a stale lease is reclaimable so a killed worker does not strand a job |
+| `lastError` | `String?` | |
+| `enqueuedAt` | `DateTime @default(now())` | Claim order for ALERT-14 |
+
+Constraints: `@@index([status, availableAt, enqueuedAt])` — the claim query's
+index, and the reason oldest-first is cheap.
+
+**`SourceHealth`** — global, not per criteria: a broken parser breaks every
+criteria set at once.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `source` | `String @id` | `Wallapop` · `Coches.net` · `Milanuncios` |
+| `lastOkAt` | `DateTime?` | Last run that returned at least one result |
+| `consecutiveEmptyRuns` | `Int @default(0)` | ALERT-20's signal |
+| `updatedAt` | `DateTime @updatedAt` | |
+
+## Permissions
+
+Only a signed-in user can create, list or delete an alert, and nothing is written
+for a caller with no session (ALERT-4). A user cannot delete or deactivate an
+alert belonging to a different user (ALERT-5). Every server action calls
+`getCurrentUser()` first (see Contracts › Server actions); `setLocale` no-ops for
+a signed-out caller (ALERT-33).
+
+The run endpoint is a machine caller: it requires the shared secret
+`ALERTS_CRON_SECRET` in an `Authorization: Bearer` header, compared in constant
+time, and not a user session (ALERT-9). The unsubscribe link needs no session:
+its token is a bearer credential that deactivates exactly the alert it was
+issued for (ALERT-26), and an unknown, malformed or already-used token changes
+nothing (ALERT-27).
+
+The alerts pages redirect a visitor with no session to sign-in (ALERT-30);
+`/api/alerts/unsubscribe` is deliberately not protected (see Contracts ›
+Routing). Signed-out visitors cannot have alerts (see Out of scope).
+
+## Edge cases
+
+- ALERT-4 — a caller with no session.
+- ALERT-5 — deleting or deactivating another user's alert.
+- ALERT-6 — criteria that fail `searchSchema`.
+- ALERT-7 — saving criteria the user has already saved.
+- ALERT-8 — creating an alert beyond the per-user cap.
+- ALERT-9 — a run request without the shared secret.
+- ALERT-11 — enqueuing a criteria set that already has a pending job.
+- ALERT-12 — more queued work than one worker's slice and time budget.
+- ALERT-13 — two workers draining the queue concurrently.
+- ALERT-16 — a listing already in the seen-set.
+- ALERT-17 — one source fails.
+- ALERT-18 — every source fails.
+- ALERT-19 — a job that exhausts its retry budget.
+- ALERT-20 — a source that returns zero results having previously returned some.
+- ALERT-24 — the email send fails.
+- ALERT-25 — email unconfigured.
+- ALERT-27 — an unknown, malformed or already-used unsubscribe token.
+- ALERT-29 — no alerts saved.
+- ALERT-30 — the alerts page without a session.
+- ALERT-32 — no locale stored on the user.
+- ALERT-36 — the criteria count would exceed the request-rate ceiling.
+- ALERT-38 — criteria naming no brand, no maximum price and no location.
+- ALERT-40 — an alert that has found nothing.
+- ALERT-41 — a criteria set whose subscribers are all inactive.
+- A new listing ranked beyond the first page — see Decisions › "New" cannot mean "published recently", so it means "not seen before".
+- A source that returns zero ads on a parse failure — see Decisions › A silently empty source is the dangerous failure.
+- A source flapping, then recovering — see Decisions › Partial upstream failure must not poison the seen-set.
+- A killed worker holding a job — see Data model › Schema (`AlertPollJob.lockedAt`).
+
+## Out of scope
+
+**Out of scope, deliberately:**
+
+- **Real-time or push delivery.** No upstream offers webhooks or a stream, so
+  discovery is polling and the freshness floor is the poll interval. A WebSocket
+  would make the last hop instant while the first hop stayed minutes long. See
+  Decisions and rationale.
+- **Price-drop alerts on a specific listing.** That is favorites plus polling,
+  a different feature with a different data model. Nothing here blocks it.
+- **In-app notification centre, badges, or web push.** Email is the only
+  *notification* channel. The matches page (ALERT-39) shows what an alert has
+  found on demand; it does not tell anyone anything has arrived.
+- **Per-source alert criteria.** The project invariant is one shared filter set
+  driving all three sources, and an alert is a saved `SearchInput` for exactly
+  that reason.
+- **Alerts for signed-out visitors.** Delivery is email, and the address comes
+  from the account.
+- **Guaranteeing that every matching listing is found.** See the honesty note in
+  Decisions and rationale — detection is best-effort and the spec says so rather than implying
+  completeness.
+
+## Contracts
+
+### The runner needs its own way to reach the upstreams
+
+The three source clients cannot be used here. `lib/wallapop/client.ts` builds its
+URL with `new URL(BASE_URL, window.location.origin)`, and the other two do the
+same: they call the proxy routes from the browser, which is the whole point of
+those routes existing. A cron has no `window` and no origin to resolve against.
+
+So `lib/alerts/search.ts` exports `searchAllSources(criteria)`, which calls the
+three upstreams directly — the same requests `app/api/*/route.ts` forwards, with
+the same required headers — and returns more than a merged list:
+
+```ts
+interface AlertSearchResult {
+  listings: CarListing[];
+  /** Sources whose request failed. Nothing from these is recorded as seen. */
+  failedSources: string[];
+  /** Per-source result counts, before merging. */
+  perSourceCounts: Record<string, number>;
+}
+```
+
+Both extra fields are load-bearing, and a flat `CarListing[]` carries neither.
+**ALERT-17** needs `failedSources`, because a source that failed must contribute
+nothing to the seen-list — otherwise listings that appeared during the outage are
+never new again. **ALERT-20** needs `perSourceCounts`, because after merging,
+"Milanuncios returned nothing" and "Milanuncios returned nothing *this time*"
+are indistinguishable, which is precisely the silent-death failure that criterion
+exists to catch.
+
+This is why the alert path can force `order_by=newest` on Wallapop without
+touching the interactive search path — they no longer share a client.
+
+### The claim query
+
+The one piece of raw SQL, because Prisma cannot express `SKIP LOCKED`:
+
+```sql
+SELECT id FROM "AlertPollJob"
+WHERE status = 'pending' AND "availableAt" <= now()
+ORDER BY "enqueuedAt" ASC
+LIMIT $1
+FOR UPDATE SKIP LOCKED
+```
+
+`SKIP LOCKED` rather than plain `FOR UPDATE` is the whole point: plain locking
+makes concurrent workers queue behind each other, which is a slower version of
+one worker. Skipping means worker two takes the next job instead of waiting.
+
+### Route handlers
+
+`app/api/alerts/run/route.ts` — the only new route, because this is a machine
+caller and not a user mutation, so the "prefer server actions" rule does not
+apply. Authorised by a constant-time comparison against `ALERTS_CRON_SECRET` in
+an `Authorization: Bearer` header (ALERT-9), **not** by `getCurrentUser()`.
+
+Returns a summary rather than `204`, because ALERT-31 and ALERT-25 are only
+observable if the run says what it did:
+
+```
+{ claimed, polled, matched, emailed, skippedNoEmail, oldestPendingAgeMs, failures[] }
+```
+
+`app/api/alerts/unsubscribe/route.ts` — `GET` with a token, session-free
+(ALERT-26, ALERT-27).
+
+### Server actions
+
+`app/actions/alerts.ts`, following the `favorites.ts` shape exactly —
+`getCurrentUser()` first, Zod `safeParse`, typed `{ success, error?: Code }`
+where the error is a **code**:
+
+- `createAlert(criteria, label)` — ALERT-1, ALERT-2, ALERT-3, ALERT-4, ALERT-6, ALERT-7, ALERT-8, ALERT-34
+- `listAlerts()` — ALERT-4, ALERT-28
+- `deleteAlert(alertId)` — ALERT-4, ALERT-5
+- `setLocale(locale)` — ALERT-33. Belongs here rather than in an auth action
+  because nothing else needs it; it no-ops for a signed-out caller, since the
+  cookie already carries the preference for them
+
+Codes in `lib/validations/alerts.ts`: `unauthenticated`, `invalidCriteria`,
+`criteriaTooBroad`, `tooManyAlerts`, `unexpected`.
+
+`criteriaTooBroad` is distinct from `invalidCriteria` on purpose — the criteria
+are structurally valid and the user needs to be told to narrow them, not that
+they made a mistake (ALERT-38).
+
+### Environment
+
+| Variable | Absent means |
+| --- | --- |
+| `ALERTS_CRON_SECRET` | The run endpoint refuses every request, so alerts never fire. Optional, like every other feature flag in `lib/env.ts` — it disables a feature rather than blocking boot |
+
+Delivery additionally needs `RESEND_API_KEY` + `EMAIL_FROM`; without them
+ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
+
+### Constants
+
+| Name | Value | Why |
+| --- | --- | --- |
+| Base poll interval | 5 min | GitHub's cron floor |
+| Upstream request ceiling | 60 req/min | The budget the cadence stretches to respect (ALERT-35, ALERT-36). Unmeasured — see the third open question |
+| Effective interval | `max(base, criteria × 3 ÷ ceiling)` | Uniform across every criteria set |
+| Worker slice | 25 criteria sets | Bounded so ALERT-12 holds inside the Vercel invocation timeout |
+| Worker time budget | 45 s | Returns before the platform kills it, leaving the remainder queued |
+| Retry budget | 3 attempts | Then `failed` (ALERT-19) |
+| Backoff | 5 / 15 / 45 min | Deliberately longer than the poll interval — a failing upstream should be polled less, not more |
+| Alerts per user | 20 | A proxy for the real constraint — total distinct criteria sets |
+| Empty runs before unhealthy | 3 | ALERT-20 |
+
+### Scheduling
+
+`.github/workflows/alerts.yml`, `*/5 * * * *`, a matrix of K jobs each POSTing
+to the run endpoint with the secret. Public repository, so Actions minutes are
+unlimited; the alert count does not affect the workflow's cost because the
+workflow only ever makes one request per job.
+
+**This needs an ADR** —
+[`0005-postgres-rate-limiting.md`](../decisions/0005-postgres-rate-limiting.md)
+currently says, under "Rows accumulate", that there is no scheduler and no cron
+should be added. That is scoped to pruning rate-limit rows, but a reader will
+land on it and conclude the two contradict. `docs/decisions/0006-alert-scheduling.md`
+must record the choice and amend that line to say what it actually governs.
+
+### i18n
+
+All new keys in `en.ts`, `es.ts` and `types.ts`: the alerts page title, the
+criteria summary, the empty state and its call to action, the create-alert
+control, the four error codes in `lib/i18n/errors.ts`, and the unsubscribe
+confirmation page.
+
+The email body resolves through `getTranslationsSync(locale)` with the locale
+read from `User.locale` — the one path that cannot use `getTranslations()`,
+because there is no request to read a cookie or `accept-language` from.
+
+### Routing
+
+`/alerts` and `/alerts/[id]` join `PROTECTED_PREFIXES` and the `matcher` in
+`proxy.ts` (ALERT-30). `/api/alerts/unsubscribe` must **not** be protected — it
+is followed from an inbox with no session.
+
+`/alerts/[id]` is the matches view (ALERT-39, ALERT-40). It renders from
+`AlertMatch` snapshots, which is what makes it work when a source is down and
+what stops a match count linking nowhere.
+
+## Decisions and rationale
 
 ### "New" cannot mean "published recently", so it means "not seen before"
 
@@ -282,7 +584,7 @@ beats a lost one.
 
 ### A silently empty source is the dangerous failure
 
-Per [`operations.md`](../operations.md), a Milanuncios parse failure returns zero
+Per [the runbook](../ARCHITECTURE.md#a-source-returns-nothing), a Milanuncios parse failure returns zero
 ads rather than an error. In search that is fewer results. In alerts it is
 indistinguishable from "nothing new", so an alert can be dead for weeks while
 looking perfectly healthy — the worst failure mode this feature has, because
@@ -311,7 +613,7 @@ Nobody asked for this, and it is recorded here rather than assumed. Each alert
 is a standing claim on a rate-limited upstream, so an unbounded count is a way
 for one account to consume the shared budget that protects search. Twenty per
 user is a guess — high enough that no genuine user meets it, low enough to bound
-the damage. The number belongs in §5 and the reasoning is in the open questions.
+the damage. The number belongs in Contracts › Constants and the reasoning is in the open questions.
 
 ### The user's locale has to be stored, because a cron has no request
 
@@ -364,250 +666,9 @@ Deleting a user must delete their alerts and matches; a criteria set with no
 remaining subscribers must stop being polled. Those are `onDelete: Cascade` and
 a unique index, enforced by Postgres, and Vitest mocks Prisma — so a criterion
 for them would test that Prisma was called correctly and prove nothing. They are
-specified in §5 and left to review, exactly as the favorites spec did.
+specified in Data model and left to review, exactly as the favorites spec did.
 
-## 5. Data and contracts
-
-### Schema
-
-Six new models. `User` gains `alerts Alert[]` and one new column:
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `locale` | `String?` | `es` · `en`, validated against `LOCALES` on write. Written by the language switcher (ALERT-33) and backfilled on alert creation (ALERT-34); null falls back to `DEFAULT_LOCALE` (ALERT-32) |
-
-**`AlertCriteria`** — one deduplicated question, polled once however many users
-subscribe.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
-| `criteriaHash` | `String @unique` | SHA-256 of the canonicalised `SearchInput` — keys sorted, `undefined` dropped, arrays sorted, so equivalent filters hash alike |
-| `criteria` | `Json` | The `SearchInput` itself, re-validated with `searchSchema` on read; never trusted as typed |
-| `lastPolledAt` | `DateTime?` | Null until the first successful poll. Drives ALERT-10 and ALERT-14 |
-| `createdAt` | `DateTime @default(now())` | |
-
-**`Alert`** — a user's subscription.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
-| `userId` | `String` | Indexed; cascade on user delete |
-| `criteriaId` | `String` | Indexed; cascade |
-| `label` | `String` | Human summary shown on the alerts page (ALERT-28) |
-| `active` | `Boolean @default(true)` | Unsubscribe flips this rather than deleting, so the seen-set survives a re-subscribe |
-| `unsubscribeTokenHash` | `String @unique` | SHA-256; the raw token exists only in the email |
-| `createdAt` | `DateTime @default(now())` | |
-
-Constraints: `@@unique([userId, criteriaId])` makes ALERT-7 true in the database
-rather than in a read-then-write race; `@@index([userId])`, `@@index([criteriaId])`.
-
-**`AlertSeenListing`** — the dedup memory. Deliberately holds no snapshot: these
-rows are numerous and mostly never emailed, and the snapshot belongs on the
-delivery row.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
-| `criteriaId` | `String` | Cascade |
-| `listingId` | `String` | The normalized source-prefixed id — `wallapop-abc123`, already unique across sources |
-| `source` | `String` | Which source produced it, so ALERT-17 can update per source |
-| `firstSeenAt` | `DateTime @default(now())` | |
-
-Constraints: `@@unique([criteriaId, listingId])` — the backstop that makes
-ALERT-16 hold even if two workers race past `SKIP LOCKED`; `@@index([criteriaId])`.
-
-**`AlertMatch`** — one row per user per newly discovered listing, carrying the
-snapshot because no source client can fetch a single listing by id, so an email
-built from a reference alone would have nothing to render. Fields derived
-field-by-field from `CarListing`, which has fifteen; `id` becomes `listingId`
-and the other fourteen are copied.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
-| `alertId` | `String` | Indexed; cascade |
-| `listingId` | `String` | Normalized id |
-| `source`, `title`, `subtitle`, `image`, `brand`, `model`, `location`, `fuel`, `url` | `String` | Snapshot. `subtitle`, `image` and `fuel` may be empty strings, matching `CarListing` |
-| `price`, `mileage`, `year` | `Int` | Snapshot; zero means unknown, as in `CarListing` |
-| `lat`, `lng` | `Float` | Snapshot |
-| `notifiedAt` | `DateTime?` | Null means pending delivery. ALERT-23, ALERT-24 |
-| `createdAt` | `DateTime @default(now())` | |
-
-Constraints: `@@unique([alertId, listingId])` — the delivery-side guard against
-a duplicate email; `@@index([alertId, notifiedAt])` for the drain query.
-
-**`AlertPollJob`** — the queue. One row per criteria set, reused rather than
-appended, which is what makes ALERT-11 a unique constraint instead of a check.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
-| `criteriaId` | `String @unique` | One live job per criteria set |
-| `status` | `String` | `pending` · `running` · `failed` |
-| `attempts` | `Int @default(0)` | ALERT-18, ALERT-19 |
-| `availableAt` | `DateTime @default(now())` | Backoff: a retried job is not claimable until this passes |
-| `lockedAt` | `DateTime?` | Lease timestamp; a stale lease is reclaimable so a killed worker does not strand a job |
-| `lastError` | `String?` | |
-| `enqueuedAt` | `DateTime @default(now())` | Claim order for ALERT-14 |
-
-Constraints: `@@index([status, availableAt, enqueuedAt])` — the claim query's
-index, and the reason oldest-first is cheap.
-
-**`SourceHealth`** — global, not per criteria: a broken parser breaks every
-criteria set at once.
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `source` | `String @id` | `Wallapop` · `Coches.net` · `Milanuncios` |
-| `lastOkAt` | `DateTime?` | Last run that returned at least one result |
-| `consecutiveEmptyRuns` | `Int @default(0)` | ALERT-20's signal |
-| `updatedAt` | `DateTime @updatedAt` | |
-
-### The runner needs its own way to reach the upstreams
-
-The three source clients cannot be used here. `lib/wallapop/client.ts` builds its
-URL with `new URL(BASE_URL, window.location.origin)`, and the other two do the
-same: they call the proxy routes from the browser, which is the whole point of
-those routes existing. A cron has no `window` and no origin to resolve against.
-
-So `lib/alerts/search.ts` exports `searchAllSources(criteria)`, which calls the
-three upstreams directly — the same requests `app/api/*/route.ts` forwards, with
-the same required headers — and returns more than a merged list:
-
-```ts
-interface AlertSearchResult {
-  listings: CarListing[];
-  /** Sources whose request failed. Nothing from these is recorded as seen. */
-  failedSources: string[];
-  /** Per-source result counts, before merging. */
-  perSourceCounts: Record<string, number>;
-}
-```
-
-Both extra fields are load-bearing, and a flat `CarListing[]` carries neither.
-**ALERT-17** needs `failedSources`, because a source that failed must contribute
-nothing to the seen-list — otherwise listings that appeared during the outage are
-never new again. **ALERT-20** needs `perSourceCounts`, because after merging,
-"Milanuncios returned nothing" and "Milanuncios returned nothing *this time*"
-are indistinguishable, which is precisely the silent-death failure that criterion
-exists to catch.
-
-This is why the alert path can force `order_by=newest` on Wallapop without
-touching the interactive search path — they no longer share a client.
-
-### The claim query
-
-The one piece of raw SQL, because Prisma cannot express `SKIP LOCKED`:
-
-```sql
-SELECT id FROM "AlertPollJob"
-WHERE status = 'pending' AND "availableAt" <= now()
-ORDER BY "enqueuedAt" ASC
-LIMIT $1
-FOR UPDATE SKIP LOCKED
-```
-
-`SKIP LOCKED` rather than plain `FOR UPDATE` is the whole point: plain locking
-makes concurrent workers queue behind each other, which is a slower version of
-one worker. Skipping means worker two takes the next job instead of waiting.
-
-### Route handlers
-
-`app/api/alerts/run/route.ts` — the only new route, because this is a machine
-caller and not a user mutation, so the "prefer server actions" rule does not
-apply. Authorised by a constant-time comparison against `ALERTS_CRON_SECRET` in
-an `Authorization: Bearer` header (ALERT-9), **not** by `getCurrentUser()`.
-
-Returns a summary rather than `204`, because ALERT-31 and ALERT-25 are only
-observable if the run says what it did:
-
-```
-{ claimed, polled, matched, emailed, skippedNoEmail, oldestPendingAgeMs, failures[] }
-```
-
-`app/api/alerts/unsubscribe/route.ts` — `GET` with a token, session-free
-(ALERT-26, ALERT-27).
-
-### Server actions
-
-`app/actions/alerts.ts`, following the `favorites.ts` shape exactly —
-`getCurrentUser()` first, Zod `safeParse`, typed `{ success, error?: Code }`
-where the error is a **code**:
-
-- `createAlert(criteria, label)` — ALERT-1, ALERT-2, ALERT-3, ALERT-4, ALERT-6, ALERT-7, ALERT-8, ALERT-34
-- `listAlerts()` — ALERT-4, ALERT-28
-- `deleteAlert(alertId)` — ALERT-4, ALERT-5
-- `setLocale(locale)` — ALERT-33. Belongs here rather than in an auth action
-  because nothing else needs it; it no-ops for a signed-out caller, since the
-  cookie already carries the preference for them
-
-Codes in `lib/validations/alerts.ts`: `unauthenticated`, `invalidCriteria`,
-`criteriaTooBroad`, `tooManyAlerts`, `unexpected`.
-
-`criteriaTooBroad` is distinct from `invalidCriteria` on purpose — the criteria
-are structurally valid and the user needs to be told to narrow them, not that
-they made a mistake (ALERT-38).
-
-### Environment
-
-| Variable | Absent means |
-| --- | --- |
-| `ALERTS_CRON_SECRET` | The run endpoint refuses every request, so alerts never fire. Optional, like every other feature flag in `lib/env.ts` — it disables a feature rather than blocking boot |
-
-Delivery additionally needs `RESEND_API_KEY` + `EMAIL_FROM`; without them
-ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
-
-### Constants
-
-| Name | Value | Why |
-| --- | --- | --- |
-| Base poll interval | 5 min | GitHub's cron floor |
-| Upstream request ceiling | 60 req/min | The budget the cadence stretches to respect (ALERT-35, ALERT-36). Unmeasured — see the third open question |
-| Effective interval | `max(base, criteria × 3 ÷ ceiling)` | Uniform across every criteria set |
-| Worker slice | 25 criteria sets | Bounded so ALERT-12 holds inside the Vercel invocation timeout |
-| Worker time budget | 45 s | Returns before the platform kills it, leaving the remainder queued |
-| Retry budget | 3 attempts | Then `failed` (ALERT-19) |
-| Backoff | 5 / 15 / 45 min | Deliberately longer than the poll interval — a failing upstream should be polled less, not more |
-| Alerts per user | 20 | A proxy for the real constraint — total distinct criteria sets |
-| Empty runs before unhealthy | 3 | ALERT-20 |
-
-### Scheduling
-
-`.github/workflows/alerts.yml`, `*/5 * * * *`, a matrix of K jobs each POSTing
-to the run endpoint with the secret. Public repository, so Actions minutes are
-unlimited; the alert count does not affect the workflow's cost because the
-workflow only ever makes one request per job.
-
-**This needs an ADR** —
-[`0005-postgres-rate-limiting.md`](../decisions/0005-postgres-rate-limiting.md)
-currently says, under "Rows accumulate", that there is no scheduler and no cron
-should be added. That is scoped to pruning rate-limit rows, but a reader will
-land on it and conclude the two contradict. `docs/decisions/0006-alert-scheduling.md`
-must record the choice and amend that line to say what it actually governs.
-
-### i18n
-
-All new keys in `en.ts`, `es.ts` and `types.ts`: the alerts page title, the
-criteria summary, the empty state and its call to action, the create-alert
-control, the four error codes in `lib/i18n/errors.ts`, and the unsubscribe
-confirmation page.
-
-The email body resolves through `getTranslationsSync(locale)` with the locale
-read from `User.locale` — the one path that cannot use `getTranslations()`,
-because there is no request to read a cookie or `accept-language` from.
-
-### Routing
-
-`/alerts` and `/alerts/[id]` join `PROTECTED_PREFIXES` and the `matcher` in
-`proxy.ts` (ALERT-30). `/api/alerts/unsubscribe` must **not** be protected — it
-is followed from an inbox with no session.
-
-`/alerts/[id]` is the matches view (ALERT-39, ALERT-40). It renders from
-`AlertMatch` snapshots, which is what makes it work when a source is down and
-what stops a match count linking nowhere.
-
-## 6. Open questions
+## Open questions
 
 All settled. Kept as a record of what was decided and what would reopen it.
 
@@ -633,7 +694,7 @@ All settled. Kept as a record of what was decided and what would reopen it.
 4. ~~Should a criteria set with no active subscribers be deleted or left?~~
    **Settled 2026-08-03: deleted** (ALERT-41, ALERT-42). The retention argument
    was wrong — seeding is already silent, so a rebuilt seen-list notifies nobody
-   and retention only saves one poll. See §4.
+   and retention only saves one poll. See Decisions and rationale.
 5. ~~Does forcing `order_by=newest` for Wallapop in the alert path belong here or
    in `data-sources.md`?~~ **Settled 2026-08-03: `data-sources.md`.** It changes
    a shared client's contract, and that spec owns it. **This spec cannot be

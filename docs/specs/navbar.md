@@ -1,12 +1,12 @@
-# Spec: Navigation bar
+# Navigation bar
 
 Key: NAV
 Status: Implemented
-Last updated: 2026-08-05.
+Last updated: 2026-09-28
 
 ---
 
-## 1. Problem
+## Problem
 
 The navigation bar is a single flat row that every feature has added a control
 to, and nothing has ever been taken out of. A signed-in user on a phone is
@@ -36,15 +36,65 @@ session placeholder".
 
 Adding the next nav item to this row makes all four worse.
 
-## 2. Scope
-
-**In scope.** What the navigation bar offers, at every viewport: which
+In scope: what the navigation bar offers, at every viewport: which
 destinations a visitor and a signed-in user are given, how those collapse on a
 phone, how the collapsed menu is opened, dismissed and navigated with a
 keyboard, how the current page is indicated, and what the bar shows while the
 session is still resolving.
 
-**Out of scope, deliberately:**
+## Acceptance criteria
+
+The navbar accepts no user input beyond clicks, so there is no invalid-input
+criterion; the equivalent negative paths are an unresolved session (NAV-8), a
+session that ends underneath the user (NAV-16), and a signed-out visitor being
+offered links to guarded pages (NAV-10).
+
+- [x] NAV-1 · component — Opening the menu while signed out offers both signing in and registering
+- [x] NAV-2 · e2e — Every navbar control on a phone viewport has a touch target of at least 44 by 44 pixels
+- [x] NAV-3 · component — Opening the menu while signed in offers saved cars, alerts, the account page and sign out
+- [x] NAV-4 · component — Dismissing the menu with Escape closes it and returns focus to the control that opened it
+- [x] NAV-5 · component — Following a link from the menu closes the menu, so the panel does not cover the page just navigated to
+- [x] NAV-6 · component — Signing out from the menu ends the session and returns the user to the home page
+- [x] NAV-7 · component — The navbar marks the destination matching the current page as current, and marks no other
+- [x] NAV-8 · component — While the session is still resolving, neither the signed-in nor the signed-out destinations are offered
+- [x] NAV-9 · e2e — The control cluster occupies the same box, and the bar the same height, before and after the session resolves
+- [x] NAV-10 · component — A signed-out visitor is offered no link to saved cars or alerts, from the bar or the menu
+- [x] NAV-11 · component — Every navbar control, the menu trigger included, has an accessible name in the user's language
+- [x] NAV-12 · component — The menu opens from the keyboard alone and moves focus into itself when it does
+- [x] NAV-13 · e2e — A phone viewport is not offered the full control row, and a desktop viewport is not offered the menu trigger
+- [x] NAV-14 · component — The theme and language controls are reachable from the menu on a phone
+- [x] NAV-15 · component — A signed-in user with no display name is identified by their email address
+- [x] NAV-16 · component — A session ending while the menu is open stops the menu offering signed-in destinations
+- [x] NAV-17 · e2e — A signed-out visitor is offered registration without having to open the menu first
+- [x] NAV-18 · component — The language can be chosen from the account menu using the keyboard alone
+
+## Worked examples
+
+None: no criterion here is on the critical list (a permission boundary, or a bug fix).
+
+## Data model
+
+None: this feature adds or changes no table or column.
+
+## Permissions
+
+None: navbar visibility is user experience, not authorisation (NAV-10; see
+Decisions › Hiding a link is user experience, not authorisation); `/favorites`
+and `/alerts` are guarded server-side.
+
+## Edge cases
+
+- NAV-8 — the session is still resolving; no destinations are offered.
+- NAV-9 — the control cluster keeps its box while the session resolves.
+- NAV-10 — a signed-out visitor is offered no link to guarded pages.
+- NAV-15 — a signed-in user with no display name is identified by email.
+- NAV-16 — the session ends while the menu is open.
+- No invalid-input case: the navbar accepts no input beyond clicks (see Acceptance criteria).
+- The map overlay covering the bar: see Decisions › The mobile map overlay is left alone.
+
+## Out of scope
+
+Out of scope, deliberately:
 
 - **What the theme and language controls do.** `ThemeSwitcher` and
   `LanguageSwitcher` are specified by [cross-cutting.md](cross-cutting.md)
@@ -53,44 +103,51 @@ session is still resolving.
   are unaffected.
 - **Authorisation.** `/favorites` and `/alerts` are guarded server-side. This
   spec decides which links are *offered*, which is a different question — see
-  §4.
+  Decisions and rationale.
 - **The mobile map overlay.** `MobileMapOverlay` covers the whole viewport
   including the navbar, and continues to. Its relationship to the menu is
-  recorded in §4 but no behaviour changes.
+  recorded in Decisions and rationale but no behaviour changes.
 - **The page content below the bar.** No route, layout height or scroll
   behaviour changes; the bar stays a 56px flex item in a `h-screen` shell.
 - **Search.** The search field lives in `ListingsHeader`, not the navbar, and
   stays there.
 
-## 3. Acceptance criteria
+## Contracts
 
-The navbar accepts no user input beyond clicks, so there is no invalid-input
-criterion; the equivalent negative paths are an unresolved session (NAV-8), a
-session that ends underneath the user (NAV-16), and a signed-out visitor being
-offered links to guarded pages (NAV-10).
+No database involvement, no server actions, no routes, no environment variables.
+What does have to agree:
 
-| AC | Statement | Level | Verified by |
-| --- | --- | --- | --- |
-| NAV-1 | Opening the menu while signed out offers both signing in and registering | component | `components/Navbar.test.tsx` |
-| NAV-2 | Every navbar control on a phone viewport has a touch target of at least 44 by 44 pixels | e2e | `e2e/navbar.spec.ts` (bar + opened menu) |
-| NAV-3 | Opening the menu while signed in offers saved cars, alerts, the account page and sign out | component | `components/Navbar.test.tsx` |
-| NAV-4 | Dismissing the menu with Escape closes it and returns focus to the control that opened it | component | `components/Navbar.test.tsx` |
-| NAV-5 | Following a link from the menu closes the menu, so the panel does not cover the page just navigated to | component | `components/Navbar.test.tsx` |
-| NAV-6 | Signing out from the menu ends the session and returns the user to the home page | component | `components/Navbar.test.tsx` |
-| NAV-7 | The navbar marks the destination matching the current page as current, and marks no other | component | `components/Navbar.test.tsx` |
-| NAV-8 | While the session is still resolving, neither the signed-in nor the signed-out destinations are offered | component | `components/Navbar.test.tsx` |
-| NAV-9 | The control cluster occupies the same box, and the bar the same height, before and after the session resolves | e2e | `e2e/navbar.spec.ts` |
-| NAV-10 | A signed-out visitor is offered no link to saved cars or alerts, from the bar or the menu | component | `components/Navbar.test.tsx` |
-| NAV-11 | Every navbar control, the menu trigger included, has an accessible name in the user's language | component | `components/Navbar.test.tsx` (Spanish render) |
-| NAV-12 | The menu opens from the keyboard alone and moves focus into itself when it does | component | `components/Navbar.test.tsx` |
-| NAV-13 | A phone viewport is not offered the full control row, and a desktop viewport is not offered the menu trigger | e2e | `e2e/navbar.spec.ts` |
-| NAV-14 | The theme and language controls are reachable from the menu on a phone | component | `components/Navbar.test.tsx` |
-| NAV-15 | A signed-in user with no display name is identified by their email address | component | `components/Navbar.test.tsx` |
-| NAV-16 | A session ending while the menu is open stops the menu offering signed-in destinations | component | `components/Navbar.test.tsx` |
-| NAV-17 | A signed-out visitor is offered registration without having to open the menu first | e2e | `e2e/navbar.spec.ts` |
-| NAV-18 | The language can be chosen from the account menu using the keyboard alone | component | `components/Navbar.test.tsx` |
+- **Two new dependencies**: `@radix-ui/react-dialog` (the mobile panel) and
+  `@radix-ui/react-dropdown-menu` (the desktop account menu), wrapped as
+  `components/ui/sheet.tsx` and `components/ui/dropdown-menu.tsx` following the
+  existing `components/ui/select.tsx` pattern. Neither has a build step, so
+  `pnpm-workspace.yaml`'s `allowBuilds` is unaffected.
+- **New i18n keys, in both locales.** `nav` currently holds `signIn`, `signUp`,
+  `signOut`, `account`, `favorites`; alerts borrows `t.alerts.title`. The menu
+  needs at minimum an open label and a close label. Spanish is the default
+  locale, so an English-only key reaches most users — NAV-11 is what catches it.
+- **`playwright.config.ts`.** The `mobile` project is scoped
+  `testMatch: /(map|auth)\.spec\.ts/`. NAV-2 and NAV-13 need a phone viewport,
+  so a new `e2e/navbar.spec.ts` must be added to that pattern or it will run
+  only under Desktop Chrome and silently prove nothing.
+- **Four e2e specs use the sign-out button as their "session has resolved"
+  signal.** `e2e/auth.spec.ts`, `e2e/two-factor.spec.ts` and
+  `e2e/favorites.spec.ts` (whose `waitForSession` helper is built on it) wait for
+  a *visible* sign-out button to know hydration finished. NAV-3 moves that
+  control behind a deliberate open, so the signal has to become the account
+  trigger — which is a better one anyway, since it carries the user's name.
+  Signing out in those specs becomes open-then-click, which is what a real user
+  now does. `e2e/visual.spec.ts` is unaffected: its `waitForPageToSettle` keys on
+  the signed-out sign-in link, which stays a top-level bar control on desktop.
+- **Visual baselines.** `e2e/visual.spec.ts` snapshots include the navbar and
+  will need regenerating. Baselines are per-platform, so this has to happen on a
+  machine with the existing ones — CI stays green without them by design, which
+  means a stale baseline fails locally and not in CI.
+- **Ownership map.** `components/*.tsx` mapped to `frontend.md`. `components/Navbar.tsx`
+  got a row pointing here, and the spec index gained a NAV entry — both now live in the
+  root [`README.md`](../../README.md), under › Ownership map and › Specs.
 
-## 4. Decisions and rationale
+## Decisions and rationale
 
 ### Breakpoints stay in CSS; the menu's contents are mounted only when open
 
@@ -248,45 +305,10 @@ recorded because a drawer sharing `z-50` with the overlay looks like a conflict
 waiting to happen, and it is not: the trigger cannot be reached while the
 overlay is up, so the two are never open together.
 
-## 5. Data and contracts
-
-No database involvement, no server actions, no routes, no environment variables.
-What does have to agree:
-
-- **Two new dependencies**: `@radix-ui/react-dialog` (the mobile panel) and
-  `@radix-ui/react-dropdown-menu` (the desktop account menu), wrapped as
-  `components/ui/sheet.tsx` and `components/ui/dropdown-menu.tsx` following the
-  existing `components/ui/select.tsx` pattern. Neither has a build step, so
-  `pnpm-workspace.yaml`'s `allowBuilds` is unaffected.
-- **New i18n keys, in both locales.** `nav` currently holds `signIn`, `signUp`,
-  `signOut`, `account`, `favorites`; alerts borrows `t.alerts.title`. The menu
-  needs at minimum an open label and a close label. Spanish is the default
-  locale, so an English-only key reaches most users — NAV-11 is what catches it.
-- **`playwright.config.ts`.** The `mobile` project is scoped
-  `testMatch: /(map|auth)\.spec\.ts/`. NAV-2 and NAV-13 need a phone viewport,
-  so a new `e2e/navbar.spec.ts` must be added to that pattern or it will run
-  only under Desktop Chrome and silently prove nothing.
-- **Four e2e specs use the sign-out button as their "session has resolved"
-  signal.** `e2e/auth.spec.ts`, `e2e/two-factor.spec.ts` and
-  `e2e/favorites.spec.ts` (whose `waitForSession` helper is built on it) wait for
-  a *visible* sign-out button to know hydration finished. NAV-3 moves that
-  control behind a deliberate open, so the signal has to become the account
-  trigger — which is a better one anyway, since it carries the user's name.
-  Signing out in those specs becomes open-then-click, which is what a real user
-  now does. `e2e/visual.spec.ts` is unaffected: its `waitForPageToSettle` keys on
-  the signed-out sign-in link, which stays a top-level bar control on desktop.
-- **Visual baselines.** `e2e/visual.spec.ts` snapshots include the navbar and
-  will need regenerating. Baselines are per-platform, so this has to happen on a
-  machine with the existing ones — CI stays green without them by design, which
-  means a stale baseline fails locally and not in CI.
-- **`docs/README.md` ownership map.** `components/*.tsx` currently maps to
-  `frontend.md`. `components/Navbar.tsx` needs a row pointing here, and the
-  index table in `docs/specs/README.md` needs a NAV entry.
-
-## 6. Open questions
+## Open questions
 
 None. Three were raised while drafting and all three are settled; each is
-recorded in §4 rather than left here, because the reasoning is what a reader
+recorded in Decisions and rationale rather than left here, because the reasoning is what a reader
 needs later, not the fact that it was once undecided:
 
 - Theme stays in the desktop bar, language moves into the dropdown.

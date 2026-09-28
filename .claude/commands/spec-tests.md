@@ -21,7 +21,7 @@ Read the spec. Stop and report instead of proceeding if:
 
 - Its Status is not `Approved`. `Draft` means it is not agreed yet; writing
   tests against it wastes both. `Implemented` means this already ran.
-- The criteria table is empty, or any criterion has no level.
+- The criteria checklist is empty, or any criterion has no level.
 - A criterion is not testable as written. Do not paper over it with a vague
   assertion — say which one and why, and let the spec be fixed first.
 
@@ -49,7 +49,7 @@ If a criterion needs a file that does not exist yet, create the test file
 anyway — it will import a module that does not exist, which is Phase 3's
 problem, not a reason to skip.
 
-Read "Environment gotchas" in `docs/testing.md` before writing. They are not optional trivia; each one cost a debugging session.
+Read `docs/ARCHITECTURE.md` › Environment gotchas before writing. They are not optional trivia; each one cost a debugging session.
 
 ## Phase 2 — Write the tests
 
@@ -114,3 +114,6 @@ are append-only.
 Give a table: criterion id → test file → failure mode observed (assertion vs
 structural). Then state the count of criteria left unproven and anything the
 spec should have said but did not. End with the command to run the suite.
+
+Ticking the criteria boxes and setting Status `Implemented` happens after the
+implementation is green, not in this command.

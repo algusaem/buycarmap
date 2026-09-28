@@ -39,7 +39,7 @@ reviews the result:
   run the verification list and report numbers, apply a list of edits with file, anchor and exact
   before/after text, grep sweeps (every caller of `searchWallapop`, every `t.*` key a change touches), renames
   and link fixes, run `pnpm db:branch` and a Prisma command in a worktree. Also write record text — a spec's
-  "Verified by" cells, a commit message — when the facts and a peer file to imitate are given. **When in
+  checklist ticks, a commit message — when the facts and a peer file to imitate are given. **When in
   doubt, Sonnet first**; if its report is not enough, re-brief Opus and note why.
 - **`subagent_type: "lacayo-opus"` — only when the brief itself requires judgement:** every `check-*` review,
   cross-checking an upstream contract doc against the client code and the contract tests, reconciling a spec
@@ -93,7 +93,7 @@ or an installed dependency the ADR approves or accepts until its phase (see its 
   Cross-cutting fetch helpers live in `lib/<source>/*` and `lib/geo/*`; hooks call
   those, not raw endpoints.
 
-Full detail: `docs/architecture.md`.
+Full detail: `docs/ARCHITECTURE.md`.
 
 ## Commands
 
@@ -134,7 +134,7 @@ pnpm db:branch:rm     # Delete this branch's Neon branch when the work is merged
 
 > **Git hooks** (Husky) run on every commit: Biome on the staged files, the related unit tests,
 > gitleaks, and commitlint on the message. A failing hook is fixed, never skipped (`RULES.md` §3).
-> gitleaks must be on the PATH — see `docs/getting-started.md`.
+> gitleaks must be on the PATH — see the root `README.md` › Prerequisites.
 
 > **A script that sets an env var inline must use `cross-env`.** `FOO=1 cmd` is
 > POSIX syntax that cmd.exe does not understand, so the bare form works in CI
@@ -142,19 +142,22 @@ pnpm db:branch:rm     # Delete this branch's Neon branch when the work is merged
 
 ## Where things are
 
-Reference material lives in `docs/`, not here. This file is rules; those files
-are explanation. `docs/README.md` carries the index and the **ownership map**
-(source glob → governing doc) that tells you which doc a change needs.
+Reference material lives in `docs/` and the root `README.md`, not here. This file is rules; those
+files are explanation. The root `README.md` carries getting started, the docs index and the
+**ownership map** (source glob → governing doc) that tells you which doc a change needs.
 
 | To understand | Read |
 | --- | --- |
-| How the pieces fit, the search fan-out, the write path, the directory map | `docs/architecture.md` |
-| The map components, design system, palette, theming, animation, i18n | `docs/frontend.md` |
-| What each upstream actually does, and how it breaks | `docs/integrations/{wallapop,cochesnet,milanuncios}.md` |
-| The seventeen Prisma models and the migration rules | `docs/data-model.md` |
-| Test levels, MSW conventions, the environment traps | `docs/testing.md` |
-| Deploy, env vars, Neon branches, CI, runbooks | `docs/operations.md` |
-| Authentication | `docs/auth.md`, then `docs/specs/auth-email-and-oauth.md` |
+| Setup, env, worktrees, commands, the spec workflow, the docs index | `README.md` |
+| How the pieces fit, the search fan-out, the write path, the directory map | `docs/ARCHITECTURE.md` |
+| The map components, design system, palette, theming, animation, i18n | `docs/ARCHITECTURE.md` › Frontend |
+| What each upstream actually does, and how it breaks | `docs/specs/data-sources.md` › Contracts |
+| The seventeen Prisma models and the migration rules | `docs/ARCHITECTURE.md` › Data model |
+| Test levels, MSW conventions, the environment traps | `docs/ARCHITECTURE.md` › Testing |
+| Deploy, env vars, Neon branches, CI, runbooks | `docs/ARCHITECTURE.md` › Environments and operations |
+| Restoring the production database | `docs/operations/backups.md` |
+| Personal data, processors, erasure | `docs/privacy/data-inventory.md`, `docs/privacy/processors.md`, `docs/privacy/deletion.md` |
+| Authentication | `docs/ARCHITECTURE.md` › Authentication, then `docs/specs/auth-email-and-oauth.md` |
 | Why something is the way it is | `docs/decisions/` |
 
 **Verify against the code before asserting.** These docs are checked
@@ -228,7 +231,7 @@ in-app notifications, web push.
 
 `RULES.md` §4 and `STACK.md` §15 govern: every change is covered by an up-to-date spec in
 `docs/specs/`, written and approved before the tests, and the tests before the code. Conventions
-in `docs/specs/README.md`.
+in the root `README.md` › Specs.
 
 | The user says | Do this first |
 | --- | --- |
@@ -244,11 +247,13 @@ After a spec is approved, invoke `/spec-tests` — do not implement straight fro
 Each phase of the migration onto the core has its own spec in `docs/specs/` (`core-*.md`), approved
 before the phase starts.
 
-Until the spec migration phase of the adoption ADR, specs keep their current template: a `Key` of
-2–8 uppercase letters and append-only criteria ids `KEY-1`, `KEY-2`, … named in test titles
-(`it("FAV-3: …")`), checked by `pnpm spec:check`. The template has no Worked examples section
-yet, so a bug fix's worked example goes in as a new append-only criterion carrying the exact input
-that failed and the correct result.
+Specs follow the core section order — Problem, Acceptance criteria, Worked examples, Data model,
+Permissions, Edge cases, Out of scope — optionally followed by Contracts, Decisions and rationale
+and Open questions, in that order. The `Key:` and `Status:` lines stay. Criteria carry append-only
+ids `KEY-1`, `KEY-2`, … as checklist items `- [ ] KEY-n · <level> — <statement>`, named in test
+titles (`it("FAV-3: …")`) and checked by `pnpm spec:check`. A bug fix adds a worked example with
+the input that failed and the correct result under Worked examples, plus a new criterion if the
+behaviour was not covered. See `docs/decisions/0011-spec-ids-and-sections.md`.
 
 ## Documentation
 
@@ -256,24 +261,25 @@ Owned by `.claude/commands/check-docs.md`.
 
 **Docs ship with the change, not after it.** If a change touches an upstream contract, an env
 var, a command, a Prisma model, a route, or a bootstrap step, the doc that records it is part of
-the diff. `docs/README.md` carries the **ownership map** — source glob → governing doc — which
+the diff. The root `README.md` carries the **ownership map** — source glob → governing doc — which
 answers "which docs does this change need?"; `pnpm docs:check` asserts it claims every tracked
 source file.
 
 **Every fact lives in exactly one file; everywhere else links to it.** `docs/specs/` owns what the
-software does and why; `docs/` guides own how it fits together and how to run and operate it.
+software does and why; `docs/ARCHITECTURE.md`, `docs/privacy/` (personal data, processors,
+erasure), `docs/operations/` (backups and restore) and the root `README.md` own how it fits
+together and how to run and operate it.
 When a doc and a spec would say the same thing, the doc links to the spec.
 
 No doc is needed for an internal refactor with no observable surface, a test-only change, styling
 that changes no interaction, or a dependency bump that changes no command. Say which applies
 rather than staying silent about it. A change that needs a doc that does not exist yet writes it,
-and replaces that area's **—** in the ownership map. `docs/documentation-plan.md` is complete and
-kept as a record; the **—** rows are the list of gaps now.
+and replaces that area's **—** in the ownership map; the **—** rows are the list of gaps.
 
 ## Testing
 
 Stack, levels, MSW conventions, the environment traps and the e2e setup are all
-in `docs/testing.md`. **Read it before writing a test** — nearly every entry
+in `docs/ARCHITECTURE.md` › Testing. **Read it before writing a test** — nearly every entry
 there is a trap someone already fell into.
 
 - **Colocate.** `foo.ts` → `foo.test.ts`. No `__tests__/` folders.
@@ -296,7 +302,8 @@ there is a trap someone already fell into.
 recreates the database.** The Neon database holds real accounts and there is no seed script, so
 "reset" rebuilds the schema with zero rows. Prisma offers it for bookkeeping problems that do not
 need it — treat the offer as a bug report, not an instruction. A stale checksum is repaired with an
-`UPDATE` on `_prisma_migrations` (raw SQL: ask first, `RULES.md` §1); see `docs/data-model.md`.
+`UPDATE` on `_prisma_migrations` (raw SQL: ask first, `RULES.md` §1); see `docs/ARCHITECTURE.md`
+› Migrations.
 
 **Before any Prisma command or `pnpm dev` from a worktree, run `pnpm db:branch`.** It gives the
 current git branch its own copy-on-write Neon branch and writes `DATABASE_URL` into that worktree's
@@ -316,12 +323,12 @@ worktree with no branch database, wired to every Bash/PowerShell call by a `PreT
 committed `.claude/settings.json`. If you see "Refusing to run", the fix is `pnpm db:branch` —
 **never work around the guard.**
 
-Why it is mandatory, and the two traps that follow from it, are in
-`docs/getting-started.md` and `docs/data-model.md`.
+Why it is mandatory, and the two traps that follow from it, are in the root `README.md` ›
+Working in a worktree and `docs/ARCHITECTURE.md` › Migrations.
 
 ## Authentication
 
-The system is documented in `docs/auth.md` (one-page orientation) and specified
+The system is documented in `docs/ARCHITECTURE.md` › Authentication (a short orientation) and specified
 in full in `docs/specs/auth-email-and-oauth.md`. **Read the spec before changing
 anything here** — every property below is load-bearing and most are not obvious.
 Any change here needs approval first (`RULES.md` §1).

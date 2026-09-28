@@ -1,12 +1,15 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
-import * as check from "./docs-check.mjs";
-
-const {
+import {
   extractLinks,
   extractSourcePaths,
   globToRegExp,
   headingSlugs,
+  INDEX,
   isGap,
   isUnbuiltSpec,
   ownableFiles,
@@ -14,19 +17,12 @@ const {
   slugify,
   stripFences,
   testSubject,
-} = check as unknown as {
-  extractLinks: (markdown: string) => string[];
-  extractSourcePaths: (markdown: string) => Set<string>;
-  globToRegExp: (glob: string) => RegExp;
-  headingSlugs: (markdown: string) => Set<string>;
-  isGap: (doc: string) => boolean;
-  isUnbuiltSpec: (file: string, text: string) => boolean;
-  ownableFiles: (tracked: string[]) => string[];
-  parseOwnership: (markdown: string) => { glob: string; doc: string }[];
-  slugify: (heading: string) => string;
-  stripFences: (markdown: string) => string;
-  testSubject: (file: string) => string | null;
-};
+  unreachableDocs,
+  unresolvedOwnershipDocs,
+} from "./docs-check.mjs";
+
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const read = (path: string) => readFileSync(join(ROOT, path), "utf8").replace(/\r\n/g, "\n");
 
 describe("stripFences", () => {
   it("drops fenced blocks so directory trees are not read as path references", () => {
@@ -203,6 +199,16 @@ describe("parseOwnership", () => {
 
     expect(parseOwnership(source)).toEqual([{ glob: "lib/geo/**", doc: "geo.md" }]);
   });
+
+  it("DOCS-7: the ownership map is parsed from the root README's Ownership map section", () => {
+    const entries = parseOwnership(read("README.md"));
+
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries).toContainEqual({
+      glob: "lib/wallapop/**",
+      doc: "docs/specs/data-sources.md",
+    });
+  });
 });
 
 describe("isGap", () => {
@@ -233,7 +239,7 @@ describe("isUnbuiltSpec", () => {
 
   it("skips Approved, which is the status that looks safe to check and is not", () => {
     // Approved means the failing tests have landed and the code has not — the
-    // one moment every path in §5 is guaranteed absent.
+    // one moment every path in Data model and Contracts is guaranteed absent.
     expect(isUnbuiltSpec("docs/specs/alerts.md", header("Approved"))).toBe(true);
   });
 
@@ -301,5 +307,56 @@ describe("ownableFiles", () => {
         "pnpm-lock.yaml",
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("INDEX", () => {
+  it("DOCS-7: the index is the root README", () => {
+    expect(INDEX).toBe("README.md");
+  });
+});
+
+describe("unreachableDocs", () => {
+  it("DOCS-7: a docs/ file linked from nowhere is reported, naming it", () => {
+    const linkGraph = new Map([
+      ["README.md", ["docs/ARCHITECTURE.md"]],
+      ["docs/ARCHITECTURE.md", ["docs/specs/a.md"]],
+    ]);
+    const roots = ["README.md"];
+    const docs = ["docs/ARCHITECTURE.md", "docs/specs/a.md", "docs/specs/orphan.md"];
+
+    expect(unreachableDocs(linkGraph, roots, docs)).toEqual(["docs/specs/orphan.md"]);
+  });
+
+  it("DOCS-7: reachability terminates on a link cycle and still reports the orphan", () => {
+    const linkGraph = new Map([
+      ["README.md", ["docs/a.md"]],
+      ["docs/a.md", ["docs/b.md"]],
+      ["docs/b.md", ["docs/a.md"]],
+    ]);
+    const roots = ["README.md"];
+    const docs = ["docs/a.md", "docs/b.md", "docs/c.md"];
+
+    expect(unreachableDocs(linkGraph, roots, docs)).toEqual(["docs/c.md"]);
+  });
+});
+
+describe("unresolvedOwnershipDocs", () => {
+  it("DOCS-7: a map row whose doc does not exist is reported", () => {
+    const entries = [
+      { glob: "lib/**", doc: "docs/ARCHITECTURE.md" },
+      { glob: "app/**", doc: "docs/missing.md" },
+    ];
+    const existing = new Set(["docs/ARCHITECTURE.md"]);
+
+    const problems = unresolvedOwnershipDocs(entries, "README.md", existing);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("docs/missing.md");
+  });
+
+  it("DOCS-7: a declared gap row in the ownership map is not reported as a missing doc", () => {
+    const entries = [{ glob: "lib/**", doc: "—" }];
+
+    expect(unresolvedOwnershipDocs(entries, "README.md", new Set())).toEqual([]);
   });
 });

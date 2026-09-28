@@ -57,6 +57,6 @@ describe("GET upstream connection failure", () => {
 
     expect(res.status).toBe(502);
     const body: { error: string } = await res.json();
-    expect(body).toEqual({ error: expect.stringContaining("failed") });
+    expect(body).toEqual({ error: "Wallapop request failed" });
   });
 });
