@@ -24,6 +24,9 @@ those cells read "phase 12".
 | Milanuncios | phase 12 | The search filters | phase 12 |
 | GitHub Actions | phase 12 | Runs the alert cron, which POSTs to `/api/alerts/run`. The response it receives carries no user fields | phase 12 |
 
+Upstash, Cloudinary and Sentry, which `STACK.md` §12 lists, are not used by
+this project.
+
 The upstream marketplaces are reached through this app's proxy routes, so they
 see the server's address, not the user's.
 

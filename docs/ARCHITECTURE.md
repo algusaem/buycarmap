@@ -400,28 +400,20 @@ the adapter's own magic-link table, distinct from our `EmailVerificationToken`.
 
 #### The six alert models
 
-Behaviour and reasoning: [`specs/alerts.md`](specs/alerts.md). What matters at
-the schema level is why there are six rather than one.
+Behaviour and reasoning: [`specs/alerts.md`](specs/alerts.md). Each of the six
+holds a distinct lifetime and access pattern — a criteria set shared by every
+subscriber, a per-user subscription, a per-listing seen-memory, a per-discovery
+delivery snapshot, a queue row, and global source health — so collapsing any
+pair would conflate concerns with different cascade and retention rules. See
+[specs/alerts.md › Data model](specs/alerts.md#data-model).
 
-| Model | Holds | Why separate |
-| --- | --- | --- |
-| `AlertCriteria` | A deduplicated `SearchInput` plus `lastPolledAt` | Keyed by a hash of the **canonicalised** criteria, so a hundred users watching the same search cost one poll, not a hundred. This is the property the upstream request budget depends on |
-| `Alert` | One user's subscription to a criteria set | Unique on `(userId, criteriaId)`, which makes "saving the same search twice leaves one alert" a database fact rather than a read-then-write race |
-| `AlertSeenListing` | `(criteriaId, listingId, source)` | The **only** definition of "new" available: no source exposes a usable publish date, so a listing is new when its id is not here. Deliberately carries no snapshot — these rows are numerous and mostly never emailed |
-| `AlertMatch` | A full `CarListing` snapshot per user per discovery, plus `notifiedAt` | Same reason `Favorite` snapshots: no source client can fetch one listing by id, so an email built from a reference would render nothing. `notifiedAt` is what makes a failed send retry instead of vanishing |
-| `AlertPollJob` | The queue row, unique per criteria set | One row reused rather than appended, so "enqueuing twice leaves one job" is a unique constraint. Claimed with `FOR UPDATE SKIP LOCKED` |
-| `SourceHealth` | Per-source empty-run counter | Global, not per criteria: a broken parser breaks every criteria set at once, so recording it per criteria would be a thousand copies of one fact |
+`AlertCriteria`'s hash of the canonicalised criteria is the property the
+upstream request budget depends on. `AlertMatch` stores a full snapshot for the
+same reason `Favorite` does: no source client can fetch a single listing by id.
 
 `User.locale` was added alongside these. It exists because the alert runner is a
 cron with no request to resolve a locale from, and the default is `es` — without
 it every English-speaking user would be mailed in Spanish.
-
-**Two indexes are load-bearing rather than performance tuning.**
-`AlertSeenListing @@unique([criteriaId, listingId])` and
-`AlertMatch @@unique([alertId, listingId])` are the second guard against a
-duplicate email if two workers ever race past `SKIP LOCKED`. The queue's
-exclusivity is proven in `e2e/alerts.spec.ts`, which does not run in CI — these
-constraints are what hold when that proof is absent.
 
 #### SearchHistory
 
@@ -1135,7 +1127,7 @@ out of the logs.
 **`pnpm test:e2e:db` is not in CI.** See
 [The database-backed suite](#the-database-backed-suite).
 
-**Branch protection on `master`**: the policy is [specs/core-tooling.md](specs/core-tooling.md) §4.
+**Branch protection on `master`**: the policy is [specs/core-tooling.md](specs/core-tooling.md) › Decisions and rationale.
 The required checks are `Check`, `Secrets (gitleaks)`, `End-to-end (Playwright)` and `Conventional
 Commits title`. `.github/CODEOWNERS` requests the owner's review on every pull request, and
 `.github/pull_request_template.md` is the description `/check-pr` fills in.

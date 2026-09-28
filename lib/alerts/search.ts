@@ -22,7 +22,7 @@ import { ALL_CARS_SLUG } from "@/lib/milanuncios/taxonomy";
 // reusing each client's exported query builder so the filter translation stays
 // in one place.
 //
-// See docs/specs/alerts.md §5.
+// See docs/specs/alerts.md › Contracts.
 
 const WALLAPOP_URL = "https://api.wallapop.com/api/v3/search/section";
 const COCHESNET_SEARCH_URL = "https://web.gw.coches.net/search/listing";

@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import * as check from "./spec-check.mjs";
-import { findSpecProblems } from "./spec-check.mjs";
-
-const { criteriaIdsIn } = check as unknown as {
-  criteriaIdsIn: (source: string) => string[];
-};
+import { criteriaIdsIn, findSpecProblems } from "./spec-check.mjs";
+import type { SpecCheckTestInput } from "./spec-check.mjs";
 
 describe("criteriaIdsIn", () => {
   it.each([
@@ -102,6 +98,7 @@ describe("findSpecProblems", () => {
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
     const problems = findSpecProblems(specs, tests);
+    expect(problems).toHaveLength(1);
     expect(problems.some((p) => p.includes("FAV-3") && p.includes("level"))).toBe(true);
   });
 
@@ -133,7 +130,19 @@ describe("findSpecProblems", () => {
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
     const problems = findSpecProblems(specs, tests);
+    expect(problems).toHaveLength(1);
     expect(problems.some((p) => p.includes("FAV-3") && p.includes("level"))).toBe(true);
+  });
+
+  it("DOCS-2: a checklist item with a level but no statement is rejected, naming the criterion", () => {
+    const specs = [
+      { name: "favorites.md", source: spec("FAV", "Approved", "- [x] FAV-3 · node — ") },
+    ];
+    const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
+
+    const problems = findSpecProblems(specs, tests);
+    expect(problems).toHaveLength(1);
+    expect(problems.some((p) => p.includes("FAV-3"))).toBe(true);
   });
 
   it("DOCS-3: an Implemented spec with an unchecked criterion fails, naming it as unchecked", () => {
@@ -143,6 +152,7 @@ describe("findSpecProblems", () => {
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
     const problems = findSpecProblems(specs, tests);
+    expect(problems).toHaveLength(1);
     expect(problems.some((p) => p.includes("FAV-3") && p.includes("unchecked"))).toBe(true);
   });
 
@@ -177,7 +187,7 @@ describe("findSpecProblems", () => {
 
   it("DOCS-4: an enforced spec with no criteria is reported", () => {
     const specs = [{ name: "favorites.md", source: spec("FAV", "Approved", "No criteria yet.") }];
-    const tests: { path: string; source: string }[] = [];
+    const tests: SpecCheckTestInput[] = [];
 
     const problems = findSpecProblems(specs, tests);
     expect(problems.some((p) => p.includes("declares no acceptance criteria"))).toBe(true);
@@ -187,7 +197,7 @@ describe("findSpecProblems", () => {
     const specs = [
       { name: "favorites.md", source: spec("FAV", "Approved", "- [x] FAV-1 · unit — x") },
     ];
-    const tests: { path: string; source: string }[] = [];
+    const tests: SpecCheckTestInput[] = [];
 
     const problems = findSpecProblems(specs, tests);
     expect(
@@ -210,11 +220,11 @@ describe("findSpecProblems", () => {
     );
   });
 
-  it("DOCS-4: a Draft spec with an unchecked criterion and no tests is skipped", () => {
+  it("DOCS-3: a Draft spec with an unchecked criterion is accepted", () => {
     const specs = [
       { name: "favorites.md", source: spec("FAV", "Draft", "- [ ] FAV-1 · unit — x") },
     ];
-    const tests: { path: string; source: string }[] = [];
+    const tests: SpecCheckTestInput[] = [];
 
     expect(findSpecProblems(specs, tests)).toEqual([]);
   });

@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import * as check from "./docs-check.mjs";
-import { DOCS_INDEX, unreachableDocs, unresolvedOwnershipDocs } from "./docs-check.mjs";
-
-const {
+import {
   extractLinks,
   extractSourcePaths,
   globToRegExp,
   headingSlugs,
+  INDEX,
   isGap,
   isUnbuiltSpec,
   ownableFiles,
@@ -15,19 +13,9 @@ const {
   slugify,
   stripFences,
   testSubject,
-} = check as unknown as {
-  extractLinks: (markdown: string) => string[];
-  extractSourcePaths: (markdown: string) => Set<string>;
-  globToRegExp: (glob: string) => RegExp;
-  headingSlugs: (markdown: string) => Set<string>;
-  isGap: (doc: string) => boolean;
-  isUnbuiltSpec: (file: string, text: string) => boolean;
-  ownableFiles: (tracked: string[]) => string[];
-  parseOwnership: (markdown: string) => { glob: string; doc: string }[];
-  slugify: (heading: string) => string;
-  stripFences: (markdown: string) => string;
-  testSubject: (file: string) => string | null;
-};
+  unreachableDocs,
+  unresolvedOwnershipDocs,
+} from "./docs-check.mjs";
 
 describe("stripFences", () => {
   it("drops fenced blocks so directory trees are not read as path references", () => {
@@ -305,9 +293,9 @@ describe("ownableFiles", () => {
   });
 });
 
-describe("DOCS_INDEX", () => {
+describe("INDEX", () => {
   it("DOCS-7: points at the root README, once the index moves there", () => {
-    expect(DOCS_INDEX).toBe("README.md");
+    expect(INDEX).toBe("README.md");
   });
 });
 
@@ -322,6 +310,18 @@ describe("unreachableDocs", () => {
 
     expect(unreachableDocs(linkGraph, roots, docs)).toEqual(["docs/specs/orphan.md"]);
   });
+
+  it("DOCS-7: reachability terminates on a link cycle and still reports the orphan", () => {
+    const linkGraph = new Map([
+      ["README.md", ["docs/a.md"]],
+      ["docs/a.md", ["docs/b.md"]],
+      ["docs/b.md", ["docs/a.md"]],
+    ]);
+    const roots = ["README.md"];
+    const docs = ["docs/a.md", "docs/b.md", "docs/c.md"];
+
+    expect(unreachableDocs(linkGraph, roots, docs)).toEqual(["docs/c.md"]);
+  });
 });
 
 describe("unresolvedOwnershipDocs", () => {
@@ -335,5 +335,11 @@ describe("unresolvedOwnershipDocs", () => {
     const problems = unresolvedOwnershipDocs(entries, "README.md", existing);
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain("docs/missing.md");
+  });
+
+  it("DOCS-7: a declared gap row in the ownership map is not reported as a missing doc", () => {
+    const entries = [{ glob: "lib/**", doc: "—" }];
+
+    expect(unresolvedOwnershipDocs(entries, "README.md", new Set())).toEqual([]);
   });
 });

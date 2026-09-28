@@ -253,7 +253,7 @@ model Favorite {
 // every poll is three requests to reverse-engineered APIs behind bot
 // protection, so a hundred users watching the same search must cost three
 // requests, not three hundred. Getting the deployment's IP blocked would break
-// search, not merely alerts. See docs/specs/alerts.md §4.
+// search, not merely alerts. See docs/specs/alerts.md › Decisions and rationale.
 model AlertCriteria {
   id String @id @default(cuid())
 

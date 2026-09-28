@@ -70,7 +70,7 @@ offered links to guarded pages (NAV-10).
 
 ## Worked examples
 
-None: no criterion here is on the critical list (a permission boundary, or a bug fix), and none carries an exact value.
+None: no criterion here is on the critical list (a permission boundary, or a bug fix).
 
 ## Data model
 
@@ -143,9 +143,9 @@ What does have to agree:
   will need regenerating. Baselines are per-platform, so this has to happen on a
   machine with the existing ones — CI stays green without them by design, which
   means a stale baseline fails locally and not in CI.
-- **`docs/README.md` ownership map.** `components/*.tsx` currently maps to
-  `frontend.md`. `components/Navbar.tsx` needs a row pointing here, and the
-  index table in `docs/specs/README.md` needs a NAV entry.
+- **Ownership map.** `components/*.tsx` mapped to `frontend.md`. `components/Navbar.tsx`
+  got a row pointing here, and the spec index gained a NAV entry — both now live in the
+  root [`README.md`](../../README.md), under › Ownership map and › Specs.
 
 ## Decisions and rationale
 

@@ -39,7 +39,7 @@ be a security incident rather than a bug.
 - **AUTH-5** — user-1, current password "the-old-password"; changePassword → "harbour-lentil-quilt" → { success: true }, password and passwordChangedAt updated, session.deleteMany({ where: { userId: "user-1" } }).
 - **AUTH-6** — ada@example.com, password "wrong" → rate limit consumed on key "login:email:ada@example.com" with limit 8; password "correct" → that key is reset.
 - **AUTH-7** — ada@example.com with 2FA enabled, password "correct", no code → throws "totpRequired".
-- **AUTH-8** — (clock 1_800_000_000_000 ms, current step S). twoFactorLastStep = S, code for step S → { valid: false, method: null }, nothing updated; twoFactorLastStep = S − 1, code for S → { valid: true, method: "totp" }. The code itself is derived from a random secret, so no literal code exists.
+- **AUTH-8** — (clock 1_800_000_000_000 ms, current step 60_000_000 (1_800_000_000_000 / 30_000)). twoFactorLastStep = 60_000_000, code for step 60_000_000 → { valid: false, method: null }, nothing updated; twoFactorLastStep = 59_999_999, code for step 60_000_000 → { valid: true, method: "totp" }. The code itself is derived from a random secret, so no literal code exists.
 - **AUTH-10** — Recovery code "ABCDE-FGHJK-MNPQR" → row rc-1 (user-1, usedAt null) → { valid: true, method: "recoveryCode" } and marked used only where usedAt is null; once used → { valid: false, method: null }.
 - **AUTH-11** — Valid reset token "a-raw-reset-token" for user-1, new password "harbour-lentil-quilt" → the user update touches exactly password and passwordChangedAt; no two-factor field.
 - **AUTH-12** — ada@example.com with 2FA enabled and no linked accounts; OAuth signIn via google (providerAccountId g-1) → false; with no existing user → true.

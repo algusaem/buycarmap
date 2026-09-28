@@ -54,7 +54,7 @@ had to exist at all.
 
 ## Worked examples
 
-- **FAV-5** — No session; saveFavorite(...) → { success: false, error: "unauthenticated" }, 0 rows; removeFavorite leaves Ada's wallapop-abc123 in place.
+- **FAV-5** — No session; saveFavorite for listing wallapop-abc123 (the fixture default) → { success: false, error: "unauthenticated" }, 0 rows; removeFavorite leaves Ada's wallapop-abc123 in place; listFavorites() without a session → { success: false, error: "unauthenticated" }.
 - **FAV-6** — Ada has wallapop-abc123; Grace calls removeFavorite("wallapop-abc123") → success: true, Ada still has 1 row.
 - **FAV-8** — Ada saves wallapop-first, wallapop-second, wallapop-third → listFavorites() = ["wallapop-third","wallapop-second","wallapop-first"]; with Grace holding wallapop-graces-car, Ada's list is ["wallapop-abc123"] only.
 - **FAV-18** — useSession = { data: null, status: "loading" }, listing wallapop-1, click favorite → no router.push, no saveFavorite, accessible name stays "Add to favorites".

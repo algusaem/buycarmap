@@ -266,8 +266,9 @@ answers "which docs does this change need?"; `pnpm docs:check` asserts it claims
 source file.
 
 **Every fact lives in exactly one file; everywhere else links to it.** `docs/specs/` owns what the
-software does and why; `docs/ARCHITECTURE.md` and the root `README.md` own how it fits together
-and how to run and operate it.
+software does and why; `docs/ARCHITECTURE.md`, `docs/privacy/` (personal data, processors,
+erasure), `docs/operations/` (backups and restore) and the root `README.md` own how it fits
+together and how to run and operate it.
 When a doc and a spec would say the same thing, the doc links to the spec.
 
 No doc is needed for an internal refactor with no observable surface, a test-only change, styling

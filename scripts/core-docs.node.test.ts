@@ -51,12 +51,17 @@ interface ParsedSpec {
   sections: ParsedSection[];
 }
 
+interface SectionDraft {
+  heading: string;
+  body: string[];
+}
+
 /** Splits a spec's markdown on `## ` headings outside fenced code blocks. */
 function parseSpec(markdown: string): ParsedSpec {
   const preamble: string[] = [];
   const rawHeadings: string[] = [];
-  const sections: { heading: string; body: string[] }[] = [];
-  let current: { heading: string; body: string[] } | null = null;
+  const sections: SectionDraft[] = [];
+  let current: SectionDraft | null = null;
   let fenced = false;
 
   for (const line of markdown.split("\n")) {
@@ -114,7 +119,7 @@ function headingOffenses(rawHeadings: string[]): string[] {
   return offenses;
 }
 
-function tableRow(text: string): string[][] {
+function tableRows(text: string): string[][] {
   return text
     .split("\n")
     .filter((line) => /^\|/.test(line))
@@ -222,8 +227,8 @@ describe("docs tree and spec format", () => {
   });
 
   it("DOCS-5: every critical-list criterion has a worked example naming it", () => {
-    // The critical list from docs/specs/core-docs.md §5: permission boundaries
-    // and bug fixes.
+    // The critical list from docs/specs/core-docs.md › Contracts: permission
+    // boundaries and bug fixes.
     const CRITICAL_IDS = [
       "ALERT-4",
       "ALERT-5",
@@ -336,7 +341,7 @@ describe("docs tree and spec format", () => {
     const source = readIfExists("docs/privacy/data-inventory.md");
     expect(source).toMatch(/^\| *Model *\| *Field *\| *Purpose *\| *Retention *\|/m);
 
-    const rows = tableRow(source);
+    const rows = tableRows(source);
     const missing = PAIRS.filter(
       ([model, field]) => !rows.some((cells) => cells[1] === model && cells[2] === field),
     ).map(([model, field]) => `${model}.${field}`);
@@ -363,7 +368,7 @@ describe("docs tree and spec format", () => {
     const source = readIfExists("docs/privacy/processors.md");
     expect(source).toMatch(/^\| *Processor *\| *Region *\| *Data received *\| *DPA *\|/m);
 
-    const rows = tableRow(source);
+    const rows = tableRows(source);
     const missing = PROCESSORS.filter((name) => !rows.some((cells) => cells[1] === name));
     expect(missing).toEqual([]);
 
@@ -394,6 +399,10 @@ describe("docs tree and spec format", () => {
       "docs/specs/_template.md",
       "CLAUDE.md",
     ];
+
+    for (const path of files) {
+      expect(exists(path)).toBe(true);
+    }
 
     expect(files.flatMap(formatOffenders)).toEqual([]);
     expect(files.flatMap(docPathOffenders)).toEqual([]);

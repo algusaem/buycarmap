@@ -43,7 +43,7 @@ the upstreams reachable at all, and how failures at each boundary behave.
 
 ## Worked examples
 
-- **SRC-12** — Upstream connection fails; GET /api/wallapop/search?keywords=golf → 502 with an { error } body, never a thrown 500.
+- **SRC-12** — Upstream connection fails; GET /api/wallapop/search?keywords=golf → 502 with the body `{ error: "Wallapop request failed" }`, never a thrown 500.
 - **SRC-14** — /api/cochesnet/models returns [{ id: 4321, label: "Serie 3" }]; resolveCochesNetModelId(103, "Serie 3") twice → 1 upstream call; make 104 with a first 503 then success → first call undefined, second 4321, 2 calls in total.
 
 ## Data model

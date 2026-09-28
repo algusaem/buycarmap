@@ -143,9 +143,9 @@ Regions other than Neon's, and every DPA link, read "phase 12".
 **Neon, as measured on 2026-09-28:** the project is `buycarmap`, in region `aws-eu-central-1`, with
 `history_retention_seconds` 21600 (6 hours), on the `free_v3` plan.
 
-**Fixture format change.** The spec fixtures in `scripts/spec-check.node.test.ts` and
-`scripts/docs-check.node.test.ts` change from table rows to checklist items. That is the spec
-change DOCS-2 makes, so it is the one case where `RULES.md` §4 allows editing an existing test.
+**Fixtures.** The new `spec-check` and `docs-check` cases use checklist items. No existing
+assertion changes; the only edits to existing test lines are the two import statements that drop
+`as unknown as` (the owner's decision, 2026-09-28).
 
 ## Decisions and rationale
 
@@ -190,5 +190,5 @@ values, so the conversion lifts each example from the test that verifies the cri
 go to the owner as one list before the PR opens. Where no test carries an exact value, the item is
 asked for, not made up.
 
-**One PR with two commits.** The phase rule is one branch and one PR. The spec format and the docs
-tree are separate commits, so the review can read them apart.
+**One PR with separate commits.** The phase rule is one branch and one PR. The spec format and the
+docs tree are separate commits, so the review can read them apart.

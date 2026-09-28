@@ -2,7 +2,7 @@ import { vi } from "vitest";
 import type { CarListing } from "@/interfaces/listing";
 
 // A stored favorite: every CarListing field, snapshotted at save time (see
-// docs/specs/favorites.md §4), plus the row's own identity and ordering.
+// docs/specs/favorites.md › Decisions and rationale), plus the row's own identity and ordering.
 export interface FavoriteRow extends CarListing {
   rowId: string;
   userId: string;

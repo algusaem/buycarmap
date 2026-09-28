@@ -19,7 +19,7 @@ import { unsubscribeTokenFor } from "@/lib/alerts/unsubscribe-token";
 //
 // One invocation does three things in order: enqueue what is due, drain a
 // bounded slice of the queue, then deliver whatever is pending. See
-// docs/specs/alerts.md §4.
+// docs/specs/alerts.md › Decisions and rationale.
 
 const BASE_INTERVAL_MS = 5 * 60_000;
 /** The upstream budget the cadence stretches to respect. Unmeasured — §6. */

@@ -18,7 +18,7 @@ export interface WallapopQueryOptions {
    * The alert runner forces `newest` even when a location is set: relevance is
    * the better ranking for a human reading a list, but an alert polling page one
    * needs the newest listings at the top or it misses them entirely. See
-   * docs/specs/alerts.md §4.
+   * docs/specs/alerts.md › Decisions and rationale.
    */
   orderBy?: string;
   nextPage?: string;

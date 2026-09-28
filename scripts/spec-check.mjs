@@ -209,13 +209,14 @@ function checkDeclaredCriteria(specs, referenced, problems) {
   }
 }
 
-// Dangling references: a test names KEY-n for a key we know, but the spec no
-// longer declares it. Unknown prefixes are ignored — they belong to something
-// else entirely (a ticket id, "SHA-1", a spec still in Draft). A spec that
-// declares nothing at all is also skipped here: `checkDeclaredCriteria`
-// already reports it outright, and re-flagging every id its tests happen to
-// mention would just pile noise on top of that one problem.
 /**
+ * Dangling references: a test names KEY-n for a key we know, but the spec no
+ * longer declares it. Unknown prefixes are ignored — they belong to something
+ * else entirely (a ticket id, "SHA-1", a spec still in Draft). A spec that
+ * declares nothing at all is also skipped here: `checkDeclaredCriteria`
+ * already reports it outright, and re-flagging every id its tests happen to
+ * mention would just pile noise on top of that one problem.
+ *
  * @param {Map<string, Set<string>>} referenced
  * @param {Map<string, ParsedSpec>} byKey
  * @param {string[]} problems
@@ -234,6 +235,43 @@ function checkDanglingReferences(referenced, byKey, problems) {
 }
 
 /**
+ * `spec:check`'s single pass over the given specs and tests, read from
+ * in-memory sources rather than the working tree: every problem, plus the
+ * enforced/skipped split the report line needs. One parse per spec — nothing
+ * downstream reparses it to get the counts.
+ *
+ * @param {SpecCheckSpecInput[]} specs
+ * @param {SpecCheckTestInput[]} tests
+ * @returns {{ problems: string[], enforced: ParsedSpec[], skipped: { name: string, reason: string }[] }}
+ */
+export function checkSpecs(specs, tests) {
+  const problems = [];
+  const enforced = [];
+  const skipped = [];
+
+  for (const spec of specs) {
+    const result = parseEnforcedSpec(spec, problems);
+    if (result) {
+      enforced.push(result);
+      continue;
+    }
+    const { key, status } = specHeader(spec.source);
+    skipped.push({
+      name: spec.name,
+      reason: key ? `status ${status ?? "missing"}` : "no Key: header (legacy format)",
+    });
+  }
+
+  const byKey = checkDuplicateKeys(enforced, problems);
+  const referenced = referencedCriteria(tests);
+
+  checkDeclaredCriteria(enforced, referenced, problems);
+  checkDanglingReferences(referenced, byKey, problems);
+
+  return { problems, enforced, skipped };
+}
+
+/**
  * The problems `spec:check` would report for the given specs and tests, read
  * from in-memory sources rather than the working tree.
  *
@@ -242,21 +280,7 @@ function checkDanglingReferences(referenced, byKey, problems) {
  * @returns {string[]}
  */
 export function findSpecProblems(specs, tests) {
-  const problems = [];
-  const parsed = [];
-
-  for (const spec of specs) {
-    const result = parseEnforcedSpec(spec, problems);
-    if (result) parsed.push(result);
-  }
-
-  const byKey = checkDuplicateKeys(parsed, problems);
-  const referenced = referencedCriteria(tests);
-
-  checkDeclaredCriteria(parsed, referenced, problems);
-  checkDanglingReferences(referenced, byKey, problems);
-
-  return problems;
+  return checkSpecs(specs, tests).problems;
 }
 
 /**
@@ -307,35 +331,6 @@ async function readTestFiles(paths) {
 }
 
 /**
- * Splits raw spec files into the ones `spec:check` enforces (with their
- * declared criteria) and the ones it skips, with why — for the report line.
- * `findSpecProblems` reparses the enforced ones itself to get the problems;
- * this is only for the counts and the skip reasons.
- *
- * @param {SpecCheckSpecInput[]} specs
- * @returns {{ enforced: ParsedSpec[], skipped: { name: string, reason: string }[] }}
- */
-function partitionSpecs(specs) {
-  const enforced = [];
-  const skipped = [];
-
-  for (const spec of specs) {
-    const parsed = parseEnforcedSpec(spec, []);
-    if (parsed) {
-      enforced.push(parsed);
-      continue;
-    }
-    const { key, status } = specHeader(spec.source);
-    skipped.push({
-      name: spec.name,
-      reason: key ? `status ${status ?? "missing"}` : "no Key: header (legacy format)",
-    });
-  }
-
-  return { enforced, skipped };
-}
-
-/**
  * @param {string[]} problems
  * @param {ParsedSpec[]} enforced
  * @param {{ name: string, reason: string }[]} skipped
@@ -364,14 +359,13 @@ async function main() {
   const specFiles = await readSpecFiles();
   const testFiles = await readTestFiles(await walk("."));
 
-  const problems = findSpecProblems(specFiles, testFiles);
-  const { enforced, skipped } = partitionSpecs(specFiles);
+  const { problems, enforced, skipped } = checkSpecs(specFiles, testFiles);
 
   reportSpecCheckResult(problems, enforced, skipped);
 }
 
-// Guarded so `criteriaIdsIn` can be imported by the colocated test without the
-// check running as a side effect of `import`.
+// Guarded so `criteriaIdsIn` and `findSpecProblems` can be imported by the
+// colocated test without the check running as a side effect of `import`.
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   await main();
 }

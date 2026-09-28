@@ -47,7 +47,7 @@ describe("saveFavorite", () => {
     expect(result.success).toBe(true);
     const stored = store.forUser(ADA.id);
     expect(stored).toHaveLength(1);
-    // The snapshot is the point (spec §4): the row has to be renderable on its
+    // The snapshot is the point (spec › Decisions and rationale): the row has to be renderable on its
     // own, without asking Wallapop anything.
     expect(stored[0]).toMatchObject({
       listingId: "wallapop-abc123",
