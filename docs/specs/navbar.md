@@ -257,7 +257,7 @@ What does have to agree:
   `@radix-ui/react-dropdown-menu` (the desktop account menu), wrapped as
   `components/ui/sheet.tsx` and `components/ui/dropdown-menu.tsx` following the
   existing `components/ui/select.tsx` pattern. Neither has a build step, so
-  `pnpm-workspace.yaml`'s `onlyBuiltDependencies` is unaffected.
+  `pnpm-workspace.yaml`'s `allowBuilds` is unaffected.
 - **New i18n keys, in both locales.** `nav` currently holds `signIn`, `signUp`,
   `signOut`, `account`, `favorites`; alerts borrows `t.alerts.title`. The menu
   needs at minimum an open label and a close label. Spanish is the default

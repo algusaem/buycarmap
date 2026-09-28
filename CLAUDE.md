@@ -83,11 +83,10 @@ Lucide React and React Icons.
 Where this differs from `STACK.md` it is a deviation the adoption ADR accepts until its phase,
 or an installed dependency the ADR approves or accepts until its phase (see its dependency list). Constraints that hold until then, and that a plausible-looking change will break:
 
-- `@neondatabase/serverless` is a dependency, but Prisma connects through
-  `@prisma/adapter-pg` with a plain `DATABASE_URL`. Do not "fix" this outside phase 6
-  (ADR 0007 row 12).
+- Prisma connects through `@prisma/adapter-pg` with a plain `DATABASE_URL`, not the Neon
+  serverless driver. Do not change this outside phase 6 (ADR 0007 row 12).
 - The Prisma client is generated to `app/generated/prisma` — gitignored, and
-  required before tests will even import.
+  required before `pnpm typecheck` and before tests will even import.
 - Hooks in `lib/hooks/*` own every client request lifecycle (ADR 0007 row 19)
   (`docs/decisions/0001-no-data-fetching-library.md`) and guard against out-of-order
   responses with a version ref or `cancelled` flag, as the existing hooks do.
@@ -99,16 +98,20 @@ Full detail: `docs/architecture.md`.
 ## Commands
 
 ```bash
-# Package manager is pnpm (v11). Do not use npm/yarn — there is no package-lock.json.
+# Package manager is pnpm 11, pinned in package.json's packageManager. Do not use npm/yarn — there is no package-lock.json.
 pnpm dev              # Start dev server (next dev)
 pnpm build            # prisma generate && next build
 pnpm start            # next start
-pnpm lint             # eslint
+pnpm check             # The verification contract: lint → typecheck → test → build
+pnpm check:full        # pnpm check, then the Playwright e2e suite
+pnpm lint              # Biome, knip, spec:check, docs:check
+pnpm typecheck         # tsc --noEmit and type-coverage
 pnpm spec:check       # Assert every approved acceptance criterion still has a test
 pnpm docs:check       # Assert doc links, referenced source paths and the ownership map resolve
-pnpm test             # Vitest (unit + hook + integration + component + contract)
+pnpm test              # Vitest, both projects, with the coverage thresholds
+pnpm test:unit         # Vitest jsdom project
+pnpm test:integration  # Vitest node project (route handlers, actions, scripts, contracts)
 pnpm test:watch       # Vitest watch mode
-pnpm test:coverage    # Vitest with v8 coverage
 pnpm test:e2e         # Playwright end-to-end (needs a runnable app + browsers)
 pnpm test:e2e:db      # DB-backed round trips — needs `pnpm db:branch` first. NOT in CI
 pnpm test:visual      # Screenshot comparisons alone (baselines are per-platform)
@@ -119,14 +122,18 @@ pnpm db:branch        # Give the current git branch its own Neon database (see b
 pnpm db:branch:rm     # Delete this branch's Neon branch when the work is merged
 ```
 
-**Local verification until phase 3 adds `pnpm check`** (ADR 0007 row 1): `pnpm lint` (no warnings),
-`pnpm exec tsc --noEmit`, `pnpm spec:check`, `pnpm docs:check`, `pnpm test:coverage` and
-`pnpm build`, plus `pnpm test:e2e` when a user flow, auth, the map or an `e2e/**` file changes. Never run
-`pnpm test:contract:live` (it calls the real marketplaces) or `pnpm test:visual` (per-platform
-baselines) as part of a check. When running `/check-all`, put this list in `check-verify`'s brief:
-the command's own fallback (`lint`, `typecheck`, `test`, `build`) would miss most of it.
+**Local verification is `pnpm check`**, plus `pnpm check:full` when a user flow, auth, the map or an
+`e2e/**` file changes. Never run `pnpm test:contract:live` (it calls the real marketplaces) or
+`pnpm test:visual` (per-platform baselines) as part of a check.
 
-> pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` under `allowBuilds` (pnpm 11) and `onlyBuiltDependencies` (pnpm 10) — keep both in step (currently prisma, `@prisma/engines`, msw, sharp, unrs-resolver). If you add a dependency with a native/build step and `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
+> pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are
+> allowlisted in `pnpm-workspace.yaml` under `allowBuilds` — currently `@prisma/engines`, `prisma`,
+> `msw`, `sharp` and `unrs-resolver`. If you add a dependency with a native/build step and
+> `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
+
+> **Git hooks** (Husky) run on every commit: Biome on the staged files, the related unit tests,
+> gitleaks, and commitlint on the message. A failing hook is fixed, never skipped (`RULES.md` §3).
+> gitleaks must be on the PATH — see `docs/getting-started.md`.
 
 > **A script that sets an env var inline must use `cross-env`.** `FOO=1 cmd` is
 > POSIX syntax that cmd.exe does not understand, so the bare form works in CI
@@ -200,7 +207,6 @@ reasonable-looking change, because breaking one is silent:
   locale is **`es`**, so a hardcoded English string reaches most users.
 - **Errors are codes, not prose.** Server code cannot read the client i18n
   context.
-- `lib/mock/listings.ts` is dead. Do not wire anything to it; knip removes it in phase 3.
 
 ## Current state
 
@@ -360,5 +366,5 @@ Any change here needs approval first (`RULES.md` §1).
   Tailwind (`h-4 w-4`).
 - **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }
   from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `fadeInDown`,
-  `scaleIn`, `fadeIn(delay)`, `slideInLeft(delay)`, `staggerContainer(delay)`, `buttonTap`)
+  `fadeIn(delay)`, `staggerContainer(delay)`, `buttonTap`)
   instead of re-declaring `initial`/`animate` inline.

@@ -1,8 +1,8 @@
 # Spec: Verification contract and repository tooling (migration phase 3)
 
 Key: TOOLING
-Status: Approved
-Last updated: 2026-09-27
+Status: Implemented
+Last updated: 2026-09-28
 
 ---
 
@@ -39,17 +39,17 @@ into issues; branch protection and squash-only merges on the repository.
 
 | AC | Statement | Level | Verified by |
 | --- | --- | --- | --- |
-| TOOLING-1 | `package.json` has `lint`, `typecheck`, `test`, `test:unit`, `test:integration`, `test:e2e`, `build`, `check` and `check:full`; `check` runs lint → typecheck → test → build in that order, and `check:full` runs `check` then `test:e2e` | unit | — |
-| TOOLING-2 | `lint` runs Biome, knip, `spec:check` and `docs:check`; `typecheck` runs `tsc --noEmit` and type-coverage; `test` enforces the coverage thresholds | unit | — |
-| TOOLING-3 | ESLint is gone: no `eslint*` dependency and no `eslint.config.*`; `biome.json` bans `any`, `console.log` and empty blocks, and caps cognitive complexity | unit | — |
-| TOOLING-4 | type-coverage has a minimum no lower than the coverage measured when it was added, and ratchets toward 99% | unit | — |
-| TOOLING-5 | knip reports nothing: no unused file, export or dependency (so `lib/mock/listings.ts` is gone) | unit | — |
-| TOOLING-6 | Husky runs lint-staged (Biome on staged files), `vitest related --run --project unit` and gitleaks on pre-commit, and commitlint on commit-msg | unit | — |
-| TOOLING-7 | `package.json` pins pnpm in `packageManager` and Node ≥ 22.18 in `engines`, and `.nvmrc` matches it; every CI job runs on that Node | unit | — |
-| TOOLING-8 | The PR workflow runs `pnpm check`, gitleaks and the Conventional Commits title check; the nightly live contract job still runs | unit | — |
-| TOOLING-9 | The repository has `.github/pull_request_template.md` with the sections Description · Main changes · Impact · Tests · Validation · Decisions and open questions · Checklist, `.github/CODEOWNERS`, `renovate.json`, and release-please (config, manifest and workflow) | unit | — |
-| TOOLING-10 | `TODO.md` is gone; each item it held is a GitHub issue | unit | — |
-| TOOLING-11 | A failing hook or check is never bypassed: `--no-verify` and `HUSKY=0` appear in no script, workflow or doc except as a prohibition | unit | — |
+| TOOLING-1 | `package.json` has `lint`, `typecheck`, `test`, `test:unit`, `test:integration`, `test:e2e`, `build`, `check` and `check:full`; `check` runs lint → typecheck → test → build in that order, and `check:full` runs `check` then `test:e2e` | unit | `scripts/core-tooling.node.test.ts` › TOOLING-1 |
+| TOOLING-2 | `lint` runs Biome, knip, `spec:check` and `docs:check`; `typecheck` runs `tsc --noEmit` and type-coverage; `test` enforces the coverage thresholds | unit | `scripts/core-tooling.node.test.ts` › TOOLING-2 |
+| TOOLING-3 | ESLint is gone: no `eslint*` dependency and no `eslint.config.*`; `biome.json` bans `any`, `console.log` and empty blocks, and caps cognitive complexity | unit | `scripts/core-tooling.node.test.ts` › TOOLING-3 |
+| TOOLING-4 | type-coverage has a minimum no lower than the coverage measured when it was added, and ratchets toward 99% | unit | `scripts/core-tooling.node.test.ts` › TOOLING-4 |
+| TOOLING-5 | knip reports nothing: no unused file, export or dependency (so `lib/mock/listings.ts` is gone) | unit | `scripts/core-tooling.node.test.ts` › TOOLING-5 |
+| TOOLING-6 | Husky runs lint-staged (Biome on staged files), `vitest related --run --project unit` and gitleaks on pre-commit, and commitlint on commit-msg | unit | `scripts/core-tooling.node.test.ts` › TOOLING-6 |
+| TOOLING-7 | `package.json` pins pnpm in `packageManager` and Node ≥ 22.18 in `engines`, and `.nvmrc` matches it; every CI job runs on that Node | unit | `scripts/core-tooling.node.test.ts` › TOOLING-7 |
+| TOOLING-8 | The PR workflow runs `pnpm check`, gitleaks and the Conventional Commits title check; the nightly live contract job still runs | unit | `scripts/core-tooling.node.test.ts` › TOOLING-8 |
+| TOOLING-9 | The repository has `.github/pull_request_template.md` with the sections Description · Main changes · Impact · Tests · Validation · Decisions and open questions · Checklist, `.github/CODEOWNERS`, `renovate.json`, and release-please (config, manifest and workflow) | unit | `scripts/core-tooling.node.test.ts` › TOOLING-9 |
+| TOOLING-10 | `TODO.md` is gone; each item it held is a GitHub issue | unit | `scripts/core-tooling.node.test.ts` › TOOLING-10 |
+| TOOLING-11 | A failing hook or check is never bypassed: `--no-verify` and `HUSKY=0` appear in no script, workflow or doc except as a prohibition | unit | `scripts/core-tooling.node.test.ts` › TOOLING-11 |
 
 ## 4. Decisions and rationale
 
@@ -72,6 +72,12 @@ action.
 at least one approving review, branch up to date with the base branch; squash-only merges. On a
 one-person repository nobody else can approve, so merges go through the admin bypass — the owner's,
 or the agent's on the owner's instruction.
+
+**`prisma generate` before `pnpm check` in CI.** `typecheck` and the tests import the generated
+client, which is gitignored; the build regenerates it anyway.
+
+**E2E without retries.** ADR 0007 row 4 scheduled it for this phase (approved by the owner,
+2026-09-28): a flaky test is a broken test (`STACK.md` §16).
 
 ## 5. Data and contracts
 

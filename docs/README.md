@@ -101,7 +101,6 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/actions/**` | [architecture.md](architecture.md) |
 | `lib/env.ts` | [architecture.md](architecture.md) |
 | `proxy.ts` | [architecture.md](architecture.md) |
-| `lib/mock/**` | [architecture.md](architecture.md) |
 | `lib/prisma.ts` | [data-model.md](data-model.md) |
 | `prisma.config.ts` | [data-model.md](data-model.md) |
 | `app/map/page.tsx` | [specs/map-and-search.md](specs/map-and-search.md) |
@@ -127,10 +126,16 @@ Do not point a gap at a loosely related file to make it look covered.
 | `next.config.ts` | [operations.md](operations.md) |
 | `vitest.config.ts` | [testing.md](testing.md) |
 | `playwright.config.ts` | [testing.md](testing.md) |
-| `biome.json`, `.git-blame-ignore-revs` | [getting-started.md](getting-started.md) |
+| `biome.json` | [getting-started.md](getting-started.md) |
+| `.git-blame-ignore-revs` | [getting-started.md](getting-started.md) |
+| `commitlint.config.mjs` | [getting-started.md](getting-started.md) |
+| `.husky/**` | [getting-started.md](getting-started.md) |
 | `postcss.config.mjs` | [getting-started.md](getting-started.md) |
 | `.env.example` | [operations.md](operations.md) |
 | `.github/**` | [operations.md](operations.md) |
+| `renovate.json` | [operations.md](operations.md) |
+| `release-please-config.json` | [operations.md](operations.md) |
+| `.release-please-manifest.json` | [operations.md](operations.md) |
 | `.claude/commands/**` | [getting-started.md](getting-started.md) |
 | `.claude/commands/spec*.md` | [specs/README.md](specs/README.md) |
 | `.claude/review-protocol.md` | [getting-started.md](getting-started.md) |
@@ -157,14 +162,15 @@ Full conventions in [specs/README.md](specs/README.md).
 
 ### What CI enforces
 
-`.github/workflows/test.yml`, on every push to master and every pull request:
+[`.github/workflows/test.yml`](../.github/workflows/test.yml) and
+[`pr-title.yml`](../.github/workflows/pr-title.yml), on every push to master and every pull
+request:
 
 | Step | Fails when |
 | --- | --- |
-| `pnpm lint` | ESLint complains |
-| `pnpm spec:check` | An approved criterion has no test, or a test names a criterion no spec declares |
-| `pnpm docs:check` | A doc link or referenced source path is broken, a doc is orphaned, or the ownership map does not resolve |
-| `pnpm test:coverage` | A test fails, or coverage drops below the ratchet |
+| `pnpm check` | Biome, knip, `spec:check` or `docs:check` fail; `tsc` or type-coverage fail; a test fails or coverage drops below the ratchet; the build fails |
+| `gitleaks` | A secret is committed |
+| PR title | The title is not a Conventional Commit |
 
 Pull requests also run Playwright. A nightly job runs the contract tests against
 the real upstream APIs, which is the alarm for a source changing shape.

@@ -256,8 +256,7 @@ Spanish or English in components.
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Dependency-free tooling: branch databases, spec and docs checks |
 
-`app/generated/prisma/` is generated and gitignored. `lib/mock/` is dead — do not
-wire anything new to it.
+`app/generated/prisma/` is generated and gitignored.
 
 ## Path 4 — a poll with no user in it
 

@@ -30,6 +30,9 @@ Split by environment, not by kind — see [`vitest.config.ts`](../vitest.config.
 **`node`** is opt-in **by filename**: `*.node.test.ts`. Route handlers and server
 actions need Node's real `Request`/`Response`, which jsdom does not provide.
 
+`pnpm test:unit` runs the `unit` (jsdom) project alone and `pnpm test:integration` the `node`
+project; the pre-commit hook runs the unit tests related to the staged files.
+
 Two entries in the `node` include list are worth knowing:
 
 - `proxy.node.test.ts` is listed explicitly, because Next's file convention
