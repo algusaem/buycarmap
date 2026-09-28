@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import * as motion from "motion/react-client";
+import { AnimatePresence } from "motion/react";
 import { MapPin, X, Loader2 } from "lucide-react";
 import {
   Select,
@@ -11,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useTranslation } from "@/lib/i18n/client";
 import { useLocationSearch } from "@/lib/hooks/useLocationSearch";
+import { fadeInDown } from "@/lib/animations";
 import type { SelectedLocation } from "@/interfaces/location";
 
 const DISTANCE_OPTIONS = [
@@ -43,8 +46,11 @@ export function LocationSearch({
 
   const showDropdown = isOpen && query.length >= 2;
   const listboxOpen = showDropdown && !isSearching && results.length > 0;
-  const statusText =
-    showDropdown && !listboxOpen ? (isSearching ? t.map.loading : t.filters.noResults) : "";
+
+  let statusText = "";
+  if (showDropdown && !listboxOpen) {
+    statusText = isSearching ? t.map.loading : t.filters.noResults;
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -77,7 +83,12 @@ export function LocationSearch({
   }, [onLocationChange, clear]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showDropdown) return;
+    // The listbox's own options are the only thing ArrowDown/ArrowUp/Enter can
+    // act on, so they are no-ops while it is hidden (loading, no results, or a
+    // still-loading refinement showing the previous options' stale indices).
+    const navigatesListbox = e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter";
+    if (navigatesListbox && !listboxOpen) return;
+    if (e.key === "Escape" && !showDropdown) return;
 
     switch (e.key) {
       case "ArrowDown":
@@ -155,40 +166,44 @@ export function LocationSearch({
                 {statusText}
               </p>
 
-              {showDropdown && !listboxOpen && (
-                <div className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg">
-                  <p aria-hidden="true" className="px-3 py-2 text-sm text-muted-foreground">
-                    {statusText}
-                  </p>
-                </div>
-              )}
-
-              {listboxOpen && (
-                <div className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg">
-                  <div id="location-listbox" role="listbox">
-                    {results.map((result, index) => (
-                      <div
-                        key={result.placeId}
-                        role="option"
-                        tabIndex={-1}
-                        aria-selected={highlightedIndex === index}
-                        className={`cursor-pointer px-3 py-2 text-sm ${
-                          highlightedIndex === index
-                            ? "bg-card text-foreground"
-                            : "text-foreground hover:bg-card/50"
-                        }`}
-                        onMouseEnter={() => setHighlightedIndex(index)}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          handleSelect(result);
-                        }}
-                      >
-                        <span className="line-clamp-1">{result.displayName}</span>
+              <AnimatePresence>
+                {showDropdown && (
+                  <motion.div
+                    className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg"
+                    {...fadeInDown}
+                  >
+                    {!listboxOpen && (
+                      <p aria-hidden="true" className="px-3 py-2 text-sm text-muted-foreground">
+                        {statusText}
+                      </p>
+                    )}
+                    {listboxOpen && (
+                      <div id="location-listbox" role="listbox">
+                        {results.map((result, index) => (
+                          <div
+                            key={result.placeId}
+                            role="option"
+                            tabIndex={-1}
+                            aria-selected={highlightedIndex === index}
+                            className={`cursor-pointer px-3 py-2 text-sm ${
+                              highlightedIndex === index
+                                ? "bg-card text-foreground"
+                                : "text-foreground hover:bg-card/50"
+                            }`}
+                            onMouseEnter={() => setHighlightedIndex(index)}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelect(result);
+                            }}
+                          >
+                            <span className="line-clamp-1">{result.displayName}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </>
           )}
         </div>

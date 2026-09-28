@@ -13,75 +13,59 @@ import { trackedFiles as gitTrackedFiles } from "./git-files.mjs";
 const TODO_WORD = /\bTODO\b/;
 const ISSUE_REFERENCE = /#\d+/;
 const CSS_COMMENT = /\/\*[\s\S]*?\*\//g;
-const TRACKED_EXTENSIONS = new Set([".ts", ".tsx", ".mjs", ".cjs", ".js", ".css"]);
+const SCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mjs", ".cjs", ".js"]);
+const TRACKED_EXTENSIONS = new Set([...SCRIPT_EXTENSIONS, ".css"]);
 
 /** @typedef {{ path: string, text: string }} TodoCheckFile */
 /** @typedef {{ path: string, line: number }} TodoCheckHit */
 /** @typedef {{ pos: number, end: number }} TextRange */
 
 /**
- * The `ts.ScriptKind` a path's extension parses as, or `undefined` for an extension
- * `findUnreferencedTodos` does not scan as a script (CSS, or an unknown extension).
- *
- * @param {string} path
- * @returns {import("typescript").ScriptKind | undefined}
- */
-function scriptKindForPath(path) {
-  if (path.endsWith(".tsx")) return ts.ScriptKind.TSX;
-  if (path.endsWith(".ts")) return ts.ScriptKind.TS;
-  if (path.endsWith(".mjs") || path.endsWith(".cjs") || path.endsWith(".js")) {
-    return ts.ScriptKind.JS;
-  }
-  return undefined;
-}
-
-/**
- * @param {Map<number, TextRange>} rangesByPos
- * @param {readonly TextRange[] | undefined} ranges
- * @returns {void}
- */
-function addRanges(rangesByPos, ranges) {
-  for (const range of ranges ?? []) {
-    if (!rangesByPos.has(range.pos)) rangesByPos.set(range.pos, range);
-  }
-}
-
-/**
- * Every comment range in a script file, found by walking the parsed AST rather than by
- * pattern over the text: a regex cannot tell a comment from a regex literal, a string,
- * or a lone `*` that looks like a JSDoc continuation but is code (a multiplication with
- * a missing left operand). Trailing comments on the last real token are only reachable
- * through the source file's `endOfFileToken`, which `ts.forEachChild` does not visit.
+ * A `ts.LanguageServiceHost` over a single in-memory file, so
+ * `getSyntacticClassifications` can run on a path this process never wrote to disk.
  *
  * @param {string} path
  * @param {string} text
- * @param {import("typescript").ScriptKind} scriptKind
- * @returns {TextRange[]}
+ * @returns {import("typescript").LanguageServiceHost}
  */
-function scriptCommentRanges(path, text, scriptKind) {
-  const sourceFile = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, scriptKind);
-
-  /** @type {Map<number, TextRange>} */
-  const rangesByPos = new Map();
-
-  /** @param {import("typescript").Node} node */
-  function visit(node) {
-    addRanges(rangesByPos, ts.getLeadingCommentRanges(text, node.getFullStart()));
-    addRanges(rangesByPos, ts.getTrailingCommentRanges(text, node.getEnd()));
-    ts.forEachChild(node, visit);
-  }
-  visit(sourceFile);
-
-  const eof = sourceFile.endOfFileToken;
-  addRanges(rangesByPos, ts.getLeadingCommentRanges(text, eof.getFullStart()));
-  addRanges(rangesByPos, ts.getTrailingCommentRanges(text, eof.getEnd()));
-
-  return [...rangesByPos.values()].sort((a, b) => a.pos - b.pos);
+function singleFileHost(path, text) {
+  const snapshot = ts.ScriptSnapshot.fromString(text);
+  return {
+    getScriptFileNames: () => [path],
+    getScriptVersion: () => "0",
+    getScriptSnapshot: (fileName) => (fileName === path ? snapshot : undefined),
+    getCurrentDirectory: () => "",
+    getCompilationSettings: () => ({ allowJs: true, jsx: ts.JsxEmit.Preserve }),
+    getDefaultLibFileName: () => "lib.d.ts",
+    fileExists: (fileName) => fileName === path,
+    readFile: (fileName) => (fileName === path ? text : undefined),
+  };
 }
 
 /**
- * Every `/* ... *\/` span in a CSS file. CSS has no line comments and no strings a
- * `/*` could hide inside, so a pattern over the text is enough.
+ * Every comment range in a script file, found through TypeScript's own syntactic
+ * classification — the same classifier editors use to colour comments — rather than by
+ * pattern over the text or by walking the parsed AST: a regex cannot tell a comment
+ * from a regex literal or a string, and an AST walk misses a comment sitting right
+ * before a closing bracket or inside a JSX expression container, because no AST node
+ * starts there for the comment to attach to.
+ *
+ * @param {string} path
+ * @param {string} text
+ * @returns {TextRange[]}
+ */
+function scriptCommentRanges(path, text) {
+  const service = ts.createLanguageService(singleFileHost(path, text));
+  const spans = service.getSyntacticClassifications(path, { start: 0, length: text.length });
+  return spans
+    .filter((span) => span.classificationType === ts.ClassificationTypeNames.comment)
+    .map((span) => ({ pos: span.textSpan.start, end: span.textSpan.start + span.textSpan.length }));
+}
+
+/**
+ * Every `/* ... *\/` span in a CSS file. A `/*` inside a quoted CSS value would be read
+ * as a comment start too, but the repo's CSS has none, so a pattern over the text is
+ * enough.
  *
  * @param {string} text
  * @returns {TextRange[]}
@@ -94,18 +78,16 @@ function cssCommentRanges(text) {
 }
 
 /**
- * The 1-based physical line number of an offset into `text`.
+ * The 1-based physical line number of an offset into `text`. Delegates to a parsed
+ * source file so `\r\n` and a lone `\r` both count as one line break.
  *
  * @param {string} text
  * @param {number} offset
  * @returns {number}
  */
 function lineAt(text, offset) {
-  let line = 1;
-  for (let i = 0; i < offset; i++) {
-    if (text[i] === "\n") line++;
-  }
-  return line;
+  const sourceFile = ts.createSourceFile("line-lookup.ts", text, ts.ScriptTarget.Latest, false);
+  return sourceFile.getLineAndCharacterOfPosition(offset).line + 1;
 }
 
 /**
@@ -132,8 +114,8 @@ function hitsInRange(path, text, range) {
 /**
  * The lines across the given files whose comment holds the to-do marker with no issue
  * reference (`#<number>` in the same comment, on the same line). Comments are found by
- * parsing, not by pattern: TypeScript's own scanner for script files, `/* *\/` spans for
- * CSS. A path whose extension is neither reports no hits.
+ * TypeScript's syntactic classification for script files and by `/* *\/` spans for CSS.
+ * A path whose extension is neither reports no hits.
  *
  * @param {TodoCheckFile[]} files
  * @returns {TodoCheckHit[]}
@@ -145,9 +127,9 @@ export function findUnreferencedTodos(files) {
       for (const range of cssCommentRanges(text)) hits.push(...hitsInRange(path, text, range));
       continue;
     }
-    const scriptKind = scriptKindForPath(path);
-    if (scriptKind === undefined) continue;
-    for (const range of scriptCommentRanges(path, text, scriptKind)) {
+    const extension = path.slice(path.lastIndexOf("."));
+    if (!SCRIPT_EXTENSIONS.has(extension)) continue;
+    for (const range of scriptCommentRanges(path, text)) {
       hits.push(...hitsInRange(path, text, range));
     }
   }

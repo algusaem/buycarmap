@@ -255,4 +255,30 @@ describe("LocationSearch suggestions accessibility", () => {
     expect(screen.queryByRole("listbox")).toBeNull();
     expect(screen.getByRole("status")).toHaveTextContent("Loading…");
   });
+
+  it("MAP-20: while a new search loads, ArrowDown then Enter selects nothing", async () => {
+    const { props } = renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    server.use(
+      http.get(
+        "https://nominatim.openstreetmap.org/search",
+        () =>
+          new Promise(() => {
+            /* never resolves */
+          }),
+      ),
+    );
+    await userEvent.type(queryBox(), " y");
+
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+
+    // The hidden options from the previous search are not selectable, so no
+    // location is ever reported back — the chip that would replace this box
+    // is driven entirely by that call.
+    expect(props.onLocationChange).not.toHaveBeenCalled();
+    expect(queryBox()).toHaveValue("Madrid y");
+  });
 });

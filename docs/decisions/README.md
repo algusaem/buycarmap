@@ -29,3 +29,4 @@ name what it beat, it is a fact, and facts belong in the doc for that area.
 | [0007 — Adopt the shared rules and checks](0007-adopt-core-rules.md) | `RULES.md`, `STACK.md` and the core checks; the legacy deviations and the phase that removes each |
 | [0008 — The build-script allowlist under pnpm 11](0008-pnpm-11-allow-builds.md) | `allowBuilds` for pnpm 11 next to `onlyBuiltDependencies` for pnpm 10; supersedes that paragraph of 0002 (superseded by 0009) |
 | [0009 — One build-script allowlist once pnpm is pinned](0009-pnpm-pinned-allow-builds.md) | `packageManager` pins pnpm 11; `allowBuilds` is the only allowlist; supersedes 0008 |
+| [0010 — The TODO ban is a lint script, not a Biome rule](0010-todo-check-script.md) | `scripts/todo-check.mjs` runs in `pnpm lint`, finding comments through TypeScript's syntactic classification |

@@ -35,7 +35,7 @@ function addWallapopRangeParams(params: SearchInput, searchParams: URLSearchPara
   if (params.maxHorsePower) searchParams.set("max_horse_power", String(params.maxHorsePower));
 }
 
-function addWallapopVehicleParams(params: SearchInput, searchParams: URLSearchParams): void {
+function addWallapopAttributeParams(params: SearchInput, searchParams: URLSearchParams): void {
   if (params.brand) searchParams.set("brand", params.brand);
   if (params.model) searchParams.set("model", params.model);
   if (params.engine?.length) searchParams.set("engine", params.engine.join(","));
@@ -66,7 +66,7 @@ export function buildWallapopQuery(
   url.searchParams.set("longitude", String(lng));
   if (distance) url.searchParams.set("distance_in_km", String(distance));
   addWallapopRangeParams(params, url.searchParams);
-  addWallapopVehicleParams(params, url.searchParams);
+  addWallapopAttributeParams(params, url.searchParams);
   if (options.nextPage) url.searchParams.set("next_page", options.nextPage);
 
   return url.searchParams;

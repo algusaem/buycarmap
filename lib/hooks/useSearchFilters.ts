@@ -92,26 +92,25 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
 
   const activeCount = countActive(filters);
 
-  const runInitialSearch = useEffectEvent((isCancelled: () => boolean) => {
+  const runInitialSearch = useEffectEvent(async (isCancelled: () => boolean) => {
     // Fire an immediate search (uses Spain-center fallback if geolocation
     // hasn't resolved yet), then re-search once geolocation finishes so
     // results are centered on the user's actual location.
     search(toParams(getKeywords(), INITIAL_FILTERS));
     initUserGeolocation();
-    waitForGeolocation().then(() => {
-      if (isCancelled()) return;
-      // Only re-search if the user hasn't already picked an explicit location.
-      if (!filtersRef.current.selectedLocation) {
-        search(toParams(getKeywords(), filtersRef.current));
-      }
-    });
+    await waitForGeolocation();
+    if (isCancelled()) return;
+    // Only re-search if the user hasn't already picked an explicit location.
+    if (!filtersRef.current.selectedLocation) {
+      search(toParams(getKeywords(), filtersRef.current));
+    }
   });
 
   useEffect(() => {
     // Each run owns its flag, so a StrictMode remount cannot revive the first
     // run's geolocation callback.
     let cancelled = false;
-    runInitialSearch(() => cancelled);
+    void runInitialSearch(() => cancelled);
     return () => {
       cancelled = true;
     };
