@@ -35,11 +35,7 @@ export function useLocationSearch(locale: string = "es") {
   );
 
   const clear = useCallback(() => {
-    searchVersionRef.current += 1;
     setQuery("");
-    setResults([]);
-    setIsSearching(false);
-    if (timerRef.current) clearTimeout(timerRef.current);
   }, [setQuery]);
 
   useEffect(() => {

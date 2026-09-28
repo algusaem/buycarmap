@@ -15,6 +15,7 @@ import { useTranslation } from "@/lib/i18n/client";
 import { useLocationSearch } from "@/lib/hooks/useLocationSearch";
 import { crossFade, dropdownReveal } from "@/lib/animations";
 import type { SelectedLocation } from "@/interfaces/location";
+import type { GeocodingResult } from "@/lib/geo/nominatim";
 
 const DISTANCE_OPTIONS = [
   { value: "10", labelKey: "km10" },
@@ -31,19 +32,12 @@ interface LocationSearchProps {
   onDistanceChange: (distance: number) => void;
 }
 
-interface LocationOption {
-  placeId: number;
-  displayName: string;
-  lat: number;
-  lng: number;
-}
-
 interface LocationListboxProps {
   ref?: React.Ref<HTMLDivElement>;
-  results: LocationOption[];
+  results: GeocodingResult[];
   highlightedIndex: number;
   onHighlight: (index: number) => void;
-  onSelect: (result: LocationOption) => void;
+  onSelect: (result: GeocodingResult) => void;
 }
 
 // While present, this is the interactive listbox. While AnimatePresence keeps
@@ -106,14 +100,11 @@ interface LocationStatusProps {
   text: string;
 }
 
-// Mirrors LocationListbox: while exiting it keeps showing the last non-empty
-// text it had (statusText goes blank the instant the listbox takes over), so
-// the fading status box is never a blank flash.
+// AnimatePresence renders an exiting child from the last element it had, so
+// once this is removed from the tree (statusText goes blank the instant the
+// listbox takes over) it keeps showing its last text rather than going blank
+// mid-fade — no manual "last value" bookkeeping needed here.
 function LocationStatus({ ref, text }: LocationStatusProps) {
-  const isPresent = useIsPresent();
-  const lastTextRef = useRef(text);
-  if (isPresent) lastTextRef.current = text;
-
   return (
     <motion.p
       ref={ref}
@@ -121,7 +112,7 @@ function LocationStatus({ ref, text }: LocationStatusProps) {
       className="px-3 py-2 text-sm text-muted-foreground"
       {...crossFade}
     >
-      {isPresent ? text : lastTextRef.current}
+      {text}
     </motion.p>
   );
 }
@@ -158,7 +149,7 @@ export function LocationSearch({
   }, []);
 
   const handleSelect = useCallback(
-    (result: { placeId: number; displayName: string; lat: number; lng: number }) => {
+    (result: GeocodingResult) => {
       onLocationChange({
         placeId: result.placeId,
         displayName: result.displayName,
@@ -260,30 +251,30 @@ export function LocationSearch({
               <p role="status" aria-live="polite" className="sr-only">
                 {statusText}
               </p>
-
-              <AnimatePresence>
-                {showDropdown && (
-                  <motion.div
-                    className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg"
-                    {...dropdownReveal}
-                  >
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      {!listboxOpen && <LocationStatus key="status" text={statusText} />}
-                      {listboxOpen && (
-                        <LocationListbox
-                          key="listbox"
-                          results={results}
-                          highlightedIndex={highlightedIndex}
-                          onHighlight={setHighlightedIndex}
-                          onSelect={handleSelect}
-                        />
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </>
           )}
+
+          <AnimatePresence>
+            {showDropdown && (
+              <motion.div
+                className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg"
+                {...dropdownReveal}
+              >
+                <AnimatePresence mode="popLayout" initial={false} propagate>
+                  {!listboxOpen && <LocationStatus key="status" text={statusText} />}
+                  {listboxOpen && (
+                    <LocationListbox
+                      key="listbox"
+                      results={results}
+                      highlightedIndex={highlightedIndex}
+                      onHighlight={setHighlightedIndex}
+                      onSelect={handleSelect}
+                    />
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Distance select */}

@@ -4,6 +4,7 @@
 
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { extname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
@@ -121,16 +122,12 @@ function hitsInRange(path, text, lineStarts, range) {
  */
 export function findUnreferencedTodos(files) {
   return files.flatMap(({ path, text }) => {
-    if (path.endsWith(".css")) {
-      const lineStarts = ts.computeLineStarts(text);
-      return cssCommentRanges(text).flatMap((range) => hitsInRange(path, text, lineStarts, range));
-    }
-    const extension = path.slice(path.lastIndexOf("."));
-    if (!SCRIPT_EXTENSIONS.has(extension)) return [];
+    const extension = extname(path);
+    if (!TRACKED_EXTENSIONS.has(extension)) return [];
+
+    const ranges = extension === ".css" ? cssCommentRanges(text) : scriptCommentRanges(path, text);
     const lineStarts = ts.computeLineStarts(text);
-    return scriptCommentRanges(path, text).flatMap((range) =>
-      hitsInRange(path, text, lineStarts, range),
-    );
+    return ranges.flatMap((range) => hitsInRange(path, text, lineStarts, range));
   });
 }
 

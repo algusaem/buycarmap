@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitForElementToBeRemoved } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MotionGlobalConfig } from "motion/react";
@@ -290,6 +291,7 @@ describe("LocationSearch suggestions accessibility", () => {
       expect(screen.queryByRole("listbox")).toBeNull();
 
       // `option` still points at the fading node: same element, mid-exit.
+      expect(option).toBeInTheDocument();
       fireEvent.mouseDown(option);
 
       expect(props.onLocationChange).not.toHaveBeenCalled();
@@ -297,4 +299,92 @@ describe("LocationSearch suggestions accessibility", () => {
       MotionGlobalConfig.skipAnimations = true;
     }
   });
+
+  it("MAP-20: after Escape, the fading options are not a listbox and a click selects nothing", async () => {
+    MotionGlobalConfig.skipAnimations = false;
+    try {
+      const { props } = renderLocationSearch();
+
+      await userEvent.type(queryBox(), "Madrid");
+      const option = await madridOption();
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(screen.queryByRole("listbox")).toBeNull();
+      // `option` still points at the fading node: same element, mid-exit.
+      expect(option).toBeInTheDocument();
+      fireEvent.mouseDown(option);
+
+      expect(props.onLocationChange).not.toHaveBeenCalled();
+    } finally {
+      MotionGlobalConfig.skipAnimations = true;
+    }
+  });
+
+  it("MAP-20: selecting an option animates the dropdown out", async () => {
+    MotionGlobalConfig.skipAnimations = false;
+    // The global ResizeObserver mock (test/setup.jsdom.ts) never calls back —
+    // fine for every other test, but this is the one case where Motion's
+    // `mode="popLayout"` genuinely waits on a resize callback to know the
+    // listbox's exit has settled before the outer, `propagate`-linked
+    // AnimatePresence considers it safe to unmount. Without a callback that
+    // fires, that wait never resolves and the node lingers forever.
+    class FiringResizeObserver implements ResizeObserver {
+      #callback: ResizeObserverCallback;
+      #timers: Array<ReturnType<typeof setTimeout>> = [];
+      constructor(callback: ResizeObserverCallback) {
+        this.#callback = callback;
+      }
+      observe: ResizeObserver["observe"] = (target) => {
+        // A real ResizeObserver reports back repeatedly as layout settles;
+        // firing several times over a short span is closer to that than a
+        // single callback and has proven more reliable than either a single
+        // rAF-deferred call or an uncapped per-frame loop.
+        for (const delay of [0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]) {
+          this.#timers.push(
+            setTimeout(() => this.#callback([{ target } as ResizeObserverEntry], this), delay),
+          );
+        }
+      };
+      unobserve: ResizeObserver["unobserve"] = () => {
+        this.#timers.forEach(clearTimeout);
+      };
+      disconnect: ResizeObserver["disconnect"] = () => {
+        this.#timers.forEach(clearTimeout);
+      };
+    }
+    const originalResizeObserver = window.ResizeObserver;
+    vi.stubGlobal("ResizeObserver", FiringResizeObserver);
+    try {
+      function ControlledLocationSearch() {
+        const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | undefined>();
+        return (
+          <LocationSearch
+            selectedLocation={selectedLocation}
+            distanceInKm={50}
+            onLocationChange={setSelectedLocation}
+            onDistanceChange={vi.fn()}
+          />
+        );
+      }
+      renderWithI18n(<ControlledLocationSearch />);
+
+      await userEvent.type(queryBox(), "Madrid");
+      const option = await madridOption();
+
+      await userEvent.click(option);
+
+      // The chip has replaced the search box…
+      expect(screen.getByRole("button", { name: "Clear filters" })).toBeInTheDocument();
+      // …but the dropdown is still fading out: the same node is still in the
+      // document, no longer a listbox, until its exit animation finishes.
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(option).toBeInTheDocument();
+
+      await waitForElementToBeRemoved(option, { timeout: 10000 });
+    } finally {
+      MotionGlobalConfig.skipAnimations = true;
+      vi.stubGlobal("ResizeObserver", originalResizeObserver);
+    }
+  }, 11000);
 });
