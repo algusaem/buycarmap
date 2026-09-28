@@ -2,7 +2,7 @@
 
 Key: NAV
 Status: Implemented
-Last updated: 2026-08-05.
+Last updated: 2026-09-28.
 
 ---
 
@@ -89,6 +89,7 @@ offered links to guarded pages (NAV-10).
 | NAV-16 | A session ending while the menu is open stops the menu offering signed-in destinations | component | `components/Navbar.test.tsx` |
 | NAV-17 | A signed-out visitor is offered registration without having to open the menu first | e2e | `e2e/navbar.spec.ts` |
 | NAV-18 | The language can be chosen from the account menu using the keyboard alone | component | `components/Navbar.test.tsx` |
+| NAV-19 | In the phone menu (375 px wide), each language-switcher button is at least 44 px wide — measured 43.99998 px for "EN" before the fix (2026-09-28), a sub-pixel shortfall that failed NAV-2 intermittently | e2e | `e2e/navbar.spec.ts` |
 
 ## 4. Decisions and rationale
 

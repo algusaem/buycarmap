@@ -86,6 +86,35 @@ async function assertTouchTargets(root: Locator, label: string) {
   }
 }
 
+test("NAV-19: the language switcher buttons in the phone menu clear the touch floor", async ({
+  page,
+}) => {
+  await page.setViewportSize(MOBILE);
+  await page.goto("/");
+  await waitForSessionToResolve(page);
+
+  await page.getByRole("button", { name: MENU }).click();
+
+  const menu = page.getByRole("dialog");
+  await expect(menu).toBeVisible();
+  // Same wait as NAV-2: the panel's contents have to be there before the
+  // language buttons below are queried.
+  await expect(menu.getByRole("button", { name: THEME })).toBeVisible();
+
+  const languageButtons = menu.getByRole("button", { name: /^(en|es)$/i });
+  const count = await languageButtons.count();
+  expect(count, "language switcher buttons found").toBeGreaterThan(1);
+
+  for (let i = 0; i < count; i++) {
+    const box = await languageButtons.nth(i).boundingBox();
+    expect(box, `language switcher button ${i} has no box`).not.toBeNull();
+    if (!box) throw new Error(`language switcher button ${i} has no box`);
+    // Hand-derived from NAV-19's 44px floor.
+    expect(box.width, `language switcher button ${i} width`).toBeGreaterThanOrEqual(44);
+    expect(box.height, `language switcher button ${i} height`).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test("NAV-17: a visitor on a phone can register without opening the menu", async ({ page }) => {
   await page.setViewportSize(MOBILE);
   await page.goto("/");
