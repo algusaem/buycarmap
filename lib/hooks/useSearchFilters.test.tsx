@@ -283,7 +283,7 @@ describe("useSearchFilters geolocation", () => {
     expect(withUserPosition).toEqual([]);
   });
 
-  it("MAP-14: does not re-search after unmounting before geolocation resolves", async () => {
+  it("MAP-21: does not re-search after unmounting before geolocation resolves", async () => {
     pendingGeolocation();
     const search = vi.fn();
     const { unmount } = renderHook(() => useSearchFilters(search, () => ""));

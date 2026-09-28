@@ -50,7 +50,7 @@ into issues; branch protection and squash-only merges on the repository.
 | TOOLING-9 | The repository has `.github/pull_request_template.md` with the sections Description · Main changes · Impact · Tests · Validation · Decisions and open questions · Checklist, `.github/CODEOWNERS`, `renovate.json`, and release-please (config, manifest and workflow) | unit | `scripts/core-tooling.node.test.ts` › TOOLING-9 |
 | TOOLING-10 | `TODO.md` is gone; each item it held is a GitHub issue | unit | `scripts/core-tooling.node.test.ts` › TOOLING-10 |
 | TOOLING-11 | A failing hook or check is never bypassed: `--no-verify` and `HUSKY=0` appear in no `package.json` script, workflow or Git hook | unit | `scripts/core-tooling.node.test.ts` › TOOLING-11 |
-| TOOLING-12 | `lint` fails when a code comment holds a `TODO` with no issue reference (`#<number>` on the same line), as `STACK.md` §5 requires and Biome cannot express (`scripts/todo-check.mjs`, the owner's decision, 2026-09-28). Worked examples: `// TODO: handle retries` → reported; `// TODO(#42): handle retries` → accepted; `/* TODO see #7 */` → accepted; `const doc = "TODO.md";` → accepted (not a comment); `* TODO: tidy` inside a JSDoc block → reported. | unit | `scripts/todo-check.node.test.ts` › TOOLING-12 and `scripts/core-tooling.node.test.ts` › TOOLING-2 |
+| TOOLING-12 | `lint` fails when a code comment holds a `TODO` with no issue reference (`#<number>` on the same line), as `STACK.md` §5 requires and Biome cannot express (`scripts/todo-check.mjs`, the owner's decision, 2026-09-28). Worked examples: `// TODO: handle retries` → reported; `// TODO(#42): handle retries` → accepted; `/* TODO see #7 */` → accepted; `const doc = "TODO.md";` → accepted (not a comment); `* TODO: tidy` inside a JSDoc block → reported; `const u = "https://example.test/TODO";` → accepted (inside a string); a block comment whose first line is `/* Leaflet overrides.` and whose second line is `   TODO: drop after phase 9 */` → reported at line 2; `/* TODO tidy */ color: #123456;` → reported (the issue reference must be inside the comment). | unit | `scripts/todo-check.node.test.ts` › TOOLING-12 and `scripts/core-tooling.node.test.ts` › TOOLING-2 |
 
 ## 4. Decisions and rationale
 
@@ -83,6 +83,9 @@ client, which is gitignored; the build regenerates it anyway.
 **TOOLING-11 covers where a bypass takes effect.** A skip flag written in a doc runs nothing; the
 docs that name the flags do so as prohibitions, which `check-process` reviews (the owner's
 decision, 2026-09-28).
+
+**The issue reference counts only inside the comment.** A colour or anchor elsewhere on the line
+is not an issue (decided in review, 2026-09-28).
 
 ## 5. Data and contracts
 

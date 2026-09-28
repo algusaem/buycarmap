@@ -57,6 +57,7 @@ describe("verification contract and repository tooling", () => {
     ]) {
       expect(s.lint).toContain(step);
     }
+    expect(s["todo:check"]).toBe("node scripts/todo-check.mjs");
     expect(s.typecheck).toContain("tsc --noEmit");
     expect(s.typecheck).toContain("type-coverage");
     expect(s.test).toContain("--coverage");
@@ -79,10 +80,10 @@ describe("verification contract and repository tooling", () => {
     expect(biome).toMatch(/"noExcessiveCognitiveComplexity":\s*\{[^}]*"level":\s*"error"/);
   });
 
-  it("TOOLING-4: type-coverage holds at least the 99% STACK.md sets", () => {
+  it("TOOLING-4: type-coverage holds no lower than the coverage measured when it was added", () => {
     const atLeast = pkg().typeCoverage?.atLeast ?? 0;
 
-    expect(atLeast).toBeGreaterThanOrEqual(99);
+    expect(atLeast).toBeGreaterThanOrEqual(99.3);
     expect(atLeast).toBeLessThanOrEqual(100);
   });
 
@@ -120,10 +121,31 @@ describe("verification contract and repository tooling", () => {
 
   it("TOOLING-8: the PR workflow runs pnpm check, gitleaks and the title check; the nightly contract job stays", () => {
     const all = workflows().join("\n");
+    const testWorkflow = read(".github/workflows/test.yml");
 
-    expect(all).toContain("pnpm check");
-    expect(all).toContain("gitleaks/gitleaks-action");
-    expect(all).toContain("amannn/action-semantic-pull-request");
+    // Two-space job keys (`  check:`, `  gitleaks:`, …) split the YAML into
+    // per-job text without a YAML dependency.
+    const jobHeader = /^ {2}[a-z-]+:$/gm;
+    const headers = [...testWorkflow.matchAll(jobHeader)].map((m) => m[0].trim());
+    const bodies = testWorkflow.split(jobHeader).slice(1);
+    const jobs = new Map(headers.map((header, i) => [header, bodies[i]]));
+
+    expect(testWorkflow).toMatch(/^on:/m);
+    expect(testWorkflow).toContain("pull_request");
+
+    const checkJob = jobs.get("check:") ?? "";
+    const gitleaksJob = jobs.get("gitleaks:") ?? "";
+    expect(checkJob).toContain("pnpm check");
+    expect(gitleaksJob).toContain("gitleaks/gitleaks-action");
+    expect(checkJob).not.toContain("github.event_name == 'schedule'");
+    expect(gitleaksJob).not.toContain("github.event_name == 'schedule'");
+
+    const prTitleWorkflow = workflows().find(
+      (text) =>
+        text.includes("amannn/action-semantic-pull-request") && text.includes("pull_request"),
+    );
+    expect(prTitleWorkflow).toBeDefined();
+
     expect(all).toContain("pnpm test:contract:live");
     expect(all).toMatch(/cron: "0 4 \* \* \*"/);
   });

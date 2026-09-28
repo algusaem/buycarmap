@@ -154,7 +154,7 @@ describe("LocationSearch distance", () => {
 });
 
 describe("LocationSearch suggestions accessibility", () => {
-  it("has no accessibility violations with a result showing", async () => {
+  it("MAP-20: has no accessibility violations with a result showing", async () => {
     const { container } = renderLocationSearch();
 
     await userEvent.type(queryBox(), "Madrid");
@@ -163,7 +163,7 @@ describe("LocationSearch suggestions accessibility", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it("has no accessibility violations with no results", async () => {
+  it("MAP-20: has no accessibility violations with no results", async () => {
     server.use(http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.json([])));
     const { container } = renderLocationSearch();
 
@@ -171,5 +171,29 @@ describe("LocationSearch suggestions accessibility", () => {
     await screen.findByText("No locations found");
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("MAP-20: renders no listbox while the search is loading or has no results", async () => {
+    server.use(http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.json([])));
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Nowhereville");
+    await screen.findByText("No locations found");
+
+    expect(queryBox()).toHaveAttribute("aria-expanded", "false");
+    expect(queryBox()).not.toHaveAttribute("aria-controls");
+    expect(screen.getByRole("status")).toHaveTextContent("No locations found");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("MAP-20: points the combobox at the listbox once results arrive", async () => {
+    renderLocationSearch();
+
+    await userEvent.type(queryBox(), "Madrid");
+    await madridOption();
+
+    expect(queryBox()).toHaveAttribute("aria-controls", "location-listbox");
+    expect(queryBox()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("listbox")).toHaveAttribute("id", "location-listbox");
   });
 });

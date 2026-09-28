@@ -37,6 +37,30 @@ describe("todo:check — unreferenced TODO comments", () => {
     expect(result).toEqual([{ path: "x.ts", line: 1 }]);
   });
 
+  it("TOOLING-12: a marker inside a string URL is accepted (not a comment)", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.ts", text: `const u = "https://example.test/${TAG}";` },
+    ]);
+    expect(result).toEqual([]);
+  });
+
+  it("TOOLING-12: a marker on the second line of a block comment is reported at that line", () => {
+    const result = findUnreferencedTodos([
+      {
+        path: "x.css",
+        text: `/* Leaflet overrides.\n   ${TAG}: drop after phase 9 */`,
+      },
+    ]);
+    expect(result).toEqual([{ path: "x.css", line: 2 }]);
+  });
+
+  it("TOOLING-12: an issue reference outside the comment does not count", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.css", text: `/* ${TAG} tidy */ color: #123456;` },
+    ]);
+    expect(result).toEqual([{ path: "x.css", line: 1 }]);
+  });
+
   it("TOOLING-12: several files report every hit in order", () => {
     const result = findUnreferencedTodos([
       {
