@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { CarListing } from "@/interfaces/listing";
+import type { WallapopSearchResponse } from "@/interfaces/wallapop";
+import type { CochesNetSearchResponse } from "@/interfaces/cochesnet";
+import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
 import { searchSchema, type SearchInput } from "@/lib/validations/search";
 import { searchWallapop } from "@/lib/wallapop/client";
 import { normalizeWallapopItems } from "@/lib/wallapop/normalize";
@@ -71,6 +74,123 @@ interface RoundResult {
   state: PageState;
 }
 
+interface SourcePageState {
+  page: number;
+  hasMore: boolean;
+}
+
+// Normalizes the three Promise.allSettled results into one merged, filtered
+// listing set, and hands back each structured source's raw response so the
+// per-source page-state helpers below don't have to re-derive it.
+function collectRoundResults(
+  wpResult: PromiseSettledResult<WallapopSearchResponse | null>,
+  cnResult: PromiseSettledResult<CochesNetSearchResponse | null>,
+  mnResult: PromiseSettledResult<MilanunciosSearchResponse | null>,
+  params: SearchInput,
+): {
+  listings: CarListing[];
+  cnData: CochesNetSearchResponse | null;
+  mnData: MilanunciosSearchResponse | null;
+} {
+  const wpItems =
+    wpResult.status === "fulfilled" && wpResult.value
+      ? normalizeWallapopItems(wpResult.value.data?.section?.items ?? [])
+      : [];
+  const cnData = cnResult.status === "fulfilled" ? cnResult.value : null;
+  const cnItems = cnData ? normalizeCochesNetItems(cnData.items ?? []) : [];
+  const mnData = mnResult.status === "fulfilled" ? mnResult.value : null;
+  const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
+
+  return {
+    listings: applyResultFilters(interleave([wpItems, cnItems, mnItems]), params),
+    cnData,
+    mnData,
+  };
+}
+
+// Wallapop's next-page cursor. `search` always requests page 1 (wasRequested
+// is always true there); `fetchNextRound` only requests a page when one is
+// pending, and otherwise keeps the cursor from the previous round.
+function nextWallapopPage(
+  wasRequested: boolean,
+  wpResult: PromiseSettledResult<WallapopSearchResponse | null>,
+  previousNext: string | null,
+): string | null {
+  if (!wasRequested) return previousNext;
+  return wpResult.status === "fulfilled" && wpResult.value
+    ? (wpResult.value.meta?.next_page ?? null)
+    : null;
+}
+
+function nextCochesNetPageState(
+  wasRequested: boolean,
+  cnData: CochesNetSearchResponse | null,
+  previousPage: number,
+  previousHasMore: boolean,
+): SourcePageState {
+  if (!wasRequested) return { page: previousPage, hasMore: previousHasMore };
+  const page = previousPage + 1;
+  const hasMore = !!cnData && cnData.items.length > 0 && page < (cnData.meta?.totalPages ?? 1);
+  return { page, hasMore };
+}
+
+function nextMilanunciosPageState(
+  wasRequested: boolean,
+  mnData: MilanunciosSearchResponse | null,
+  previousPage: number,
+  previousHasMore: boolean,
+): SourcePageState {
+  if (!wasRequested) return { page: previousPage, hasMore: previousHasMore };
+  const page = previousPage + 1;
+  const hasMore = !!mnData && mnData.ads.length > 0 && page < (mnData.pagination?.totalPages ?? 1);
+  return { page, hasMore };
+}
+
+interface InitialFetchResult {
+  wpResult: PromiseSettledResult<WallapopSearchResponse>;
+  cnResult: PromiseSettledResult<CochesNetSearchResponse>;
+  mnResult: PromiseSettledResult<MilanunciosSearchResponse>;
+  allRejected: boolean;
+}
+
+// The first page from all three sources, plus whether every one of them
+// failed — the one case `search` bails out on entirely.
+async function fetchInitialResults(params: SearchInput): Promise<InitialFetchResult> {
+  const [wpResult, cnResult, mnResult] = await Promise.allSettled([
+    searchWallapop(params),
+    searchCochesNet(params, 1),
+    searchMilanuncios(params, 1),
+  ]);
+
+  const allRejected =
+    wpResult.status === "rejected" &&
+    cnResult.status === "rejected" &&
+    mnResult.status === "rejected";
+
+  return { wpResult, cnResult, mnResult, allRejected };
+}
+
+// A cache hit only ever holds page 1, so applying it resets pagination to
+// this query — else the sentinel would keep paging with the previous
+// search's params. Skipped entirely when a newer search has superseded this
+// one while `getCached` was resolving.
+function applyCachedSearch(
+  cached: CarListing[],
+  params: SearchInput,
+  version: number,
+  searchVersionRef: { current: number },
+  pageRef: { current: PageState },
+  lastParamsRef: { current: SearchInput | null },
+  setHasMore: (value: boolean) => void,
+  setListings: (value: CarListing[]) => void,
+): void {
+  if (searchVersionRef.current !== version) return;
+  pageRef.current = EMPTY_PAGE;
+  lastParamsRef.current = params;
+  setHasMore(false);
+  setListings(cached);
+}
+
 // One round of pagination: the next page from every source that still has one,
 // normalized, merged and filtered, with the page state advanced past it.
 async function fetchNextRound(params: SearchInput, state: PageState): Promise<RoundResult> {
@@ -88,37 +208,61 @@ async function fetchNextRound(params: SearchInput, state: PageState): Promise<Ro
     mnPromise ?? Promise.resolve(null),
   ]);
 
-  const wpItems =
-    wpResult.status === "fulfilled" && wpResult.value
-      ? normalizeWallapopItems(wpResult.value.data?.section?.items ?? [])
-      : [];
-  const cnData = cnResult.status === "fulfilled" ? cnResult.value : null;
-  const cnItems = cnData ? normalizeCochesNetItems(cnData.items ?? []) : [];
-  const mnData = mnResult.status === "fulfilled" ? mnResult.value : null;
-  const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
+  const { listings, cnData, mnData } = collectRoundResults(wpResult, cnResult, mnResult, params);
+  const cnNext = nextCochesNetPageState(
+    cnPromise !== null,
+    cnData,
+    state.cochesNetPage,
+    state.cochesNetHasMore,
+  );
+  const mnNext = nextMilanunciosPageState(
+    mnPromise !== null,
+    mnData,
+    state.milanunciosPage,
+    state.milanunciosHasMore,
+  );
 
   return {
-    listings: applyResultFilters(interleave([wpItems, cnItems, mnItems]), params),
+    listings,
     state: {
-      wallapopNext: wpPromise
-        ? wpResult.status === "fulfilled" && wpResult.value
-          ? (wpResult.value.meta?.next_page ?? null)
-          : null
-        : state.wallapopNext,
-      cochesNetPage: cnPromise ? state.cochesNetPage + 1 : state.cochesNetPage,
-      cochesNetHasMore: cnPromise
-        ? !!cnData &&
-          cnData.items.length > 0 &&
-          state.cochesNetPage + 1 < (cnData.meta?.totalPages ?? 1)
-        : state.cochesNetHasMore,
-      milanunciosPage: mnPromise ? state.milanunciosPage + 1 : state.milanunciosPage,
-      milanunciosHasMore: mnPromise
-        ? !!mnData &&
-          mnData.ads.length > 0 &&
-          state.milanunciosPage + 1 < (mnData.pagination?.totalPages ?? 1)
-        : state.milanunciosHasMore,
+      wallapopNext: nextWallapopPage(wpPromise !== null, wpResult, state.wallapopNext),
+      cochesNetPage: cnNext.page,
+      cochesNetHasMore: cnNext.hasMore,
+      milanunciosPage: mnNext.page,
+      milanunciosHasMore: mnNext.hasMore,
     },
   };
+}
+
+interface PaginationRunResult {
+  aborted: boolean;
+  collected: CarListing[];
+  state: PageState;
+}
+
+// Keeps fetching rounds until one yields a listing or the sources run out
+// (MAP-19), bailing out early if a newer search has superseded this one.
+async function runPaginationUntilResults(
+  params: SearchInput,
+  collected: CarListing[],
+  initialState: PageState,
+  version: number,
+  searchVersionRef: { current: number },
+): Promise<PaginationRunResult> {
+  let state = initialState;
+
+  // MAP-19: a first page filtered down to nothing renders the empty state,
+  // and the sentinel is not mounted alongside it — so nothing would ever ask
+  // for page 2 and "no cars found" would be permanent. Keep going until a
+  // round yields something or the sources run out.
+  while (collected.length === 0 && hasMorePages(state)) {
+    const round = await fetchNextRound(params, state);
+    if (searchVersionRef.current !== version) return { aborted: true, collected, state };
+    state = round.state;
+    collected.push(...round.listings);
+  }
+
+  return { aborted: false, collected, state };
 }
 
 export function useListingsSearch() {
@@ -157,13 +301,16 @@ export function useListingsSearch() {
 
     const cached = getCached<CarListing[]>(cacheKey);
     if (cached) {
-      if (searchVersionRef.current !== version) return;
-      // The cache only holds page 1, so reset pagination to this query — else
-      // the sentinel would keep paging with the previous search's params.
-      pageRef.current = EMPTY_PAGE;
-      lastParamsRef.current = params;
-      setHasMore(false);
-      setListings(cached);
+      applyCachedSearch(
+        cached,
+        params,
+        version,
+        searchVersionRef,
+        pageRef,
+        lastParamsRef,
+        setHasMore,
+        setListings,
+      );
       return;
     }
 
@@ -172,59 +319,42 @@ export function useListingsSearch() {
     pageRef.current = EMPTY_PAGE;
     setHasMore(false);
 
-    const [wpResult, cnResult, mnResult] = await Promise.allSettled([
-      searchWallapop(params),
-      searchCochesNet(params, 1),
-      searchMilanuncios(params, 1),
-    ]);
+    const { wpResult, cnResult, mnResult, allRejected } = await fetchInitialResults(params);
     if (searchVersionRef.current !== version) return;
 
-    if (
-      wpResult.status === "rejected" &&
-      cnResult.status === "rejected" &&
-      mnResult.status === "rejected"
-    ) {
+    if (allRejected) {
       toast.error(t.map.searchFailed);
       setIsLoading(false);
       return;
     }
 
-    const wpItems =
-      wpResult.status === "fulfilled"
-        ? normalizeWallapopItems(wpResult.value.data?.section?.items ?? [])
-        : [];
-    const cnData = cnResult.status === "fulfilled" ? cnResult.value : null;
-    const cnItems = cnData ? normalizeCochesNetItems(cnData.items ?? []) : [];
-    const mnData = mnResult.status === "fulfilled" ? mnResult.value : null;
-    const mnItems = mnData ? normalizeMilanunciosItems(mnData.ads ?? []) : [];
-
     // MAP-16/17/18: only Wallapop honours the radius upstream and only the
     // structured sources honour the model, so the filter promises are
     // enforced here, where the lists meet.
-    const collected = applyResultFilters(interleave([wpItems, cnItems, mnItems]), params);
+    const {
+      listings: collected,
+      cnData,
+      mnData,
+    } = collectRoundResults(wpResult, cnResult, mnResult, params);
+    const cnNext = nextCochesNetPageState(true, cnData, 0, false);
+    const mnNext = nextMilanunciosPageState(true, mnData, 0, false);
     let nextState: PageState = {
-      wallapopNext:
-        wpResult.status === "fulfilled" ? (wpResult.value.meta?.next_page ?? null) : null,
-      cochesNetPage: 1,
-      cochesNetHasMore: cnData
-        ? cnData.items.length > 0 && 1 < (cnData.meta?.totalPages ?? 1)
-        : false,
-      milanunciosPage: 1,
-      milanunciosHasMore: mnData
-        ? mnData.ads.length > 0 && 1 < (mnData.pagination?.totalPages ?? 1)
-        : false,
+      wallapopNext: nextWallapopPage(true, wpResult, null),
+      cochesNetPage: cnNext.page,
+      cochesNetHasMore: cnNext.hasMore,
+      milanunciosPage: mnNext.page,
+      milanunciosHasMore: mnNext.hasMore,
     };
 
-    // MAP-19: a first page filtered down to nothing renders the empty state,
-    // and the sentinel is not mounted alongside it — so nothing would ever ask
-    // for page 2 and "no cars found" would be permanent. Keep going until a
-    // round yields something or the sources run out.
-    while (collected.length === 0 && hasMorePages(nextState)) {
-      const round = await fetchNextRound(params, nextState);
-      if (searchVersionRef.current !== version) return;
-      nextState = round.state;
-      collected.push(...round.listings);
-    }
+    const paginationResult = await runPaginationUntilResults(
+      params,
+      collected,
+      nextState,
+      version,
+      searchVersionRef,
+    );
+    if (paginationResult.aborted) return;
+    nextState = paginationResult.state;
 
     pageRef.current = nextState;
     lastParamsRef.current = params;

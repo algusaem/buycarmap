@@ -312,10 +312,7 @@ export function testSubject(file) {
   return `${match[1]}.${match[2]}`;
 }
 
-async function main() {
-  const problems = [];
-  const gaps = [];
-
+async function loadScannedSources() {
   const docFiles = (await exists(DOC_DIR)) ? await walk(DOC_DIR) : [];
   const markdownDocs = docFiles.filter((f) => f.endsWith(".md"));
   const scanned = [...SCANNED, ...markdownDocs];
@@ -327,132 +324,159 @@ async function main() {
     sources.set(posix(file), await readFile(file, "utf8"));
   }
 
+  return { markdownDocs, sources };
+}
+
+function createSlugsFor(sources) {
   const slugCache = new Map();
-  const slugsFor = async (path) => {
+  return async (path) => {
     if (slugCache.has(path)) return slugCache.get(path);
     const text = sources.get(path) ?? (await readFile(path, "utf8"));
     const slugs = headingSlugs(text);
     slugCache.set(path, slugs);
     return slugs;
   };
+}
 
-  // --- 1. Internal links resolve, anchors included -------------------------
+async function checkLink(file, link, slugsFor, targets, problems) {
+  const [rawPath, anchor] = link.split("#");
+  const target = rawPath ? posix(relative(process.cwd(), resolve(dirname(file), rawPath))) : file;
+
+  if (!(await exists(target))) {
+    problems.push(`${file} links to ${link}, which does not exist.`);
+    return;
+  }
+  targets.push(target);
+
+  if (anchor && target.endsWith(".md")) {
+    const slugs = await slugsFor(target);
+    if (!slugs.has(anchor.toLowerCase())) {
+      problems.push(`${file} links to ${link}, but ${target} has no heading "#${anchor}".`);
+    }
+  }
+}
+
+// --- 1. Internal links resolve, anchors included ---------------------------
+async function checkLinks(sources, slugsFor, problems) {
   const linkGraph = new Map();
   for (const [file, text] of sources) {
     const targets = [];
     for (const link of extractLinks(text)) {
-      const [rawPath, anchor] = link.split("#");
-      const target = rawPath
-        ? posix(relative(process.cwd(), resolve(dirname(file), rawPath)))
-        : file;
-
-      if (!(await exists(target))) {
-        problems.push(`${file} links to ${link}, which does not exist.`);
-        continue;
-      }
-      targets.push(target);
-
-      if (anchor && target.endsWith(".md")) {
-        const slugs = await slugsFor(target);
-        if (!slugs.has(anchor.toLowerCase())) {
-          problems.push(`${file} links to ${link}, but ${target} has no heading "#${anchor}".`);
-        }
-      }
+      await checkLink(file, link, slugsFor, targets, problems);
     }
     linkGraph.set(file, targets);
   }
+  return linkGraph;
+}
 
-  // --- 2. Backticked source paths exist ------------------------------------
+// --- 2. Backticked source paths exist ---------------------------------------
+async function checkSourcePaths(sources, problems) {
   for (const [file, text] of sources) {
     if (isUnbuiltSpec(file, text)) continue;
     for (const path of extractSourcePaths(text)) {
       if (ALLOWED_MISSING.some((pattern) => pattern.test(path))) continue;
       if (!(await exists(path))) {
         problems.push(
-          `${file} refers to \`${path}\`, which does not exist. ` + `Was it moved or deleted?`,
+          `${file} refers to \`${path}\`, which does not exist. Was it moved or deleted?`,
         );
       }
     }
   }
+}
 
-  // --- 3. No orphaned docs -------------------------------------------------
-  if (await exists(INDEX)) {
-    const reachable = new Set();
-    const queue = [INDEX, ...SCANNED.filter((f) => sources.has(f))];
-    while (queue.length > 0) {
-      const current = queue.pop();
-      if (reachable.has(current)) continue;
-      reachable.add(current);
-      for (const target of linkGraph.get(current) ?? []) queue.push(target);
-    }
-    for (const doc of markdownDocs) {
-      if (reachable.has(doc)) continue;
-      problems.push(
-        `${doc} is not reachable by links from ${INDEX}. ` +
-          `An unlinked doc stops being read and starts being wrong — ` +
-          `add it to the index or delete it.`,
-      );
-    }
-  } else {
+// --- 3. No orphaned docs -----------------------------------------------------
+async function checkOrphanedDocs(sources, markdownDocs, linkGraph, problems) {
+  if (!(await exists(INDEX))) {
     problems.push(`${INDEX} is missing — it is the documentation index.`);
+    return;
   }
 
-  // --- 4. The ownership map is complete and resolves -----------------------
+  const reachable = new Set();
+  const queue = [INDEX, ...SCANNED.filter((f) => sources.has(f))];
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (reachable.has(current)) continue;
+    reachable.add(current);
+    for (const target of linkGraph.get(current) ?? []) queue.push(target);
+  }
+  for (const doc of markdownDocs) {
+    if (reachable.has(doc)) continue;
+    problems.push(
+      `${doc} is not reachable by links from ${INDEX}. ` +
+        `An unlinked doc stops being read and starts being wrong — ` +
+        `add it to the index or delete it.`,
+    );
+  }
+}
+
+async function processOwnershipEntry(entry, repoFiles, problems, gaps, patterns) {
+  const { glob, doc } = entry;
+  const pattern = globToRegExp(glob);
+  if (!repoFiles.some((file) => pattern.test(file))) {
+    problems.push(`${INDEX} maps \`${glob}\` to ${doc}, but that pattern matches no file.`);
+  }
+  if (isGap(doc)) {
+    gaps.push(glob);
+  } else {
+    const target = posix(relative(process.cwd(), resolve(dirname(INDEX), doc)));
+    if (!(await exists(target))) {
+      problems.push(`${INDEX} maps \`${glob}\` to ${doc}, which does not exist.`);
+    }
+  }
+  patterns.push(pattern);
+}
+
+function reportUnclaimedFiles(tracked, patterns, problems) {
+  // Every tracked source file, not merely every top-level directory. A
+  // colocated test is claimed by whatever claims the file it tests.
+  const isClaimed = (file) => patterns.some((pattern) => pattern.test(file));
+  const unclaimed = ownableFiles(tracked).filter((file) => {
+    if (isClaimed(file)) return false;
+    const subject = testSubject(file);
+    return !(subject && isClaimed(subject));
+  });
+
+  if (unclaimed.length > 0) {
+    const shown = unclaimed.slice(0, 12);
+    problems.push(
+      `${unclaimed.length} tracked source file(s) are covered by no entry in ` +
+        `${INDEX}'s ownership map:\n` +
+        shown.map((f) => `      ${f}`).join("\n") +
+        (unclaimed.length > shown.length
+          ? `\n      … and ${unclaimed.length - shown.length} more`
+          : "") +
+        `\n    Add a row naming the governing doc, or \`—\` if there is none yet.`,
+    );
+  }
+}
+
+// --- 4. The ownership map is complete and resolves ---------------------------
+async function checkOwnershipMap(sources, problems, gaps) {
   const index = sources.get(INDEX);
-  if (index) {
-    const ownership = parseOwnership(index);
-    if (ownership.length === 0) {
-      problems.push(
-        `${INDEX} declares no ownership map. /check-all reads it to work out ` +
-          `which docs govern a change.`,
-      );
-    }
+  if (!index) return;
 
-    // Tracked files, plus anything walked from the source roots — the latter
-    // keeps a row valid when it names something legitimately untracked.
-    const tracked = trackedFiles();
-    const repoFiles = [...new Set([...tracked, ...(await listRepoFiles())])];
-    const patterns = [];
-
-    for (const { glob, doc } of ownership) {
-      const pattern = globToRegExp(glob);
-      if (!repoFiles.some((file) => pattern.test(file))) {
-        problems.push(`${INDEX} maps \`${glob}\` to ${doc}, but that pattern matches no file.`);
-      }
-      if (isGap(doc)) {
-        gaps.push(glob);
-      } else {
-        const target = posix(relative(process.cwd(), resolve(dirname(INDEX), doc)));
-        if (!(await exists(target))) {
-          problems.push(`${INDEX} maps \`${glob}\` to ${doc}, which does not exist.`);
-        }
-      }
-      patterns.push(pattern);
-    }
-
-    // Every tracked source file, not merely every top-level directory. A
-    // colocated test is claimed by whatever claims the file it tests.
-    const isClaimed = (file) => patterns.some((pattern) => pattern.test(file));
-    const unclaimed = ownableFiles(tracked).filter((file) => {
-      if (isClaimed(file)) return false;
-      const subject = testSubject(file);
-      return !(subject && isClaimed(subject));
-    });
-
-    if (unclaimed.length > 0) {
-      const shown = unclaimed.slice(0, 12);
-      problems.push(
-        `${unclaimed.length} tracked source file(s) are covered by no entry in ` +
-          `${INDEX}'s ownership map:\n` +
-          shown.map((f) => `      ${f}`).join("\n") +
-          (unclaimed.length > shown.length
-            ? `\n      … and ${unclaimed.length - shown.length} more`
-            : "") +
-          `\n    Add a row naming the governing doc, or \`—\` if there is none yet.`,
-      );
-    }
+  const ownership = parseOwnership(index);
+  if (ownership.length === 0) {
+    problems.push(
+      `${INDEX} declares no ownership map. /check-all reads it to work out ` +
+        `which docs govern a change.`,
+    );
   }
 
+  // Tracked files, plus anything walked from the source roots — the latter
+  // keeps a row valid when it names something legitimately untracked.
+  const tracked = trackedFiles();
+  const repoFiles = [...new Set([...tracked, ...(await listRepoFiles())])];
+  const patterns = [];
+
+  for (const entry of ownership) {
+    await processOwnershipEntry(entry, repoFiles, problems, gaps, patterns);
+  }
+
+  reportUnclaimedFiles(tracked, patterns, problems);
+}
+
+function reportResult(problems, gaps, sources, markdownDocs) {
   if (problems.length > 0) {
     console.error("docs:check failed\n");
     for (const problem of problems) console.error(`  - ${problem}`);
@@ -469,6 +493,21 @@ async function main() {
     console.log(`\n${gaps.length} area(s) declared undocumented in ${INDEX}:`);
     for (const glob of gaps) console.log(`  - ${glob}`);
   }
+}
+
+async function main() {
+  const problems = [];
+  const gaps = [];
+
+  const { markdownDocs, sources } = await loadScannedSources();
+  const slugsFor = createSlugsFor(sources);
+
+  const linkGraph = await checkLinks(sources, slugsFor, problems);
+  await checkSourcePaths(sources, problems);
+  await checkOrphanedDocs(sources, markdownDocs, linkGraph, problems);
+  await checkOwnershipMap(sources, problems, gaps);
+
+  reportResult(problems, gaps, sources, markdownDocs);
 }
 
 // Guarded so the helpers above can be imported by the colocated test without

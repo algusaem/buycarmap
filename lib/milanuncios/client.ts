@@ -4,6 +4,28 @@ import { mapBrandToSlug, mapFuelTokens, mapTransmissionToken } from "@/lib/milan
 
 const BASE_URL = "/api/milanuncios/search";
 
+function addNumericRangeParams(params: SearchInput, query: URLSearchParams): void {
+  if (params.minPrice != null) query.set("desde", String(params.minPrice));
+  if (params.maxPrice != null) query.set("hasta", String(params.maxPrice));
+  if (params.minYear != null) query.set("anod", String(params.minYear));
+  if (params.maxYear != null) query.set("anoh", String(params.maxYear));
+  if (params.minKm != null) query.set("kilometersFrom", String(params.minKm));
+  if (params.maxKm != null) query.set("kilometersTo", String(params.maxKm));
+  if (params.minHorsePower != null) query.set("engineHpFrom", String(params.minHorsePower));
+  if (params.maxHorsePower != null) query.set("engineHpTo", String(params.maxHorsePower));
+}
+
+function addEngineParams(params: SearchInput, query: URLSearchParams): void {
+  if (params.engine?.length) {
+    const fuels = mapFuelTokens(params.engine);
+    if (fuels.length) query.set("fuels", fuels.join(","));
+  }
+  if (params.gearbox?.length) {
+    const cajacambio = mapTransmissionToken(params.gearbox);
+    if (cajacambio) query.set("cajacambio", cajacambio);
+  }
+}
+
 // Build the query the proxy forwards to the Milanuncios search page. `slug`
 // scopes the page to a make (path-based on their side); every other value is a
 // native Milanuncios query-string param. Milanuncios has no lat/lng or distance
@@ -17,23 +39,8 @@ export function buildMilanunciosQuery(params: SearchInput, page: number): URLSea
   const keywords = [params.keywords, params.model].filter(Boolean).join(" ");
   if (keywords) query.set("palabras", keywords);
 
-  if (params.minPrice != null) query.set("desde", String(params.minPrice));
-  if (params.maxPrice != null) query.set("hasta", String(params.maxPrice));
-  if (params.minYear != null) query.set("anod", String(params.minYear));
-  if (params.maxYear != null) query.set("anoh", String(params.maxYear));
-  if (params.minKm != null) query.set("kilometersFrom", String(params.minKm));
-  if (params.maxKm != null) query.set("kilometersTo", String(params.maxKm));
-  if (params.minHorsePower != null) query.set("engineHpFrom", String(params.minHorsePower));
-  if (params.maxHorsePower != null) query.set("engineHpTo", String(params.maxHorsePower));
-
-  if (params.engine?.length) {
-    const fuels = mapFuelTokens(params.engine);
-    if (fuels.length) query.set("fuels", fuels.join(","));
-  }
-  if (params.gearbox?.length) {
-    const cajacambio = mapTransmissionToken(params.gearbox);
-    if (cajacambio) query.set("cajacambio", cajacambio);
-  }
+  addNumericRangeParams(params, query);
+  addEngineParams(params, query);
 
   if (page > 1) query.set("pagina", String(page));
 

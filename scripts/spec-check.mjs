@@ -131,13 +131,7 @@ async function readTestReferences(files) {
   return referenced;
 }
 
-async function main() {
-  const specs = [];
-  const problems = [];
-
-  const { specs: parsed, skipped } = await readSpecs();
-  specs.push(...parsed);
-
+function checkDuplicateKeys(specs, problems) {
   const byKey = new Map();
   for (const spec of specs) {
     const clash = byKey.get(spec.key);
@@ -149,9 +143,10 @@ async function main() {
     }
     byKey.set(spec.key, spec);
   }
+  return byKey;
+}
 
-  const referenced = await readTestReferences(await walk("."));
-
+function checkDeclaredCriteria(specs, referenced, problems) {
   for (const spec of specs) {
     if (spec.declared.size === 0) {
       problems.push(
@@ -169,10 +164,12 @@ async function main() {
       }
     }
   }
+}
 
-  // Dangling references: a test names KEY-n for a key we know, but the spec no
-  // longer declares it. Unknown prefixes are ignored — they belong to something
-  // else entirely (a ticket id, "SHA-1", a spec still in Draft).
+// Dangling references: a test names KEY-n for a key we know, but the spec no
+// longer declares it. Unknown prefixes are ignored — they belong to something
+// else entirely (a ticket id, "SHA-1", a spec still in Draft).
+function checkDanglingReferences(referenced, byKey, problems) {
   for (const [id, files] of referenced) {
     const key = id.slice(0, id.lastIndexOf("-"));
     const spec = byKey.get(key);
@@ -182,7 +179,9 @@ async function main() {
         `declare it. Criteria are append-only — was it renumbered?`,
     );
   }
+}
 
+function reportSpecCheckResult(problems, specs, skipped) {
   const counted = specs.reduce((n, spec) => n + spec.declared.size, 0);
 
   if (problems.length > 0) {
@@ -197,6 +196,23 @@ async function main() {
   for (const { name, reason } of skipped) {
     console.log(`  skipped ${name} (${reason})`);
   }
+}
+
+async function main() {
+  const specs = [];
+  const problems = [];
+
+  const { specs: parsed, skipped } = await readSpecs();
+  specs.push(...parsed);
+
+  const byKey = checkDuplicateKeys(specs, problems);
+
+  const referenced = await readTestReferences(await walk("."));
+
+  checkDeclaredCriteria(specs, referenced, problems);
+  checkDanglingReferences(referenced, byKey, problems);
+
+  reportSpecCheckResult(problems, specs, skipped);
 }
 
 // Guarded so `criteriaIdsIn` can be imported by the colocated test without the

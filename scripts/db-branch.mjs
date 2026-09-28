@@ -139,6 +139,72 @@ async function resolveProjectId(apiKey, configured) {
   return projects[0].id;
 }
 
+async function deleteBranch(apiKey, projectId, target, existing, mainEnv) {
+  if (!existing) fail(`No Neon branch named "${target}" — nothing to delete.`);
+  if (existing.default) {
+    fail(
+      `Refusing to delete "${target}": it is the project's default branch and holds the shared data.`,
+    );
+  }
+  // The main checkout's DATABASE_URL is the one thing that must keep working.
+  if (mainEnv.DATABASE_URL?.includes(existing.id)) {
+    fail(`Refusing to delete "${target}": the main checkout's DATABASE_URL still points at it.`);
+  }
+
+  await neon(apiKey, `/projects/${projectId}/branches/${existing.id}`, {
+    method: "DELETE",
+  });
+  console.log(`\n  deleted Neon branch "${target}" (${existing.id})\n`);
+}
+
+async function ensureBranch(apiKey, projectId, target, existing, defaultBranch) {
+  if (existing) {
+    console.log(`\n  reusing existing Neon branch "${target}" (${existing.id})`);
+    return existing;
+  }
+
+  if (!defaultBranch) fail("Could not determine the project's default Neon branch to fork from.");
+  console.log(`\n  creating Neon branch "${target}" from "${defaultBranch.name}"…`);
+
+  const created = await neon(apiKey, `/projects/${projectId}/branches`, {
+    method: "POST",
+    body: JSON.stringify({
+      branch: { name: target, parent_id: defaultBranch.id },
+      endpoints: [{ type: "read_write" }],
+    }),
+  });
+
+  const branch = created.branch;
+  await waitForOperations(apiKey, projectId, created.operations ?? []);
+  return branch;
+}
+
+async function writeDatabaseEnv(apiKey, projectId, branch, mainEnv, mainEnvRaw, localEnvPath) {
+  // Reuse the role and database from the existing connection string rather than
+  // asking for them again — a Neon branch inherits both from its parent.
+  const parentUrl = new URL(mainEnv.DATABASE_URL);
+  const params = new URLSearchParams({
+    branch_id: branch.id,
+    database_name: parentUrl.pathname.replace(/^\//, ""),
+    role_name: decodeURIComponent(parentUrl.username),
+    pooled: "true",
+  });
+
+  const { uri } = await neon(apiKey, `/projects/${projectId}/connection_uri?${params}`);
+
+  // Seed a worktree that has no .env from the main checkout, so every other
+  // secret (NEXTAUTH_SECRET, Resend, OAuth) comes across too.
+  const base = existsSync(localEnvPath) ? readFileSync(localEnvPath, "utf8") : mainEnvRaw;
+  writeFileSync(localEnvPath, setEnvValue(base, "DATABASE_URL", uri), "utf8");
+
+  console.log(
+    `  wrote DATABASE_URL → ${localEnvPath}\n` +
+      `  host: ${new URL(uri).host}\n\n` +
+      `  This worktree now has its own database. Run \`pnpm install\` if you have not,\n` +
+      `  then \`pnpm exec prisma migrate deploy\` to bring it up to date.\n`,
+  );
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const isDelete = args.includes("--delete");
@@ -180,21 +246,7 @@ async function main() {
   const existing = branches.find((b) => b.name === target);
 
   if (isDelete) {
-    if (!existing) fail(`No Neon branch named "${target}" — nothing to delete.`);
-    if (existing.default) {
-      fail(
-        `Refusing to delete "${target}": it is the project's default branch and holds the shared data.`,
-      );
-    }
-    // The main checkout's DATABASE_URL is the one thing that must keep working.
-    if (mainEnv.DATABASE_URL?.includes(existing.id)) {
-      fail(`Refusing to delete "${target}": the main checkout's DATABASE_URL still points at it.`);
-    }
-
-    await neon(apiKey, `/projects/${projectId}/branches/${existing.id}`, {
-      method: "DELETE",
-    });
-    console.log(`\n  deleted Neon branch "${target}" (${existing.id})\n`);
+    await deleteBranch(apiKey, projectId, target, existing, mainEnv);
     return;
   }
 
@@ -205,48 +257,9 @@ async function main() {
     );
   }
 
-  let branch = existing;
-  if (branch) {
-    console.log(`\n  reusing existing Neon branch "${target}" (${branch.id})`);
-  } else {
-    if (!defaultBranch) fail("Could not determine the project's default Neon branch to fork from.");
-    console.log(`\n  creating Neon branch "${target}" from "${defaultBranch.name}"…`);
+  const branch = await ensureBranch(apiKey, projectId, target, existing, defaultBranch);
 
-    const created = await neon(apiKey, `/projects/${projectId}/branches`, {
-      method: "POST",
-      body: JSON.stringify({
-        branch: { name: target, parent_id: defaultBranch.id },
-        endpoints: [{ type: "read_write" }],
-      }),
-    });
-
-    branch = created.branch;
-    await waitForOperations(apiKey, projectId, created.operations ?? []);
-  }
-
-  // Reuse the role and database from the existing connection string rather than
-  // asking for them again — a Neon branch inherits both from its parent.
-  const parentUrl = new URL(mainEnv.DATABASE_URL);
-  const params = new URLSearchParams({
-    branch_id: branch.id,
-    database_name: parentUrl.pathname.replace(/^\//, ""),
-    role_name: decodeURIComponent(parentUrl.username),
-    pooled: "true",
-  });
-
-  const { uri } = await neon(apiKey, `/projects/${projectId}/connection_uri?${params}`);
-
-  // Seed a worktree that has no .env from the main checkout, so every other
-  // secret (NEXTAUTH_SECRET, Resend, OAuth) comes across too.
-  const base = existsSync(localEnvPath) ? readFileSync(localEnvPath, "utf8") : mainEnvRaw;
-  writeFileSync(localEnvPath, setEnvValue(base, "DATABASE_URL", uri), "utf8");
-
-  console.log(
-    `  wrote DATABASE_URL → ${localEnvPath}\n` +
-      `  host: ${new URL(uri).host}\n\n` +
-      `  This worktree now has its own database. Run \`pnpm install\` if you have not,\n` +
-      `  then \`pnpm exec prisma migrate deploy\` to bring it up to date.\n`,
-  );
+  await writeDatabaseEnv(apiKey, projectId, branch, mainEnv, mainEnvRaw, localEnvPath);
 }
 
 // Guarded so the pure helpers above can be imported by the colocated test
