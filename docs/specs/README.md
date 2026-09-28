@@ -95,4 +95,5 @@ solo project is ceremony.
 | [alerts.md](alerts.md) | ALERT | Implemented | Saved criteria, background polling, match emails |
 | [navbar.md](navbar.md) | NAV | Implemented | Navigation bar, mobile menu, account menu |
 | [core-rules-and-checks.md](core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
+| [core-mastermind.md](core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
 

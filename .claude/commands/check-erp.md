@@ -1,12 +1,18 @@
 ---
 description: Review working changes against STACK-ERP.md — multi-tenancy, legal entities and abilities, auth hardening, tenant caching, money and tax, fiscal documents, international data, ERP tests. Only for CRM/ERP projects.
-allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*)
+allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*), Agent
 ---
 
 Review the working changes against the **CRM/ERP rules**. Follow `.claude/review-protocol.md` — read it first: it sets how to load the rules, the scope, the severities and the output.
 
 **Applies only when the project is CRM/ERP in `STACK-ERP.md`'s sense** — tenants, legal entities, money or fiscal documents: `STACK-ERP.md` is in the project, or `CLAUDE.md` says the project follows it. A product or module called "CRM" is not enough. Otherwise report "Not applicable — not a CRM/ERP project" and stop.
 **Owns:** `STACK-ERP.md` §2–§11, except its dependencies (§1 → `check-stack`) and golden files updated to make a test pass (→ `check-tests`' tampering). Cite the section in every finding. The base rules these extend stay with their owners: the base auth chain and caching with `check-security`, the base data model with `check-data`.
+
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+Run on its own, the main session does not review the ERP rules itself, however capable it is of doing so:
+- **The whole review → one `Agent` with `subagent_type: "lacayo-opus"`**, told it is the delegated agent and spawns no agents, and briefed with this file, `.claude/review-protocol.md`, the change set, the task in the user's words and the approvals the user gave, quoted; it returns the output of review protocol §7.
+- **The mastermind** re-measures with its own eyes only the facts it will state (a quoted `file:line`, the changed files: single read-only commands), and writes the report; which findings get fixed is the user's decision when the check runs on its own (review protocol §6). The fixes the user asks for are dictated edits: direct for two or three steps in one file, `lacayo-sonnet` for anything longer.
+Inside `/check-all` this paragraph does not apply: there the agent running this file is already the delegated hand. Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 opus» did not follow this command.
 
 ## 1. Structure, types and data model (§2, §3)
 

@@ -1,11 +1,17 @@
 ---
 description: Take Playwright screenshots of a UI change — the result and every step of the new user flow, on mobile and desktop — for the user to confirm before committing
-allowed-tools: Read, Grep, Glob, Write, Bash(pnpm:*), Bash(npx:*), Bash(node:*), Bash(curl:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git rev-parse:*)
+allowed-tools: Read, Grep, Glob, Write, Bash(pnpm:*), Bash(npx:*), Bash(node:*), Bash(curl:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git rev-parse:*), Agent
 ---
 
 Show the user how a UI change looks, and the flow they will follow, before it's committed. **This command runs, it doesn't review and it doesn't fix**: it takes the screenshots, says what each one should show, and says what it couldn't capture.
 
 **Owns:** `RULES.md` §22 item 5 (the screenshots). The user's confirmation of them is what closes the item — `/check-all` can't say READY without it.
+
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+The main session never drives the browser for the screenshots itself:
+- **Screenshots → one `Agent` with `subagent_type: "lacayo-sonnet"`**, told it is the delegated agent and spawns no agents, and briefed with the flow to capture — from `check-front`'s report, or derived by the mastermind from the spec as §2 says — the app's port and how the project signs in for E2E; it saves the images outside the repository and lists them with their step and viewport.
+- **The mastermind** shows the user every image, in order, with the caption of what it should show, and asks for the confirmation that closes `RULES.md` §22 item 5.
+Inside `/check-all` this paragraph does not apply: there the agent running this file is already the delegated hand. Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run that took screenshots with «0 sonnet» did not follow this command (a "Not applicable" run takes none).
 
 ## 1. When
 

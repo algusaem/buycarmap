@@ -150,12 +150,15 @@ lists where the code still deviates and the phase that removes each deviation.
 | `/check-pr` | The PR title and description, when opening the PR |
 | `/diff`, `/daily` | A commit message; a daily summary |
 
-`/check-all` and `/check-pr` delegate to two user-level agents, `lacayo-opus` and `lacayo-sonnet`;
-on a new machine, install them once with `node install.mjs` from the `algusaem-claude` repository,
-or `/check-all` stops before running any check. Every `check-*` review follows
-`.claude/review-protocol.md`; `check-docs` and `check-sources` are this project's own (the ADR
-says what differs from the core), and the coverage map in `.claude/commands/check-all.md` says
-which check owns each rule.
+The commands delegate to two user-level agents, `lacayo-opus` and `lacayo-sonnet`; on a new
+machine, install them once with `node install.mjs` from the `algusaem-claude` repository, or
+`/check-all` stops before running any check. Each command carries a Delegation paragraph saying
+which parts go to which agent (`CLAUDE.md` › Model delegation).
+
+Every `check-*` review follows `.claude/review-protocol.md`. `check-docs` and `check-sources` are
+this project's own; what else differs from the core copies is listed in
+[the phase 2 spec](specs/core-mastermind.md) §4. The coverage map in `.claude/commands/check-all.md`
+says which check owns each rule.
 
 ## When something is wrong
 

@@ -1,6 +1,6 @@
 ---
 description: Review working changes for logic defects — code that doesn't do what its spec says — races and out-of-order responses, loops that don't terminate, error paths, edge cases, inconsistent state
-allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*)
+allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git ls-files:*), Bash(git symbolic-ref:*), Bash(git rev-parse:*), Agent
 ---
 
 Review the working changes for **correctness**: does the code do what its spec says, in every path? Follow `.claude/review-protocol.md` — read it first: it sets how to load the rules, the scope, the severities and the output.
@@ -9,6 +9,12 @@ Every other check compares the code against rules. This one reads it as a bug hu
 
 **Owns:** the behaviour of the changed code against its spec (`RULES.md` §4) and against the application's integrity (`RULES.md` §6: "never introduce changes that compromise the application, its users or their data"). Report the defect even when it also breaks a rule another check owns (a swallowed error, a guard a project rule requires): `/check-all` merges findings by root cause.
 **Applies to:** every changed source file (`.ts`, `.tsx`), and the unchanged code whose behaviour the change alters (review protocol §1).
+
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+Run on its own, the main session does not review correctness itself, however capable it is of doing so:
+- **The whole review → one `Agent` with `subagent_type: "lacayo-opus"`**, told it is the delegated agent and spawns no agents, and briefed with this file, `.claude/review-protocol.md`, the change set, the task in the user's words and the approvals the user gave, quoted; it returns the output of review protocol §7.
+- **The mastermind** re-measures with its own eyes only the facts it will state (a quoted `file:line`, the changed files: single read-only commands), and writes the report; which findings get fixed is the user's decision when the check runs on its own (review protocol §6). The fixes the user asks for are dictated edits: direct for two or three steps in one file, `lacayo-sonnet` for anything longer.
+Inside `/check-all` this paragraph does not apply: there the agent running this file is already the delegated hand. Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 opus» did not follow this command.
 
 ## 1. Trace the change
 

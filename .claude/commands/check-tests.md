@@ -10,6 +10,13 @@ Make sure every new or modified piece of logic comes from a spec and has a test 
 **Owns:** `RULES.md` §3 (skipping, deleting or bending tests; weakening verification; real data in fixtures), §4 (spec, worked examples, TDD, the spec-change rule), §10 (the tests it requires), §20; `STACK.md` §0, §5 (guardrail config, CI workflows), §15 (except "Out of scope" → `check-process`), §16; golden files updated to make a test pass (`STACK-ERP.md` §11).
 **Applies to:** every change — any changed logic needs its tests, and every changed test or test config is reviewed.
 
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+Run on its own, the main session neither reviews the tests nor writes them itself:
+- **Phases 0–4 → one `Agent` with `subagent_type: "lacayo-opus"`**, told it is the delegated agent and spawns no agents, and briefed with this file, `.claude/review-protocol.md`, the change set, the task in the user's words, the spec and the approvals quoted; it returns the review and the cases to write.
+- **The mastermind** decides which cases to write, with their exact expected values — taken from the spec's worked examples or asked of the user, never invented (`RULES.md` §4).
+- **Phases 0, 5 and 6 → one `Agent` with `subagent_type: "lacayo-sonnet"`**, told it is the delegated agent and spawns no agents, and briefed with the approved cases and their file paths; it writes them, runs them and pastes the outputs. A red test is reported, never fixed by the agent; the mastermind decides the production fix and applies it — direct for two or three steps in one file, `lacayo-sonnet` for anything longer.
+Inside `/check-all` this paragraph does not apply: there the agent running this file is already the delegated hand. Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 opus» did not follow this command.
+
 ## Phase 0 — Test Quality Bar (READ BEFORE WRITING ANY TEST)
 
 **A test is only worth writing if it can fail when the production code is wrong.** If a test cannot detect a regression, it is worse than no test — it inflates coverage, gives false confidence, and rots silently.

@@ -5,6 +5,14 @@ allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git 
 
 Write the pull request text for the current branch. Run it when the branch is ready for a PR — after one or more `/check-all` passes, each ending in a commit. **This command only writes text.** The code was already reviewed and verified by `/check-all`; don't review it again. Never push, never open the PR — hand the text to the user.
 
+Delegation (`CLAUDE.md` › Model delegation) — **The main session (Opus 5.5, high effort) is the mastermind, not the hands; `lacayo-sonnet` (Sonnet 5, high effort) and `lacayo-opus` (Opus 5.5, medium effort) are its hands.**
+It does not measure the branch or check its own text:
+- **Phase 1 → one `Agent` with `subagent_type: "lacayo-sonnet"`**, briefed with that phase's exact commands; outputs pasted verbatim. The `/check-all` reports step 4 needs come from the main session, which has them.
+- **Phase 2 → one `Agent` with `subagent_type: "lacayo-opus"`**, a fresh reviewer with `check-changelog.md`, as Phase 2 below says, told it is the delegated agent and spawns no agents; it runs that whole file.
+- **Phase 3 → the mastermind** writes the body, from the Sonnet outputs and the `/check-all` reports.
+- **Phase 4 → one `Agent` with `subagent_type: "lacayo-opus"`** carrying the text and the branch; it returns every claim the diff does not back and every leak, and the mastermind applies the fixes before the user sees the text.
+The mastermind decides on each Phase 4 finding and hands the final text to the user. Close the report with the delegation line («Lacayos: N sonnet, M opus, K directos; reencargos: X»); a run with «0 opus» did not follow this command.
+
 ## Phase 1 — Scope
 
 1. **Base branch**: `git symbolic-ref --short refs/remotes/origin/HEAD` without the `origin/` prefix; without `origin/HEAD`, the base branch `CLAUDE.md` declares; else `main`, and say it was assumed. If the current branch *is* the base branch, stop: "no PR from the base branch".
