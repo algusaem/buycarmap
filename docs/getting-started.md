@@ -128,7 +128,7 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm build` | `prisma generate && next build` |
 | `pnpm check` | The verification contract: `lint` → `typecheck` → `test` → `build`, stopping at the first failure |
 | `pnpm check:full` | `check`, then `test:e2e` |
-| `pnpm lint` | Biome (lint and format), knip, `spec:check`, `docs:check` |
+| `pnpm lint` | Biome (lint and format), knip, `spec:check`, `docs:check`, `todo:check` |
 | `pnpm typecheck` | `tsc --noEmit` and type-coverage (minimum in `package.json` › `typeCoverage`) |
 | `pnpm test` | Vitest, both projects, with v8 coverage and the ratchet thresholds |
 | `pnpm test:unit` | The jsdom project alone |
@@ -141,6 +141,7 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm test:contract:live` | The same, against the real upstream APIs |
 | `pnpm spec:check` | Every approved acceptance criterion is still named by a test |
 | `pnpm docs:check` | Doc links, referenced source paths, the ownership map |
+| `pnpm todo:check` | Every `TODO` comment names its issue (`#n`) |
 | `pnpm db:branch` | Give this git branch its own Neon database |
 | `pnpm db:branch:rm` | Delete it |
 

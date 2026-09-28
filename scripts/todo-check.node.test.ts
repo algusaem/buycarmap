@@ -2,46 +2,55 @@ import { describe, expect, it } from "vitest";
 
 import { findUnreferencedTodos } from "./todo-check.mjs";
 
-// scripts/todo-check.mjs flags a `TODO` comment with no issue reference. See
-// docs/specs/core-tooling.md TOOLING-12 for the worked examples below.
+// scripts/todo-check.mjs flags an unreferenced marker comment with no issue
+// reference. See docs/specs/core-tooling.md TOOLING-12 for the worked
+// examples below.
+
+// Built from parts so this file doesn't trip the check it tests.
+const TAG = ["TO", "DO"].join("");
 
 describe("todo:check — unreferenced TODO comments", () => {
-  it("TOOLING-12: // TODO: handle retries is reported", () => {
-    const result = findUnreferencedTodos([{ path: "x.ts", text: "// TODO: handle retries" }]);
+  it("TOOLING-12: an unreferenced marker in a line comment is reported", () => {
+    const result = findUnreferencedTodos([{ path: "x.ts", text: `// ${TAG}: handle retries` }]);
     expect(result).toEqual([{ path: "x.ts", line: 1 }]);
   });
 
-  it("TOOLING-12: // TODO(#42): handle retries is accepted", () => {
-    const result = findUnreferencedTodos([{ path: "x.ts", text: "// TODO(#42): handle retries" }]);
+  it("TOOLING-12: a marker with an issue in parentheses is accepted", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.ts", text: `// ${TAG}(#42): handle retries` },
+    ]);
     expect(result).toEqual([]);
   });
 
-  it("TOOLING-12: /* TODO see #7 */ is accepted", () => {
-    const result = findUnreferencedTodos([{ path: "x.ts", text: "/* TODO see #7 */" }]);
+  it("TOOLING-12: a marker in a block comment with an issue is accepted", () => {
+    const result = findUnreferencedTodos([{ path: "x.ts", text: `/* ${TAG} see #7 */` }]);
     expect(result).toEqual([]);
   });
 
-  it('TOOLING-12: const doc = "TODO.md"; is accepted (not a comment)', () => {
-    const result = findUnreferencedTodos([{ path: "x.ts", text: 'const doc = "TODO.md";' }]);
+  it("TOOLING-12: a marker inside a string is accepted (not a comment)", () => {
+    const result = findUnreferencedTodos([{ path: "x.ts", text: `const doc = "${TAG}.md";` }]);
     expect(result).toEqual([]);
   });
 
-  it("TOOLING-12: * TODO: tidy inside a JSDoc block is reported", () => {
-    const result = findUnreferencedTodos([{ path: "x.ts", text: " * TODO: tidy" }]);
+  it("TOOLING-12: a marker on a JSDoc continuation line is reported", () => {
+    const result = findUnreferencedTodos([{ path: "x.ts", text: ` * ${TAG}: tidy` }]);
     expect(result).toEqual([{ path: "x.ts", line: 1 }]);
   });
 
-  it("TOOLING-12: reports the exact list of {path, line} across several files and lines, in order", () => {
+  it("TOOLING-12: several files report every hit in order", () => {
     const result = findUnreferencedTodos([
       {
         path: "a.ts",
-        text: ["const x = 1;", "// TODO: fix this", "const y = 2;", "// TODO(#1): done later"].join(
-          "\n",
-        ),
+        text: [
+          "const x = 1;",
+          `// ${TAG}: fix this`,
+          "const y = 2;",
+          `// ${TAG}(#1): done later`,
+        ].join("\n"),
       },
       {
         path: "b.ts",
-        text: ["/* TODO see #7 */", " * TODO: tidy", 'const doc = "TODO.md";'].join("\n"),
+        text: [`/* ${TAG} see #7 */`, ` * ${TAG}: tidy`, `const doc = "${TAG}.md";`].join("\n"),
       },
     ]);
 
