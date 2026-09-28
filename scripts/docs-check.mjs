@@ -18,10 +18,11 @@
 // Kept dependency-free, like spec-check.mjs and db-branch.mjs, so it runs in a
 // fresh worktree with no node_modules.
 
-import { execFileSync } from "node:child_process";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { trackedFiles as gitTrackedFiles } from "./git-files.mjs";
 
 // Docs are scanned for both links and source references. CLAUDE.md is in here
 // deliberately: it carries more path references than any doc, and the 2026-08-03
@@ -350,10 +351,7 @@ export function ownableFiles(tracked) {
 
 /** @returns {string[]} */
 function trackedFiles() {
-  return execFileSync("git", ["ls-files"], { encoding: "utf8" })
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map(posix);
+  return gitTrackedFiles().map(posix);
 }
 
 /**
