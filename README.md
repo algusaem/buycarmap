@@ -192,6 +192,10 @@ default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` u
 **`gitleaks: command not found` when committing.** Install gitleaks
 ([Prerequisites](#prerequisites)) and open a new shell so the PATH change applies.
 
+**knip reports `lint-staged` as unused.** A clone made before `.gitattributes`
+existed keeps its `.husky/pre-commit` and `.husky/commit-msg` as CRLF. Delete
+those two files and run `git checkout -- .husky` to restore them LF.
+
 **`Invalid server environment`** at boot lists exactly which variables are
 missing. `lib/env.ts` is the schema.
 
@@ -450,7 +454,6 @@ Do not point a gap at a loosely related file to make it look covered.
 | `release-please-config.json` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `.release-please-manifest.json` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `.claude/commands/**` | [README.md](README.md) |
-| `.claude/commands/spec*.md` | [README.md](README.md) |
 | `.claude/review-protocol.md` | [README.md](README.md) |
 | `.claude/settings.json` | [README.md](README.md) |
 

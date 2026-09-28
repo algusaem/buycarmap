@@ -320,7 +320,7 @@ export function unreachableDocs(linkGraph, roots, docs) {
  * @param {string} doc
  * @returns {string}
  */
-export function ownershipDocPath(indexPath, doc) {
+function ownershipDocPath(indexPath, doc) {
   return posix(relative(process.cwd(), resolve(dirname(posix(indexPath)), doc)));
 }
 

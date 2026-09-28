@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -16,6 +20,9 @@ import {
   unreachableDocs,
   unresolvedOwnershipDocs,
 } from "./docs-check.mjs";
+
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const read = (path: string) => readFileSync(join(ROOT, path), "utf8").replace(/\r\n/g, "\n");
 
 describe("stripFences", () => {
   it("drops fenced blocks so directory trees are not read as path references", () => {
@@ -192,6 +199,16 @@ describe("parseOwnership", () => {
 
     expect(parseOwnership(source)).toEqual([{ glob: "lib/geo/**", doc: "geo.md" }]);
   });
+
+  it("DOCS-7: the ownership map is parsed from the root README's Ownership map section", () => {
+    const entries = parseOwnership(read("README.md"));
+
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries).toContainEqual({
+      glob: "lib/wallapop/**",
+      doc: "docs/specs/data-sources.md",
+    });
+  });
 });
 
 describe("isGap", () => {
@@ -222,7 +239,7 @@ describe("isUnbuiltSpec", () => {
 
   it("skips Approved, which is the status that looks safe to check and is not", () => {
     // Approved means the failing tests have landed and the code has not — the
-    // one moment every path in §5 is guaranteed absent.
+    // one moment every path in Data model and Contracts is guaranteed absent.
     expect(isUnbuiltSpec("docs/specs/alerts.md", header("Approved"))).toBe(true);
   });
 

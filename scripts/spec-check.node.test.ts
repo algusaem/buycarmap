@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { criteriaIdsIn, findSpecProblems } from "./spec-check.mjs";
+import { checkSpecs, criteriaIdsIn } from "./spec-check.mjs";
 import type { SpecCheckTestInput } from "./spec-check.mjs";
 
 describe("criteriaIdsIn", () => {
@@ -69,7 +69,7 @@ describe("criteriaIdsIn", () => {
   });
 });
 
-describe("findSpecProblems", () => {
+describe("checkSpecs", () => {
   const spec = (key: string, status: string, body: string) =>
     `# Feature\n\nKey: ${key}\nStatus: ${status}\n\n## Acceptance criteria\n\n${body}\n`;
 
@@ -79,7 +79,7 @@ describe("findSpecProblems", () => {
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-    expect(findSpecProblems(specs, tests)).toEqual([]);
+    expect(checkSpecs(specs, tests).problems).toEqual([]);
   });
 
   it("DOCS-2: a table row declares nothing, so the criterion its test names is unsatisfied", () => {
@@ -88,7 +88,7 @@ describe("findSpecProblems", () => {
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-    const problems = findSpecProblems(specs, tests);
+    const problems = checkSpecs(specs, tests).problems;
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain("declares no acceptance criteria");
   });
@@ -97,7 +97,7 @@ describe("findSpecProblems", () => {
     const specs = [{ name: "favorites.md", source: spec("FAV", "Approved", "- [x] FAV-3 — x") }];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-    const problems = findSpecProblems(specs, tests);
+    const problems = checkSpecs(specs, tests).problems;
     expect(problems).toHaveLength(1);
     expect(problems.some((p) => p.includes("FAV-3") && p.includes("level"))).toBe(true);
   });
@@ -110,7 +110,7 @@ describe("findSpecProblems", () => {
       ];
       const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-      expect(findSpecProblems(specs, tests)).toEqual([]);
+      expect(checkSpecs(specs, tests).problems).toEqual([]);
     },
   );
 
@@ -120,7 +120,7 @@ describe("findSpecProblems", () => {
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-    expect(findSpecProblems(specs, tests)).toEqual([]);
+    expect(checkSpecs(specs, tests).problems).toEqual([]);
   });
 
   it("DOCS-2: an unknown level in a combination is rejected, naming the criterion", () => {
@@ -129,7 +129,7 @@ describe("findSpecProblems", () => {
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-    const problems = findSpecProblems(specs, tests);
+    const problems = checkSpecs(specs, tests).problems;
     expect(problems).toHaveLength(1);
     expect(problems.some((p) => p.includes("FAV-3") && p.includes("level"))).toBe(true);
   });
@@ -140,9 +140,10 @@ describe("findSpecProblems", () => {
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-    const problems = findSpecProblems(specs, tests);
+    const problems = checkSpecs(specs, tests).problems;
     expect(problems).toHaveLength(1);
-    expect(problems.some((p) => p.includes("FAV-3"))).toBe(true);
+    expect(problems[0]).toContain("FAV-3");
+    expect(problems[0]).toContain("has no statement");
   });
 
   it("DOCS-3: an Implemented spec with an unchecked criterion fails, naming it as unchecked", () => {
@@ -151,7 +152,7 @@ describe("findSpecProblems", () => {
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-    const problems = findSpecProblems(specs, tests);
+    const problems = checkSpecs(specs, tests).problems;
     expect(problems).toHaveLength(1);
     expect(problems.some((p) => p.includes("FAV-3") && p.includes("unchecked"))).toBe(true);
   });
@@ -162,7 +163,7 @@ describe("findSpecProblems", () => {
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-    expect(findSpecProblems(specs, tests)).toEqual([]);
+    expect(checkSpecs(specs, tests).problems).toEqual([]);
   });
 
   it("DOCS-3: a checked item is accepted under Implemented", () => {
@@ -171,7 +172,7 @@ describe("findSpecProblems", () => {
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
 
-    expect(findSpecProblems(specs, tests)).toEqual([]);
+    expect(checkSpecs(specs, tests).problems).toEqual([]);
   });
 
   it("DOCS-4: a duplicate key across two specs is reported", () => {
@@ -181,7 +182,7 @@ describe("findSpecProblems", () => {
     ];
     const tests = [{ path: "a.test.ts", source: 'it("FAV-1: x", () => {})' }];
 
-    const problems = findSpecProblems(specs, tests);
+    const problems = checkSpecs(specs, tests).problems;
     expect(problems.some((p) => p.includes("Duplicate key FAV"))).toBe(true);
   });
 
@@ -189,7 +190,7 @@ describe("findSpecProblems", () => {
     const specs = [{ name: "favorites.md", source: spec("FAV", "Approved", "No criteria yet.") }];
     const tests: SpecCheckTestInput[] = [];
 
-    const problems = findSpecProblems(specs, tests);
+    const problems = checkSpecs(specs, tests).problems;
     expect(problems.some((p) => p.includes("declares no acceptance criteria"))).toBe(true);
   });
 
@@ -199,7 +200,7 @@ describe("findSpecProblems", () => {
     ];
     const tests: SpecCheckTestInput[] = [];
 
-    const problems = findSpecProblems(specs, tests);
+    const problems = checkSpecs(specs, tests).problems;
     expect(
       problems.some((p) => p.includes("FAV-1") && p.includes("is not named by any test title")),
     ).toBe(true);
@@ -214,7 +215,7 @@ describe("findSpecProblems", () => {
       { path: "b.test.ts", source: 'it("FAV-2: y", () => {})' },
     ];
 
-    const problems = findSpecProblems(specs, tests);
+    const problems = checkSpecs(specs, tests).problems;
     expect(problems.some((p) => p.includes("FAV-2") && p.includes("does not declare it"))).toBe(
       true,
     );
@@ -226,6 +227,6 @@ describe("findSpecProblems", () => {
     ];
     const tests: SpecCheckTestInput[] = [];
 
-    expect(findSpecProblems(specs, tests)).toEqual([]);
+    expect(checkSpecs(specs, tests).problems).toEqual([]);
   });
 });

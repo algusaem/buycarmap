@@ -1,6 +1,6 @@
 # 0011 — Keep criterion ids, spec:check and extra spec sections
 
-Status: Accepted · Date: 2026-09-28
+Status: Accepted · Date: 2026-09-28 · Amends ADR 0007 row 8
 
 ## Context
 

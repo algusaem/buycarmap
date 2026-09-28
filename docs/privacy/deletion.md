@@ -53,5 +53,6 @@ There is no way for a person to export their data
 
 Neon keeps 6 hours of history for the project. Deleted data can therefore be
 restored from point-in-time history for up to 6 hours after the deletion; after
-that it is gone. The restore procedure is
+that it is gone from the production branch's history, though the forks listed
+above still hold it until they are removed. The restore procedure is
 [backups.md](../operations/backups.md).

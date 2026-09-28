@@ -143,8 +143,9 @@ Before reporting, re-read your own draft and answer, out loud, in the report:
 - What would a reader in a year not be able to work out from the code alone —
   is it written down in Decisions and rationale?
 
-Then run `pnpm spec:check` to confirm the file parses, every checklist item
-carries a level, and the spec is correctly skipped while `Draft`.
+Then run `pnpm spec:check` to confirm the file parses and is skipped while
+`Draft`. The level and statement of every item are checked only from the
+moment the spec is `Approved`, so check them by eye while drafting.
 
 ## Phase 5 — Report
 

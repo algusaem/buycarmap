@@ -411,5 +411,57 @@ describe("docs tree and spec format", () => {
       const lines = readIfExists(path).split("\n");
       expect(lines.some((line) => CHECKLIST_ITEM.test(line))).toBe(true);
     }
+
+    expect(read("CLAUDE.md")).toContain("- [ ] KEY-n · <level> — <statement>");
+    expect(read(".claude/commands/spec-tests.md")).toContain("criteria checklist");
+  });
+});
+
+// Negative fixtures for the local parsing helpers above, built by hand rather
+// than read off a real spec file, so a broken check is caught even when every
+// spec in docs/specs currently happens to be well-formed.
+describe("local format helpers (negative fixtures)", () => {
+  it("DOCS-1: headingOffenses reports a numbered heading", () => {
+    const headings = [
+      "## 1. Problem",
+      "## Acceptance criteria",
+      "## Worked examples",
+      "## Data model",
+      "## Permissions",
+      "## Edge cases",
+      "## Out of scope",
+    ];
+
+    expect(headingOffenses(headings)).toContain('numbered heading "## 1. Problem"');
+  });
+
+  it("DOCS-1: headingOffenses reports Worked examples and Data model swapped as a fixed-order offense", () => {
+    const headings = [
+      "## Problem",
+      "## Acceptance criteria",
+      "## Data model",
+      "## Worked examples",
+      "## Permissions",
+      "## Edge cases",
+      "## Out of scope",
+    ];
+
+    expect(
+      headingOffenses(headings).some((offense) => offense.startsWith("fixed headings are")),
+    ).toBe(true);
+  });
+
+  it("DOCS-1: headingOffenses reports Open questions before Contracts as an optional-order offense", () => {
+    const headings = [
+      ...FIXED_HEADINGS.map((heading) => `## ${heading}`),
+      "## Open questions",
+      "## Contracts",
+    ];
+
+    expect(
+      headingOffenses(headings).some((offense) =>
+        offense.includes('heading "Contracts" out of the Contracts / Decisions / Open order'),
+      ),
+    ).toBe(true);
   });
 });

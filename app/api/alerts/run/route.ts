@@ -22,7 +22,7 @@ import { unsubscribeTokenFor } from "@/lib/alerts/unsubscribe-token";
 // docs/specs/alerts.md › Decisions and rationale.
 
 const BASE_INTERVAL_MS = 5 * 60_000;
-/** The upstream budget the cadence stretches to respect. Unmeasured — §6. */
+/** The upstream budget the cadence stretches to respect. Unmeasured — see docs/specs/alerts.md › Open questions. */
 const REQUESTS_PER_MINUTE_CEILING = 60;
 const REQUESTS_PER_POLL = 3;
 const SLICE_SIZE = 25;

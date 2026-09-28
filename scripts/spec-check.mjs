@@ -31,8 +31,18 @@ const SKIP_DIRS = new Set([
 
 const KEY_LINE = /^Key:\s*([A-Z][A-Z0-9]{1,7})\s*$/m;
 const STATUS_LINE = /^Status:\s*\**\s*([A-Za-z]+)/m;
-const LEVEL_SUFFIX =
-  /^ · (?:unit|node|component|contract|e2e)(?: \+ (?:unit|node|component|contract|e2e))* — \S/;
+// The single source for both level regexes and the message hint below, so
+// none of the three can ever list the levels differently.
+const LEVELS = ["unit", "node", "component", "contract", "e2e"];
+const LEVEL_ALTERNATION = LEVELS.join("|");
+const LEVEL_CLAUSE = `(?:${LEVEL_ALTERNATION})(?: \\+ (?:${LEVEL_ALTERNATION}))*`;
+// A valid level, immediately followed by a non-space statement.
+const LEVEL_WITH_STATEMENT = new RegExp(`^ · ${LEVEL_CLAUSE} — \\S`);
+// A valid level with nothing, or only a blank statement, after it — anything
+// left over (an invalid level, or extra text before " — ") fails this too, so
+// it falls through to "has no level" rather than being mistaken for a blank
+// statement.
+const LEVEL_WITHOUT_STATEMENT = new RegExp(`^ · ${LEVEL_CLAUSE}(?: — \\s*)?$`);
 const ID = /\b([A-Z][A-Z0-9]{1,7}-\d+)\b/g;
 // `it("…")`, `test("…")`, `test.skip("…")`, `it.each([…])("…")`, `dbTest("…")`.
 //
@@ -106,28 +116,35 @@ function checklistItemsIn(source, key) {
 }
 
 /**
- * One spec's enforced state: its key, status and the criteria it declares —
- * or `null` when its status isn't enforced or it has no `Key:` header, in
- * which case it takes no further part in the checks. Also pushes the
- * per-criterion problems a checklist item can carry on its own, independent
- * of any test: a missing level, or an unchecked box in an `Implemented` spec.
+ * One enforced spec's criteria, given the header its caller already parsed.
+ * Pushes the per-criterion problems a checklist item can carry on its own,
+ * independent of any test: a missing level, a level with no statement after
+ * it, or an unchecked box in an `Implemented` spec.
+ *
+ * Takes `{ key, status }` rather than re-reading the header: `checkSpecs`
+ * already parsed it once to decide this spec is enforced, and re-parsing it
+ * here would make that two parses of the same spec.
  *
  * @param {SpecCheckSpecInput} spec
+ * @param {{ key: string, status: string }} header
  * @param {string[]} problems
- * @returns {ParsedSpec | null}
+ * @returns {ParsedSpec}
  */
-function parseEnforcedSpec(spec, problems) {
-  const { key, status } = specHeader(spec.source);
-  if (!key || !ENFORCED_STATUSES.has(status ?? "")) return null;
-
+function parseEnforcedSpec(spec, { key, status }, problems) {
   const declared = new Set();
   for (const { id, checked, rest } of checklistItemsIn(spec.source, key)) {
     declared.add(id);
 
-    if (!LEVEL_SUFFIX.test(rest)) {
-      problems.push(
-        `${id} (${spec.name}) has no level. Write it as "- [ ] ${id} · <unit|node|component|contract|e2e>[ + <level>…] — <statement>".`,
-      );
+    if (!LEVEL_WITH_STATEMENT.test(rest)) {
+      if (LEVEL_WITHOUT_STATEMENT.test(rest)) {
+        problems.push(
+          `${id} (${spec.name}) has no statement. Write it as "- [ ] ${id} · <level> — <statement>".`,
+        );
+      } else {
+        problems.push(
+          `${id} (${spec.name}) has no level. Write it as "- [ ] ${id} · <${LEVEL_ALTERNATION}>[ + <level>…] — <statement>".`,
+        );
+      }
     }
     if (!checked && status === "Implemented") {
       problems.push(
@@ -250,12 +267,12 @@ export function checkSpecs(specs, tests) {
   const skipped = [];
 
   for (const spec of specs) {
-    const result = parseEnforcedSpec(spec, problems);
-    if (result) {
-      enforced.push(result);
+    const header = specHeader(spec.source);
+    const { key, status } = header;
+    if (key && ENFORCED_STATUSES.has(status ?? "")) {
+      enforced.push(parseEnforcedSpec(spec, { key, status }, problems));
       continue;
     }
-    const { key, status } = specHeader(spec.source);
     skipped.push({
       name: spec.name,
       reason: key ? `status ${status ?? "missing"}` : "no Key: header (legacy format)",
@@ -269,18 +286,6 @@ export function checkSpecs(specs, tests) {
   checkDanglingReferences(referenced, byKey, problems);
 
   return { problems, enforced, skipped };
-}
-
-/**
- * The problems `spec:check` would report for the given specs and tests, read
- * from in-memory sources rather than the working tree.
- *
- * @param {SpecCheckSpecInput[]} specs
- * @param {SpecCheckTestInput[]} tests
- * @returns {string[]}
- */
-export function findSpecProblems(specs, tests) {
-  return checkSpecs(specs, tests).problems;
 }
 
 /**
@@ -304,7 +309,7 @@ async function walk(dir, out = []) {
 
 /**
  * The spec files `spec:check` considers — `docs/specs/*.md`, excluding `_*`
- * templates and `README.md` — read into the shape `findSpecProblems` takes.
+ * templates and `README.md` — read into the shape `checkSpecs` takes.
  *
  * @returns {Promise<SpecCheckSpecInput[]>}
  */
@@ -319,7 +324,7 @@ async function readSpecFiles() {
 }
 
 /**
- * Every walked test file, read into the shape `findSpecProblems` takes.
+ * Every walked test file, read into the shape `checkSpecs` takes.
  *
  * @param {string[]} paths
  * @returns {Promise<SpecCheckTestInput[]>}
@@ -364,8 +369,8 @@ async function main() {
   reportSpecCheckResult(problems, enforced, skipped);
 }
 
-// Guarded so `criteriaIdsIn` and `findSpecProblems` can be imported by the
-// colocated test without the check running as a side effect of `import`.
+// Guarded so `criteriaIdsIn` and `checkSpecs` can be imported by the colocated
+// test without the check running as a side effect of `import`.
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   await main();
 }

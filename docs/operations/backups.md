@@ -45,7 +45,18 @@ As measured through the Neon API on 2026-09-28:
    ids between the restored branch and the current head, and delete every id
    that is missing from the head again through the application's account
    deletion path or `prisma.user.delete`, so the cascade runs.
-5. **Put it into service**, one of two ways:
+5. **Revoke every session.** A restore rolls back `User.password`,
+   `User.passwordChangedAt`, the two-factor fields (`twoFactorSecret`,
+   `twoFactorEnabledAt`, `twoFactorLastStep`), completed email changes and
+   unlinked OAuth `Account` rows. That makes sessions and credentials that were
+   revoked after the timestamp valid again. For each user whose `password`,
+   two-factor fields, `email` or `Account` rows differ between the old head and
+   the restored branch, re-apply the old head's values. Then set
+   `passwordChangedAt` to the current time for every user on the restored
+   branch. That revokes every session issued before the restore (the `jwt`
+   callback compares it with the token's `pwdAt`, `lib/auth/options.ts`), so
+   every user signs in again.
+6. **Put it into service**, one of two ways:
    - **Restore `main` from it**, so production keeps its branch and connection
      string. Neon can restore a branch from another branch or from a point in
      time; this replaces what `main` holds.
@@ -54,14 +65,15 @@ As measured through the Neon API on 2026-09-28:
      production reads, so treat the new branch as production from now on, and
      remember that the `pnpm db:branch` tooling forks from the project's
      **default** branch.
-6. **Apply migrations if needed.** A branch taken before a migration ran lacks
+7. **Apply migrations if needed.** A branch taken before a migration ran lacks
    it; run `pnpm exec prisma migrate deploy` against it before the application
    code that needs it serves traffic.
-7. **Remove the leftovers.** Once the restore is confirmed, delete the
+8. **Remove the leftovers.** Once the restore is confirmed, delete the
    temporary restore branch (when `main` was restored from it) or the
    superseded old head (when `DATABASE_URL` was pointed at the new branch).
    Both hold a full copy of personal data, including accounts deleted
-   afterwards.
+   afterwards. Also delete any backup branch Neon kept of the pre-restore
+   state — it holds the same personal data.
 
 Everything written to production between the timestamp and the restore is lost
 by either route, unless it is copied across from the old head first.

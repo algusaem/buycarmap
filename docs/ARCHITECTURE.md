@@ -143,12 +143,10 @@ flowchart LR
 ```
 
 A JWT lives in the browser and cannot be revoked server-side, so
-`User.passwordChangedAt` acts as a **revocation clock**. The `jwt` callback
-stamps `pwdAt` at sign-in and re-reads the row at most every five minutes. If the
-password changed after the stamp — or the account no longer exists — it
-**throws**, which NextAuth's session route catches, clearing the cookie and
-nulling the session. Any flow that changes a password must bump
-`passwordChangedAt`, or it does not sign anyone out.
+`User.passwordChangedAt` acts as a **revocation clock** the `jwt` callback
+checks on every re-read. See
+[specs/auth-email-and-oauth.md › Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation)
+for the mechanism.
 
 **`proxy.ts` is UX, not authorization.** Next 16 renamed the `middleware` file
 convention to `proxy`. It decodes and signature-checks the JWT, which is enough
@@ -329,7 +327,7 @@ Four fields exist purely to make security properties work:
 
 | Field | Job |
 | --- | --- |
-| `passwordChangedAt` | The **revocation clock**. Bumped on every password change; the JWT callback compares against it and refuses older tokens. This is how "sign out everywhere" works without server-side sessions |
+| `passwordChangedAt` | The revocation clock the `jwt` callback checks against every token — see [specs/auth-email-and-oauth.md › Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation) |
 | `twoFactorSecret` | AES-256-GCM ciphertext, **not a hash** — verifying a TOTP code means recomputing the HMAC, so the secret must be recoverable. The key is `TWO_FACTOR_ENCRYPTION_KEY`, so the database alone is not enough |
 | `twoFactorEnabledAt` | Null while enrolment is half-finished. **Only this field gates login**, which is what stops a user locking themselves out mid-setup |
 | `twoFactorLastStep` | Highest accepted TOTP counter step. Anything at or below it is refused, so a code read over a shoulder cannot be replayed inside its own 30-second window |
@@ -459,9 +457,10 @@ remember — see [Refusing to run](../README.md#refusing-to-run).
   is up to date!" against a stale checksum *and* a migration missing locally. It
   validates neither. Only `migrate dev` does.
 - **Checksums are SHA-256 of `migration.sql` with CRLF normalised to LF.**
-  `core.autocrlf=true` is set with no `.gitattributes`, so every migration file
-  is CRLF on disk and LF in git. That is **not** a source of drift. Do not chase
-  it.
+  `.gitattributes` has no rule for `prisma/migrations/`, so migration files stay
+  CRLF on disk and LF in git. That is **not** a source of drift. Do not chase
+  it. The only rule `.gitattributes` does carry is `.husky/* text eol=lf`, which
+  keeps the Git hooks LF so knip reads `lint-staged` cleanly.
 
 #### Repairing a stale checksum
 
@@ -521,27 +520,17 @@ existence check so timing cannot substitute for the message, and registration
 that writes a `PendingRegistration` rather than a `User` until the inbox is
 proven. Passwords are gated by length and blocklists rather than composition
 rules (NIST SP 800-63B), with the breach check **failing open** so an outage
-cannot block signups. Sessions are stateless JWTs, so revocation runs off a
-`passwordChangedAt` clock re-read every five minutes. TOTP secrets are
+cannot block signups. Sessions are stateless JWTs, revoked off the
+`passwordChangedAt` clock (see
+[specs/auth-email-and-oauth.md › Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation)).
+TOTP secrets are
 *encrypted*, not hashed, because verification recomputes the HMAC — which means
 `TWO_FACTOR_ENCRYPTION_KEY` is the thing a database leak alone does not give up.
 
-### Five rules that are easy to break
+### Rules that are easy to break
 
-These are the ones where a plausible-looking change quietly removes a defence.
-
-1. **Never call `getServerSession` directly** — use `getCurrentUser()`. Only it
-   honours revocation. `proxy.ts` decodes the JWT but never runs the `jwt`
-   callback, so it is UX, not authorization.
-2. **Any flow that changes a password must bump `passwordChangedAt`**, or it
-   signs nobody out.
-3. **Password reset must not bypass 2FA.** If it did, control of the mailbox
-   would defeat the second factor entirely. That is what recovery codes are for.
-4. **The email-change confirmation link goes to the *new* address**, never the
-   current one, and the current password is required to start the change. Either
-   alone is insufficient.
-5. **Return error codes, never prose.** Server code cannot read the client i18n
-   context and the default locale is Spanish.
+The defences a plausible-looking change can quietly remove are listed in
+[specs/auth-email-and-oauth.md › Cross-cutting conventions (do not violate)](specs/auth-email-and-oauth.md#cross-cutting-conventions-do-not-violate).
 
 ### Read next
 
@@ -1180,9 +1169,12 @@ is the bottleneck, not the cadence: raise the matrix size in `alerts.yml`. Each
 leg drains its own slice, so more legs is the lever.
 
 `intervalMs` above 300000 means the criteria count has outgrown the 60 req/min
-ceiling and everything is polled less often. That number is a guess documented
-in the spec's open questions — raise it only while watching the nightly
-`contract-live` job, which is the alarm for a source refusing traffic.
+ceiling and everything is polled less often. That ceiling was settled at 60/min
+as an unmeasured starting point — nobody has published what these three
+upstreams tolerate
+([specs/alerts.md › Open questions](specs/alerts.md#open-questions)) — so raise
+it only while watching the nightly `contract-live` job, which is the alarm for a
+source refusing traffic.
 
 #### A duplicate alert email went out
 
@@ -1241,10 +1233,9 @@ The e2e suite exhausts its own login limit — see
 
 #### Sessions will not clear
 
-`User.passwordChangedAt` is the revocation clock, and the `jwt` callback only
-re-reads the row **every five minutes**. A revocation can take that long to take
-effect. Bumping `passwordChangedAt` is what makes it happen at all — a flow that
-changes a password without bumping it signs nobody out.
+`User.passwordChangedAt` is the revocation clock, and a revocation can take up
+to five minutes to take effect. See
+[specs/auth-email-and-oauth.md › Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation).
 
 #### Migration drift
 
