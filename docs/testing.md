@@ -234,8 +234,8 @@ here:
   the code does proves nothing.
 - Cover a negative path. Invalid input, empty result, upstream failure,
   unauthorised caller — that is where the bugs are.
-- When a test is red, **fix the production code, not the test** — unless the test
-  itself was wrong.
+- When a test is red, **fix the production code, not the test** — when an
+  existing test may change is in [specs/README.md](specs/README.md).
 
 `pnpm spec:check` proves an acceptance criterion is *mentioned* by a test title.
 It cannot prove the assertion behind it is meaningful. Only review does.

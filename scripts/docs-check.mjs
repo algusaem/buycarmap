@@ -10,10 +10,9 @@
 //      source file — not merely every top-level directory, which was the
 //      original rule and let 38 files go unclaimed while this reported green.
 //
-// What it deliberately does NOT do is fail because a change touched no doc.
-// That rule was considered and rejected in docs/specs/README.md — it gets routed
-// around, and a rule people route around teaches them the whole process is
-// optional. Judgment about whether prose is still *true* lives in /check-all;
+// What it deliberately does NOT do is fail because a change touched no doc: a
+// script cannot tell which changes need one. That judgment, and whether prose is
+// still *true*, lives in the check-docs review that /check-all runs;
 // this script only catches what a script can actually know.
 //
 // Kept dependency-free, like spec-check.mjs and db-branch.mjs, so it runs in a
@@ -476,8 +475,7 @@ async function main() {
 
   if (gaps.length > 0) {
     console.log(
-      `\n${gaps.length} area(s) declared undocumented in ${INDEX} ` +
-        `(tracked in ${DOC_DIR}/documentation-plan.md):`,
+      `\n${gaps.length} area(s) declared undocumented in ${INDEX}:`,
     );
     for (const glob of gaps) console.log(`  - ${glob}`);
   }

@@ -1,5 +1,31 @@
 # CLAUDE.md - BuyCarMap
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Rules for Claude
+
+The development rules live in `RULES.md`, imported here so they are always in context:
+
+@RULES.md
+
+Technologies and code patterns: follow `STACK.md`. Anything it doesn't cover needs an ADR in
+`docs/decisions/`. `/check-all` enforces `RULES.md`, `STACK.md` and this file on every change.
+
+**The project is migrating onto the core.** `docs/decisions/0007-adopt-core-rules.md` lists every
+place where the code still deviates from `RULES.md` / `STACK.md`, and the phase that removes each
+one. For the deviations it names, that ADR wins; everything else follows the rules as written. New
+code follows the rules, not the legacy pattern next to it — unless the ADR says the pattern stays
+until its phase.
+
+This file holds only what is specific to BuyCarMap. When it and `RULES.md` disagree, `RULES.md`
+wins unless the adoption ADR says otherwise.
+
+### Communication
+
+- Be direct and concise
+- No emojis, filler, or motivational language
+- If something is a bad idea, say it clearly
+
 ## Project Overview
 
 BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, year, mileage, horsepower, fuel, transmission, and recency, then browse results as a synchronized card list + map.
@@ -7,7 +33,7 @@ BuyCarMap aggregates second-hand car listings and displays them on an interactiv
 What is and is not built is under **Current state** below. Everything else in this
 file is a rule; the explanations live in `docs/`.
 
-## Tech Stack
+## Stack today
 
 Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prisma 7
 with the **`@prisma/adapter-pg`** driver adapter · NextAuth 4 (JWT sessions) ·
@@ -15,16 +41,19 @@ React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
 `components/ui/*` · Motion · Sonner · next-themes · Leaflet + react-leaflet ·
 Lucide React and React Icons.
 
-Constraints that follow from it, and that a plausible-looking change will break:
+Where this differs from `STACK.md` it is a deviation the adoption ADR accepts until its phase,
+or an installed dependency the ADR approves or accepts until its phase (see its dependency list). Constraints that hold until then, and that a plausible-looking change will break:
 
-- **No data-fetching library.** No TanStack Query, SWR or Redux. Hooks in
-  `lib/hooks/*` own every request lifecycle. Adding one is a decision to raise,
-  not to make — `docs/decisions/0001-no-data-fetching-library.md`.
-- **pnpm 11 only.** There is no `package-lock.json`, deliberately.
 - `@neondatabase/serverless` is a dependency, but Prisma connects through
-  `@prisma/adapter-pg` with a plain `DATABASE_URL`. Do not "fix" this.
+  `@prisma/adapter-pg` with a plain `DATABASE_URL`. Do not "fix" this outside phase 6
+  (ADR 0007 row 12).
 - The Prisma client is generated to `app/generated/prisma` — gitignored, and
   required before tests will even import.
+- Hooks in `lib/hooks/*` own every client request lifecycle (ADR 0007 row 19)
+  (`docs/decisions/0001-no-data-fetching-library.md`) and guard against out-of-order
+  responses with a version ref or `cancelled` flag, as the existing hooks do.
+  Cross-cutting fetch helpers live in `lib/<source>/*` and `lib/geo/*`; hooks call
+  those, not raw endpoints.
 
 Full detail: `docs/architecture.md`.
 
@@ -51,7 +80,14 @@ pnpm db:branch        # Give the current git branch its own Neon database (see b
 pnpm db:branch:rm     # Delete this branch's Neon branch when the work is merged
 ```
 
-> pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` under `onlyBuiltDependencies` (currently prisma, `@prisma/engines`, msw, sharp, unrs-resolver). If you add a dependency with a native/build step and `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
+**Local verification until phase 3 adds `pnpm check`** (ADR 0007 row 1): `pnpm lint` (no warnings),
+`pnpm exec tsc --noEmit`, `pnpm spec:check`, `pnpm docs:check`, `pnpm test:coverage` and
+`pnpm build`, plus `pnpm test:e2e` when a user flow, auth, the map or an `e2e/**` file changes. Never run
+`pnpm test:contract:live` (it calls the real marketplaces) or `pnpm test:visual` (per-platform
+baselines) as part of a check. When running `/check-all`, put this list in `check-verify`'s brief:
+the command's own fallback (`lint`, `typecheck`, `test`, `build`) would miss most of it.
+
+> pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are allowlisted in `pnpm-workspace.yaml` under `allowBuilds` (pnpm 11) and `onlyBuiltDependencies` (pnpm 10) — keep both in step (currently prisma, `@prisma/engines`, msw, sharp, unrs-resolver). If you add a dependency with a native/build step and `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
 
 > **A script that sets an env var inline must use `cross-env`.** `FOO=1 cmd` is
 > POSIX syntax that cmd.exe does not understand, so the bare form works in CI
@@ -68,7 +104,7 @@ are explanation. `docs/README.md` carries the index and the **ownership map**
 | How the pieces fit, the search fan-out, the write path, the directory map | `docs/architecture.md` |
 | The map components, design system, palette, theming, animation, i18n | `docs/frontend.md` |
 | What each upstream actually does, and how it breaks | `docs/integrations/{wallapop,cochesnet,milanuncios}.md` |
-| The eleven Prisma models and the migration rules | `docs/data-model.md` |
+| The seventeen Prisma models and the migration rules | `docs/data-model.md` |
 | Test levels, MSW conventions, the environment traps | `docs/testing.md` |
 | Deploy, env vars, Neon branches, CI, runbooks | `docs/operations.md` |
 | Authentication | `docs/auth.md`, then `docs/specs/auth-email-and-oauth.md` |
@@ -78,21 +114,21 @@ are explanation. `docs/README.md` carries the index and the **ownership map**
 mechanically by `pnpm docs:check` — links and referenced paths resolve — but no
 script can prove prose is still true.
 
-## Invariants
+## Upstream sources
 
-The handful of facts most likely to be broken by a reasonable-looking change.
-Each is explained in the doc that owns it; they are repeated here because
-breaking one is silent.
+Owned by `.claude/commands/check-sources.md`. The facts most likely to be broken by a
+reasonable-looking change, because breaking one is silent:
 
 - **Never call an upstream marketplace from the browser.** CORS, CloudFront and
-  bot protection all block it. Everything goes through `app/api/<source>/`.
+  bot protection all block it. Everything from the browser goes through `app/api/<source>/`.
 - **Wallapop coordinates are always sent**, even with no location chosen —
   otherwise it geo-filters by the server's IP and a Spanish user gets US
   listings from Vercel. Invisible locally.
 - **One shared filter set drives every source.** The UI builds a single
   `SearchInput`; each client translates it. Do not add a per-source filter UI.
 - **coches.net and Milanuncios items carry no coordinates.** Their pins are
-  city- or province-level approximations. Wallapop's are exact.
+  city- or province-level approximations. Wallapop's are exact when the listing
+  carries coordinates (SRC-3).
 - **The merge post-filters by radius and model** (`applyResultFilters` in
   `lib/hooks/useListingsSearch.ts`). It looks redundant — "upstream already
   filters" — but only Wallapop enforces the radius and Milanuncios matches the
@@ -100,16 +136,32 @@ breaking one is silent.
   (MAP-16..18). **Because that filter can empty a page**, the first search and
   `loadMore` both keep fetching until a round yields a listing or the sources
   run out — collapsing either loop back to one fetch strands the scroll and
-  makes an empty first page permanent (MAP-19).
-- **Never call `getServerSession` directly** — use `getCurrentUser()`. Only it
-  honours revocation. `proxy.ts` is UX, not authorization.
-- **Any flow that changes a password must bump `passwordChangedAt`**, or it
-  signs nobody out.
+  makes an empty first page permanent (MAP-19). Every round advances each source's
+  cursor or page, or clears its has-more flag: that, not a round cap, is what
+  ends the loops.
+- **Server code cannot call the browser-bound fetchers** — `searchWallapop`,
+  `searchCochesNet`, `searchMilanuncios`, `lib/wallapop/filters.ts` and
+  `lib/cochesnet/models.ts` resolve URLs against `window.location.origin`. The alert
+  runner goes through `lib/alerts/search.ts`, which reuses only the pure query builders
+  from `lib/*/client.ts`.
+- Respect robots.txt and the upstreams' rate limits.
+- Where it helps performance, keep map markers clustered or limited and lazy-load
+  listing detail.
+- When a listing store is built (the `Car` persistence under Current state — not
+  the `Favorite` / `AlertMatch` display snapshots): store the raw upstream data
+  separately from the normalized record, and track each listing's freshness and
+  availability.
+- Deduplicating the same car across sources is out of scope today
+  (`docs/specs/data-sources.md`); it arrives with its own spec, not as a side
+  effect of another change.
+
+## Other invariants
+
 - **All user-facing text goes through `t.*` keys** in both locales. The default
   locale is **`es`**, so a hardcoded English string reaches most users.
 - **Errors are codes, not prose.** Server code cannot read the client i18n
   context.
-- `lib/mock/listings.ts` is dead. Do not wire anything to it.
+- `lib/mock/listings.ts` is dead. Do not wire anything to it; knip removes it in phase 3.
 
 ## Current state
 
@@ -120,128 +172,63 @@ server actions, `/favorites`, and reconciliation into search results.
 
 **Car alerts are built.** Saved criteria (deduplicated across users), a
 Postgres queue drained by a GitHub Actions cron every five minutes, email
-digests, `/alerts` and `/alerts/[id]`, one-click unsubscribe. The runner cannot
-use `lib/*/client.ts` — those resolve URLs against `window.location.origin` —
-so it goes through `lib/alerts/search.ts`. See `docs/specs/alerts.md`.
+digests, `/alerts` and `/alerts/[id]`, one-click unsubscribe. See
+`docs/specs/alerts.md`.
 
 Not built, and not to be assumed: normalized `Car` listing persistence,
 in-app notifications, web push.
 
-## Spec-Driven Development
+## Specs
 
-Feature work starts with a spec, not with code. The spec is the agreement about
-*what* the software does; the tests prove it; the implementation follows. Full
-conventions in `docs/specs/README.md`; adoption status in
-`docs/sdd-adoption-plan.md`.
-
-**The loop.** Write the spec from `docs/specs/_template.md` (Status `Draft`) →
-get it approved (`Approved`) → write one **failing** test per acceptance
-criterion → implement until green → fill in "Verified by" and set
-`Implemented`.
-
-**Criteria are identified, not just numbered.** Each spec declares a unique
-`Key` of 2–8 uppercase letters; criteria are `KEY-1`, `KEY-2`, … and are
-**append-only** — never renumber, because test titles point at those ids:
-
-```ts
-it("FAV-3: removes a listing from favorites when the button is toggled off", …)
-```
-
-`pnpm spec:check` (in CI, before the suite) fails when an approved criterion is
-named by no test, or when a test names a criterion no spec declares. It proves
-an id is *mentioned*, not that the assertion is meaningful — the `/check-tests`
-quality bar is still what makes a test worth having.
-
-**When a spec is required:** any change to observable behaviour — a feature, a
-data source, a changed flow, a new failure mode. **Not required:** behaviour-
-preserving refactors, dependency bumps, styling that changes no interaction, or
-fixing a bug an existing criterion already forbids (that is a missing test, not
-a missing spec).
-
-**Changing behaviour means editing the spec first**, then the tests, then the
-code. A spec that disagrees with the code is worse than no spec, because it is
-trusted.
-
-### How this triggers — Claude runs it, the user does not
-
-**Do not wait to be asked for a spec.** When a request would change observable
-behaviour, invoke `/spec` yourself as the first action, before reading further
-into implementation and before writing any code. The user asking for a feature
-*is* the request for a spec.
+`RULES.md` §4 and `STACK.md` §15 govern: every change is covered by an up-to-date spec in
+`docs/specs/`, written and approved before the tests, and the tests before the code. Conventions
+in `docs/specs/README.md`.
 
 | The user says | Do this first |
 | --- | --- |
 | "add X", "build X", "I want users to be able to X" | `/spec X` — draft it, then stop and get it approved |
-| "change how X works", "X should also do Y" | Open the governing spec, amend it, re-approve; then `/spec-tests` |
-| "X is broken" | Find the criterion that forbids it. **Exists** → write the failing test, fix, no spec change. **Missing** → the spec has a hole: add a criterion, then fix |
-| "refactor X", "rename X", "bump X" | No spec. Say so in one line and proceed |
-| "why does X do Y?" | No spec. Answer the question |
+| "change how X works", "X should also do Y" | Amend the governing spec, get it approved, then `/spec-tests` |
+| "X is broken" | Add the failing input and the correct result to the spec as a worked example (`RULES.md` §4) — ask for the values if they aren't known — then the failing test, then the fix |
+| "refactor X", "rename X", "bump X" | Name the spec that already covers the area; if none does, stop and ask |
+| "why does X do Y?" | Answer the question |
 
-After a spec is approved, invoke `/spec-tests` yourself — do not implement
-straight from the spec. The tests come first or the process is theatre.
+After a spec is approved, invoke `/spec-tests` — do not implement straight from the spec.
+**Stop after drafting a spec**: approval is the user's decision.
 
-**Two rules that override the urge to be helpful:**
+Each phase of the migration onto the core has its own spec in `docs/specs/` (`core-*.md`), approved
+before the phase starts.
 
-1. **Stop after drafting a spec.** Approval is the user's decision, and it is
-   the only checkpoint in the loop where the cost of being wrong is still low.
-   Drafting a spec and immediately implementing it defeats the entire point.
-2. **When it is genuinely ambiguous whether something needs a spec, say which
-   way you are going and why, in one sentence, then proceed.** Do not stall the
-   work on a process question — but do not silently skip the spec either.
-
-**Commands:** `/spec <feature>` drafts one; `/spec-tests <spec>` turns an
-approved spec's criteria into failing tests. Both live in `.claude/commands/`.
-They are Claude-invoked; the user may also call them directly.
-
-This section is an instruction, not documentation. `pnpm spec:check` in CI is
-the backstop that catches what gets missed — it cannot catch a feature built
-with no spec at all, only a criterion that lost its test.
-
-> All five specs are on the current template and enforced. `auth-email-and-oauth.md`
-> predates it and was converted in Wave C: its criteria table is §0, ahead of the
-> original prose. That layout is the exception, not a pattern to copy — new specs
-> start from `_template.md`.
+Until the spec migration phase of the adoption ADR, specs keep their current template: a `Key` of
+2–8 uppercase letters and append-only criteria ids `KEY-1`, `KEY-2`, … named in test titles
+(`it("FAV-3: …")`), checked by `pnpm spec:check`. The template has no Worked examples section
+yet, so a bug fix's worked example goes in as a new append-only criterion carrying the exact input
+that failed and the correct result.
 
 ## Documentation
 
-**Docs ship with the change, not after it.** `/check-all` has a documentation
-phase and it runs before every commit — but do not wait for it. If a change
-touches an upstream contract, an env var, a command, a Prisma model, a route, or
-a bootstrap step, the doc that records it is part of the diff.
+Owned by `.claude/commands/check-docs.md`.
 
-Know which artifact you are writing in — mixing them is how two sources of truth
-start disagreeing:
+**Docs ship with the change, not after it.** If a change touches an upstream contract, an env
+var, a command, a Prisma model, a route, or a bootstrap step, the doc that records it is part of
+the diff. `docs/README.md` carries the **ownership map** — source glob → governing doc — which
+answers "which docs does this change need?"; `pnpm docs:check` asserts it claims every tracked
+source file.
 
-| | Owns | Enforced by |
-| --- | --- | --- |
-| `docs/specs/` | What the software does, and why it is built that way | `pnpm spec:check` |
-| `docs/` guides | How it fits together, how to run it, how to operate it | `/check-all` |
-| `CLAUDE.md` | Rules an agent must follow | `/check` |
+**Every fact lives in exactly one file; everywhere else links to it.** `docs/specs/` owns what the
+software does and why; `docs/` guides own how it fits together and how to run and operate it.
+When a doc and a spec would say the same thing, the doc links to the spec.
 
-**Every fact lives in exactly one file; everywhere else links to it.** When a doc
-and a spec would say the same thing, the doc links to the spec — the enforced
-copy wins.
-
-No doc is needed for an internal refactor with no observable surface, a
-test-only change, styling that changes no interaction, or a dependency bump that
-changes no command. Say which applies rather than staying silent about it.
-
-`docs/README.md` carries the **ownership map**: source glob → governing doc. Read
-it to answer "which docs does this change need?". Areas with no doc yet are
-declared **—** there, and `pnpm docs:check` lists them on every run.
-
-Plan and current progress: `docs/documentation-plan.md`. Most of the document set
-is not written yet, so **a change may need a doc that does not exist** — write it
-rather than filing it, then replace that area's **—** with the new doc and update
-the plan's status table.
+No doc is needed for an internal refactor with no observable surface, a test-only change, styling
+that changes no interaction, or a dependency bump that changes no command. Say which applies
+rather than staying silent about it. A change that needs a doc that does not exist yet writes it,
+and replaces that area's **—** in the ownership map. `docs/documentation-plan.md` is complete and
+kept as a record; the **—** rows are the list of gaps now.
 
 ## Testing
 
 Stack, levels, MSW conventions, the environment traps and the e2e setup are all
 in `docs/testing.md`. **Read it before writing a test** — nearly every entry
-there is a trap someone already fell into, and most of them cost an hour.
-
-Rules, not explanation:
+there is a trap someone already fell into.
 
 - **Colocate.** `foo.ts` → `foo.test.ts`. No `__tests__/` folders.
 - **Opt into the node project by filename**: `*.node.test.ts` for route handlers,
@@ -255,22 +242,15 @@ Rules, not explanation:
   code does proves nothing.
 - **Cover a negative path**: invalid input, empty result, upstream failure,
   unauthorised caller.
-- **When a test is red, fix the production code, not the test** — unless the test
-  itself was wrong.
-- **Never lower a coverage threshold** to make a red build green.
 - No tautological or self-fulfilling tests, and never mock the unit under test.
-  The `/check-tests` bar is the real gate; `pnpm spec:check` only proves a
-  criterion id is *mentioned*.
 
-## Rules for Claude
-
-### Worktrees and the dev database
+## Worktrees and the dev database
 
 **Never run `prisma migrate reset`, `prisma db push --force-reset`, or any command that drops or
 recreates the database.** The Neon database holds real accounts and there is no seed script, so
 "reset" rebuilds the schema with zero rows. Prisma offers it for bookkeeping problems that do not
 need it — treat the offer as a bug report, not an instruction. A stale checksum is repaired with an
-`UPDATE` on `_prisma_migrations`; see `docs/data-model.md`.
+`UPDATE` on `_prisma_migrations` (raw SQL: ask first, `RULES.md` §1); see `docs/data-model.md`.
 
 **Before any Prisma command or `pnpm dev` from a worktree, run `pnpm db:branch`.** It gives the
 current git branch its own copy-on-write Neon branch and writes `DATABASE_URL` into that worktree's
@@ -293,44 +273,17 @@ committed `.claude/settings.json`. If you see "Refusing to run", the fix is `pnp
 Why it is mandatory, and the two traps that follow from it, are in
 `docs/getting-started.md` and `docs/data-model.md`.
 
-### TypeScript
-
-- Never use `any` or `unknown`
-- Use `interface` instead of `type` (unions/utility types excepted)
-- Reusable typings go in `/interfaces`; small non-reusable typings stay in the component
-- Do not over-type trivial values
-
-### Data Fetching (this project's actual pattern)
-
-- **No data-fetching library is installed.** Do not add one without asking.
-- Never call `fetch` directly inside a component. Extract request logic into a hook in `lib/hooks/*` (like `useListingsSearch`, `useCarModels`, `useLocationSearch`). Components consume hooks only.
-- Cross-cutting fetch helpers (Wallapop client, filters, geocoding) live in `lib/wallapop/*` and `lib/geo/*`. Hooks call those, not raw endpoints.
-- Surface request errors with `toast.error(...)`, not inline error text.
-- Guard against out-of-order responses (version ref / `cancelled` flag) as existing hooks do.
-
-### Server Actions & API
-
-- **Prefer server actions over API routes** for mutations; place them in `app/actions/`.
-- Validate input with Zod (`schema.safeParse()`); return typed `{ success, error?, data? }`. Never trust client validation alone.
-- API routes only for proxying/external integrations (like the Wallapop proxies) or webhooks. One folder per resource, one file per endpoint. Never create aggregated/global API files.
-
-### Forms
-
-- Always React Hook Form + Zod; schemas in `lib/validations/` with exported inferred types (`auth.ts` → `loginSchema`/`registerSchema`, `search.ts` → `searchSchema`).
-- Use `zodResolver`, inline field errors, and `isSubmitting` for loading state.
-
-### Authentication
+## Authentication
 
 The system is documented in `docs/auth.md` (one-page orientation) and specified
 in full in `docs/specs/auth-email-and-oauth.md`. **Read the spec before changing
 anything here** — every property below is load-bearing and most are not obvious.
-
-Rules, not explanation:
+Any change here needs approval first (`RULES.md` §1).
 
 - **Never call `getServerSession` directly** — use `getCurrentUser()` from
   `lib/auth/session.ts`. Every server action touching user data must call it.
-  `proxy.ts` only decodes the JWT and cannot see revocations, so it is UX, not
-  authorization.
+  Only it honours revocation. `proxy.ts` only decodes the JWT and cannot see
+  revocations, so it is UX, not authorization.
 - **`authOptions` lives in `lib/auth/options.ts`**, never the route file —
   server components and actions import it, and pulling it from a route would
   drag the handler along.
@@ -354,99 +307,19 @@ Rules, not explanation:
   refusal to auto-link a new provider to a 2FA account, without reading the
   reasoning in `options.ts` first. Both look wrong and are not.
 
-### Theming
+## UI specifics
 
-- next-themes, `attribute="class"`, dark default, `.light` for light. Components using `useTheme` must wait for `mounted` (`lib/hooks/useMounted.ts`) to stay hydration-safe. Use CSS variables (`var(--...)`) for theme-aware styles.
-
-### Toasts
-
-- Sonner. `toast.success` / `toast.error`. Toaster is in the root layout; style via `classNames`, not inline styles.
-
-### Icons
-
-- Never raw SVGs. Lucide React for UI icons, React Icons for brand icons. Size with Tailwind (`h-4 w-4`).
-
-### Animations
-
-- Motion library (`import * as motion from "motion/react-client"`, `import { AnimatePresence } from "motion/react"`) over CSS animations for React components. Keep motion subtle, honor `prefers-reduced-motion`, animate only `transform`/`opacity`.
-- Reuse the shared presets in `lib/animations.ts` (`fadeInUp`, `fadeInDown`, `scaleIn`, `fadeIn(delay)`, `slideInLeft(delay)`, `staggerContainer(delay)`, `buttonTap`) instead of re-declaring `initial`/`animate` inline.
-- Theme switching uses the View Transitions API via `lib/hooks/useThemeTransition.ts` (expanding-circle clip-path from the click point) — use it rather than calling `setTheme` directly in the toggle.
-
-### React & Components
-
-- Avoid unnecessary `useEffect` (no effects purely to sync state). Prefer `.map` over `forEach`.
-- Keep components single-responsibility; split beyond ~250 lines. Reuse only to remove real duplication, never preemptively.
-- Do not refactor working code unless it improves correctness or clarity. No speculative abstractions.
-- **Never use render functions that return JSX.** If logic produces markup, extract it into a proper React component with props — not a plain function called inside JSX.
-- **Extract repeated JSX into private components:** when a pattern repeats within a component, extract it as a non-exported component in the same file.
-- **Single code path over ternary branches:** prefer one JSX structure with conditional rendering (`{condition && …}`) over duplicating large blocks in a ternary.
-
-### Code Style
-
-- Readability over cleverness. No unused variables/hooks/imports. Never over-engineer.
-- Use `await` — never `.then()` chains.
-- **Guard clauses over nested ifs:** use early returns to flatten logic instead of deeply nested conditionals.
-- **Only create what's asked for:** don't generate extra files, hooks, configs, or interfaces beyond what was explicitly requested.
-
-### Styling & Layout
-
-- Follow existing Tailwind patterns and the spacing system. Avoid absolute positioning unless necessary. All UI must be responsive.
-
-### UX
-
-- Prefer pages over modals unless a modal is clearly better UX.
-
-### Communication
-
-- Direct and concise. No emojis, filler, or motivational language. If something is a bad idea, say so.
-
-## UI Quality Bar (MUST / SHOULD / NEVER)
-
-### Interactions
-
-- MUST: Full keyboard support ([WAI-ARIA APG](https://www.w3.org/WAI/ARIA/apg/patterns/)); visible focus rings (`:focus-visible`, group with `:focus-within`); manage focus (trap/move/return). NEVER `outline: none` without a replacement.
-- MUST: Hit targets ≥24px (mobile ≥44px); expand hit area if visual is smaller. Mobile `<input>` font-size ≥16px. `touch-action: manipulation`. NEVER disable zoom (`user-scalable=no`, `maximum-scale=1`).
-
-### Forms
-
-- MUST: Hydration-safe inputs (no lost focus/value). NEVER block paste. Loading buttons show a spinner and keep their label. Enter submits; in `<textarea>` ⌘/Ctrl+Enter submits. Keep submit enabled until request starts. Accept free text, validate after. Errors inline; focus first error on submit. Correct `autocomplete`/`name`/`type`/`inputmode`. Trim values. Warn on unsaved changes. Compatible with password managers/2FA.
-
-### State & Navigation
-
-- MUST: URL reflects state (deep-link filters/tabs/pagination). Back/Forward restores scroll. Use `<a>`/`<Link>` for navigation (support Cmd/Ctrl/middle-click). NEVER `<div onClick>` for navigation.
-
-### Feedback
-
-- SHOULD: Optimistic UI, reconcile on response, rollback/Undo on failure. MUST: Confirm destructive actions or offer Undo. Polite `aria-live` for toasts/validation. Ellipsis `…` for follow-up options and loading states.
-
-### Animation
-
-- MUST: Honor `prefers-reduced-motion`. Animate compositor-friendly props (`transform`, `opacity`) only. NEVER animate layout props or use `transition: all`. Animations interruptible and input-driven. Correct `transform-origin`.
-
-### Layout
-
-- MUST: Deliberate alignment to grid/baseline/edges. Verify mobile, laptop, ultra-wide (test at 50% zoom). Respect safe areas (`env(safe-area-inset-*)`). Avoid unwanted scrollbars. Prefer flex/grid over JS measurement.
-
-### Content & Accessibility
-
-- MUST: Skeletons mirror final content (no layout shift). `<title>` matches context. No dead ends — always offer a next step. Design empty/sparse/dense/error states. `font-variant-numeric: tabular-nums` for compared numbers. Redundant status cues (not color-only). Icon-only buttons need descriptive `aria-label`. Prefer native semantics before ARIA. Use the `…` character (not `...`). Locale-aware dates/numbers (`Intl.*`). Non-breaking spaces for units/brands.
-
-### Content Handling
-
-- MUST: `truncate`/`line-clamp-*`/`break-words` for long content; flex children need `min-w-0` to truncate. Handle empty states (no broken UI for empty strings/arrays).
-
-### Performance
-
-- MUST: Track/minimize re-renders. Profile with throttling. Mutations target <500ms. Virtualize lists >50 items. Preload above-fold images, lazy-load the rest. Prevent CLS (explicit image dimensions). `preconnect` for CDN domains.
-
-### Dark Mode & Theming
-
-- MUST: `color-scheme: dark` on `<html>` for dark themes. `<meta name="theme-color">` matches page bg. Native `<select>`: explicit `background-color` and `color`.
-
-### Design
-
-- SHOULD: Layered shadows (ambient + direct); crisp edges via semi-transparent borders + shadows; nested radii (child ≤ parent); hue consistency (tint borders/shadows toward bg hue). MUST: Accessible/color-blind-friendly charts; meet contrast (prefer [APCA](https://apcacontrast.com/)); increase contrast on hover/active/focus.
-
-## Scraping / Integration Guidelines
-
-- Respect robots.txt and rate limits. Store raw data separately from normalized data. Handle deduplication across sources. Track listing freshness and availability. Cluster/limit markers and lazy-load detail where it helps performance.
+- **Theming**: next-themes, `attribute="class"`, dark default, `.light` for light. Theme-aware
+  styles use the CSS variables (`var(--…)`) the theme defines. Components
+  using `useTheme` wait for `mounted` (`lib/hooks/useMounted.ts`) to stay hydration-safe. Theme
+  switching uses the View Transitions API via `lib/hooks/useThemeTransition.ts` — use it rather
+  than calling `setTheme` directly in the toggle.
+- **Forms**: `zodResolver`, inline field errors, and `isSubmitting` for the loading state.
+- **Toasts**: the Sonner `Toaster` is in the root layout; style it via `classNames`, not inline
+  styles.
+- **Icons**: never raw SVGs. Lucide React for UI icons, React Icons for brand icons. Size with
+  Tailwind (`h-4 w-4`).
+- **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }
+  from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `fadeInDown`,
+  `scaleIn`, `fadeIn(delay)`, `slideInLeft(delay)`, `staggerContainer(delay)`, `buttonTap`)
+  instead of re-declaring `initial`/`animate` inline.

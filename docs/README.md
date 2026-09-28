@@ -3,10 +3,10 @@
 Start at [Getting started](getting-started.md) if you want the app running.
 Everything else is indexed below.
 
-Most of this documentation **does not exist yet**. The plan that builds it, and
-its current status, is [documentation-plan.md](documentation-plan.md). Areas with
-no governing doc are declared as gaps in the ownership map rather than quietly
-omitted — `pnpm docs:check` lists them on every run.
+The plan that built this documentation, [documentation-plan.md](documentation-plan.md),
+is complete and kept as a record. Areas with no governing doc are declared as
+gaps in the ownership map rather than quietly omitted — `pnpm docs:check` lists
+them on every run.
 
 ## What lives where
 
@@ -17,7 +17,7 @@ disagreeing, so the boundary is worth knowing before you write in any of them.
 | --- | --- | --- |
 | [`docs/specs/`](specs/README.md) | What the software does, and why it is built that way | `pnpm spec:check` |
 | `docs/` guides | How it fits together, how to run it, how to operate it | `pnpm docs:check` + `/check-all` |
-| [`CLAUDE.md`](../CLAUDE.md) | Rules an agent must follow | `/check` |
+| [`CLAUDE.md`](../CLAUDE.md), [`RULES.md`](../RULES.md) and [`STACK.md`](../STACK.md) | Rules an agent must follow | `/check-all` |
 | Code comments | Why *this line* is strange | Review |
 
 **Every fact lives in exactly one file; everywhere else links to it.** When a doc
@@ -28,9 +28,9 @@ copy wins.
 
 | Doc | Covers |
 | --- | --- |
-| [getting-started.md](getting-started.md) | Clone to running app, env vars, worktrees and branch databases, commands, troubleshooting |
+| [getting-started.md](getting-started.md) | Clone to running app, env vars, worktrees and branch databases, commands, the Claude commands and checks, troubleshooting |
 | [architecture.md](architecture.md) | How the pieces fit: the search fan-out, sign-in and revocation, the write path, and the patterns that apply everywhere |
-| [data-model.md](data-model.md) | The eleven Prisma models, what each defends against, and the migration rules |
+| [data-model.md](data-model.md) | The seventeen Prisma models, what each defends against, and the migration rules |
 | [frontend.md](frontend.md) | Map component structure, the design system and palette, theming, animation, i18n |
 | [auth.md](auth.md) | One-page orientation on authentication. The detail is in the spec, by design |
 | [operations.md](operations.md) | Deployment, security headers, the full env reference, Neon branch lifecycle, CI jobs and runbooks |
@@ -40,12 +40,12 @@ copy wins.
 | [integrations/milanuncios.md](integrations/milanuncios.md) | Scraping `__INITIAL_PROPS__`, the Spanish-label tags, and the image size rule |
 | [specs/README.md](specs/README.md) | The spec workflow, when one is required, the spec index |
 | [decisions/](decisions/README.md) | ADRs for choices no single spec owns — and what each one beat |
-| [documentation-plan.md](documentation-plan.md) | What documentation is planned, in what order, and why |
+| [documentation-plan.md](documentation-plan.md) | How this documentation was planned and built. Complete; kept as the record of what was decided |
 | [sdd-adoption-plan.md](sdd-adoption-plan.md) | How spec- and test-driven development were adopted. Complete; kept as the record of what was decided |
 
 ## Ownership map
 
-Which doc governs a change to which source. `/check-all`'s documentation phase
+Which doc governs a change to which source. `/check-docs` (run by `/check-all`)
 reads this to answer "which docs does this change need?", and `pnpm docs:check`
 asserts that every pattern matches real files, every named doc exists, and
 **every tracked source file is claimed by at least one row** — not merely every
@@ -56,8 +56,8 @@ A colocated test inherits its subject's row, so `lib/env.ts` covers
 `lib/env.test.ts` without a second entry.
 
 A **—** means the area has no governing doc yet. That is a tracked gap, not an
-oversight: see [documentation-plan.md](documentation-plan.md) for which step
-closes it. Do not point a gap at a loosely related file to make it look covered.
+oversight: the change that next needs it writes the doc and replaces the **—**.
+Do not point a gap at a loosely related file to make it look covered.
 
 | Source | Governing doc |
 | --- | --- |
@@ -131,13 +131,15 @@ closes it. Do not point a gap at a loosely related file to make it look covered.
 | `postcss.config.mjs` | [getting-started.md](getting-started.md) |
 | `.env.example` | [operations.md](operations.md) |
 | `.github/**` | [operations.md](operations.md) |
-| `.claude/commands/**` | [specs/README.md](specs/README.md) |
+| `.claude/commands/**` | [getting-started.md](getting-started.md) |
+| `.claude/commands/spec*.md` | [specs/README.md](specs/README.md) |
+| `.claude/review-protocol.md` | [getting-started.md](getting-started.md) |
 | `.claude/settings.json` | [getting-started.md](getting-started.md) |
 
 ## Contributing
 
-The loop, end to end. Claude drives it; the one place it stops and waits is your
-approval at step 2.
+The loop, end to end. Claude drives it; it stops and waits for your approval at
+step 2, and wherever `RULES.md` §1 says to ask.
 
 1. **Spec.** `/spec <feature>` drafts one from
    [`specs/_template.md`](specs/_template.md). Status `Draft`. No code yet.
@@ -145,10 +147,11 @@ approval at step 2.
    wrong is still cheap.
 3. **Failing tests.** `/spec-tests` writes one per acceptance criterion, each
    titled with its id (`FAV-3: …`). Confirm each fails *for the right reason*.
-4. **Implement** until green. Change a test only to fix an expectation that was
-   wrong, never to make a failure go away.
+4. **Implement** until green. When an existing test may change is in
+   [specs/README.md](specs/README.md).
 5. **Close the loop.** Fill in "Verified by", set Status `Implemented`, run
-   `/check-all`.
+   `/check-all`, which runs every `check-*` review in a fresh subagent and drafts
+   the commit message; `/check-pr` writes the PR text.
 
 Full conventions in [specs/README.md](specs/README.md).
 

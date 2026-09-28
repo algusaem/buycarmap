@@ -169,7 +169,7 @@ render.
 
 ## UI quality bar
 
-The full MUST/SHOULD/NEVER list is in [`CLAUDE.md`](../CLAUDE.md). The ones most
+The full MUST/SHOULD/NEVER list is in [`RULES.md`](../RULES.md) §19. The ones most
 often missed here:
 
 - Visible focus rings; never `outline: none` without a replacement.

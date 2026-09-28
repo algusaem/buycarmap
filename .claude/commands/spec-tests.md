@@ -42,8 +42,7 @@ If a criterion needs a file that does not exist yet, create the test file
 anyway — it will import a module that does not exist, which is Phase 3's
 problem, not a reason to skip.
 
-Read the gotchas in `CLAUDE.md` → Testing → "Environment gotchas" before
-writing. They are not optional trivia; each one cost a debugging session.
+Read "Environment gotchas" in `docs/testing.md` before writing. They are not optional trivia; each one cost a debugging session.
 
 ## Phase 2 — Write the tests
 
@@ -90,7 +89,8 @@ it: giving `CarListingCard` a session check broke seven `MapView` tests, because
 `MapView` renders cards and its test supplied no session.
 
 That is real breakage caused by a real change, and the fix is to give the
-sibling test what the component now needs — never to weaken the new test or
+sibling test what the component now needs (this is the spec change the tests follow,
+`RULES.md` §4) — never to weaken the new test or
 paper over the component. If the fallout is large enough to feel wrong, that is
 a signal the design is wrong, not that the tests are: say so rather than
 mechanically patching twenty files.
