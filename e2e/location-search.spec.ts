@@ -65,3 +65,24 @@ test("MAP-20: while a new search loads, hides the previous options and the keybo
   await expect(input).toBeVisible();
   await expect(input).toHaveValue("Madrid y");
 });
+
+test("MAP-20: selecting an option closes the dropdown", async ({ page }) => {
+  await page.route(NOMINATIM_URL, (route) => route.fulfill({ json: [MADRID_RESULT] }));
+
+  const input = await openLocationSearch(page);
+  await input.fill("Madrid");
+
+  const option = page.getByRole("option", { name: /Madrid/ });
+  await expect(option).toBeVisible();
+  await option.click();
+
+  // LocationSearch swaps the input for a chip (MapPin icon, the location's
+  // displayName, and an icon button whose only accessible name is
+  // "Clear filters" — getByLabel targets that aria-label specifically, unlike
+  // getByRole("button", { name }), which also matches SearchFilters' own
+  // "Clear filters" text button elsewhere on the page.
+  await expect(page.getByLabel(/clear filters|borrar filtros/i)).toBeVisible();
+  // The dropdown's options are gone, not just hidden behind the chip — scoped
+  // to role="option" because the chip repeats the same display name as text.
+  await expect(page.getByRole("option")).toHaveCount(0);
+});
