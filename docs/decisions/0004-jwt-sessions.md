@@ -57,6 +57,6 @@ Stated plainly, because these are the sharp edges:
 
 ## See also
 
-- [architecture.md](../architecture.md#path-2--sign-in-and-revocation)
-- [data-model.md](../data-model.md#user)
+- [ARCHITECTURE.md](../ARCHITECTURE.md#path-2--sign-in-and-revocation)
+- [ARCHITECTURE.md › User](../ARCHITECTURE.md#user)
 - [`specs/auth-email-and-oauth.md`](../specs/auth-email-and-oauth.md)

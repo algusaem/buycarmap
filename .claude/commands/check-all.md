@@ -77,7 +77,7 @@ Every rule has exactly one owner, so no finding is reported twice and no rule go
 | `STACK-ERP.md` | `check-erp` (§1 dependencies → `check-stack`; golden files updated to pass → `check-tests`); in ERP projects the tenant parts of auth and caching are `check-erp`'s, the base chain stays with `check-security` |
 | project `CLAUDE.md` (its own text, not the imported `RULES.md`) | the check whose domain each rule covers (review protocol §2); `check-good-practices` takes the rest, unless a project check claims the section |
 | Behaviour against the spec: logic defects not tied to a rule | `check-correctness` (a defect that also breaks another check's rule is merged by root cause) |
-| project `CLAUDE.md` › Documentation; the ownership map in `docs/README.md` | `check-docs` (project check; the docs tree and ADRs stay with `check-process`) |
+| project `CLAUDE.md` › Documentation; the ownership map in the root `README.md` | `check-docs` (project check; the docs tree and ADRs stay with `check-process`) |
 | project `CLAUDE.md` › Upstream sources | `check-sources` (project check) |
 
 ## Who runs what

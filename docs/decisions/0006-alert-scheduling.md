@@ -93,6 +93,6 @@ scheduler choice as reversible is what makes it safe to start here.
 ## See also
 
 - [`specs/alerts.md`](../specs/alerts.md) — the criteria this serves
-- [operations.md](../operations.md#alerts)
+- [ARCHITECTURE.md › Alerts](../ARCHITECTURE.md#alerts)
 - [0005](0005-postgres-rate-limiting.md) — the Postgres-over-a-service reasoning
   this reuses

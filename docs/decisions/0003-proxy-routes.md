@@ -58,6 +58,6 @@ This is invisible locally, where your own IP is Spanish. It was a real bug.
 
 ## See also
 
-- [integrations/wallapop.md](../integrations/wallapop.md)
-- [integrations/cochesnet.md](../integrations/cochesnet.md)
-- [integrations/milanuncios.md](../integrations/milanuncios.md)
+- [specs/data-sources.md › Wallapop](../specs/data-sources.md#wallapop)
+- [specs/data-sources.md › coches.net](../specs/data-sources.md#cochesnet)
+- [specs/data-sources.md › Milanuncios](../specs/data-sources.md#milanuncios)

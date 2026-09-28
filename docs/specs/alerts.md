@@ -110,7 +110,7 @@ that as wrong, because `ORDER BY "enqueuedAt"` lives in SQL and a fake sorting
 its own rows proves only that the fake sorts.
 
 Both need `pnpm test:e2e:db`, which **does not run in CI** (see
-[testing.md](../testing.md)) — so a green CI does not prove exclusivity or
+[ARCHITECTURE.md › The database-backed suite](../ARCHITECTURE.md#the-database-backed-suite)) — so a green CI does not prove exclusivity or
 fairness. That is the same trade the favorites spec made for its cascade, and it
 is why the unique constraints in §5 exist as a second, independent guard rather
 than as documentation.
@@ -282,7 +282,7 @@ beats a lost one.
 
 ### A silently empty source is the dangerous failure
 
-Per [`operations.md`](../operations.md), a Milanuncios parse failure returns zero
+Per [the runbook](../ARCHITECTURE.md#a-source-returns-nothing), a Milanuncios parse failure returns zero
 ads rather than an error. In search that is fewer results. In alerts it is
 indistinguishable from "nothing new", so an alert can be dead for weeks while
 looking perfectly healthy — the worst failure mode this feature has, because

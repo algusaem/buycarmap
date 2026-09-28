@@ -67,6 +67,6 @@ speed. See [0006](0006-alert-scheduling.md).
 
 ## See also
 
-- [data-model.md](../data-model.md#ratelimit)
-- [operations.md](../operations.md#someone-is-locked-out)
+- [ARCHITECTURE.md › RateLimit](../ARCHITECTURE.md#ratelimit)
+- [ARCHITECTURE.md › Someone is locked out](../ARCHITECTURE.md#someone-is-locked-out)
 - [`specs/auth-email-and-oauth.md`](../specs/auth-email-and-oauth.md)

@@ -7,7 +7,7 @@ import { clearAlertQueue, seedAlertJobs, claimConcurrently, claimOnce } from "./
 // itself — proving the fake, not the queue.
 //
 // `FOR UPDATE SKIP LOCKED` is a Postgres behaviour, so it is verified against
-// Postgres. This suite does NOT run in CI (see docs/testing.md), which is why
+// Postgres. This suite does NOT run in CI (see docs/ARCHITECTURE.md › Testing), which is why
 // the unique indexes in the spec's §5 exist as an independent second guard.
 const dbTest = process.env.E2E_DB ? test : test.skip;
 

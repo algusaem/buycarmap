@@ -182,7 +182,7 @@ Consequences accepted deliberately:
   way.
 
 Wiring coches.net's upstream province filter (it exists, unwired —
-`docs/integrations/cochesnet.md`) would reduce the waste, but it is an
+`docs/specs/data-sources.md` › Contracts › coches.net) would reduce the waste, but it is an
 efficiency improvement on top of this rule, not a substitute: province ≠
 radius, Milanuncios would still need the post-filter, and the upstream shape
 is unverified. Left as an open question.

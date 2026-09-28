@@ -9,7 +9,7 @@ and on Vercel — runs that exact pnpm 11. The packages allowed to run dependenc
 listed once, under `allowBuilds` in `pnpm-workspace.yaml`, a map of package → `true`. The
 `onlyBuiltDependencies` list 0008 kept for pnpm 10 is gone. A new native dependency goes into
 `allowBuilds`; the fix for `ERR_PNPM_IGNORED_BUILDS` is in
-[Getting started](../getting-started.md).
+[Getting started](../../README.md#when-something-is-wrong).
 
 ## What it beat
 

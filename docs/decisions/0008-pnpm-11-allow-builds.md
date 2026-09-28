@@ -10,7 +10,7 @@ under `allowBuilds`, a map of package → `true`, which pnpm 11 reads, and under
 `onlyBuiltDependencies`, which the pnpm 10 still used on development machines reads. Both lists
 hold the same packages — currently prisma, `@prisma/engines`, msw, sharp and `unrs-resolver` — and
 a new native dependency goes into both. The fix for `ERR_PNPM_IGNORED_BUILDS` is in
-[Getting started](../getting-started.md).
+[Getting started](../../README.md#when-something-is-wrong).
 
 ## What it beat
 
