@@ -28,6 +28,20 @@ interface LocationSearchProps {
   onDistanceChange: (distance: number) => void;
 }
 
+// The text an always-mounted `aria-live="polite"` region announces: nothing
+// while the dropdown is closed or already showing results, otherwise the
+// same loading/no-results copy the visible (but aria-hidden) line shows.
+function locationStatusText(
+  showDropdown: boolean,
+  hasResults: boolean,
+  isSearching: boolean,
+  loadingText: string,
+  noResultsText: string,
+): string {
+  if (!showDropdown || hasResults) return "";
+  return isSearching ? loadingText : noResultsText;
+}
+
 export function LocationSearch({
   selectedLocation,
   distanceInKm,
@@ -42,6 +56,14 @@ export function LocationSearch({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const showDropdown = isOpen && query.length >= 2;
+  const listboxOpen = showDropdown && results.length > 0;
+  const statusText = locationStatusText(
+    showDropdown,
+    listboxOpen,
+    isSearching,
+    t.map.loading,
+    t.filters.noResults,
+  );
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -141,19 +163,21 @@ export function LocationSearch({
                   placeholder={t.filters.locationPlaceholder}
                   className="flex h-10 w-full rounded-md border border-border/50 bg-card/50 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                   role="combobox"
-                  aria-expanded={showDropdown && results.length > 0}
+                  aria-expanded={listboxOpen}
                   aria-autocomplete="list"
-                  aria-controls={
-                    showDropdown && results.length > 0 ? "location-listbox" : undefined
-                  }
+                  aria-controls={listboxOpen ? "location-listbox" : undefined}
                   autoComplete="off"
                 />
               </div>
 
+              <p role="status" aria-live="polite" className="sr-only">
+                {statusText}
+              </p>
+
               {showDropdown && (
                 <div className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg">
                   {results.length === 0 ? (
-                    <p role="status" className="px-3 py-2 text-sm text-muted-foreground">
+                    <p aria-hidden="true" className="px-3 py-2 text-sm text-muted-foreground">
                       {isSearching ? t.map.loading : t.filters.noResults}
                     </p>
                   ) : (

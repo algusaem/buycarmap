@@ -4,28 +4,16 @@ import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { ToggleChip } from "./toggle-chip";
 
+const noop = () => {
+  /* not under test here: only the rendered markup is asserted, never a click. */
+};
+
 describe("ToggleChip", () => {
   it("reflects the active state via aria-pressed", () => {
-    const { rerender } = render(
-      <ToggleChip
-        label="Diésel"
-        active={false}
-        onClick={() => {
-          /* not under test here: only the rendered aria-pressed state is asserted */
-        }}
-      />,
-    );
+    const { rerender } = render(<ToggleChip label="Diésel" active={false} onClick={noop} />);
     expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "false");
 
-    rerender(
-      <ToggleChip
-        label="Diésel"
-        active
-        onClick={() => {
-          /* not under test here: only the rendered aria-pressed state is asserted */
-        }}
-      />,
-    );
+    rerender(<ToggleChip label="Diésel" active onClick={noop} />);
     expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -39,15 +27,7 @@ describe("ToggleChip", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = render(
-      <ToggleChip
-        label="Gasolina"
-        active
-        onClick={() => {
-          /* not under test here: only the rendered markup is checked for violations */
-        }}
-      />,
-    );
+    const { container } = render(<ToggleChip label="Gasolina" active onClick={noop} />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

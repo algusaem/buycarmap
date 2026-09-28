@@ -69,7 +69,10 @@ describe("LocationSearch suggestions", () => {
 
     await userEvent.type(queryBox(), "Nowhereville");
 
-    expect(await screen.findByText("No locations found")).toBeInTheDocument();
+    // The text now renders twice — the always-mounted sr-only status region
+    // and the visible, aria-hidden line inside the dropdown — so it is no
+    // longer unique enough for a plain text query.
+    expect((await screen.findAllByText("No locations found")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
 
@@ -168,7 +171,7 @@ describe("LocationSearch suggestions accessibility", () => {
     const { container } = renderLocationSearch();
 
     await userEvent.type(queryBox(), "Nowhereville");
-    await screen.findByText("No locations found");
+    await screen.findAllByText("No locations found");
 
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -178,7 +181,7 @@ describe("LocationSearch suggestions accessibility", () => {
     renderLocationSearch();
 
     await userEvent.type(queryBox(), "Nowhereville");
-    await screen.findByText("No locations found");
+    await screen.findAllByText("No locations found");
 
     expect(queryBox()).toHaveAttribute("aria-expanded", "false");
     expect(queryBox()).not.toHaveAttribute("aria-controls");

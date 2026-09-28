@@ -162,13 +162,12 @@ Full conventions in [specs/README.md](specs/README.md).
 
 ### What CI enforces
 
-[`.github/workflows/test.yml`](../.github/workflows/test.yml) and
-[`pr-title.yml`](../.github/workflows/pr-title.yml), on every push to master and every pull
-request:
+[`.github/workflows/test.yml`](../.github/workflows/test.yml) runs on every push to master and
+every pull request; [`pr-title.yml`](../.github/workflows/pr-title.yml) runs on pull requests only:
 
 | Step | Fails when |
 | --- | --- |
-| `pnpm check` | Biome, knip, `spec:check` or `docs:check` fail; `tsc` or type-coverage fail; a test fails or coverage drops below the ratchet; the build fails |
+| `pnpm check` | Biome, knip, `spec:check`, `docs:check` or `todo:check` fail; `tsc` or type-coverage fail; a test fails or coverage drops below the ratchet; the build fails |
 | `gitleaks` | A secret is committed |
 | PR title | The title is not a Conventional Commit |
 

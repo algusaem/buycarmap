@@ -1,7 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import type { CochesNetTaxonomyResponse } from "@/interfaces/cochesnet";
-
 const COCHESNET_URL = "https://web.gw.coches.net/models";
 
 export async function GET(request: NextRequest) {
@@ -32,7 +30,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data: CochesNetTaxonomyResponse = await response.json();
+    const data: unknown = await response.json();
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ error: "Coches.net request failed" }, { status: 502 });

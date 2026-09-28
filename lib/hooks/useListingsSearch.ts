@@ -79,15 +79,15 @@ interface SourcePageState {
   hasMore: boolean;
 }
 
-// Normalizes the three Promise.allSettled results into one merged, filtered
-// listing set, and hands back each structured source's raw response so the
-// per-source page-state helpers below don't have to re-derive it.
 interface RoundCollection {
   listings: CarListing[];
   cnData: CochesNetSearchResponse | null;
   mnData: MilanunciosSearchResponse | null;
 }
 
+// Normalizes the three Promise.allSettled results into one merged, filtered
+// listing set, and hands back each structured source's raw response so the
+// per-source page-state helpers below don't have to re-derive it.
 function collectRoundResults(
   wpResult: PromiseSettledResult<WallapopSearchResponse | null>,
   cnResult: PromiseSettledResult<CochesNetSearchResponse | null>,
@@ -137,29 +137,39 @@ function nextPageState(
   return { page, hasMore };
 }
 
-// The page state after the first round from every source, before any
-// pagination has happened.
-function initialPageState(
+interface RoundRequested {
+  wallapop: boolean;
+  cochesNet: boolean;
+  milanuncios: boolean;
+}
+
+// The page state after one round, given which sources a page was requested
+// from. `search` advances from EMPTY_PAGE having requested all three;
+// `fetchNextRound` advances from the previous round's state having requested
+// only the sources that still had a page pending.
+function advancePageState(
+  prev: PageState,
+  requested: RoundRequested,
   wpResult: PromiseSettledResult<WallapopSearchResponse | null>,
   cnData: CochesNetSearchResponse | null,
   mnData: MilanunciosSearchResponse | null,
 ): PageState {
   const cnNext = nextPageState(
-    true,
+    requested.cochesNet,
     cnData ? cnData.items.length : null,
     cnData?.meta?.totalPages,
-    0,
-    false,
+    prev.cochesNetPage,
+    prev.cochesNetHasMore,
   );
   const mnNext = nextPageState(
-    true,
+    requested.milanuncios,
     mnData ? mnData.ads.length : null,
     mnData?.pagination?.totalPages,
-    0,
-    false,
+    prev.milanunciosPage,
+    prev.milanunciosHasMore,
   );
   return {
-    wallapopNext: nextWallapopPage(true, wpResult, null),
+    wallapopNext: nextWallapopPage(requested.wallapop, wpResult, prev.wallapopNext),
     cochesNetPage: cnNext.page,
     cochesNetHasMore: cnNext.hasMore,
     milanunciosPage: mnNext.page,
@@ -234,30 +244,20 @@ async function fetchNextRound(params: SearchInput, state: PageState): Promise<Ro
   ]);
 
   const { listings, cnData, mnData } = collectRoundResults(wpResult, cnResult, mnResult, params);
-  const cnNext = nextPageState(
-    cnPromise !== null,
-    cnData ? cnData.items.length : null,
-    cnData?.meta?.totalPages,
-    state.cochesNetPage,
-    state.cochesNetHasMore,
-  );
-  const mnNext = nextPageState(
-    mnPromise !== null,
-    mnData ? mnData.ads.length : null,
-    mnData?.pagination?.totalPages,
-    state.milanunciosPage,
-    state.milanunciosHasMore,
-  );
 
   return {
     listings,
-    state: {
-      wallapopNext: nextWallapopPage(wpPromise !== null, wpResult, state.wallapopNext),
-      cochesNetPage: cnNext.page,
-      cochesNetHasMore: cnNext.hasMore,
-      milanunciosPage: mnNext.page,
-      milanunciosHasMore: mnNext.hasMore,
-    },
+    state: advancePageState(
+      state,
+      {
+        wallapop: wpPromise !== null,
+        cochesNet: cnPromise !== null,
+        milanuncios: mnPromise !== null,
+      },
+      wpResult,
+      cnData,
+      mnData,
+    ),
   };
 }
 
@@ -361,23 +361,28 @@ export function useListingsSearch() {
       cnData,
       mnData,
     } = collectRoundResults(wpResult, cnResult, mnResult, params);
-    let nextState: PageState = initialPageState(wpResult, cnData, mnData);
+    const initialState = advancePageState(
+      EMPTY_PAGE,
+      { wallapop: true, cochesNet: true, milanuncios: true },
+      wpResult,
+      cnData,
+      mnData,
+    );
 
     const paginationResult = await runPaginationUntilResults(
       params,
       initialListings,
-      nextState,
+      initialState,
       version,
       searchVersionRef,
     );
     if (paginationResult.aborted) return;
-    nextState = paginationResult.state;
 
-    pageRef.current = nextState;
+    pageRef.current = paginationResult.state;
     lastParamsRef.current = params;
     setListings(paginationResult.collected);
     setCached(cacheKey, paginationResult.collected);
-    applyHasMore(nextState);
+    applyHasMore(paginationResult.state);
     setIsLoading(false);
   }
 

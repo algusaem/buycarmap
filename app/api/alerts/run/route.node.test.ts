@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { createAlertStore, makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
+import type { RunSummary } from "@/interfaces/alert";
 
 let store: ReturnType<typeof createAlertStore>;
 let emailConfigured = true;
@@ -33,15 +34,16 @@ const ADA = { id: "user-ada", email: "ada@example.com" };
 const GRACE = { id: "user-grace", email: "grace@example.com" };
 
 // The subset of the route's RunSummary this file's assertions read.
-interface RunSummaryBody {
-  intervalMs: number;
-  criteriaCount: number;
-  oldestPendingAgeMs: number;
-  claimed: number;
-  unhealthySources: string[];
-  emailed: number;
-  skippedNoEmail: number;
-}
+type RunSummaryBody = Pick<
+  RunSummary,
+  | "intervalMs"
+  | "criteriaCount"
+  | "oldestPendingAgeMs"
+  | "claimed"
+  | "unhealthySources"
+  | "emailed"
+  | "skippedNoEmail"
+>;
 
 function run(secret: string | null = "cron-secret"): Promise<Response> {
   return POST(
