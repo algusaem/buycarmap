@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { MotionGlobalConfig } from "motion/react";
 import { axe } from "vitest-axe";
 import { server } from "@/test/msw/server";
 import { renderWithI18n } from "@/test/utils/render";
@@ -28,6 +29,19 @@ const MADRID: SelectedLocation = {
 const QUERY_PLACEHOLDER = /^City or address/;
 const queryBox = () => screen.getByPlaceholderText(QUERY_PLACEHOLDER);
 const madridOption = () => screen.findByRole("option", { name: MADRID.displayName });
+
+/** A search that never resolves, so the caller stays in its loading state. */
+function holdNominatimPending() {
+  server.use(
+    http.get(
+      "https://nominatim.openstreetmap.org/search",
+      () =>
+        new Promise(() => {
+          /* never resolves */
+        }),
+    ),
+  );
+}
 
 function renderLocationSearch(
   overrides: Partial<React.ComponentProps<typeof LocationSearch>> = {},
@@ -215,15 +229,7 @@ describe("LocationSearch suggestions accessibility", () => {
   });
 
   it("MAP-20: while loading, no listbox and the status reads Loading…", async () => {
-    server.use(
-      http.get(
-        "https://nominatim.openstreetmap.org/search",
-        () =>
-          new Promise(() => {
-            /* never resolves */
-          }),
-      ),
-    );
+    holdNominatimPending();
     renderLocationSearch();
 
     await userEvent.type(queryBox(), "Madrid");
@@ -240,15 +246,7 @@ describe("LocationSearch suggestions accessibility", () => {
     await userEvent.type(queryBox(), "Madrid");
     await madridOption();
 
-    server.use(
-      http.get(
-        "https://nominatim.openstreetmap.org/search",
-        () =>
-          new Promise(() => {
-            /* never resolves */
-          }),
-      ),
-    );
+    holdNominatimPending();
     await userEvent.type(queryBox(), " y");
 
     expect(queryBox()).toHaveAttribute("aria-expanded", "false");
@@ -262,15 +260,7 @@ describe("LocationSearch suggestions accessibility", () => {
     await userEvent.type(queryBox(), "Madrid");
     await madridOption();
 
-    server.use(
-      http.get(
-        "https://nominatim.openstreetmap.org/search",
-        () =>
-          new Promise(() => {
-            /* never resolves */
-          }),
-      ),
-    );
+    holdNominatimPending();
     await userEvent.type(queryBox(), " y");
 
     await userEvent.keyboard("{ArrowDown}{Enter}");
@@ -280,5 +270,31 @@ describe("LocationSearch suggestions accessibility", () => {
     // is driven entirely by that call.
     expect(props.onLocationChange).not.toHaveBeenCalled();
     expect(queryBox()).toHaveValue("Madrid y");
+  });
+
+  it("MAP-20: while the previous options animate out, they are not a listbox and a click selects nothing", async () => {
+    // The other tests in this file run with Motion's animations skipped
+    // (test/setup.jsdom.ts), so an exiting element is unmounted at once and
+    // there is nothing mid-fade to assert against. This is the one test that
+    // needs the exit to actually still be in flight.
+    MotionGlobalConfig.skipAnimations = false;
+    try {
+      const { props } = renderLocationSearch();
+
+      await userEvent.type(queryBox(), "Madrid");
+      const option = await madridOption();
+
+      holdNominatimPending();
+      await userEvent.type(queryBox(), " y");
+
+      expect(screen.queryByRole("listbox")).toBeNull();
+
+      // `option` still points at the fading node: same element, mid-exit.
+      fireEvent.mouseDown(option);
+
+      expect(props.onLocationChange).not.toHaveBeenCalled();
+    } finally {
+      MotionGlobalConfig.skipAnimations = true;
+    }
   });
 });

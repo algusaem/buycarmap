@@ -15,7 +15,7 @@ function addNumericRangeParams(params: SearchInput, query: URLSearchParams): voi
   if (params.maxHorsePower != null) query.set("engineHpTo", String(params.maxHorsePower));
 }
 
-function addEngineParams(params: SearchInput, query: URLSearchParams): void {
+function addFuelAndTransmissionParams(params: SearchInput, query: URLSearchParams): void {
   if (params.engine?.length) {
     const fuels = mapFuelTokens(params.engine);
     if (fuels.length) query.set("fuels", fuels.join(","));
@@ -40,7 +40,7 @@ export function buildMilanunciosQuery(params: SearchInput, page: number): URLSea
   if (keywords) query.set("palabras", keywords);
 
   addNumericRangeParams(params, query);
-  addEngineParams(params, query);
+  addFuelAndTransmissionParams(params, query);
 
   if (page > 1) query.set("pagina", String(page));
 

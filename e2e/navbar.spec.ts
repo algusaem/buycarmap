@@ -65,7 +65,12 @@ test("NAV-2: every navbar control on a phone is at least 44 by 44 pixels", async
   // The Sheet slides in with a transform animation, and a bounding box read mid-
   // animation can come out a sub-pixel short (43.99998px measured), so wait for it to finish.
   await menu.evaluate((element) =>
-    Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)),
+    Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+        .map((animation) => animation.finished),
+    ),
   );
 
   await assertTouchTargets(menu, "menu");

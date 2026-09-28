@@ -43,12 +43,17 @@ describe("useLocationSearch", () => {
     const madrGate = new Promise<void>((resolve) => {
       releaseMadr = resolve;
     });
+    let resolveMadrServed: (() => void) | undefined;
+    const madrServed = new Promise<void>((resolve) => {
+      resolveMadrServed = resolve;
+    });
 
     server.use(
       http.get("https://nominatim.openstreetmap.org/search", async ({ request }) => {
         const q = new URL(request.url).searchParams.get("q");
         if (q === "Madr") {
           await madrGate;
+          resolveMadrServed?.();
           return HttpResponse.json([
             {
               place_id: 1,
@@ -94,9 +99,7 @@ describe("useLocationSearch", () => {
 
     releaseMadr?.();
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-      await Promise.resolve();
-      await Promise.resolve();
+      await madrServed;
     });
 
     // The "Madr" response resolved after "Madri"'s, but it must not overwrite
@@ -110,6 +113,29 @@ describe("useLocationSearch", () => {
       },
     ]);
     expect(result.current.isSearching).toBe(false);
+  });
+
+  it("MAP-22: unmounting before the debounce fires sends no request", async () => {
+    vi.useFakeTimers();
+
+    let calls = 0;
+    server.use(
+      http.get("https://nominatim.openstreetmap.org/search", () => {
+        calls += 1;
+        return HttpResponse.json([]);
+      }),
+    );
+
+    const { result, unmount } = renderHook(() => useLocationSearch());
+
+    act(() => result.current.setQuery("Madrid"));
+    unmount();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    expect(calls).toBe(0);
   });
 
   it("clears the query and results", async () => {

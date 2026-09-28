@@ -48,7 +48,7 @@ function addKmAndHorsePowerFilters(params: SearchInput, filters: CochesNetFilter
   }
 }
 
-function addEngineFilters(params: SearchInput, filters: CochesNetFilters): void {
+function addFuelAndTransmissionFilters(params: SearchInput, filters: CochesNetFilters): void {
   if (params.engine?.length) {
     const ids = mapFuelTokensToIds(params.engine);
     if (ids.length) filters.fuelTypeIds = ids;
@@ -76,7 +76,7 @@ export function buildCochesNetFilters(params: SearchInput): CochesNetFilters {
 
   addPriceAndYearFilters(params, filters);
   addKmAndHorsePowerFilters(params, filters);
-  addEngineFilters(params, filters);
+  addFuelAndTransmissionFilters(params, filters);
   addVehicleFilter(params, filters);
 
   return filters;

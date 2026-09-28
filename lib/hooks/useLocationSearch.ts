@@ -15,6 +15,7 @@ export function useLocationSearch(locale: string = "es") {
       if (timerRef.current) clearTimeout(timerRef.current);
 
       if (value.length < 2) {
+        searchVersionRef.current += 1;
         setResults([]);
         setIsSearching(false);
         return;
@@ -24,7 +25,6 @@ export function useLocationSearch(locale: string = "es") {
       setIsSearching(true);
 
       timerRef.current = setTimeout(async () => {
-        setIsSearching(true);
         const data = await searchLocations(value, locale);
         if (searchVersionRef.current !== version) return;
         setResults(data);
@@ -35,6 +35,7 @@ export function useLocationSearch(locale: string = "es") {
   );
 
   const clear = useCallback(() => {
+    searchVersionRef.current += 1;
     setQuery("");
     setResults([]);
     setIsSearching(false);
@@ -43,6 +44,7 @@ export function useLocationSearch(locale: string = "es") {
 
   useEffect(() => {
     return () => {
+      searchVersionRef.current += 1;
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);

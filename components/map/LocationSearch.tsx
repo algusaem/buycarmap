@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as motion from "motion/react-client";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, useIsPresent } from "motion/react";
 import { MapPin, X, Loader2 } from "lucide-react";
 import {
   Select,
@@ -29,6 +29,101 @@ interface LocationSearchProps {
   distanceInKm: number;
   onLocationChange: (location: SelectedLocation | undefined) => void;
   onDistanceChange: (distance: number) => void;
+}
+
+interface LocationOption {
+  placeId: number;
+  displayName: string;
+  lat: number;
+  lng: number;
+}
+
+interface LocationListboxProps {
+  ref?: React.Ref<HTMLDivElement>;
+  results: LocationOption[];
+  highlightedIndex: number;
+  onHighlight: (index: number) => void;
+  onSelect: (result: LocationOption) => void;
+}
+
+// While present, this is the interactive listbox. While AnimatePresence keeps
+// it mounted to animate it out, useIsPresent() flips and it renders the same
+// visuals inert: no role/id to claim the listbox semantics, aria-hidden so
+// screen readers skip it, and no onMouseDown so a click on a still-fading
+// option cannot select it (MAP-20).
+function LocationListbox({
+  ref,
+  results,
+  highlightedIndex,
+  onHighlight,
+  onSelect,
+}: LocationListboxProps) {
+  const isPresent = useIsPresent();
+
+  return (
+    <motion.div
+      ref={ref}
+      id={isPresent ? "location-listbox" : undefined}
+      role={isPresent ? "listbox" : undefined}
+      aria-hidden={isPresent ? undefined : "true"}
+      inert={isPresent ? undefined : true}
+      className={isPresent ? undefined : "pointer-events-none"}
+      {...crossFade}
+    >
+      {results.map((result, index) => (
+        <div
+          key={result.placeId}
+          tabIndex={-1}
+          className={`cursor-pointer px-3 py-2 text-sm ${
+            highlightedIndex === index
+              ? "bg-card text-foreground"
+              : "text-foreground hover:bg-card/50"
+          }`}
+          // Interactivity (role, selection state, hover and click) exists only
+          // while present. Spreading it means an exiting option has none of
+          // these props at all, rather than a role that resolves to nothing.
+          {...(isPresent
+            ? {
+                role: "option" as const,
+                "aria-selected": highlightedIndex === index,
+                onMouseEnter: () => onHighlight(index),
+                onMouseDown: (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  onSelect(result);
+                },
+              }
+            : {})}
+        >
+          <span className="line-clamp-1">{result.displayName}</span>
+        </div>
+      ))}
+    </motion.div>
+  );
+}
+
+interface LocationStatusProps {
+  ref?: React.Ref<HTMLParagraphElement>;
+  text: string;
+}
+
+// Mirrors LocationListbox: while exiting it keeps showing the last non-empty
+// text it had (statusText goes blank the instant the listbox takes over), so
+// the fading status box is never a blank flash.
+function LocationStatus({ ref, text }: LocationStatusProps) {
+  const isPresent = useIsPresent();
+  const lastTextRef = useRef(text);
+  if (isPresent) lastTextRef.current = text;
+
+  return (
+    <motion.p
+      ref={ref}
+      aria-hidden="true"
+      className="px-3 py-2 text-sm text-muted-foreground"
+      {...crossFade}
+    >
+      {isPresent ? text : lastTextRef.current}
+    </motion.p>
+  );
 }
 
 export function LocationSearch({
@@ -172,45 +267,16 @@ export function LocationSearch({
                     className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-md border border-border/50 bg-popover shadow-lg"
                     {...dropdownReveal}
                   >
-                    <AnimatePresence mode="wait" initial={false}>
-                      {!listboxOpen && (
-                        <motion.p
-                          key="status"
-                          aria-hidden="true"
-                          className="px-3 py-2 text-sm text-muted-foreground"
-                          {...crossFade}
-                        >
-                          {statusText}
-                        </motion.p>
-                      )}
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      {!listboxOpen && <LocationStatus key="status" text={statusText} />}
                       {listboxOpen && (
-                        <motion.div
+                        <LocationListbox
                           key="listbox"
-                          id="location-listbox"
-                          role="listbox"
-                          {...crossFade}
-                        >
-                          {results.map((result, index) => (
-                            <div
-                              key={result.placeId}
-                              role="option"
-                              tabIndex={-1}
-                              aria-selected={highlightedIndex === index}
-                              className={`cursor-pointer px-3 py-2 text-sm ${
-                                highlightedIndex === index
-                                  ? "bg-card text-foreground"
-                                  : "text-foreground hover:bg-card/50"
-                              }`}
-                              onMouseEnter={() => setHighlightedIndex(index)}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                handleSelect(result);
-                              }}
-                            >
-                              <span className="line-clamp-1">{result.displayName}</span>
-                            </div>
-                          ))}
-                        </motion.div>
+                          results={results}
+                          highlightedIndex={highlightedIndex}
+                          onHighlight={setHighlightedIndex}
+                          onSelect={handleSelect}
+                        />
                       )}
                     </AnimatePresence>
                   </motion.div>
