@@ -32,9 +32,9 @@ describe("todo:check — unreferenced TODO comments", () => {
     expect(result).toEqual([]);
   });
 
-  it("TOOLING-12: a marker on a JSDoc continuation line is reported", () => {
-    const result = findUnreferencedTodos([{ path: "x.ts", text: ` * ${TAG}: tidy` }]);
-    expect(result).toEqual([{ path: "x.ts", line: 1 }]);
+  it("TOOLING-12: a marker on the second line of a JSDoc block is reported at that line", () => {
+    const result = findUnreferencedTodos([{ path: "x.ts", text: `/**\n * ${TAG}: tidy\n */` }]);
+    expect(result).toEqual([{ path: "x.ts", line: 2 }]);
   });
 
   it("TOOLING-12: a marker inside a string URL is accepted (not a comment)", () => {
@@ -59,6 +59,47 @@ describe("todo:check — unreferenced TODO comments", () => {
       { path: "x.css", text: `/* ${TAG} tidy */ color: #123456;` },
     ]);
     expect(result).toEqual([{ path: "x.css", line: 1 }]);
+  });
+
+  it("TOOLING-12: a marker after a regex literal containing a backtick is reported", () => {
+    const result = findUnreferencedTodos([{ path: "x.ts", text: `const r = /\`/;\n// ${TAG}: x` }]);
+    expect(result).toEqual([{ path: "x.ts", line: 2 }]);
+  });
+
+  it("TOOLING-12: a marker inside a string that merely starts with * is accepted", () => {
+    const result = findUnreferencedTodos([{ path: "x.ts", text: `const x = a\n  * b("${TAG}")` }]);
+    expect(result).toEqual([]);
+  });
+
+  it("TOOLING-12: a marker on the second line of a CSS block comment is reported at that line", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.css", text: `* { margin: 0; } /* start\n ${TAG} here\n*/` },
+    ]);
+    expect(result).toEqual([{ path: "x.css", line: 2 }]);
+  });
+
+  it("TOOLING-12: a marker inside a string with an escaped quote is accepted", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.ts", text: `const s = "a \\" // ${TAG}: x";` },
+    ]);
+    expect(result).toEqual([]);
+  });
+
+  it("TOOLING-12: a marker on the middle line of a multi-line template literal is accepted", () => {
+    const result = findUnreferencedTodos([
+      {
+        path: "x.ts",
+        text: `const s = \`line one\n// ${TAG}: not a comment\nline three\`;`,
+      },
+    ]);
+    expect(result).toEqual([]);
+  });
+
+  it("TOOLING-12: a CRLF file reports only the unreferenced line", () => {
+    const result = findUnreferencedTodos([
+      { path: "x.ts", text: `// ${TAG}: a\r\n// ${TAG}(#3): b` },
+    ]);
+    expect(result).toEqual([{ path: "x.ts", line: 1 }]);
   });
 
   it("TOOLING-12: several files report every hit in order", () => {
