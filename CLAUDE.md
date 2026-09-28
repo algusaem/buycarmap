@@ -39,7 +39,7 @@ reviews the result:
   run the verification list and report numbers, apply a list of edits with file, anchor and exact
   before/after text, grep sweeps (every caller of `searchWallapop`, every `t.*` key a change touches), renames
   and link fixes, run `pnpm db:branch` and a Prisma command in a worktree. Also write record text — a spec's
-  "Verified by" cells, a commit message — when the facts and a peer file to imitate are given. **When in
+  checklist ticks, a commit message — when the facts and a peer file to imitate are given. **When in
   doubt, Sonnet first**; if its report is not enough, re-brief Opus and note why.
 - **`subagent_type: "lacayo-opus"` — only when the brief itself requires judgement:** every `check-*` review,
   cross-checking an upstream contract doc against the client code and the contract tests, reconciling a spec
@@ -247,11 +247,13 @@ After a spec is approved, invoke `/spec-tests` — do not implement straight fro
 Each phase of the migration onto the core has its own spec in `docs/specs/` (`core-*.md`), approved
 before the phase starts.
 
-Until the spec migration phase of the adoption ADR, specs keep their current template: a `Key` of
-2–8 uppercase letters and append-only criteria ids `KEY-1`, `KEY-2`, … named in test titles
-(`it("FAV-3: …")`), checked by `pnpm spec:check`. The template has no Worked examples section
-yet, so a bug fix's worked example goes in as a new append-only criterion carrying the exact input
-that failed and the correct result.
+Specs follow the core section order — Problem, Acceptance criteria, Worked examples, Data model,
+Permissions, Edge cases, Out of scope — optionally followed by Contracts, Decisions and rationale
+and Open questions, in that order. The `Key:` and `Status:` lines stay. Criteria carry append-only
+ids `KEY-1`, `KEY-2`, … as checklist items `- [ ] KEY-n · <level> — <statement>`, named in test
+titles (`it("FAV-3: …")`) and checked by `pnpm spec:check`. A bug fix adds a worked example with
+the input that failed and the correct result under Worked examples, plus a new criterion if the
+behaviour was not covered. See `docs/decisions/0011-spec-ids-and-sections.md`.
 
 ## Documentation
 

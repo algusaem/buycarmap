@@ -27,7 +27,7 @@ const FIXED_HEADINGS = [
 ];
 const OPTIONAL_HEADINGS = ["Contracts", "Decisions and rationale", "Open questions"];
 const CHECKLIST_ITEM =
-  /^- \[( |x)\] [A-Z][A-Z0-9]{1,7}-\d+ · (unit|node|component|contract|e2e) — \S/;
+  /^- \[( |x)\] [A-Z][A-Z0-9]{1,7}-\d+ · (?:unit|node|component|contract|e2e)(?: \+ (?:unit|node|component|contract|e2e))* — \S/;
 
 function specMarkdownFiles(): string[] {
   return readdirSync(join(ROOT, SPEC_DIR))

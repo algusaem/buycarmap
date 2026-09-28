@@ -1,12 +1,12 @@
-# Spec: Favorites
+# Favorites
 
 Key: FAV
 Status: Implemented
-Last updated: 2026-08-02.
+Last updated: 2026-09-28
 
 ---
 
-## 1. Problem
+## Problem
 
 Someone searching for a car looks at dozens of listings across three sites and
 has no way to keep the ones worth a second look. Today the heart on a listing
@@ -20,47 +20,30 @@ stored anywhere, and a search from a different location or with different
 filters will not return the same set. A listing seen once and not saved is
 genuinely hard to find again.
 
-## 2. Scope
-
-**In scope.** Saving and unsaving a listing while signed in; the saved set
+In scope: Saving and unsaving a listing while signed in; the saved set
 surviving reloads and new sessions; a page that lists what was saved; the
 signed-out and failure behaviours of the control.
 
-**Out of scope, deliberately:**
+## Acceptance criteria
 
-- **Saved searches and notifications.** Adjacent and often assumed to come
-  with favorites, but a different feature — that one is about criteria, this
-  one is about specific listings.
-- **Detecting that a saved listing has been sold or delisted.** Requires
-  re-fetching each listing from its source on every page view; see the snapshot
-  decision in §4 for why that is not free.
-- **Favorites for signed-out visitors**, stored locally and merged on sign-in.
-  See FAV-12 and the first open question.
-- **Sorting, filtering, or paginating the favorites page.** Revisit when a real
-  user has more than a screenful.
-
-## 3. Acceptance criteria
-
-| AC | Statement | Level | Verified by |
-| --- | --- | --- | --- |
-| FAV-1 | Saving a listing while signed in records it against that user, and it is still there on the next request | node + e2e | `app/actions/favorites.node.test.ts` + `components/map/CarListingCard.test.tsx` + `e2e/favorites.spec.ts` |
-| FAV-2 | Saving a listing that is already saved leaves exactly one record and reports success | node | `app/actions/favorites.node.test.ts` |
-| FAV-3 | Unsaving a listing removes it, and the user’s other saved listings are untouched | node + e2e | `app/actions/favorites.node.test.ts` + `e2e/favorites.spec.ts` |
-| FAV-4 | Unsaving a listing that was never saved reports success rather than an error | node | `app/actions/favorites.node.test.ts` |
-| FAV-5 | A caller with no session cannot save or unsave anything, and nothing is written | node | `app/actions/favorites.node.test.ts` (save, remove, list) |
-| FAV-6 | A user cannot unsave a listing saved by a different user | node | `app/actions/favorites.node.test.ts` |
-| FAV-7 | A save with a blank listing id, an unknown source, or a missing title is rejected with an error code and writes nothing | node | `app/actions/favorites.node.test.ts` (three cases) |
-| FAV-8 | Listing favorites returns only the caller’s own, newest first | node + e2e | `app/actions/favorites.node.test.ts` + `e2e/favorites.spec.ts` |
-| FAV-9 | A card for an already-saved listing renders in the saved state on first paint, without waiting for a request | component | `components/map/CarListingCard.test.tsx` |
-| FAV-10 | Toggling the control updates it immediately, before the server has responded | component | `components/map/CarListingCard.test.tsx` |
-| FAV-11 | When the save fails, the control returns to its previous state and the failure is surfaced as a toast | component | `components/map/CarListingCard.test.tsx` (failure + throw) |
-| FAV-12 | For a signed-out visitor the control leads to sign-in, and returns to where they were afterwards | component | `components/map/CarListingCard.test.tsx` |
-| FAV-13 | The favorites page renders each saved listing from stored data, with no request to any source API | component | `components/favorites/FavoritesList.test.tsx` |
-| FAV-14 | With nothing saved, the favorites page shows an empty state offering a way back to search | component | `components/favorites/FavoritesList.test.tsx` |
-| FAV-15 | Visiting the favorites page without a session redirects to sign-in, carrying the intended path | node | `proxy.node.test.ts` |
-| FAV-16 | A listing the user has already saved appears saved in search results, not just on the favorites page | component + e2e | `lib/hooks/useFavorites.test.tsx` + `components/map/MapView.test.tsx` + `components/map/CarListingCard.test.tsx` + `e2e/favorites.spec.ts` |
-| FAV-17 | A signed-in user can reach their saved cars from anywhere in the app | component | `components/Navbar.test.tsx` |
-| FAV-18 | A click while the session is still resolving never navigates the user away, and never reports the listing as saved | component | `components/map/CarListingCard.test.tsx` |
+- [x] FAV-1 · node + e2e — Saving a listing while signed in records it against that user, and it is still there on the next request
+- [x] FAV-2 · node — Saving a listing that is already saved leaves exactly one record and reports success
+- [x] FAV-3 · node + e2e — Unsaving a listing removes it, and the user’s other saved listings are untouched
+- [x] FAV-4 · node — Unsaving a listing that was never saved reports success rather than an error
+- [x] FAV-5 · node — A caller with no session cannot save or unsave anything, and nothing is written
+- [x] FAV-6 · node — A user cannot unsave a listing saved by a different user
+- [x] FAV-7 · node — A save with a blank listing id, an unknown source, or a missing title is rejected with an error code and writes nothing
+- [x] FAV-8 · node + e2e — Listing favorites returns only the caller’s own, newest first
+- [x] FAV-9 · component — A card for an already-saved listing renders in the saved state on first paint, without waiting for a request
+- [x] FAV-10 · component — Toggling the control updates it immediately, before the server has responded
+- [x] FAV-11 · component — When the save fails, the control returns to its previous state and the failure is surfaced as a toast
+- [x] FAV-12 · component — For a signed-out visitor the control leads to sign-in, and returns to where they were afterwards
+- [x] FAV-13 · component — The favorites page renders each saved listing from stored data, with no request to any source API
+- [x] FAV-14 · component — With nothing saved, the favorites page shows an empty state offering a way back to search
+- [x] FAV-15 · node — Visiting the favorites page without a session redirects to sign-in, carrying the intended path
+- [x] FAV-16 · component + e2e — A listing the user has already saved appears saved in search results, not just on the favorites page
+- [x] FAV-17 · component — A signed-in user can reach their saved cars from anywhere in the app
+- [x] FAV-18 · component — A click while the session is still resolving never navigates the user away, and never reports the listing as saved
 
 Seventeen criteria: eight on the server boundary, eight on rendering and
 interaction, one on routing. No criterion is `e2e`-only — `e2e/favorites.spec.ts`
@@ -69,7 +52,105 @@ rather than adding criteria of its own, because what the browser adds there is
 durability, not new behaviour. See the second open question for why that suite
 had to exist at all.
 
-## 4. Decisions and rationale
+## Worked examples
+
+- **FAV-5** — No session; saveFavorite(...) → { success: false, error: "unauthenticated" }, 0 rows; removeFavorite leaves Ada's wallapop-abc123 in place.
+- **FAV-6** — Ada has wallapop-abc123; Grace calls removeFavorite("wallapop-abc123") → success: true, Ada still has 1 row.
+- **FAV-8** — Ada saves wallapop-first, wallapop-second, wallapop-third → listFavorites() = ["wallapop-third","wallapop-second","wallapop-first"]; with Grace holding wallapop-graces-car, Ada's list is ["wallapop-abc123"] only.
+- **FAV-18** — useSession = { data: null, status: "loading" }, listing wallapop-1, click favorite → no router.push, no saveFavorite, accessible name stays "Add to favorites".
+
+## Data model
+
+### Schema
+
+A new `Favorite` model, related to `User` with `onDelete: Cascade`, plus the
+matching `favorites Favorite[]` relation field on `User`:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `String @id @default(cuid())` | |
+| `userId` | `String` | Indexed; cascade on user delete |
+| `listingId` | `String` | The normalized, source-prefixed id |
+| `source` | `String` | `Wallapop` / `Coches.net` / `Milanuncios` |
+| `title`, `subtitle`, `image`, `location`, `fuel`, `url` | `String` | Snapshot; `subtitle`, `image` and `fuel` may be empty strings, matching `CarListing` |
+| `price`, `mileage`, `year` | `Int` | Snapshot; zero means unknown, as in `CarListing` |
+| `lat`, `lng` | `Float` | Snapshot, so the favorites page can map them later |
+| `createdAt` | `DateTime @default(now())` | Orders FAV-8 |
+
+Constraints: `@@unique([userId, listingId])` and `@@index([userId])`.
+
+## Permissions
+
+Only a signed-in user can save or unsave a listing; a caller with no session
+writes nothing (FAV-5). A user cannot unsave a listing saved by a different user
+(FAV-6), and listing favorites returns only the caller's own (FAV-8). Every
+server action calls `getCurrentUser()` first (see Contracts › Server actions).
+
+Visiting `/favorites` without a session redirects to sign-in (FAV-15); that
+redirect is UX, and the actions re-check `getCurrentUser()` independently (see
+Contracts › Routing). For a signed-out visitor the control leads to sign-in
+(FAV-12).
+
+## Edge cases
+
+- FAV-2 — saving a listing that is already saved.
+- FAV-4 — unsaving a listing that was never saved.
+- FAV-5 — a caller with no session.
+- FAV-6 — unsaving a listing saved by a different user.
+- FAV-7 — a blank listing id, an unknown source, or a missing title.
+- FAV-11 — the save fails.
+- FAV-12 — a signed-out visitor uses the control.
+- FAV-14 — nothing saved.
+- FAV-15 — the favorites page without a session.
+- FAV-18 — a click while the session is still resolving.
+- A saved listing whose price drops or that sells — see Decisions › Store a snapshot of the listing, not a reference to it.
+- The saved set resolving after the cards have mounted — see Decisions › Search results have to be reconciled against saved listings.
+- A user clicking the toggle twice in a second — see Decisions › Identity is the normalized listing id.
+
+## Out of scope
+
+**Out of scope, deliberately:**
+
+- **Saved searches and notifications.** Adjacent and often assumed to come
+  with favorites, but a different feature — that one is about criteria, this
+  one is about specific listings.
+- **Detecting that a saved listing has been sold or delisted.** Requires
+  re-fetching each listing from its source on every page view; see the snapshot
+  decision in Decisions and rationale for why that is not free.
+- **Favorites for signed-out visitors**, stored locally and merged on sign-in.
+  See FAV-12 and the first open question.
+- **Sorting, filtering, or paginating the favorites page.** Revisit when a real
+  user has more than a screenful.
+
+## Contracts
+
+### Server actions
+
+In `app/actions/favorites.ts`, following the project's action conventions —
+`getCurrentUser()` first, Zod `safeParse`, and a typed
+`{ success, error?: FavoriteErrorCode }` return where the error is a **code**,
+never prose:
+
+- `saveFavorite(input)` — FAV-1, FAV-2, FAV-5, FAV-7
+- `removeFavorite(listingId)` — FAV-3, FAV-4, FAV-5, FAV-6
+- `listFavorites()` — FAV-8
+
+Error codes in `lib/validations/favorites.ts`, mirroring the `AUTH_ERROR` shape:
+`unauthenticated`, `invalidListing`, `unexpected`.
+
+### Routing
+
+`/favorites` is added to `PROTECTED_PREFIXES` and to the `matcher` in
+`proxy.ts` (FAV-15). As with `/account`, this is UX — the actions re-check
+`getCurrentUser()` independently.
+
+### i18n
+
+`t.map.addFavorite` and `t.map.removeFavorite` already exist in both locales.
+New keys needed in `en.ts`, `es.ts` and `types.ts`: a favorites page title, the
+empty state and its call to action, and the save-failed toast.
+
+## Decisions and rationale
 
 ### Store a snapshot of the listing, not a reference to it
 
@@ -178,58 +259,12 @@ Recorded as an open question rather than an assumption.
 Deleting a user must delete their favorites. That is `onDelete: Cascade`,
 enforced by Postgres — and this project has no test database, so no test in this
 repo can prove it. Rather than write a criterion that can only be verified by
-mocking the very thing under test, it is specified in §5 as a schema
+mocking the very thing under test, it is specified in Data model as a schema
 requirement and left to review. Writing FAV-n for it would have produced a test
 that asserts Prisma was called with the right arguments, which proves nothing
 about whether the constraint exists.
 
-## 5. Data and contracts
-
-### Schema
-
-A new `Favorite` model, related to `User` with `onDelete: Cascade`, plus the
-matching `favorites Favorite[]` relation field on `User`:
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
-| `userId` | `String` | Indexed; cascade on user delete |
-| `listingId` | `String` | The normalized, source-prefixed id |
-| `source` | `String` | `Wallapop` / `Coches.net` / `Milanuncios` |
-| `title`, `subtitle`, `image`, `location`, `fuel`, `url` | `String` | Snapshot; `subtitle`, `image` and `fuel` may be empty strings, matching `CarListing` |
-| `price`, `mileage`, `year` | `Int` | Snapshot; zero means unknown, as in `CarListing` |
-| `lat`, `lng` | `Float` | Snapshot, so the favorites page can map them later |
-| `createdAt` | `DateTime @default(now())` | Orders FAV-8 |
-
-Constraints: `@@unique([userId, listingId])` and `@@index([userId])`.
-
-### Server actions
-
-In `app/actions/favorites.ts`, following the project's action conventions —
-`getCurrentUser()` first, Zod `safeParse`, and a typed
-`{ success, error?: FavoriteErrorCode }` return where the error is a **code**,
-never prose:
-
-- `saveFavorite(input)` — FAV-1, FAV-2, FAV-5, FAV-7
-- `removeFavorite(listingId)` — FAV-3, FAV-4, FAV-5, FAV-6
-- `listFavorites()` — FAV-8
-
-Error codes in `lib/validations/favorites.ts`, mirroring the `AUTH_ERROR` shape:
-`unauthenticated`, `invalidListing`, `unexpected`.
-
-### Routing
-
-`/favorites` is added to `PROTECTED_PREFIXES` and to the `matcher` in
-`proxy.ts` (FAV-15). As with `/account`, this is UX — the actions re-check
-`getCurrentUser()` independently.
-
-### i18n
-
-`t.map.addFavorite` and `t.map.removeFavorite` already exist in both locales.
-New keys needed in `en.ts`, `es.ts` and `types.ts`: a favorites page title, the
-empty state and its call to action, and the save-failed toast.
-
-## 6. Open questions
+## Open questions
 
 1. ~~Is FAV-12 the behaviour you want?~~ **Settled 2026-08-02: route to
    sign-in.** Hiding the control was considered and rejected — a signed-out

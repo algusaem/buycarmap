@@ -177,7 +177,7 @@ which parts go to which agent (`CLAUDE.md` › Model delegation).
 
 Every `check-*` review follows `.claude/review-protocol.md`. `check-docs` and `check-sources` are
 this project's own; what else differs from the core copies is listed in
-[the phase 2 spec](docs/specs/core-mastermind.md) §4. The coverage map in
+[the phase 2 spec](docs/specs/core-mastermind.md) › Decisions and rationale. The coverage map in
 `.claude/commands/check-all.md` says which check owns each rule.
 
 ### When something is wrong
@@ -249,15 +249,26 @@ it; the code is an implementation detail that follows. The template is
 For every change (`RULES.md` §4): the change is covered by an up-to-date spec,
 written and approved before its tests. A behaviour-preserving refactor is covered
 by the spec that already governs the area; a bug fix adds a worked example to
-its spec — the input that failed and the correct result (until the template gains
-a Worked examples section, as a new criterion — see `CLAUDE.md` › Specs). A change no spec
-covers stops and asks.
+its spec's Worked examples section — the input that failed and the correct result —
+plus a new criterion if the behaviour was not covered (`CLAUDE.md` › Specs). A change no
+spec covers stops and asks.
+
+#### Format
+
+A spec has seven fixed sections, in order: Problem, Acceptance criteria, Worked
+examples, Data model, Permissions, Edge cases, Out of scope. Contracts, Decisions
+and rationale, and Open questions may follow, in that order. Each acceptance
+criterion is a checklist item, `- [ ] KEY-n · <level> — <statement>`; its box is
+ticked once the criterion's test is green. When a criterion is proven at more
+than one level, join them with ` + ` (`node + e2e`). Why BuyCarMap keeps the
+ids and the extra sections is [ADR 0011](docs/decisions/0011-spec-ids-and-sections.md).
 
 #### Enforcement
 
 `pnpm spec:check` (part of `pnpm lint`, so of `pnpm check`) asserts that every acceptance
 criterion in an `Approved` or `Implemented` spec is named by at least one test
-title, and that no test references a criterion that no longer exists.
+title, that no test references a criterion that no longer exists, that every
+criterion carries a level, and that an `Implemented` spec has no unchecked box.
 
 It proves an id is *mentioned*, not that the assertion behind it is meaningful.
 The quality bar in `/check-tests` remains the real gate — spec-check only stops
@@ -269,7 +280,7 @@ Statuses:
 | --- | --- | --- |
 | `Draft` | Being written or reviewed | No |
 | `Approved` | Agreed, tests written, not yet implemented | Yes |
-| `Implemented` | Built and green | Yes |
+| `Implemented` | Built and green; every criterion's box ticked | Yes |
 | `Superseded` | Replaced — link the replacement at the top | No |
 
 Because `Approved` is enforced, an approved spec and its initially-failing tests
@@ -311,7 +322,7 @@ solo project is ceremony.
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
 | [core-mastermind.md](docs/specs/core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
 | [core-tooling.md](docs/specs/core-tooling.md) | TOOLING | Implemented | Migration phase 3: the verification contract and repository tooling |
-| [core-docs.md](docs/specs/core-docs.md) | DOCS | Approved | Migration phase 4: the core spec format and docs tree |
+| [core-docs.md](docs/specs/core-docs.md) | DOCS | Implemented | Migration phase 4: the core spec format and docs tree |
 
 ### Decisions
 
@@ -343,6 +354,7 @@ name what it beat, it is a fact, and facts belong in the doc for that area.
 | [0008 — The build-script allowlist under pnpm 11](docs/decisions/0008-pnpm-11-allow-builds.md) | `allowBuilds` for pnpm 11 next to `onlyBuiltDependencies` for pnpm 10; supersedes that paragraph of 0002 (superseded by 0009) |
 | [0009 — One build-script allowlist once pnpm is pinned](docs/decisions/0009-pnpm-pinned-allow-builds.md) | `packageManager` pins pnpm 11; `allowBuilds` is the only allowlist; supersedes 0008 |
 | [0010 — The TODO ban is a lint script, not a Biome rule](docs/decisions/0010-todo-check-script.md) | `scripts/todo-check.mjs` runs in `pnpm lint`, finding comments through TypeScript's syntactic classification |
+| [0011 — Keep criterion ids, spec:check and extra spec sections](docs/decisions/0011-spec-ids-and-sections.md) | The core spec sections plus optional Contracts, Decisions and rationale and Open questions; `KEY-n` checklist items still tied to test titles by `spec:check` |
 
 ## Ownership map
 
@@ -466,7 +478,8 @@ table in `CLAUDE.md`.
    import proves nothing about the behaviour it claims to cover.
 4. **Implement** until green. An existing test changes only after a spec change
    (`RULES.md` §3, §4); a test that looks wrong is raised, never edited.
-5. **Close the loop.** Fill in "Verified by", set Status `Implemented`, run
+5. **Close the loop.** Tick each criterion's box when its test is green, and set
+   Status `Implemented`; run
    `/check-all`, which runs every `check-*` review in a fresh subagent and drafts
    the commit message; `/check-pr` writes the PR text.
 

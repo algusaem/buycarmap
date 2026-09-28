@@ -117,6 +117,25 @@ describe("findSpecProblems", () => {
     },
   );
 
+  it("DOCS-2: a combined level joined by + declares the criterion", () => {
+    const specs = [
+      { name: "favorites.md", source: spec("FAV", "Approved", "- [x] FAV-3 · node + e2e — x") },
+    ];
+    const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
+
+    expect(findSpecProblems(specs, tests)).toEqual([]);
+  });
+
+  it("DOCS-2: an unknown level in a combination is rejected, naming the criterion", () => {
+    const specs = [
+      { name: "favorites.md", source: spec("FAV", "Approved", "- [x] FAV-3 · node + api — x") },
+    ];
+    const tests = [{ path: "a.test.ts", source: 'it("FAV-3: x", () => {})' }];
+
+    const problems = findSpecProblems(specs, tests);
+    expect(problems.some((p) => p.includes("FAV-3") && p.includes("level"))).toBe(true);
+  });
+
   it("DOCS-3: an Implemented spec with an unchecked criterion fails, naming it as unchecked", () => {
     const specs = [
       { name: "favorites.md", source: spec("FAV", "Implemented", "- [ ] FAV-3 · node — x") },
