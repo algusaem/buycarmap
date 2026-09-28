@@ -2,19 +2,9 @@
 # by default (pnpm's supply-chain guard). prisma/@prisma/engines generate the
 # client, sharp powers next/image optimization, unrs-resolver is a native
 # resolver used by ESLint, msw's postinstall is harmless.
-#
-# pnpm 11 reads `allowBuilds` and ignores `onlyBuiltDependencies`, which it
-# removed; the pnpm 10 used locally still reads `onlyBuiltDependencies`. Both lists stay in step
-# until phase 3 pins pnpm in packageManager (ADR 0007 row 5).
 allowBuilds:
   '@prisma/engines': true
   prisma: true
   msw: true
   sharp: true
   unrs-resolver: true
-onlyBuiltDependencies:
-  - '@prisma/engines'
-  - prisma
-  - msw
-  - sharp
-  - unrs-resolver
