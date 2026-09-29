@@ -1,4 +1,4 @@
-# Source layout (migration phase 5a)
+# Server layer and dependency rules (migration phase 5)
 
 Key: LAYOUT
 Status: Approved
@@ -8,86 +8,181 @@ Last updated: 2026-09-29
 
 ## Problem
 
-The code still uses BuyCarMap's own root layout: `app/`, `components/`, `lib/`, `interfaces/`, `types/`, `e2e/`, `test/` and a root `proxy.ts`. The core puts all of it in one tree (`STACK.md` §6). Because of the old layout:
+Nothing enforces where logic may live:
 
-- `proxy.ts` sits outside the coverage run.
-- The search merge's business logic lives inside a React hook (`lib/hooks/useListingsSearch.ts`).
+- **Prisma is reached from everywhere.** Ten Server Actions, two route handlers, two pages and five `lib/` modules import it.
+- **Zod schemas sit apart from the features they validate** (`lib/validations/`).
+- **The search merge's business logic lives inside a React hook** (`lib/hooks/useListingsSearch.ts`).
+- **Nothing stops a component from importing server code or a cycle from forming.**
+- **`proxy.ts` is not in the coverage run.**
 
-This spec covers the first half of phase 5 of `docs/decisions/0007-adopt-core-rules.md`:
+The core's answer has three parts:
 
-- row 10's layout;
-- the phase-5 half of row 27, which moves `proxy.ts` into `src/`.
+- a server layer where `service.ts` is the only Prisma importer (`STACK.md` §6);
+- dependency-cruiser rules that fail the build (`STACK.md` §5 "Enforced config");
+- a `pnpm gen feature` scaffold.
 
-The server layer, dependency-cruiser and plop are the second half, in `docs/specs/core-server-layer.md`.
+This is phase 5 of `docs/decisions/0007-adopt-core-rules.md`: row 10, the phase-5 half of row 2 (dependency-cruiser, plop) and the phase-5 half of row 27 (`proxy.ts` in coverage).
+
+**The core's `src/` tree is not adopted.** The code keeps its root layout (`app/`, `components/`, `lib/`, `interfaces/`, `types/`, `e2e/`, `test/`, `proxy.ts`), and the server layer sits beside it in a root `server/`. Every core rule that names `src/` is applied to the root path instead.
 
 In scope:
 
-- the move into `src/` and `tests/`;
-- extracting the pure merge logic from the hook;
-- every path in config, docs, specs, commands and `CLAUDE.md`.
+- the server layer for every feature that touches the database;
+- the pure merge logic out of the hook;
+- dependency-cruiser in `lint`;
+- plop;
+- the docs, specs and commands that name the moved files.
 
 ## Acceptance criteria
 
-`unit` means a `*.node.test.ts` under `scripts/` that reads the working tree.
+`unit` means a `*.node.test.ts` under `scripts/` that reads the working tree, or runs the tool under test on fixtures.
 
-- [ ] LAYOUT-1 · unit — No tracked file sits under the root `app/`, `components/`, `lib/`, `interfaces/`, `types/`, `e2e/` or `test/`, and there is no root `proxy.ts`. Application code is under `src/` (`app`, `components`, `hooks`, `interfaces`, `lib`, `types`, `proxy.ts`). End-to-end specs are under `tests/e2e/`. Test helpers are under `tests/` (`contract`, `fixtures`, `mocks`, `msw`, `setup.jsdom.ts`, `setup.node.ts`, `types`, `utils`).
-- [ ] LAYOUT-2 · unit — `@/*` resolves to `./src/*`. The Prisma client is generated into `src/generated/prisma`, which is gitignored, so `prisma generate` never recreates a root `app/` that Next would prefer over `src/app/`. `components.json` points at `src/app/globals.css`.
-- [ ] LAYOUT-3 · unit — Vitest collects tests and coverage from `src/**`, so `src/proxy.ts` is covered, plus the existing `scripts/**` and `tests/contract/**`. Playwright's `testDir` is `./tests/e2e`. The coverage thresholds are unchanged.
-- [ ] LAYOUT-4 · unit — `docs-check`'s source roots are `.claude`, `.github`, `prisma`, `scripts`, `src` and `tests`. The ownership map claims every tracked file under them. Every backticked source path in the README, `CLAUDE.md`, `docs/`, `.claude/commands/` and the `Implemented` specs resolves, so `pnpm docs:check` passes. The one exception is `docs/decisions/`: an ADR is a dated record, so the paths it cites describe the code as it was when the decision was taken, and `docs-check` does not require them to exist. It still checks the ADRs' links. This exception is the owner's decision, 2026-09-29.
-- [ ] LAYOUT-5 · unit — `src/hooks/useListingsSearch.ts` holds only the request lifecycle. The pure merge logic (interleaving, the radius and model post-filters, page-state advance) lives in `src/lib/listings/`, and the hook imports it from there. MAP-1..22 keep passing unchanged.
+- [ ] LAYOUT-1 · unit — The root layout stays. `app/`, `components/`, `lib/`, `interfaces/`, `types/`, `e2e/`, `test/` and `proxy.ts` are at the repository root, and no tracked file sits under `src/`. ADR 0012 records the layout as a permanent deviation from `STACK.md` §6 (owner's decision, 2026-09-29).
+- [ ] LAYOUT-2 · unit — Vitest's coverage `include` covers `proxy.ts`. The coverage thresholds are unchanged.
+- [ ] LAYOUT-3 · unit — `lib/hooks/useListingsSearch.ts` holds only the request lifecycle. The pure merge logic lives in `lib/listings/` and the hook imports it from there. That logic is the interleaving, the radius and model post-filters and the page-state advance. MAP-1..22 keep passing unchanged.
+- [ ] LAYOUT-4 · unit — `docs-check` does not require the source paths cited in `docs/decisions/` to exist, because an ADR is a dated record of the code as it was when the decision was taken. It still checks the ADRs' links. Every other backticked source path in the README, `CLAUDE.md`, `docs/`, `.claude/commands/` and the `Implemented` specs resolves (owner's decision, 2026-09-29).
+- [ ] LAYOUT-5 · unit — Server code is organised by feature under `server/<feature>/`:
+  - every Server Action is in `actions.ts`;
+  - every page read that touches the database is in `queries.ts`;
+  - every Zod schema is in `schema.ts`;
+  - every Prisma call is in `service.ts`, apart from the client module in `lib/db/`.
+
+  The features are `account`, `alerts`, `auth`, `email-verification`, `favorites`, `locale`, `password-reset`, `rate-limit`, `registration`, `search` and `two-factor`. `app/actions/`, `lib/validations/` and `lib/prisma.ts` no longer exist; the client module is `lib/db/prisma.ts`.
+- [ ] LAYOUT-6 · unit — `lint` runs dependency-cruiser with a committed config, and the tree has 0 violations. The config enforces these rules:
+  - `@prisma/*`, the generated client and `lib/db/**` are imported only from `server/**/service.ts`, `lib/db/**` and the exceptions of LAYOUT-7;
+  - `app/**` never imports a `service.ts`, except under LAYOUT-8;
+  - `components/**` imports only `actions.ts` and `schema.ts` from `server/**`;
+  - `lib/**` imports neither `server/**` nor `app/**`, except under LAYOUT-7;
+  - a feature imports another feature only through that feature's `service.ts` or `schema.ts`;
+  - there are no circular dependencies.
+- [ ] LAYOUT-7 · unit — The NextAuth exception is one edge set: `lib/auth/options.ts` may import `lib/db/**` and `server/auth/service.ts`. It is written in the dependency-cruiser config with a comment naming ADR 0007 row 25, and no other file may use it.
+- [ ] LAYOUT-8 · unit — A `route.ts` under `app/api/**` may import a feature's `service.ts`, and every other file under `app/**` stays bound by LAYOUT-6. A route handler authenticates on its own (the cron secret, an unsubscribe token) because it has no user session and cannot go through `actions.ts` (owner's decision, 2026-09-29).
+- [ ] LAYOUT-9 · unit — `pnpm gen feature <name>` scaffolds `server/<name>/{queries,actions,service,schema}.ts` and `docs/specs/<name>.md` from `docs/specs/_template.md`. It refuses a name whose folder already exists and writes nothing.
 
 ## Worked examples
 
 - **LAYOUT-1**:
-  - `git ls-files app/page.tsx` → empty; `src/app/page.tsx` → tracked.
-  - `proxy.ts` → not tracked; `src/proxy.ts` → tracked.
-  - `e2e/map.spec.ts` → not tracked; `tests/e2e/map.spec.ts` → tracked.
-- **LAYOUT-2**:
-  - `tsconfig.json` `paths["@/*"]` → `["./src/*"]`.
-  - `prisma/schema.prisma` generator `output` → `"../src/generated/prisma"`.
-  - `.gitignore` contains `/src/generated/prisma`.
-- **LAYOUT-3**:
-  - The coverage `include` contains `src/**` and none of `app/**`, `lib/**`, `components/**`.
-  - `playwright.config.ts` `testDir` → `"./tests/e2e"`.
+  - `git ls-files app/page.tsx proxy.ts e2e/map.spec.ts` → all three tracked.
+  - `git ls-files src` → empty.
+- **LAYOUT-2**: the coverage `include` of `vitest.config.ts` contains `"proxy.ts"`, and the thresholds still read statements 89, branches 85, functions 84, lines 89.
 - **LAYOUT-4**:
   - `isDatedRecord("docs/decisions/0007-adopt-core-rules.md")` → `true`.
   - `isDatedRecord("docs/ARCHITECTURE.md")` → `false`.
   - `isDatedRecord("docs/specs/alerts.md")` → `false`.
+- **LAYOUT-6**, run against fixture files:
+
+  | Importing file | Imports | Result |
+  | --- | --- | --- |
+  | `app/x/page.tsx` | `@/server/favorites/service` | reported |
+  | `app/x/page.tsx` | `@/server/favorites/queries` | clean |
+  | `components/X.tsx` | `@/server/favorites/service` | reported |
+  | `components/X.tsx` | `@/server/favorites/schema` | clean |
+  | `components/X.tsx` | `@/server/favorites/actions` | clean |
+  | `server/alerts/service.ts` | `@/server/rate-limit/service` | clean |
+  | `server/alerts/service.ts` | `@/server/rate-limit/helpers` | reported |
+  | `server/favorites/actions.ts` | `@/lib/db/prisma` | reported |
+  | `lib/geo/x.ts` | `@/app/generated/prisma/client` | reported |
+  | `lib/geo/x.ts` | `@/server/favorites/service` | reported |
+
+  Two modules that import each other are reported as a cycle.
+- **LAYOUT-7**:
+
+  | Importing file | Imports | Result |
+  | --- | --- | --- |
+  | `lib/auth/options.ts` | `@/lib/db/prisma` | clean |
+  | `lib/auth/options.ts` | `@/server/auth/service` | clean |
+  | `lib/auth/session.ts` | `@/lib/db/prisma` | reported |
+  | `lib/auth/options.ts` | `@/server/favorites/service` | reported |
+- **LAYOUT-8**:
+
+  | Importing file | Imports | Result |
+  | --- | --- | --- |
+  | `app/api/x/route.ts` | `@/server/alerts/service` | clean |
+  | `app/x/page.tsx` | `@/server/alerts/service` | reported |
+  | `app/api/x/helpers.ts` | `@/server/alerts/service` | reported |
+- **LAYOUT-9**:
+  - On a tree without `server/widgets`, `pnpm gen feature widgets` creates exactly `server/widgets/queries.ts`, `actions.ts`, `service.ts`, `schema.ts` and `docs/specs/widgets.md`.
+  - Run again, it exits non-zero with a message naming `server/widgets`, and changes no file.
 
 ## Data model
 
-None: this phase adds or changes no table or column. Only the generated client's output path moves (LAYOUT-2).
+None: no table or column changes. The Prisma client module moves from `lib/prisma.ts` to `lib/db/prisma.ts`; the generated client stays in `app/generated/prisma`.
 
 ## Permissions
 
-No permission changes. Every action and query keeps its `getCurrentUser()` check and ownership filter; only the file paths change.
+No permission changes. Every action and query keeps its existing `getCurrentUser()` check and ownership filter, and they move with the code. The tests that prove them keep passing unchanged: ALERT-4/5, FAV-5/6/8 and AUTH-*.
 
 ## Edge cases
 
-- **Next picks a root `app/` over `src/app/`.** A generated client left at `app/generated/prisma` would silently shadow the whole app. LAYOUT-2 moves the output.
-- **`proxy.ts` is only detected beside the app directory,** meaning the root or `src/`. It moves to `src/proxy.ts` in the same commit as `src/app/`.
-- **Relative imports across roots.**
-  - `tests/e2e/two-factor.spec.ts` imports `@/lib/auth/two-factor/totp`.
-  - `tests/*` import `../fixtures` and `../msw`.
-  - The visual snapshot directory is built from `process.cwd()`.
+- **Shared server modules.** `rate-limit` and `auth` are features in their own right. Other features reach them only through their `service.ts` (LAYOUT-6).
+- **Route handlers that need the database** are the alert run and the unsubscribe link. They call `server/alerts/service.ts` under LAYOUT-8.
+- **Pages that read the database** are `account` and `alerts/[id]`. They read through `queries.ts`, which authenticates and then calls the service.
+- **Moved Server Actions keep their ids.** Next derives a Server Action's id from its module. The actions are only ever called through imports, never by a stored id, so moving them breaks nothing that survives a deploy.
 
 ## Out of scope
 
-- **No behaviour change.** No criterion of any other spec changes. Tests move with their files; only their import paths change.
-- **The server layer** (`src/server/<feature>/`), dependency-cruiser and plop: `docs/specs/core-server-layer.md`. Until it lands, Server Actions sit in `src/app/actions/` and schemas in `src/lib/validations/`.
-- **Test names and levels stay** (`*.test.ts` / `*.node.test.ts`, Prisma mocked) until phase 7 (ADR 0007 row 16).
-- **Phase 6:** the env module, the DB module's adapters, `DIRECT_URL`, `Result<T, E>`, Pino and Sentry (rows 11–13). Here `lib/prisma.ts` only moves, to `src/lib/prisma.ts`.
-- **Phase 9:** the search fan-out still runs client-side through the proxies (row 19).
+- **No behaviour change.** No criterion of any other spec changes. Tests move with their subjects, and only their import paths change.
+- **The core's `src/` tree** is kept out permanently by ADR 0012.
+- **Test names and levels stay** until phase 7 (ADR 0007 row 16).
+- **Phase 6:** the env module, the DB module's adapters, `DIRECT_URL`, `Result<T, E>`, Pino and Sentry (rows 11–13).
+- **Phase 9:**
+  - the search fan-out still runs client-side through the proxies (row 19), so `server/search/` holds only the search `schema.ts`;
+  - the Impeccable detector in `lint`.
+- **Phase 11:** NextAuth stays (row 25). The only concession is LAYOUT-7.
+
+## Contracts
+
+- **New dev dependencies.** `dependency-cruiser` and `plop` are both named in `STACK.md` §1 and §5, so neither needs its own ADR.
+- **Scripts.** `lint` gains a `depcruise` step after Biome and before knip, and `gen` runs plop. This approved spec is what authorises the `package.json` script change (`RULES.md` §1).
+- **Feature map**, built from what exists today:
+
+  | Feature | Takes over |
+  | --- | --- |
+  | `account` | the `account.ts` actions and the account page read |
+  | `alerts` | the `alerts.ts` actions except `setLocale`; the database work of the run and unsubscribe route handlers; the `alerts/[id]` page read; `lib/alerts/*` |
+  | `auth` | `authorize`, `cleanup` and the two-factor `verify` |
+  | `email-verification` | the email-verification actions |
+  | `favorites` | the favorites actions and schema |
+  | `locale` | `setLocale` |
+  | `password-reset` | `forgot-password` and `reset-password` |
+  | `rate-limit` | `lib/rate-limit.ts` |
+  | `registration` | `register`, `verify-registration` and `resend-confirmation` |
+  | `search` | the search schema |
+  | `two-factor` | the two-factor actions |
+
+  Pure helpers with no I/O stay under `lib/`: hashing, tokens, TOTP, the password policy, email templates and the upstream clients.
 
 ## Decisions and rationale
 
-**Two specs, two PRs (owner's decision, 2026-09-29).** Phase 5 was approved on 2026-09-28 as one spec delivered in two PRs. An `Approved` spec needs a test for every criterion, and the server-layer tests stay red until the second PR. So the first PR could not merge green. The approved criteria were split without changing their text:
+### The root layout stays (owner's decision, 2026-09-29)
 
-- LAYOUT-1..5 stay here;
-- LAYOUT-6..9 became SERVER-1..4 in `docs/specs/core-server-layer.md`.
+Next.js supports `app/` at the root as fully as `src/app/`. The core's `src/` tree is a convention, not a technical need, and moving about 300 files would buy consistency with other projects at the cost of a huge diff and every path in the docs. ADR 0012 records the layout as a permanent deviation from `STACK.md` §6. Every core rule that names `src/` is applied to the root path instead: `server/` sits beside `app/` and `lib/`.
 
-No test named those ids yet, so nothing was renumbered in use. The move touches about 300 files and changes no logic, so a reviewer can read it as renames.
+### About this spec
 
-**Pure merge logic moves to `src/lib/listings/`, not to a service.** It runs in the browser on proxy results, because the upstreams cannot be called from the server layer's actions yet (row 19, phase 9). Taking it out of the hook satisfies `RULES.md` §8 (hooks own lifecycle, not logic) without deciding phase 9 early.
+The first version, approved on 2026-09-28, moved everything into `src/` and was split into two PRs. The owner then chose the root layout, so the move went away. With it went the reason for two PRs, and this spec covers the whole phase. It keeps the server-layer decisions below, which the owner took on 2026-09-28 and 2026-09-29.
 
-**The generated client goes under `src/generated/`.** Leaving it under a root `app/` would make Next ignore `src/app/`, with no error.
+### Components may import `schema.ts` (owner's decision, 2026-09-28)
+
+`STACK.md` §6 says `schema.ts` is "shared with client", while §5's dependency rule lets components import only `actions.ts`. The forms need the runtime schema for `zodResolver`, so the rule admits `schema.ts` too. ADR 0012 records the interpretation, and the contradiction is reported to the core.
+
+### Shared server modules are features reached through their service (owner's decision, 2026-09-28)
+
+Eight actions consume rate limiting, and several consume the auth core. Forbidding every cross-feature import would force duplication (`RULES.md` §6). Allowing only `service.ts` and `schema.ts` keeps each feature's internals private.
+
+### Route handlers may import a service (owner's decision, 2026-09-29)
+
+The alert cron and the unsubscribe link have no user session. They authenticate with the cron secret and a hashed token, so they cannot go through `actions.ts`, whose actions start from `getCurrentUser()`. Like Server Actions, they are server entry points that validate and authorize on their own. `RULES.md` §9 and `STACK.md` §13 keep route handlers for exactly these cases.
+
+### A single, named exception for NextAuth until phase 11 (owner's decision, 2026-09-28)
+
+`authOptions` needs the Prisma adapter and `authorize`. `CLAUDE.md` keeps it in `lib/auth/options.ts` so that server components can import it without dragging in the route. The exception covers one file and two targets, and phase 11 deletes it along with NextAuth.
+
+### Pure merge logic moves to `lib/listings/`, not to a service
+
+It runs in the browser on proxy results, because the upstreams cannot be called from the server layer's actions yet (row 19, phase 9). Taking it out of the hook satisfies `RULES.md` §8 (hooks own lifecycle, not logic) without deciding phase 9 early.
+
+### ADRs are dated records (owner's decision, 2026-09-29)
+
+This phase moves files that accepted ADRs cite, for example `app/actions/` in ADR 0007. An accepted ADR is never edited, so its paths describe the code as it was when the decision was taken. `docs-check` stops requiring them to exist, and still checks the ADRs' links.
