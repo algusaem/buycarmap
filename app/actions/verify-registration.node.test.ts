@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     user: { create: vi.fn() },
     pendingRegistration: { findUnique: vi.fn(), deleteMany: vi.fn() },
@@ -17,7 +17,7 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
 }));
 
 import { Prisma } from "@/app/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { hashToken } from "@/lib/auth/tokens";
 import { verifyRegistration } from "./verify-registration";

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { env } from "@/lib/env";
 import { decryptSecret } from "./encryption";
 import { hashRecoveryCode } from "./recovery-codes";

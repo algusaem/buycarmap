@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The DB and bcrypt are dependencies; authorizeCredentials' branching is the SUT.
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: { user: { findUnique: vi.fn() } },
 }));
 vi.mock("@/lib/auth/hash", () => ({
@@ -23,7 +23,7 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
   resetRateLimit: vi.fn(async () => undefined),
 }));
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { verifyPassword, DUMMY_PASSWORD_HASH } from "@/lib/auth/hash";
 import { consumeRateLimit, isRateLimited, resetRateLimit } from "@/lib/rate-limit";
 import { verifyAndConsumeTwoFactor } from "@/lib/auth/two-factor/verify";

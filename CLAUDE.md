@@ -104,8 +104,10 @@ pnpm build            # prisma generate && next build
 pnpm start            # next start
 pnpm check             # The verification contract: lint → typecheck → test → build
 pnpm check:full        # pnpm check, then the Playwright e2e suite
-pnpm lint              # Biome, knip, spec:check, docs:check, todo:check
+pnpm lint              # Biome, depcruise, knip, spec:check, docs:check, todo:check
 pnpm typecheck         # tsc --noEmit and type-coverage
+pnpm depcruise         # dependency-cruiser boundaries (.dependency-cruiser.cjs), 0 violations required
+pnpm gen feature <name> # Scaffold server/<name>/{queries,actions,service,schema}.ts and its spec (plop)
 pnpm spec:check       # Assert every approved acceptance criterion still has a test
 pnpm docs:check       # Assert doc links, referenced source paths and the ownership map resolve
 pnpm todo:check       # No TODO comment without an issue reference

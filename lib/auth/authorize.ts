@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { verifyPassword, DUMMY_PASSWORD_HASH } from "@/lib/auth/hash";
 import {
   RATE_LIMITS,

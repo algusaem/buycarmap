@@ -121,7 +121,8 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm build` | `prisma generate && next build` |
 | `pnpm check` | The verification contract: `lint` → `typecheck` → `test` → `build`, stopping at the first failure |
 | `pnpm check:full` | `check`, then `test:e2e` |
-| `pnpm lint` | Biome (lint and format), knip, `spec:check`, `docs:check`, `todo:check` |
+| `pnpm lint` | Biome (lint and format), `depcruise`, knip, `spec:check`, `docs:check`, `todo:check` |
+| `pnpm depcruise` | The dependency-cruiser boundaries (`.dependency-cruiser.cjs`), 0 violations required |
 | `pnpm typecheck` | `tsc --noEmit` and type-coverage (minimum in `package.json` › `typeCoverage`) |
 | `pnpm test` | Vitest, both projects, with v8 coverage and the ratchet thresholds |
 | `pnpm test:unit` | The jsdom project alone |
@@ -137,6 +138,7 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm todo:check` | Every `TODO` comment names its issue (`#n`) |
 | `pnpm db:branch` | Give this git branch its own Neon database |
 | `pnpm db:branch:rm` | Delete it |
+| `pnpm gen feature <name>` | Scaffold `server/<name>/{queries,actions,service,schema}.ts` and its spec (plop) |
 
 ### Git hooks
 
@@ -361,6 +363,7 @@ name what it beat, it is a fact, and facts belong in the doc for that area.
 | [0009 — One build-script allowlist once pnpm is pinned](docs/decisions/0009-pnpm-pinned-allow-builds.md) | `packageManager` pins pnpm 11; `allowBuilds` is the only allowlist; supersedes 0008 |
 | [0010 — The TODO ban is a lint script, not a Biome rule](docs/decisions/0010-todo-check-script.md) | `scripts/todo-check.mjs` runs in `pnpm lint`, finding comments through TypeScript's syntactic classification |
 | [0011 — Keep criterion ids, spec:check and extra spec sections](docs/decisions/0011-spec-ids-and-sections.md) | The core spec sections plus optional Contracts, Decisions and rationale and Open questions; `KEY-n` checklist items still tied to test titles by `spec:check` |
+| [0012 — Root layout and server layer](docs/decisions/0012-root-layout-and-server-layer.md) | The root layout stays permanently instead of moving into `src/`; the server-layer dependency rules, the `schema.ts` and route-handler exceptions, and the NextAuth exception until phase 11 |
 
 ## Ownership map
 
@@ -420,8 +423,12 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/actions/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `lib/env.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `proxy.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| `lib/prisma.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `lib/db/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `prisma.config.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `.dependency-cruiser.cjs` | [README.md](README.md) |
+| `plopfile.mjs` | [README.md](README.md) |
+| `plop-templates/**` | [README.md](README.md) |
+| `lib/listings/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/map/page.tsx` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/api/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `app/login/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |

@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { REGISTRATION_TTL_MS, generateToken, hashToken, tokenExpiry } from "@/lib/auth/tokens";
 import { appUrl } from "@/lib/env";
 import { sendEmail } from "@/lib/email/client";

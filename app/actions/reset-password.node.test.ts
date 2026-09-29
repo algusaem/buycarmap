@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     user: { update: vi.fn() },
     passwordResetToken: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
@@ -25,7 +25,7 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
 vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { verifyPassword } from "@/lib/auth/hash";
 import { hashToken } from "@/lib/auth/tokens";
 import { consumeRateLimit, resetRateLimit } from "@/lib/rate-limit";

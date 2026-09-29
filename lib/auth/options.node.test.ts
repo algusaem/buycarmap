@@ -16,12 +16,12 @@ type AuthorizeFn = (
 vi.mock("@/lib/auth/authorize", () => ({
   authorizeCredentials: vi.fn(),
 }));
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: { user: { findUnique: vi.fn() } },
 }));
 
 import { authorizeCredentials } from "@/lib/auth/authorize";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { authOptions } from "./options";
 
 const authCallbacks = authOptions.callbacks;

@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 
 // Fixed-window rate limiting for the auth surface.
 //

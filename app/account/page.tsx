@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isTwoFactorConfigured } from "@/lib/env";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { getTranslations } from "@/lib/i18n/server";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { EmailForm } from "@/components/account/EmailForm";

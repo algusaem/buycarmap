@@ -6,7 +6,7 @@ import type { RunSummary } from "@/interfaces/alert";
 let store: ReturnType<typeof createAlertStore>;
 let emailConfigured = true;
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   get prisma() {
     return store.client;
   },

@@ -26,7 +26,7 @@ export default defineConfig({
     },
     coverage: {
       provider: "v8",
-      include: ["lib/**", "components/**", "app/**"],
+      include: ["lib/**", "components/**", "app/**", "proxy.ts"],
       exclude: ["app/generated/**", "**/*.test.{ts,tsx}", "**/*.d.ts", "**/index.ts"],
       // A ratchet, not a target. Set a point below what the suite measured
       // when it was introduced, so ordinary variance doesn't fail CI but a

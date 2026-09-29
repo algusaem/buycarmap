@@ -4,7 +4,7 @@ const { KEY } = vi.hoisted(() => ({
   KEY: Buffer.alloc(32, 7).toString("base64"),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     user: { findUnique: vi.fn(), update: vi.fn() },
     twoFactorRecoveryCode: { deleteMany: vi.fn(), createMany: vi.fn() },
@@ -29,7 +29,7 @@ vi.mock("@/lib/auth/two-factor/verify", () => ({
   verifyAndConsumeTwoFactor: vi.fn(),
 }));
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/hash";
 import { consumeRateLimit } from "@/lib/rate-limit";

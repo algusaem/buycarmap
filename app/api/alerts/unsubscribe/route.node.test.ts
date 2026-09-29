@@ -5,7 +5,7 @@ import { createAlertStore, makeCriteria } from "@/test/fixtures/alerts";
 
 let store: ReturnType<typeof createAlertStore>;
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   get prisma() {
     return store.client;
   },

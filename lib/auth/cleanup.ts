@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 
 // Expired tokens are already rejected on use, so they are harmless — but
 // nothing deleted them, so the tables grew without bound. `RateLimit` already

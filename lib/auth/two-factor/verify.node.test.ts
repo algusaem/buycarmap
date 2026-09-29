@@ -9,7 +9,7 @@ const { KEY } = vi.hoisted(() => ({
   KEY: Buffer.alloc(32, 7).toString("base64"),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     user: { update: vi.fn() },
     twoFactorRecoveryCode: { findUnique: vi.fn(), updateMany: vi.fn() },
@@ -17,7 +17,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 vi.mock("@/lib/env", () => ({ env: { TWO_FACTOR_ENCRYPTION_KEY: KEY } }));
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { encryptSecret } from "./encryption";
 import { hashRecoveryCode } from "./recovery-codes";
 import { deriveCode, generateTotpSecret, stepForTime } from "./totp";

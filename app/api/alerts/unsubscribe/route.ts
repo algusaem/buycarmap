@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { hashUnsubscribeToken } from "@/lib/alerts/unsubscribe-token";
 
 // Followed from an inbox, so it must work with no session — it deliberately

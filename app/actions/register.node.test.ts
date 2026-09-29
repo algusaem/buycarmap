@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the data + hashing dependencies; the action's own logic is the SUT.
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     user: { findUnique: vi.fn(), create: vi.fn() },
     pendingRegistration: { create: vi.fn(), deleteMany: vi.fn() },
@@ -29,7 +29,7 @@ vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
 import { Prisma } from "@/app/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import * as env from "@/lib/env";
 import { sendEmail } from "@/lib/email/client";
 import { consumeRateLimit } from "@/lib/rate-limit";

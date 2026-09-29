@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     pendingRegistration: { deleteMany: vi.fn() },
     passwordResetToken: { deleteMany: vi.fn() },
@@ -8,7 +8,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { maybePruneExpiredAuthRows, pruneExpiredAuthRows } from "./cleanup";
 
 beforeEach(() => {

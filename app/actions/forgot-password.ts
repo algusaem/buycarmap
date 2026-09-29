@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { appUrl } from "@/lib/env";
 import { sendEmail } from "@/lib/email/client";
 import { renderPasswordResetEmail } from "@/lib/email/templates/auth-emails";

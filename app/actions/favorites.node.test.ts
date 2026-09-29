@@ -5,7 +5,7 @@ import { createFavoriteStore, makeFavoriteInput } from "@/test/fixtures/favorite
 // mock reach whichever one is current.
 let store: ReturnType<typeof createFavoriteStore>;
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     favorite: {
       create: (args: never) => store.client.create(args),

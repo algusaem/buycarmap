@@ -1,7 +1,7 @@
 "use server";
 
 import { Prisma } from "@/app/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { hashToken } from "@/lib/auth/tokens";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/lib/rate-limit";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/validations/auth";

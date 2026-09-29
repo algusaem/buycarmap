@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const headerStore = { get: vi.fn() };
 vi.mock("next/headers", () => ({ headers: vi.fn(async () => headerStore) }));
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     $queryRaw: vi.fn(),
     rateLimit: { findUnique: vi.fn(), deleteMany: vi.fn() },
   },
 }));
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import {
   RATE_LIMITS,
   consumeRateLimit,
