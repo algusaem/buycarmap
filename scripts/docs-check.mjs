@@ -36,7 +36,7 @@ const SCANNED = [INDEX, "CLAUDE.md"];
 // Backticked paths are only checked when they start with one of these. Anything
 // else is prose, an upstream URL path, or a doc that a plan says will exist
 // later — none of which this script has any business asserting about.
-const SOURCE_ROOTS = [
+export const SOURCE_ROOTS = [
   ".claude",
   ".github",
   "app",
@@ -278,6 +278,17 @@ export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
 export function isUnbuiltSpec(file, text) {
   if (!posix(file).startsWith("docs/specs/")) return false;
   return !/^Status:\s*Implemented\s*$/im.test(text);
+}
+
+/**
+ * Whether a doc is a dated record whose source paths are not checked: an ADR under
+ * `docs/decisions/`. See docs/specs/core-layout.md LAYOUT-4.
+ *
+ * @param {string} _file
+ * @returns {boolean}
+ */
+export function isDatedRecord(_file) {
+  return false;
 }
 
 /**
