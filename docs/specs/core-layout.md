@@ -48,8 +48,12 @@ In scope:
   - every Zod schema is in `schema.ts`;
   - every Prisma call is in `service.ts`, apart from the client module in `lib/db/`.
 
-  The features are `account`, `alerts`, `auth`, `email-verification`, `favorites`, `locale`, `password-reset`, `rate-limit`, `registration`, `search` and `two-factor`. `app/actions/`, `lib/validations/` and `lib/prisma.ts` no longer exist; the client module is `lib/db/prisma.ts`.
-- [ ] LAYOUT-6 · unit — `lint` runs dependency-cruiser with a committed config, and the tree has 0 violations. The config enforces these rules:
+  The features are `account`, `alerts`, `auth`, `email-verification`, `favorites`, `locale`, `password-reset`, `rate-limit`, `registration` and `two-factor`. `app/actions/`, `lib/validations/`, `lib/prisma.ts` and `lib/alerts/` no longer exist, and the client module is `lib/db/prisma.ts`.
+
+  Two Zod schemas stay outside `server/` until their phase, by the owner's decision of 2026-09-29:
+  - `lib/search/schema.ts`, until phase 9, because the search has no server code before then (ADR 0007 row 19);
+  - the env schema in `lib/env.ts`, until phase 6 (row 11).
+- [ ] LAYOUT-6 · unit — `lint` runs dependency-cruiser with a committed config, and the tree has 0 violations. Type-only imports count like any other import. Test files (`*.test.ts(x)`) are exempt from the layer rules, because they import what they test and mock the database, but not from the cycle rule (owner's decision, 2026-09-29). The config enforces these rules:
   - `@prisma/*`, the generated client and `lib/db/**` are imported only from `server/**/service.ts`, `lib/db/**` and the exceptions of LAYOUT-7;
   - `app/**` never imports a `service.ts`, except under LAYOUT-8;
   - `components/**` imports only `actions.ts` and `schema.ts` from `server/**`;
@@ -60,6 +64,7 @@ In scope:
 - [ ] LAYOUT-8 · unit — A `route.ts` under `app/api/**` may import a feature's `service.ts`, and every other file under `app/**` stays bound by LAYOUT-6. A route handler authenticates on its own (the cron secret, an unsubscribe token) because it has no user session and cannot go through `actions.ts` (owner's decision, 2026-09-29).
 - [ ] LAYOUT-9 · unit — `pnpm gen feature <name>` scaffolds `server/<name>/{queries,actions,service,schema}.ts` and `docs/specs/<name>.md` from `docs/specs/_template.md`. It refuses a name whose folder already exists and writes nothing.
 - [ ] LAYOUT-10 · unit — `lib/hooks/**` may import `actions.ts` and `schema.ts` from `server/**`, just as `components/**` may: a hook owns a request lifecycle, and the request is a Server Action (owner's decision, 2026-09-29). Every other file under `lib/**` stays bound by LAYOUT-6.
+- [ ] LAYOUT-11 · node — Every page read that touches the database goes through its feature's `queries.ts`. The query authenticates before reading, and it reads only the signed-in user's records. That covers the account page, the alert list, a single alert and the favorites page (owner's decision, 2026-09-29).
 
 ## Worked examples
 
@@ -115,6 +120,24 @@ In scope:
   | `lib/hooks/useX.ts` | `@/server/favorites/service` | reported |
   | `lib/geo/x.ts` | `@/server/favorites/actions` | reported |
 
+- **LAYOUT-6**, type-only imports and tests:
+
+  | Importing file | Imports | Result |
+  | --- | --- | --- |
+  | `lib/geo/x.ts` | `import type` from `@/server/favorites/schema` | reported |
+  | `components/X.tsx` | `@prisma/client` | reported |
+  | `lib/auth/options.ts` | `@prisma/client` | reported |
+  | `server/favorites/actions.node.test.ts` | `@/lib/db/prisma` | clean |
+
+  Two test files that import each other are reported as a cycle.
+- **LAYOUT-11**, values confirmed by the owner on 2026-09-29:
+  - `getAlertWithMatches(id)` with no session → `redirect("/login?callbackUrl=%2Falerts%2F<id>")`;
+  - `getAlertWithMatches(id)` for another user's alert → `notFound()`, because `findFirst` with `{ id, userId }` returns null;
+  - `getAccountOverview()` with no session → `redirect("/login?callbackUrl=/account")`;
+  - `getAccountOverview()` with a session but no record → `redirect("/login")`;
+  - the alert-list and favorites queries with no session → the same redirect their pages use today;
+  - with a session, they read with the session user's id and no other.
+
 ## Data model
 
 None: no table or column changes. The Prisma client module moves from `lib/prisma.ts` to `lib/db/prisma.ts`; the generated client stays in `app/generated/prisma`.
@@ -137,7 +160,7 @@ No permission changes. Every action and query keeps its existing `getCurrentUser
 - **Test names and levels stay** until phase 7 (ADR 0007 row 16).
 - **Phase 6:** the env module, the DB module's adapters, `DIRECT_URL`, `Result<T, E>`, Pino and Sentry (rows 11–13).
 - **Phase 9:**
-  - the search fan-out still runs client-side through the proxies (row 19), so `server/search/` holds only the search `schema.ts`;
+  - the search fan-out still runs client-side through the proxies (row 19), so the search schema stays at `lib/search/schema.ts` and there is no `server/search/`;
   - the Impeccable detector in `lint`.
 - **Phase 11:** NextAuth stays (row 25). The only concession is LAYOUT-7.
 
@@ -151,15 +174,14 @@ No permission changes. Every action and query keeps its existing `getCurrentUser
   | --- | --- |
   | `account` | the `account.ts` actions and the account page read |
   | `alerts` | the `alerts.ts` actions except `setLocale`; the database work of the run and unsubscribe route handlers; the `alerts/[id]` page read; `lib/alerts/*` |
-  | `auth` | `authorize`, `cleanup` and the two-factor `verify` |
+  | `auth` | `authorize` and `cleanup` |
   | `email-verification` | the email-verification actions |
   | `favorites` | the favorites actions and schema |
   | `locale` | `setLocale` |
   | `password-reset` | `forgot-password` and `reset-password` |
   | `rate-limit` | `lib/rate-limit.ts` |
   | `registration` | `register`, `verify-registration` and `resend-confirmation` |
-  | `search` | the search schema |
-  | `two-factor` | the two-factor actions |
+  | `two-factor` | the two-factor actions and `verify` |
 
   Pure helpers with no I/O stay under `lib/`: hashing, tokens, TOTP, the password policy, email templates and the upstream clients.
 
@@ -196,6 +218,14 @@ The hooks live in `lib/hooks/`, and `useFavorites` calls the `listFavorites` act
 ### Pure merge logic moves to `lib/listings/`, not to a service
 
 It runs in the browser on proxy results, because the upstreams cannot be called from the server layer's actions yet (row 19, phase 9). Taking it out of the hook satisfies `RULES.md` §8 (hooks own lifecycle, not logic) without deciding phase 9 early.
+
+### The search schema stays in `lib/` until phase 9 (owner's decision, 2026-09-29)
+
+`SearchInput` is used by the upstream clients, the radius filter and the merge, and all of them run in the browser (ADR 0007 row 19). If the schema sat in `server/search/`, `lib/**` would have to import `server/**`. That breaks the rule the layer exists for, and it went unnoticed only because type-only imports were invisible to the tool. Phase 9 moves the search to the server, and the schema goes with it.
+
+### Auth flows keep their domain checks in the actions until phase 11 (owner's decision, 2026-09-29)
+
+The auth actions keep their token checks, enumeration resistance, password-reuse check and email fork in `actions.ts`, where they sat before this phase. Phase 11 rewrites every auth flow on Better Auth. Restructuring security-sensitive code now, only for it to be replaced later, risks a regression for no gain. The alerts domain rules (`MAX_ALERTS_PER_USER`, `isSpecificEnough`, `hashCriteria`) are simple, so they move from `schema.ts` to `service.ts` now. ADR 0012 records the remaining deviation.
 
 ### ADRs are dated records (owner's decision, 2026-09-29)
 

@@ -40,6 +40,17 @@ export async function notifyExistingAccount(email: string): Promise<void> {
   await sendEmail({ to: email, subject, html, text });
 }
 
+// Emails the link that confirms a pending signup.
+async function sendVerificationEmail(email: string, token: string): Promise<void> {
+  const locale = await getLocale();
+  const { subject, html, text } = renderVerifyRegistrationEmail(
+    locale,
+    `${appUrl}/verify-email?token=${encodeURIComponent(token)}`,
+  );
+
+  await sendEmail({ to: email, subject, html, text });
+}
+
 // Stores the signup and emails a confirmation link. Nothing is written to
 // `User` here, which is what keeps the two branches indistinguishable.
 export async function issuePendingRegistration(
@@ -63,13 +74,7 @@ export async function issuePendingRegistration(
     },
   });
 
-  const locale = await getLocale();
-  const { subject, html, text } = renderVerifyRegistrationEmail(
-    locale,
-    `${appUrl}/verify-email?token=${encodeURIComponent(token)}`,
-  );
-
-  await sendEmail({ to: email, subject, html, text });
+  await sendVerificationEmail(email, token);
 }
 
 /**
@@ -181,12 +186,6 @@ export async function reissueConfirmationLink(email: string): Promise<void> {
       },
     });
 
-    const locale = await getLocale();
-    const { subject, html, text } = renderVerifyRegistrationEmail(
-      locale,
-      `${appUrl}/verify-email?token=${encodeURIComponent(token)}`,
-    );
-
-    await sendEmail({ to: email, subject, html, text });
+    await sendVerificationEmail(email, token);
   }
 }

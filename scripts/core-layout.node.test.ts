@@ -5,6 +5,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  rmSync,
   statSync,
   writeFileSync,
   copyFileSync,
@@ -12,24 +13,41 @@ import {
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import { cruise } from "dependency-cruiser";
 import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config";
-import type { IFlattenedRuleSet, IViolation } from "dependency-cruiser";
-import { describe, expect, it } from "vitest";
+import type { IConfiguration, IModule, IViolation } from "dependency-cruiser";
+import nodePlop from "node-plop";
+import { afterEach, describe, expect, it } from "vitest";
 
-// Reads the working tree directly against docs/specs/core-layout.md (LAYOUT-1..10,
-// except LAYOUT-4 which is covered by docs-check.node.test.ts since it tests
-// docs-check's isDatedRecord, not the tree). These fail against today's root
-// app/ / components/ / lib/ layout with no server/ tree, and pass once phase 5
-// lands: the server layer, the dependency-cruiser config and the plop
-// scaffold. The move itself is a later change.
+// Checks the working tree against docs/specs/core-layout.md, LAYOUT-1..3 and
+// LAYOUT-5..11. LAYOUT-4 is covered by docs-check.node.test.ts, since it tests
+// docs-check's isDatedRecord rather than the tree. LAYOUT-6..8 and 10 cruise
+// fixture trees with the committed dependency-cruiser config, rules and
+// options both, and then cruise the real tree the way `pnpm depcruise` does.
+// LAYOUT-9 runs the committed plopfile through node-plop in a temp directory.
+// LAYOUT-11 is covered by the colocated server/<feature>/queries.node.test.ts.
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8").replace(/\r\n/g, "\n");
 const exists = (path: string) => existsSync(join(ROOT, path));
 const readIfExists = (path: string) => (exists(path) ? read(path) : "");
+
+// Every temp directory a test creates, removed after each test.
+const tempDirs: string[] = [];
+
+function makeTempDir(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 // The pure merge-logic functions LAYOUT-3 moves out of the hook and into
 // lib/listings/.
@@ -55,7 +73,6 @@ const FEATURES = [
   "password-reset",
   "rate-limit",
   "registration",
-  "search",
   "two-factor",
 ];
 
@@ -88,7 +105,7 @@ describe("source layout", () => {
 
   it("LAYOUT-2: Vitest's coverage include covers proxy.ts, and the thresholds are unchanged", () => {
     const vitestConfig = read("vitest.config.ts");
-    expect(vitestConfig).toMatch(/include:\s*\[[^\]]*"proxy\.ts"[^\]]*\]/);
+    expect(vitestConfig).toMatch(/coverage:\s*\{[\s\S]*?include:\s*\[[^\]]*"proxy\.ts"[^\]]*\]/);
 
     expect(vitestConfig).toMatch(
       /thresholds:\s*\{[^}]*statements:\s*89[^}]*branches:\s*85[^}]*functions:\s*84[^}]*lines:\s*89/,
@@ -117,9 +134,17 @@ describe("source layout", () => {
     expect(exists("app/actions")).toBe(false);
     expect(exists("lib/validations")).toBe(false);
     expect(exists("lib/prisma.ts")).toBe(false);
+    expect(exists("lib/alerts")).toBe(false);
     expect(exists("lib/db/prisma.ts")).toBe(true);
+    expect(exists("lib/search/schema.ts")).toBe(true);
 
     expect(gitGrepDbOffenders()).toEqual([]);
+
+    const serverActionFiles = trackedUseServerFiles();
+    expect(serverActionFiles.length).toBeGreaterThan(0);
+    expect(serverActionFiles.filter((file) => !/^server\/[^/]+\/actions\.ts$/.test(file))).toEqual(
+      [],
+    );
   });
 
   it("LAYOUT-6: dependency-cruiser is wired into lint, and the config enforces the app/component/lib boundaries with 0 violations on the real tree", async () => {
@@ -153,18 +178,61 @@ describe("source layout", () => {
         verdict: "reported",
       },
       { from: "lib/geo/x.ts", specifier: "@/server/favorites/service", verdict: "reported" },
+      // Type-only imports and tests.
+      {
+        from: "lib/geo/x.ts",
+        specifier: "@/server/favorites/schema",
+        verdict: "reported",
+        typeOnly: true,
+      },
+      { from: "components/X.tsx", specifier: "@prisma/client", verdict: "reported" },
+      { from: "lib/auth/options.ts", specifier: "@prisma/client", verdict: "reported" },
+      {
+        from: "server/favorites/actions.node.test.ts",
+        specifier: "@/lib/db/prisma",
+        verdict: "clean",
+      },
     ];
 
-    const ruleSet = loadRuleSet();
+    const config = loadConfig();
     const dir = buildCruiseFixture(rows);
     writeFixtureFile(dir, "lib/geo/cycle-a.ts", 'import "@/lib/geo/cycle-b";\nexport {};\n');
     writeFixtureFile(dir, "lib/geo/cycle-b.ts", 'import "@/lib/geo/cycle-a";\nexport {};\n');
+    writeFixtureFile(
+      dir,
+      "lib/geo/cycle-c.test.ts",
+      'import "@/lib/geo/cycle-d.test";\nexport {};\n',
+    );
+    writeFixtureFile(
+      dir,
+      "lib/geo/cycle-d.test.ts",
+      'import "@/lib/geo/cycle-c.test";\nexport {};\n',
+    );
 
-    const violations = await cruiseFixture(dir, ruleSet);
+    const { violations } = await cruiseTree(dir, config, ["."]);
     assertRows(rows, violations);
     expect(violations.some(isCycleViolation)).toBe(true);
+    expect(
+      violations.some(
+        (violation) =>
+          isCycleViolation(violation) && /^lib\/geo\/cycle-[cd]\.test\.ts$/.test(violation.from),
+      ),
+    ).toBe(true);
 
-    const realTreeViolations = await cruiseFixture(ROOT, ruleSet, REAL_TREE_EXCLUDE);
+    // The real tree, cruised with the same config and the same roots as
+    // `pnpm depcruise`.
+    const realTree = await cruiseTree(ROOT, config, depcruiseRoots());
+    const favoritesActions = realTree.modules.find(
+      (module) => module.source === "server/favorites/actions.ts",
+    );
+    expect(favoritesActions).toBeDefined();
+    expect(
+      favoritesActions?.dependencies.some(
+        (dependency) =>
+          dependency.resolved === "server/favorites/service.ts" && !dependency.couldNotResolve,
+      ),
+    ).toBe(true);
+    const realTreeViolations = realTree.violations;
     expect(realTreeViolations).toEqual([]);
     // Cruising the whole real tree takes about 6s when the full suite runs in
     // parallel with coverage, past Vitest's 5s default.
@@ -184,9 +252,9 @@ describe("source layout", () => {
       },
     ];
 
-    const ruleSet = loadRuleSet();
+    const config = loadConfig();
     const dir = buildCruiseFixture(rows);
-    const violations = await cruiseFixture(dir, ruleSet);
+    const { violations } = await cruiseTree(dir, config, ["."]);
     assertRows(rows, violations);
   });
 
@@ -203,9 +271,9 @@ describe("source layout", () => {
       },
     ];
 
-    const ruleSet = loadRuleSet();
+    const config = loadConfig();
     const dir = buildCruiseFixture(rows);
-    const violations = await cruiseFixture(dir, ruleSet);
+    const { violations } = await cruiseTree(dir, config, ["."]);
     assertRows(rows, violations);
   });
 
@@ -219,21 +287,16 @@ describe("source layout", () => {
       { from: "lib/geo/x.ts", specifier: "@/server/favorites/actions", verdict: "reported" },
     ];
 
-    const ruleSet = loadRuleSet();
+    const config = loadConfig();
     const dir = buildCruiseFixture(rows);
-    const violations = await cruiseFixture(dir, ruleSet);
+    const { violations } = await cruiseTree(dir, config, ["."]);
     assertRows(rows, violations);
   });
 
   it("LAYOUT-9: pnpm gen feature scaffolds the four server files and the spec, and refuses to redo an existing feature", async () => {
-    // Gated first: node-plop is only reachable as a dependency of the
-    // installed `plop` package (pnpm does not hoist it on its own), so the
-    // import below must never run before we know plopfile.mjs exists.
     expect(exists("plopfile.mjs")).toBe(true);
 
-    const nodePlop = await loadNodePlop();
-
-    const dir = mkdtempSync(join(tmpdir(), "layout9-"));
+    const dir = makeTempDir("layout9-");
     mkdirSync(join(dir, "docs", "specs"), { recursive: true });
     copyFileSync(join(ROOT, "docs/specs/_template.md"), join(dir, "docs/specs/_template.md"));
     const plopfilePath = join(dir, "plopfile.mjs");
@@ -247,7 +310,7 @@ describe("source layout", () => {
       "docs/specs/widgets.md",
     ];
 
-    const plop = await nodePlop(plopfilePath, { destBasePath: dir });
+    const plop = await nodePlop(plopfilePath, { destBasePath: dir, force: false });
     const firstRun = await plop.getGenerator("feature").runActions({ name: "widgets" });
 
     expect(firstRun.failures).toEqual([]);
@@ -256,7 +319,7 @@ describe("source layout", () => {
 
     const before = snapshotFiles(dir, EXPECTED_FILES);
 
-    const secondPlop = await nodePlop(plopfilePath, { destBasePath: dir });
+    const secondPlop = await nodePlop(plopfilePath, { destBasePath: dir, force: false });
     const secondRun = await secondPlop.getGenerator("feature").runActions({ name: "widgets" });
 
     expect(secondRun.failures.length).toBeGreaterThan(0);
@@ -267,9 +330,35 @@ describe("source layout", () => {
 
     expect(snapshotFiles(dir, EXPECTED_FILES)).toEqual(before);
   });
+
+  it("LAYOUT-9: pnpm gen feature refuses a name whose spec already exists, and writes nothing", async () => {
+    expect(exists("plopfile.mjs")).toBe(true);
+
+    const dir = makeTempDir("layout9-spec-");
+    mkdirSync(join(dir, "docs", "specs"), { recursive: true });
+    copyFileSync(join(ROOT, "docs/specs/_template.md"), join(dir, "docs/specs/_template.md"));
+    const plopfilePath = join(dir, "plopfile.mjs");
+    copyFileSync(join(ROOT, "plopfile.mjs"), plopfilePath);
+
+    const existingSpec = "# Gadgets\n\nAn existing spec.\n";
+    writeFileSync(join(dir, "docs/specs/gadgets.md"), existingSpec, "utf8");
+    const before = snapshotFiles(dir, ["docs/specs/gadgets.md"]);
+
+    const plop = await nodePlop(plopfilePath, { destBasePath: dir, force: false });
+    const run = await plop.getGenerator("feature").runActions({ name: "gadgets" });
+
+    expect(run.failures.length).toBeGreaterThan(0);
+    const failureText = run.failures
+      .map((failure) => `${failure.path} ${failure.error}`)
+      .join("\n");
+    expect(failureText).toMatch(/docs[\\/]specs[\\/]gadgets\.md/);
+
+    expect(existsSync(join(dir, "server"))).toBe(false);
+    expect(snapshotFiles(dir, ["docs/specs/gadgets.md"])).toEqual(before);
+  });
 });
 
-// --- LAYOUT-5 helper --------------------------------------------------------
+// --- LAYOUT-5 helpers --------------------------------------------------------
 
 /**
  * Tracked *.ts/*.tsx files that import lib/db, lib/prisma or the generated
@@ -278,28 +367,7 @@ describe("source layout", () => {
  * which mock it).
  */
 function gitGrepDbOffenders(): string[] {
-  let output = "";
-  try {
-    output = execFileSync(
-      "git",
-      [
-        "grep",
-        "-l",
-        "-I",
-        "-E",
-        "@/lib/db/|@/lib/prisma|app/generated/prisma",
-        "--",
-        "*.ts",
-        "*.tsx",
-      ],
-      { cwd: ROOT, encoding: "utf8" },
-    );
-  } catch (error) {
-    if (gitGrepStatus(error) === 1) return [];
-    throw error;
-  }
-
-  const files = output.trim() === "" ? [] : output.trim().split("\n");
+  const files = gitGrepFiles("@/lib/db/|@/lib/prisma|app/generated/prisma");
   const ALLOWED = [
     /^server\/[^/]+\/service\.ts$/,
     /^lib\/db\//,
@@ -307,6 +375,27 @@ function gitGrepDbOffenders(): string[] {
     /\.test\.tsx?$/,
   ];
   return files.filter((file) => !ALLOWED.some((pattern) => pattern.test(file)));
+}
+
+/** Tracked *.ts/*.tsx files whose first statement is the "use server" directive. */
+function trackedUseServerFiles(): string[] {
+  const directive = /^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*["']use server["']/;
+  return gitGrepFiles("use server").filter((file) => directive.test(read(file)));
+}
+
+function gitGrepFiles(pattern: string): string[] {
+  let output = "";
+  try {
+    output = execFileSync("git", ["grep", "-l", "-I", "-E", pattern, "--", "*.ts", "*.tsx"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+  } catch (error) {
+    if (gitGrepStatus(error) === 1) return [];
+    throw error;
+  }
+
+  return output.trim() === "" ? [] : output.trim().split("\n");
 }
 
 function gitGrepStatus(error: unknown): number | undefined {
@@ -317,16 +406,26 @@ function gitGrepStatus(error: unknown): number | undefined {
   return undefined;
 }
 
-// --- LAYOUT-6..8 dependency-cruiser fixture helpers -------------------------
+// --- LAYOUT-6..8 and 10 dependency-cruiser helpers ---------------------------
 
 interface ImportRow {
   from: string;
   specifier: string;
   verdict: "reported" | "clean";
+  /** Written as `import type { Stub } from "…"` instead of a side-effect import. */
+  typeOnly?: boolean;
 }
 
-const REAL_TREE_EXCLUDE =
-  "node_modules|\\.next|\\.git|coverage|playwright-report|test-results|blob-report|\\.claude/worktrees|app/generated";
+interface CruiseOutcome {
+  violations: IViolation[];
+  modules: IModule[];
+}
+
+const PRISMA_PACKAGE_DIR = "node_modules/@prisma/client";
+
+function isBarePackage(specifier: string): boolean {
+  return !specifier.startsWith("@/");
+}
 
 function targetPath(row: ImportRow): string {
   return `${row.specifier.replace(/^@\//, "")}.ts`;
@@ -339,59 +438,90 @@ function writeFixtureFile(dir: string, rel: string, content: string): void {
 }
 
 /** Loads the real, committed dependency-cruiser config — never a rule set invented for the test. */
-function loadRuleSet(): IFlattenedRuleSet {
+function loadConfig(): IConfiguration {
   const require = createRequire(import.meta.url);
-  return require(join(ROOT, ".dependency-cruiser.cjs")) as IFlattenedRuleSet;
+  return require(join(ROOT, ".dependency-cruiser.cjs")) as IConfiguration;
+}
+
+/** The roots `pnpm depcruise` cruises, read from its package.json script. */
+function depcruiseRoots(): string[] {
+  const packageJson = JSON.parse(read("package.json")) as { scripts?: Record<string, string> };
+  const script = packageJson.scripts?.depcruise ?? "";
+  const words = script.split(/\s+/).filter(Boolean);
+  const configFlag = words.indexOf("--config");
+  const roots = words.slice(1, configFlag === -1 ? undefined : configFlag);
+  expect(roots.length).toBeGreaterThan(0);
+  return roots;
 }
 
 /**
  * Builds a fixture tree: one importer file per distinct `from` (importing
- * every specifier the rows give it), plus a stub target file for every
+ * every specifier the rows give it), a stub target file for every `@/`
  * specifier so dependency-cruiser can resolve it and match rules against the
- * resolved path, not the bare alias.
+ * resolved path, not the bare alias, and a stub `@prisma/client` package under
+ * node_modules.
  */
 function buildCruiseFixture(rows: ImportRow[]): string {
-  const dir = mkdtempSync(join(tmpdir(), "layout-cruise-"));
+  const dir = makeTempDir("layout-cruise-");
   writeFixtureFile(
     dir,
     "tsconfig.json",
     JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["./*"] } } }, null, 2),
   );
+  writeFixtureFile(
+    dir,
+    `${PRISMA_PACKAGE_DIR}/package.json`,
+    JSON.stringify({ name: "@prisma/client", main: "index.js", types: "index.d.ts" }, null, 2),
+  );
+  writeFixtureFile(dir, `${PRISMA_PACKAGE_DIR}/index.js`, "module.exports = {};\n");
+  writeFixtureFile(dir, `${PRISMA_PACKAGE_DIR}/index.d.ts`, "export type Stub = string;\n");
 
-  const importsByFile = new Map<string, string[]>();
+  const importsByFile = new Map<string, ImportRow[]>();
   for (const row of rows) {
-    const specifiers = importsByFile.get(row.from) ?? [];
-    specifiers.push(row.specifier);
-    importsByFile.set(row.from, specifiers);
+    const fileRows = importsByFile.get(row.from) ?? [];
+    fileRows.push(row);
+    importsByFile.set(row.from, fileRows);
   }
-  for (const [from, specifiers] of importsByFile) {
-    const lines = specifiers.map((specifier) => `import "${specifier}";`).join("\n");
+  for (const [from, fileRows] of importsByFile) {
+    const lines = fileRows
+      .map((row) =>
+        row.typeOnly
+          ? `import type { Stub } from "${row.specifier}";\nexport type Uses${fileRows.indexOf(row)} = Stub;`
+          : `import "${row.specifier}";`,
+      )
+      .join("\n");
     writeFixtureFile(dir, from, `${lines}\nexport {};\n`);
   }
 
-  const targets = new Set(rows.map(targetPath));
+  const targets = new Set(rows.filter((row) => !isBarePackage(row.specifier)).map(targetPath));
   for (const target of targets) {
-    if (!existsSync(join(dir, target))) writeFixtureFile(dir, target, "export {};\n");
+    if (!existsSync(join(dir, target))) {
+      writeFixtureFile(dir, target, "export type Stub = string;\nexport {};\n");
+    }
   }
 
   return dir;
 }
 
-/** Cruises `dir` (a fixture tree, or ROOT for the real-tree check) with the real config's rules. */
-async function cruiseFixture(
+/**
+ * Cruises `sources` under `dir` (a fixture tree, or ROOT for the real tree)
+ * with the committed config: its rules and its options (tsPreCompilationDeps,
+ * doNotFollow, exclude, includeOnly…), with `dir`'s own tsconfig.json.
+ */
+async function cruiseTree(
   dir: string,
-  ruleSet: IFlattenedRuleSet,
-  exclude?: string,
-): Promise<IViolation[]> {
+  config: IConfiguration,
+  sources: string[],
+): Promise<CruiseOutcome> {
   const tsConfigFileName = join(dir, "tsconfig.json");
   const parsedTsConfig = extractTSConfig(tsConfigFileName);
   const result = await cruise(
-    ["."],
+    sources,
     {
+      ...config.options,
       validate: true,
-      ruleSet,
+      ruleSet: { forbidden: config.forbidden },
       tsConfig: { fileName: tsConfigFileName },
-      exclude: exclude ?? "node_modules",
       baseDir: dir,
     },
     undefined,
@@ -399,16 +529,20 @@ async function cruiseFixture(
   );
 
   const output = result.output;
-  if (typeof output === "string") return [];
-  return output.summary.violations;
+  if (typeof output === "string") {
+    throw new Error(`dependency-cruiser returned a string instead of a cruise result: ${output}`);
+  }
+  return { violations: output.summary.violations, modules: output.modules };
 }
 
-/** A violation is reported for exactly the (from, to) pair a row names — not merely the same `from`, since several rows in LAYOUT-6..8 share an importer with different verdicts. */
+/** A violation is reported for exactly the (from, to) pair a row names — not merely the same `from`, since several rows share an importer with different verdicts. */
 function assertRows(rows: ImportRow[], violations: IViolation[]): void {
   for (const row of rows) {
-    const to = targetPath(row);
+    const matchesTarget = isBarePackage(row.specifier)
+      ? (to: string) => to.startsWith(`${PRISMA_PACKAGE_DIR}/`)
+      : (to: string) => to === targetPath(row);
     const reported = violations.some(
-      (violation) => violation.from === row.from && violation.to === to,
+      (violation) => violation.from === row.from && matchesTarget(violation.to),
     );
     expect(reported, `${row.from} -> ${row.specifier} expected ${row.verdict}`).toBe(
       row.verdict === "reported",
@@ -420,40 +554,7 @@ function isCycleViolation(violation: IViolation): boolean {
   return violation.type === "cycle" || /circular/i.test(violation.rule.name);
 }
 
-// --- LAYOUT-9 node-plop helpers ----------------------------------------------
-
-interface PlopRunResult {
-  changes: { type: string; path: string }[];
-  failures: { type: string; path: string; error: string }[];
-}
-
-interface PlopGenerator {
-  runActions(answers: Record<string, string>): Promise<PlopRunResult>;
-}
-
-interface NodePlopApi {
-  getGenerator(name: string): PlopGenerator;
-}
-
-type NodePlopFactory = (
-  plopfilePath: string,
-  config: { destBasePath: string },
-) => Promise<NodePlopApi>;
-
-/**
- * node-plop ships only as a dependency of the installed `plop` package —
- * pnpm's strict node_modules does not hoist it to the top level because
- * nothing in this project declares it directly. Resolving it the way `plop`
- * itself does (relative to plop's own installed location) reaches the same
- * copy without adding a second dependency.
- */
-async function loadNodePlop(): Promise<NodePlopFactory> {
-  const plopEntryUrl = import.meta.resolve("plop");
-  const pluginRequire = createRequire(plopEntryUrl);
-  const nodePlopPath = pluginRequire.resolve("node-plop");
-  const mod = (await import(pathToFileURL(nodePlopPath).href)) as { default: NodePlopFactory };
-  return mod.default;
-}
+// --- LAYOUT-9 helper -----------------------------------------------------------
 
 function snapshotFiles(
   dir: string,

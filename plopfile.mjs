@@ -25,14 +25,17 @@ export default function (plop) {
       },
     ],
     actions: [
-      // Refuses to redo an existing feature, and writes nothing when it
-      // does: this runs before any add action below, and node-plop aborts
-      // the remaining actions once one fails (docs/specs/core-layout.md
-      // LAYOUT-9).
+      // Refuses to redo an existing feature, or to overwrite an existing
+      // spec, and writes nothing when it does: this runs before any add
+      // action below, and node-plop aborts the remaining actions once one
+      // fails (docs/specs/core-layout.md LAYOUT-9).
       async (data, _actionConfig, plopApi) => {
-        const target = path.join(plopApi.getDestBasePath(), "server", data.name);
-        if (existsSync(target)) {
+        const destBasePath = plopApi.getDestBasePath();
+        if (existsSync(path.join(destBasePath, "server", data.name))) {
           throw new Error(`server/${data.name} already exists`);
+        }
+        if (existsSync(path.join(destBasePath, "docs", "specs", `${data.name}.md`))) {
+          throw new Error(`docs/specs/${data.name}.md already exists`);
         }
       },
       ...FEATURE_FILES.map((file) => ({

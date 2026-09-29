@@ -182,7 +182,7 @@ reasonable-looking change, because breaking one is silent:
   city- or province-level approximations. Wallapop's are exact when the listing
   carries coordinates (SRC-3).
 - **The merge post-filters by radius and model** (`applyResultFilters` in
-  `lib/hooks/useListingsSearch.ts`). It looks redundant — "upstream already
+  `lib/listings/merge.ts`, called from `lib/hooks/useListingsSearch.ts`). It looks redundant — "upstream already
   filters" — but only Wallapop enforces the radius and Milanuncios matches the
   model as free text. Removing it silently reverts to nationwide results
   (MAP-16..18). **Because that filter can empty a page**, the first search and
@@ -194,7 +194,7 @@ reasonable-looking change, because breaking one is silent:
 - **Server code cannot call the browser-bound fetchers** — `searchWallapop`,
   `searchCochesNet`, `searchMilanuncios`, `lib/wallapop/filters.ts` and
   `lib/cochesnet/models.ts` resolve URLs against `window.location.origin`. The alert
-  runner goes through `lib/alerts/search.ts`, which reuses only the pure query builders
+  runner goes through `server/alerts/search.ts`, which reuses only the pure query builders
   from `lib/*/client.ts`.
 - Respect robots.txt and the upstreams' rate limits.
 - Where it helps performance, keep map markers clustered or limited and lazy-load

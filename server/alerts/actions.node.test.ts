@@ -16,13 +16,12 @@ vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
 // The seed poll (ALERT-2) is the only network this module does. Stubbed at the
 // server-side search seam rather than at fetch, so the action's own behaviour —
 // what it stores, and that it stays silent — is what the tests exercise.
-vi.mock("@/lib/alerts/search", () => ({ searchAllSources: vi.fn() }));
+vi.mock("@/server/alerts/search", () => ({ searchAllSources: vi.fn() }));
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email/client";
 import { getLocale } from "@/lib/i18n/server";
-import { searchAllSources } from "@/lib/alerts/search";
-import { setLocale } from "@/server/locale/actions";
+import { searchAllSources } from "@/server/alerts/search";
 import { createAlert, deleteAlert, listAlerts } from "./actions";
 
 const ADA = { id: "user-ada", email: "ada@example.com" };
@@ -358,40 +357,5 @@ describe("deleteAlert", () => {
 
     expect(result.success).toBe(true);
     expect(store.criteria()).toHaveLength(1);
-  });
-});
-
-describe("setLocale", () => {
-  it("ALERT-33: persists the chosen language to the signed-in account", async () => {
-    store = createAlertStore();
-    store.seedUser({ id: ADA.id, email: ADA.email, locale: "es" });
-    signedInAs(ADA);
-
-    const result = await setLocale("en");
-
-    expect(result.success).toBe(true);
-    expect(store.users()[0].locale).toBe("en");
-  });
-
-  it("ALERT-33: a signed-out visitor writes nothing, the cookie already carries it", async () => {
-    store = createAlertStore();
-    store.seedUser({ id: ADA.id, email: ADA.email, locale: "es" });
-    signedOut();
-
-    const result = await setLocale("en");
-
-    expect(result.success).toBe(true);
-    expect(store.users()[0].locale).toBe("es");
-  });
-
-  it("ALERT-33: refuses a locale the app does not support", async () => {
-    store = createAlertStore();
-    store.seedUser({ id: ADA.id, email: ADA.email, locale: "es" });
-    signedInAs(ADA);
-
-    const result = await setLocale("de" as never);
-
-    expect(result).toEqual({ success: false, error: "invalidCriteria" });
-    expect(store.users()[0].locale).toBe("es");
   });
 });

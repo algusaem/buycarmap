@@ -2,9 +2,14 @@
 
 import { getCurrentUser } from "@/lib/auth/session";
 import type { AlertSummary } from "@/interfaces/alert";
-import { searchSchema, type SearchInput } from "@/server/search/schema";
-import { ALERT_ERROR, type AlertErrorCode, isSpecificEnough } from "./schema";
-import { createAlertForUser, deleteAlertForUser, findAlertSummaries } from "./service";
+import { searchSchema, type SearchInput } from "@/lib/search/schema";
+import { ALERT_ERROR, type AlertErrorCode } from "./schema";
+import {
+  createAlertForUser,
+  deleteAlertForUser,
+  findAlertSummaries,
+  isSpecificEnough,
+} from "./service";
 
 interface AlertResult {
   success: boolean;

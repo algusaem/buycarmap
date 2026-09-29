@@ -2,18 +2,42 @@
  * Enforces the server-layer boundaries of docs/specs/core-layout.md
  * (LAYOUT-6, LAYOUT-7, LAYOUT-8, LAYOUT-10). Wired into `pnpm lint` as `pnpm depcruise`.
  *
- * Every rule's `from` excludes test files (`\.test\.tsx?$`, which also
- * matches `*.node.test.ts`): tests mock the modules they import, so the
- * boundaries below do not apply to them.
+ * Type-only imports count like any other import (`tsPreCompilationDeps`).
+ *
+ * Every layer rule's `from` excludes test files (`\.test\.tsx?$`, which also
+ * matches `*.node.test.ts`): tests import what they test and mock the
+ * database, so the layer boundaries do not apply to them. The cycle rule,
+ * no-circular, applies to them like to any other file.
+ *
+ * `@prisma/*` is matched pnpm-aware: a package resolves to
+ * `node_modules/.pnpm/<package>@<version>/node_modules/@prisma/…`. The two
+ * forms are spelled out as alternatives because dependency-cruiser refuses an
+ * optional group around a quantifier as an unsafe regular expression.
  */
 module.exports = {
   forbidden: [
     {
-      name: "no-db-outside-service",
+      name: "no-prisma-outside-service",
       comment:
-        "@prisma/*, the generated Prisma client and lib/db/** are reached only from a " +
-        "feature's server/<feature>/service.ts, from lib/db/** itself, or from the NextAuth " +
-        "exception lib/auth/options.ts (LAYOUT-7, see auth-options-server-exception below).",
+        "@prisma/* and the generated Prisma client are reached only from a feature's " +
+        "server/<feature>/service.ts or from lib/db/** itself. The NextAuth exception " +
+        "(LAYOUT-7) does not cover them: lib/auth/options.ts reaches the database only " +
+        "through lib/db/**.",
+      severity: "error",
+      from: {
+        pathNot: ["^server/[^/]+/service\\.ts$", "^lib/db/", "\\.test\\.tsx?$"],
+      },
+      to: {
+        path: "^(node_modules/@prisma/|node_modules/\\.pnpm/[^/]+/node_modules/@prisma/|app/generated/prisma/)",
+      },
+    },
+    {
+      name: "no-db-module-outside-service",
+      comment:
+        "lib/db/** is reached only from a feature's server/<feature>/service.ts, from " +
+        "lib/db/** itself, or from lib/auth/options.ts: the NextAuth exception (ADR 0007 " +
+        "row 25, until phase 11, LAYOUT-7), whose Prisma adapter needs the client. Its " +
+        "other edge, to server/auth/service.ts, is auth-options-server-exception below.",
       severity: "error",
       from: {
         pathNot: [
@@ -24,7 +48,7 @@ module.exports = {
         ],
       },
       to: {
-        path: "^(node_modules/@prisma/|app/generated/prisma/|lib/db/)",
+        path: "^lib/db/",
       },
     },
     {
@@ -61,7 +85,7 @@ module.exports = {
       name: "no-app-from-lib",
       comment:
         "lib/** never imports app/**. The one physical exception, the generated Prisma " +
-        "client under app/generated/prisma/, is governed by no-db-outside-service instead.",
+        "client under app/generated/prisma/, is governed by no-prisma-outside-service instead.",
       severity: "error",
       from: {
         path: "^lib/",
@@ -139,11 +163,9 @@ module.exports = {
     },
     {
       name: "no-circular",
-      comment: "No circular dependencies anywhere in the code roots below.",
+      comment: "No circular dependencies anywhere in the cruised roots, test files included.",
       severity: "error",
-      from: {
-        pathNot: "\\.test\\.tsx?$",
-      },
+      from: {},
       to: {
         circular: true,
       },
@@ -153,14 +175,17 @@ module.exports = {
     tsConfig: {
       fileName: "tsconfig.json",
     },
+    // Type-only imports are real edges: an `import type` from server/** in
+    // lib/** breaks the layer as much as a runtime import does (LAYOUT-6).
+    tsPreCompilationDeps: true,
+    // Recorded as dependencies, so the rules above see @prisma/* and the
+    // generated client, but never cruised into.
     doNotFollow: {
-      path: "node_modules",
+      path: "(^|/)node_modules/|^app/generated/",
     },
+    // Build output only. The cruised roots are the ones `pnpm depcruise` names.
     exclude: {
-      path: "app/generated|\\.next|node_modules|coverage|\\.claude/worktrees",
-    },
-    includeOnly: {
-      path: "^(app|components|lib|interfaces|types|server|proxy\\.ts)",
+      path: "(^|/)(\\.next|coverage|\\.claude/worktrees)/",
     },
   },
 };

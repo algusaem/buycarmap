@@ -8,7 +8,6 @@ import { buildOtpAuthUri, generateTotpSecret, verifyTotp } from "@/lib/auth/two-
 import { generateRecoveryCodes } from "@/lib/auth/two-factor/recovery-codes";
 import { requiredString } from "@/lib/form-data";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
-import { verifyAndConsumeTwoFactor } from "@/server/auth/service";
 import { RATE_LIMITS, consumeRateLimit } from "@/server/rate-limit/service";
 import { disableTwoFactorSchema, twoFactorCodeSchema } from "./schema";
 import {
@@ -20,6 +19,7 @@ import {
   findTwoFactorSetupState,
   replaceRecoveryCodes,
   storePendingTwoFactorSecret,
+  verifyAndConsumeTwoFactor,
 } from "./service";
 
 interface TwoFactorResult {

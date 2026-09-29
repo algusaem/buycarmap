@@ -43,6 +43,21 @@ in the route (`CLAUDE.md`). The dependency-cruiser config carries one named exce
 `lib/auth/options.ts` may import `lib/db/**` and `server/auth/service.ts`, nothing else, and no
 other file may use it. Row 25 of ADR 0007 removes NextAuth, and this exception with it, in phase 11.
 
+**The search schema stays in `lib/` until phase 9 (2026-09-29).** `SearchInput` lives at
+`lib/search/schema.ts`, not in a `server/search/` feature. The upstream clients, the radius filter
+and the merge all use it, and all run in the browser until phase 9 moves the search to the server
+(ADR 0007 row 19). In `server/`, it would make `lib/**` import `server/**`.
+
+**The auth actions keep their domain checks until phase 11 (2026-09-29).** Token checks,
+enumeration resistance, the password-reuse check and the email fork stay in the auth features'
+`actions.ts`, where they sat before this phase. Phase 11 rewrites every auth flow on Better Auth
+(ADR 0007 row 25), so restructuring that code now would risk a regression for no gain.
+
+**`lib/listings/` holds the merge logic until phase 9 (2026-09-29).** The interleaving, the radius
+and model post-filters and the page-state advance run in the browser on proxy results, so they
+live in `lib/listings/`, not in a `service.ts`. Phase 9 moves the search to the server (ADR 0007
+row 19), and the logic goes with it.
+
 **ADRs are dated records.** This phase moves files earlier ADRs cite by path — `app/actions/` in
 ADR 0007, for one. An accepted ADR is never edited, so its paths describe the code as it stood when
 the decision was taken, not as it stands now. `docs-check` stops requiring an ADR's backticked

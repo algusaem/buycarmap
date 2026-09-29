@@ -25,7 +25,8 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
     retryAfterMs: 0,
   })),
 }));
-vi.mock("@/server/auth/service", () => ({
+vi.mock("@/server/two-factor/service", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/two-factor/service")>()),
   verifyAndConsumeTwoFactor: vi.fn(),
 }));
 
@@ -33,7 +34,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/hash";
 import { consumeRateLimit } from "@/server/rate-limit/service";
-import { verifyAndConsumeTwoFactor } from "@/server/auth/service";
+import { verifyAndConsumeTwoFactor } from "@/server/two-factor/service";
 import { decryptSecret, encryptSecret } from "@/lib/auth/two-factor/encryption";
 import { deriveCode, generateTotpSecret, stepForTime } from "@/lib/auth/two-factor/totp";
 import {

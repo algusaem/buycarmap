@@ -11,11 +11,7 @@ import { verifyAndConsumeTwoFactor } from "@/server/two-factor/service";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 
 // The auth core other features reach through this file (docs/specs/core-layout.md
-// LAYOUT-6): credentials authorization, expired-token housekeeping, and the
-// two-factor check shared by the login path and the account actions. The
-// two-factor check lives in server/two-factor/service.ts, next to the rest of
-// the two-factor database work, and is re-exported here.
-export { verifyAndConsumeTwoFactor } from "@/server/two-factor/service";
+// LAYOUT-6): credentials authorization and expired-token housekeeping.
 
 export interface AuthorizedUser {
   id: string;

@@ -2,7 +2,7 @@ import type { CarListing } from "@/interfaces/listing";
 import type { WallapopSearchResponse } from "@/interfaces/wallapop";
 import type { CochesNetSearchResponse } from "@/interfaces/cochesnet";
 import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
-import type { SearchInput } from "@/server/search/schema";
+import type { SearchInput } from "@/lib/search/schema";
 import { normalizeWallapopItems } from "@/lib/wallapop/normalize";
 import { normalizeCochesNetItems } from "@/lib/cochesnet/normalize";
 import { normalizeMilanunciosItems } from "@/lib/milanuncios/normalize";
@@ -98,9 +98,10 @@ export function collectRoundResults(
   };
 }
 
-// Wallapop's next-page cursor. `search` always requests page 1 (wasRequested
-// is always true there); `fetchNextRound` only requests a page when one is
-// pending, and otherwise keeps the cursor from the previous round.
+// Wallapop's next-page cursor. `useListingsSearch`'s `search` always requests
+// page 1 (wasRequested is always true there); its `fetchNextRound` only
+// requests a page when one is pending, and otherwise keeps the cursor from the
+// previous round.
 function nextWallapopPage(
   wasRequested: boolean,
   wpResult: PromiseSettledResult<WallapopSearchResponse | null>,
@@ -132,9 +133,9 @@ interface RoundRequested {
 }
 
 // The page state after one round, given which sources a page was requested
-// from. `search` advances from EMPTY_PAGE having requested all three;
-// `fetchNextRound` advances from the previous round's state having requested
-// only the sources that still had a page pending.
+// from. `useListingsSearch`'s `search` advances from EMPTY_PAGE having
+// requested all three; its `fetchNextRound` advances from the previous round's
+// state having requested only the sources that still had a page pending.
 export function advancePageState(
   prev: PageState,
   requested: RoundRequested,

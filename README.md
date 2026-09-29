@@ -398,7 +398,6 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/api/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `components/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `server/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
-| `lib/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `lib/email/templates/alert-emails.ts` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `.github/workflows/alerts.yml` | [docs/decisions/0006-alert-scheduling.md](docs/decisions/0006-alert-scheduling.md) |
 | `lib/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
@@ -434,7 +433,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `plopfile.mjs` | [README.md](README.md) |
 | `plop-templates/**` | [README.md](README.md) |
 | `lib/listings/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
-| `server/search/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
+| `lib/search/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/map/page.tsx` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/api/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `app/login/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
@@ -511,7 +510,7 @@ every pull request; [`pr-title.yml`](.github/workflows/pr-title.yml) runs on pul
 
 | Step | Fails when |
 | --- | --- |
-| `pnpm check` | Biome, knip, `spec:check`, `docs:check` or `todo:check` fail; `tsc` or type-coverage fail; a test fails or coverage drops below the ratchet; the build fails |
+| `pnpm check` | Biome, `depcruise`, knip, `spec:check`, `docs:check` or `todo:check` fail; `tsc` or type-coverage fail; a test fails or coverage drops below the ratchet; the build fails |
 | `gitleaks` | A secret is committed |
 | PR title | The title is not a Conventional Commit |
 

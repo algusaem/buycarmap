@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth/session";
 import { getTranslations } from "@/lib/i18n/server";
-import { listAlerts } from "@/server/alerts/actions";
+import { listAlertsForPage } from "@/server/alerts/queries";
 import { AlertsList } from "@/components/alerts/AlertsList";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,14 +11,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AlertsPage() {
-  // `proxy.ts` already redirects anonymous visitors, but this is the check that
-  // matters: the proxy only decodes the JWT, while `getCurrentUser` runs the
-  // session callback and honours revocation.
-  const user = await getCurrentUser();
-  if (!user) redirect("/login?callbackUrl=%2Falerts");
-
+  const alerts = await listAlertsForPage();
   const t = await getTranslations();
-  const result = await listAlerts();
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8">
@@ -40,7 +32,7 @@ export default async function AlertsPage() {
         </div>
       </div>
 
-      <AlertsList alerts={result.data ?? []} />
+      <AlertsList alerts={alerts} />
     </div>
   );
 }

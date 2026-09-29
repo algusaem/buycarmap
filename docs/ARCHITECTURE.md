@@ -231,7 +231,7 @@ following them.
 
 **It cannot use `lib/*/client.ts`.** Those resolve their URL against
 `window.location.origin` and call the proxy routes — which is precisely what the
-proxies are for. A cron has neither, so `lib/alerts/search.ts` calls the three
+proxies are for. A cron has neither, so `server/alerts/search.ts` calls the three
 upstreams directly with the same headers the proxies send.
 
 **It cannot use `getCurrentUser()`.** The caller is a machine, so the endpoint
@@ -276,13 +276,15 @@ Spanish or English in components.
 | `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/`), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
 | `components/map/` | The search + map feature |
-| `lib/alerts/` | The background poller's own source fan-out and unsubscribe tokens |
 | `components/ui/` | Radix-wrapped primitives |
 | `lib/hooks/` | Every request lifecycle |
 | `lib/wallapop/`, `lib/cochesnet/`, `lib/milanuncios/` | One module per source: client, normalize, taxonomy |
 | `lib/auth/` | Session, password policy, tokens, two-factor |
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
+| `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database |
+| `lib/listings/` | The pure search-merge logic: interleaving, the radius and model post-filters, the page-state advance |
+| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Tooling: branch databases, spec, docs and TODO checks — dependency-free except the TODO check, which loads `typescript` |
 
@@ -758,8 +760,8 @@ work down a level is almost always right.
 
 Split by environment, not by kind — see [`vitest.config.ts`](../vitest.config.ts).
 
-**`unit`** (jsdom) is the default: everything under `lib/`, `components/` and
-`app/` matching `*.test.{ts,tsx}`.
+**`unit`** (jsdom) is the default: everything under `lib/`, `components/`,
+`app/` and `server/` matching `*.test.{ts,tsx}`.
 
 **`node`** is opt-in **by filename**: `*.node.test.ts`. Route handlers and server
 actions need Node's real `Request`/`Response`, which jsdom does not provide.
@@ -770,7 +772,7 @@ project; the pre-commit hook runs the unit tests related to the staged files.
 Two entries in the `node` include list are worth knowing:
 
 - `proxy.node.test.ts` is listed explicitly, because Next's file convention
-  forces `proxy.ts` to sit at the repo root where the `{lib,app}/**` glob cannot
+  forces `proxy.ts` to sit at the repo root where the `{lib,app,server}/**` glob cannot
   reach it.
 - `scripts/**/*.node.test.ts` is covered even though it is not app code — a bug
   in `db-branch.mjs` clobbers real secrets.

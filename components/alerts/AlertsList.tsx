@@ -7,7 +7,7 @@ import { BellRing, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteAlert } from "@/server/alerts/actions";
 import type { AlertSummary } from "@/interfaces/alert";
-import type { SearchInput } from "@/server/search/schema";
+import type { SearchInput } from "@/lib/search/schema";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAlertError } from "@/lib/i18n/errors";
 

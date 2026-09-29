@@ -6,7 +6,8 @@ import { verifyTotp } from "@/lib/auth/two-factor/totp";
 
 // verifyAndConsumeTwoFactor is shared by the login path and by the account
 // actions, so the rules about replay and single-use recovery codes cannot
-// drift between them. Other features reach it through server/auth/service.ts.
+// drift between them. The login path (server/auth/service.ts) imports it from
+// here, and so do this feature's own actions.
 
 type TwoFactorMethod = "totp" | "recoveryCode";
 

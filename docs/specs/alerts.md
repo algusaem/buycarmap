@@ -281,7 +281,7 @@ URL with `new URL(BASE_URL, window.location.origin)`, and the other two do the
 same: they call the proxy routes from the browser, which is the whole point of
 those routes existing. A cron has no `window` and no origin to resolve against.
 
-So `lib/alerts/search.ts` exports `searchAllSources(criteria)`, which calls the
+So `server/alerts/search.ts` exports `searchAllSources(criteria)`, which calls the
 three upstreams directly — the same requests `app/api/*/route.ts` forwards, with
 the same required headers — and returns more than a merged list:
 

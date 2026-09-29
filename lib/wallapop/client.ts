@@ -1,5 +1,5 @@
 import type { WallapopSearchResponse } from "@/interfaces/wallapop";
-import type { SearchInput } from "@/server/search/schema";
+import type { SearchInput } from "@/lib/search/schema";
 import { getUserLocation } from "@/lib/geo/user-location";
 
 const BASE_URL = "/api/wallapop/search";

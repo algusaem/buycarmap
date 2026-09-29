@@ -24,12 +24,12 @@ import {
   issueResetToken,
 } from "./service";
 
-interface ForgotPasswordResult {
+interface PasswordResetResult {
   success: boolean;
   error?: AuthErrorCode;
 }
 
-export async function requestPasswordReset(formData: FormData): Promise<ForgotPasswordResult> {
+export async function requestPasswordReset(formData: FormData): Promise<PasswordResetResult> {
   const parsed = forgotPasswordSchema.safeParse({
     email: requiredString(formData.get("email")),
   });
@@ -78,12 +78,7 @@ export async function requestPasswordReset(formData: FormData): Promise<ForgotPa
   return { success: true };
 }
 
-interface ResetPasswordResult {
-  success: boolean;
-  error?: AuthErrorCode;
-}
-
-export async function resetPassword(formData: FormData): Promise<ResetPasswordResult> {
+export async function resetPassword(formData: FormData): Promise<PasswordResetResult> {
   const ip = await getClientIp();
   const budget = await consumeRateLimit(`reset-redeem:ip:${ip}`, RATE_LIMITS.resetRedeemPerIp);
 
