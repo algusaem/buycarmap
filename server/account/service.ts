@@ -2,7 +2,10 @@ import { prisma } from "@/lib/db/prisma";
 
 // The account feature's database work: the actions in ./actions.ts and the
 // account page read in ./queries.ts call into here. Every function is scoped
-// to the id it is given; the callers pass the session's own user id.
+// to the id it is given. The callers pass the session's own user id, except to
+// deleteLinkedAccount(accountId), which takes an Account row id: its caller
+// takes that id from the session user's own linked accounts
+// (findSignInMethods), and the delete itself is not scoped by user.
 
 /**
  * What the account page renders. `password` is null for OAuth-only accounts,

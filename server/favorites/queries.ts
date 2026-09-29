@@ -18,7 +18,7 @@ export async function listFavoritesForPage(): Promise<CarListing[]> {
     return await findFavorites(user.id);
   } catch {
     // The page rendered an empty list when the read failed before this query
-    // existed, and it still does.
+    // existed, and it still does (ADR 0012, until phase 6).
     return [];
   }
 }

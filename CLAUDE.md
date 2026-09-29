@@ -109,7 +109,7 @@ pnpm typecheck         # tsc --noEmit and type-coverage
 pnpm depcruise         # dependency-cruiser boundaries (.dependency-cruiser.cjs), 0 violations required
 pnpm gen feature <name> # Scaffold server/<name>/{queries,actions,service,schema}.ts and its spec (plop)
 pnpm spec:check       # Assert every approved acceptance criterion still has a test
-pnpm docs:check       # Assert doc links, referenced source paths and the ownership map resolve
+pnpm docs:check       # Assert doc links, referenced source paths (ADR source paths excepted, LAYOUT-4) and the ownership map resolve
 pnpm todo:check       # No TODO comment without an issue reference
 pnpm test              # Vitest, both projects, with the coverage thresholds
 pnpm test:unit         # Vitest jsdom project
@@ -182,7 +182,7 @@ reasonable-looking change, because breaking one is silent:
   city- or province-level approximations. Wallapop's are exact when the listing
   carries coordinates (SRC-3).
 - **The merge post-filters by radius and model** (`applyResultFilters` in
-  `lib/listings/merge.ts`, called from `lib/hooks/useListingsSearch.ts`). It looks redundant — "upstream already
+  `lib/listings/merge.ts`, applied by `collectRoundResults`, which `lib/hooks/useListingsSearch.ts` calls). It looks redundant — "upstream already
   filters" — but only Wallapop enforces the radius and Milanuncios matches the
   model as free text. Removing it silently reverts to nationwide results
   (MAP-16..18). **Because that filter can empty a page**, the first search and

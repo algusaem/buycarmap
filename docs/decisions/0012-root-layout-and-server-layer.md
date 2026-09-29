@@ -1,6 +1,6 @@
 # 0012 — Root layout and server layer
 
-Status: Accepted · Date: 2026-09-29 · Amends ADR 0007 rows 2 and 10
+Status: Accepted · Date: 2026-09-29 · Amends ADR 0007 rows 2, 10 and 27
 
 ## Context
 
@@ -11,7 +11,8 @@ dependency-cruiser, knip and plop, removed in part in phase 3 and in part in pha
 [docs/specs/core-layout.md](../specs/core-layout.md), is what this record supports. Its first
 version, approved 2026-09-28, moved the tree into `src/`; the owner then chose to keep the root
 layout instead, which this record makes permanent, alongside the server-layer decisions the owner
-took while approving that spec.
+took while approving that spec. Row 27's phase-5 half changes with it: `proxy.ts` stays at the root
+and joins the coverage run instead of moving into `src/`.
 
 ## Decided
 
@@ -48,10 +49,33 @@ other file may use it. Row 25 of ADR 0007 removes NextAuth, and this exception w
 and the merge all use it, and all run in the browser until phase 9 moves the search to the server
 (ADR 0007 row 19). In `server/`, it would make `lib/**` import `server/**`.
 
-**The auth actions keep their domain checks until phase 11 (2026-09-29).** Token checks,
-enumeration resistance, the password-reuse check and the email fork stay in the auth features'
-`actions.ts`, where they sat before this phase. Phase 11 rewrites every auth flow on Better Auth
+**The auth actions keep their domain checks until phase 11 (2026-09-29).** The auth flows' domain
+checks, for example the token checks, enumeration resistance, the password-reuse check and the
+email fork, stay in the auth features' `actions.ts`, where they sat before this phase. Phase 11 rewrites every auth flow on Better Auth
 (ADR 0007 row 25), so restructuring that code now would risk a regression for no gain.
+
+**The NextAuth callbacks read the user inside the same exception (2026-09-29).** The `signIn` and
+`jwt` callbacks in `lib/auth/options.ts` each look the user up through `lib/db/prisma`. Both
+lookups sit inside the NextAuth exception above and go away with it in phase 11.
+
+**Hooks may import `actions.ts` and `schema.ts` until phase 9 (2026-09-29).** `lib/hooks/**` may
+import a feature's `actions.ts` and `schema.ts` (LAYOUT-10), the same access components have,
+because a hook owns a request lifecycle and the request is a Server Action. This follows the hooks
+staying in `lib/hooks/` under ADR 0007 row 19, and is revisited when phase 9 moves them.
+
+**Test files are exempt from the layer rules until phase 7 (2026-09-29).** A test imports what it
+tests and mocks the database, so `*.test.ts(x)` files are exempt from the layer rules. They stay
+bound by the cycle rule. Phase 7 reworks test names and levels (ADR 0007 row 16) and revisits the
+exemption.
+
+**`node-plop` is a dev dependency (2026-09-29).** It is plop's programmatic API, pinned to the
+version plop 4.0.5 resolves (0.32.3), and only the LAYOUT-9 test uses it, to run the committed
+plopfile in a temporary directory.
+
+**The page queries return `[]` on a failed read until phase 6 (2026-09-29).**
+`listAlertsForPage()` and `listFavoritesForPage()` catch a failed read and return an empty list,
+as the pages did before this phase. Phase 6 brings `Result<T, E>`, Pino and Sentry (ADR 0007 row
+13), and the failed read gets its own handling then.
 
 **`lib/listings/` holds the merge logic until phase 9 (2026-09-29).** The interleaving, the radius
 and model post-filters and the page-state advance run in the browser on proxy results, so they

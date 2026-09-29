@@ -346,7 +346,7 @@ observable if the run says what it did:
 where the error is a **code**:
 
 - `createAlert(criteria, label)` — ALERT-1, ALERT-2, ALERT-3, ALERT-4, ALERT-6, ALERT-7, ALERT-8, ALERT-34
-- `listAlerts()` — ALERT-4, ALERT-28
+- `listAlertsForPage()` in `server/alerts/queries.ts` — ALERT-4, ALERT-28
 - `deleteAlert(alertId)` — ALERT-4, ALERT-5
 - `setLocale(locale)` — ALERT-33, in `server/locale/actions.ts`. It no-ops for
   a signed-out caller, since the cookie already carries the preference for them

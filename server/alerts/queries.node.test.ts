@@ -80,4 +80,13 @@ describe("listAlertsForPage", () => {
     expect(findAlertSummaries).toHaveBeenCalledWith("user-ada");
     expect(redirect).not.toHaveBeenCalled();
   });
+
+  it("LAYOUT-11: with a session, a failed read resolves to an empty list", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(ADA);
+    vi.mocked(findAlertSummaries).mockRejectedValue(new Error("db down"));
+
+    await expect(listAlertsForPage()).resolves.toEqual([]);
+
+    expect(redirect).not.toHaveBeenCalled();
+  });
 });

@@ -12,7 +12,9 @@
  * `@prisma/*` is matched pnpm-aware: a package resolves to
  * `node_modules/.pnpm/<package>@<version>/node_modules/@prisma/…`. The two
  * forms are spelled out as alternatives because dependency-cruiser refuses an
- * optional group around a quantifier as an unsafe regular expression.
+ * optional group around a quantifier as an unsafe regular expression. The
+ * generated client is matched unresolved too (`@/app/generated/prisma…`), so
+ * an import of it is still reported before `prisma generate` has run.
  */
 module.exports = {
   forbidden: [
@@ -28,7 +30,7 @@ module.exports = {
         pathNot: ["^server/[^/]+/service\\.ts$", "^lib/db/", "\\.test\\.tsx?$"],
       },
       to: {
-        path: "^(node_modules/@prisma/|node_modules/\\.pnpm/[^/]+/node_modules/@prisma/|app/generated/prisma/)",
+        path: "^(node_modules/@prisma/|node_modules/\\.pnpm/[^/]+/node_modules/@prisma/|app/generated/prisma/|@/app/generated/prisma)",
       },
     },
     {
@@ -52,18 +54,35 @@ module.exports = {
       },
     },
     {
-      name: "no-service-from-app",
+      name: "app-only-queries-actions-or-schema",
       comment:
-        "app/** never imports a feature's service.ts, except a route.ts under app/api/** " +
-        "(LAYOUT-8) — it has no user session and authenticates on its own (the cron secret, " +
-        "an unsubscribe token), so it cannot go through actions.ts.",
+        "app/** may import only a feature's queries.ts, actions.ts or schema.ts from " +
+        "server/** (LAYOUT-6). A route.ts under app/api/** has its own, wider rule below " +
+        "(LAYOUT-8, route-handlers-also-service).",
       severity: "error",
       from: {
         path: "^app/",
         pathNot: ["^app/api/.+/route\\.ts$", "\\.test\\.tsx?$"],
       },
       to: {
-        path: "/service\\.ts$",
+        path: "^server/",
+        pathNot: "/(queries|actions|schema)\\.ts$",
+      },
+    },
+    {
+      name: "route-handlers-also-service",
+      comment:
+        "A route.ts under app/api/** may also import a feature's service.ts (LAYOUT-8) — it " +
+        "has no user session and authenticates on its own (the cron secret, an unsubscribe " +
+        "token), so it cannot go through actions.ts. Every other file under server/ stays " +
+        "out of its reach, as for the rest of app/**.",
+      severity: "error",
+      from: {
+        path: "^app/api/.+/route\\.ts$",
+      },
+      to: {
+        path: "^server/",
+        pathNot: "/(queries|actions|schema|service)\\.ts$",
       },
     },
     {
@@ -132,7 +151,7 @@ module.exports = {
       name: "auth-options-server-exception",
       comment:
         "The NextAuth exception (ADR 0007 row 25, until phase 11): lib/auth/options.ts needs " +
-        "the Prisma adapter and server/auth/service.ts's authorize/cleanup/verify, and stays " +
+        "the Prisma adapter and server/auth/service.ts's authorizeCredentials, and stays " +
         "outside the server layer so server components can import it without dragging in a " +
         "route (CLAUDE.md). This is the only edge allowed here — no other file under lib/ may " +
         "reach server/auth/service.ts (see no-server-from-lib above), and this file may reach " +

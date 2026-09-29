@@ -134,7 +134,7 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm test:contract` | External API shapes, against offline fixtures |
 | `pnpm test:contract:live` | The same, against the real upstream APIs |
 | `pnpm spec:check` | Every approved acceptance criterion is still named by a test |
-| `pnpm docs:check` | Doc links, referenced source paths, reachability from this file, the ownership map |
+| `pnpm docs:check` | Doc links, referenced source paths (ADR source paths excepted, LAYOUT-4), reachability from this file, the ownership map |
 | `pnpm todo:check` | Every `TODO` comment names its issue (`#n`) |
 | `pnpm db:branch` | Give this git branch its own Neon database |
 | `pnpm db:branch:rm` | Delete it |
@@ -330,7 +330,7 @@ solo project is ceremony.
 | [core-mastermind.md](docs/specs/core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
 | [core-tooling.md](docs/specs/core-tooling.md) | TOOLING | Implemented | Migration phase 3: the verification contract and repository tooling |
 | [core-docs.md](docs/specs/core-docs.md) | DOCS | Implemented | Migration phase 4: the core spec format and docs tree |
-| [core-layout.md](docs/specs/core-layout.md) | LAYOUT | Approved | Migration phase 5: the server layer and the dependency rules |
+| [core-layout.md](docs/specs/core-layout.md) | LAYOUT | Implemented | Migration phase 5: the server layer and the dependency rules |
 
 ### Decisions
 

@@ -1,23 +1,13 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/auth/session";
-import type { AlertSummary } from "@/interfaces/alert";
 import { searchSchema, type SearchInput } from "@/lib/search/schema";
 import { ALERT_ERROR, type AlertErrorCode } from "./schema";
-import {
-  createAlertForUser,
-  deleteAlertForUser,
-  findAlertSummaries,
-  isSpecificEnough,
-} from "./service";
+import { createAlertForUser, deleteAlertForUser, isSpecificEnough } from "./service";
 
 interface AlertResult {
   success: boolean;
   error?: AlertErrorCode;
-}
-
-interface AlertListResult extends AlertResult {
-  data?: AlertSummary[];
 }
 
 export async function createAlert(criteria: SearchInput, label: string): Promise<AlertResult> {
@@ -47,17 +37,6 @@ export async function createAlert(criteria: SearchInput, label: string): Promise
     }
 
     return { success: true };
-  } catch {
-    return { success: false, error: ALERT_ERROR.unexpected };
-  }
-}
-
-export async function listAlerts(): Promise<AlertListResult> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: ALERT_ERROR.unauthenticated };
-
-  try {
-    return { success: true, data: await findAlertSummaries(user.id) };
   } catch {
     return { success: false, error: ALERT_ERROR.unexpected };
   }

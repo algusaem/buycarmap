@@ -7,6 +7,7 @@ import {
   readdirSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
   copyFileSync,
 } from "node:fs";
@@ -139,6 +140,7 @@ describe("source layout", () => {
     expect(exists("lib/search/schema.ts")).toBe(true);
 
     expect(gitGrepDbOffenders()).toEqual([]);
+    expect(gitGrepZodOffenders()).toEqual([]);
 
     const serverActionFiles = trackedUseServerFiles();
     expect(serverActionFiles.length).toBeGreaterThan(0);
@@ -158,6 +160,9 @@ describe("source layout", () => {
     const rows: ImportRow[] = [
       { from: "app/x/page.tsx", specifier: "@/server/favorites/service", verdict: "reported" },
       { from: "app/x/page.tsx", specifier: "@/server/favorites/queries", verdict: "clean" },
+      { from: "app/x/page.tsx", specifier: "@/server/alerts/search", verdict: "reported" },
+      { from: "app/x/page.tsx", specifier: "@/server/alerts/schema", verdict: "clean" },
+      { from: "app/api/x/route.ts", specifier: "@/server/alerts/search", verdict: "reported" },
       { from: "components/X.tsx", specifier: "@/server/favorites/service", verdict: "reported" },
       { from: "components/X.tsx", specifier: "@/server/favorites/schema", verdict: "clean" },
       { from: "components/X.tsx", specifier: "@/server/favorites/actions", verdict: "clean" },
@@ -215,6 +220,12 @@ describe("source layout", () => {
     expect(
       violations.some(
         (violation) =>
+          isCycleViolation(violation) && /^lib\/geo\/cycle-[ab]\.ts$/.test(violation.from),
+      ),
+    ).toBe(true);
+    expect(
+      violations.some(
+        (violation) =>
           isCycleViolation(violation) && /^lib\/geo\/cycle-[cd]\.test\.ts$/.test(violation.from),
       ),
     ).toBe(true);
@@ -238,8 +249,62 @@ describe("source layout", () => {
     // parallel with coverage, past Vitest's 5s default.
   }, 30_000);
 
+  it("LAYOUT-6: @prisma/* is reported through pnpm's .pnpm store path", async () => {
+    expect(exists(".dependency-cruiser.cjs")).toBe(true);
+
+    const config = loadConfig();
+    const dir = buildCruiseFixture([]);
+    // pnpm links node_modules/@prisma/client to its store under
+    // node_modules/.pnpm/, so the import resolves to the store path. A
+    // directory junction needs no elevated rights on Windows and is a plain
+    // symlink elsewhere.
+    writeFixtureFile(
+      dir,
+      `${PNPM_PRISMA_PACKAGE_DIR}/package.json`,
+      JSON.stringify({ name: "@prisma/client", main: "index.js" }, null, 2),
+    );
+    writeFixtureFile(dir, `${PNPM_PRISMA_PACKAGE_DIR}/index.js`, "module.exports = {};\n");
+    rmSync(join(dir, PRISMA_PACKAGE_DIR), { recursive: true, force: true });
+    symlinkSync(join(dir, PNPM_PRISMA_PACKAGE_DIR), join(dir, PRISMA_PACKAGE_DIR), "junction");
+    writeFixtureFile(dir, "components/X.tsx", 'import "@prisma/client";\nexport {};\n');
+
+    const { violations } = await cruiseTree(dir, config, ["components"]);
+    expect(
+      violations.some(
+        (violation) =>
+          violation.from === "components/X.tsx" &&
+          violation.to === `${PNPM_PRISMA_PACKAGE_DIR}/index.js`,
+      ),
+    ).toBe(true);
+  });
+
+  it("LAYOUT-6: an import of the generated client is reported even when app/generated is absent", async () => {
+    expect(exists(".dependency-cruiser.cjs")).toBe(true);
+
+    const config = loadConfig();
+    const dir = buildCruiseFixture([]);
+    writeFixtureFile(dir, "lib/geo/x.ts", 'import "@/app/generated/prisma/client";\nexport {};\n');
+    expect(existsSync(join(dir, "app/generated"))).toBe(false);
+
+    const { violations } = await cruiseTree(dir, config, ["lib"]);
+    expect(
+      violations.some(
+        (violation) =>
+          violation.from === "lib/geo/x.ts" && violation.to === "@/app/generated/prisma/client",
+      ),
+    ).toBe(true);
+  });
+
   it("LAYOUT-7: the NextAuth exception is scoped to lib/auth/options.ts importing only lib/db and server/auth/service", async () => {
     expect(exists(".dependency-cruiser.cjs")).toBe(true);
+
+    const config = loadConfig();
+    const exceptionRules = (config.forbidden ?? []).filter(
+      (rule) =>
+        (rule.comment ?? "").includes("ADR 0007 row 25") &&
+        JSON.stringify(rule).includes("lib/auth/options"),
+    );
+    expect(exceptionRules.length).toBeGreaterThan(0);
 
     const rows: ImportRow[] = [
       { from: "lib/auth/options.ts", specifier: "@/lib/db/prisma", verdict: "clean" },
@@ -252,7 +317,6 @@ describe("source layout", () => {
       },
     ];
 
-    const config = loadConfig();
     const dir = buildCruiseFixture(rows);
     const { violations } = await cruiseTree(dir, config, ["."]);
     assertRows(rows, violations);
@@ -296,11 +360,7 @@ describe("source layout", () => {
   it("LAYOUT-9: pnpm gen feature scaffolds the four server files and the spec, and refuses to redo an existing feature", async () => {
     expect(exists("plopfile.mjs")).toBe(true);
 
-    const dir = makeTempDir("layout9-");
-    mkdirSync(join(dir, "docs", "specs"), { recursive: true });
-    copyFileSync(join(ROOT, "docs/specs/_template.md"), join(dir, "docs/specs/_template.md"));
-    const plopfilePath = join(dir, "plopfile.mjs");
-    copyFileSync(join(ROOT, "plopfile.mjs"), plopfilePath);
+    const { dir, plopfilePath } = makePlopFixture("layout9-");
 
     const EXPECTED_FILES = [
       "server/widgets/queries.ts",
@@ -316,6 +376,9 @@ describe("source layout", () => {
     expect(firstRun.failures).toEqual([]);
     const created = EXPECTED_FILES.filter((file) => existsSync(join(dir, file)));
     expect(created.slice().sort()).toEqual(EXPECTED_FILES.slice().sort());
+    expect(readFileSync(join(dir, "docs/specs/widgets.md"))).toEqual(
+      readFileSync(join(ROOT, "docs/specs/_template.md")),
+    );
 
     const before = snapshotFiles(dir, EXPECTED_FILES);
 
@@ -334,11 +397,7 @@ describe("source layout", () => {
   it("LAYOUT-9: pnpm gen feature refuses a name whose spec already exists, and writes nothing", async () => {
     expect(exists("plopfile.mjs")).toBe(true);
 
-    const dir = makeTempDir("layout9-spec-");
-    mkdirSync(join(dir, "docs", "specs"), { recursive: true });
-    copyFileSync(join(ROOT, "docs/specs/_template.md"), join(dir, "docs/specs/_template.md"));
-    const plopfilePath = join(dir, "plopfile.mjs");
-    copyFileSync(join(ROOT, "plopfile.mjs"), plopfilePath);
+    const { dir, plopfilePath } = makePlopFixture("layout9-spec-");
 
     const existingSpec = "# Gadgets\n\nAn existing spec.\n";
     writeFileSync(join(dir, "docs/specs/gadgets.md"), existingSpec, "utf8");
@@ -372,6 +431,22 @@ function gitGrepDbOffenders(): string[] {
     /^server\/[^/]+\/service\.ts$/,
     /^lib\/db\//,
     /^lib\/auth\/options\.ts$/,
+    /\.test\.tsx?$/,
+  ];
+  return files.filter((file) => !ALLOWED.some((pattern) => pattern.test(file)));
+}
+
+/**
+ * Tracked non-test *.ts/*.tsx files that import zod outside a feature's
+ * schema.ts and the two schemas LAYOUT-5 keeps outside server/ until their
+ * phase (lib/search/schema.ts, lib/env.ts).
+ */
+function gitGrepZodOffenders(): string[] {
+  const files = gitGrepFiles("from ['\"]zod(/[^'\"]*)?['\"]");
+  const ALLOWED = [
+    /^server\/[^/]+\/schema\.ts$/,
+    /^lib\/search\/schema\.ts$/,
+    /^lib\/env\.ts$/,
     /\.test\.tsx?$/,
   ];
   return files.filter((file) => !ALLOWED.some((pattern) => pattern.test(file)));
@@ -422,6 +497,7 @@ interface CruiseOutcome {
 }
 
 const PRISMA_PACKAGE_DIR = "node_modules/@prisma/client";
+const PNPM_PRISMA_PACKAGE_DIR = "node_modules/.pnpm/x@1/node_modules/@prisma/client";
 
 function isBarePackage(specifier: string): boolean {
   return !specifier.startsWith("@/");
@@ -554,12 +630,25 @@ function isCycleViolation(violation: IViolation): boolean {
   return violation.type === "cycle" || /circular/i.test(violation.rule.name);
 }
 
-// --- LAYOUT-9 helper -----------------------------------------------------------
+// --- LAYOUT-9 helpers ----------------------------------------------------------
 
-function snapshotFiles(
-  dir: string,
-  files: string[],
-): { file: string; content: string; mtimeMs: number }[] {
+interface FileSnapshot {
+  file: string;
+  content: string;
+  mtimeMs: number;
+}
+
+/** A temp directory holding a copy of the committed plopfile and the spec template. */
+function makePlopFixture(prefix: string): { dir: string; plopfilePath: string } {
+  const dir = makeTempDir(prefix);
+  mkdirSync(join(dir, "docs", "specs"), { recursive: true });
+  copyFileSync(join(ROOT, "docs/specs/_template.md"), join(dir, "docs/specs/_template.md"));
+  const plopfilePath = join(dir, "plopfile.mjs");
+  copyFileSync(join(ROOT, "plopfile.mjs"), plopfilePath);
+  return { dir, plopfilePath };
+}
+
+function snapshotFiles(dir: string, files: string[]): FileSnapshot[] {
   return files.map((file) => {
     const full = join(dir, file);
     return { file, content: readFileSync(full, "utf8"), mtimeMs: statSync(full).mtimeMs };

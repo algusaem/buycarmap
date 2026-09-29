@@ -273,7 +273,7 @@ Spanish or English in components.
 | Path | Holds |
 | --- | --- |
 | `app/` | Routes, layouts, proxy route handlers |
-| `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/`), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
+| `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/options.ts` until phase 11 — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
 | `components/map/` | The search + map feature |
 | `components/ui/` | Radix-wrapped primitives |
@@ -282,7 +282,7 @@ Spanish or English in components.
 | `lib/auth/` | Session, password policy, tokens, two-factor |
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
-| `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database |
+| `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database, apart from the LAYOUT-7 exception, `lib/auth/options.ts` until phase 11 (see [specs/core-layout.md](specs/core-layout.md)) |
 | `lib/listings/` | The pure search-merge logic: interleaving, the radius and model post-filters, the page-state advance |
 | `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |

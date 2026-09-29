@@ -1,7 +1,7 @@
 # Server layer and dependency rules (migration phase 5)
 
 Key: LAYOUT
-Status: Approved
+Status: Implemented
 Last updated: 2026-09-29
 
 ---
@@ -38,33 +38,33 @@ In scope:
 
 `unit` means a `*.node.test.ts` under `scripts/` that reads the working tree, or runs the tool under test on fixtures.
 
-- [ ] LAYOUT-1 · unit — The root layout stays. `app/`, `components/`, `lib/`, `interfaces/`, `types/`, `e2e/`, `test/` and `proxy.ts` are at the repository root, and no tracked file sits under `src/`. ADR 0012 records the layout as a permanent deviation from `STACK.md` §6 (owner's decision, 2026-09-29).
-- [ ] LAYOUT-2 · unit — Vitest's coverage `include` covers `proxy.ts`. The coverage thresholds are unchanged.
-- [ ] LAYOUT-3 · unit — `lib/hooks/useListingsSearch.ts` holds only the request lifecycle. The pure merge logic lives in `lib/listings/` and the hook imports it from there. That logic is the interleaving, the radius and model post-filters and the page-state advance. MAP-1..22 keep passing unchanged.
-- [ ] LAYOUT-4 · unit — `docs-check` does not require the source paths cited in `docs/decisions/` to exist, because an ADR is a dated record of the code as it was when the decision was taken. It still checks the ADRs' links. Every other backticked source path in the README, `CLAUDE.md`, `docs/`, `.claude/commands/` and the `Implemented` specs resolves (owner's decision, 2026-09-29).
-- [ ] LAYOUT-5 · unit — Server code is organised by feature under `server/<feature>/`:
+- [x] LAYOUT-1 · unit — The root layout stays. `app/`, `components/`, `lib/`, `interfaces/`, `types/`, `e2e/`, `test/` and `proxy.ts` are at the repository root, and no tracked file sits under `src/`. ADR 0012 records the layout as a permanent deviation from `STACK.md` §6 (owner's decision, 2026-09-29).
+- [x] LAYOUT-2 · unit — Vitest's coverage `include` covers `proxy.ts`. The coverage thresholds are unchanged.
+- [x] LAYOUT-3 · unit — `lib/hooks/useListingsSearch.ts` holds only the request lifecycle. The pure merge logic lives in `lib/listings/` and the hook imports it from there. That logic is the interleaving, the radius and model post-filters and the page-state advance. MAP-1..22 keep passing unchanged.
+- [x] LAYOUT-4 · unit — `docs-check` does not require the source paths cited in `docs/decisions/` to exist, because an ADR is a dated record of the code as it was when the decision was taken. It still checks the ADRs' links. Every other backticked source path in the README, `CLAUDE.md`, `docs/`, `.claude/commands/` and the `Implemented` specs resolves (owner's decision, 2026-09-29).
+- [x] LAYOUT-5 · unit — Server code is organised by feature under `server/<feature>/`:
   - every Server Action is in `actions.ts`;
   - every page read that touches the database is in `queries.ts`;
   - every Zod schema is in `schema.ts`;
-  - every Prisma call is in `service.ts`, apart from the client module in `lib/db/`.
+  - every Prisma call is in `service.ts`, apart from the client module in `lib/db/` and the NextAuth callbacks of LAYOUT-7.
 
   The features are `account`, `alerts`, `auth`, `email-verification`, `favorites`, `locale`, `password-reset`, `rate-limit`, `registration` and `two-factor`. `app/actions/`, `lib/validations/`, `lib/prisma.ts` and `lib/alerts/` no longer exist, and the client module is `lib/db/prisma.ts`.
 
   Two Zod schemas stay outside `server/` until their phase, by the owner's decision of 2026-09-29:
   - `lib/search/schema.ts`, until phase 9, because the search has no server code before then (ADR 0007 row 19);
   - the env schema in `lib/env.ts`, until phase 6 (row 11).
-- [ ] LAYOUT-6 · unit — `lint` runs dependency-cruiser with a committed config, and the tree has 0 violations. Type-only imports count like any other import. Test files (`*.test.ts(x)`) are exempt from the layer rules, because they import what they test and mock the database, but not from the cycle rule (owner's decision, 2026-09-29). The config enforces these rules:
+- [x] LAYOUT-6 · unit — `lint` runs dependency-cruiser with a committed config, and the tree has 0 violations. Type-only imports count like any other import. Test files (`*.test.ts(x)`) are exempt from the layer rules, because they import what they test and mock the database, but not from the cycle rule (owner's decision, 2026-09-29). The config enforces these rules:
   - `@prisma/*`, the generated client and `lib/db/**` are imported only from `server/**/service.ts`, `lib/db/**` and the exceptions of LAYOUT-7;
-  - `app/**` never imports a `service.ts`, except under LAYOUT-8;
+  - `app/**` imports only `queries.ts`, `actions.ts` and `schema.ts` from `server/**`, except under LAYOUT-8;
   - `components/**` imports only `actions.ts` and `schema.ts` from `server/**`;
   - `lib/**` imports neither `server/**` nor `app/**`, except under LAYOUT-7 and LAYOUT-10;
   - a feature imports another feature only through that feature's `service.ts` or `schema.ts`;
   - there are no circular dependencies.
-- [ ] LAYOUT-7 · unit — The NextAuth exception is one edge set: `lib/auth/options.ts` may import `lib/db/**` and `server/auth/service.ts`. It is written in the dependency-cruiser config with a comment naming ADR 0007 row 25, and no other file may use it.
-- [ ] LAYOUT-8 · unit — A `route.ts` under `app/api/**` may import a feature's `service.ts`, and every other file under `app/**` stays bound by LAYOUT-6. A route handler authenticates on its own (the cron secret, an unsubscribe token) because it has no user session and cannot go through `actions.ts` (owner's decision, 2026-09-29).
-- [ ] LAYOUT-9 · unit — `pnpm gen feature <name>` scaffolds `server/<name>/{queries,actions,service,schema}.ts` and `docs/specs/<name>.md` from `docs/specs/_template.md`. It refuses a name whose folder already exists and writes nothing.
-- [ ] LAYOUT-10 · unit — `lib/hooks/**` may import `actions.ts` and `schema.ts` from `server/**`, just as `components/**` may: a hook owns a request lifecycle, and the request is a Server Action (owner's decision, 2026-09-29). Every other file under `lib/**` stays bound by LAYOUT-6.
-- [ ] LAYOUT-11 · node — Every page read that touches the database goes through its feature's `queries.ts`. The query authenticates before reading, and it reads only the signed-in user's records. That covers the account page, the alert list, a single alert and the favorites page (owner's decision, 2026-09-29).
+- [x] LAYOUT-7 · unit — The NextAuth exception is one edge set: `lib/auth/options.ts` may import `lib/db/**` and `server/auth/service.ts`. It is written in the dependency-cruiser config with a comment naming ADR 0007 row 25, and no other file may use it. Its `signIn` and `jwt` callbacks may read the user through `lib/db/prisma` until phase 11.
+- [x] LAYOUT-8 · unit — A `route.ts` under `app/api/**` may import a feature's `service.ts`, and every other file under `app/**` stays bound by LAYOUT-6. A route handler authenticates on its own (the cron secret, an unsubscribe token) because it has no user session and cannot go through `actions.ts` (owner's decision, 2026-09-29).
+- [x] LAYOUT-9 · unit — `pnpm gen feature <name>` scaffolds `server/<name>/{queries,actions,service,schema}.ts` and `docs/specs/<name>.md` from `docs/specs/_template.md`. It refuses a name whose folder or spec file already exists and writes nothing.
+- [x] LAYOUT-10 · unit — `lib/hooks/**` may import `actions.ts` and `schema.ts` from `server/**`, just as `components/**` may: a hook owns a request lifecycle, and the request is a Server Action (owner's decision, 2026-09-29). Every other file under `lib/**` stays bound by LAYOUT-6.
+- [x] LAYOUT-11 · node — Every page read that touches the database goes through its feature's `queries.ts`. The query authenticates before reading, and it reads only the signed-in user's records. That covers the account page, the alert list, a single alert and the favorites page (owner's decision, 2026-09-29).
 
 ## Worked examples
 
@@ -82,6 +82,9 @@ In scope:
   | --- | --- | --- |
   | `app/x/page.tsx` | `@/server/favorites/service` | reported |
   | `app/x/page.tsx` | `@/server/favorites/queries` | clean |
+  | `app/x/page.tsx` | `@/server/alerts/search` | reported |
+  | `app/x/page.tsx` | `@/server/alerts/schema` | clean |
+  | `app/api/x/route.ts` | `@/server/alerts/search` | reported |
   | `components/X.tsx` | `@/server/favorites/service` | reported |
   | `components/X.tsx` | `@/server/favorites/schema` | clean |
   | `components/X.tsx` | `@/server/favorites/actions` | clean |
@@ -110,6 +113,8 @@ In scope:
 - **LAYOUT-9**:
   - On a tree without `server/widgets`, `pnpm gen feature widgets` creates exactly `server/widgets/queries.ts`, `actions.ts`, `service.ts`, `schema.ts` and `docs/specs/widgets.md`.
   - Run again, it exits non-zero with a message naming `server/widgets`, and changes no file.
+  - With `docs/specs/gadgets.md` present and `server/gadgets` absent, `pnpm gen feature gadgets` fails naming `docs/specs/gadgets.md` and writes nothing.
+  - The generated `docs/specs/widgets.md` is byte-identical to `docs/specs/_template.md`.
 
 - **LAYOUT-10**:
 
@@ -136,7 +141,8 @@ In scope:
   - `getAccountOverview()` with no session → `redirect("/login?callbackUrl=/account")`;
   - `getAccountOverview()` with a session but no record → `redirect("/login")`;
   - the alert-list and favorites queries with no session → the same redirect their pages use today;
-  - with a session, they read with the session user's id and no other.
+  - with a session, they read with the session user's id and no other;
+  - `listAlertsForPage()` / `listFavoritesForPage()`, with a session, when the service rejects → `[]`. This keeps the empty list the pages showed before, until phase 6.
 
 ## Data model
 
@@ -150,7 +156,7 @@ No permission changes. Every action and query keeps its existing `getCurrentUser
 
 - **Shared server modules.** `rate-limit` and `auth` are features in their own right. Other features reach them only through their `service.ts` (LAYOUT-6).
 - **Route handlers that need the database** are the alert run and the unsubscribe link. They call `server/alerts/service.ts` under LAYOUT-8.
-- **Pages that read the database** are `account` and `alerts/[id]`. They read through `queries.ts`, which authenticates and then calls the service.
+- **Pages that read the database** are `account`, `alerts`, `alerts/[id]` and `favorites`. They read through `queries.ts`, which authenticates and then calls the service.
 - **Moved Server Actions keep their ids.** Next derives a Server Action's id from its module. The actions are only ever called through imports, never by a stored id, so moving them breaks nothing that survives a deploy.
 
 ## Out of scope
@@ -214,6 +220,10 @@ The alert cron and the unsubscribe link have no user session. They authenticate 
 ### Hooks may call Server Actions (owner's decision, 2026-09-29)
 
 The hooks live in `lib/hooks/`, and `useFavorites` calls the `listFavorites` action. A blanket "`lib/**` never imports `server/**`" would forbid a hook from making the one request it exists to make. Hooks get the same access as components, `actions.ts` and `schema.ts` only, rather than moving to a root `hooks/` folder, which would buy nothing but the core's naming.
+
+### The page queries keep the empty list on a failed read until phase 6 (owner's decision, 2026-09-29)
+
+Before this phase the alerts and favorites pages showed an empty list when their read failed, and this phase changes no behaviour, so `listAlertsForPage()` and `listFavoritesForPage()` keep it. Phase 6 brings `Result<T, E>`, Pino and Sentry (ADR 0007 row 13), and the failed read gets its own handling then. ADR 0012 records the deviation.
 
 ### Pure merge logic moves to `lib/listings/`, not to a service
 

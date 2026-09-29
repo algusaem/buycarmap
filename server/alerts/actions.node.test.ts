@@ -22,7 +22,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email/client";
 import { getLocale } from "@/lib/i18n/server";
 import { searchAllSources } from "@/server/alerts/search";
-import { createAlert, deleteAlert, listAlerts } from "./actions";
+import { createAlert, deleteAlert } from "./actions";
 
 const ADA = { id: "user-ada", email: "ada@example.com" };
 const GRACE = { id: "user-grace", email: "grace@example.com" };
@@ -76,15 +76,6 @@ describe("createAlert", () => {
       label: "Audi A3 under 20k",
       active: true,
     });
-  });
-
-  it("ALERT-1: the alert is readable on a later request", async () => {
-    signedInAs(ADA);
-    await createAlert(makeCriteria(), "Audi A3 under 20k");
-
-    const result = await listAlerts();
-
-    expect(result.data?.map((row: { label: string }) => row.label)).toEqual(["Audi A3 under 20k"]);
   });
 
   it("ALERT-2: records everything already listed as seen", async () => {
@@ -257,37 +248,6 @@ describe("createAlert", () => {
   });
 });
 
-describe("listAlerts", () => {
-  it("ALERT-4: a caller with no session gets nothing back", async () => {
-    signedInAs(ADA);
-    await createAlert(makeCriteria(), "Audi A3 under 20k");
-    signedOut();
-
-    const result = await listAlerts();
-
-    expect(result).toEqual({ success: false, error: "unauthenticated" });
-  });
-
-  it("ALERT-1: returns only the caller's own alerts", async () => {
-    signedInAs(GRACE);
-    await createAlert(makeCriteria({ brand: "BMW" }), "Grace's search");
-    signedInAs(ADA);
-    await createAlert(makeCriteria(), "Ada's search");
-
-    const result = await listAlerts();
-
-    expect(result.data?.map((row: { label: string }) => row.label)).toEqual(["Ada's search"]);
-  });
-
-  it("ALERT-1: an empty list is a success, not an error", async () => {
-    signedInAs(ADA);
-
-    const result = await listAlerts();
-
-    expect(result).toEqual({ success: true, data: [] });
-  });
-});
-
 describe("deleteAlert", () => {
   it("ALERT-4: a caller with no session deletes nothing", async () => {
     signedInAs(ADA);
@@ -340,22 +300,5 @@ describe("deleteAlert", () => {
 
     expect(store.criteria()).toHaveLength(1);
     expect(store.alertsFor(GRACE.id)).toHaveLength(1);
-  });
-
-  it("ALERT-42: an inactive alert still holds its criteria set", async () => {
-    signedInAs(ADA);
-    await createAlert(makeCriteria(), "Audi A3 under 20k");
-    const [alert] = store.alertsFor(ADA.id);
-    // Unsubscribing deactivates; only deletion releases the criteria, so the
-    // matches page still renders and re-enabling loses nothing.
-    await store.client.alert.update({
-      where: { id: alert.id },
-      data: { active: false },
-    });
-
-    const result = await listAlerts();
-
-    expect(result.success).toBe(true);
-    expect(store.criteria()).toHaveLength(1);
   });
 });
