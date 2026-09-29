@@ -36,7 +36,7 @@ const SCANNED = [INDEX, "CLAUDE.md"];
 // Backticked paths are only checked when they start with one of these. Anything
 // else is prose, an upstream URL path, or a doc that a plan says will exist
 // later — none of which this script has any business asserting about.
-export const SOURCE_ROOTS = [
+const SOURCE_ROOTS = [
   ".claude",
   ".github",
   "app",
