@@ -1,6 +1,6 @@
 /**
  * Enforces the server-layer boundaries of docs/specs/core-layout.md
- * (LAYOUT-6, LAYOUT-7, LAYOUT-8). Wired into `pnpm lint` as `pnpm depcruise`.
+ * (LAYOUT-6, LAYOUT-7, LAYOUT-8, LAYOUT-10). Wired into `pnpm lint` as `pnpm depcruise`.
  *
  * Every rule's `from` excludes test files (`\.test\.tsx?$`, which also
  * matches `*.node.test.ts`): tests mock the modules they import, so the
@@ -75,14 +75,33 @@ module.exports = {
       name: "no-server-from-lib",
       comment:
         "lib/** never imports server/**, except lib/auth/options.ts, which has its own, " +
-        "narrower exception below (LAYOUT-7, auth-options-server-exception).",
+        "narrower exception below (LAYOUT-7, auth-options-server-exception), and " +
+        "lib/hooks/**, which has its own exception below (LAYOUT-10, " +
+        "hooks-only-actions-or-schema).",
       severity: "error",
       from: {
         path: "^lib/",
-        pathNot: ["^lib/auth/options\\.ts$", "\\.test\\.tsx?$"],
+        pathNot: ["^lib/auth/options\\.ts$", "^lib/hooks/", "\\.test\\.tsx?$"],
       },
       to: {
         path: "^server/",
+      },
+    },
+    {
+      name: "hooks-only-actions-or-schema",
+      comment:
+        "LAYOUT-10: lib/hooks/** may import only a feature's actions.ts or schema.ts from " +
+        "server/**, just as components/** may — a hook owns a request lifecycle, and the " +
+        "request is a Server Action. Every other file under lib/** stays bound by " +
+        "no-server-from-lib above, and lib/hooks/** stays bound by no-app-from-lib.",
+      severity: "error",
+      from: {
+        path: "^lib/hooks/",
+        pathNot: "\\.test\\.tsx?$",
+      },
+      to: {
+        path: "^server/",
+        pathNot: "/(actions|schema)\\.ts$",
       },
     },
     {

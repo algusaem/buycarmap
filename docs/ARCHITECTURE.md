@@ -21,8 +21,9 @@ flowchart TB
     end
     subgraph server [Next.js server]
         H -->|fetch| P[Proxy routes<br/>app/api/*]
-        C -->|server action| A[Actions<br/>app/actions/*]
-        A --> DB[(Neon Postgres<br/>via Prisma)]
+        C -->|server action| A[Actions<br/>server/*/actions.ts]
+        A --> SV[Services<br/>server/*/service.ts]
+        SV --> DB[(Neon Postgres<br/>via Prisma)]
     end
     P --> U[Wallapop · coches.net · Milanuncios]
 ```
@@ -32,8 +33,10 @@ Two rules fall out of that picture and explain most of the code:
 - **Components never call `fetch`.** Request lifecycles live in `lib/hooks/*`,
   which call clients in `lib/<source>/*`. A component consumes a hook.
 - **Mutations are server actions; route handlers are only for proxying.**
-  Anything writing to the database is an action in `app/actions/`. The `app/api/`
-  routes exist because the upstream marketplaces cannot be called from a browser.
+  Anything writing to the database is an action in `server/<feature>/actions.ts`,
+  which reaches Prisma only through that feature's `service.ts`
+  ([specs/core-layout.md](specs/core-layout.md)). The `app/api/` routes exist
+  because the upstream marketplaces cannot be called from a browser.
 
 ## Path 1 — a search
 
@@ -185,8 +188,9 @@ sequenceDiagram
     end
 ```
 
-[`app/actions/favorites.ts`](../app/actions/favorites.ts) is the shape every
-server action follows:
+[`server/favorites/actions.ts`](../server/favorites/actions.ts) is the shape every
+server action follows, with its database work in
+[`server/favorites/service.ts`](../server/favorites/service.ts):
 
 1. `getCurrentUser()` **first** — before validation, before any query.
 2. Zod `safeParse` on the input.
@@ -220,7 +224,8 @@ application never did.
 ## Path 4 — a poll with no user in it
 
 The three paths above all begin with a request. Alerts do not: a GitHub Actions
-cron POSTs to `app/api/alerts/run/route.ts`, which claims work off a Postgres
+cron POSTs to `app/api/alerts/run/route.ts`, which authenticates the caller and
+hands the run to `server/alerts/service.ts`, which claims work off a Postgres
 queue and drains it. Two consequences reshape the rules above rather than
 following them.
 
@@ -267,8 +272,8 @@ Spanish or English in components.
 
 | Path | Holds |
 | --- | --- |
-| `app/` | Routes, layouts, server actions, proxy route handlers |
-| `app/actions/` | Server actions — every mutation |
+| `app/` | Routes, layouts, proxy route handlers |
+| `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/`), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
 | `components/map/` | The search + map feature |
 | `lib/alerts/` | The background poller's own source fan-out and unsubscribe tokens |
@@ -278,7 +283,6 @@ Spanish or English in components.
 | `lib/auth/` | Session, password policy, tokens, two-factor |
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
-| `lib/validations/` | Zod schemas with exported inferred types |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Tooling: branch databases, spec, docs and TODO checks — dependency-free except the TODO check, which loads `typescript` |
 
@@ -318,7 +322,7 @@ erDiagram
 #### User
 
 The account. `password` is **nullable** — OAuth-only accounts never set one, so
-credentials login must guard on it (`lib/auth/authorize.ts`).
+credentials login must guard on it (`server/auth/service.ts`).
 
 `image`, not `avatarUrl`: the NextAuth Prisma adapter writes the OAuth profile
 picture to that exact field name, and renaming it breaks linking silently.
@@ -488,11 +492,11 @@ So: the map, the threat model in a paragraph, and where to read next.
 ```mermaid
 flowchart TB
     subgraph entry [Ways in]
-        C[Credentials] --> AZ[lib/auth/authorize.ts]
+        C[Credentials] --> AZ[server/auth/service.ts]
         O[Google · GitHub] --> SI[signIn callback]
     end
     AZ --> TF{2FA enabled?}
-    TF -->|yes| V[lib/auth/two-factor/verify.ts]
+    TF -->|yes| V[server/two-factor/service.ts]
     TF -->|no| J[jwt callback]
     V --> J
     SI --> J
@@ -503,13 +507,13 @@ flowchart TB
 | Area | Lives in |
 | --- | --- |
 | NextAuth config, callbacks, providers | `lib/auth/options.ts` |
-| Credentials verification | `lib/auth/authorize.ts` |
+| Credentials verification | `server/auth/service.ts` — `authorizeCredentials()` |
 | The only authorization check | `lib/auth/session.ts` — `getCurrentUser()` |
 | Password rules | `lib/auth/password-policy.ts`, `password-strength.ts`, `pwned.ts` |
 | Hashing | `lib/auth/hash.ts` — bcryptjs, 12 rounds |
 | Tokens | `lib/auth/tokens.ts` — SHA-256, single-use |
 | TOTP | `lib/auth/two-factor/` — built on `node:crypto`, no dependency |
-| Rate limiting | `lib/rate-limit.ts` — Postgres-backed |
+| Rate limiting | `server/rate-limit/service.ts` — Postgres-backed |
 | Route redirects | `proxy.ts` |
 | Email | `lib/email/` — Resend over `fetch` |
 

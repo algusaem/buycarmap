@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { deleteAccount } from "@/app/actions/account";
+import { deleteAccount } from "@/server/account/actions";
 
 interface DeleteAccountFormProps {
   /** False for OAuth-only accounts, which have no password to re-enter. */

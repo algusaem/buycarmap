@@ -336,7 +336,8 @@ anything here** — every property below is load-bearing and most are not obviou
 Any change here needs approval first (`RULES.md` §1).
 
 - **Never call `getServerSession` directly** — use `getCurrentUser()` from
-  `lib/auth/session.ts`. Every server action touching user data must call it.
+  `lib/auth/session.ts`. Every server action (`server/<feature>/actions.ts`) and page read
+  (`server/<feature>/queries.ts`) touching user data must call it.
   Only it honours revocation. `proxy.ts` only decodes the JWT and cannot see
   revocations, so it is UX, not authorization.
 - **`authOptions` lives in `lib/auth/options.ts`**, never the route file —
@@ -348,10 +349,11 @@ Any change here needs approval first (`RULES.md` §1).
   is what counts.
 - **Password reset must not bypass 2FA**, and the email-change link must go to
   the **new** address with the current password required to start the change.
-- **Return codes, never prose** (`AUTH_ERROR`). Forms resolve them with
+- **Return codes, never prose** (`AUTH_ERROR`, in `server/auth/schema.ts`). Forms resolve them with
   `translateAuthError(t, code)`; pass `setError` the raw code.
 - **Do not add a scheduler.** Expired tokens are pruned opportunistically by
-  `lib/auth/cleanup.ts`, the same way `lib/rate-limit.ts` prunes its rows.
+  `maybePruneExpiredAuthRows` in `server/auth/service.ts`, the same way
+  `server/rate-limit/service.ts` prunes its rows.
 - **Do not weaken enumeration resistance.** Identical responses, dummy-hash
   timing equalization, and bcrypt run *before* any existence check. Registration
   is verify-first when email is configured — `register` writes a

@@ -19,7 +19,7 @@ import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config";
 import type { IFlattenedRuleSet, IViolation } from "dependency-cruiser";
 import { describe, expect, it } from "vitest";
 
-// Reads the working tree directly against docs/specs/core-layout.md (LAYOUT-1..9,
+// Reads the working tree directly against docs/specs/core-layout.md (LAYOUT-1..10,
 // except LAYOUT-4 which is covered by docs-check.node.test.ts since it tests
 // docs-check's isDatedRecord, not the tree). These fail against today's root
 // app/ / components/ / lib/ layout with no server/ tree, and pass once phase 5
@@ -166,7 +166,9 @@ describe("source layout", () => {
 
     const realTreeViolations = await cruiseFixture(ROOT, ruleSet, REAL_TREE_EXCLUDE);
     expect(realTreeViolations).toEqual([]);
-  });
+    // Cruising the whole real tree takes about 6s when the full suite runs in
+    // parallel with coverage, past Vitest's 5s default.
+  }, 30_000);
 
   it("LAYOUT-7: the NextAuth exception is scoped to lib/auth/options.ts importing only lib/db and server/auth/service", async () => {
     expect(exists(".dependency-cruiser.cjs")).toBe(true);
@@ -199,6 +201,22 @@ describe("source layout", () => {
         specifier: "@/server/alerts/service",
         verdict: "reported",
       },
+    ];
+
+    const ruleSet = loadRuleSet();
+    const dir = buildCruiseFixture(rows);
+    const violations = await cruiseFixture(dir, ruleSet);
+    assertRows(rows, violations);
+  });
+
+  it("LAYOUT-10: a hook under lib/hooks/** may import a feature's actions.ts or schema.ts, every other lib/** file stays bound by LAYOUT-6", async () => {
+    expect(exists(".dependency-cruiser.cjs")).toBe(true);
+
+    const rows: ImportRow[] = [
+      { from: "lib/hooks/useX.ts", specifier: "@/server/favorites/actions", verdict: "clean" },
+      { from: "lib/hooks/useX.ts", specifier: "@/server/favorites/schema", verdict: "clean" },
+      { from: "lib/hooks/useX.ts", specifier: "@/server/favorites/service", verdict: "reported" },
+      { from: "lib/geo/x.ts", specifier: "@/server/favorites/actions", verdict: "reported" },
     ];
 
     const ruleSet = loadRuleSet();

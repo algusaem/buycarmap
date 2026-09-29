@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { unlinkAccount } from "@/app/actions/account";
+import { unlinkAccount } from "@/server/account/actions";
 
 interface ConnectedAccountsProps {
   providers: string[];

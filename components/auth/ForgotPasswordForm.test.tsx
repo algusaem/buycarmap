@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const requestPasswordReset = vi.fn();
-vi.mock("@/app/actions/forgot-password", () => ({
+vi.mock("@/server/password-reset/actions", () => ({
   requestPasswordReset: (...args: unknown[]) => requestPasswordReset(...args),
 }));
 import { toast } from "sonner";

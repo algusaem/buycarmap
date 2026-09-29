@@ -143,7 +143,7 @@ Length and blocklists rather than composition rules. Three layers:
 
 | Layer | File | Rejects |
 | --- | --- | --- |
-| Length | `lib/validations/auth.ts` | under 12 or over 72 characters |
+| Length | `server/auth/schema.ts` | under 12 or over 72 characters |
 | Strength | `lib/auth/password-strength.ts` | score below 2 of 4 — common passwords (incl. leetspeak), sequences, keyboard runs, repeats, the user's own name/email |
 | Breach | `lib/auth/pwned.ts` | anything in the Have I Been Pwned corpus |
 
@@ -154,7 +154,7 @@ process, and it **fails open** so an HIBP outage cannot block signups.
 hint only; the server gate is authoritative.
 
 #### Rate limiting
-`lib/rate-limit.ts`, backed by the `RateLimit` table. Postgres rather than
+`server/rate-limit/service.ts`, backed by the `RateLimit` table. Postgres rather than
 memory because Vercel's instances would reset a Map constantly. Counting and
 window rollover happen in one atomic upsert, so concurrent attempts cannot both
 read a stale count. Fails open on database error.
@@ -245,12 +245,12 @@ the form into a membership oracle — feed it a list of addresses and it tells y
 which belong to users, which is exactly what makes targeted phishing work.
 
 **With email configured, registration is now verify-first.** `register`
-(`app/actions/register.ts`) writes a `PendingRegistration` row rather than a
+(`server/registration/actions.ts`) writes a `PendingRegistration` row rather than a
 `User`, emails a confirmation link, and returns `{ success: true, pending: true }`.
 A taken address takes the other branch — it gets the "you already have an
 account" email instead — but returns the *same value*, so the caller cannot tell
 the branches apart. The `User` row is created only when the link is confirmed
-through `verifyRegistration` (`app/actions/verify-registration.ts`).
+through `verifyRegistration` (`server/registration/actions.ts`).
 
 Why this actually closes it, where immediate creation could not: if the account
 existed the moment you submitted, an attacker could simply try to log in with

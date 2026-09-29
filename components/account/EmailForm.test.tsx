@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const requestEmailChange = vi.fn();
 const requestEmailVerification = vi.fn();
-vi.mock("@/app/actions/email-verification", () => ({
+vi.mock("@/server/email-verification/actions", () => ({
   requestEmailChange: (...args: unknown[]) => requestEmailChange(...args),
   requestEmailVerification: (...args: unknown[]) => requestEmailVerification(...args),
 }));

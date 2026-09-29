@@ -46,6 +46,7 @@ const SOURCE_ROOTS = [
   "lib",
   "prisma",
   "scripts",
+  "server",
   "test",
   "types",
 ];

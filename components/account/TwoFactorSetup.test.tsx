@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock("@/app/actions/two-factor", () => ({
+vi.mock("@/server/two-factor/actions", () => ({
   confirmTwoFactorSetup: vi.fn(),
 }));
 

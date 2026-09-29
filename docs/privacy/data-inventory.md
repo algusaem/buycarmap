@@ -52,7 +52,7 @@ price, location, coordinates, URL), linked to the user through its `Alert`. It
 has no personal field of its own, and it is removed with the alert when the
 account is deleted (cascade).
 
-Pruning is opportunistic, not scheduled: `lib/auth/cleanup.ts` deletes expired
+Pruning is opportunistic, not scheduled: `server/auth/service.ts` deletes expired
 `PendingRegistration`, `PasswordResetToken` and `EmailVerificationToken` rows on
 2% of calls from registration, forgot-password and email verification, and
-`lib/rate-limit.ts` deletes expired `RateLimit` rows on 1% of rate-limited calls.
+`server/rate-limit/service.ts` deletes expired `RateLimit` rows on 1% of rate-limited calls.

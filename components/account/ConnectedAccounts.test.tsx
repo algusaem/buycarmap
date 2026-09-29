@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const unlinkAccount = vi.fn();
-vi.mock("@/app/actions/account", () => ({
+vi.mock("@/server/account/actions", () => ({
   unlinkAccount: (...args: unknown[]) => unlinkAccount(...args),
 }));
 

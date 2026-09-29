@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { confirmEmail } from "@/app/actions/email-verification";
+import { confirmEmail } from "@/server/email-verification/actions";
 
 interface ConfirmEmailFormProps {
   token: string;

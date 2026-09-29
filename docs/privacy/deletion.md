@@ -7,7 +7,8 @@ account can still be restored from backups. The fields themselves are listed in
 ## Erasing an account
 
 A user deletes their own account from `/account`, through the `deleteAccount`
-server action in `app/actions/account.ts`:
+server action in `server/account/actions.ts` (its database work in
+`server/account/service.ts`):
 
 1. It calls `getCurrentUser()` first, so only a signed-in user with a
    non-revoked session can reach it, and it only ever deletes that user.

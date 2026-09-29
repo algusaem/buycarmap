@@ -12,8 +12,9 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { AUTH_ERROR, changePasswordSchema, type ChangePasswordInput } from "@/lib/validations/auth";
-import { changePassword } from "@/app/actions/account";
+import { changePasswordSchema, type ChangePasswordInput } from "@/server/account/schema";
+import { AUTH_ERROR } from "@/server/auth/schema";
+import { changePassword } from "@/server/account/actions";
 
 interface ChangePasswordFormProps {
   email: string;

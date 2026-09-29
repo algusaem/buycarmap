@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { confirmTwoFactorSetup } from "@/app/actions/two-factor";
+import { confirmTwoFactorSetup } from "@/server/two-factor/actions";
 
 interface TwoFactorSetupProps {
   otpauthUri: string;

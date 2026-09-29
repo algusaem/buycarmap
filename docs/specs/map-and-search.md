@@ -110,7 +110,7 @@ Out of scope, deliberately:
 
 The contracts are:
 
-- **`SearchInput`** (`lib/validations/search.ts`) — the one filter set all three
+- **`SearchInput`** (`server/search/schema.ts`) — the one filter set all three
   sources translate from. Bounds worth keeping: latitude ±90, longitude ±180,
   `distanceInKm` positive, `minYear` at least 1900, `timeFilter` one of
   `today` / `lastWeek` / `lastMonth`.

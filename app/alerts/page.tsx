@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getTranslations } from "@/lib/i18n/server";
-import { listAlerts } from "@/app/actions/alerts";
+import { listAlerts } from "@/server/alerts/actions";
 import { AlertsList } from "@/components/alerts/AlertsList";
 
 export async function generateMetadata(): Promise<Metadata> {

@@ -326,7 +326,7 @@ one worker. Skipping means worker two takes the next job instead of waiting.
 
 `app/api/alerts/run/route.ts` — the only new route, because this is a machine
 caller and not a user mutation, so the "prefer server actions" rule does not
-apply. Authorised by a constant-time comparison against `ALERTS_CRON_SECRET` in
+apply. The run itself is `runAlerts` in `server/alerts/service.ts`. Authorised by a constant-time comparison against `ALERTS_CRON_SECRET` in
 an `Authorization: Bearer` header (ALERT-9), **not** by `getCurrentUser()`.
 
 Returns a summary rather than `204`, because ALERT-31 and ALERT-25 are only
@@ -341,18 +341,17 @@ observable if the run says what it did:
 
 ### Server actions
 
-`app/actions/alerts.ts`, following the `favorites.ts` shape exactly —
+`server/alerts/actions.ts`, following the favorites actions' shape exactly —
 `getCurrentUser()` first, Zod `safeParse`, typed `{ success, error?: Code }`
 where the error is a **code**:
 
 - `createAlert(criteria, label)` — ALERT-1, ALERT-2, ALERT-3, ALERT-4, ALERT-6, ALERT-7, ALERT-8, ALERT-34
 - `listAlerts()` — ALERT-4, ALERT-28
 - `deleteAlert(alertId)` — ALERT-4, ALERT-5
-- `setLocale(locale)` — ALERT-33. Belongs here rather than in an auth action
-  because nothing else needs it; it no-ops for a signed-out caller, since the
-  cookie already carries the preference for them
+- `setLocale(locale)` — ALERT-33, in `server/locale/actions.ts`. It no-ops for
+  a signed-out caller, since the cookie already carries the preference for them
 
-Codes in `lib/validations/alerts.ts`: `unauthenticated`, `invalidCriteria`,
+Codes in `server/alerts/schema.ts`: `unauthenticated`, `invalidCriteria`,
 `criteriaTooBroad`, `tooManyAlerts`, `unexpected`.
 
 `criteriaTooBroad` is distinct from `invalidCriteria` on purpose — the criteria

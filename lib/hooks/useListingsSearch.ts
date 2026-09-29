@@ -4,7 +4,7 @@ import type { CarListing } from "@/interfaces/listing";
 import type { WallapopSearchResponse } from "@/interfaces/wallapop";
 import type { CochesNetSearchResponse } from "@/interfaces/cochesnet";
 import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
-import { searchSchema, type SearchInput } from "@/lib/validations/search";
+import { searchSchema, type SearchInput } from "@/server/search/schema";
 import { searchWallapop } from "@/lib/wallapop/client";
 import { searchCochesNet } from "@/lib/cochesnet/client";
 import { searchMilanuncios } from "@/lib/milanuncios/client";

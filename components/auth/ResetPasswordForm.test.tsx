@@ -10,7 +10,7 @@ const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const resetPassword = vi.fn();
-vi.mock("@/app/actions/reset-password", () => ({
+vi.mock("@/server/password-reset/actions", () => ({
   resetPassword: (...args: unknown[]) => resetPassword(...args),
 }));
 

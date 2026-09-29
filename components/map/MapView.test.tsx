@@ -9,7 +9,7 @@ import { makeCochesNetResponse } from "@/test/fixtures/cochesnet";
 import { makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
 import { triggerIntersection } from "@/test/mocks/intersection-observer";
 import { makeFavoriteInput } from "@/test/fixtures/favorites";
-import { listFavorites } from "@/app/actions/favorites";
+import { listFavorites } from "@/server/favorites/actions";
 import { MapView } from "./MapView";
 
 vi.mock("next/navigation", () => ({
@@ -26,7 +26,7 @@ const useSession = vi.fn<() => { data: { user: { id: string } } | null; status: 
   status: "unauthenticated",
 }));
 vi.mock("next-auth/react", () => ({ useSession: () => useSession() }));
-vi.mock("@/app/actions/favorites", () => ({
+vi.mock("@/server/favorites/actions", () => ({
   saveFavorite: vi.fn(),
   removeFavorite: vi.fn(),
   listFavorites: vi.fn(async () => ({ success: true, data: [] })),

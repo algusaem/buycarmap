@@ -1,5 +1,5 @@
 import type { CarListing } from "./listing";
-import type { SearchInput } from "@/lib/validations/search";
+import type { SearchInput } from "@/server/search/schema";
 
 /** One row on the alerts page: the saved search, and how it is doing. */
 export interface AlertSummary {

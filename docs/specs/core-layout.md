@@ -53,12 +53,13 @@ In scope:
   - `@prisma/*`, the generated client and `lib/db/**` are imported only from `server/**/service.ts`, `lib/db/**` and the exceptions of LAYOUT-7;
   - `app/**` never imports a `service.ts`, except under LAYOUT-8;
   - `components/**` imports only `actions.ts` and `schema.ts` from `server/**`;
-  - `lib/**` imports neither `server/**` nor `app/**`, except under LAYOUT-7;
+  - `lib/**` imports neither `server/**` nor `app/**`, except under LAYOUT-7 and LAYOUT-10;
   - a feature imports another feature only through that feature's `service.ts` or `schema.ts`;
   - there are no circular dependencies.
 - [ ] LAYOUT-7 · unit — The NextAuth exception is one edge set: `lib/auth/options.ts` may import `lib/db/**` and `server/auth/service.ts`. It is written in the dependency-cruiser config with a comment naming ADR 0007 row 25, and no other file may use it.
 - [ ] LAYOUT-8 · unit — A `route.ts` under `app/api/**` may import a feature's `service.ts`, and every other file under `app/**` stays bound by LAYOUT-6. A route handler authenticates on its own (the cron secret, an unsubscribe token) because it has no user session and cannot go through `actions.ts` (owner's decision, 2026-09-29).
 - [ ] LAYOUT-9 · unit — `pnpm gen feature <name>` scaffolds `server/<name>/{queries,actions,service,schema}.ts` and `docs/specs/<name>.md` from `docs/specs/_template.md`. It refuses a name whose folder already exists and writes nothing.
+- [ ] LAYOUT-10 · unit — `lib/hooks/**` may import `actions.ts` and `schema.ts` from `server/**`, just as `components/**` may: a hook owns a request lifecycle, and the request is a Server Action (owner's decision, 2026-09-29). Every other file under `lib/**` stays bound by LAYOUT-6.
 
 ## Worked examples
 
@@ -104,6 +105,15 @@ In scope:
 - **LAYOUT-9**:
   - On a tree without `server/widgets`, `pnpm gen feature widgets` creates exactly `server/widgets/queries.ts`, `actions.ts`, `service.ts`, `schema.ts` and `docs/specs/widgets.md`.
   - Run again, it exits non-zero with a message naming `server/widgets`, and changes no file.
+
+- **LAYOUT-10**:
+
+  | Importing file | Imports | Result |
+  | --- | --- | --- |
+  | `lib/hooks/useX.ts` | `@/server/favorites/actions` | clean |
+  | `lib/hooks/useX.ts` | `@/server/favorites/schema` | clean |
+  | `lib/hooks/useX.ts` | `@/server/favorites/service` | reported |
+  | `lib/geo/x.ts` | `@/server/favorites/actions` | reported |
 
 ## Data model
 
@@ -178,6 +188,10 @@ The alert cron and the unsubscribe link have no user session. They authenticate 
 ### A single, named exception for NextAuth until phase 11 (owner's decision, 2026-09-28)
 
 `authOptions` needs the Prisma adapter and `authorize`. `CLAUDE.md` keeps it in `lib/auth/options.ts` so that server components can import it without dragging in the route. The exception covers one file and two targets, and phase 11 deletes it along with NextAuth.
+
+### Hooks may call Server Actions (owner's decision, 2026-09-29)
+
+The hooks live in `lib/hooks/`, and `useFavorites` calls the `listFavorites` action. A blanket "`lib/**` never imports `server/**`" would forbid a hook from making the one request it exists to make. Hooks get the same access as components, `actions.ts` and `schema.ts` only, rather than moving to a root `hooks/` folder, which would buy nothing but the core's naming.
 
 ### Pure merge logic moves to `lib/listings/`, not to a service
 

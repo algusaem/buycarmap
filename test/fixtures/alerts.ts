@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import type { AlertSummary } from "@/interfaces/alert";
 import type { CarListing } from "@/interfaces/listing";
-import type { SearchInput } from "@/lib/validations/search";
+import type { SearchInput } from "@/server/search/schema";
 
 // In-memory stand-ins for the six models in docs/specs/alerts.md › Data model.
 //

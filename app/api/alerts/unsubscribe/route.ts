@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db/prisma";
-import { hashUnsubscribeToken } from "@/lib/alerts/unsubscribe-token";
+import { pauseAlertByUnsubscribeToken } from "@/server/alerts/service";
 
 // Followed from an inbox, so it must work with no session — it deliberately
 // never calls getCurrentUser(). The token is the credential.
@@ -14,13 +13,7 @@ export async function GET(request: NextRequest) {
 
   if (token) {
     try {
-      // Deactivates rather than deletes: the matches page still renders, and
-      // re-enabling the alert loses no history. Only deleting the alert
-      // releases its criteria set.
-      await prisma.alert.updateMany({
-        where: { unsubscribeTokenHash: hashUnsubscribeToken(token) },
-        data: { active: false },
-      });
+      await pauseAlertByUnsubscribeToken(token);
     } catch {
       // Answer the same way regardless — see above.
     }

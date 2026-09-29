@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getTranslations } from "@/lib/i18n/server";
-import { listFavorites } from "@/app/actions/favorites";
+import { listFavorites } from "@/server/favorites/actions";
 import { FavoritesList } from "@/components/favorites/FavoritesList";
 
 export async function generateMetadata(): Promise<Metadata> {

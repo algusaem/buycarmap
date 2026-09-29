@@ -13,14 +13,14 @@ type AuthorizeFn = (
 
 // authorize's own branching is covered in authorize.test.ts; stub it so this
 // file only exercises the NextAuth wiring and the session callbacks.
-vi.mock("@/lib/auth/authorize", () => ({
+vi.mock("@/server/auth/service", () => ({
   authorizeCredentials: vi.fn(),
 }));
 vi.mock("@/lib/db/prisma", () => ({
   prisma: { user: { findUnique: vi.fn() } },
 }));
 
-import { authorizeCredentials } from "@/lib/auth/authorize";
+import { authorizeCredentials } from "@/server/auth/service";
 import { prisma } from "@/lib/db/prisma";
 import { authOptions } from "./options";
 

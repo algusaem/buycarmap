@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { makeWallapopResponse } from "@/test/fixtures/wallapop";
 import { buildWallapopQuery, searchWallapop } from "./client";
-import type { SearchInput } from "@/lib/validations/search";
+import type { SearchInput } from "@/server/search/schema";
 
 // Capture the query string the client builds for the proxy route.
 function captureQuery(): () => URLSearchParams {

@@ -2,7 +2,7 @@ import type { CarListing } from "@/interfaces/listing";
 import type { WallapopSearchResponse } from "@/interfaces/wallapop";
 import type { CochesNetSearchResponse } from "@/interfaces/cochesnet";
 import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
-import type { SearchInput } from "@/lib/validations/search";
+import type { SearchInput } from "@/server/search/schema";
 import { normalizeWallapopItems } from "@/lib/wallapop/normalize";
 import { normalizeCochesNetItems } from "@/lib/cochesnet/normalize";
 import { normalizeMilanunciosItems } from "@/lib/milanuncios/normalize";

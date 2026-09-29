@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const verifyRegistration = vi.fn();
-vi.mock("@/app/actions/verify-registration", () => ({
+vi.mock("@/server/registration/actions", () => ({
   verifyRegistration: (...args: unknown[]) => verifyRegistration(...args),
 }));
 
