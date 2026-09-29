@@ -1,9 +1,6 @@
+import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { evaluatePassword } from "@/lib/auth/password-strength";
 import { checkPasswordBreached } from "@/lib/auth/pwned";
-// Type-only: lib/** may not import server/** at runtime (docs/specs/core-layout.md
-// LAYOUT-6), so the two codes below are written as literals and checked against
-// AuthErrorCode by the return type.
-import type { AuthErrorCode } from "@/server/auth/schema";
 
 // Server-side gate for any password a user is *setting* (register, reset,
 // change). The Zod schemas only enforce length because these two checks are
@@ -23,7 +20,7 @@ export async function validateNewPassword(
   const { score } = evaluatePassword(password, userInputs);
 
   if (score < MIN_ACCEPTABLE_SCORE) {
-    return "passwordWeak";
+    return AUTH_ERROR.passwordWeak;
   }
 
   // A strong-looking password can still be in a breach corpus verbatim, which
@@ -31,7 +28,7 @@ export async function validateNewPassword(
   const { breached } = await checkPasswordBreached(password);
 
   if (breached) {
-    return "passwordBreached";
+    return AUTH_ERROR.passwordBreached;
   }
 
   return null;

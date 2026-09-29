@@ -13,7 +13,7 @@ import {
 import { requiredString } from "@/lib/form-data";
 import { getLocale } from "@/lib/i18n/server";
 import { findPasswordAndEmail } from "@/server/account/service";
-import { AUTH_ERROR, type AuthErrorCode } from "@/server/auth/schema";
+import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/server/rate-limit/service";
 import { changeEmailSchema } from "./schema";
 import {

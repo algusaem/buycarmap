@@ -5,7 +5,8 @@ import { validateNewPassword } from "@/lib/auth/password-policy";
 import { hashToken } from "@/lib/auth/tokens";
 import { isEmailConfigured } from "@/lib/env";
 import { optionalString, requiredString } from "@/lib/form-data";
-import { AUTH_ERROR, type AuthErrorCode, forgotPasswordSchema } from "@/server/auth/schema";
+import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
+import { forgotPasswordSchema } from "@/server/auth/schema";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/server/rate-limit/service";
 import { registerSchema } from "./schema";
 import {

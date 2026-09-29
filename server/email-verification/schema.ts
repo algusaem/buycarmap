@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { AUTH_ERROR, email } from "@/server/auth/schema";
+import { AUTH_ERROR } from "@/lib/auth/errors";
+import { email } from "@/server/auth/schema";
 
 export const changeEmailSchema = z.object({
   email,

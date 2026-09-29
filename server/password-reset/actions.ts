@@ -7,7 +7,8 @@ import { sendEmail } from "@/lib/email/client";
 import { renderPasswordChangedEmail } from "@/lib/email/templates/auth-emails";
 import { requiredString } from "@/lib/form-data";
 import { getLocale } from "@/lib/i18n/server";
-import { AUTH_ERROR, type AuthErrorCode, forgotPasswordSchema } from "@/server/auth/schema";
+import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
+import { forgotPasswordSchema } from "@/server/auth/schema";
 import { loginEmailRateKey } from "@/server/auth/service";
 import {
   RATE_LIMITS,

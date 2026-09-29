@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { en } from "./locales/en";
 import { es } from "./locales/es";
-import { AUTH_ERROR } from "@/server/auth/schema";
+import { AUTH_ERROR } from "@/lib/auth/errors";
 import { ALERT_ERROR } from "@/server/alerts/schema";
 import { translateAlertError, translateAuthError } from "./errors";
 

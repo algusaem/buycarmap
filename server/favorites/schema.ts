@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Codes, not sentences — same reasoning as AUTH_ERROR in server/auth/schema.ts: a server
+// Codes, not sentences — same reasoning as AUTH_ERROR in lib/auth/errors.ts: a server
 // action cannot read the client's i18n context, and the default locale is
 // Spanish. The UI resolves these into copy at render time.
 export const FAVORITE_ERROR = {

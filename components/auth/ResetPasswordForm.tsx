@@ -16,7 +16,7 @@ import { PasswordInput } from "./PasswordInput";
 import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { AUTH_ERROR } from "@/server/auth/schema";
+import { AUTH_ERROR } from "@/lib/auth/errors";
 import { resetPasswordSchema, type ResetPasswordInput } from "@/server/password-reset/schema";
 import { resetPassword } from "@/server/password-reset/actions";
 

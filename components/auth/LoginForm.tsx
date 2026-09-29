@@ -26,7 +26,8 @@ import { PasswordInput } from "./PasswordInput";
 import { OAuthButtons } from "./OAuthButtons";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { AUTH_ERROR, loginSchema, type LoginInput } from "@/server/auth/schema";
+import { AUTH_ERROR } from "@/lib/auth/errors";
+import { loginSchema, type LoginInput } from "@/server/auth/schema";
 
 // Middleware puts the originally-requested path here. Only same-origin paths
 // are honoured: accepting an absolute URL would make the sign-in page an open

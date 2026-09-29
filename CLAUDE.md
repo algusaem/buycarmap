@@ -349,7 +349,7 @@ Any change here needs approval first (`RULES.md` §1).
   is what counts.
 - **Password reset must not bypass 2FA**, and the email-change link must go to
   the **new** address with the current password required to start the change.
-- **Return codes, never prose** (`AUTH_ERROR`, in `server/auth/schema.ts`). Forms resolve them with
+- **Return codes, never prose** (`AUTH_ERROR`, in `lib/auth/errors.ts`). Forms resolve them with
   `translateAuthError(t, code)`; pass `setError` the raw code.
 - **Do not add a scheduler.** Expired tokens are pruned opportunistically by
   `maybePruneExpiredAuthRows` in `server/auth/service.ts`, the same way

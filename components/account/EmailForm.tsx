@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { AUTH_ERROR } from "@/server/auth/schema";
+import { AUTH_ERROR } from "@/lib/auth/errors";
 import { changeEmailSchema, type ChangeEmailInput } from "@/server/email-verification/schema";
 import { requestEmailChange, requestEmailVerification } from "@/server/email-verification/actions";
 

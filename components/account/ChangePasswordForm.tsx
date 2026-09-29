@@ -13,7 +13,7 @@ import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
 import { changePasswordSchema, type ChangePasswordInput } from "@/server/account/schema";
-import { AUTH_ERROR } from "@/server/auth/schema";
+import { AUTH_ERROR } from "@/lib/auth/errors";
 import { changePassword } from "@/server/account/actions";
 
 interface ChangePasswordFormProps {

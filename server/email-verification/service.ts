@@ -6,7 +6,7 @@ import {
   hashToken,
   tokenExpiry,
 } from "@/lib/auth/tokens";
-import { AUTH_ERROR, type AuthErrorCode } from "@/server/auth/schema";
+import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { maybePruneExpiredAuthRows } from "@/server/auth/service";
 
 // One row per user at a time: issuing a new link retires any earlier one, so a

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AUTH_ERROR } from "@/server/auth/schema";
+import { AUTH_ERROR } from "@/lib/auth/errors";
 
 export const twoFactorCodeSchema = z.object({
   code: z.string().trim().min(1, AUTH_ERROR.totpInvalid),

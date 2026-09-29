@@ -8,7 +8,7 @@ import {
   resetRateLimit,
 } from "@/server/rate-limit/service";
 import { verifyAndConsumeTwoFactor } from "@/server/two-factor/service";
-import { AUTH_ERROR } from "./schema";
+import { AUTH_ERROR } from "@/lib/auth/errors";
 
 // The auth core other features reach through this file (docs/specs/core-layout.md
 // LAYOUT-6): credentials authorization, expired-token housekeeping, and the

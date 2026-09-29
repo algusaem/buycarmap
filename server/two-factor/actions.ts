@@ -7,7 +7,7 @@ import { decryptSecret, encryptSecret } from "@/lib/auth/two-factor/encryption";
 import { buildOtpAuthUri, generateTotpSecret, verifyTotp } from "@/lib/auth/two-factor/totp";
 import { generateRecoveryCodes } from "@/lib/auth/two-factor/recovery-codes";
 import { requiredString } from "@/lib/form-data";
-import { AUTH_ERROR, type AuthErrorCode } from "@/server/auth/schema";
+import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { verifyAndConsumeTwoFactor } from "@/server/auth/service";
 import { RATE_LIMITS, consumeRateLimit } from "@/server/rate-limit/service";
 import { disableTwoFactorSchema, twoFactorCodeSchema } from "./schema";

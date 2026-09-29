@@ -8,7 +8,7 @@ import {
 } from "@/lib/email/templates/auth-emails";
 import { appUrl } from "@/lib/env";
 import { getLocale } from "@/lib/i18n/server";
-import { AUTH_ERROR, type AuthErrorCode } from "@/server/auth/schema";
+import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { maybePruneExpiredAuthRows } from "@/server/auth/service";
 
 export interface RegisterResult {

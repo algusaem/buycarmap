@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { AUTH_ERROR, confirmPassword, newPassword, passwordsMatch } from "@/server/auth/schema";
+import { AUTH_ERROR } from "@/lib/auth/errors";
+import { confirmPassword, newPassword, passwordsMatch } from "@/server/auth/schema";
 
 export const resetPasswordSchema = z
   .object({
