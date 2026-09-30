@@ -16,10 +16,9 @@ As measured through the Neon API on 2026-09-28:
 | Plan | `free_v3` |
 
 - **The `main` branch is production** ([Environments and operations](../ARCHITECTURE.md#environments-and-operations) has the deployment details).
-- Every other branch is a per-git-branch copy created by `pnpm db:branch` and
-  named after that git branch ([Neon branch lifecycle](../ARCHITECTURE.md#neon-branch-lifecycle)).
-  They are working copies, not backups, and each holds production data as of
-  its fork until `pnpm db:branch:rm` removes it ([deletion.md](../privacy/deletion.md)).
+- Local development and every git branch's own database now live in a local Docker Compose
+  Postgres instead, holding only seeded or test data, never a copy of production
+  ([Local database](../ARCHITECTURE.md#local-database), [ADR 0014](../decisions/0014-local-database-and-integration-tests.md)).
 - **Anything older than 6 hours cannot be restored.** A mistake noticed later
   than that is permanent, so start as soon as it is noticed.
 

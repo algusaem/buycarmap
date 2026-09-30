@@ -1,11 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { prisma } from "@/lib/db/prisma";
+import { hashToken } from "@/lib/auth/tokens";
+import { createUser } from "@/test/factories/user";
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    user: { findUnique: vi.fn() },
-    passwordResetToken: { updateMany: vi.fn(), create: vi.fn() },
-  },
-}));
 vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/server/rate-limit/service")>()),
   getClientIp: vi.fn(async () => "203.0.113.1"),
@@ -18,10 +15,8 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
 vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
-import { prisma } from "@/lib/db/prisma";
 import { sendEmail } from "@/lib/email/client";
 import { consumeRateLimit } from "@/server/rate-limit/service";
-import { hashToken } from "@/lib/auth/tokens";
 import { requestPasswordReset } from "./actions";
 
 function formData(fields: Record<string, string | undefined>): FormData {
@@ -32,40 +27,33 @@ function formData(fields: Record<string, string | undefined>): FormData {
   return fd;
 }
 
-const credentialUser = { id: "user-1", password: "hashed" };
+beforeEach(() => {
+  vi.mocked(sendEmail).mockClear();
+  vi.mocked(consumeRateLimit).mockClear();
+  vi.mocked(consumeRateLimit).mockResolvedValue({
+    allowed: true,
+    remaining: 9,
+    retryAfterMs: 0,
+  });
+});
 
 describe("requestPasswordReset action", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.user.findUnique).mockReset();
-    vi.mocked(prisma.passwordResetToken.updateMany).mockReset();
-    vi.mocked(prisma.passwordResetToken.create).mockReset();
-    vi.mocked(sendEmail).mockClear();
-    vi.mocked(consumeRateLimit).mockClear();
-    vi.mocked(consumeRateLimit).mockResolvedValue({
-      allowed: true,
-      remaining: 9,
-      retryAfterMs: 0,
-    });
-  });
-
   it("mints a token and emails a link for a known credential account", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(credentialUser as never);
+    await createUser({ email: "ada@example.com", password: "hashed" });
 
     const result = await requestPasswordReset(formData({ email: "ada@example.com" }));
 
     expect(result).toEqual({ success: true });
-    expect(prisma.passwordResetToken.create).toHaveBeenCalledOnce();
+    expect(await prisma.passwordResetToken.count()).toBe(1);
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com" }));
   });
 
   it("stores only the token's hash, never the token itself", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(credentialUser as never);
+    await createUser({ email: "ada@example.com", password: "hashed" });
 
     await requestPasswordReset(formData({ email: "ada@example.com" }));
 
-    const stored = vi.mocked(prisma.passwordResetToken.create).mock.calls[0][0] as {
-      data: { tokenHash: string };
-    };
+    const [stored] = await prisma.passwordResetToken.findMany();
     const emailed = vi.mocked(sendEmail).mock.calls[0][0];
 
     // Pull the raw token back out of the emailed link and derive what the row
@@ -75,50 +63,50 @@ describe("requestPasswordReset action", () => {
     if (!tokenMatch) throw new Error("expected a token in the emailed link");
     const rawToken = decodeURIComponent(tokenMatch[1]);
 
-    expect(stored.data.tokenHash).toBe(hashToken(rawToken));
-    expect(stored.data.tokenHash).not.toBe(rawToken);
+    expect(stored.tokenHash).toBe(hashToken(rawToken));
+    expect(stored.tokenHash).not.toBe(rawToken);
     // sha-256, hex encoded.
-    expect(stored.data.tokenHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(stored.tokenHash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("invalidates outstanding tokens before issuing a new one", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(credentialUser as never);
+    const user = await createUser({ email: "ada@example.com", password: "hashed" });
+    const earlier = await prisma.passwordResetToken.create({
+      data: {
+        user: { connect: { id: user.id } },
+        tokenHash: "earlier-hash",
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
 
     await requestPasswordReset(formData({ email: "ada@example.com" }));
 
     // Otherwise every request leaves another live link sitting in an inbox.
-    expect(prisma.passwordResetToken.updateMany).toHaveBeenCalledWith({
-      where: { userId: "user-1", usedAt: null },
-      data: { usedAt: expect.any(Date) },
-    });
+    const found = await prisma.passwordResetToken.findUnique({ where: { id: earlier.id } });
+    expect(found?.usedAt).not.toBeNull();
   });
 
   it("returns success without issuing anything for an unknown address", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
-
     const result = await requestPasswordReset(formData({ email: "nobody-here@example.com" }));
 
     // Identical response to the known-account case: that is the whole point.
     expect(result).toEqual({ success: true });
-    expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
+    expect(await prisma.passwordResetToken.count()).toBe(0);
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
   it("returns success without issuing anything for an OAuth-only account", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-2",
-      password: null,
-    } as never);
+    await createUser({ email: "oauth@example.com", password: null });
 
     const result = await requestPasswordReset(formData({ email: "oauth@example.com" }));
 
     expect(result).toEqual({ success: true });
-    expect(prisma.passwordResetToken.create).not.toHaveBeenCalled();
+    expect(await prisma.passwordResetToken.count()).toBe(0);
   });
 
   it("still reports success when issuing the token throws", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(credentialUser as never);
-    vi.mocked(prisma.passwordResetToken.create).mockRejectedValue(new Error("database down"));
+    await createUser({ email: "ada@example.com", password: "hashed" });
+    vi.spyOn(prisma.passwordResetToken, "create").mockRejectedValueOnce(new Error("database down"));
 
     const result = await requestPasswordReset(formData({ email: "ada@example.com" }));
 

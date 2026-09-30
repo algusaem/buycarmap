@@ -12,6 +12,11 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    // TEST-11 (docs/specs/core-testing.md): `pnpm db:seed` → `prisma db seed`
+    // → this. `tsx` is a dev dependency (owner-approved 2026-09-30, ADR 0014)
+    // used only here, because Prisma 7's generated client uses extensionless
+    // imports that Node's own type stripping cannot resolve.
+    seed: "tsx prisma/seed.ts",
   },
   datasource: {
     url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,

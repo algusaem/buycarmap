@@ -289,17 +289,20 @@ export function checkSpecs(specs, tests) {
 }
 
 /**
+ * @param {string} base The repository root to walk from — readdir'd against,
+ *   but never itself part of a returned path, so paths stay repo-relative
+ *   (`app/foo.test.ts`) exactly as they were before `base` was injectable.
  * @param {string} dir
  * @param {string[]} out
  * @returns {Promise<string[]>}
  */
-async function walk(dir, out = []) {
-  for (const entry of await readdir(dir, { withFileTypes: true })) {
+async function walk(base, dir = ".", out = []) {
+  for (const entry of await readdir(join(base, dir), { withFileTypes: true })) {
     if (entry.name.startsWith(".") && entry.name !== ".github") continue;
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) continue;
-      await walk(path, out);
+      await walk(base, path, out);
     } else if (TEST_FILE.test(entry.name)) {
       out.push(path);
     }
@@ -311,14 +314,15 @@ async function walk(dir, out = []) {
  * The spec files `spec:check` considers — `docs/specs/*.md`, excluding `_*`
  * templates and `README.md` — read into the shape `checkSpecs` takes.
  *
+ * @param {string} cwd
  * @returns {Promise<SpecCheckSpecInput[]>}
  */
-async function readSpecFiles() {
+async function readSpecFiles(cwd) {
   const specs = [];
-  for (const file of await readdir(SPEC_DIR)) {
+  for (const file of await readdir(join(cwd, SPEC_DIR))) {
     if (!file.endsWith(".md") || file.startsWith("_") || file === "README.md") continue;
     const path = join(SPEC_DIR, file);
-    specs.push({ name: posix(path), source: await readFile(path, "utf8") });
+    specs.push({ name: posix(path), source: await readFile(join(cwd, path), "utf8") });
   }
   return specs;
 }
@@ -327,11 +331,15 @@ async function readSpecFiles() {
  * Every walked test file, read into the shape `checkSpecs` takes.
  *
  * @param {string[]} paths
+ * @param {string} cwd
  * @returns {Promise<SpecCheckTestInput[]>}
  */
-async function readTestFiles(paths) {
+async function readTestFiles(paths, cwd) {
   return Promise.all(
-    paths.map(async (path) => ({ path: posix(path), source: await readFile(path, "utf8") })),
+    paths.map(async (path) => ({
+      path: posix(path),
+      source: await readFile(join(cwd, path), "utf8"),
+    })),
   );
 }
 
@@ -339,34 +347,46 @@ async function readTestFiles(paths) {
  * @param {string[]} problems
  * @param {ParsedSpec[]} enforced
  * @param {{ name: string, reason: string }[]} skipped
+ * @param {{ log: (message: string) => void, error: (message: string) => void, exit: (code: number) => void }} deps
  * @returns {void}
  */
-function reportSpecCheckResult(problems, enforced, skipped) {
+function reportSpecCheckResult(problems, enforced, skipped, { log, error, exit }) {
   const counted = enforced.reduce((n, spec) => n + spec.declared.size, 0);
 
   if (problems.length > 0) {
-    console.error("spec:check failed\n");
-    for (const problem of problems) console.error(`  - ${problem}`);
-    console.error(`\n${problems.length} problem(s) across ${enforced.length} enforced spec(s).`);
-    process.exit(1);
+    error("spec:check failed\n");
+    for (const problem of problems) error(`  - ${problem}`);
+    error(`\n${problems.length} problem(s) across ${enforced.length} enforced spec(s).`);
+    exit(1);
+    return;
   }
 
-  console.log(
-    `spec:check passed - ${counted} criteria across ${enforced.length} enforced spec(s).`,
-  );
+  log(`spec:check passed - ${counted} criteria across ${enforced.length} enforced spec(s).`);
 
   for (const { name, reason } of skipped) {
-    console.log(`  skipped ${name} (${reason})`);
+    log(`  skipped ${name} (${reason})`);
   }
 }
 
-async function main() {
-  const specFiles = await readSpecFiles();
-  const testFiles = await readTestFiles(await walk("."));
+/**
+ * TOOLING-safe seam: `cwd` and the reporting functions are injected, real
+ * implementation as default, so the colocated test can run the whole check
+ * against a throwaway fixture repository instead of this one.
+ *
+ * @param {{ cwd?: string, log?: (message: string) => void, error?: (message: string) => void, exit?: (code: number) => void }} [deps]
+ */
+export async function main({
+  cwd = process.cwd(),
+  log = console.log,
+  error = console.error,
+  exit = process.exit,
+} = {}) {
+  const specFiles = await readSpecFiles(cwd);
+  const testFiles = await readTestFiles(await walk(cwd), cwd);
 
   const { problems, enforced, skipped } = checkSpecs(specFiles, testFiles);
 
-  reportSpecCheckResult(problems, enforced, skipped);
+  reportSpecCheckResult(problems, enforced, skipped, { log, error, exit });
 }
 
 // Guarded so `criteriaIdsIn` and `checkSpecs` can be imported by the colocated

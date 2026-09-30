@@ -48,7 +48,7 @@ In scope:
   - every Zod schema is in `schema.ts`;
   - every Prisma call is in `service.ts`, apart from the client module in `lib/db/` and the NextAuth callbacks of LAYOUT-7.
 
-  The features are `account`, `alerts`, `auth`, `email-verification`, `favorites`, `locale`, `password-reset`, `rate-limit`, `registration` and `two-factor`. app/actions/, lib/validations/, lib/prisma.ts and lib/alerts/ no longer exist, and the client module is `lib/db/prisma.ts`.
+  The features are `account`, `alerts`, `auth`, `email-verification`, `favorites`, `locale`, `password-reset`, `rate-limit`, `registration` and `two-factor`. app/actions/, lib/validations/, lib/prisma.ts and lib/alerts/ no longer exist, and the client module is `lib/db/prisma.ts`. Test helpers under `test/` and the seed (`prisma/seed.ts`) may also import Prisma (`docs/specs/core-testing.md`, ADR 0014).
 
   Two Zod schemas stay outside `server/` until their phase, by the owner's decision of 2026-09-29:
   - `lib/search/schema.ts`, until phase 9, because the search has no server code before then (ADR 0007 row 19);

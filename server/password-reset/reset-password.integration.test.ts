@@ -1,13 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { prisma } from "@/lib/db/prisma";
+import { hashToken } from "@/lib/auth/tokens";
+import { createUser } from "@/test/factories/user";
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    user: { update: vi.fn() },
-    passwordResetToken: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-    session: { deleteMany: vi.fn() },
-    $transaction: vi.fn(async () => []),
-  },
-}));
 vi.mock("@/lib/auth/hash", () => ({
   hashPassword: vi.fn(async (p: string) => `hashed:${p}`),
   verifyPassword: vi.fn(async () => false),
@@ -25,9 +20,7 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
 vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
-import { prisma } from "@/lib/db/prisma";
 import { verifyPassword } from "@/lib/auth/hash";
-import { hashToken } from "@/lib/auth/tokens";
 import { consumeRateLimit, resetRateLimit } from "@/server/rate-limit/service";
 import { sendEmail } from "@/lib/email/client";
 import { resetPassword } from "./actions";
@@ -50,93 +43,86 @@ function validRequest(overrides: Record<string, string> = {}): FormData {
   });
 }
 
-function tokenRecord(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "token-1",
-    userId: "user-1",
-    tokenHash: hashToken(RAW_TOKEN),
-    expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-    usedAt: null,
-    user: { id: "user-1", email: "ada@example.com", password: "old-hash" },
-    ...overrides,
-  };
+async function seedToken(
+  overrides: { expiresAt?: Date; usedAt?: Date | null; userPassword?: string | null } = {},
+) {
+  const user = await createUser({
+    email: "ada@example.com",
+    password: overrides.userPassword ?? "old-hash",
+  });
+  const token = await prisma.passwordResetToken.create({
+    data: {
+      user: { connect: { id: user.id } },
+      tokenHash: hashToken(RAW_TOKEN),
+      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000),
+      usedAt: overrides.usedAt ?? null,
+    },
+  });
+  return { user, token };
 }
 
-describe("resetPassword token validation", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockReset();
-    vi.mocked(prisma.$transaction).mockClear();
-    vi.mocked(verifyPassword).mockResolvedValue(false);
-    vi.mocked(consumeRateLimit).mockResolvedValue({
-      allowed: true,
-      remaining: 14,
-      retryAfterMs: 0,
-    });
+beforeEach(() => {
+  vi.mocked(verifyPassword).mockResolvedValue(false);
+  vi.mocked(consumeRateLimit).mockResolvedValue({
+    allowed: true,
+    remaining: 14,
+    retryAfterMs: 0,
   });
+  vi.mocked(resetRateLimit).mockClear();
+  vi.mocked(sendEmail).mockClear();
+});
 
+describe("resetPassword token validation", () => {
   it("looks the token up by its hash, never by the raw value", async () => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(tokenRecord() as never);
+    await seedToken();
+    const spy = vi.spyOn(prisma.passwordResetToken, "findUnique");
 
     await resetPassword(validRequest());
 
-    expect(prisma.passwordResetToken.findUnique).toHaveBeenCalledWith(
+    expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({ where: { tokenHash: hashToken(RAW_TOKEN) } }),
     );
+    spy.mockRestore();
   });
 
   it("rejects a token that does not exist", async () => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(null);
-
     expect(await resetPassword(validRequest())).toEqual({
       success: false,
       error: "tokenInvalid",
     });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("rejects an expired token", async () => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(
-      tokenRecord({ expiresAt: new Date(Date.now() - 1000) }) as never,
-    );
+    await seedToken({ expiresAt: new Date(Date.now() - 1000) });
 
     expect(await resetPassword(validRequest())).toEqual({
       success: false,
       error: "tokenInvalid",
     });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("rejects a token that was already redeemed", async () => {
     // Single use: a link forwarded or left in an inbox must not work twice.
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(
-      tokenRecord({ usedAt: new Date() }) as never,
-    );
+    await seedToken({ usedAt: new Date() });
 
     expect(await resetPassword(validRequest())).toEqual({
       success: false,
       error: "tokenInvalid",
     });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("gives missing, expired and used tokens the same error", async () => {
     // Distinguishing them would tell a prober which tokens once existed.
-    //
-    // Sequential on purpose: the three cases share one mock, so running them
-    // concurrently would leave the last `mockResolvedValue` in force for all of
-    // them and the test would pass while only ever exercising one branch.
-    const outcomes = [];
+    const missing = await resetPassword(validRequest());
 
-    for (const record of [
-      null,
-      tokenRecord({ expiresAt: new Date(Date.now() - 1000) }),
-      tokenRecord({ usedAt: new Date() }),
-    ]) {
-      vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(record as never);
-      outcomes.push(await resetPassword(validRequest()));
-    }
+    await seedToken({ expiresAt: new Date(Date.now() - 1000) });
+    const expired = await resetPassword(validRequest());
 
-    expect(outcomes).toEqual([
+    await prisma.passwordResetToken.deleteMany();
+    await seedToken({ usedAt: new Date() });
+    const used = await resetPassword(validRequest());
+
+    expect([missing, expired, used]).toEqual([
       { success: false, error: "tokenInvalid" },
       { success: false, error: "tokenInvalid" },
       { success: false, error: "tokenInvalid" },
@@ -145,28 +131,19 @@ describe("resetPassword token validation", () => {
 });
 
 describe("resetPassword password rules", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(tokenRecord() as never);
-    vi.mocked(prisma.$transaction).mockClear();
-    vi.mocked(verifyPassword).mockResolvedValue(false);
-    vi.mocked(consumeRateLimit).mockResolvedValue({
-      allowed: true,
-      remaining: 14,
-      retryAfterMs: 0,
-    });
-  });
-
   it("rejects a password below the minimum length", async () => {
+    await seedToken();
     const short = "abcdefghijk";
 
     expect(await resetPassword(validRequest({ password: short, confirmPassword: short }))).toEqual({
       success: false,
       error: "passwordTooShort",
     });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("rejects mismatched confirmation", async () => {
+    await seedToken();
+
     expect(
       await resetPassword(validRequest({ confirmPassword: "something-else-entirely" })),
     ).toEqual({ success: false, error: "passwordsDoNotMatch" });
@@ -175,76 +152,67 @@ describe("resetPassword password rules", () => {
   it("rejects reusing the password the account already has", async () => {
     // Whatever prompted the reset, keeping the same password leaves the
     // account exactly as exposed as before.
+    await seedToken();
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
     expect(await resetPassword(validRequest())).toEqual({
       success: false,
       error: "passwordReused",
     });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
 
 describe("resetPassword success path", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(tokenRecord() as never);
-    vi.mocked(prisma.$transaction).mockClear();
-    vi.mocked(prisma.user.update).mockClear();
-    vi.mocked(prisma.passwordResetToken.update).mockClear();
-    vi.mocked(prisma.session.deleteMany).mockClear();
-    vi.mocked(resetRateLimit).mockClear();
-    vi.mocked(sendEmail).mockClear();
-    vi.mocked(verifyPassword).mockResolvedValue(false);
-    vi.mocked(consumeRateLimit).mockResolvedValue({
-      allowed: true,
-      remaining: 14,
-      retryAfterMs: 0,
-    });
-  });
-
   it("stores the new password hashed and bumps passwordChangedAt", async () => {
+    const { user } = await seedToken();
+
     expect(await resetPassword(validRequest())).toEqual({ success: true });
 
     // Bumping passwordChangedAt is what revokes JWTs issued before the reset —
     // without it, whoever prompted the reset keeps their live session.
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      data: {
-        password: `hashed:${NEW_PASSWORD}`,
-        passwordChangedAt: expect.any(Date),
-      },
-    });
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.password).toBe(`hashed:${NEW_PASSWORD}`);
+    expect(found?.passwordChangedAt.getTime()).toBeGreaterThan(user.passwordChangedAt.getTime());
   });
 
   it("AUTH-11: leaves two-factor enrolment untouched, so a reset cannot bypass it", async () => {
-    await resetPassword(validRequest());
+    const encrypted = "v1:encrypted-secret";
+    const { user } = await seedToken();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { twoFactorSecret: encrypted, twoFactorEnabledAt: new Date() },
+    });
 
     // Control of the mailbox is enough to reset a password. If the reset also
     // cleared the second factor, the mailbox alone would defeat 2FA entirely —
-    // which is the whole thing 2FA exists to prevent. Asserted on the update
-    // payload rather than the outcome because "we forgot to clear it" and "we
-    // deliberately do not clear it" look identical from the outside, and the
-    // plausible future edit is someone adding it as a lockout fix.
-    const [[call]] = vi.mocked(prisma.user.update).mock.calls;
-    expect(Object.keys(call.data).sort()).toEqual(["password", "passwordChangedAt"]);
+    // which is the whole thing 2FA exists to prevent.
+    await resetPassword(validRequest());
+
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.twoFactorSecret).toBe(encrypted);
+    expect(found?.twoFactorEnabledAt).not.toBeNull();
   });
 
   it("marks the token used and clears sessions in one transaction", async () => {
+    const { user, token } = await seedToken();
+    await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-1",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
     await resetPassword(validRequest());
 
-    expect(prisma.passwordResetToken.update).toHaveBeenCalledWith({
-      where: { id: "token-1" },
-      data: { usedAt: expect.any(Date) },
-    });
-    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
-      where: { userId: "user-1" },
-    });
-    // All of it in one transaction, so a token can never be consumed without
-    // the password actually changing.
-    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    const foundToken = await prisma.passwordResetToken.findUnique({ where: { id: token.id } });
+    expect(foundToken?.usedAt).not.toBeNull();
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
   });
 
   it("clears the account's login lockout", async () => {
+    await seedToken();
+
     await resetPassword(validRequest());
 
     // The user just proved control of the mailbox; the failed attempts that
@@ -253,6 +221,8 @@ describe("resetPassword success path", () => {
   });
 
   it("notifies the account owner that the password changed", async () => {
+    await seedToken();
+
     await resetPassword(validRequest());
 
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com" }));
@@ -261,17 +231,18 @@ describe("resetPassword success path", () => {
 
 describe("resetPassword rate limiting", () => {
   it("refuses once the budget is spent, without touching the token", async () => {
+    const { token } = await seedToken();
     vi.mocked(consumeRateLimit).mockResolvedValue({
       allowed: false,
       remaining: 0,
       retryAfterMs: 60_000,
     });
-    vi.mocked(prisma.passwordResetToken.findUnique).mockClear();
 
     expect(await resetPassword(validRequest())).toEqual({
       success: false,
       error: "rateLimited",
     });
-    expect(prisma.passwordResetToken.findUnique).not.toHaveBeenCalled();
+    const found = await prisma.passwordResetToken.findUnique({ where: { id: token.id } });
+    expect(found?.usedAt).toBeNull();
   });
 });

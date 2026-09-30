@@ -13,6 +13,8 @@ const PASSWORD = "harbour-lentil-quilt-97";
 const FAVORITE = /add to favorites|guardar en favoritos/i;
 const UNFAVORITE = /remove from favorites|quitar de favoritos/i;
 const AUDI = "Audi A3 2.0 TDI";
+// lib/i18n/locales/en.ts nav.favorites: "Saved cars"; es.ts: "Coches guardados".
+const SAVED_CARS = /saved cars|coches guardados/i;
 
 // Deliberately duplicated from auth.spec.ts rather than shared: five lines of
 // page-object glue, and coupling two spec files together to save them would
@@ -43,7 +45,7 @@ function audiCard(page: Page) {
  * fetches resolve, which hides the window.
  */
 async function waitForSession(page: Page) {
-  await expect(page.getByRole("button", { name: /sign out|cerrar sesión/i })).toBeVisible({
+  await expect(page.getByRole("navigation").getByRole("link", { name: SAVED_CARS })).toBeVisible({
     timeout: 15_000,
   });
 }

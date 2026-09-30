@@ -15,8 +15,10 @@ one shared listing shape. If a source is down, the others still render.
 
 ```bash
 pnpm install
-cp .env.example .env      # fill in DATABASE_URL and NEXTAUTH_SECRET
+cp .env.example .env      # fill in NEXTAUTH_SECRET; DATABASE_URL's default already points at Compose
+pnpm db:up                 # start the local Postgres (needs Docker Desktop running)
 pnpm exec prisma generate
+pnpm db:branch && pnpm db:seed
 pnpm dev
 ```
 
@@ -44,9 +46,10 @@ the four commands do not tell you.
 - **Node 22.18+** (`.nvmrc` pins the exact version; `STACK.md` §1) and **pnpm 11**, pinned in
   `package.json`'s `packageManager` — an older pnpm hands the install over to it. The lockfile is
   `pnpm-lock.yaml` and there is no `package-lock.json` — npm and yarn will resolve a different tree.
-- **A Neon Postgres database.** The free tier is enough. Nothing here runs
-  against a local Postgres by default, because branch databases (below) are a
-  Neon feature the workflow depends on.
+- **Docker Desktop**, with **WSL 2** on Windows, running before `pnpm db:up` or `pnpm db:branch`.
+  Local work and the integration tests (Testcontainers) both run against the Postgres it starts —
+  nothing here needs a Neon account or network access. Production still runs on Neon; see
+  [Environments and operations](docs/ARCHITECTURE.md#environments-and-operations).
 - **gitleaks** on your PATH — `winget install Gitleaks.Gitleaks` on Windows, `brew install gitleaks`
   on macOS. The pre-commit hook runs it.
 
@@ -70,22 +73,23 @@ they do not need. What each variable does when it is absent is in
 
 ### Working in a worktree
 
-**Before any Prisma command or `pnpm dev` from a git worktree, run
-`pnpm db:branch`.** It forks a copy-on-write Neon branch for the current git
-branch and writes `DATABASE_URL` into that worktree's `.env`, seeding the rest of
-the file from the main checkout. It is idempotent — re-running on an already
-provisioned branch reuses it.
+**Before any Prisma command or `pnpm dev` from a git worktree, run `pnpm db:up` then
+`pnpm db:branch`.** `db:up` starts the local Compose Postgres (Docker Desktop must be running);
+`db:branch` gives the current git branch its own database inside it and writes `DATABASE_URL` into
+that worktree's `.env`, seeding the rest of the file from the main checkout. It is idempotent —
+re-running on an already provisioned database reuses it.
 
 ```bash
+pnpm db:up            # start the local Postgres, once per machine session
 pnpm db:branch        # this git branch gets its own database
 pnpm db:branch:rm     # delete it once the work is merged
+pnpm db:seed          # fill it with development data (users, favorites, alerts)
 ```
 
-A worktree starts with neither `.env` nor `node_modules`, so the full bootstrap
-there is:
+A worktree starts with neither `.env` nor `node_modules`, so the full bootstrap there is:
 
 ```bash
-pnpm db:branch && pnpm install && pnpm exec prisma generate
+pnpm db:branch && pnpm install && pnpm exec prisma generate && pnpm db:seed
 ```
 
 `db:branch` is dependency-free for exactly this reason — it has to run before
@@ -95,9 +99,13 @@ pnpm db:branch && pnpm install && pnpm exec prisma generate
 It is mandatory rather than advisory because `prisma migrate dev` assumes the
 database matches the current branch's migration history, and when worktrees
 share one database the only remedy Prisma offers is a reset that drops every
-row. The database holds real accounts and there is no seed script. **Never accept
-that offer.** The full reasoning, the two traps that follow from it and how to
+row. **Never accept that offer.** The full reasoning, the two traps that follow from it and how to
 repair a stale checksum are in [Migrations](docs/ARCHITECTURE.md#migrations).
+
+`pnpm db:seed` fills an empty database with three development accounts, signed in with the password
+`buycarmap-dev-1`; one of them has two-factor on, with its TOTP secret printed to the console. It
+refuses to run against anything but `localhost`/`127.0.0.1`, and is never run in CI or the Vercel
+build.
 
 #### "Refusing to run"
 
@@ -124,9 +132,9 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm lint` | Biome (lint and format), `depcruise`, knip, `spec:check`, `docs:check`, `todo:check` |
 | `pnpm depcruise` | The dependency-cruiser boundaries (`.dependency-cruiser.cjs`), 0 violations required |
 | `pnpm typecheck` | `tsc --noEmit` and type-coverage (minimum in `package.json` › `typeCoverage`) |
-| `pnpm test` | Vitest, both projects, with v8 coverage and the ratchet thresholds |
-| `pnpm test:unit` | The jsdom project alone |
-| `pnpm test:integration` | The node project alone (route handlers, actions, scripts, contracts) |
+| `pnpm test` | Vitest, all three projects, with v8 coverage and the ratchet thresholds |
+| `pnpm test:unit` | The unit (jsdom) and node projects — no database |
+| `pnpm test:integration` | The integration project alone — real Postgres via Testcontainers |
 | `pnpm test:watch` | Vitest in watch mode |
 | `pnpm test:e2e` | Playwright, all three projects |
 | `pnpm test:e2e:db` | The database-backed e2e round trips. Needs `pnpm db:branch` first |
@@ -136,8 +144,11 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm spec:check` | Every approved acceptance criterion is still named by a test |
 | `pnpm docs:check` | Doc links, referenced source paths (ADR source paths excepted, LAYOUT-4), reachability from this file, the ownership map |
 | `pnpm todo:check` | Every `TODO` comment names its issue (`#n`) |
-| `pnpm db:branch` | Give this git branch its own Neon database |
+| `pnpm db:up` | Start the local Compose Postgres (`localhost:5433`) |
+| `pnpm db:down` | Stop it, keeping the volume |
+| `pnpm db:branch` | Give this git branch its own database inside it |
 | `pnpm db:branch:rm` | Delete it |
+| `pnpm db:seed` | Fill an empty local database with development data |
 | `pnpm gen feature <name>` | Scaffold `server/<name>/{queries,actions,service,schema}.ts` and its spec (plop) |
 
 ### Git hooks

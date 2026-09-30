@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { findUnreferencedTodos } from "./todo-check.mjs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { findUnreferencedTodos, main } from "./todo-check.mjs";
 
 // scripts/todo-check.mjs flags an unreferenced marker comment with no issue
 // reference. See docs/specs/core-tooling.md TOOLING-12 for the worked
@@ -201,5 +206,82 @@ describe("todo:check — unreferenced TODO comments", () => {
       { path: "a.ts", line: 2 },
       { path: "b.ts", line: 3 },
     ]);
+  });
+});
+
+// `main`, called in-process against a throwaway git repository (never this
+// one) with `cwd`/`readFileFn`/`log`/`error`/`exit` injected. The child-process
+// CLI test (todo-check.cli.node.test.ts) pins the same behaviour as `pnpm
+// todo:check` actually runs it; this proves `main` itself, in a form the
+// coverage instrumentation can see.
+describe("main", () => {
+  let repo: string;
+
+  beforeEach(() => {
+    repo = mkdtempSync(join(tmpdir(), "todo-check-main-"));
+    const run = (...args: string[]) => execFileSync("git", args, { cwd: repo });
+    run("init", "-q");
+    run("config", "user.email", "guard@example.test");
+    run("config", "user.name", "Guard");
+  });
+
+  afterEach(() => {
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("TOOLING-12: reports the unreferenced marker and exits 1", async () => {
+    writeFileSync(join(repo, "a.ts"), `// ${TAG}: x`);
+    execFileSync("git", ["add", "a.ts"], { cwd: repo });
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error).toHaveBeenCalledWith("a.ts:1  TODO without an issue reference");
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("TOOLING-12: passes and reports the scanned file count with an issue reference", async () => {
+    writeFileSync(join(repo, "a.ts"), `// ${TAG}(#1): x`);
+    execFileSync("git", ["add", "a.ts"], { cwd: repo });
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(log).toHaveBeenCalledWith("todo:check passed - 1 file(s) scanned.");
+    expect(exit).not.toHaveBeenCalled();
+  });
+
+  it("skips a tracked path that no longer exists on disk", async () => {
+    // git ls-files can list a path that was deleted but not yet staged as
+    // such — main must not throw trying to read it.
+    writeFileSync(join(repo, "a.ts"), `// ${TAG}(#1): x`);
+    execFileSync("git", ["add", "a.ts"], { cwd: repo });
+    execFileSync("git", ["commit", "-q", "-m", "add a.ts"], { cwd: repo });
+    rmSync(join(repo, "a.ts"));
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(log).toHaveBeenCalledWith("todo:check passed - 0 file(s) scanned.");
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("ignores an extension todo:check does not scan (.md)", async () => {
+    writeFileSync(join(repo, "notes.md"), `${TAG}: x`);
+    execFileSync("git", ["add", "notes.md"], { cwd: repo });
+    const log = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, exit });
+
+    expect(log).toHaveBeenCalledWith("todo:check passed - 0 file(s) scanned.");
+    expect(exit).not.toHaveBeenCalled();
   });
 });

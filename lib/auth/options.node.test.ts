@@ -1,27 +1,28 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AuthOptions, Session, User, Awaitable } from "next-auth";
+import { describe, expect, it, vi } from "vitest";
+import type { Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import type { CredentialsConfig } from "next-auth/providers/credentials";
+import type { Awaitable, User } from "next-auth";
 
-// NextAuth v4 keeps the user-supplied options (our real authorize) under
-// `.options`; the top-level `authorize` is a `() => null` default it merges
-// over internally. So the wiring under test lives at `provider.options`.
+// TEST-7 (docs/specs/core-testing.md): the jwt callback's revalidation and
+// revocation paths, and the signIn callback's OAuth linking guard, moved to
+// ./options.integration.test.ts, which reads real User rows. The three
+// blocks below never touch Prisma at all — authorize's own branching is
+// covered in server/auth/authorize.integration.test.ts, the session
+// configuration checks are static properties on authOptions, and the session
+// callback is a pure function of its arguments — so this file no longer
+// mocks @/lib/db/prisma.
+
 type AuthorizeFn = (
   credentials: Record<"email" | "password", string> | undefined,
   req: { body: undefined; query: undefined; headers: undefined; method: string },
 ) => Awaitable<User | null>;
 
-// authorize's own branching is covered in authorize.test.ts; stub it so this
-// file only exercises the NextAuth wiring and the session callbacks.
 vi.mock("@/server/auth/service", () => ({
   authorizeCredentials: vi.fn(),
 }));
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: { user: { findUnique: vi.fn() } },
-}));
 
 import { authorizeCredentials } from "@/server/auth/service";
-import { prisma } from "@/lib/db/prisma";
 import { authOptions } from "./options";
 
 const authCallbacks = authOptions.callbacks;
@@ -29,39 +30,6 @@ if (!authCallbacks) throw new Error("expected authOptions.callbacks to be config
 
 const sessionCallback = authCallbacks.session;
 if (!sessionCallback) throw new Error("expected authOptions.callbacks.session to be configured");
-
-const jwtCallback = authCallbacks.jwt;
-if (!jwtCallback) throw new Error("expected authOptions.callbacks.jwt to be configured");
-
-type JwtCallbackParams = Parameters<NonNullable<NonNullable<AuthOptions["callbacks"]>["jwt"]>>[0];
-
-interface JwtCallbackFixture {
-  token: JWT;
-  user?: User;
-  account?: null;
-  trigger?: "signIn" | "signUp" | "update";
-}
-
-// NextAuth 4's types declare `user` as always present on the jwt callback, but
-// at runtime it is set only on the sign-in call — every later invocation (the
-// revalidation path this file exercises) passes undefined. This factory builds
-// the full callback param shape from just the fields a case cares about; the
-// one narrow `as` needed to bridge that gap lives here, over this partial test
-// fixture, not on the production types.
-function jwtParams(fixture: JwtCallbackFixture): JwtCallbackParams {
-  return fixture as JwtCallbackParams;
-}
-
-const HOUR = 60 * 60 * 1000;
-
-function dbUser(passwordChangedAt: Date) {
-  return {
-    email: "ada@example.com",
-    name: "Ada",
-    image: null,
-    passwordChangedAt,
-  };
-}
 
 describe("credentials provider", () => {
   it("delegates authorize to authorizeCredentials and returns its result", async () => {
@@ -103,159 +71,6 @@ describe("session configuration", () => {
   });
 });
 
-describe("jwt callback on sign-in", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.user.findUnique).mockReset();
-  });
-
-  it("stamps the user id and issue time, without a database round-trip", async () => {
-    const token = await jwtCallback(
-      jwtParams({
-        token: {} as JWT,
-        user: {
-          id: "user-123",
-          email: "ada@example.com",
-          name: "Ada",
-          image: null,
-        },
-        account: null,
-      }),
-    );
-
-    expect(token.id).toBe("user-123");
-    expect(typeof token.pwdAt).toBe("number");
-    // The sign-in itself just read the row; re-reading it would be waste.
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
-  });
-});
-
-describe("jwt callback revalidation", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.user.findUnique).mockReset();
-  });
-
-  it("skips the database while the last check is recent", async () => {
-    const token = {
-      id: "user-123",
-      pwdAt: Date.now() - HOUR,
-      checkedAt: Date.now(),
-    } as JWT;
-
-    await jwtCallback(jwtParams({ token, user: undefined, account: null }));
-
-    // One query per request on every authenticated page load would be a real
-    // cost; the check is interval-bounded instead.
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
-  });
-
-  it("re-reads the row once the interval has elapsed", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      dbUser(new Date(Date.now() - HOUR)) as never,
-    );
-
-    const token = {
-      id: "user-123",
-      pwdAt: Date.now() - HOUR,
-      checkedAt: Date.now() - 10 * 60 * 1000,
-    } as JWT;
-
-    const result = await jwtCallback(jwtParams({ token, user: undefined, account: null }));
-
-    expect(prisma.user.findUnique).toHaveBeenCalled();
-    if (token.pwdAt === undefined) throw new Error("expected pwdAt to be set on the token");
-    expect(result.checkedAt).toBeGreaterThan(token.pwdAt);
-  });
-
-  it("picks up a profile rename without requiring a re-login", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      dbUser(new Date(Date.now() - HOUR)) as never,
-    );
-
-    const result = await jwtCallback(
-      jwtParams({
-        token: { id: "user-123", pwdAt: Date.now(), checkedAt: 0 } as JWT,
-        user: undefined,
-        account: null,
-      }),
-    );
-
-    expect(result.name).toBe("Ada");
-  });
-});
-
-describe("jwt callback revocation", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.user.findUnique).mockReset();
-  });
-
-  it("throws when the password changed after the session was issued", async () => {
-    const signedInAt = Date.now() - HOUR;
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      // Password changed half an hour after this session started.
-      dbUser(new Date(signedInAt + 30 * 60 * 1000)) as never,
-    );
-
-    // NextAuth's session route catches this, clears the cookie and returns a
-    // null session — the only way to revoke a stateless JWT server-side.
-    await expect(
-      jwtCallback(
-        jwtParams({
-          token: { id: "user-123", pwdAt: signedInAt, checkedAt: 0 } as JWT,
-          user: undefined,
-          account: null,
-        }),
-      ),
-    ).rejects.toThrow("SessionRevoked");
-  });
-
-  it("keeps a session issued after the last password change", async () => {
-    const changedAt = Date.now() - 2 * HOUR;
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser(new Date(changedAt)) as never);
-
-    const result = await jwtCallback(
-      jwtParams({
-        token: { id: "user-123", pwdAt: Date.now() - HOUR, checkedAt: 0 } as JWT,
-        user: undefined,
-        account: null,
-      }),
-    );
-
-    expect(result.id).toBe("user-123");
-  });
-
-  it("throws when the account no longer exists", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
-
-    await expect(
-      jwtCallback(
-        jwtParams({
-          token: { id: "deleted-user", pwdAt: Date.now(), checkedAt: 0 } as JWT,
-          user: undefined,
-          account: null,
-        }),
-      ),
-    ).rejects.toThrow("SessionRevoked");
-  });
-
-  it("adopts a stamp for legacy tokens instead of revoking them", async () => {
-    // Tokens minted before `pwdAt` existed must not all be invalidated at
-    // once — but they must become revocable from here on.
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      dbUser(new Date(Date.now() - HOUR)) as never,
-    );
-
-    const result = await jwtCallback(
-      jwtParams({
-        token: { id: "user-123" } as JWT,
-        user: undefined,
-        account: null,
-      }),
-    );
-
-    expect(typeof result.pwdAt).toBe("number");
-  });
-});
-
 describe("session callback", () => {
   it("exposes the token id and profile on session.user", async () => {
     const result = (await sessionCallback({
@@ -277,94 +92,5 @@ describe("session callback", () => {
     expect(result.user.id).toBe("user-123");
     expect(result.user.email).toBe("ada@example.com");
     expect(result.user.name).toBe("Ada");
-  });
-});
-
-describe("signIn callback: OAuth linking guard", () => {
-  const signInCallback = authCallbacks.signIn;
-  if (!signInCallback) throw new Error("expected authOptions.callbacks.signIn to be configured");
-
-  // NextAuth's types demand a full User/Account; only the fields the callback
-  // reads matter here.
-  const call = (params: { email?: string | null; provider?: string; type?: string }) =>
-    signInCallback({
-      // `??` would turn an explicit null back into the default, which is how
-      // the no-email case silently tested the wrong thing.
-      user: {
-        id: "u1",
-        email: "email" in params ? params.email : "ada@example.com",
-      },
-      account:
-        params.type === "none"
-          ? null
-          : ({
-              type: params.type ?? "oauth",
-              provider: params.provider ?? "google",
-              providerAccountId: "g-1",
-            } as never),
-    } as never);
-
-  beforeEach(() => {
-    vi.mocked(prisma.user.findUnique).mockReset();
-  });
-
-  it("allows credentials sign-in, which authorize already guards", async () => {
-    await expect(call({ type: "credentials" })).resolves.toBe(true);
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
-  });
-
-  it("signIn lets a sign-in with no account through without a lookup", async () => {
-    await expect(call({ type: "none" })).resolves.toBe(true);
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
-  });
-
-  it("AUTH-12: allows a brand-new account created through the provider", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
-
-    await expect(call({})).resolves.toBe(true);
-  });
-
-  it("allows linking when the account has no two-factor", async () => {
-    // The existing behaviour is preserved for everyone not using 2FA.
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      twoFactorEnabledAt: null,
-      accounts: [],
-    } as never);
-
-    await expect(call({})).resolves.toBe(true);
-  });
-
-  it("allows a provider that is already linked to a two-factor account", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      twoFactorEnabledAt: new Date(),
-      accounts: [{ provider: "google" }],
-    } as never);
-
-    await expect(call({ provider: "google" })).resolves.toBe(true);
-  });
-
-  it("AUTH-12: blocks a NEW provider on a two-factor account", async () => {
-    // The attack this closes: someone who controls the mailbox creates a
-    // Google account on that address and signs in, skipping the second factor.
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      twoFactorEnabledAt: new Date(),
-      accounts: [],
-    } as never);
-
-    await expect(call({ provider: "google" })).resolves.toBe(false);
-  });
-
-  it("blocks a second provider even when another is already linked", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      twoFactorEnabledAt: new Date(),
-      accounts: [{ provider: "github" }],
-    } as never);
-
-    await expect(call({ provider: "google" })).resolves.toBe(false);
-  });
-
-  it("allows through when the provider gives no email to match on", async () => {
-    await expect(call({ email: null })).resolves.toBe(true);
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 });

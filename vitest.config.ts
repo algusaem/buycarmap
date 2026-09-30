@@ -1,13 +1,18 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-// Two projects share the same plugins (React JSX + `@/*` path aliases) but run
-// in different environments:
-//   - "unit"  → jsdom: pure lib, source clients (need `window.location`),
-//               hooks, and components. Everything except node-only tests.
-//   - "node"  → node: Next.js route handlers and server actions, which need the
-//               real Node request/response globals, not jsdom's. Opt in by
-//               naming the file `*.node.test.ts`.
+// Three projects share the same plugins (React JSX + `@/*` path aliases) but
+// run in different environments:
+//   - "unit"        → jsdom: pure lib, source clients (need `window.location`),
+//                      hooks, and components. Everything except node-only and
+//                      integration tests.
+//   - "node"         → node: Next.js route handlers and server actions, which
+//                      need the real Node request/response globals, not
+//                      jsdom's. Opt in by naming the file `*.node.test.ts`. No
+//                      database — Prisma is mocked or absent.
+//   - "integration"  → node, against a real Postgres (Testcontainers). Opt in
+//                      by naming the file `*.integration.test.ts`
+//                      (docs/specs/core-testing.md, TEST-5..8).
 export default defineConfig({
   plugins: [react()],
   // `@/*` path aliases resolved natively from tsconfig.json.
@@ -26,8 +31,16 @@ export default defineConfig({
     },
     coverage: {
       provider: "v8",
-      include: ["lib/**", "components/**", "app/**", "server/**", "proxy.ts"],
-      exclude: ["app/generated/**", "**/*.test.{ts,tsx}", "**/*.d.ts", "**/index.ts"],
+      include: [
+        "lib/**",
+        "components/**",
+        "app/**",
+        "server/**",
+        "proxy.ts",
+        "scripts/**",
+        "prisma/seed.ts",
+      ],
+      exclude: ["app/generated/**", "**/*.test.{ts,tsx}", "**/*.d.ts"],
       // A ratchet, not a target. Set a point below what the suite measured
       // when it was introduced, so ordinary variance doesn't fail CI but a
       // meaningful drop does. Raise these when coverage rises; never lower
@@ -53,7 +66,7 @@ export default defineConfig({
           environment: "jsdom",
           setupFiles: ["./test/setup.jsdom.ts"],
           include: ["{lib,components,app,server}/**/*.test.{ts,tsx}"],
-          exclude: ["**/*.node.test.ts", "e2e/**", "node_modules/**"],
+          exclude: ["**/*.node.test.ts", "**/*.integration.test.ts", "e2e/**", "node_modules/**"],
         },
       },
       {
@@ -71,7 +84,31 @@ export default defineConfig({
             // Dev tooling that rewrites .env files. Not app code, but a bug
             // here clobbers real secrets, so it is covered.
             "scripts/**/*.node.test.ts",
+            "prisma/**/*.node.test.ts",
           ],
+          exclude: ["**/*.integration.test.ts", "node_modules/**"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "integration",
+          environment: "node",
+          globalSetup: ["./test/integration.global-setup.ts"],
+          // `setup.node.ts` first (MSW, for the upstream-API mocks some of
+          // these files still need), then `setup.integration.ts`, which must
+          // set `DATABASE_URL` to the real per-worker database before
+          // anything imports the shared Prisma client — see the comment there.
+          setupFiles: ["./test/setup.node.ts", "./test/setup.integration.ts"],
+          include: ["{app,lib,server,prisma,test}/**/*.integration.test.ts"],
+          exclude: ["node_modules/**"],
+          // The container starts once per run in globalSetup, and each
+          // worker's first test copies its own database from the template —
+          // slower than the no-database projects' default hook timeout.
+          hookTimeout: 120_000,
+          // Real inserts: the alert-cadence tests write a few hundred rows, which
+          // outruns the 5 s default when every worker shares one Docker VM.
+          testTimeout: 30_000,
         },
       },
     ],

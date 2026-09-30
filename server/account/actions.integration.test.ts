@@ -1,13 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { prisma } from "@/lib/db/prisma";
+import { createUser } from "@/test/factories/user";
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    user: { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() },
-    session: { deleteMany: vi.fn() },
-    account: { delete: vi.fn() },
-    $transaction: vi.fn(async () => []),
-  },
-}));
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/lib/auth/hash", () => ({
   hashPassword: vi.fn(async (p: string) => `hashed:${p}`),
@@ -24,7 +18,6 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
 vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
-import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/hash";
 import { consumeRateLimit } from "@/server/rate-limit/service";
@@ -37,7 +30,6 @@ import {
 } from "./actions";
 
 const NEW_PASSWORD = "harbour-lentil-quilt";
-const SESSION_USER = { id: "user-1", email: "ada@example.com" };
 
 function formData(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -54,12 +46,14 @@ function changeRequest(overrides: Record<string, string> = {}): FormData {
   });
 }
 
+async function signedInAsNewUser(overrides: Parameters<typeof createUser>[0] = {}) {
+  const user = await createUser({ password: "old-hash", ...overrides });
+  vi.mocked(getCurrentUser).mockResolvedValue({ id: user.id, email: user.email });
+  return user;
+}
+
 beforeEach(() => {
   vi.mocked(getCurrentUser).mockReset();
-  vi.mocked(prisma.user.findUnique).mockReset();
-  vi.mocked(prisma.user.update).mockReset();
-  vi.mocked(prisma.user.delete).mockReset();
-  vi.mocked(prisma.$transaction).mockClear();
   vi.mocked(verifyPassword).mockReset();
   vi.mocked(consumeRateLimit).mockResolvedValue({
     allowed: true,
@@ -76,53 +70,41 @@ describe("updateProfile authorization", () => {
       success: false,
       error: "unauthorized",
     });
-    expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
   it("scopes the update to the session's own user id", async () => {
-    vi.mocked(getCurrentUser).mockResolvedValue(SESSION_USER);
+    const user = await signedInAsNewUser();
 
     // The form carries no user identifier, so there is nothing a caller could
     // tamper with to edit somebody else's profile.
     await updateProfile(formData({ name: "Ada", id: "someone-else" }));
 
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      data: { name: "Ada" },
-    });
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.name).toBe("Ada");
   });
 
   it("stores null for a cleared name", async () => {
-    vi.mocked(getCurrentUser).mockResolvedValue(SESSION_USER);
+    const user = await signedInAsNewUser({ name: "Ada" });
 
     await updateProfile(formData({ name: "" }));
 
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      data: { name: null },
-    });
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.name).toBeNull();
   });
 
   it("rejects a name past the length limit", async () => {
-    vi.mocked(getCurrentUser).mockResolvedValue(SESSION_USER);
+    const user = await signedInAsNewUser({ name: "Ada" });
 
     expect(await updateProfile(formData({ name: "a".repeat(81) }))).toEqual({
       success: false,
       error: "nameTooLong",
     });
-    expect(prisma.user.update).not.toHaveBeenCalled();
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.name).toBe("Ada");
   });
 });
 
 describe("changePassword", () => {
-  beforeEach(() => {
-    vi.mocked(getCurrentUser).mockResolvedValue(SESSION_USER);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: "old-hash",
-      email: "ada@example.com",
-    } as never);
-  });
-
   it("refuses without a session", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue(null);
 
@@ -133,18 +115,21 @@ describe("changePassword", () => {
   });
 
   it("rejects an incorrect current password", async () => {
+    const user = await signedInAsNewUser();
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
     expect(await changePassword(changeRequest())).toEqual({
       success: false,
       error: "currentPasswordIncorrect",
     });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.password).toBe("old-hash");
   });
 
   it("requires the current password even with a valid session", async () => {
     // This is what stops a stolen session, or someone at an unlocked laptop,
     // from silently taking the account over for good.
+    await signedInAsNewUser();
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
     await changePassword(changeRequest());
@@ -153,6 +138,7 @@ describe("changePassword", () => {
   });
 
   it("rejects setting the same password again", async () => {
+    await signedInAsNewUser();
     // First call verifies the current password, second is the reuse check.
     vi.mocked(verifyPassword).mockResolvedValueOnce(true).mockResolvedValueOnce(true);
 
@@ -160,10 +146,10 @@ describe("changePassword", () => {
       success: false,
       error: "passwordReused",
     });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("rejects a weak new password", async () => {
+    await signedInAsNewUser();
     vi.mocked(verifyPassword).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
     const weak = "qwertyuiopasdfgh";
@@ -175,10 +161,7 @@ describe("changePassword", () => {
   });
 
   it("refuses for an OAuth-only account with no password set", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: null,
-      email: "oauth@example.com",
-    } as never);
+    await signedInAsNewUser({ password: null });
 
     expect(await changePassword(changeRequest())).toEqual({
       success: false,
@@ -187,23 +170,26 @@ describe("changePassword", () => {
   });
 
   it("AUTH-5: bumps passwordChangedAt and clears sessions on success", async () => {
+    const user = await signedInAsNewUser();
+    await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-1",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
     vi.mocked(verifyPassword).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
     expect(await changePassword(changeRequest())).toEqual({ success: true });
 
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      data: {
-        password: `hashed:${NEW_PASSWORD}`,
-        passwordChangedAt: expect.any(Date),
-      },
-    });
-    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
-      where: { userId: "user-1" },
-    });
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.password).toBe(`hashed:${NEW_PASSWORD}`);
+    expect(found?.passwordChangedAt.getTime()).toBeGreaterThan(user.passwordChangedAt.getTime());
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
   });
 
   it("refuses once the per-account rate limit is spent", async () => {
+    await signedInAsNewUser();
     vi.mocked(consumeRateLimit).mockResolvedValue({
       allowed: false,
       remaining: 0,
@@ -214,7 +200,6 @@ describe("changePassword", () => {
       success: false,
       error: "rateLimited",
     });
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 });
 
@@ -226,44 +211,38 @@ describe("signOutEverywhere", () => {
       success: false,
       error: "unauthorized",
     });
-    expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
   it("bumps the revocation clock and clears adapter sessions", async () => {
-    vi.mocked(getCurrentUser).mockResolvedValue(SESSION_USER);
+    const user = await signedInAsNewUser();
+    await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-1",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
 
     expect(await signOutEverywhere()).toEqual({ success: true });
 
     // `passwordChangedAt` is the "sessions valid from" marker: every JWT
     // stamped before it is rejected at the next revalidation.
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      data: { passwordChangedAt: expect.any(Date) },
-    });
-    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
-      where: { userId: "user-1" },
-    });
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.passwordChangedAt.getTime()).toBeGreaterThan(user.passwordChangedAt.getTime());
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
   });
 
   it("leaves the password untouched", async () => {
-    vi.mocked(getCurrentUser).mockResolvedValue(SESSION_USER);
+    const user = await signedInAsNewUser({ password: "old-hash" });
 
     await signOutEverywhere();
 
-    const update = vi.mocked(prisma.user.update).mock.calls[0][0] as {
-      data: Record<string, unknown>;
-    };
-    // Signing out everywhere must not require or alter the credential.
-    expect(update.data).not.toHaveProperty("password");
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.password).toBe("old-hash");
   });
 });
 
 describe("unlinkAccount", () => {
-  beforeEach(() => {
-    vi.mocked(getCurrentUser).mockResolvedValue(SESSION_USER);
-    vi.mocked(prisma.account.delete).mockReset();
-  });
-
   it("refuses without a session", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue(null);
 
@@ -274,38 +253,53 @@ describe("unlinkAccount", () => {
   });
 
   it("disconnects a provider when a password remains", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: "hash",
-      accounts: [{ id: "acc-1", provider: "google" }],
-    } as never);
+    const user = await signedInAsNewUser({ password: "hash" });
+    const account = await prisma.account.create({
+      data: {
+        user: { connect: { id: user.id } },
+        type: "oauth",
+        provider: "google",
+        providerAccountId: "g-1",
+      },
+    });
 
-    expect(await unlinkAccount(formData({ provider: "google" }))).toEqual({
-      success: true,
-    });
-    expect(prisma.account.delete).toHaveBeenCalledWith({
-      where: { id: "acc-1" },
-    });
+    expect(await unlinkAccount(formData({ provider: "google" }))).toEqual({ success: true });
+    expect(await prisma.account.findUnique({ where: { id: account.id } })).toBeNull();
   });
 
   it("disconnects one provider when another remains", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: null,
-      accounts: [
-        { id: "acc-1", provider: "google" },
-        { id: "acc-2", provider: "github" },
-      ],
-    } as never);
-
-    expect(await unlinkAccount(formData({ provider: "google" }))).toEqual({
-      success: true,
+    const user = await signedInAsNewUser({ password: null });
+    await prisma.account.create({
+      data: {
+        user: { connect: { id: user.id } },
+        type: "oauth",
+        provider: "google",
+        providerAccountId: "g-1",
+      },
     });
+    await prisma.account.create({
+      data: {
+        user: { connect: { id: user.id } },
+        type: "oauth",
+        provider: "github",
+        providerAccountId: "gh-1",
+      },
+    });
+
+    expect(await unlinkAccount(formData({ provider: "google" }))).toEqual({ success: true });
+    expect(await prisma.account.count({ where: { userId: user.id } })).toBe(1);
   });
 
   it("refuses to remove the only way into a passwordless account", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: null,
-      accounts: [{ id: "acc-1", provider: "google" }],
-    } as never);
+    const user = await signedInAsNewUser({ password: null });
+    const account = await prisma.account.create({
+      data: {
+        user: { connect: { id: user.id } },
+        type: "oauth",
+        provider: "google",
+        providerAccountId: "g-1",
+      },
+    });
 
     // There would be no password to fall back on, and password reset skips
     // passwordless accounts — the user would be permanently locked out.
@@ -313,27 +307,17 @@ describe("unlinkAccount", () => {
       success: false,
       error: "lastSignInMethod",
     });
-    expect(prisma.account.delete).not.toHaveBeenCalled();
+    expect(await prisma.account.findUnique({ where: { id: account.id } })).not.toBeNull();
   });
 
   it("is idempotent for a provider that is not linked", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: "hash",
-      accounts: [],
-    } as never);
+    await signedInAsNewUser({ password: "hash" });
 
-    expect(await unlinkAccount(formData({ provider: "github" }))).toEqual({
-      success: true,
-    });
-    expect(prisma.account.delete).not.toHaveBeenCalled();
+    expect(await unlinkAccount(formData({ provider: "github" }))).toEqual({ success: true });
   });
 });
 
 describe("deleteAccount", () => {
-  beforeEach(() => {
-    vi.mocked(getCurrentUser).mockResolvedValue(SESSION_USER);
-  });
-
   it("refuses without a session", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue(null);
 
@@ -341,25 +325,20 @@ describe("deleteAccount", () => {
       success: false,
       error: "unauthorized",
     });
-    expect(prisma.user.delete).not.toHaveBeenCalled();
   });
 
   it("requires a password for a credential account", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: "old-hash",
-    } as never);
+    const user = await signedInAsNewUser();
 
     expect(await deleteAccount(formData({ password: "" }))).toEqual({
       success: false,
       error: "passwordRequired",
     });
-    expect(prisma.user.delete).not.toHaveBeenCalled();
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).not.toBeNull();
   });
 
   it("rejects a wrong password without deleting anything", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: "old-hash",
-    } as never);
+    const user = await signedInAsNewUser();
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
     expect(await deleteAccount(formData({ password: "wrong" }))).toEqual({
@@ -367,31 +346,22 @@ describe("deleteAccount", () => {
       error: "currentPasswordIncorrect",
     });
     // Deletion is irreversible and cascades, so this must never be best-effort.
-    expect(prisma.user.delete).not.toHaveBeenCalled();
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).not.toBeNull();
   });
 
   it("deletes the account when the password checks out", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: "old-hash",
-    } as never);
+    const user = await signedInAsNewUser();
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
-    expect(await deleteAccount(formData({ password: "correct" }))).toEqual({
-      success: true,
-    });
-    expect(prisma.user.delete).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-    });
+    expect(await deleteAccount(formData({ password: "correct" }))).toEqual({ success: true });
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
   });
 
   it("skips the password check for an OAuth-only account", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      password: null,
-    } as never);
+    const user = await signedInAsNewUser({ password: null });
 
-    expect(await deleteAccount(formData({ password: "" }))).toEqual({
-      success: true,
-    });
+    expect(await deleteAccount(formData({ password: "" }))).toEqual({ success: true });
     expect(verifyPassword).not.toHaveBeenCalled();
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
   });
 });

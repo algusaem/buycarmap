@@ -71,8 +71,8 @@ to do it in phases, each on its own branch and PR, each closed by `/check-all`.
 | 13 | Actions return `{ success, error?, data? }`; no `Result<T, E>`; error codes without a `messageKey`; `console.*` instead of Pino; no Sentry; no correlation id | `RULES.md` §3 (`console.log`), §15; `STACK.md` §8 | Resolved in phase 6 |
 | 14 | No `/api/health` or `/api/health/db` | `STACK.md` §2 | Resolved in phase 6 |
 | 15 | Static CSP with `'unsafe-inline'` in `next.config.ts` instead of nonces in `proxy.ts` | `STACK.md` §11 | Resolved in phase 6 |
-| 16 | Vitest projects `unit` (jsdom) and `node` with Prisma mocked; no Testcontainers, no transaction-per-test; no faker factories. Until then `foo.test.ts` / `foo.node.test.ts` next to the source stand for the unit / integration files, and the `RULES.md` §10 rejection tests are `*.node.test.ts` with Prisma mocked | `RULES.md` §20; `STACK.md` §16 | Phase 7 |
-| 17 | No seeds; local development runs on a Neon branch per git branch instead of Docker Compose | `RULES.md` §11, §22 item 10; `STACK.md` §1, §2, §3 | Phase 7 |
+| 16 | Vitest projects `unit` (jsdom) and `node` with Prisma mocked; no Testcontainers, no transaction-per-test; no faker factories. Until then `foo.test.ts` / `foo.node.test.ts` next to the source stand for the unit / integration files, and the `RULES.md` §10 rejection tests are `*.node.test.ts` with Prisma mocked | `RULES.md` §20; `STACK.md` §16 | Resolved in phase 7 |
+| 17 | No seeds; local development runs on a Neon branch per git branch instead of Docker Compose | `RULES.md` §11, §22 item 10; `STACK.md` §1, §2, §3 | Resolved in phase 7 |
 | 18 | Data model: `cuid()` ids (and natural string keys on `RateLimit` and `SourceHealth`), camelCase table and column names, `timestamp` without time zone, no `createdById` / `updatedById` / `deletedAt` / `version`, free-text `AlertPollJob.status`, `onDelete: Cascade` on every relation; no branded ids | `STACK.md` §7, §9 | Phase 8 |
 | 19 | Reads go through client hooks in `lib/hooks/*`: search to route handlers that proxy the upstream marketplaces (0001, 0003); favorites, car models and locations through Server Actions or proxies called from an effect | `RULES.md` §9; `STACK.md` §6, §14 | Phase 9 — the phase decides whether the proxies move to Server Actions or stay under a new ADR, since the upstreams can't be called from the browser |
 | 20 | Hand-rolled i18n (`lib/i18n/*`) with Spanish as the source language; URL state hand-rolled instead of nuqs; no date-fns; request errors shown as toasts | `STACK.md` §1, §14; `RULES.md` §15 | Phase 9 |
@@ -82,7 +82,7 @@ to do it in phases, each on its own branch and PR, each closed by `/check-all`.
 | 24 | Email through `lib/email/*` with string templates, without the `resend` SDK or react-email | `STACK.md` §1 | Phase 10 |
 | 25 | NextAuth 4 with stateless JWT sessions and a revocation clock (0004); no central `can()` permissions layer (the app has no roles; ownership is checked in each action) | `RULES.md` §10, §16; `STACK.md` §1, §10 | Phase 11 |
 | 26 | No staging environment; previews not on a seed-only Neon parent; EU regions not recorded | `STACK.md` §2, §12 | Phase 12 |
-| 27 | Coverage leaves out `scripts/` and the root `proxy.ts` (outside `include`) and excludes `lib/mock/**` and `**/index.ts` | `RULES.md` §3 (coverage exclusions) | Phase 5 (`proxy.ts` moves into `src/`), phase 7 (the rest) |
+| 27 | Coverage leaves out `scripts/` and the root `proxy.ts` (outside `include`) and excludes `lib/mock/**` and `**/index.ts` | `RULES.md` §3 (coverage exclusions) | Resolved in phase 7 |
 | 28 | The axe accessibility check disables the `color-contrast` rule (`e2e/a11y.spec.ts`) | `RULES.md` §22 item 3; `STACK.md` §14, §16 | Phase 9 |
 
 ### Dependencies outside `STACK.md`

@@ -6,6 +6,8 @@ import { e2eEmail, seedUser, userExists } from "./fixtures/db";
 const SIGN_IN = /sign in|entrar/i;
 const SIGN_UP = /sign up|registr|crear/i;
 const SIGN_OUT = /sign out|cerrar sesi/i;
+// lib/i18n/locales/en.ts nav.favorites: "Saved cars"; es.ts: "Coches guardados".
+const SAVED_CARS = /saved cars|coches guardados/i;
 
 // Real register/login persist to a database. They run only with E2E_DB=1 (and a
 // real DATABASE_URL); the global teardown then deletes every seeded account.
@@ -22,8 +24,33 @@ const PASSWORD = "harbour-lentil-quilt-97";
 function navSignIn(page: Page) {
   return page.getByRole("navigation").getByRole("link", { name: SIGN_IN });
 }
-function signOutButton(page: Page) {
-  return page.getByRole("navigation").getByRole("button", { name: SIGN_OUT });
+function navSavedCars(page: Page) {
+  return page.getByRole("navigation").getByRole("link", { name: SAVED_CARS });
+}
+
+/**
+ * The account dropdown's trigger, named after the signed-in user — desktop
+ * sign-out is a menuitem inside it, hidden until it is opened.
+ */
+function accountTrigger(page: Page, name: string) {
+  return page.getByRole("navigation").getByRole("button", { name });
+}
+
+async function signOut(page: Page, name: string) {
+  await accountTrigger(page, name).click();
+  // Waiting on the URL alone is not enough: a sign-in that landed on "/"
+  // leaves the browser already there, so a later `waitForURL("/")` after
+  // signing out would resolve on the spot rather than on the redirect this
+  // click causes, racing the POST that actually clears the session cookie —
+  // middleware then still sees a token and bounces the next /login straight
+  // back. Waiting for that POST's response is the one signal that is true
+  // regardless of which URL the page started from.
+  const signedOut = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/auth/signout") && response.request().method() === "POST",
+  );
+  await page.getByRole("menuitem", { name: SIGN_OUT }).click();
+  await signedOut;
 }
 
 /**
@@ -31,11 +58,11 @@ function signOutButton(page: Page) {
  *
  * Viewport-aware since the navbar restructure (docs/specs/navbar.md): below the
  * `lg` breakpoint sign-in lives inside the collapsed menu, so looking for it in
- * the bar finds nothing on a phone. Sign out is checked at count 0 rather than
- * hidden — signed out, it is not rendered anywhere, menu included.
+ * the bar finds nothing on a phone. The saved-cars link is checked at count 0
+ * rather than hidden — signed out, it is not rendered anywhere, menu included.
  */
 async function expectSignedOut(page: Page, isMobile: boolean) {
-  await expect(signOutButton(page)).toHaveCount(0);
+  await expect(navSavedCars(page)).toHaveCount(0);
 
   if (!isMobile) {
     await expect(navSignIn(page)).toBeVisible();
@@ -199,25 +226,26 @@ test.describe("authenticated flows (real database)", () => {
 
   dbTest("register signs the user in, persists across reload, and signs out", async ({ page }) => {
     const email = e2eEmail("register");
+    const name = "E2E User";
 
-    await registerViaUi(page, email);
+    await registerViaUi(page, email, name);
 
     // Auto sign-in after registration → session-driven navbar.
-    await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
+    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
     await expect(navSignIn(page)).toHaveCount(0);
-    await expect(page.getByText("E2E User")).toBeVisible();
+    await expect(page.getByText(name)).toBeVisible();
 
     // The account was actually written to the database.
     expect(await userExists(email)).toBe(true);
 
     // Session survives a full reload (JWT cookie).
     await page.reload();
-    await expect(signOutButton(page)).toBeVisible();
+    await expect(navSavedCars(page)).toBeVisible();
 
     // Sign out returns to the anonymous state.
-    await signOutButton(page).click();
+    await signOut(page, name);
     await expect(navSignIn(page)).toBeVisible({ timeout: 15_000 });
-    await expect(signOutButton(page)).toHaveCount(0);
+    await expect(navSavedCars(page)).toHaveCount(0);
   });
 
   dbTest("an existing account can log in", async ({ page }) => {
@@ -226,7 +254,7 @@ test.describe("authenticated flows (real database)", () => {
 
     await loginViaUi(page, email, PASSWORD);
 
-    await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
+    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
     await expect(navSignIn(page)).toHaveCount(0);
   });
 
@@ -237,7 +265,7 @@ test.describe("authenticated flows (real database)", () => {
     await loginViaUi(page, email, "not-the-password");
 
     await expect(page.getByText(/invalid email or password|incorrect/i)).toBeVisible();
-    await expect(signOutButton(page)).toHaveCount(0);
+    await expect(navSavedCars(page)).toHaveCount(0);
     await expect(page).toHaveURL(/\/login$/);
   });
 
@@ -252,6 +280,6 @@ test.describe("authenticated flows (real database)", () => {
     await registerViaUi(page, email);
 
     await expect(page.getByText(/already exists|ya existe/i)).toBeVisible();
-    await expect(signOutButton(page)).toHaveCount(0);
+    await expect(navSavedCars(page)).toHaveCount(0);
   });
 });

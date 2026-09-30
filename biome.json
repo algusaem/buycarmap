@@ -35,7 +35,7 @@
   },
   "overrides": [
     {
-      "includes": ["scripts/**", "e2e/**"],
+      "includes": ["scripts/**", "e2e/**", "prisma/seed.ts"],
       "linter": { "rules": { "suspicious": { "noConsole": "off" } } }
     }
   ]

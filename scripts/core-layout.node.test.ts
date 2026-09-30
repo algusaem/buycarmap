@@ -434,6 +434,8 @@ function gitGrepDbOffenders(): string[] {
     /^lib\/db\//,
     /^lib\/auth\/options\.ts$/,
     /\.test\.tsx?$/,
+    /^test\//,
+    /^prisma\/seed\.ts$/,
   ];
   return files.filter((file) => !ALLOWED.some((pattern) => pattern.test(file)));
 }

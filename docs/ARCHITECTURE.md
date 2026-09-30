@@ -736,14 +736,15 @@ often missed here:
 
 ## Testing
 
-**Vitest** (unit, node, component), **React Testing Library**, **MSW** for
-network, **vitest-axe** for accessibility, **Playwright** for end-to-end and
-visual. This is the house setup — do not introduce Jest or Cypress.
+**Vitest** (unit, node, integration, component), **React Testing Library**, **MSW** for network,
+**Testcontainers** for the real Postgres the integration project runs against, **vitest-axe** for
+accessibility, **Playwright** for end-to-end and visual. This is the house setup — do not
+introduce Jest or Cypress.
 
 Tests are **colocated**: `foo.ts` → `foo.test.ts`. There are no `__tests__/`
 folders.
 
-### The five levels
+### The six levels
 
 Choosing the level is a decision made in the spec, not an afterthought. Pushing
 work down a level is almost always right.
@@ -752,11 +753,12 @@ work down a level is almost always right.
 | --- | --- | --- | --- |
 | `unit` | jsdom | `*.test.ts` | Pure library code, source clients (they need `window.location`) |
 | `component` | jsdom | `*.test.tsx` | Rendering and interaction, via Testing Library |
-| `node` | node | `*.node.test.ts` | Route handlers, server actions, scripts — anything needing real Node request globals |
+| `node` | node | `*.node.test.ts` | Route handlers, server actions, scripts — anything needing real Node request globals, no database |
+| `integration` | node, real Postgres | `*.integration.test.ts` | The same, plus anything that reads or writes through `@/lib/db/prisma` |
 | `contract` | node | `test/contract/*.contract.test.ts` | The shape of the **external** APIs |
 | `e2e` | browser | `e2e/*.spec.ts` | Only what genuinely needs a browser |
 
-#### The two Vitest projects
+#### The three Vitest projects
 
 Split by environment, not by kind — see [`vitest.config.ts`](../vitest.config.ts).
 
@@ -764,10 +766,24 @@ Split by environment, not by kind — see [`vitest.config.ts`](../vitest.config.
 `app/` and `server/` matching `*.test.{ts,tsx}`.
 
 **`node`** is opt-in **by filename**: `*.node.test.ts`. Route handlers and server
-actions need Node's real `Request`/`Response`, which jsdom does not provide.
+actions need Node's real `Request`/`Response`, which jsdom does not provide. No database — Prisma
+is mocked or absent.
 
-`pnpm test:unit` runs the `unit` (jsdom) project alone and `pnpm test:integration` the `node`
-project; the pre-commit hook runs the unit tests related to the staged files.
+**`integration`** is opt-in by filename too: `*.integration.test.ts`, under `app/`, `lib/`,
+`server/`, `prisma/` and `test/`. `test/integration.global-setup.ts` starts one
+`postgres:17-alpine` **Testcontainers** container per run and migrates a template database once;
+`test/setup.integration.ts` gives each Vitest worker its own database copied from that template
+(`buycarmap_w<VITEST_POOL_ID>`) and truncates every table under `public` (`_prisma_migrations`
+excepted) before each test, so files run in parallel and order never matters
+(docs/specs/core-testing.md, TEST-6). `test/factories/*.ts` are faker-based builders — one per
+model the tests create — used instead of hand-built rows; they reseed the shared `faker` instance
+on every `build*` call, so two builds with the same overrides are equal. Docker Desktop must be
+running — see [ADR 0014](decisions/0014-local-database-and-integration-tests.md) for why this
+replaced a mocked Prisma client, and why it is a third project rather than folded into `node`.
+
+`pnpm test:unit` runs `unit` and `node` — no database, and what the pre-commit hook runs against
+the staged files. `pnpm test:integration` runs `integration` alone, since it is too slow to run on
+every commit. `pnpm test` runs all three, with coverage.
 
 Two entries in the `node` include list are worth knowing:
 
@@ -996,10 +1012,47 @@ Surfaced by the suite and deliberately left:
 
 ## Environments and operations
 
-Deploying, configuring and fixing this in production. There is one Neon project,
-`buycarmap`: its `main` branch is production, and every other branch is a
-per-worktree copy (see [Neon branch lifecycle](#neon-branch-lifecycle)). There is
-no staging environment. Production is served at https://buycarmap.vercel.app.
+Deploying, configuring and fixing this in production. Production runs on one Neon project,
+`buycarmap`, whose `main` branch is production. There is no staging environment. Production is
+served at https://buycarmap.vercel.app.
+
+**Local development and CI no longer touch Neon at all.** Both run against Docker Compose
+Postgres instead — see [Local database](#local-database) — which is what
+[ADR 0014](decisions/0014-local-database-and-integration-tests.md) records and why.
+
+### Local database
+
+`docker-compose.yml` runs one `postgres:17-alpine` service, published on `localhost:5433` (not
+5432, so it never collides with a Postgres already running there), with a named volume so branch
+databases survive a restart.
+
+```bash
+pnpm db:up            # start it — Docker Desktop must be running
+pnpm db:down          # stop it, keeping the volume
+pnpm db:branch        # this git branch gets its own database inside it, and DATABASE_URL is
+                       # written to this worktree's .env
+pnpm db:branch:rm     # delete it once the work is merged
+pnpm db:seed          # fill an empty database with development data
+```
+
+`scripts/db-branch.mjs` derives the database name from the git branch — `buycarmap_` plus the
+branch name, lowercased, every character outside `a-z0-9` replaced with `_`, runs collapsed, cut to
+Postgres' 63-byte limit with a hash suffix when needed (docs/specs/core-testing.md, TEST-2) — talks
+to Postgres through `docker compose exec … psql`, so it stays dependency-free like
+`require-branch-db.mjs`, and then runs `prisma migrate deploy` against it. Both scripts refuse to
+touch anything but `localhost`/`127.0.0.1` (TEST-3), so a worktree can never reach Neon, and so
+production, by accident.
+
+`pnpm db:seed` (`prisma/seed.ts`, wired through `prisma.config.ts`'s `migrations.seed`) fills an
+empty database with three accounts sharing the password `buycarmap-dev-1` (one with two-factor
+on, its TOTP secret printed to the console), ten favorites and three alerts with matches. It is
+idempotent — rerunning it on an already-seeded database changes nothing — and refuses to run
+against anything but a local database, the same way `db-branch.mjs` does. It is never run in CI or
+the Vercel build.
+
+The same container image and per-worker-database pattern back the `integration` Vitest project —
+see [Testing](#testing) — through `@testcontainers/postgresql` instead of Compose, so integration
+tests need no `pnpm db:up` first.
 
 ### Deployment
 
@@ -1113,7 +1166,7 @@ Optional — each disables a feature rather than blocking startup:
 | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | Sentry stays uninitialised; nothing is sent |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry build-time source-map upload is skipped |
 | `SKIP_ENV_VALIDATION` | Tooling only — see above. Never set for `pnpm dev`/`build`/`start` |
-| `NEON_API_KEY`, `NEON_PROJECT_ID` | Tooling only, never read by the app. `pnpm db:branch` cannot run |
+| `LOCAL_DATABASE_ADMIN_URL` | Tooling only, never read by the app. Overrides the admin connection `pnpm db:branch` uses to create and drop databases in the local Compose Postgres; the default matches `docker-compose.yml` |
 
 `VERCEL`, `VERCEL_ENV` and `VERCEL_URL` are injected by Vercel itself and are
 never set by hand. `.env.example` carries the reasoning next to each entry.
@@ -1121,37 +1174,12 @@ never set by hand. `.env.example` carries the reasoning next to each entry.
 **On Vercel previews, leave `APP_URL` unset** so the `VERCEL_URL` fallback makes
 each deployment link to itself rather than to production.
 
-### Neon branch lifecycle
-
-Each git branch gets its own copy-on-write database.
-
-```bash
-pnpm db:branch        # create or reuse, and write DATABASE_URL into this worktree's .env
-pnpm db:branch:rm     # delete this branch's Neon branch
-pnpm db:branch:rm --delete <name>
-```
-
-`db:branch` forks from the project's **default** Neon branch, waits for the
-compute endpoint to finish provisioning (without the wait, the connection string
-it hands back can refuse the first connection and look like a broken script),
-then writes `DATABASE_URL` into the worktree's `.env` — seeding the rest of the
-file from the main checkout so every other secret comes across.
-
-After provisioning, bring the new database up to date:
-
-```bash
-pnpm exec prisma migrate deploy
-```
-
-Three refusals are built into the delete path, and all three are load-bearing:
-it will not delete the Neon **default** branch, will not delete a branch the main
-checkout's `DATABASE_URL` still points at, and will not delete one that does not
-exist.
-
-**Branches cost money and quota.** Delete them when the work merges.
+### Restoring production
 
 Restoring production from Neon's point-in-time history is a separate procedure:
-[`operations/backups.md`](operations/backups.md).
+[`operations/backups.md`](operations/backups.md). It is the only thing that still reaches the
+Neon project directly from a runbook — everything else in this section runs locally; see
+[Local database](#local-database).
 
 ### CI
 
