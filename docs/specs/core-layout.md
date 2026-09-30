@@ -11,7 +11,7 @@ Last updated: 2026-09-29
 Nothing enforces where logic may live:
 
 - **Prisma is reached from everywhere.** Ten Server Actions, two route handlers, two pages and five `lib/` modules import it.
-- **Zod schemas sit apart from the features they validate** (`lib/validations/`).
+- **Zod schemas sit apart from the features they validate** (lib/validations/).
 - **The search merge's business logic lives inside a React hook** (`lib/hooks/useListingsSearch.ts`).
 - **Nothing stops a component from importing server code or a cycle from forming.**
 - **`proxy.ts` is not in the coverage run.**
@@ -48,7 +48,7 @@ In scope:
   - every Zod schema is in `schema.ts`;
   - every Prisma call is in `service.ts`, apart from the client module in `lib/db/` and the NextAuth callbacks of LAYOUT-7.
 
-  The features are `account`, `alerts`, `auth`, `email-verification`, `favorites`, `locale`, `password-reset`, `rate-limit`, `registration` and `two-factor`. `app/actions/`, `lib/validations/`, `lib/prisma.ts` and `lib/alerts/` no longer exist, and the client module is `lib/db/prisma.ts`.
+  The features are `account`, `alerts`, `auth`, `email-verification`, `favorites`, `locale`, `password-reset`, `rate-limit`, `registration` and `two-factor`. app/actions/, lib/validations/, lib/prisma.ts and lib/alerts/ no longer exist, and the client module is `lib/db/prisma.ts`.
 
   Two Zod schemas stay outside `server/` until their phase, by the owner's decision of 2026-09-29:
   - `lib/search/schema.ts`, until phase 9, because the search has no server code before then (ADR 0007 row 19);
@@ -78,61 +78,61 @@ In scope:
   - `isDatedRecord("docs/specs/alerts.md")` → `false`.
 - **LAYOUT-6**, run against fixture files:
 
-  | Importing file | Imports | Result |
-  | --- | --- | --- |
-  | `app/x/page.tsx` | `@/server/favorites/service` | reported |
-  | `app/x/page.tsx` | `@/server/favorites/queries` | clean |
-  | `app/x/page.tsx` | `@/server/alerts/search` | reported |
-  | `app/x/page.tsx` | `@/server/alerts/schema` | clean |
-  | `app/api/x/route.ts` | `@/server/alerts/search` | reported |
-  | `components/X.tsx` | `@/server/favorites/service` | reported |
-  | `components/X.tsx` | `@/server/favorites/schema` | clean |
-  | `components/X.tsx` | `@/server/favorites/actions` | clean |
-  | `server/alerts/service.ts` | `@/server/rate-limit/service` | clean |
-  | `server/alerts/service.ts` | `@/server/rate-limit/helpers` | reported |
-  | `server/favorites/actions.ts` | `@/lib/db/prisma` | reported |
-  | `lib/geo/x.ts` | `@/app/generated/prisma/client` | reported |
-  | `lib/geo/x.ts` | `@/server/favorites/service` | reported |
+  ```text
+  app/x/page.tsx               →  @/server/favorites/service     →  reported
+  app/x/page.tsx               →  @/server/favorites/queries     →  clean
+  app/x/page.tsx               →  @/server/alerts/search         →  reported
+  app/x/page.tsx               →  @/server/alerts/schema         →  clean
+  app/api/x/route.ts           →  @/server/alerts/search         →  reported
+  components/X.tsx             →  @/server/favorites/service     →  reported
+  components/X.tsx             →  @/server/favorites/schema      →  clean
+  components/X.tsx             →  @/server/favorites/actions     →  clean
+  server/alerts/service.ts     →  @/server/rate-limit/service    →  clean
+  server/alerts/service.ts     →  @/server/rate-limit/helpers    →  reported
+  server/favorites/actions.ts  →  @/lib/db/prisma                →  reported
+  lib/geo/x.ts                 →  @/app/generated/prisma/client  →  reported
+  lib/geo/x.ts                 →  @/server/favorites/service     →  reported
+  ```
 
   Two modules that import each other are reported as a cycle.
 - **LAYOUT-7**:
 
-  | Importing file | Imports | Result |
-  | --- | --- | --- |
-  | `lib/auth/options.ts` | `@/lib/db/prisma` | clean |
-  | `lib/auth/options.ts` | `@/server/auth/service` | clean |
-  | `lib/auth/session.ts` | `@/lib/db/prisma` | reported |
-  | `lib/auth/options.ts` | `@/server/favorites/service` | reported |
+  ```text
+  lib/auth/options.ts  →  @/lib/db/prisma             →  clean
+  lib/auth/options.ts  →  @/server/auth/service       →  clean
+  lib/auth/session.ts  →  @/lib/db/prisma             →  reported
+  lib/auth/options.ts  →  @/server/favorites/service  →  reported
+  ```
 - **LAYOUT-8**:
 
-  | Importing file | Imports | Result |
-  | --- | --- | --- |
-  | `app/api/x/route.ts` | `@/server/alerts/service` | clean |
-  | `app/x/page.tsx` | `@/server/alerts/service` | reported |
-  | `app/api/x/helpers.ts` | `@/server/alerts/service` | reported |
+  ```text
+  app/api/x/route.ts    →  @/server/alerts/service  →  clean
+  app/x/page.tsx        →  @/server/alerts/service  →  reported
+  app/api/x/helpers.ts  →  @/server/alerts/service  →  reported
+  ```
 - **LAYOUT-9**:
-  - On a tree without `server/widgets`, `pnpm gen feature widgets` creates exactly `server/widgets/queries.ts`, `actions.ts`, `service.ts`, `schema.ts` and `docs/specs/widgets.md`.
-  - Run again, it exits non-zero with a message naming `server/widgets`, and changes no file.
-  - With `docs/specs/gadgets.md` present and `server/gadgets` absent, `pnpm gen feature gadgets` fails naming `docs/specs/gadgets.md` and writes nothing.
-  - The generated `docs/specs/widgets.md` is byte-identical to `docs/specs/_template.md`.
+  - On a tree without server/widgets, `pnpm gen feature widgets` creates exactly server/widgets/queries.ts, actions.ts, service.ts, schema.ts and docs/specs/widgets.md.
+  - Run again, it exits non-zero with a message naming server/widgets, and changes no file.
+  - With docs/specs/gadgets.md present and server/gadgets absent, `pnpm gen feature gadgets` fails naming docs/specs/gadgets.md and writes nothing.
+  - The generated docs/specs/widgets.md is byte-identical to `docs/specs/_template.md`.
 
 - **LAYOUT-10**:
 
-  | Importing file | Imports | Result |
-  | --- | --- | --- |
-  | `lib/hooks/useX.ts` | `@/server/favorites/actions` | clean |
-  | `lib/hooks/useX.ts` | `@/server/favorites/schema` | clean |
-  | `lib/hooks/useX.ts` | `@/server/favorites/service` | reported |
-  | `lib/geo/x.ts` | `@/server/favorites/actions` | reported |
+  ```text
+  lib/hooks/useX.ts  →  @/server/favorites/actions  →  clean
+  lib/hooks/useX.ts  →  @/server/favorites/schema   →  clean
+  lib/hooks/useX.ts  →  @/server/favorites/service  →  reported
+  lib/geo/x.ts       →  @/server/favorites/actions  →  reported
+  ```
 
 - **LAYOUT-6**, type-only imports and tests:
 
-  | Importing file | Imports | Result |
-  | --- | --- | --- |
-  | `lib/geo/x.ts` | `import type` from `@/server/favorites/schema` | reported |
-  | `components/X.tsx` | `@prisma/client` | reported |
-  | `lib/auth/options.ts` | `@prisma/client` | reported |
-  | `server/favorites/actions.node.test.ts` | `@/lib/db/prisma` | clean |
+  ```text
+  lib/geo/x.ts                           →  import type from @/server/favorites/schema  →  reported
+  components/X.tsx                       →  @prisma/client                              →  reported
+  lib/auth/options.ts                    →  @prisma/client                              →  reported
+  server/favorites/actions.node.test.ts  →  @/lib/db/prisma                             →  clean
+  ```
 
   Two test files that import each other are reported as a cycle.
 - **LAYOUT-11**, values confirmed by the owner on 2026-09-29:
@@ -146,7 +146,7 @@ In scope:
 
 ## Data model
 
-None: no table or column changes. The Prisma client module moves from `lib/prisma.ts` to `lib/db/prisma.ts`; the generated client stays in `app/generated/prisma`.
+None: no table or column changes. The Prisma client module moves from lib/prisma.ts to `lib/db/prisma.ts`; the generated client stays in `app/generated/prisma`.
 
 ## Permissions
 
@@ -166,7 +166,7 @@ No permission changes. Every action and query keeps its existing `getCurrentUser
 - **Test names and levels stay** until phase 7 (ADR 0007 row 16).
 - **Phase 6:** the env module, the DB module's adapters, `DIRECT_URL`, `Result<T, E>`, Pino and Sentry (rows 11–13).
 - **Phase 9:**
-  - the search fan-out still runs client-side through the proxies (row 19), so the search schema stays at `lib/search/schema.ts` and there is no `server/search/`;
+  - the search fan-out still runs client-side through the proxies (row 19), so the search schema stays at `lib/search/schema.ts` and there is no server/search/;
   - the Impeccable detector in `lint`.
 - **Phase 11:** NextAuth stays (row 25). The only concession is LAYOUT-7.
 
@@ -179,13 +179,13 @@ No permission changes. Every action and query keeps its existing `getCurrentUser
   | Feature | Takes over |
   | --- | --- |
   | `account` | the `account.ts` actions and the account page read |
-  | `alerts` | the `alerts.ts` actions except `setLocale`; the database work of the run and unsubscribe route handlers; the `alerts/[id]` page read; `lib/alerts/*` |
+  | `alerts` | the `alerts.ts` actions except `setLocale`; the database work of the run and unsubscribe route handlers; the `alerts/[id]` page read; lib/alerts/* |
   | `auth` | `authorize` and `cleanup` |
   | `email-verification` | the email-verification actions |
   | `favorites` | the favorites actions and schema |
   | `locale` | `setLocale` |
   | `password-reset` | `forgot-password` and `reset-password` |
-  | `rate-limit` | `lib/rate-limit.ts` |
+  | `rate-limit` | lib/rate-limit.ts |
   | `registration` | `register`, `verify-registration` and `resend-confirmation` |
   | `two-factor` | the two-factor actions and `verify` |
 
@@ -231,7 +231,7 @@ It runs in the browser on proxy results, because the upstreams cannot be called 
 
 ### The search schema stays in `lib/` until phase 9 (owner's decision, 2026-09-29)
 
-`SearchInput` is used by the upstream clients, the radius filter and the merge, and all of them run in the browser (ADR 0007 row 19). If the schema sat in `server/search/`, `lib/**` would have to import `server/**`. That breaks the rule the layer exists for, and it went unnoticed only because type-only imports were invisible to the tool. Phase 9 moves the search to the server, and the schema goes with it.
+`SearchInput` is used by the upstream clients, the radius filter and the merge, and all of them run in the browser (ADR 0007 row 19). If the schema sat in server/search/, `lib/**` would have to import `server/**`. That breaks the rule the layer exists for, and it went unnoticed only because type-only imports were invisible to the tool. Phase 9 moves the search to the server, and the schema goes with it.
 
 ### Auth flows keep their domain checks in the actions until phase 11 (owner's decision, 2026-09-29)
 
@@ -239,4 +239,4 @@ The auth actions keep their token checks, enumeration resistance, password-reuse
 
 ### ADRs are dated records (owner's decision, 2026-09-29)
 
-This phase moves files that accepted ADRs cite, for example `app/actions/` in ADR 0007. An accepted ADR is never edited, so its paths describe the code as it was when the decision was taken. `docs-check` stops requiring them to exist, and still checks the ADRs' links.
+This phase moves files that accepted ADRs cite, for example app/actions/ in ADR 0007. An accepted ADR is never edited, so its paths describe the code as it was when the decision was taken. `docs-check` stops requiring them to exist, and still checks the ADRs' links.
