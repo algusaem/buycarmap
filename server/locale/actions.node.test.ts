@@ -23,6 +23,7 @@ function signedInAs(user: { id: string; email: string }) {
 function signedOut() {
   vi.mocked(getCurrentUser).mockResolvedValue(null);
 }
+
 describe("setLocale", () => {
   it("ALERT-33: persists the chosen language to the signed-in account", async () => {
     store = createAlertStore();
@@ -31,7 +32,7 @@ describe("setLocale", () => {
 
     const result = await setLocale("en");
 
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ ok: true, value: undefined });
     expect(store.users()[0].locale).toBe("en");
   });
 
@@ -42,18 +43,30 @@ describe("setLocale", () => {
 
     const result = await setLocale("en");
 
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ ok: true, value: undefined });
     expect(store.users()[0].locale).toBe("es");
   });
 
-  it("ALERT-33: refuses a locale the app does not support", async () => {
+  it("ALERT-33: refuses a locale the app does not support (PLAT-11)", async () => {
     store = createAlertStore();
     store.seedUser({ id: ADA.id, email: ADA.email, locale: "es" });
     signedInAs(ADA);
 
     const result = await setLocale("de" as never);
 
-    expect(result).toEqual({ success: false, error: "invalidCriteria" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidLocale", messageKey: "localeErrors.invalidLocale" },
+    });
     expect(store.users()[0].locale).toBe("es");
+  });
+
+  it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
+    store = createAlertStore();
+    store.seedUser({ id: ADA.id, email: ADA.email, locale: "es" });
+    signedInAs(ADA);
+    vi.mocked(store.client.user.update).mockRejectedValueOnce(new Error("connection refused"));
+
+    await expect(setLocale("en")).rejects.toThrow();
   });
 });

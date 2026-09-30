@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { makeAlertSummary } from "@/test/fixtures/alerts";
@@ -13,6 +14,9 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/server/alerts/actions", () => ({
   deleteAlert: vi.fn(async () => ({ success: true })),
 }));
+
+import { toast } from "sonner";
+import { deleteAlert } from "@/server/alerts/actions";
 
 const ALERTS = [
   makeAlertSummary({
@@ -29,7 +33,26 @@ const ALERTS = [
   }),
 ];
 
+beforeEach(() => {
+  vi.mocked(deleteAlert).mockReset();
+  vi.mocked(deleteAlert).mockResolvedValue({ ok: true, value: undefined });
+  vi.mocked(toast.error).mockClear();
+});
+
 describe("AlertsList", () => {
+  it("PLAT-12: a thrown/unexpected delete shows the generic error toast copy", async () => {
+    // PLAT-12 (docs/specs/core-platform.md): once deleteAlert throws instead of
+    // returning an `unexpected` Result error, the toast still reads the same
+    // generic copy it reads today (en.alertErrors.unexpected ===
+    // en.authErrors.generic === "Something went wrong. Please try again.").
+    vi.mocked(deleteAlert).mockRejectedValue(new Error("connection refused"));
+    renderWithI18n(<AlertsList alerts={[ALERTS[0]]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /delete/i }));
+
+    expect(toast.error).toHaveBeenCalledWith("Something went wrong. Please try again.");
+  });
+
   it("ALERT-28: lists every alert the user has saved", () => {
     renderWithI18n(<AlertsList alerts={ALERTS} />);
 

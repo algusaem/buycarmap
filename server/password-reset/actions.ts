@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email/client";
 import { renderPasswordChangedEmail } from "@/lib/email/templates/auth-emails";
 import { requiredString } from "@/lib/form-data";
 import { getLocale } from "@/lib/i18n/server";
+import { logger } from "@/lib/logger";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { forgotPasswordSchema } from "@/server/auth/schema";
 import { loginEmailRateKey } from "@/server/auth/service";
@@ -68,7 +69,7 @@ export async function requestPasswordReset(formData: FormData): Promise<Password
       // Swallowed on purpose. Surfacing this would make "did an error occur?"
       // a signal for whether the account exists — the one thing this whole
       // action is built to hide.
-      console.error("[auth] Failed to issue password reset token", error);
+      logger.error({ err: error }, "Failed to issue password reset token");
     }
   }
 

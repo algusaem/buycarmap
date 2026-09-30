@@ -6,7 +6,6 @@ import { z } from "zod";
 export const FAVORITE_ERROR = {
   unauthenticated: "unauthenticated",
   invalidListing: "invalidListing",
-  unexpected: "unexpected",
 } as const;
 
 export type FavoriteErrorCode = (typeof FAVORITE_ERROR)[keyof typeof FAVORITE_ERROR];

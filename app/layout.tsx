@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { getLocale, getTranslations } from "@/lib/i18n/server";
@@ -34,6 +35,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
+  // Passed to next-themes so its inline bootstrap script (which sets the
+  // theme class before paint) carries the per-request nonce the CSP in
+  // proxy.ts requires (PLAT-23, docs/specs/core-platform.md).
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -46,6 +51,7 @@ export default async function RootLayout({
             defaultTheme="dark"
             enableSystem
             disableTransitionOnChange
+            nonce={nonce}
           >
             <I18nProvider locale={locale}>
               <Navbar />

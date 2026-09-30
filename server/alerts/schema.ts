@@ -8,7 +8,6 @@ export const ALERT_ERROR = {
   invalidCriteria: "invalidCriteria",
   criteriaTooBroad: "criteriaTooBroad",
   tooManyAlerts: "tooManyAlerts",
-  unexpected: "unexpected",
 } as const;
 
 export type AlertErrorCode = (typeof ALERT_ERROR)[keyof typeof ALERT_ERROR];

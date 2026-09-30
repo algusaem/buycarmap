@@ -9,7 +9,7 @@ import { deleteAlert } from "@/server/alerts/actions";
 import type { AlertSummary } from "@/interfaces/alert";
 import type { SearchInput } from "@/lib/search/schema";
 import { useTranslation } from "@/lib/i18n/client";
-import { translateAlertError } from "@/lib/i18n/errors";
+import { translateError } from "@/lib/i18n/errors";
 
 interface AlertsListProps {
   alerts: AlertSummary[];
@@ -65,13 +65,22 @@ function AlertRow({ alert }: { alert: AlertSummary }) {
 
   async function remove() {
     setRemoving(true);
-    const result = await deleteAlert(alert.id);
-    if (!result.success) {
+
+    try {
+      const result = await deleteAlert(alert.id);
+      if (!result.ok) {
+        setRemoving(false);
+        toast.error(translateError(t, result.error.messageKey));
+        return;
+      }
+      router.refresh();
+    } catch {
+      // An unexpected failure — a thrown database or network error (PLAT-12,
+      // docs/specs/core-platform.md) — reads the same generic copy the auth
+      // forms use, since there is nothing more specific to say about it.
       setRemoving(false);
-      toast.error(translateAlertError(t, result.error));
-      return;
+      toast.error(t.alertErrors.unexpected);
     }
-    router.refresh();
   }
 
   return (

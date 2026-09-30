@@ -12,9 +12,14 @@ vi.mock("@/lib/auth/hash", () => ({
 }));
 // Toggled per describe block: the action takes a different path depending on
 // whether email can actually be delivered.
-vi.mock("@/lib/env", () => ({
+vi.mock("@/lib/app-config", () => ({
   appUrl: "https://buycarmap.test",
   isEmailConfigured: true,
+}));
+vi.mock("@/lib/env", () => ({
+  // lib/logger.ts (PLAT-15/16, docs/specs/core-platform.md) reads env.NODE_ENV;
+  // this mock predates that dependency and needs it to not be undefined.
+  env: { NODE_ENV: "test" },
 }));
 vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/server/rate-limit/service")>()),
@@ -30,7 +35,7 @@ vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import * as env from "@/lib/env";
+import * as appConfig from "@/lib/app-config";
 import { sendEmail } from "@/lib/email/client";
 import { consumeRateLimit } from "@/server/rate-limit/service";
 import { hashToken } from "@/lib/auth/tokens";
@@ -56,7 +61,7 @@ const valid = {
 };
 
 function setEmailConfigured(configured: boolean) {
-  vi.spyOn(env, "isEmailConfigured", "get").mockReturnValue(configured);
+  vi.spyOn(appConfig, "isEmailConfigured", "get").mockReturnValue(configured);
 }
 
 beforeEach(() => {

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { env } from "@/lib/env";
+import { logger } from "@/lib/logger";
 import { decryptSecret } from "@/lib/auth/two-factor/encryption";
 import { hashRecoveryCode } from "@/lib/auth/two-factor/recovery-codes";
 import { verifyTotp } from "@/lib/auth/two-factor/totp";
@@ -47,7 +48,7 @@ export async function verifyAndConsumeTwoFactor(
   } catch {
     // Wrong key or a tampered row. Refusing is the only safe answer — the
     // alternative is feeding garbage into an HMAC and comparing the result.
-    console.error(`[auth] Could not decrypt the two-factor secret for user ${user.id}`);
+    logger.error({ userId: user.id }, "Could not decrypt the two-factor secret");
     return { valid: false, method: null };
   }
 

@@ -3,7 +3,7 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/hash";
 import { hashToken } from "@/lib/auth/tokens";
-import { appUrl } from "@/lib/env";
+import { appUrl } from "@/lib/app-config";
 import { sendEmail } from "@/lib/email/client";
 import {
   renderEmailChangeEmail,

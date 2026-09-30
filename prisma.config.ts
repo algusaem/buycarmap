@@ -3,12 +3,17 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+// PLAT-8 (docs/specs/core-platform.md): migration commands use DIRECT_URL when
+// it is set (an unpooled connection, which migrations need) and fall back to
+// DATABASE_URL otherwise, so local work needs no second variable. This runs
+// outside Next, so it reads `process.env` directly rather than through
+// lib/env.ts (RULES.md: tooling configs are exempt).
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env.DATABASE_URL,
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
   },
 });

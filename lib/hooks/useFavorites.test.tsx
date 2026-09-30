@@ -5,7 +5,9 @@ import { makeFavoriteInput } from "@/test/fixtures/favorites";
 const useSession = vi.fn();
 vi.mock("next-auth/react", () => ({ useSession: () => useSession() }));
 vi.mock("@/server/favorites/actions", () => ({ listFavorites: vi.fn() }));
+vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 
+import * as Sentry from "@sentry/nextjs";
 import { listFavorites } from "@/server/favorites/actions";
 import { useFavorites } from "./useFavorites";
 
@@ -18,6 +20,7 @@ const signedOut = () => useSession.mockReturnValue({ data: null, status: "unauth
 
 beforeEach(() => {
   vi.mocked(listFavorites).mockReset();
+  vi.mocked(Sentry.captureException).mockReset();
   useSession.mockReset();
 });
 
@@ -25,8 +28,8 @@ describe("useFavorites", () => {
   it("FAV-16: exposes the ids of the listings the user has saved", async () => {
     signedIn();
     vi.mocked(listFavorites).mockResolvedValue({
-      success: true,
-      data: [
+      ok: true,
+      value: [
         makeFavoriteInput({ id: "wallapop-abc123" }),
         makeFavoriteInput({ id: "cochesnet-99" }),
       ],
@@ -53,8 +56,8 @@ describe("useFavorites", () => {
   it("FAV-16: leaves the set empty when the request fails", async () => {
     signedIn();
     vi.mocked(listFavorites).mockResolvedValue({
-      success: false,
-      error: "unexpected",
+      ok: false,
+      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
     });
 
     const { result } = renderHook(() => useFavorites());
@@ -65,9 +68,19 @@ describe("useFavorites", () => {
     expect(result.current.favoriteIds.size).toBe(0);
   });
 
+  it("PLAT-12: a rejecting listFavorites leaves the set empty without an unhandled rejection", async () => {
+    signedIn();
+    vi.mocked(listFavorites).mockRejectedValue(new Error("boom"));
+
+    const { result } = renderHook(() => useFavorites());
+
+    await waitFor(() => expect(Sentry.captureException).toHaveBeenCalledTimes(1));
+    expect(result.current.favoriteIds.size).toBe(0);
+  });
+
   it("FAV-16: tracks a toggle the user just made without refetching", async () => {
     signedIn();
-    vi.mocked(listFavorites).mockResolvedValue({ success: true, data: [] });
+    vi.mocked(listFavorites).mockResolvedValue({ ok: true, value: [] });
     const { result } = renderHook(() => useFavorites());
     await waitFor(() => expect(listFavorites).toHaveBeenCalled());
 
@@ -82,8 +95,8 @@ describe("useFavorites", () => {
   it("FAV-16: drops the saved set when the session ends", async () => {
     signedIn();
     vi.mocked(listFavorites).mockResolvedValue({
-      success: true,
-      data: [makeFavoriteInput({ id: "wallapop-abc123" })],
+      ok: true,
+      value: [makeFavoriteInput({ id: "wallapop-abc123" })],
     });
     const { result, rerender } = renderHook(() => useFavorites());
     await waitFor(() => expect(result.current.favoriteIds.size).toBe(1));

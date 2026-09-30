@@ -15,6 +15,8 @@ vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/lib/auth/hash", () => ({ verifyPassword: vi.fn() }));
 vi.mock("@/lib/env", () => ({
   env: { TWO_FACTOR_ENCRYPTION_KEY: KEY },
+}));
+vi.mock("@/lib/app-config", () => ({
   isTwoFactorConfigured: true,
 }));
 vi.mock("@/server/rate-limit/service", async (importOriginal) => ({

@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 
+vi.mock("@/lib/logger", () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+
+import { logger } from "@/lib/logger";
+
 // `isEmailConfigured` is computed when lib/env.ts is first imported, so each
 // test resets the module registry and re-imports with the environment it needs.
 async function loadClient() {
@@ -103,5 +107,19 @@ describe("sendEmail when not configured", () => {
 
     // Resend rejects a send with no `from`; better to skip than to fail.
     expect(await sendEmail(MESSAGE)).toBe(false);
+  });
+
+  it("PLAT-2: warns through the logger exactly once across two sends in production", async () => {
+    vi.stubEnv("RESEND_API_KEY", "");
+    vi.stubEnv("EMAIL_FROM", "");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.mocked(logger.warn).mockClear();
+
+    const { sendEmail } = await loadClient();
+
+    await sendEmail(MESSAGE);
+    await sendEmail(MESSAGE);
+
+    expect(logger.warn).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
+import { withRequestContext } from "@/lib/request-context";
 import { runAlerts } from "@/server/alerts/service";
 
 // The alert runner. Called by the GitHub Actions cron, K jobs in parallel.
@@ -28,11 +29,13 @@ function isAuthorised(request: NextRequest): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorised(request)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  return withRequestContext(async () => {
+    if (!isAuthorised(request)) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
 
-  const summary = await runAlerts(new Date());
+    const summary = await runAlerts(new Date());
 
-  return NextResponse.json(summary);
+    return NextResponse.json(summary);
+  });
 }

@@ -30,11 +30,9 @@ export async function listAlertsForPage(): Promise<AlertSummary[]> {
   const user = await getCurrentUser();
   if (!user) redirect("/login?callbackUrl=%2Falerts");
 
-  try {
-    return await findAlertSummaries(user.id);
-  } catch {
-    // The page rendered an empty list when the read failed before this query
-    // existed, and it still does (ADR 0012, until phase 6).
-    return [];
-  }
+  // A failed read throws (PLAT-14, docs/specs/core-platform.md): the page
+  // rendered an empty list on a failed read until this phase (ADR 0012),
+  // which showed "no alerts yet" to a user whose alerts exist. The new
+  // app/alerts/error.tsx shows a translated error and a retry instead.
+  return await findAlertSummaries(user.id);
 }

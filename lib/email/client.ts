@@ -1,4 +1,6 @@
-import { env, isEmailConfigured } from "@/lib/env";
+import { isEmailConfigured } from "@/lib/app-config";
+import { env } from "@/lib/env";
+import { logger } from "@/lib/logger";
 
 // Thin wrapper over Resend's REST API.
 //
@@ -20,6 +22,13 @@ export interface SendEmailInput {
   text: string;
 }
 
+// PLAT-2 (docs/specs/core-platform.md): these used to be console warnings
+// printed from lib/env.ts at import time. They now fire from here, once per
+// process, the first time a send actually needs them — lib/env.ts itself
+// never calls console or the logger.
+let warnedNotConfigured = false;
+let warnedSandboxSender = false;
+
 /**
  * Sends an email. Never throws.
  *
@@ -34,10 +43,27 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
   if (!isEmailConfigured) {
     // Not an error: email is optional configuration. Loud enough that nobody
     // wonders why the reset link never arrived in a fresh environment.
-    console.warn(
-      `[email] RESEND_API_KEY/EMAIL_FROM not set — skipped "${input.subject}". See .env.example.`,
-    );
+    if (!warnedNotConfigured) {
+      warnedNotConfigured = true;
+      logger.warn(
+        { subject: input.subject },
+        "RESEND_API_KEY/EMAIL_FROM not set — emails are skipped. See .env.example.",
+      );
+    }
     return false;
+  }
+
+  // Resend's sandbox sender only delivers to the address the Resend account
+  // was registered under. In production that is a silent trap: registration
+  // becomes verify-first the moment email is "configured", so every real user
+  // would be told to check an inbox that never receives anything.
+  const usesSandboxSender = env.NODE_ENV === "production" && env.EMAIL_FROM?.includes("resend.dev");
+  if (usesSandboxSender && !warnedSandboxSender) {
+    warnedSandboxSender = true;
+    logger.warn(
+      {},
+      "EMAIL_FROM uses Resend's sandbox sender (resend.dev), which only delivers to your own Resend account address. Verify a domain at resend.com/domains.",
+    );
   }
 
   try {
@@ -58,15 +84,16 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
     });
 
     if (!response.ok) {
-      console.error(
-        `[email] Resend rejected "${input.subject}" with ${response.status}: ${await response.text()}`,
+      logger.error(
+        { status: response.status, body: await response.text() },
+        `Resend rejected "${input.subject}"`,
       );
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error(`[email] Failed to send "${input.subject}"`, error);
+    logger.error({ err: error }, `Failed to send "${input.subject}"`);
     return false;
   }
 }

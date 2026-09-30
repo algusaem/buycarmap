@@ -44,7 +44,7 @@ describe("saveFavorite", () => {
 
     const result = await saveFavorite(listing);
 
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ ok: true, value: undefined });
     const stored = store.forUser(ADA.id);
     expect(stored).toHaveLength(1);
     // The snapshot is the point (spec › Decisions and rationale): the row has to be renderable on its
@@ -67,7 +67,7 @@ describe("saveFavorite", () => {
 
     const result = await listFavorites();
 
-    expect(result.data?.map((row) => row.id)).toEqual(["wallapop-abc123"]);
+    expect(result.ok && result.value.map((row) => row.id)).toEqual(["wallapop-abc123"]);
   });
 
   it("FAV-2: saving the same listing twice leaves exactly one record", async () => {
@@ -77,17 +77,32 @@ describe("saveFavorite", () => {
     const first = await saveFavorite(listing);
     const second = await saveFavorite(listing);
 
-    expect(first.success).toBe(true);
-    expect(second.success).toBe(true);
+    expect(first).toEqual({ ok: true, value: undefined });
+    expect(second).toEqual({ ok: true, value: undefined });
     expect(store.forUser(ADA.id)).toHaveLength(1);
   });
 
-  it("FAV-5: a caller with no session saves nothing", async () => {
+  it("FAV-5: a caller with no session saves nothing (PLAT-11)", async () => {
     signedOut();
 
     const result = await saveFavorite(makeFavoriteInput());
 
-    expect(result).toEqual({ success: false, error: "unauthenticated" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "unauthenticated", messageKey: "favoriteErrors.unauthenticated" },
+    });
+    expect(store.all()).toHaveLength(0);
+  });
+
+  it("FAV-7: rejects a listing from an unrecognised source (PLAT-11)", async () => {
+    signedInAs(ADA);
+
+    const result = await saveFavorite(makeFavoriteInput({ source: "Craigslist" }));
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
+    });
     expect(store.all()).toHaveLength(0);
   });
 
@@ -96,16 +111,10 @@ describe("saveFavorite", () => {
 
     const result = await saveFavorite(makeFavoriteInput({ id: "   " }));
 
-    expect(result).toEqual({ success: false, error: "invalidListing" });
-    expect(store.all()).toHaveLength(0);
-  });
-
-  it("FAV-7: rejects a listing from an unrecognised source", async () => {
-    signedInAs(ADA);
-
-    const result = await saveFavorite(makeFavoriteInput({ source: "Craigslist" }));
-
-    expect(result).toEqual({ success: false, error: "invalidListing" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
+    });
     expect(store.all()).toHaveLength(0);
   });
 
@@ -114,8 +123,18 @@ describe("saveFavorite", () => {
 
     const result = await saveFavorite(makeFavoriteInput({ title: "" }));
 
-    expect(result).toEqual({ success: false, error: "invalidListing" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
+    });
     expect(store.all()).toHaveLength(0);
+  });
+
+  it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
+    signedInAs(ADA);
+    vi.mocked(store.client.upsert).mockRejectedValueOnce(new Error("connection refused"));
+
+    await expect(saveFavorite(makeFavoriteInput())).rejects.toThrow();
   });
 });
 
@@ -127,7 +146,7 @@ describe("removeFavorite", () => {
 
     const result = await removeFavorite("wallapop-abc123");
 
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ ok: true, value: undefined });
     expect(store.forUser(ADA.id).map((row) => row.listingId)).toEqual(["cochesnet-99"]);
   });
 
@@ -136,16 +155,19 @@ describe("removeFavorite", () => {
 
     const result = await removeFavorite("wallapop-never-saved");
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ ok: true, value: undefined });
   });
 
-  it("FAV-5: a caller with no session removes nothing", async () => {
+  it("FAV-5: a caller with no session removes nothing (PLAT-11)", async () => {
     store.seedFor(ADA.id, makeFavoriteInput());
     signedOut();
 
     const result = await removeFavorite("wallapop-abc123");
 
-    expect(result).toEqual({ success: false, error: "unauthenticated" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "unauthenticated", messageKey: "favoriteErrors.unauthenticated" },
+    });
     expect(store.forUser(ADA.id)).toHaveLength(1);
   });
 
@@ -157,8 +179,15 @@ describe("removeFavorite", () => {
 
     // Grace is told nothing went wrong - she has no such favorite, and whether
     // Ada does is none of her business - but Ada's row survives.
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ ok: true, value: undefined });
     expect(store.forUser(ADA.id)).toHaveLength(1);
+  });
+
+  it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
+    signedInAs(ADA);
+    vi.mocked(store.client.deleteMany).mockRejectedValueOnce(new Error("connection refused"));
+
+    await expect(removeFavorite("wallapop-abc123")).rejects.toThrow();
   });
 });
 
@@ -170,7 +199,7 @@ describe("listFavorites", () => {
 
     const result = await listFavorites();
 
-    expect(result.data?.map((row) => row.id)).toEqual(["wallapop-abc123"]);
+    expect(result.ok && result.value.map((row) => row.id)).toEqual(["wallapop-abc123"]);
   });
 
   it("FAV-8: returns them newest first", async () => {
@@ -181,7 +210,7 @@ describe("listFavorites", () => {
 
     const result = await listFavorites();
 
-    expect(result.data?.map((row) => row.id)).toEqual([
+    expect(result.ok && result.value.map((row) => row.id)).toEqual([
       "wallapop-third",
       "wallapop-second",
       "wallapop-first",
@@ -193,15 +222,25 @@ describe("listFavorites", () => {
 
     const result = await listFavorites();
 
-    expect(result).toEqual({ success: true, data: [] });
+    expect(result).toEqual({ ok: true, value: [] });
   });
 
-  it("FAV-5: a caller with no session gets nothing back", async () => {
+  it("FAV-5: a caller with no session gets nothing back (PLAT-11)", async () => {
     store.seedFor(ADA.id, makeFavoriteInput());
     signedOut();
 
     const result = await listFavorites();
 
-    expect(result).toEqual({ success: false, error: "unauthenticated" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "unauthenticated", messageKey: "favoriteErrors.unauthenticated" },
+    });
+  });
+
+  it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
+    signedInAs(ADA);
+    vi.mocked(store.client.findMany).mockRejectedValueOnce(new Error("connection refused"));
+
+    await expect(listFavorites()).rejects.toThrow();
   });
 });

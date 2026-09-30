@@ -382,7 +382,6 @@ export const es: Translations = {
     addFavorite: "Guardar en favoritos",
     removeFavorite: "Quitar de favoritos",
     unknownTitle: "Desconocido",
-    favoriteFailed: "No se pudo guardar el anuncio. Inténtalo de nuevo.",
     searchFailed: "No se pudieron cargar los anuncios. Inténtalo de nuevo.",
     loadMoreFailed: "No se pudieron cargar más anuncios.",
     invalidSearch: "Esos filtros de búsqueda no son válidos.",
@@ -422,6 +421,13 @@ export const es: Translations = {
       "Esa alerta es demasiado amplia. Añade una marca, un precio máximo o una ubicación.",
     tooManyAlerts: "Has alcanzado el número máximo de alertas.",
     unexpected: "Algo ha salido mal. Inténtalo de nuevo.",
+  },
+  favoriteErrors: {
+    unauthenticated: "Inicia sesión para guardar favoritos.",
+    invalidListing: "No se pudo guardar ese anuncio.",
+  },
+  localeErrors: {
+    invalidLocale: "Ese idioma no está disponible.",
   },
   theme: {
     dark: "Oscuro",
@@ -495,5 +501,9 @@ export const es: Translations = {
   meta: {
     title: "Buy Car Map",
     description: "Encuentra coches de segunda mano cerca de ti. Comparador de anuncios en mapa.",
+  },
+  errors: {
+    pageLoadFailed: "No se pudo cargar esta página. Inténtalo de nuevo.",
+    retry: "Reintentar",
   },
 };

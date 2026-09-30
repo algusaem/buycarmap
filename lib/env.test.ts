@@ -1,57 +1,48 @@
-import { describe, expect, it } from "vitest";
-import { resolveAppUrl } from "./env";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-// This value ends up inside emailed reset and confirmation links, where a wrong
-// host is invisible until a real user clicks a dead link.
+// PLAT-1 and PLAT-3 (docs/specs/core-platform.md): lib/env.ts moves onto
+// @t3-oss/env-nextjs' createEnv, which validates at import time and honours
+// SKIP_ENV_VALIDATION=1. Each case resets the module registry so it can
+// re-import with the environment it needs.
+async function loadEnvModule() {
+  vi.resetModules();
+  return import("./env");
+}
 
-describe("resolveAppUrl", () => {
-  it("prefers an explicit APP_URL", () => {
-    expect(
-      resolveAppUrl({
-        APP_URL: "https://buycarmap.com",
-        NEXTAUTH_URL: "https://other.example",
-        VERCEL_URL: "deployment.vercel.app",
-      }),
-    ).toBe("https://buycarmap.com");
+describe("lib/env.ts validation", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
-  it("falls back to NEXTAUTH_URL", () => {
-    expect(
-      resolveAppUrl({
-        NEXTAUTH_URL: "https://buycarmap.com",
-        VERCEL_URL: "deployment.vercel.app",
-      }),
-    ).toBe("https://buycarmap.com");
+  it("PLAT-1: rejects an empty DATABASE_URL with a message naming it", async () => {
+    vi.stubEnv("DATABASE_URL", "");
+    vi.stubEnv("NEXTAUTH_SECRET", "test-secret-at-least-32-characters-long");
+    vi.stubEnv("SKIP_ENV_VALIDATION", undefined);
+
+    await expect(loadEnvModule()).rejects.toThrow(/DATABASE_URL/);
   });
 
-  it("derives an https URL from VERCEL_URL when nothing is configured", () => {
-    // The failure this prevents: a Vercel deploy with neither variable set
-    // emailing `http://localhost:3000/reset-password?token=…` to real users.
-    expect(resolveAppUrl({ VERCEL_URL: "buycarmap-abc123.vercel.app" })).toBe(
-      "https://buycarmap-abc123.vercel.app",
-    );
+  it("PLAT-1: resolves with the required vars set and reports optional ones as undefined", async () => {
+    vi.stubEnv("DATABASE_URL", "postgresql://user:pass@localhost:5432/buycarmap_test");
+    vi.stubEnv("NEXTAUTH_SECRET", "test-secret-at-least-32-characters-long");
+    vi.stubEnv("SKIP_ENV_VALIDATION", undefined);
+    vi.stubEnv("RESEND_API_KEY", undefined);
+    vi.stubEnv("EMAIL_FROM", undefined);
+    vi.stubEnv("TWO_FACTOR_ENCRYPTION_KEY", undefined);
+    vi.stubEnv("APP_URL", undefined);
+
+    const { env } = await loadEnvModule();
+
+    expect(env.RESEND_API_KEY).toBeUndefined();
+    expect(env.EMAIL_FROM).toBeUndefined();
+    expect(env.TWO_FACTOR_ENCRYPTION_KEY).toBeUndefined();
   });
 
-  it("adds the protocol, which VERCEL_URL omits", () => {
-    const resolved = resolveAppUrl({ VERCEL_URL: "buycarmap.vercel.app" });
+  it("PLAT-3: SKIP_ENV_VALIDATION=1 with DATABASE_URL unset does not throw", async () => {
+    vi.stubEnv("DATABASE_URL", undefined);
+    vi.stubEnv("NEXTAUTH_SECRET", undefined);
+    vi.stubEnv("SKIP_ENV_VALIDATION", "1");
 
-    expect(resolved.startsWith("https://")).toBe(true);
-    // A bare host would produce a relative, broken link in an email client.
-    expect(resolved).not.toBe("buycarmap.vercel.app");
-  });
-
-  it("uses the deployment host, so previews link to themselves", () => {
-    expect(resolveAppUrl({ VERCEL_URL: "buycarmap-pr-42.vercel.app" })).toBe(
-      "https://buycarmap-pr-42.vercel.app",
-    );
-  });
-
-  it("falls back to localhost only when nothing at all is set", () => {
-    expect(resolveAppUrl({})).toBe("http://localhost:3000");
-  });
-
-  it("ignores empty strings rather than treating them as configured", () => {
-    // An env var declared but left blank is a common deploy mistake.
-    expect(resolveAppUrl({ APP_URL: "", NEXTAUTH_URL: "" })).toBe("http://localhost:3000");
+    await expect(loadEnvModule()).resolves.toBeDefined();
   });
 });

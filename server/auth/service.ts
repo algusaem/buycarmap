@@ -9,6 +9,7 @@ import {
 } from "@/server/rate-limit/service";
 import { verifyAndConsumeTwoFactor } from "@/server/two-factor/service";
 import { AUTH_ERROR } from "@/lib/auth/errors";
+import { logger } from "@/lib/logger";
 
 // The auth core other features reach through this file (docs/specs/core-layout.md
 // LAYOUT-6): credentials authorization and expired-token housekeeping.
@@ -161,7 +162,7 @@ export async function pruneExpiredAuthRows(): Promise<void> {
     ]);
   } catch (error) {
     // Housekeeping only — it must never affect the request that triggered it.
-    console.error("[auth] Failed to prune expired auth rows", error);
+    logger.error({ err: error }, "Failed to prune expired auth rows");
   }
 }
 

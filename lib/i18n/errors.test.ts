@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { en } from "./locales/en";
 import { es } from "./locales/es";
 import { AUTH_ERROR } from "@/lib/auth/errors";
-import { ALERT_ERROR } from "@/server/alerts/schema";
-import { translateAlertError, translateAuthError } from "./errors";
+import * as errorsModule from "./errors";
+import { translateAuthError } from "./errors";
 
 describe("translateAuthError", () => {
   it("resolves a code to the copy for the active locale", () => {
@@ -48,33 +48,33 @@ describe("translateAuthError", () => {
   });
 });
 
-describe("translateAlertError", () => {
-  it("resolves a code to the copy for the active locale", () => {
-    expect(translateAlertError(en, ALERT_ERROR.criteriaTooBroad)).toBe(
-      "That alert is too broad. Narrow it with a make, a maximum price or a location.",
-    );
-    expect(translateAlertError(es, ALERT_ERROR.tooManyAlerts)).toBe(
-      "Has alcanzado el número máximo de alertas.",
+// PLAT-13 (docs/specs/core-platform.md): translateAlertError is replaced by a
+// single translateError(t, messageKey) that resolves a "<namespace>.<key>"
+// path and falls back to a generic message for an unknown key.
+describe("translateError", () => {
+  it("PLAT-13: resolves a namespaced messageKey to the copy for the active locale", () => {
+    expect(errorsModule.translateError(en, "alertErrors.criteriaTooBroad")).toBe(
+      en.alertErrors.criteriaTooBroad,
     );
   });
 
-  it("falls back to the generic message for an unrecognized code", () => {
-    expect(translateAlertError(en, "somethingNobodyDefined")).toBe(
+  it("PLAT-13: falls back to a generic message for an unrecognized key", () => {
+    expect(errorsModule.translateError(en, "alertErrors.nope")).toBe(
       "Something went wrong. Please try again.",
     );
   });
 
-  it("returns a message even with no code, since this one always renders", () => {
-    // Unlike the auth variant, this feeds toast.error — which would show an
-    // empty toast rather than nothing at all.
-    expect(translateAlertError(en, undefined)).toBe("Something went wrong. Please try again.");
+  it("PLAT-13: translateAlertError is removed", () => {
+    expect("translateAlertError" in errorsModule).toBe(false);
   });
 
-  it("has copy for every alert error code the server can return", () => {
-    const missing = Object.values(ALERT_ERROR).filter(
-      (code) => !(code in en.alertErrors) || !(code in es.alertErrors),
-    );
+  it("PLAT-13: favoriteErrors.unauthenticated exists as non-empty copy in both locales", () => {
+    expect(en.favoriteErrors?.unauthenticated).toBeTruthy();
+    expect(es.favoriteErrors?.unauthenticated).toBeTruthy();
+  });
 
-    expect(missing).toEqual([]);
+  it("PLAT-13: favoriteErrors.invalidListing exists as non-empty copy in both locales", () => {
+    expect(en.favoriteErrors?.invalidListing).toBeTruthy();
+    expect(es.favoriteErrors?.invalidListing).toBeTruthy();
   });
 });

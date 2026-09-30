@@ -2,7 +2,9 @@
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/hash";
-import { env, isTwoFactorConfigured } from "@/lib/env";
+import { isTwoFactorConfigured } from "@/lib/app-config";
+import { env } from "@/lib/env";
+import { logger } from "@/lib/logger";
 import { decryptSecret, encryptSecret } from "@/lib/auth/two-factor/encryption";
 import { buildOtpAuthUri, generateTotpSecret, verifyTotp } from "@/lib/auth/two-factor/totp";
 import { generateRecoveryCodes } from "@/lib/auth/two-factor/recovery-codes";
@@ -39,6 +41,21 @@ interface ConfirmResult extends TwoFactorResult {
   recoveryCodes?: string[];
 }
 
+// PLAT-2 (docs/specs/core-platform.md): this used to be a console warning
+// printed from lib/env.ts at import time, gated on production so a local dev
+// environment stays quiet. It now fires from here, once per process, the
+// first time enrolment is actually attempted without the key.
+let warnedTwoFactorNotConfigured = false;
+
+function warnTwoFactorNotConfiguredOnce(): void {
+  if (warnedTwoFactorNotConfigured || env.NODE_ENV !== "production") return;
+  warnedTwoFactorNotConfigured = true;
+  logger.warn(
+    {},
+    "TWO_FACTOR_ENCRYPTION_KEY is not set, so two-factor authentication is unavailable. Generate one with `openssl rand -base64 32`.",
+  );
+}
+
 /**
  * Begins enrolment: mints a secret and stores it encrypted, but leaves
  * `twoFactorEnabledAt` null so nothing is enforced yet.
@@ -55,6 +72,7 @@ export async function startTwoFactorSetup(): Promise<SetupResult> {
   }
 
   if (!isTwoFactorConfigured) {
+    warnTwoFactorNotConfiguredOnce();
     return { success: false, error: AUTH_ERROR.totpUnavailable };
   }
 

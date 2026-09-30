@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
-import { appUrl, isEmailConfigured } from "@/lib/env";
+import { appUrl, isEmailConfigured } from "@/lib/app-config";
 import { sendEmail } from "@/lib/email/client";
 import { renderAlertEmail } from "@/lib/email/templates/alert-emails";
 import { DEFAULT_LOCALE, isValidLocale } from "@/lib/i18n/config";

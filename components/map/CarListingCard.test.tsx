@@ -120,7 +120,7 @@ describe("CarListingCard favorites", () => {
   });
 
   it("FAV-10: unsaving an already-saved listing calls through to removal", async () => {
-    vi.mocked(removeFavorite).mockResolvedValue({ success: true });
+    vi.mocked(removeFavorite).mockResolvedValue({ ok: true, value: undefined });
     renderWithI18n(<CarListingCard {...listing} isFavorite />);
 
     await userEvent.click(favoriteControl());
@@ -131,8 +131,8 @@ describe("CarListingCard favorites", () => {
 
   it("FAV-11: puts the control back and warns when the save fails", async () => {
     vi.mocked(saveFavorite).mockResolvedValue({
-      success: false,
-      error: "unexpected",
+      ok: false,
+      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
     });
     renderWithI18n(<CarListingCard {...listing} />);
 
@@ -140,6 +140,18 @@ describe("CarListingCard favorites", () => {
 
     expect(favoriteControl()).toHaveAccessibleName(ADD);
     expect(toast.error).toHaveBeenCalled();
+  });
+
+  it("PLAT-13: an unauthenticated save shows the translated messageKey copy", async () => {
+    vi.mocked(saveFavorite).mockResolvedValue({
+      ok: false,
+      error: { code: "unauthenticated", messageKey: "favoriteErrors.unauthenticated" },
+    });
+    renderWithI18n(<CarListingCard {...listing} />);
+
+    await userEvent.click(favoriteControl());
+
+    expect(toast.error).toHaveBeenCalledWith("Please sign in to save favorites.");
   });
 
   it("FAV-11: puts the control back when the save throws", async () => {
@@ -150,6 +162,19 @@ describe("CarListingCard favorites", () => {
 
     expect(favoriteControl()).toHaveAccessibleName(ADD);
     expect(toast.error).toHaveBeenCalled();
+  });
+
+  it("PLAT-12: a thrown/unexpected save shows the generic error toast copy", async () => {
+    // PLAT-12 (docs/specs/core-platform.md): once saveFavorite throws instead
+    // of returning an `unexpected` Result error, the toast still reads the
+    // same generic copy it reads today (en.authErrors.generic ===
+    // en.alertErrors.unexpected === "Something went wrong. Please try again.").
+    vi.mocked(saveFavorite).mockRejectedValue(new Error("connection refused"));
+    renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
+
+    await userEvent.click(favoriteControl());
+
+    expect(toast.error).toHaveBeenCalledWith("Something went wrong. Please try again.");
   });
 
   it("FAV-12: sends a signed-out visitor to sign in, and back again afterwards", async () => {
@@ -202,7 +227,7 @@ describe("CarListingCard favorites", () => {
 
 describe("CarListingCard favorites input", () => {
   it("FAV-1: sends the whole listing so it can be rendered back later", async () => {
-    vi.mocked(saveFavorite).mockResolvedValue({ success: true });
+    vi.mocked(saveFavorite).mockResolvedValue({ ok: true, value: undefined });
     const full = makeFavoriteInput({ id: "wallapop-1" });
     renderWithI18n(<CarListingCard {...full} />);
 
@@ -226,7 +251,7 @@ describe("CarListingCard saved-state sync", () => {
   });
 
   it("FAV-16: does not undo a toggle the user just made", async () => {
-    vi.mocked(saveFavorite).mockResolvedValue({ success: true });
+    vi.mocked(saveFavorite).mockResolvedValue({ ok: true, value: undefined });
     const { rerender } = renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
 
     await userEvent.click(favoriteControl());
@@ -240,7 +265,7 @@ describe("CarListingCard saved-state sync", () => {
   });
 
   it("FAV-16: reports the change so the parent's saved set stays in step", async () => {
-    vi.mocked(saveFavorite).mockResolvedValue({ success: true });
+    vi.mocked(saveFavorite).mockResolvedValue({ ok: true, value: undefined });
     const onFavoriteChange = vi.fn();
     renderWithI18n(<CarListingCard {...listing} onFavoriteChange={onFavoriteChange} />);
 
@@ -251,8 +276,8 @@ describe("CarListingCard saved-state sync", () => {
 
   it("FAV-11: tells the parent to roll back when the save fails", async () => {
     vi.mocked(saveFavorite).mockResolvedValue({
-      success: false,
-      error: "unexpected",
+      ok: false,
+      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
     });
     const onFavoriteChange = vi.fn();
     renderWithI18n(<CarListingCard {...listing} onFavoriteChange={onFavoriteChange} />);

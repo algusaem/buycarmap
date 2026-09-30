@@ -68,7 +68,7 @@ describe("createAlert", () => {
 
     const result = await createAlert(makeCriteria(), "Audi A3 under 20k");
 
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ ok: true, value: undefined });
     const stored = store.alertsFor(ADA.id);
     expect(stored).toHaveLength(1);
     expect(stored[0]).toMatchObject({
@@ -132,22 +132,28 @@ describe("createAlert", () => {
     expect(store.criteria()).toHaveLength(1);
   });
 
-  it("ALERT-4: a caller with no session creates nothing", async () => {
+  it("ALERT-4: a caller with no session creates nothing (PLAT-11)", async () => {
     signedOut();
 
     const result = await createAlert(makeCriteria(), "Audi A3 under 20k");
 
-    expect(result).toEqual({ success: false, error: "unauthenticated" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "unauthenticated", messageKey: "alertErrors.unauthenticated" },
+    });
     expect(store.alerts()).toEqual([]);
     expect(store.criteria()).toEqual([]);
   });
 
-  it("ALERT-6: rejects criteria that fail the search schema", async () => {
+  it("ALERT-6: rejects criteria that fail the search schema (PLAT-11)", async () => {
     signedInAs(ADA);
 
     const result = await createAlert(makeCriteria({ maxPrice: -5 }), "Nonsense");
 
-    expect(result).toEqual({ success: false, error: "invalidCriteria" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidCriteria", messageKey: "alertErrors.invalidCriteria" },
+    });
     expect(store.alerts()).toEqual([]);
   });
 
@@ -159,7 +165,10 @@ describe("createAlert", () => {
       "Nonsense",
     );
 
-    expect(result).toEqual({ success: false, error: "invalidCriteria" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidCriteria", messageKey: "alertErrors.invalidCriteria" },
+    });
     expect(store.alerts()).toEqual([]);
   });
 
@@ -169,12 +178,12 @@ describe("createAlert", () => {
     const first = await createAlert(makeCriteria(), "Audi A3 under 20k");
     const second = await createAlert(makeCriteria(), "Audi A3 under 20k");
 
-    expect(first.success).toBe(true);
-    expect(second.success).toBe(true);
+    expect(first).toEqual({ ok: true, value: undefined });
+    expect(second).toEqual({ ok: true, value: undefined });
     expect(store.alertsFor(ADA.id)).toHaveLength(1);
   });
 
-  it("ALERT-8: refuses to create the twenty-first alert", async () => {
+  it("ALERT-8: refuses to create the twenty-first alert (PLAT-11)", async () => {
     signedInAs(ADA);
     // Twenty distinct criteria sets, each a legitimate alert.
     for (let n = 0; n < 20; n++) {
@@ -183,7 +192,10 @@ describe("createAlert", () => {
 
     const result = await createAlert(makeCriteria({ maxPrice: 99000 }), "One too many");
 
-    expect(result).toEqual({ success: false, error: "tooManyAlerts" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "tooManyAlerts", messageKey: "alertErrors.tooManyAlerts" },
+    });
     expect(store.alertsFor(ADA.id)).toHaveLength(20);
   });
 
@@ -196,16 +208,19 @@ describe("createAlert", () => {
 
     const result = await createAlert(makeCriteria(), "Grace's first");
 
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ ok: true, value: undefined });
     expect(store.alertsFor(GRACE.id)).toHaveLength(1);
   });
 
-  it("ALERT-38: rejects criteria with no brand, no price ceiling and no location", async () => {
+  it("ALERT-38: rejects criteria with no brand, no price ceiling and no location (PLAT-11)", async () => {
     signedInAs(ADA);
 
     const result = await createAlert({ minYear: 2010 }, "Every car in Spain");
 
-    expect(result).toEqual({ success: false, error: "criteriaTooBroad" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "criteriaTooBroad", messageKey: "alertErrors.criteriaTooBroad" },
+    });
     expect(store.alerts()).toEqual([]);
     // Nothing was polled either — the rejection has to happen before the seed.
     expect(searchAllSources).not.toHaveBeenCalled();
@@ -220,7 +235,7 @@ describe("createAlert", () => {
 
     const result = await createAlert(criteria, "Narrow enough");
 
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ ok: true, value: undefined });
   });
 
   it("ALERT-34: stores the request's locale when the account has none", async () => {
@@ -246,10 +261,17 @@ describe("createAlert", () => {
 
     expect(store.users()[0].locale).toBe("es");
   });
+
+  it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
+    signedInAs(ADA);
+    vi.mocked(store.client.alert.create).mockRejectedValueOnce(new Error("connection refused"));
+
+    await expect(createAlert(makeCriteria(), "Audi A3 under 20k")).rejects.toThrow();
+  });
 });
 
 describe("deleteAlert", () => {
-  it("ALERT-4: a caller with no session deletes nothing", async () => {
+  it("ALERT-4: a caller with no session deletes nothing (PLAT-11)", async () => {
     signedInAs(ADA);
     await createAlert(makeCriteria(), "Audi A3 under 20k");
     const [alert] = store.alertsFor(ADA.id);
@@ -257,7 +279,10 @@ describe("deleteAlert", () => {
 
     const result = await deleteAlert(alert.id);
 
-    expect(result).toEqual({ success: false, error: "unauthenticated" });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "unauthenticated", messageKey: "alertErrors.unauthenticated" },
+    });
     expect(store.alertsFor(ADA.id)).toHaveLength(1);
   });
 
@@ -270,7 +295,7 @@ describe("deleteAlert", () => {
     const result = await deleteAlert(adasAlert.id);
 
     // Grace learns nothing about whether that alert exists, and Ada keeps hers.
-    expect(result.success).toBe(true);
+    expect(result).toEqual({ ok: true, value: undefined });
     expect(store.alertsFor(ADA.id)).toHaveLength(1);
   });
 
@@ -300,5 +325,14 @@ describe("deleteAlert", () => {
 
     expect(store.criteria()).toHaveLength(1);
     expect(store.alertsFor(GRACE.id)).toHaveLength(1);
+  });
+
+  it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
+    signedInAs(ADA);
+    await createAlert(makeCriteria(), "Audi A3 under 20k");
+    const [alert] = store.alertsFor(ADA.id);
+    vi.mocked(store.client.alert.deleteMany).mockRejectedValueOnce(new Error("connection refused"));
+
+    await expect(deleteAlert(alert.id)).rejects.toThrow();
   });
 });

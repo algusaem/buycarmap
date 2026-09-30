@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import * as Sentry from "@sentry/nextjs";
 import { listFavorites } from "@/server/favorites/actions";
 
 /**
@@ -27,9 +28,15 @@ export function useFavorites() {
     let cancelled = false;
 
     async function load() {
-      const result = await listFavorites();
-      if (cancelled || !result.success) return;
-      setLoaded(new Set((result.data ?? []).map((listing) => listing.id)));
+      try {
+        const result = await listFavorites();
+        if (cancelled || !result.ok) return;
+        setLoaded(new Set(result.value.map((listing) => listing.id)));
+      } catch (error) {
+        // Runs on mount, with no submit action to attach a toast to — leave
+        // the set as it was (empty on first load) and only report it.
+        Sentry.captureException(error);
+      }
     }
 
     load();
