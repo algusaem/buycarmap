@@ -166,6 +166,7 @@ describe("source layout", () => {
       { from: "components/X.tsx", specifier: "@/server/favorites/service", verdict: "reported" },
       { from: "components/X.tsx", specifier: "@/server/favorites/schema", verdict: "clean" },
       { from: "components/X.tsx", specifier: "@/server/favorites/actions", verdict: "clean" },
+      { from: "components/X.tsx", specifier: "@/server/favorites/queries", verdict: "reported" },
       {
         from: "server/alerts/service.ts",
         specifier: "@/server/rate-limit/service",
@@ -183,6 +184,7 @@ describe("source layout", () => {
         verdict: "reported",
       },
       { from: "lib/geo/x.ts", specifier: "@/server/favorites/service", verdict: "reported" },
+      { from: "lib/geo/x.ts", specifier: "@/app/x/page", verdict: "reported" },
       // Type-only imports and tests.
       {
         from: "lib/geo/x.ts",

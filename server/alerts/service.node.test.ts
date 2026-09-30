@@ -83,7 +83,13 @@ describe("findAlertSummaries", () => {
       data: { active: false },
     });
 
-    await expect(findAlertSummaries(ADA.id)).resolves.toBeDefined();
+    await expect(findAlertSummaries(ADA.id)).resolves.toEqual([
+      expect.objectContaining({
+        label: "Audi A3 under 20k",
+        matchCount: 0,
+        active: false,
+      }),
+    ]);
     expect(store.criteria()).toHaveLength(1);
   });
 });
