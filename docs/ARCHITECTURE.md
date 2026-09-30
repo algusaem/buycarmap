@@ -1003,33 +1003,72 @@ no staging environment. Production is served at https://buycarmap.vercel.app.
 
 ### Deployment
 
-Vercel. `pnpm build` runs `prisma generate && next build`, so the client is
-generated during the build — there is nothing to commit or cache.
+Vercel. `pnpm build` runs `prisma generate && node scripts/migrate-deploy.mjs
+&& next build`. The migration step runs `prisma migrate deploy` only when
+`VERCEL_ENV` is `production` — previews share the production database until
+phase 12, so migrating from a preview build would apply an unmerged schema
+to production. Everywhere else it prints one line and exits `0`; see
+[ADR 0013](decisions/0013-platform-runtime.md).
 
-Migrations are **not** applied by the build. Run `prisma migrate deploy` against
-the production database as a deliberate step.
+`GET /api/health` answers `200 {"status":"ok"}` without touching the
+database. `GET /api/health/db` runs one `SELECT 1`
+(`server/health/service.ts`) and answers `503 {"status":"error","db":"unreachable"}`
+when it fails. Both send `Cache-Control: no-store` and carry no personal
+data.
 
 #### Security headers
 
-Set in [`next.config.ts`](../next.config.ts) for every route: CSP,
 `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
 `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` and
-two-year HSTS with preload.
+two-year HSTS with preload are set in [`next.config.ts`](../next.config.ts)
+for every route.
 
-**`script-src` allows `'unsafe-inline'`, deliberately.** The App Router injects
-inline bootstrap scripts, and the alternative — per-request nonces via middleware
-— forces every page to render dynamically, costing the app its static
-optimisation. The high-value directives are still enforced: `frame-ancestors`,
+**`Content-Security-Policy` is built per request in [`proxy.ts`](../proxy.ts)**,
+not `next.config.ts`. `script-src` carries a fresh base64 **nonce** of at
+least 128 bits on every response — `'self' 'nonce-<n>' 'strict-dynamic'`, plus
+`'unsafe-eval'` in development — with no `'unsafe-inline'`. The nonce also
+reaches `app/layout.tsx`'s `<ThemeProvider>` (via the `x-nonce` request
+header proxy.ts sets), so next-themes' inline bootstrap script still runs
+under it. The high-value directives are otherwise unchanged: `frame-ancestors`,
 `object-src`, `base-uri` and `form-action` are what block clickjacking, plugin
 injection and form exfiltration.
+
+**A fresh nonce per response means every page renders dynamically** — no
+full-route cache, one proxy run per request. [ADR 0013](decisions/0013-platform-runtime.md)
+records the trade and what it cost the build's static page count.
 
 Two hosts are allowed, and both trace to a real browser-side dependency:
 `*.basemaps.cartocdn.com` for map tiles (`img-src`) and
 `nominatim.openstreetmap.org` for geocoding (`connect-src`). Listing photos are
 *not* listed because `next/image` proxies them through `/_next/image` on this
-origin.
+origin. Sentry's browser events go through the `/monitoring` tunnel route
+instead of `*.sentry.io`, so the CSP needs no Sentry host.
 
 `geolocation=(self)` must stay — the map asks for the user's position.
+
+#### Logging and error monitoring
+
+[`lib/logger.ts`](../lib/logger.ts) is the one Pino logger: JSON in
+production, `pino-pretty` in development, silent under Vitest. Its `redact`
+paths censor `password`, `token`, `email`, `secret`, `code`,
+`headers.authorization` and `headers.cookie` at the top level and one level
+deep. Every `console.*` call in `app/`, `components/`, `lib/`
+and `server/` was replaced by it (Biome's `noConsole` is an error for those
+paths; `scripts/**` and `e2e/**` are exempt).
+
+Every request proxy.ts handles gets an `x-request-id` — a valid incoming one
+is kept, otherwise a fresh UUID is generated — forwarded to the app and
+returned on the response. [`lib/request-context.ts`](../lib/request-context.ts)
+holds it in a Node `AsyncLocalStorage`; every converted Server Action and
+route handler runs inside it (`withRequestContext`), so every log line
+written while handling that request carries a matching `requestId`, and every
+Sentry event carries the same value as a `request_id` tag.
+
+[`lib/sentry.ts`](../lib/sentry.ts) and `instrumentation.ts` initialise
+`@sentry/nextjs` only when `SENTRY_DSN` is set — inert otherwise, nothing is
+sent. `dataCollection` (`lib/sentry-privacy.ts`) turns off user identity, cookies, headers, request bodies and query strings, query data and stack-frame variables, `tracesSampleRate: 0`, no session replay.
+Source maps upload only when `SENTRY_AUTH_TOKEN` is set. See
+[`privacy/processors.md`](privacy/processors.md) for what it receives.
 
 #### Image hosts
 
@@ -1039,12 +1078,24 @@ throws at runtime rather than degrading.
 
 ### Environment variables
 
-Required — validated by [`lib/env.ts`](../lib/env.ts) at import, which throws at
-boot rather than failing later:
+[`lib/env.ts`](../lib/env.ts) is built on **`@t3-oss/env-nextjs`**'s
+`createEnv`, validated at import, which throws at boot naming every invalid or
+missing variable rather than failing later. It is Edge-safe (no `dotenv`, no
+`node:*` import), so `proxy.ts` reads `APP_URL`, `NEXTAUTH_URL` and
+`NEXTAUTH_SECRET` through it too. No other file under `app/`, `components/`,
+`lib/` or `server/` reads `process.env` directly. `SKIP_ENV_VALIDATION=1`
+skips validation entirely — only `pnpm lint` (through `cross-env`) and CI's
+lint job set it. The flags and URLs derived from these variables
+(`isEmailConfigured`, `isTwoFactorConfigured`, `isGoogleConfigured`,
+`isGitHubConfigured`, `appUrl`) live in [`lib/app-config.ts`](../lib/app-config.ts)
+instead, server-only, so the client bundle can import `lib/env.ts` for
+`NEXT_PUBLIC_*` without touching server-only fields.
+
+Required:
 
 | Variable | Notes |
 | --- | --- |
-| `DATABASE_URL` | Neon connection string for the `@prisma/adapter-pg` adapter |
+| `DATABASE_URL` | Neon connection string. `lib/db/prisma.ts` builds the client with **`PrismaNeon`** over this (pooled) URL when `VERCEL` is set — every Vercel deployment — and with `PrismaPg` otherwise |
 | `NEXTAUTH_SECRET` | Signs every session JWT. `openssl rand -base64 32`. Under 32 chars logs a warning. **Rotating it signs everyone out** |
 
 Optional — each disables a feature rather than blocking startup:
@@ -1058,9 +1109,14 @@ Optional — each disables a feature rather than blocking startup:
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google button does not render. Both halves of the pair are required |
 | `GITHUB_ID` + `GITHUB_SECRET` | GitHub button does not render. Both halves of the pair are required |
 | `ALERTS_CRON_SECRET` | The alert run endpoint refuses every request, so alerts never fire. Must match the GitHub repository secret of the same name |
+| `DIRECT_URL` | Prisma's migration commands (`prisma.config.ts`) use `DATABASE_URL` instead — fine locally, but that must be an unpooled connection on Vercel, where `DATABASE_URL` is the pooled (`-pooler`) host |
+| `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | Sentry stays uninitialised; nothing is sent |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry build-time source-map upload is skipped |
+| `SKIP_ENV_VALIDATION` | Tooling only — see above. Never set for `pnpm dev`/`build`/`start` |
 | `NEON_API_KEY`, `NEON_PROJECT_ID` | Tooling only, never read by the app. `pnpm db:branch` cannot run |
 
-`.env.example` carries the reasoning next to each entry.
+`VERCEL`, `VERCEL_ENV` and `VERCEL_URL` are injected by Vercel itself and are
+never set by hand. `.env.example` carries the reasoning next to each entry.
 
 **On Vercel previews, leave `APP_URL` unset** so the `VERCEL_URL` fallback makes
 each deployment link to itself rather than to production.

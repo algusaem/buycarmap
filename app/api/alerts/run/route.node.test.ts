@@ -16,6 +16,9 @@ vi.mock("@/lib/env", () => ({
   // NEXTAUTH_SECRET keys the unsubscribe-token HMAC, so the runner cannot build
   // a link without it.
   env: { ALERTS_CRON_SECRET: "cron-secret", NEXTAUTH_SECRET: "test-secret" },
+}));
+
+vi.mock("@/lib/app-config", () => ({
   get isEmailConfigured() {
     return emailConfigured;
   },

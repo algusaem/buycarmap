@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import type { CarListing } from "@/interfaces/listing";
 import { SourceBadge } from "@/components/map/SourceBadge";
 import { useTranslation } from "@/lib/i18n/client";
+import { translateError } from "@/lib/i18n/errors";
 import { removeFavorite, saveFavorite } from "@/server/favorites/actions";
 
 interface CarListingCardProps extends CarListing {
@@ -72,15 +73,20 @@ export function CarListingCard({
 
     try {
       const result = next ? await saveFavorite(listing) : await removeFavorite(id);
-      if (!result.success) {
+      if (!result.ok) {
         setFavorite(!next);
         onFavoriteChange?.(id, !next);
-        toast.error(t.map.favoriteFailed);
+        toast.error(translateError(t, result.error.messageKey));
       }
     } catch {
+      // An expected failure (invalid listing, signed out mid-request) reads
+      // the domain-specific copy above. An unexpected one — a thrown database
+      // or network error (PLAT-12, docs/specs/core-platform.md) — reads the
+      // same generic copy the auth forms use, since there is nothing more
+      // specific to say about it.
       setFavorite(!next);
       onFavoriteChange?.(id, !next);
-      toast.error(t.map.favoriteFailed);
+      toast.error(t.alertErrors.unexpected);
     }
   }
 

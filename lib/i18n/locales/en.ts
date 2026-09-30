@@ -377,7 +377,6 @@ export const en: Translations = {
     addFavorite: "Add to favorites",
     removeFavorite: "Remove from favorites",
     unknownTitle: "Unknown",
-    favoriteFailed: "Could not save that listing. Please try again.",
     searchFailed: "Could not load listings. Please try again.",
     loadMoreFailed: "Could not load more listings.",
     invalidSearch: "Those search filters are not valid.",
@@ -418,6 +417,13 @@ export const en: Translations = {
       "That alert is too broad. Narrow it with a make, a maximum price or a location.",
     tooManyAlerts: "You have reached the maximum number of alerts.",
     unexpected: "Something went wrong. Please try again.",
+  },
+  favoriteErrors: {
+    unauthenticated: "Please sign in to save favorites.",
+    invalidListing: "That listing could not be saved.",
+  },
+  localeErrors: {
+    invalidLocale: "That language is not supported.",
   },
   theme: {
     dark: "Dark",
@@ -491,5 +497,9 @@ export const en: Translations = {
   meta: {
     title: "Buy Car Map",
     description: "Car buying map to find the best deals near you",
+  },
+  errors: {
+    pageLoadFailed: "We could not load this page. Please try again.",
+    retry: "Retry",
   },
 };

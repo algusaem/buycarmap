@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { isTwoFactorConfigured } from "@/lib/env";
+import { isTwoFactorConfigured } from "@/lib/app-config";
 import { getTranslations } from "@/lib/i18n/server";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { EmailForm } from "@/components/account/EmailForm";

@@ -81,11 +81,11 @@ describe("listAlertsForPage", () => {
     expect(redirect).not.toHaveBeenCalled();
   });
 
-  it("LAYOUT-11: with a session, a failed read resolves to an empty list", async () => {
+  it("PLAT-14: with a session, a failed read rejects instead of resolving to an empty list", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue(ADA);
     vi.mocked(findAlertSummaries).mockRejectedValue(new Error("db down"));
 
-    await expect(listAlertsForPage()).resolves.toEqual([]);
+    await expect(listAlertsForPage()).rejects.toThrow("db down");
 
     expect(redirect).not.toHaveBeenCalled();
   });

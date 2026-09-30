@@ -21,7 +21,7 @@
       "preset": "recommended",
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": { "level": "error", "options": { "allow": ["error", "warn"] } },
+        "noConsole": { "level": "error" },
         "noEmptyBlockStatements": "error"
       },
       "complexity": {

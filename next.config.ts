@@ -1,37 +1,18 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
+import { env } from "@/lib/env";
 
-const isDev = process.env.NODE_ENV === "development";
-
-// Content-Security-Policy.
-//
-// `'unsafe-inline'` on script-src is a deliberate compromise: the App Router
-// injects inline bootstrap scripts, and the alternative (per-request nonces via
-// middleware) forces every page to render dynamically, which would cost this
-// app its static optimization. The high-value directives — frame-ancestors,
-// object-src, base-uri, form-action — are still enforced, and those are what
-// block clickjacking, plugin injection, and form exfiltration.
+// The policy header that blocks inline-script injection now lives in
+// proxy.ts, with a fresh per-request nonce (PLAT-21/PLAT-24,
+// docs/specs/core-platform.md). It used to be sent here as a static header
+// whose script-src allowed 'unsafe-inline'.
 //
 // Host allowances trace to real browser-side dependencies:
 //   - cartocdn: Leaflet map tiles, loaded as <img> (components/map/ListingsMap.tsx)
 //   - nominatim: geocoding autocomplete, fetched from the client (lib/geo/nominatim.ts)
 // Listing photos are not listed because next/image proxies them through
-// /_next/image on this origin.
-const csp = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.basemaps.cartocdn.com",
-  "font-src 'self' data:",
-  "connect-src 'self' https://nominatim.openstreetmap.org",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-  ...(isDev ? [] : ["upgrade-insecure-requests"]),
-].join("; ");
-
+// /_next/image on this origin. See proxy.ts for the actual directives.
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
   // Redundant with frame-ancestors for modern browsers, kept for older ones.
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -69,6 +50,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Pino ships native code paths pino-pretty's worker-thread transport needs;
+  // bundling either into the server build breaks at runtime (PLAT-16).
+  serverExternalPackages: ["pino", "pino-pretty"],
   async headers() {
     return [
       {
@@ -79,4 +63,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: env.SENTRY_ORG,
+  project: env.SENTRY_PROJECT,
+  authToken: env.SENTRY_AUTH_TOKEN,
+  // Browser events go through this route instead of straight to Sentry, so an
+  // ad blocker cannot silently drop them and the CSP needs no Sentry host
+  // (PLAT-18, docs/specs/core-platform.md).
+  tunnelRoute: "/monitoring",
+  silent: true,
+  sourcemaps: { disable: !env.SENTRY_AUTH_TOKEN },
+  telemetry: false,
+});

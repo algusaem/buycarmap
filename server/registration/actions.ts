@@ -3,8 +3,9 @@
 import { hashPassword } from "@/lib/auth/hash";
 import { validateNewPassword } from "@/lib/auth/password-policy";
 import { hashToken } from "@/lib/auth/tokens";
-import { isEmailConfigured } from "@/lib/env";
+import { isEmailConfigured } from "@/lib/app-config";
 import { optionalString, requiredString } from "@/lib/form-data";
+import { logger } from "@/lib/logger";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { forgotPasswordSchema } from "@/server/auth/schema";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/server/rate-limit/service";
@@ -83,7 +84,7 @@ export async function register(formData: FormData): Promise<RegisterResult> {
   } catch (error) {
     // Swallowed deliberately: an error response here would differ between the
     // two branches and reintroduce exactly the oracle this design removes.
-    console.error("[auth] Registration follow-up failed", error);
+    logger.error({ err: error }, "Registration follow-up failed");
   }
 
   return { success: true, pending: true };
@@ -194,7 +195,7 @@ export async function resendConfirmation(formData: FormData): Promise<ResendConf
   } catch (error) {
     // Swallowed: an error here would differ by whether a pending signup
     // exists, which is exactly the signal this action must not emit.
-    console.error("[auth] Failed to resend confirmation", error);
+    logger.error({ err: error }, "Failed to resend confirmation");
   }
 
   return { success: true };

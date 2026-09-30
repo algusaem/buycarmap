@@ -64,11 +64,11 @@ describe("listFavoritesForPage", () => {
     expect(redirect).not.toHaveBeenCalled();
   });
 
-  it("LAYOUT-11: with a session, a failed read resolves to an empty list", async () => {
+  it("PLAT-14: with a session, a failed read rejects instead of resolving to an empty list", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue(ADA);
     vi.mocked(findFavorites).mockRejectedValue(new Error("db down"));
 
-    await expect(listFavoritesForPage()).resolves.toEqual([]);
+    await expect(listFavoritesForPage()).rejects.toThrow("db down");
 
     expect(redirect).not.toHaveBeenCalled();
   });

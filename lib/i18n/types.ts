@@ -297,7 +297,6 @@ export interface Translations {
     addFavorite: string;
     removeFavorite: string;
     unknownTitle: string;
-    favoriteFailed: string;
     searchFailed: string;
     loadMoreFailed: string;
     invalidSearch: string;
@@ -335,7 +334,19 @@ export interface Translations {
     invalidCriteria: string;
     criteriaTooBroad: string;
     tooManyAlerts: string;
+    // The code is gone from ALERT_ERROR (PLAT-12, docs/specs/core-platform.md)
+    // — a database or programming error now throws instead of resolving to
+    // it — but the copy stays: `translateError` returns this field, not
+    // `authErrors.generic`, for an unrecognized messageKey.
     unexpected: string;
+  };
+  // Favorites had no error namespace before PLAT-13 (docs/specs/core-platform.md).
+  favoriteErrors: {
+    unauthenticated: string;
+    invalidListing: string;
+  };
+  localeErrors: {
+    invalidLocale: string;
   };
   theme: {
     dark: string;
@@ -409,5 +420,11 @@ export interface Translations {
   meta: {
     title: string;
     description: string;
+  };
+  // Shown by components/ui/RouteError.tsx, the shared error.tsx boundary for
+  // /favorites, /alerts and /alerts/[id] (PLAT-14, docs/specs/core-platform.md).
+  errors: {
+    pageLoadFailed: string;
+    retry: string;
   };
 }

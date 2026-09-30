@@ -5,7 +5,21 @@ import GitHubProvider from "next-auth/providers/github";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db/prisma";
 import { authorizeCredentials } from "@/server/auth/service";
-import { appUrl, env, isGitHubConfigured, isGoogleConfigured } from "@/lib/env";
+import { appUrl, isGitHubConfigured, isGoogleConfigured } from "@/lib/app-config";
+import { env } from "@/lib/env";
+import { logger } from "@/lib/logger";
+
+// A short NEXTAUTH_SECRET weakens the HMAC protecting every session JWT. This
+// warns rather than throws so an existing deployment is not bricked by an
+// upgrade — but it does need fixing, and rotating it signs everyone out.
+// Moved here from lib/env.ts (PLAT-2, docs/specs/core-platform.md), which
+// never calls the logger or console.
+if (env.NEXTAUTH_SECRET.length < 32) {
+  logger.warn(
+    {},
+    "NEXTAUTH_SECRET is shorter than 32 characters. Generate a strong one with `openssl rand -base64 32` and redeploy.",
+  );
+}
 
 // Sessions last a week rather than NextAuth's 30-day default: a stolen JWT is
 // valid until it expires, and there is no server-side session record to delete,

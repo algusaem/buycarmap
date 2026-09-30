@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { env, isDevelopmentRuntime } from "@/lib/env";
 
 // Next 16 renamed the `middleware` file convention to `proxy`; the exported
 // function must match the filename. Behaviour is unchanged.
@@ -12,14 +13,55 @@ const PROTECTED_PREFIXES = ["/account", "/favorites", "/alerts"];
 // Routes that make no sense once signed in.
 const GUEST_ONLY_PATHS = ["/login", "/register", "/forgot-password"];
 
-// Read directly from process.env rather than lib/env.ts: this runs on the Edge
-// runtime, where `dotenv` and Node built-ins are unavailable.
-const secureCookie = (process.env.APP_URL ?? process.env.NEXTAUTH_URL ?? "").startsWith("https://");
+// lib/env.ts is Edge-safe (no dotenv, no node: imports), so the proxy reads
+// its configuration through it rather than the raw environment directly
+// (PLAT-5, docs/specs/core-platform.md).
+const secureCookie = (env.APP_URL ?? env.NEXTAUTH_URL ?? "").startsWith("https://");
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
+}
+
+/**
+ * The correlation id for this request (PLAT-17, docs/specs/core-platform.md):
+ * a valid incoming `x-request-id` is kept so a caller's own trace carries
+ * through; anything else — missing, or not a UUID — is replaced, so a client
+ * cannot inject arbitrary text into the logs.
+ */
+function requestIdFor(request: NextRequest): string {
+  const incoming = request.headers.get("x-request-id");
+  return incoming && UUID_RE.test(incoming) ? incoming : crypto.randomUUID();
+}
+
+function generateNonce(): string {
+  return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
+}
+
+/**
+ * The Content-Security-Policy for this response (PLAT-21). `script-src` needs
+ * a fresh nonce per request, which forces every page to render dynamically —
+ * see docs/decisions/0013-platform-runtime.md — so this replaces the static
+ * header next.config.ts used to send (PLAT-24). Every other directive keeps
+ * its value from before that move.
+ */
+function buildCsp(nonce: string, isDev: boolean): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.basemaps.cartocdn.com",
+    "font-src 'self' data:",
+    "connect-src 'self' https://nominatim.openstreetmap.org",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+    ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  ].join("; ");
 }
 
 // Note: `/reset-password` is deliberately absent from GUEST_ONLY_PATHS — a
@@ -28,13 +70,28 @@ function isProtected(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const requestId = requestIdFor(request);
+  const nonce = generateNonce();
+  const csp = buildCsp(nonce, isDevelopmentRuntime());
+
+  const forwardedHeaders = new Headers(request.headers);
+  forwardedHeaders.set("x-request-id", requestId);
+  forwardedHeaders.set("x-nonce", nonce);
+  forwardedHeaders.set("content-security-policy", csp);
+
+  function withResponseHeaders(response: NextResponse): NextResponse {
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  }
+
   // This only decodes and verifies the JWT signature; it does not run the
   // `jwt` callback, so it cannot see revocations. That is fine for a redirect —
   // every server action independently re-checks via `getCurrentUser()`, which
   // does honour revocation. This layer is UX, not authorization.
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: env.NEXTAUTH_SECRET,
     secureCookie,
   });
 
@@ -44,23 +101,18 @@ export async function proxy(request: NextRequest) {
     // Only the path is carried over, never the full URL, and the sign-in form
     // re-validates it, so this cannot become an open redirect.
     loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
+    return withResponseHeaders(NextResponse.redirect(loginUrl));
   }
 
   if (GUEST_ONLY_PATHS.includes(pathname) && token) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return withResponseHeaders(NextResponse.redirect(new URL("/", request.url)));
   }
 
-  return NextResponse.next();
+  return withResponseHeaders(NextResponse.next({ request: { headers: forwardedHeaders } }));
 }
 
 export const config = {
   matcher: [
-    "/account/:path*",
-    "/favorites/:path*",
-    "/alerts/:path*",
-    "/login",
-    "/register",
-    "/forgot-password",
+    "/((?!_next/static|_next/image|favicon.ico|monitoring|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|txt|xml|webmanifest)$).*)",
   ],
 };

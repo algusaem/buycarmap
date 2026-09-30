@@ -6,8 +6,9 @@ import {
   renderExistingAccountEmail,
   renderVerifyRegistrationEmail,
 } from "@/lib/email/templates/auth-emails";
-import { appUrl } from "@/lib/env";
+import { appUrl } from "@/lib/app-config";
 import { getLocale } from "@/lib/i18n/server";
+import { logger } from "@/lib/logger";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { maybePruneExpiredAuthRows } from "@/server/auth/service";
 
@@ -90,8 +91,9 @@ export async function registerWithoutEmail(
   hashedPassword: string,
   name: string | null,
 ): Promise<RegisterResult> {
-  console.warn(
-    "[auth] Email is not configured, so registration is falling back to immediate account creation. This reveals whether an address is already registered. Set RESEND_API_KEY and EMAIL_FROM to enable verify-first signup.",
+  logger.warn(
+    {},
+    "Email is not configured, so registration is falling back to immediate account creation. This reveals whether an address is already registered. Set RESEND_API_KEY and EMAIL_FROM to enable verify-first signup.",
   );
 
   const existingUser = await findUserByEmail(email);

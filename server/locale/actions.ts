@@ -2,28 +2,28 @@
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { isValidLocale, type Locale } from "@/lib/i18n/config";
-import { ALERT_ERROR, type AlertErrorCode } from "@/server/alerts/schema";
+import { type AppError, err, ok, type Result } from "@/lib/result";
+import { withRequestContext } from "@/lib/request-context";
+import { LOCALE_ERROR, type LocaleErrorCode } from "./schema";
 import { saveUserLocale } from "./service";
 
-interface LocaleResult {
-  success: boolean;
-  error?: AlertErrorCode;
-}
+type LocaleError = AppError<LocaleErrorCode>;
 
-export async function setLocale(locale: Locale): Promise<LocaleResult> {
-  if (!isValidLocale(locale)) {
-    return { success: false, error: ALERT_ERROR.invalidCriteria };
-  }
+export async function setLocale(locale: Locale): Promise<Result<void, LocaleError>> {
+  return withRequestContext(async () => {
+    if (!isValidLocale(locale)) {
+      return err({
+        code: LOCALE_ERROR.invalidLocale,
+        messageKey: `localeErrors.${LOCALE_ERROR.invalidLocale}`,
+      });
+    }
 
-  // A signed-out visitor is not an error: the cookie already carries their
-  // preference, and there is no account to write it to.
-  const user = await getCurrentUser();
-  if (!user) return { success: true };
+    // A signed-out visitor is not an error: the cookie already carries their
+    // preference, and there is no account to write it to.
+    const user = await getCurrentUser();
+    if (!user) return ok(undefined);
 
-  try {
     await saveUserLocale(user.id, locale);
-    return { success: true };
-  } catch {
-    return { success: false, error: ALERT_ERROR.unexpected };
-  }
+    return ok(undefined);
+  });
 }

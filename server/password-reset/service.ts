@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { PASSWORD_RESET_TTL_MS, generateToken, hashToken, tokenExpiry } from "@/lib/auth/tokens";
 import { sendEmail } from "@/lib/email/client";
 import { renderPasswordResetEmail } from "@/lib/email/templates/auth-emails";
-import { appUrl } from "@/lib/env";
+import { appUrl } from "@/lib/app-config";
 import { getLocale } from "@/lib/i18n/server";
 import { maybePruneExpiredAuthRows } from "@/server/auth/service";
 

@@ -194,8 +194,8 @@ describe("MapView favorites", () => {
     });
     // The Wallapop fixture normalises to this id.
     vi.mocked(listFavorites).mockResolvedValue({
-      success: true,
-      data: [makeFavoriteInput({ id: "wallapop-abc123" })],
+      ok: true,
+      value: [makeFavoriteInput({ id: "wallapop-abc123" })],
     });
 
     renderWithI18n(<MapView initialQuery="case-saved-listing" />);
