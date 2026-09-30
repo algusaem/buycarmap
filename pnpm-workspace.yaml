@@ -1,8 +1,18 @@
 # Build scripts pnpm is allowed to run on install. Everything else is blocked
 # by default (pnpm's supply-chain guard). prisma/@prisma/engines generate the
 # client, sharp powers next/image optimization, msw's postinstall is harmless.
+#
+# Denied on purpose (reviewed, so the install does not fail on them):
+# esbuild (tsx's engine) ships its binary as a platform package, so its
+# postinstall check is not needed; ssh2 and cpu-features (testcontainers via
+# docker-modem) fall back to pure JS without their optional native builds;
+# protobufjs's postinstall is only a version notice.
 allowBuilds:
   '@prisma/engines': true
   prisma: true
   msw: true
   sharp: true
+  esbuild: false
+  ssh2: false
+  cpu-features: false
+  protobufjs: false

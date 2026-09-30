@@ -135,7 +135,8 @@ pnpm db:seed          # Fill an empty local database with development data (Dock
 > pnpm blocks dependency build/postinstall scripts by default. Packages allowed to run them are
 > allowlisted in `pnpm-workspace.yaml` under `allowBuilds` — currently `@prisma/engines`, `prisma`,
 > `msw` and `sharp`. If you add a dependency with a native/build step and
-> `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there.
+> `pnpm install` reports `ERR_PNPM_IGNORED_BUILDS`, add it there: `true` if the script is needed,
+> `false` once reviewed as unnecessary (as for `esbuild`, `ssh2`, `cpu-features`, `protobufjs`).
 
 > **Git hooks** (Husky) run on every commit: Biome on the staged files, the related unit tests,
 > gitleaks, and commitlint on the message. A failing hook is fixed, never skipped (`RULES.md` §3).
