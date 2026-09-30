@@ -11,7 +11,9 @@ import { pathToFileURL } from "node:url";
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: "inherit", shell: true });
+    // One command string, not (command, args): Node 22 deprecates passing args
+    // alongside `shell: true` (DEP0190). The args are fixed literals from main().
+    const child = spawn([command, ...args].join(" "), { stdio: "inherit", shell: true });
     child.on("error", reject);
     child.on("close", (code) => resolve(code ?? 1));
   });
