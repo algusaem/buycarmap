@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 // infers `{}` for parseEnv's return and every property read fails. Declaring
 // the surface here is narrower than adding a .d.ts for one dev script.
 import { createHash } from "node:crypto";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import * as dbBranch from "./db-branch.mjs";
 
 type Exec = (cmd: string, args: string[], options?: Record<string, unknown>) => string;
@@ -31,9 +31,9 @@ const { parseEnv, sanitize, setEnvValue, databaseName, assertLocalUrl, main } =
     main: (options?: MainOptions) => Promise<void>;
   };
 
-const GIT_COMMON_DIR = "C:\\repo\\.git";
-const MAIN_ROOT = "C:\\repo";
-const WORKTREE_ROOT = "C:\\worktree";
+const MAIN_ROOT = resolve("/repo");
+const WORKTREE_ROOT = resolve("/worktree");
+const GIT_COMMON_DIR = join(MAIN_ROOT, ".git");
 const MAIN_ENV_PATH = join(MAIN_ROOT, ".env");
 const LOCAL_ENV_PATH = join(WORKTREE_ROOT, ".env");
 const MAIN_ENV_RAW = 'NEXTAUTH_SECRET="placeholder-placeholder-placeholder"\n';
