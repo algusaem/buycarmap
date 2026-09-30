@@ -35,12 +35,6 @@ enforced by Postgres, not by application code
 - **`RateLimit` rows** whose key embeds the user's email or IP are not linked
   either. Until it expires; the expired row is deleted at the next
   opportunistic prune (1% of calls), so there is no fixed upper bound.
-- **Per-worktree Neon branches.** `pnpm db:branch` forks a copy-on-write branch
-  from production (`scripts/db-branch.mjs`). Each keeps the data as of its
-  fork, including accounts deleted afterwards, until `pnpm db:branch:rm`
-  removes it. There is no bound today; the seed-only parent that ends this
-  arrives in phase 12 (ADR 0007 row 26). A branch left over from a restore is
-  the same case ([backups.md](../operations/backups.md)).
 
 Unsubscribing from an alert is not a deletion: it sets `Alert.active` to false
 and keeps the row until the account is deleted.

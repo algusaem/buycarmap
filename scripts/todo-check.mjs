@@ -4,7 +4,7 @@
 
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { extname } from "node:path";
+import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
@@ -131,27 +131,45 @@ export function findUnreferencedTodos(files) {
   });
 }
 
-/** @returns {string[]} */
-function trackedFiles() {
-  return gitTrackedFiles().filter((path) => TRACKED_EXTENSIONS.has(extname(path)));
+/**
+ * @param {string} cwd
+ * @returns {string[]}
+ */
+function trackedFiles(cwd) {
+  return gitTrackedFiles(cwd).filter((path) => TRACKED_EXTENSIONS.has(extname(path)));
 }
 
-async function main() {
-  const paths = trackedFiles().filter((path) => existsSync(path));
+/**
+ * TOOLING-12: every dependency `main` touches (the repository to scan,
+ * reading a file, reporting, the exit code) is injected with the real
+ * implementation as its default, so the colocated test can drive it against a
+ * throwaway fixture repository rather than this one.
+ *
+ * @param {{ cwd?: string, readFileFn?: typeof readFile, log?: (message: string) => void, error?: (message: string) => void, exit?: (code: number) => void }} [deps]
+ */
+export async function main({
+  cwd = process.cwd(),
+  readFileFn = readFile,
+  log = console.log,
+  error = console.error,
+  exit = process.exit,
+} = {}) {
+  const paths = trackedFiles(cwd).filter((path) => existsSync(join(cwd, path)));
   const files = await Promise.all(
-    paths.map(async (path) => ({ path, text: await readFile(path, "utf8") })),
+    paths.map(async (path) => ({ path, text: await readFileFn(join(cwd, path), "utf8") })),
   );
 
   const hits = findUnreferencedTodos(files);
 
   if (hits.length > 0) {
     for (const { path, line } of hits) {
-      console.error(`${path}:${line}  TODO without an issue reference`);
+      error(`${path}:${line}  TODO without an issue reference`);
     }
-    process.exit(1);
+    exit(1);
+    return;
   }
 
-  console.log(`todo:check passed - ${files.length} file(s) scanned.`);
+  log(`todo:check passed - ${files.length} file(s) scanned.`);
 }
 
 // Guarded so `findUnreferencedTodos` can be imported by the colocated test

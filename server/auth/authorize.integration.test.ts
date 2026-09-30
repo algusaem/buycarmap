@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createUser } from "@/test/factories/user";
 
-// The DB and bcrypt are dependencies; authorizeCredentials' branching is the SUT.
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: { user: { findUnique: vi.fn() } },
-}));
+// The DB is real here; bcrypt, two-factor and rate limiting are dependencies,
+// not the database, and stay mocked so authorizeCredentials' own branching is
+// the thing under test.
 vi.mock("@/lib/auth/hash", () => ({
   verifyPassword: vi.fn(),
   DUMMY_PASSWORD_HASH: "$2b$12$dummy",
@@ -23,23 +23,13 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   resetRateLimit: vi.fn(async () => undefined),
 }));
 
-import { prisma } from "@/lib/db/prisma";
 import { verifyPassword, DUMMY_PASSWORD_HASH } from "@/lib/auth/hash";
 import { consumeRateLimit, isRateLimited, resetRateLimit } from "@/server/rate-limit/service";
 import { verifyAndConsumeTwoFactor } from "@/server/two-factor/service";
 import { authorizeCredentials, loginEmailRateKey } from "./service";
 
-const dbUser = {
-  id: "u1",
-  email: "ada@example.com",
-  password: "$2b$12$storedhash",
-  name: "Ada",
-  image: "https://img/ada.png",
-};
-
 describe("authorizeCredentials", () => {
   beforeEach(() => {
-    vi.mocked(prisma.user.findUnique).mockReset();
     vi.mocked(verifyPassword).mockReset();
     vi.mocked(consumeRateLimit).mockClear();
     vi.mocked(resetRateLimit).mockClear();
@@ -54,22 +44,21 @@ describe("authorizeCredentials", () => {
   it("returns null and never queries when a field is missing", async () => {
     expect(await authorizeCredentials({ email: "", password: "x" })).toBeNull();
     expect(await authorizeCredentials(undefined)).toBeNull();
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
     expect(verifyPassword).not.toHaveBeenCalled();
   });
 
   it("normalizes the email (trim + lowercase) before lookup", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
+    await createUser({ email: "ada@example.com", password: "$2b$12$storedhash" });
+    vi.mocked(verifyPassword).mockResolvedValue(false);
 
     await authorizeCredentials({ email: "  ADA@Example.COM ", password: "pw" });
 
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
-      where: { email: "ada@example.com" },
-    });
+    // Verified through the outcome: a lookup on the un-normalized email would
+    // find nothing and fall onto the dummy-hash path instead of the stored one.
+    expect(verifyPassword).toHaveBeenCalledWith("pw", "$2b$12$storedhash");
   });
 
   it("runs a dummy bcrypt compare for an unknown email (timing safe)", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
     const result = await authorizeCredentials({
@@ -83,7 +72,7 @@ describe("authorizeCredentials", () => {
   });
 
   it("returns null when the password does not match", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser as never);
+    await createUser({ email: "ada@example.com", password: "$2b$12$storedhash" });
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
     const result = await authorizeCredentials({
@@ -92,16 +81,13 @@ describe("authorizeCredentials", () => {
     });
 
     expect(result).toBeNull();
-    expect(verifyPassword).toHaveBeenCalledWith("wrong", dbUser.password);
+    expect(verifyPassword).toHaveBeenCalledWith("wrong", "$2b$12$storedhash");
   });
 
   it("treats an OAuth-only account like a wrong password", async () => {
     // A null password means the account was created through a provider.
     // Saying so would confirm the address is registered.
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      ...dbUser,
-      password: null,
-    } as never);
+    await createUser({ email: "ada@example.com", password: null });
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
     const result = await authorizeCredentials({
@@ -114,7 +100,12 @@ describe("authorizeCredentials", () => {
   });
 
   it("returns the mapped user on a correct password", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser as never);
+    const user = await createUser({
+      email: "ada@example.com",
+      password: "$2b$12$storedhash",
+      name: "Ada",
+      image: "https://img/ada.png",
+    });
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
     const result = await authorizeCredentials({
@@ -123,7 +114,7 @@ describe("authorizeCredentials", () => {
     });
 
     expect(result).toEqual({
-      id: "u1",
+      id: user.id,
       email: "ada@example.com",
       name: "Ada",
       image: "https://img/ada.png",
@@ -133,7 +124,6 @@ describe("authorizeCredentials", () => {
 
 describe("authorizeCredentials rate limiting", () => {
   beforeEach(() => {
-    vi.mocked(prisma.user.findUnique).mockReset();
     vi.mocked(verifyPassword).mockReset();
     vi.mocked(consumeRateLimit).mockClear();
     vi.mocked(resetRateLimit).mockClear();
@@ -158,8 +148,7 @@ describe("authorizeCredentials rate limiting", () => {
     await expect(
       authorizeCredentials({ email: "ada@example.com", password: "pw" }),
     ).rejects.toThrow("rateLimited");
-
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(verifyPassword).not.toHaveBeenCalled();
   });
 
   it("throws rateLimited when the account is locked out, without querying", async () => {
@@ -168,12 +157,11 @@ describe("authorizeCredentials rate limiting", () => {
     await expect(
       authorizeCredentials({ email: "ada@example.com", password: "pw" }),
     ).rejects.toThrow("rateLimited");
-
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(verifyPassword).not.toHaveBeenCalled();
   });
 
   it("AUTH-6: counts a failed attempt against the account", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser as never);
+    await createUser({ email: "ada@example.com", password: "$2b$12$storedhash" });
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
     await authorizeCredentials({ email: "ada@example.com", password: "wrong" });
@@ -185,7 +173,7 @@ describe("authorizeCredentials rate limiting", () => {
   });
 
   it("AUTH-6: clears the account's failure counter on a successful sign-in", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser as never);
+    await createUser({ email: "ada@example.com", password: "$2b$12$storedhash" });
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
     await authorizeCredentials({
@@ -199,7 +187,7 @@ describe("authorizeCredentials rate limiting", () => {
   });
 
   it("does not count a successful sign-in as a failure", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser as never);
+    await createUser({ email: "ada@example.com", password: "$2b$12$storedhash" });
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
     await authorizeCredentials({
@@ -215,15 +203,7 @@ describe("authorizeCredentials rate limiting", () => {
 });
 
 describe("authorizeCredentials with two-factor enabled", () => {
-  const twoFactorUser = {
-    ...dbUser,
-    twoFactorEnabledAt: new Date("2026-01-01"),
-    twoFactorSecret: "encrypted-secret",
-    twoFactorLastStep: null,
-  };
-
   beforeEach(() => {
-    vi.mocked(prisma.user.findUnique).mockReset();
     vi.mocked(verifyPassword).mockReset();
     vi.mocked(consumeRateLimit).mockClear();
     vi.mocked(resetRateLimit).mockClear();
@@ -236,8 +216,18 @@ describe("authorizeCredentials with two-factor enabled", () => {
     vi.mocked(verifyAndConsumeTwoFactor).mockReset();
   });
 
+  async function seedTwoFactorUser() {
+    return createUser({
+      email: "ada@example.com",
+      password: "$2b$12$storedhash",
+      twoFactorEnabledAt: new Date("2026-01-01"),
+      twoFactorSecret: "encrypted-secret",
+      twoFactorLastStep: null,
+    });
+  }
+
   it("AUTH-7: asks for a code when the password is right but none was given", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(twoFactorUser as never);
+    await seedTwoFactorUser();
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
     await expect(
@@ -248,7 +238,7 @@ describe("authorizeCredentials with two-factor enabled", () => {
   it("never asks for a code when the password is wrong", async () => {
     // Ordering matters: if this leaked before the password check, it would
     // reveal which accounts exist and have 2FA to anyone who can type an email.
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(twoFactorUser as never);
+    await seedTwoFactorUser();
     vi.mocked(verifyPassword).mockResolvedValue(false);
 
     await expect(
@@ -258,7 +248,7 @@ describe("authorizeCredentials with two-factor enabled", () => {
   });
 
   it("signs in when the code checks out", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(twoFactorUser as never);
+    const user = await seedTwoFactorUser();
     vi.mocked(verifyPassword).mockResolvedValue(true);
     vi.mocked(verifyAndConsumeTwoFactor).mockResolvedValue({
       valid: true,
@@ -272,15 +262,15 @@ describe("authorizeCredentials with two-factor enabled", () => {
         totp: "123456",
       }),
     ).resolves.toEqual({
-      id: "u1",
+      id: user.id,
       email: "ada@example.com",
-      name: "Ada",
-      image: "https://img/ada.png",
+      name: user.name,
+      image: user.image,
     });
   });
 
   it("rejects a wrong code and counts it as a failed attempt", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(twoFactorUser as never);
+    await seedTwoFactorUser();
     vi.mocked(verifyPassword).mockResolvedValue(true);
     vi.mocked(verifyAndConsumeTwoFactor).mockResolvedValue({
       valid: false,
@@ -302,7 +292,7 @@ describe("authorizeCredentials with two-factor enabled", () => {
   });
 
   it("bounds code guessing separately from password guessing", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(twoFactorUser as never);
+    const user = await seedTwoFactorUser();
     vi.mocked(verifyPassword).mockResolvedValue(true);
     vi.mocked(verifyAndConsumeTwoFactor).mockResolvedValue({
       valid: true,
@@ -316,13 +306,13 @@ describe("authorizeCredentials with two-factor enabled", () => {
     });
 
     expect(consumeRateLimit).toHaveBeenCalledWith(
-      "two-factor:user:u1",
+      `two-factor:user:${user.id}`,
       expect.objectContaining({ limit: 10 }),
     );
   });
 
   it("refuses once the code rate limit is spent, without checking the code", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(twoFactorUser as never);
+    await seedTwoFactorUser();
     vi.mocked(verifyPassword).mockResolvedValue(true);
     vi.mocked(consumeRateLimit).mockImplementation((async (key: string) => ({
       allowed: !key.startsWith("two-factor:"),
@@ -341,7 +331,7 @@ describe("authorizeCredentials with two-factor enabled", () => {
   });
 
   it("ignores a code for an account without two-factor", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(dbUser as never);
+    await createUser({ email: "ada@example.com", password: "$2b$12$storedhash" });
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
     await expect(

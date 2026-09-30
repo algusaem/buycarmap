@@ -1,1 +1,4 @@
-{ "$schema": "https://unpkg.com/knip@6/schema.json", "ignoreDependencies": ["pino-pretty"] }
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreDependencies": ["pino-pretty", "testcontainers"]
+}

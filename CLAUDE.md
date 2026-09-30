@@ -111,9 +111,9 @@ pnpm gen feature <name> # Scaffold server/<name>/{queries,actions,service,schema
 pnpm spec:check       # Assert every approved acceptance criterion still has a test
 pnpm docs:check       # Assert doc links, referenced source paths (ADR source paths excepted, LAYOUT-4) and the ownership map resolve
 pnpm todo:check       # No TODO comment without an issue reference
-pnpm test              # Vitest, both projects, with the coverage thresholds
-pnpm test:unit         # Vitest jsdom project
-pnpm test:integration  # Vitest node project (route handlers, actions, scripts, contracts)
+pnpm test              # Vitest, all three projects, with the coverage thresholds
+pnpm test:unit         # Vitest unit (jsdom) + node projects — no database
+pnpm test:integration  # Vitest integration project — real Postgres via Testcontainers
 pnpm test:watch       # Vitest watch mode
 pnpm test:e2e         # Playwright end-to-end (needs a runnable app + browsers)
 pnpm test:e2e:db      # DB-backed round trips — needs `pnpm db:branch` first. NOT in CI
@@ -121,8 +121,11 @@ pnpm test:visual      # Screenshot comparisons alone (baselines are per-platform
 pnpm test:contract       # Contract tests vs fixtures (offline)
 pnpm test:contract:live  # Contract tests vs the real upstream APIs (all three sources)
 
-pnpm db:branch        # Give the current git branch its own Neon database (see below)
-pnpm db:branch:rm     # Delete this branch's Neon branch when the work is merged
+pnpm db:up            # Start the local Compose Postgres (localhost:5433)
+pnpm db:down          # Stop it, keeping the volume
+pnpm db:branch        # Give the current git branch its own database inside it (see below)
+pnpm db:branch:rm     # Delete this branch's database when the work is merged
+pnpm db:seed          # Fill an empty local database with development data (Docker must be running)
 ```
 
 **Local verification is `pnpm check`**, plus `pnpm check:full` when a user flow, auth, the map or an
@@ -300,20 +303,24 @@ there is a trap someone already fell into.
 
 ## Worktrees and the dev database
 
-**Never run `prisma migrate reset`, `prisma db push --force-reset`, or any command that drops or
-recreates the database.** The Neon database holds real accounts and there is no seed script, so
-"reset" rebuilds the schema with zero rows. Prisma offers it for bookkeeping problems that do not
-need it — treat the offer as a bug report, not an instruction. A stale checksum is repaired with an
-`UPDATE` on `_prisma_migrations` (raw SQL: ask first, `RULES.md` §1); see `docs/ARCHITECTURE.md`
-› Migrations.
+Local work runs against Docker Compose Postgres (`docker-compose.yml`, `localhost:5433`), not a
+Neon branch. **Docker Desktop must be running** before `pnpm db:up`, `pnpm db:branch` or
+`pnpm dev`.
 
-**Before any Prisma command or `pnpm dev` from a worktree, run `pnpm db:branch`.** It gives the
-current git branch its own copy-on-write Neon branch and writes `DATABASE_URL` into that worktree's
-`.env`. Do this first, unprompted, whenever starting on a new branch or worktree — it is idempotent,
-so re-running just reuses the branch. Then:
+**Never run `prisma migrate reset`, `prisma db push --force-reset`, or any command that drops or
+recreates a database you did not mean to.** `pnpm db:branch` gives each branch its own database
+inside the same Postgres, so a reset only ever has to be reached for when something is actually
+wrong with it — treat Prisma's offer to reset as a bug report, not an instruction. A stale checksum
+is repaired with an `UPDATE` on `_prisma_migrations` (raw SQL: ask first, `RULES.md` §1); see
+`docs/ARCHITECTURE.md` › Migrations.
+
+**Before any Prisma command or `pnpm dev` from a worktree, run `pnpm db:up` then `pnpm db:branch`.**
+`db:branch` gives the current git branch its own database inside the local Postgres and writes
+`DATABASE_URL` into that worktree's `.env`. Do this first, unprompted, whenever starting on a new
+branch or worktree — it is idempotent, so re-running just reuses the database. Then:
 
 ```bash
-pnpm install && pnpm exec prisma generate
+pnpm install && pnpm exec prisma generate && pnpm db:seed
 ```
 
 `prisma generate` is easy to forget because nothing prompts for it: without `app/generated/prisma`,

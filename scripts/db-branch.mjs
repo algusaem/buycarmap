@@ -1,39 +1,76 @@
 //
-// Gives the current git branch its own Neon database branch.
+// Gives the current git branch its own database inside the local Compose
+// Postgres (docker-compose.yml), started with `pnpm db:up`.
 //
-// Every worktree used to share one Neon database, which breaks `prisma migrate
+// Every worktree used to share one Neon database, which broke `prisma migrate
 // dev`: it assumes the dev database matches the *current branch's* migration
-// history, so a migration applied from one worktree reads as drift in all the
-// others, and the only remedy Prisma offers is a destructive reset. A branch
-// per branch removes the shared state that causes it.
+// history, so a migration applied from one worktree read as drift in all the
+// others, and the only remedy Prisma offered was a destructive reset. A branch
+// per branch removes the shared state that causes it — now inside the local
+// Postgres instead of a Neon branch, so local work needs no network access and
+// no Neon API key.
 //
 // Deliberately dependency-free — built-ins only. A fresh worktree has no
 // node_modules (and no .env), so anything imported here would have to be
 // installed before the script that bootstraps the worktree could run.
 //
 // Usage:
-//   node scripts/db-branch.mjs            create or reuse a branch, write .env
-//   node scripts/db-branch.mjs --delete   delete this branch's Neon branch
+//   node scripts/db-branch.mjs            create or reuse this branch's database, write .env
+//   node scripts/db-branch.mjs --delete   drop this branch's database
 //   node scripts/db-branch.mjs --delete <name>
 
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const API = "https://console.neon.tech/api/v2";
+const DEFAULT_ADMIN_URL = "postgresql://postgres:postgres@localhost:5433/postgres";
+const POSTGRES_NAME_LIMIT = 63;
 
-// Neon accepts a fairly wide character set, but git branch names carry slashes
-// (`claude/foo`) and the occasional oddity. Keep it boring and predictable.
+// Neon accepted a fairly wide character set, but git branch names carry
+// slashes (`claude/foo`) and the occasional oddity. Kept for its own test and
+// for anything still comparing branch names loosely; database names use
+// `databaseName` below instead, whose alphabet Postgres actually accepts.
 export const sanitize = (name) => name.replace(/[^a-zA-Z0-9._/-]/g, "-");
 
-function git(...args) {
-  return execFileSync("git", args, { encoding: "utf8" }).trim();
+// TEST-2 (docs/specs/core-testing.md): the Postgres database name for the
+// current git branch. Lowercase, every character outside a-z0-9 becomes "_",
+// runs of "_" collapse, and names over Postgres' 63-byte limit are cut to 54
+// characters plus "_" and the first 8 hex characters of the branch name's
+// SHA-1 — short enough to always fit, and still traceable back to the branch.
+export function databaseName(branch) {
+  const sanitized = branch
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "_")
+    .replace(/_+/g, "_");
+  const full = `buycarmap_${sanitized}`;
+
+  if (Buffer.byteLength(full, "utf8") <= POSTGRES_NAME_LIMIT) return full;
+
+  const suffix = createHash("sha1").update(branch).digest("hex").slice(0, 8);
+  return `${full.slice(0, 54)}_${suffix}`;
 }
 
-function fail(message) {
-  console.error(`\n  ${message}\n`);
-  process.exit(1);
+// TEST-2/TEST-3: refuses to proceed against a non-local database host, naming
+// it in the thrown message. This is what stops `pnpm db:branch` and
+// `pnpm db:branch:rm` from ever reaching Neon, and so production.
+export function assertLocalUrl(url) {
+  const { hostname } = new URL(url);
+  if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+    throw new Error(
+      `Refusing to connect to "${hostname}": only localhost and 127.0.0.1 are allowed here.`,
+    );
+  }
+}
+
+function git(exec, ...args) {
+  return exec("git", args, { encoding: "utf8" }).trim();
+}
+
+function fail(error, exit, message) {
+  error(`\n  ${message}\n`);
+  exit(1);
 }
 
 /**
@@ -62,204 +99,170 @@ export function setEnvValue(contents, key, value) {
   return `${contents.replace(/\s*$/, "")}\n${line}\n`;
 }
 
-async function neon(apiKey, path, options = {}) {
-  const response = await fetch(`${API}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...options.headers,
-    },
-  });
+/** The admin connection string `pnpm db:branch` uses to create/drop databases. */
+function resolveAdminUrl(env, mainEnv) {
+  return env.LOCAL_DATABASE_ADMIN_URL || mainEnv.LOCAL_DATABASE_ADMIN_URL || DEFAULT_ADMIN_URL;
+}
 
-  if (!response.ok) {
-    const body = await response.text();
-    fail(
-      `Neon API ${options.method ?? "GET"} ${path} failed (${response.status}).\n  ${body.slice(0, 300)}`,
-    );
-  }
-
-  return response.json();
+/** Swaps the database name in a connection string, keeping host/user/password/port/query. */
+function withDatabase(url, name) {
+  const parsed = new URL(url);
+  parsed.pathname = `/${name}`;
+  return parsed.toString();
 }
 
 /**
- * Branch creation provisions a compute endpoint, which is not immediately
- * usable. Without waiting, the connection string we hand back can refuse the
- * first connection and look like a broken script.
+ * Runs a SQL statement against the Compose Postgres through `docker compose
+ * exec`, so this script needs no `pg` import — keeping it dependency-free.
  */
-async function waitForOperations(apiKey, projectId, operations) {
-  const pending = operations.filter((op) => op.status !== "finished");
-  if (pending.length === 0) return;
-
-  process.stdout.write("  waiting for the compute endpoint");
-  for (let attempt = 0; attempt < 60; attempt++) {
-    const states = await Promise.all(
-      pending.map(async (op) => {
-        const { operation } = await neon(apiKey, `/projects/${projectId}/operations/${op.id}`);
-        return operation.status;
-      }),
-    );
-
-    if (states.every((s) => s === "finished")) {
-      process.stdout.write(" ready\n");
-      return;
-    }
-    if (states.some((s) => s === "failed" || s === "error")) {
-      process.stdout.write("\n");
-      fail("Neon reported a failed operation while creating the branch.");
-    }
-
-    process.stdout.write(".");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-
-  process.stdout.write("\n");
-  fail("Timed out waiting for the Neon compute endpoint to start.");
-}
-
-async function resolveProjectId(apiKey, configured) {
-  if (configured) return configured;
-
-  // Convenience for the common single-project account, but pin it afterwards:
-  // silently picking a project becomes a hazard the moment a second one exists.
-  const { projects } = await neon(apiKey, "/projects");
-  if (projects.length !== 1) {
-    fail(
-      `NEON_PROJECT_ID is not set and your account has ${projects.length} projects, so there is nothing safe to guess.\n` +
-        `  Add NEON_PROJECT_ID to .env — it is in the Neon console URL, or run:\n` +
-        `    curl -s -H "Authorization: Bearer $NEON_API_KEY" ${API}/projects`,
-    );
-  }
-
-  console.log(
-    `  using the only project on the account: ${projects[0].id}\n` +
-      `  pin it by adding NEON_PROJECT_ID="${projects[0].id}" to .env`,
-  );
-  return projects[0].id;
-}
-
-async function deleteBranch(apiKey, projectId, target, existing, mainEnv) {
-  if (!existing) fail(`No Neon branch named "${target}" — nothing to delete.`);
-  if (existing.default) {
-    fail(
-      `Refusing to delete "${target}": it is the project's default branch and holds the shared data.`,
-    );
-  }
-  // The main checkout's DATABASE_URL is the one thing that must keep working.
-  if (mainEnv.DATABASE_URL?.includes(existing.id)) {
-    fail(`Refusing to delete "${target}": the main checkout's DATABASE_URL still points at it.`);
-  }
-
-  await neon(apiKey, `/projects/${projectId}/branches/${existing.id}`, {
-    method: "DELETE",
-  });
-  console.log(`\n  deleted Neon branch "${target}" (${existing.id})\n`);
-}
-
-async function ensureBranch(apiKey, projectId, target, existing, defaultBranch) {
-  if (existing) {
-    console.log(`\n  reusing existing Neon branch "${target}" (${existing.id})`);
-    return existing;
-  }
-
-  if (!defaultBranch) fail("Could not determine the project's default Neon branch to fork from.");
-  console.log(`\n  creating Neon branch "${target}" from "${defaultBranch.name}"…`);
-
-  const created = await neon(apiKey, `/projects/${projectId}/branches`, {
-    method: "POST",
-    body: JSON.stringify({
-      branch: { name: target, parent_id: defaultBranch.id },
-      endpoints: [{ type: "read_write" }],
-    }),
-  });
-
-  const branch = created.branch;
-  await waitForOperations(apiKey, projectId, created.operations ?? []);
-  return branch;
-}
-
-async function writeDatabaseEnv(apiKey, projectId, branch, mainEnv, mainEnvRaw, localEnvPath) {
-  // Reuse the role and database from the existing connection string rather than
-  // asking for them again — a Neon branch inherits both from its parent.
-  const parentUrl = new URL(mainEnv.DATABASE_URL);
-  const params = new URLSearchParams({
-    branch_id: branch.id,
-    database_name: parentUrl.pathname.replace(/^\//, ""),
-    role_name: decodeURIComponent(parentUrl.username),
-    pooled: "true",
-  });
-
-  const { uri } = await neon(apiKey, `/projects/${projectId}/connection_uri?${params}`);
-
-  // Seed a worktree that has no .env from the main checkout, so every other
-  // secret (NEXTAUTH_SECRET, Resend, OAuth) comes across too.
-  const base = existsSync(localEnvPath) ? readFileSync(localEnvPath, "utf8") : mainEnvRaw;
-  writeFileSync(localEnvPath, setEnvValue(base, "DATABASE_URL", uri), "utf8");
-
-  console.log(
-    `  wrote DATABASE_URL → ${localEnvPath}\n` +
-      `  host: ${new URL(uri).host}\n\n` +
-      `  This worktree now has its own database. Run \`pnpm install\` if you have not,\n` +
-      `  then \`pnpm exec prisma migrate deploy\` to bring it up to date.\n`,
+function psql(exec, sql) {
+  return exec(
+    "docker",
+    ["compose", "exec", "-T", "postgres", "psql", "-U", "postgres", "-tAc", sql],
+    {
+      encoding: "utf8",
+    },
   );
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const isDelete = args.includes("--delete");
-
-  // Worktrees have no .env of their own; the shared secrets live in the main
-  // checkout, which --git-common-dir points at from anywhere.
-  const mainRoot = dirname(git("rev-parse", "--path-format=absolute", "--git-common-dir"));
-  const worktreeRoot = git("rev-parse", "--show-toplevel");
-  const mainEnvPath = join(mainRoot, ".env");
-  const localEnvPath = join(worktreeRoot, ".env");
-
-  if (!existsSync(mainEnvPath)) {
-    fail(`No .env found in the main checkout (${mainEnvPath}). Copy .env.example and fill it in.`);
+function ensureComposeRunning(deps) {
+  try {
+    psql(deps.exec, "select 1");
+    return true;
+  } catch {
+    fail(deps.error, deps.exit, "Run `pnpm db:up` first (Docker Desktop must be running).");
+    return false;
   }
+}
 
-  const mainEnvRaw = readFileSync(mainEnvPath, "utf8");
-  const mainEnv = parseEnv(mainEnvRaw);
-  const apiKey = process.env.NEON_API_KEY || mainEnv.NEON_API_KEY;
-
-  if (!apiKey) {
-    fail(
-      "NEON_API_KEY is not set.\n" +
-        "  Create one at https://console.neon.tech → Account settings → API keys,\n" +
-        "  then add it to .env in the main checkout. It is tooling-only and is not\n" +
-        "  read by the app, so it is deliberately absent from lib/env.ts.",
-    );
-  }
-
-  const projectId = await resolveProjectId(
-    apiKey,
-    process.env.NEON_PROJECT_ID || mainEnv.NEON_PROJECT_ID,
-  );
-
-  const gitBranch = git("rev-parse", "--abbrev-ref", "HEAD");
-  const target = sanitize(isDelete ? (args[args.indexOf("--delete") + 1] ?? gitBranch) : gitBranch);
-
-  const { branches } = await neon(apiKey, `/projects/${projectId}/branches`);
-  const defaultBranch = branches.find((b) => b.default);
-  const existing = branches.find((b) => b.name === target);
-
-  if (isDelete) {
-    await deleteBranch(apiKey, projectId, target, existing, mainEnv);
+/** Creates the database if it does not already exist. Idempotent. */
+function createDatabaseIfMissing(deps, name) {
+  // `name` only ever comes from `databaseName`, whose alphabet is [a-z0-9_] —
+  // never user-supplied SQL — but it is still quoted rather than trusted.
+  const exists = psql(deps.exec, `SELECT 1 FROM pg_database WHERE datname = '${name}'`).trim();
+  if (exists === "1") {
+    deps.log(`\n  reusing existing database "${name}"`);
     return;
   }
 
-  if (defaultBranch && target === defaultBranch.name) {
+  deps.exec(
+    "docker",
+    [
+      "compose",
+      "exec",
+      "-T",
+      "postgres",
+      "psql",
+      "-U",
+      "postgres",
+      "-c",
+      `CREATE DATABASE "${name}"`,
+    ],
+    { encoding: "utf8" },
+  );
+  deps.log(`\n  created database "${name}"`);
+}
+
+function dropDatabase(deps, name) {
+  deps.exec(
+    "docker",
+    [
+      "compose",
+      "exec",
+      "-T",
+      "postgres",
+      "psql",
+      "-U",
+      "postgres",
+      "-c",
+      `DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`,
+    ],
+    { encoding: "utf8" },
+  );
+  deps.log(`\n  dropped database "${name}"\n`);
+}
+
+function runMigrations(deps, databaseUrl) {
+  deps.exec("pnpm", ["exec", "prisma", "migrate", "deploy"], {
+    stdio: "inherit",
+    env: { ...deps.env, DATABASE_URL: databaseUrl },
+    shell: process.platform === "win32",
+  });
+}
+
+function writeDatabaseEnv(deps, databaseUrl, mainEnvRaw, localEnvPath) {
+  // Seed a worktree that has no .env from the main checkout, so every other
+  // secret (NEXTAUTH_SECRET, Resend, OAuth) comes across too.
+  const base = deps.fileExists(localEnvPath) ? deps.readFile(localEnvPath, "utf8") : mainEnvRaw;
+  deps.writeFile(localEnvPath, setEnvValue(base, "DATABASE_URL", databaseUrl), "utf8");
+
+  deps.log(
+    `  wrote DATABASE_URL → ${localEnvPath}\n` +
+      `  database: ${new URL(databaseUrl).pathname.replace(/^\//, "")}\n\n` +
+      `  This worktree now has its own database. Run \`pnpm install\` if you have not,\n` +
+      `  then \`pnpm exec prisma generate\`.\n`,
+  );
+}
+
+// TEST-2/TEST-3: `main`'s real work, with every side effect (shelling out to
+// git/docker/pnpm, reading and writing .env, process.exit) taken as injected
+// dependencies defaulting to the real ones — so the colocated test can drive
+// every branch (compose not running, database exists vs. is created, the
+// --delete path, the .env write) with fakes instead of a real Docker/Postgres
+// and a real worktree.
+export async function main({
+  argv = process.argv.slice(2),
+  exec = execFileSync,
+  fileExists = existsSync,
+  readFile = readFileSync,
+  writeFile = writeFileSync,
+  env = process.env,
+  log = console.log,
+  error = console.error,
+  exit = process.exit,
+} = {}) {
+  const deps = { exec, fileExists, readFile, writeFile, env, log, error, exit };
+  const isDelete = argv.includes("--delete");
+
+  // Worktrees have no .env of their own; the shared secrets live in the main
+  // checkout, which --git-common-dir points at from anywhere.
+  const mainRoot = dirname(git(exec, "rev-parse", "--path-format=absolute", "--git-common-dir"));
+  const worktreeRoot = git(exec, "rev-parse", "--show-toplevel");
+  const mainEnvPath = join(mainRoot, ".env");
+  const localEnvPath = join(worktreeRoot, ".env");
+
+  if (!fileExists(mainEnvPath)) {
     fail(
-      `"${target}" is the Neon default branch, which is the shared database this script exists to protect.\n` +
-        `  Switch to a feature branch first.`,
+      error,
+      exit,
+      `No .env found in the main checkout (${mainEnvPath}). Copy .env.example and fill it in.`,
     );
+    return;
   }
 
-  const branch = await ensureBranch(apiKey, projectId, target, existing, defaultBranch);
+  const mainEnvRaw = readFile(mainEnvPath, "utf8");
+  const mainEnv = parseEnv(mainEnvRaw);
 
-  await writeDatabaseEnv(apiKey, projectId, branch, mainEnv, mainEnvRaw, localEnvPath);
+  const adminUrl = resolveAdminUrl(env, mainEnv);
+  assertLocalUrl(adminUrl);
+
+  const gitBranch = git(exec, "rev-parse", "--abbrev-ref", "HEAD");
+  const target = databaseName(
+    isDelete ? (argv[argv.indexOf("--delete") + 1] ?? gitBranch) : gitBranch,
+  );
+  const databaseUrl = withDatabase(adminUrl, target);
+  assertLocalUrl(databaseUrl);
+
+  if (!ensureComposeRunning(deps)) return;
+
+  if (isDelete) {
+    dropDatabase(deps, target);
+    return;
+  }
+
+  createDatabaseIfMissing(deps, target);
+  runMigrations(deps, databaseUrl);
+  writeDatabaseEnv(deps, databaseUrl, mainEnvRaw, localEnvPath);
 }
 
 // Guarded so the pure helpers above can be imported by the colocated test

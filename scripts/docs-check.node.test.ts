@@ -1,8 +1,10 @@
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   extractLinks,
@@ -13,6 +15,7 @@ import {
   isDatedRecord,
   isGap,
   isUnbuiltSpec,
+  main,
   ownableFiles,
   parseOwnership,
   slugify,
@@ -367,5 +370,254 @@ describe("unresolvedOwnershipDocs", () => {
     const entries = [{ glob: "lib/**", doc: "—" }];
 
     expect(unresolvedOwnershipDocs(entries, "README.md", new Set())).toEqual([]);
+  });
+});
+
+// `main`, run in-process against a throwaway fixture repository (never this
+// one) with `cwd`/`log`/`error`/`exit` injected — the real docs:check, all
+// four mechanical checks together, reading real files from disk.
+describe("main", () => {
+  let repo: string;
+
+  beforeEach(() => {
+    repo = mkdtempSync(join(tmpdir(), "docs-check-main-"));
+    mkdirSync(join(repo, "docs"), { recursive: true });
+    mkdirSync(join(repo, "lib"), { recursive: true });
+    const run = (...args: string[]) => execFileSync("git", args, { cwd: repo });
+    run("init", "-q");
+    run("config", "user.email", "guard@example.test");
+    run("config", "user.name", "Guard");
+  });
+
+  afterEach(() => {
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  /**
+   * A minimal, consistent README.md: an index link (with an anchor, so the
+   * heading-slug lookup in `createSlugsFor`/`checkLink` runs on every test
+   * that uses this) plus one ownership row.
+   */
+  function writeReadme() {
+    writeFileSync(
+      join(repo, "README.md"),
+      [
+        "# Project",
+        "",
+        "## Docs",
+        "",
+        "- [Foo](docs/foo.md#foo)",
+        "",
+        "## Ownership map",
+        "",
+        "| Source | Doc |",
+        "| --- | --- |",
+        "| `lib/**` | [docs/foo.md](docs/foo.md) |",
+        "",
+      ].join("\n"),
+    );
+  }
+
+  function addAndTrack(relPath: string, contents: string) {
+    const full = join(repo, relPath);
+    mkdirSync(join(full, ".."), { recursive: true });
+    writeFileSync(full, contents);
+    execFileSync("git", ["add", relPath], { cwd: repo });
+  }
+
+  it("DOCS-7: passes when every link resolves, every source path exists and every tracked file is claimed", async () => {
+    writeReadme();
+    execFileSync("git", ["add", "README.md"], { cwd: repo });
+    writeFileSync(join(repo, "docs", "foo.md"), "# Foo\n");
+    addAndTrack("lib/bar.ts", "export {};\n");
+    // Nested under lib/, so listRepoFiles' walk has to recurse into a
+    // subdirectory rather than stopping at lib/'s own top level.
+    addAndTrack("lib/sub/nested.ts", "export {};\n");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error).not.toHaveBeenCalled();
+    expect(exit).not.toHaveBeenCalled();
+    expect(log.mock.calls.flat().join("\n")).toContain("docs:check passed");
+  });
+
+  it("DOCS-7: fails when an index link's anchor names a heading the target doc does not have", async () => {
+    writeFileSync(
+      join(repo, "README.md"),
+      ["# Project", "", "- [Foo](docs/foo.md#does-not-exist)", ""].join("\n"),
+    );
+    execFileSync("git", ["add", "README.md"], { cwd: repo });
+    writeFileSync(join(repo, "docs", "foo.md"), "# Foo\n");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat().join("\n")).toContain(
+      'docs/foo.md has no heading "#does-not-exist"',
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+  });
+
+  it("DOCS-7: a Draft spec, a decisions/ record and app/generated/ are all exempt from the backticked-source-path check", async () => {
+    writeReadme();
+    execFileSync("git", ["add", "README.md"], { cwd: repo });
+    writeFileSync(join(repo, "docs", "foo.md"), "# Foo\n");
+    mkdirSync(join(repo, "docs", "specs"), { recursive: true });
+    mkdirSync(join(repo, "docs", "decisions"), { recursive: true });
+    writeFileSync(
+      join(repo, "docs", "specs", "draft.md"),
+      "# Draft\n\nStatus: Draft\n\nSee `lib/missing-in-draft.ts`.\n",
+    );
+    writeFileSync(
+      join(repo, "docs", "decisions", "0001-x.md"),
+      "# Decision\n\nSee `lib/missing-in-decision.ts`.\n",
+    );
+    writeFileSync(
+      join(repo, "docs", "generated-ref.md"),
+      "# Generated\n\nSee `app/generated/prisma/client.ts`.\n",
+    );
+    addAndTrack("lib/bar.ts", "export {};\n");
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log: vi.fn(), error, exit });
+
+    const messages = error.mock.calls.flat().join("\n");
+    expect(messages).not.toContain("lib/missing-in-draft.ts");
+    expect(messages).not.toContain("lib/missing-in-decision.ts");
+    expect(messages).not.toContain("app/generated/prisma/client.ts");
+  });
+
+  it("DOCS-7: reports the missing index and does not crash the ownership-map check when README.md is entirely absent", async () => {
+    // No README.md at all — checkOrphanedDocs' own "INDEX missing" branch,
+    // and checkOwnershipMap returning early because `sources.get(INDEX)` is
+    // undefined rather than throwing.
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat().join("\n")).toContain(
+      "README.md is missing — it is the documentation index.",
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+  });
+
+  it("DOCS-7: a declared gap row is skipped by ownership checks and listed under the pass message", async () => {
+    writeFileSync(
+      join(repo, "README.md"),
+      [
+        "# Project",
+        "",
+        "- [Foo](docs/foo.md#foo)",
+        "",
+        "## Ownership map",
+        "",
+        "| Source | Doc |",
+        "| --- | --- |",
+        "| `lib/**` | [docs/foo.md](docs/foo.md) |",
+        "| `app/**` | — |",
+        "",
+      ].join("\n"),
+    );
+    execFileSync("git", ["add", "README.md"], { cwd: repo });
+    writeFileSync(join(repo, "docs", "foo.md"), "# Foo\n");
+    addAndTrack("lib/bar.ts", "export {};\n");
+    // Matches the gap row's glob, so processOwnershipEntry does not also
+    // report "matches no file" for it.
+    addAndTrack("app/page.tsx", "export {};\n");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error).not.toHaveBeenCalled();
+    expect(exit).not.toHaveBeenCalled();
+    const messages = log.mock.calls.flat().join("\n");
+    expect(messages).toContain("docs:check passed");
+    expect(messages).toContain("area(s) declared undocumented");
+    expect(messages).toContain("app/**");
+  });
+
+  it("DOCS-7: fails and exits 1 when README.md links to a doc that does not exist", async () => {
+    writeFileSync(
+      join(repo, "README.md"),
+      ["# Project", "", "- [Missing](docs/missing.md)", ""].join("\n"),
+    );
+    execFileSync("git", ["add", "README.md"], { cwd: repo });
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat().join("\n")).toContain(
+      "README.md links to docs/missing.md, which does not exist.",
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("DOCS-7: fails when a tracked source file matches no ownership map entry", async () => {
+    writeReadme();
+    execFileSync("git", ["add", "README.md"], { cwd: repo });
+    writeFileSync(join(repo, "docs", "foo.md"), "# Foo\n");
+    // Tracked under a root the ownership map's one row ("lib/**") never names.
+    mkdirSync(join(repo, "app"), { recursive: true });
+    addAndTrack("app/page.tsx", "export {};\n");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat().join("\n")).toContain(
+      "tracked source file(s) are covered by no entry",
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+  });
+
+  it("DOCS-7: fails when a doc refers to a backticked source path that does not exist", async () => {
+    writeReadme();
+    execFileSync("git", ["add", "README.md"], { cwd: repo });
+    writeFileSync(join(repo, "docs", "foo.md"), "# Foo\n\nSee `lib/missing.ts`.\n");
+    addAndTrack("lib/bar.ts", "export {};\n");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat().join("\n")).toContain(
+      "docs/foo.md refers to `lib/missing.ts`, which does not exist.",
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+  });
+
+  it("DOCS-7: fails when a doc under docs/ is not reachable from the README index", async () => {
+    // README's ownership row still links to docs/foo.md, but docs/orphan.md
+    // is reachable from nowhere.
+    writeReadme();
+    execFileSync("git", ["add", "README.md"], { cwd: repo });
+    writeFileSync(join(repo, "docs", "foo.md"), "# Foo\n");
+    writeFileSync(join(repo, "docs", "orphan.md"), "# Orphan\n");
+    addAndTrack("lib/bar.ts", "export {};\n");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat().join("\n")).toContain(
+      "docs/orphan.md is not reachable by links from README.md",
+    );
+    expect(exit).toHaveBeenCalledWith(1);
   });
 });

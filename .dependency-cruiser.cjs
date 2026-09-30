@@ -27,7 +27,7 @@ module.exports = {
         "through lib/db/**.",
       severity: "error",
       from: {
-        pathNot: ["^server/[^/]+/service\\.ts$", "^lib/db/", "\\.test\\.tsx?$"],
+        pathNot: ["^server/[^/]+/service\\.ts$", "^lib/db/", "\\.test\\.tsx?$", "^test/"],
       },
       to: {
         path: "^(node_modules/@prisma/|node_modules/\\.pnpm/[^/]+/node_modules/@prisma/|app/generated/prisma/|@/app/generated/prisma)",
@@ -47,6 +47,7 @@ module.exports = {
           "^lib/db/",
           "^lib/auth/options\\.ts$",
           "\\.test\\.tsx?$",
+          "^test/",
         ],
       },
       to: {
@@ -62,7 +63,7 @@ module.exports = {
       severity: "error",
       from: {
         path: "^app/",
-        pathNot: ["^app/api/.+/route\\.ts$", "\\.test\\.tsx?$"],
+        pathNot: ["^app/api/.+/route\\.ts$", "\\.test\\.tsx?$", "^test/"],
       },
       to: {
         path: "^server/",
@@ -93,7 +94,7 @@ module.exports = {
       severity: "error",
       from: {
         path: "^components/",
-        pathNot: "\\.test\\.tsx?$",
+        pathNot: ["\\.test\\.tsx?$", "^test/"],
       },
       to: {
         path: "^server/",
@@ -108,7 +109,7 @@ module.exports = {
       severity: "error",
       from: {
         path: "^lib/",
-        pathNot: "\\.test\\.tsx?$",
+        pathNot: ["\\.test\\.tsx?$", "^test/"],
       },
       to: {
         path: "^app/(?!generated/)",
@@ -124,7 +125,7 @@ module.exports = {
       severity: "error",
       from: {
         path: "^lib/",
-        pathNot: ["^lib/auth/options\\.ts$", "^lib/hooks/", "\\.test\\.tsx?$"],
+        pathNot: ["^lib/auth/options\\.ts$", "^lib/hooks/", "\\.test\\.tsx?$", "^test/"],
       },
       to: {
         path: "^server/",
@@ -140,7 +141,7 @@ module.exports = {
       severity: "error",
       from: {
         path: "^lib/hooks/",
-        pathNot: "\\.test\\.tsx?$",
+        pathNot: ["\\.test\\.tsx?$", "^test/"],
       },
       to: {
         path: "^server/",
@@ -173,7 +174,7 @@ module.exports = {
       severity: "error",
       from: {
         path: "^server/([^/]+)/",
-        pathNot: "\\.test\\.tsx?$",
+        pathNot: ["\\.test\\.tsx?$", "^test/"],
       },
       to: {
         path: "^server/(?!$1/)[^/]+/",

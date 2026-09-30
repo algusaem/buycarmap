@@ -1,11 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { prisma } from "@/lib/db/prisma";
+import { hashToken } from "@/lib/auth/tokens";
+import { createPendingRegistration } from "@/test/factories/auth-tokens";
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    user: { create: vi.fn() },
-    pendingRegistration: { findUnique: vi.fn(), deleteMany: vi.fn() },
-  },
-}));
 vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/server/rate-limit/service")>()),
   getClientIp: vi.fn(async () => "203.0.113.1"),
@@ -16,10 +13,7 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   })),
 }));
 
-import { Prisma } from "@/app/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
 import { consumeRateLimit } from "@/server/rate-limit/service";
-import { hashToken } from "@/lib/auth/tokens";
 import { verifyRegistration } from "./actions";
 
 const RAW_TOKEN = "a-raw-confirmation-token";
@@ -30,23 +24,17 @@ function formData(fields: Record<string, string>): FormData {
   return fd;
 }
 
-function pendingRecord(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "pending-1",
+async function seedPending(overrides: { expiresAt?: Date } = {}) {
+  return createPendingRegistration({
     email: "ada@example.com",
     password: "already-bcrypt-hashed",
     name: "Ada",
     tokenHash: hashToken(RAW_TOKEN),
-    expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    createdAt: new Date(),
-    ...overrides,
-  };
+    expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+  });
 }
 
 beforeEach(() => {
-  vi.mocked(prisma.pendingRegistration.findUnique).mockReset();
-  vi.mocked(prisma.pendingRegistration.deleteMany).mockReset();
-  vi.mocked(prisma.user.create).mockReset();
   vi.mocked(consumeRateLimit).mockResolvedValue({
     allowed: true,
     remaining: 14,
@@ -56,13 +44,13 @@ beforeEach(() => {
 
 describe("verifyRegistration token handling", () => {
   it("looks the token up by its hash, never by the raw value", async () => {
-    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(pendingRecord() as never);
+    await seedPending();
+    const spy = vi.spyOn(prisma.pendingRegistration, "findUnique");
 
     await verifyRegistration(formData({ token: RAW_TOKEN }));
 
-    expect(prisma.pendingRegistration.findUnique).toHaveBeenCalledWith({
-      where: { tokenHash: hashToken(RAW_TOKEN) },
-    });
+    expect(spy).toHaveBeenCalledWith({ where: { tokenHash: hashToken(RAW_TOKEN) } });
+    spy.mockRestore();
   });
 
   it("rejects a missing token", async () => {
@@ -70,45 +58,39 @@ describe("verifyRegistration token handling", () => {
       success: false,
       error: "tokenInvalid",
     });
-    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(await prisma.user.count()).toBe(0);
   });
 
   it("rejects a token with no pending signup", async () => {
-    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(null);
-
     expect(await verifyRegistration(formData({ token: RAW_TOKEN }))).toEqual({
       success: false,
       error: "tokenInvalid",
     });
-    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(await prisma.user.count()).toBe(0);
   });
 
   it("rejects an expired token", async () => {
-    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(
-      pendingRecord({ expiresAt: new Date(Date.now() - 1000) }) as never,
-    );
+    await seedPending({ expiresAt: new Date(Date.now() - 1000) });
 
     expect(await verifyRegistration(formData({ token: RAW_TOKEN }))).toEqual({
       success: false,
       error: "tokenInvalid",
     });
-    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(await prisma.user.count()).toBe(0);
   });
 
   it("gives missing and expired tokens the same error", async () => {
     // Distinguishing them would tell a prober which tokens once existed.
-    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(null);
     const missing = await verifyRegistration(formData({ token: RAW_TOKEN }));
 
-    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(
-      pendingRecord({ expiresAt: new Date(Date.now() - 1000) }) as never,
-    );
+    await seedPending({ expiresAt: new Date(Date.now() - 1000) });
     const expired = await verifyRegistration(formData({ token: RAW_TOKEN }));
 
     expect(missing).toEqual(expired);
   });
 
   it("refuses once the rate limit is exhausted", async () => {
+    await seedPending();
     vi.mocked(consumeRateLimit).mockResolvedValue({
       allowed: false,
       remaining: 0,
@@ -119,42 +101,41 @@ describe("verifyRegistration token handling", () => {
       success: false,
       error: "rateLimited",
     });
-    expect(prisma.pendingRegistration.findUnique).not.toHaveBeenCalled();
+    expect(await prisma.user.count()).toBe(0);
   });
 });
 
 describe("verifyRegistration account creation", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.pendingRegistration.findUnique).mockResolvedValue(pendingRecord() as never);
-  });
-
   it("AUTH-2: creates the user from the stored hash and marks the email verified", async () => {
+    await seedPending();
+
     const result = await verifyRegistration(formData({ token: RAW_TOKEN }));
 
     expect(result).toEqual({ success: true, email: "ada@example.com" });
-    expect(prisma.user.create).toHaveBeenCalledWith({
-      data: {
-        email: "ada@example.com",
-        // Reused as-is: the password was hashed at submit time, so
-        // confirmation never has to ask for it again.
-        password: "already-bcrypt-hashed",
-        name: "Ada",
-        emailVerified: expect.any(Date),
-      },
+    const [user] = await prisma.user.findMany();
+    expect(user).toMatchObject({
+      email: "ada@example.com",
+      // Reused as-is: the password was hashed at submit time, so
+      // confirmation never has to ask for it again.
+      password: "already-bcrypt-hashed",
+      name: "Ada",
     });
+    expect(user.emailVerified).not.toBeNull();
   });
 
   it("consumes every pending signup for that address", async () => {
+    await seedPending();
+
     await verifyRegistration(formData({ token: RAW_TOKEN }));
 
     // Single use, and any sibling attempt on the same address dies with it.
-    expect(prisma.pendingRegistration.deleteMany).toHaveBeenCalledWith({
-      where: { email: "ada@example.com" },
-    });
+    expect(await prisma.pendingRegistration.count({ where: { email: "ada@example.com" } })).toBe(0);
   });
 
   it("treats an address claimed in the meantime as already done", async () => {
-    vi.mocked(prisma.user.create).mockRejectedValue(
+    await seedPending();
+    const { Prisma } = await import("@/app/generated/prisma/client");
+    vi.spyOn(prisma.user, "create").mockRejectedValueOnce(
       new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
         code: "P2002",
         clientVersion: "test",
@@ -167,17 +148,18 @@ describe("verifyRegistration account creation", () => {
       success: true,
       email: "ada@example.com",
     });
-    expect(prisma.pendingRegistration.deleteMany).toHaveBeenCalled();
+    expect(await prisma.pendingRegistration.count({ where: { email: "ada@example.com" } })).toBe(0);
   });
 
   it("returns a generic failure on an unexpected DB error, leaving the token", async () => {
-    vi.mocked(prisma.user.create).mockRejectedValue(new Error("connection lost"));
+    await seedPending();
+    vi.spyOn(prisma.user, "create").mockRejectedValueOnce(new Error("connection lost"));
 
     expect(await verifyRegistration(formData({ token: RAW_TOKEN }))).toEqual({
       success: false,
       error: "generic",
     });
     // The signup must survive so the user can retry the same link.
-    expect(prisma.pendingRegistration.deleteMany).not.toHaveBeenCalled();
+    expect(await prisma.pendingRegistration.count({ where: { email: "ada@example.com" } })).toBe(1);
   });
 });

@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createFavoriteStore, makeFavoriteInput } from "@/test/fixtures/favorites";
 
-// The store is created per test in beforeEach; this indirection lets the module
-// mock reach whichever one is current.
+// TEST-7 (docs/specs/core-testing.md): every other case in this file moved to
+// ./actions.integration.test.ts, which runs against a real database. A Prisma
+// mock survives only here, where the point is PLAT-12 — a database failure
+// rejecting instead of returning an error Result — which needs a call that
+// can be made to fail on demand.
+
 let store: ReturnType<typeof createFavoriteStore>;
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -22,14 +26,9 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { listFavorites, removeFavorite, saveFavorite } from "./actions";
 
 const ADA = { id: "user-ada", email: "ada@example.com" };
-const GRACE = { id: "user-grace", email: "grace@example.com" };
 
 function signedInAs(user: { id: string; email: string }) {
   vi.mocked(getCurrentUser).mockResolvedValue(user);
-}
-
-function signedOut() {
-  vi.mocked(getCurrentUser).mockResolvedValue(null);
 }
 
 beforeEach(() => {
@@ -38,98 +37,6 @@ beforeEach(() => {
 });
 
 describe("saveFavorite", () => {
-  it("FAV-1: records a saved listing against the signed-in user", async () => {
-    signedInAs(ADA);
-    const listing = makeFavoriteInput();
-
-    const result = await saveFavorite(listing);
-
-    expect(result).toEqual({ ok: true, value: undefined });
-    const stored = store.forUser(ADA.id);
-    expect(stored).toHaveLength(1);
-    // The snapshot is the point (spec › Decisions and rationale): the row has to be renderable on its
-    // own, without asking Wallapop anything.
-    expect(stored[0]).toMatchObject({
-      listingId: "wallapop-abc123",
-      title: "Audi A3 2.0 TDI",
-      price: 14500,
-      mileage: 95000,
-      source: "Wallapop",
-      url: "https://es.wallapop.com/item/audi-a3-abc123",
-      lat: 40.4168,
-      lng: -3.7038,
-    });
-  });
-
-  it("FAV-1: the saved listing is still readable on a later request", async () => {
-    signedInAs(ADA);
-    await saveFavorite(makeFavoriteInput());
-
-    const result = await listFavorites();
-
-    expect(result.ok && result.value.map((row) => row.id)).toEqual(["wallapop-abc123"]);
-  });
-
-  it("FAV-2: saving the same listing twice leaves exactly one record", async () => {
-    signedInAs(ADA);
-    const listing = makeFavoriteInput();
-
-    const first = await saveFavorite(listing);
-    const second = await saveFavorite(listing);
-
-    expect(first).toEqual({ ok: true, value: undefined });
-    expect(second).toEqual({ ok: true, value: undefined });
-    expect(store.forUser(ADA.id)).toHaveLength(1);
-  });
-
-  it("FAV-5: a caller with no session saves nothing (PLAT-11)", async () => {
-    signedOut();
-
-    const result = await saveFavorite(makeFavoriteInput());
-
-    expect(result).toEqual({
-      ok: false,
-      error: { code: "unauthenticated", messageKey: "favoriteErrors.unauthenticated" },
-    });
-    expect(store.all()).toHaveLength(0);
-  });
-
-  it("FAV-7: rejects a listing from an unrecognised source (PLAT-11)", async () => {
-    signedInAs(ADA);
-
-    const result = await saveFavorite(makeFavoriteInput({ source: "Craigslist" }));
-
-    expect(result).toEqual({
-      ok: false,
-      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
-    });
-    expect(store.all()).toHaveLength(0);
-  });
-
-  it("FAV-7: rejects a listing with a blank id and writes nothing", async () => {
-    signedInAs(ADA);
-
-    const result = await saveFavorite(makeFavoriteInput({ id: "   " }));
-
-    expect(result).toEqual({
-      ok: false,
-      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
-    });
-    expect(store.all()).toHaveLength(0);
-  });
-
-  it("FAV-7: rejects a listing with no title", async () => {
-    signedInAs(ADA);
-
-    const result = await saveFavorite(makeFavoriteInput({ title: "" }));
-
-    expect(result).toEqual({
-      ok: false,
-      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
-    });
-    expect(store.all()).toHaveLength(0);
-  });
-
   it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
     signedInAs(ADA);
     vi.mocked(store.client.upsert).mockRejectedValueOnce(new Error("connection refused"));
@@ -139,50 +46,6 @@ describe("saveFavorite", () => {
 });
 
 describe("removeFavorite", () => {
-  it("FAV-3: removes the listing and leaves the user's others alone", async () => {
-    signedInAs(ADA);
-    await saveFavorite(makeFavoriteInput());
-    await saveFavorite(makeFavoriteInput({ id: "cochesnet-99", source: "Coches.net" }));
-
-    const result = await removeFavorite("wallapop-abc123");
-
-    expect(result).toEqual({ ok: true, value: undefined });
-    expect(store.forUser(ADA.id).map((row) => row.listingId)).toEqual(["cochesnet-99"]);
-  });
-
-  it("FAV-4: removing something that was never saved reports success", async () => {
-    signedInAs(ADA);
-
-    const result = await removeFavorite("wallapop-never-saved");
-
-    expect(result).toEqual({ ok: true, value: undefined });
-  });
-
-  it("FAV-5: a caller with no session removes nothing (PLAT-11)", async () => {
-    store.seedFor(ADA.id, makeFavoriteInput());
-    signedOut();
-
-    const result = await removeFavorite("wallapop-abc123");
-
-    expect(result).toEqual({
-      ok: false,
-      error: { code: "unauthenticated", messageKey: "favoriteErrors.unauthenticated" },
-    });
-    expect(store.forUser(ADA.id)).toHaveLength(1);
-  });
-
-  it("FAV-6: one user cannot remove another user's saved listing", async () => {
-    store.seedFor(ADA.id, makeFavoriteInput());
-    signedInAs(GRACE);
-
-    const result = await removeFavorite("wallapop-abc123");
-
-    // Grace is told nothing went wrong - she has no such favorite, and whether
-    // Ada does is none of her business - but Ada's row survives.
-    expect(result).toEqual({ ok: true, value: undefined });
-    expect(store.forUser(ADA.id)).toHaveLength(1);
-  });
-
   it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
     signedInAs(ADA);
     vi.mocked(store.client.deleteMany).mockRejectedValueOnce(new Error("connection refused"));
@@ -192,51 +55,6 @@ describe("removeFavorite", () => {
 });
 
 describe("listFavorites", () => {
-  it("FAV-8: returns only the caller's own saved listings", async () => {
-    store.seedFor(GRACE.id, makeFavoriteInput({ id: "wallapop-graces-car" }));
-    signedInAs(ADA);
-    await saveFavorite(makeFavoriteInput());
-
-    const result = await listFavorites();
-
-    expect(result.ok && result.value.map((row) => row.id)).toEqual(["wallapop-abc123"]);
-  });
-
-  it("FAV-8: returns them newest first", async () => {
-    signedInAs(ADA);
-    await saveFavorite(makeFavoriteInput({ id: "wallapop-first" }));
-    await saveFavorite(makeFavoriteInput({ id: "wallapop-second" }));
-    await saveFavorite(makeFavoriteInput({ id: "wallapop-third" }));
-
-    const result = await listFavorites();
-
-    expect(result.ok && result.value.map((row) => row.id)).toEqual([
-      "wallapop-third",
-      "wallapop-second",
-      "wallapop-first",
-    ]);
-  });
-
-  it("FAV-8: an empty list is a success, not an error", async () => {
-    signedInAs(ADA);
-
-    const result = await listFavorites();
-
-    expect(result).toEqual({ ok: true, value: [] });
-  });
-
-  it("FAV-5: a caller with no session gets nothing back (PLAT-11)", async () => {
-    store.seedFor(ADA.id, makeFavoriteInput());
-    signedOut();
-
-    const result = await listFavorites();
-
-    expect(result).toEqual({
-      ok: false,
-      error: { code: "unauthenticated", messageKey: "favoriteErrors.unauthenticated" },
-    });
-  });
-
   it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
     signedInAs(ADA);
     vi.mocked(store.client.findMany).mockRejectedValueOnce(new Error("connection refused"));

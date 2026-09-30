@@ -9,7 +9,11 @@ import { pathToFileURL } from "node:url";
 // prints one line and exits 0, so `pnpm build` still works with no Vercel
 // environment at all (a local build, or CI).
 
-function run(command, args) {
+// Exported so the colocated test can prove it actually spawns and resolves
+// with the child's real exit code, using a harmless real command (this same
+// Node binary) rather than a fake — `main`'s own test already covers the
+// VERCEL_ENV branching with a fake `run`, which this does not repeat.
+export function run(command, args) {
   return new Promise((resolve, reject) => {
     // One command string, not (command, args): Node 22 deprecates passing args
     // alongside `shell: true` (DEP0190). The args are fixed literals from main().

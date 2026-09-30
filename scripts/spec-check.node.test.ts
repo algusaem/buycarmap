@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { checkSpecs, criteriaIdsIn } from "./spec-check.mjs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { checkSpecs, criteriaIdsIn, main } from "./spec-check.mjs";
 import type { SpecCheckTestInput } from "./spec-check.mjs";
 
 describe("criteriaIdsIn", () => {
@@ -244,5 +248,132 @@ describe("checkSpecs", () => {
     const tests: SpecCheckTestInput[] = [];
 
     expect(checkSpecs(specs, tests).problems).toEqual([]);
+  });
+});
+
+// `main`, run in-process against a throwaway fixture directory (never this
+// repository) with `cwd`/`log`/`error`/`exit` injected — the real spec:check,
+// reading real files from disk, rather than `checkSpecs` fed crafted input.
+describe("main", () => {
+  let repo: string;
+
+  beforeEach(() => {
+    repo = mkdtempSync(join(tmpdir(), "spec-check-main-"));
+    mkdirSync(join(repo, "docs", "specs"), { recursive: true });
+    mkdirSync(join(repo, "app"), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  function writeSpec(key: string, status: string, body: string) {
+    writeFileSync(
+      join(repo, "docs", "specs", "favorites.md"),
+      `# Feature\n\nKey: ${key}\nStatus: ${status}\n\n## Acceptance criteria\n\n${body}\n`,
+    );
+  }
+
+  it("DOCS-4: passes and reports the criteria and enforced-spec counts when every criterion has a test", async () => {
+    writeSpec("FAV", "Approved", "- [ ] FAV-1 · unit — removes a listing");
+    writeFileSync(
+      join(repo, "app", "favorites.test.ts"),
+      'it("FAV-1: removes a listing", () => {})',
+    );
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(log).toHaveBeenCalledWith("spec:check passed - 1 criteria across 1 enforced spec(s).");
+    expect(error).not.toHaveBeenCalled();
+    expect(exit).not.toHaveBeenCalled();
+  });
+
+  it("DOCS-4: fails and exits 1 when a declared criterion has no test naming it", async () => {
+    writeSpec("FAV", "Approved", "- [ ] FAV-1 · unit — removes a listing");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat().join("\n")).toContain(
+      "FAV-1 (docs/specs/favorites.md) is not named by any test title",
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("skips the _template.md and README.md files under docs/specs", async () => {
+    writeFileSync(join(repo, "docs", "specs", "_template.md"), "# Template\n\nKey: TPL\n");
+    writeFileSync(join(repo, "docs", "specs", "README.md"), "# Specs index\n");
+    const log = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, exit });
+
+    // Neither file declares a Key/Status pair `checkSpecs` would enforce, so
+    // this only proves they were never read as specs at all — 0 enforced.
+    expect(log).toHaveBeenCalledWith("spec:check passed - 0 criteria across 0 enforced spec(s).");
+    expect(exit).not.toHaveBeenCalled();
+  });
+
+  it("DOCS-4: reports a skipped spec (no Key: header) by name and reason, alongside a passing enforced one", async () => {
+    writeSpec("FAV", "Approved", "- [ ] FAV-1 · unit — removes a listing");
+    writeFileSync(
+      join(repo, "app", "favorites.test.ts"),
+      'it("FAV-1: removes a listing", () => {})',
+    );
+    writeFileSync(join(repo, "docs", "specs", "legacy.md"), "# Legacy\n\nNo Key header here.\n");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error).not.toHaveBeenCalled();
+    const messages = log.mock.calls.flat().join("\n");
+    expect(messages).toContain("spec:check passed - 1 criteria across 1 enforced spec(s).");
+    expect(messages).toContain("skipped docs/specs/legacy.md (no Key: header (legacy format))");
+  });
+
+  it("does not walk into a dotdirectory for test files", async () => {
+    writeSpec("FAV", "Approved", "- [ ] FAV-1 · unit — removes a listing");
+    mkdirSync(join(repo, ".hidden"), { recursive: true });
+    // If this were read, it alone would satisfy FAV-1 and the check would
+    // wrongly pass — proving the dotdirectory was actually excluded.
+    writeFileSync(
+      join(repo, ".hidden", "fixture.test.ts"),
+      'it("FAV-1: removes a listing", () => {})',
+    );
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat().join("\n")).toContain("FAV-1");
+    expect(exit).toHaveBeenCalledWith(1);
+  });
+
+  it("does not walk into node_modules for test files, so a criterion named only there stays unsatisfied", async () => {
+    writeSpec("FAV", "Approved", "- [ ] FAV-1 · unit — removes a listing");
+    mkdirSync(join(repo, "node_modules", "somepkg"), { recursive: true });
+    // If this were read, it alone would satisfy FAV-1 and the check would
+    // wrongly pass — proving node_modules was actually excluded from the walk.
+    writeFileSync(
+      join(repo, "node_modules", "somepkg", "fixture.test.ts"),
+      'it("FAV-1: removes a listing", () => {})',
+    );
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat().join("\n")).toContain("FAV-1");
+    expect(exit).toHaveBeenCalledWith(1);
   });
 });

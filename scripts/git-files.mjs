@@ -11,9 +11,13 @@ import { execFileSync } from "node:child_process";
  * path with unusual characters cannot be misparsed the way a newline-split
  * listing could.
  *
+ * @param {string} [cwd] The repository to list — defaults to the process's
+ *   own working directory, as every real caller (docs-check.mjs,
+ *   todo-check.mjs) relies on. Overridable so the colocated test can point it
+ *   at a throwaway repository instead of this one.
  * @returns {string[]}
  */
-export function trackedFiles() {
-  const output = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" });
+export function trackedFiles(cwd = process.cwd()) {
+  const output = execFileSync("git", ["ls-files", "-z"], { cwd, encoding: "utf8" });
   return output.split("\0").filter(Boolean);
 }

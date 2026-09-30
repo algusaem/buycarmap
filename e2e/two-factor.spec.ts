@@ -17,9 +17,36 @@ const PASSWORD = "harbour-lentil-quilt-97";
 
 const SIGN_IN = /sign in|entrar/i;
 const SIGN_OUT = /sign out|cerrar sesi/i;
+// lib/i18n/locales/en.ts nav.favorites: "Saved cars"; es.ts: "Coches guardados".
+const SAVED_CARS = /saved cars|coches guardados/i;
 
-function signOutButton(page: Page) {
-  return page.getByRole("navigation").getByRole("button", { name: SIGN_OUT });
+function navSavedCars(page: Page) {
+  return page.getByRole("navigation").getByRole("link", { name: SAVED_CARS });
+}
+
+/**
+ * The account dropdown's trigger, named after the signed-in user — desktop
+ * sign-out is a menuitem inside it, hidden until it is opened.
+ */
+function accountTrigger(page: Page, name: string) {
+  return page.getByRole("navigation").getByRole("button", { name });
+}
+
+async function signOut(page: Page, name: string) {
+  await accountTrigger(page, name).click();
+  // Waiting on the URL alone is not enough: a sign-in that landed on "/"
+  // leaves the browser already there, so a later `waitForURL("/")` after
+  // signing out would resolve on the spot rather than on the redirect this
+  // click causes, racing the POST that actually clears the session cookie —
+  // middleware then still sees a token and bounces the next /login straight
+  // back. Waiting for that POST's response is the one signal that is true
+  // regardless of which URL the page started from.
+  const signedOut = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/auth/signout") && response.request().method() === "POST",
+  );
+  await page.getByRole("menuitem", { name: SIGN_OUT }).click();
+  await signedOut;
 }
 
 /**
@@ -100,14 +127,15 @@ test.describe("two-factor authentication (real database)", () => {
 
   dbTest("enrols, then requires a code on the next sign-in", async ({ page }) => {
     const email = e2eEmail("totp");
-    await seedUser(email, PASSWORD);
+    const name = "Seeded User";
+    await seedUser(email, PASSWORD, name);
 
     await loginViaUi(page, email);
-    await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
+    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
 
     const { secret } = await enrolTwoFactor(page);
-    await signOutButton(page).click();
-    await expect(signOutButton(page)).toHaveCount(0, { timeout: 15_000 });
+    await signOut(page, name);
+    await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     // Password alone is no longer enough.
     await page.goto("/login");
@@ -118,76 +146,79 @@ test.describe("two-factor authentication (real database)", () => {
     await expect(page.getByLabel(/enter the 6-digit code|código de 6/i)).toBeVisible({
       timeout: 15_000,
     });
-    await expect(signOutButton(page)).toHaveCount(0);
+    await expect(navSavedCars(page)).toHaveCount(0);
 
     // With the code, sign-in completes.
     await page.getByLabel(/enter the 6-digit code|código de 6/i).fill(nextCode(secret));
     await page.getByRole("button", { name: SIGN_IN }).click();
 
-    await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
+    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
   });
 
   dbTest("rejects a wrong code", async ({ page }) => {
     const email = e2eEmail("totp-wrong");
-    await seedUser(email, PASSWORD);
+    const name = "Seeded User";
+    await seedUser(email, PASSWORD, name);
 
     await loginViaUi(page, email);
-    await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
+    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
     await enrolTwoFactor(page);
-    await signOutButton(page).click();
-    await expect(signOutButton(page)).toHaveCount(0, { timeout: 15_000 });
+    await signOut(page, name);
+    await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     await loginViaUi(page, email, "000000");
 
     await expect(page.getByText(/isn't valid|no es válido/i)).toBeVisible({
       timeout: 15_000,
     });
-    await expect(signOutButton(page)).toHaveCount(0);
+    await expect(navSavedCars(page)).toHaveCount(0);
   });
 
   dbTest("accepts a recovery code, and only once", async ({ page }) => {
     const email = e2eEmail("totp-recovery");
-    await seedUser(email, PASSWORD);
+    const name = "Seeded User";
+    await seedUser(email, PASSWORD, name);
 
     await loginViaUi(page, email);
-    await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
+    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
     const { recoveryCodes } = await enrolTwoFactor(page);
     expect(recoveryCodes).toHaveLength(10);
 
-    await signOutButton(page).click();
-    await expect(signOutButton(page)).toHaveCount(0, { timeout: 15_000 });
+    await signOut(page, name);
+    await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     // A recovery code stands in for the authenticator.
     await loginViaUi(page, email, recoveryCodes[0]);
-    await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
+    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
 
-    await signOutButton(page).click();
-    await expect(signOutButton(page)).toHaveCount(0, { timeout: 15_000 });
+    await signOut(page, name);
+    await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     // The same code must not work a second time.
     await loginViaUi(page, email, recoveryCodes[0]);
     await expect(page.getByText(/isn't valid|no es válido/i)).toBeVisible({
       timeout: 15_000,
     });
-    await expect(signOutButton(page)).toHaveCount(0);
+    await expect(navSavedCars(page)).toHaveCount(0);
   });
 
   dbTest("refuses to replay a code that already signed someone in", async ({ page }) => {
     const email = e2eEmail("totp-replay");
-    await seedUser(email, PASSWORD);
+    const name = "Seeded User";
+    await seedUser(email, PASSWORD, name);
 
     await loginViaUi(page, email);
-    await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
+    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
     const { secret } = await enrolTwoFactor(page);
-    await signOutButton(page).click();
-    await expect(signOutButton(page)).toHaveCount(0, { timeout: 15_000 });
+    await signOut(page, name);
+    await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     const code = nextCode(secret);
 
     await loginViaUi(page, email, code);
-    await expect(signOutButton(page)).toBeVisible({ timeout: 15_000 });
-    await signOutButton(page).click();
-    await expect(signOutButton(page)).toHaveCount(0, { timeout: 15_000 });
+    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
+    await signOut(page, name);
+    await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     // Still inside its 30-second window, so it is arithmetically valid — the
     // stored step is what refuses it.
@@ -195,6 +226,6 @@ test.describe("two-factor authentication (real database)", () => {
     await expect(page.getByText(/isn't valid|no es válido/i)).toBeVisible({
       timeout: 15_000,
     });
-    await expect(signOutButton(page)).toHaveCount(0);
+    await expect(navSavedCars(page)).toHaveCount(0);
   });
 });

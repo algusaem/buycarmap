@@ -86,20 +86,44 @@ export function checkBranchDatabase(worktreeUrl, mainUrl, isWorktree) {
   if (mainUrl && worktreeUrl === mainUrl) {
     return "this worktree's DATABASE_URL still points at the main checkout's database";
   }
+
+  // TEST-3 (docs/specs/core-testing.md): a worktree must never reach Neon, and
+  // so production. `pnpm db:branch` only ever writes a localhost/127.0.0.1
+  // URL now, so anything else means the .env was hand-edited or is stale.
+  const host = new URL(worktreeUrl).hostname;
+  if (host !== "localhost" && host !== "127.0.0.1") {
+    return `this worktree's DATABASE_URL points at "${host}", which is neither localhost nor 127.0.0.1`;
+  }
+
   return null;
 }
 
-function main(exitCode = 1) {
-  const mainCheckout = findMainCheckout();
+/**
+ * TOOLING-safe seam: every dependency `main` touches (cwd, the two .env
+ * reads, stderr, the exit code) is injected with the real implementation as
+ * its default, so the colocated test can drive the main-checkout and
+ * worktree-with/without-.env branches without a real git worktree.
+ *
+ * @param {{ exitCode?: number, cwd?: string, findMain?: (cwd: string) => string | null, readUrl?: (dir: string) => string | undefined, error?: (message: string) => void, exit?: (code: number) => void }} [deps]
+ */
+export function main({
+  exitCode = 1,
+  cwd = process.cwd(),
+  findMain = findMainCheckout,
+  readUrl = readDatabaseUrl,
+  error = console.error,
+  exit = process.exit,
+} = {}) {
+  const mainCheckout = findMain(cwd);
   const problem = checkBranchDatabase(
-    readDatabaseUrl(process.cwd()),
-    mainCheckout ? readDatabaseUrl(mainCheckout) : undefined,
+    readUrl(cwd),
+    mainCheckout ? readUrl(mainCheckout) : undefined,
     mainCheckout !== null,
   );
 
   if (!problem) return;
 
-  console.error(
+  error(
     `Refusing to run: ${problem}.\n\n` +
       `  Run \`pnpm db:branch\` first. It forks a copy-on-write Neon branch for\n` +
       `  this git branch and writes DATABASE_URL into this worktree's .env.\n\n` +
@@ -108,7 +132,25 @@ function main(exitCode = 1) {
       `  report drift, and the only remedy Prisma offers is a reset that drops\n` +
       `  every row. Never accept that offer -- provision the branch instead.`,
   );
-  process.exit(exitCode);
+  exit(exitCode);
+}
+
+/**
+ * The command a hook payload names, or `""` for one that cannot be read.
+ *
+ * A malformed payload is not evidence of a problem — failing closed here
+ * would block every command on a malformed hook input — so it resolves to
+ * `""` rather than throwing.
+ *
+ * @param {string} raw
+ * @returns {string}
+ */
+export function hookCommand(raw) {
+  try {
+    return JSON.parse(raw).tool_input?.command ?? "";
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -119,22 +161,16 @@ function main(exitCode = 1) {
  * Parsing here rather than in the hook's shell command keeps the rule in one
  * tested file and avoids depending on jq, which is not installed on this
  * machine.
+ *
+ * @param {{ stdin?: AsyncIterable<Buffer | string> | Iterable<Buffer | string>, runMain?: typeof main }} [deps]
  */
-async function hookMain() {
+export async function hookMain({ stdin = process.stdin, runMain = main } = {}) {
   const chunks = [];
-  for await (const chunk of process.stdin) chunks.push(chunk);
+  for await (const chunk of stdin) chunks.push(chunk);
 
-  let command = "";
-  try {
-    command = JSON.parse(chunks.join("")).tool_input?.command ?? "";
-  } catch {
-    // A payload we cannot read is not evidence of a problem. Failing closed
-    // here would block every command on a malformed hook input.
-    return;
-  }
-
+  const command = hookCommand(chunks.join(""));
   if (!touchesDatabase(command)) return;
-  main(2);
+  runMain({ exitCode: 2 });
 }
 
 // Guarded so the pure helpers above can be imported by the colocated test
