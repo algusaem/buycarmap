@@ -21,13 +21,13 @@ vi.mock("next-auth/react", () => ({ useSession: () => useSession() }));
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
-vi.mock("@/app/actions/favorites", () => ({
+vi.mock("@/server/favorites/actions", () => ({
   saveFavorite: vi.fn(),
   removeFavorite: vi.fn(),
 }));
 
 import { toast } from "sonner";
-import { removeFavorite, saveFavorite } from "@/app/actions/favorites";
+import { removeFavorite, saveFavorite } from "@/server/favorites/actions";
 
 const listing: CarListing = {
   id: "wallapop-1",

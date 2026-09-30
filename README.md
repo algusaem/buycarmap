@@ -121,7 +121,8 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm build` | `prisma generate && next build` |
 | `pnpm check` | The verification contract: `lint` → `typecheck` → `test` → `build`, stopping at the first failure |
 | `pnpm check:full` | `check`, then `test:e2e` |
-| `pnpm lint` | Biome (lint and format), knip, `spec:check`, `docs:check`, `todo:check` |
+| `pnpm lint` | Biome (lint and format), `depcruise`, knip, `spec:check`, `docs:check`, `todo:check` |
+| `pnpm depcruise` | The dependency-cruiser boundaries (`.dependency-cruiser.cjs`), 0 violations required |
 | `pnpm typecheck` | `tsc --noEmit` and type-coverage (minimum in `package.json` › `typeCoverage`) |
 | `pnpm test` | Vitest, both projects, with v8 coverage and the ratchet thresholds |
 | `pnpm test:unit` | The jsdom project alone |
@@ -133,10 +134,11 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm test:contract` | External API shapes, against offline fixtures |
 | `pnpm test:contract:live` | The same, against the real upstream APIs |
 | `pnpm spec:check` | Every approved acceptance criterion is still named by a test |
-| `pnpm docs:check` | Doc links, referenced source paths, reachability from this file, the ownership map |
+| `pnpm docs:check` | Doc links, referenced source paths (ADR source paths excepted, LAYOUT-4), reachability from this file, the ownership map |
 | `pnpm todo:check` | Every `TODO` comment names its issue (`#n`) |
 | `pnpm db:branch` | Give this git branch its own Neon database |
 | `pnpm db:branch:rm` | Delete it |
+| `pnpm gen feature <name>` | Scaffold `server/<name>/{queries,actions,service,schema}.ts` and its spec (plop) |
 
 ### Git hooks
 
@@ -328,6 +330,7 @@ solo project is ceremony.
 | [core-mastermind.md](docs/specs/core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
 | [core-tooling.md](docs/specs/core-tooling.md) | TOOLING | Implemented | Migration phase 3: the verification contract and repository tooling |
 | [core-docs.md](docs/specs/core-docs.md) | DOCS | Implemented | Migration phase 4: the core spec format and docs tree |
+| [core-layout.md](docs/specs/core-layout.md) | LAYOUT | Implemented | Migration phase 5: the server layer and the dependency rules |
 
 ### Decisions
 
@@ -360,6 +363,7 @@ name what it beat, it is a fact, and facts belong in the doc for that area.
 | [0009 — One build-script allowlist once pnpm is pinned](docs/decisions/0009-pnpm-pinned-allow-builds.md) | `packageManager` pins pnpm 11; `allowBuilds` is the only allowlist; supersedes 0008 |
 | [0010 — The TODO ban is a lint script, not a Biome rule](docs/decisions/0010-todo-check-script.md) | `scripts/todo-check.mjs` runs in `pnpm lint`, finding comments through TypeScript's syntactic classification |
 | [0011 — Keep criterion ids, spec:check and extra spec sections](docs/decisions/0011-spec-ids-and-sections.md) | The core spec sections plus optional Contracts, Decisions and rationale and Open questions; `KEY-n` checklist items still tied to test titles by `spec:check` |
+| [0012 — Root layout and server layer](docs/decisions/0012-root-layout-and-server-layer.md) | The root layout stays permanently instead of moving into `src/`; the server-layer dependency rules, the `schema.ts` and route-handler exceptions, and the NextAuth exception until phase 11 |
 
 ## Ownership map
 
@@ -389,21 +393,26 @@ Do not point a gap at a loosely related file to make it look covered.
 | `lib/hooks/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
 | `components/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
-| `app/actions/favorites.ts` | [docs/specs/favorites.md](docs/specs/favorites.md) |
+| `server/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
 | `app/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `app/api/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `components/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
-| `app/actions/alerts.ts` | [docs/specs/alerts.md](docs/specs/alerts.md) |
-| `lib/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
-| `lib/validations/alerts.ts` | [docs/specs/alerts.md](docs/specs/alerts.md) |
+| `server/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `lib/email/templates/alert-emails.ts` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `.github/workflows/alerts.yml` | [docs/decisions/0006-alert-scheduling.md](docs/decisions/0006-alert-scheduling.md) |
 | `lib/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
-| `lib/rate-limit.ts` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `server/rate-limit/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `server/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `server/account/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `server/email-verification/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `server/password-reset/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `server/registration/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `server/two-factor/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `lib/email/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `components/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `components/account/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `lib/i18n/**` | [docs/specs/cross-cutting.md](docs/specs/cross-cutting.md) |
+| `server/locale/**` | [docs/specs/cross-cutting.md](docs/specs/cross-cutting.md) |
 | `lib/geo/**` | [docs/specs/cross-cutting.md](docs/specs/cross-cutting.md) |
 | `scripts/**` | [README.md](README.md) |
 | `prisma/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
@@ -413,14 +422,18 @@ Do not point a gap at a loosely related file to make it look covered.
 | `components/hero/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `components/legal/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/globals.css` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| `lib/validations/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `lib/form-data.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `interfaces/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `types/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| `app/actions/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `lib/env.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `proxy.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| `lib/prisma.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `lib/db/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `prisma.config.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `.dependency-cruiser.cjs` | [README.md](README.md) |
+| `plopfile.mjs` | [README.md](README.md) |
+| `plop-templates/**` | [README.md](README.md) |
+| `lib/listings/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
+| `lib/search/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/map/page.tsx` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/api/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `app/login/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
@@ -497,7 +510,7 @@ every pull request; [`pr-title.yml`](.github/workflows/pr-title.yml) runs on pul
 
 | Step | Fails when |
 | --- | --- |
-| `pnpm check` | Biome, knip, `spec:check`, `docs:check` or `todo:check` fail; `tsc` or type-coverage fail; a test fails or coverage drops below the ratchet; the build fails |
+| `pnpm check` | Biome, `depcruise`, knip, `spec:check`, `docs:check` or `todo:check` fail; `tsc` or type-coverage fail; a test fails or coverage drops below the ratchet; the build fails |
 | `gitleaks` | A secret is committed |
 | PR title | The title is not a Conventional Commit |
 

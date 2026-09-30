@@ -110,7 +110,7 @@ Out of scope, deliberately:
 
 The contracts are:
 
-- **`SearchInput`** (`lib/validations/search.ts`) — the one filter set all three
+- **`SearchInput`** (`lib/search/schema.ts`) — the one filter set all three
   sources translate from. Bounds worth keeping: latitude ±90, longitude ±180,
   `distanceInKm` positive, `minYear` at least 1900, `timeFilter` one of
   `today` / `lastWeek` / `lastMonth`.
@@ -152,7 +152,7 @@ The contracts are:
 
 ### Results are interleaved, not concatenated
 
-`interleave()` in `useListingsSearch` round-robins the three lists rather than
+`interleave()` in `lib/listings/merge.ts` round-robins the three lists rather than
 appending them. Concatenating would put every Wallapop result above every
 coches.net one, and since users read from the top, the second and third sources
 would effectively not exist. Round-robin makes the merge visible without ranking
@@ -343,7 +343,7 @@ either meaningless or, worse, silently matches something unintended.
    was intended to and the wiring was lost, or it should be removed. Not
    specified here because it is not currently a behaviour.
 5. **The alert runner has the same hole (found with MAP-16).**
-   `lib/alerts/search.ts` merges all three sources with no distance filter
+   `server/alerts/search.ts` merges all three sources with no distance filter
    either, so a location-scoped alert emails nationwide coches.net and
    Milanuncios matches. It also passes `distanceInKm` straight through: stored
    criteria with coordinates but no radius reach `lib/wallapop/client.ts`,

@@ -12,7 +12,7 @@ those cells read "phase 12".
 | Processor | Region | Data received | DPA |
 | --- | --- | --- | --- |
 | Neon | `aws-eu-central-1` | The whole database: every field in the inventory | phase 12 |
-| Vercel | phase 12 | Hosting: every request, including the client IP the rate limiter reads (`lib/rate-limit.ts`) | phase 12 |
+| Vercel | phase 12 | Hosting: every request, including the client IP the rate limiter reads (`server/rate-limit/service.ts`) | phase 12 |
 | Resend | phase 12 | The recipient's email address and the email content: account emails and alert digests | phase 12 |
 | Google | phase 12 | OAuth sign-in, for users who choose it | phase 12 |
 | GitHub | phase 12 | OAuth sign-in, for users who choose it | phase 12 |

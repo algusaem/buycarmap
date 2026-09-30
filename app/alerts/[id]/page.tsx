@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
 import { getTranslations } from "@/lib/i18n/server";
-import { prisma } from "@/lib/prisma";
 import { AlertMatchesList } from "@/components/alerts/AlertMatchesList";
+import { getAlertWithMatches } from "@/server/alerts/queries";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -17,16 +15,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AlertMatchesPage({ params }: PageProps) {
   const { id } = await params;
 
-  const user = await getCurrentUser();
-  if (!user) redirect(`/login?callbackUrl=%2Falerts%2F${id}`);
-
-  // Scoped by userId, so another account's alert is a 404 rather than a 403 —
-  // confirming it exists would leak that someone else watches this search.
-  const alert = await prisma.alert.findFirst({
-    where: { id, userId: user.id },
-    include: { matches: { orderBy: { createdAt: "desc" } } },
-  });
-  if (!alert) notFound();
+  // Authenticates first; another account's alert is a 404.
+  const alert = await getAlertWithMatches(id);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import type { SearchInput } from "@/lib/validations/search";
+import type { SearchInput } from "@/lib/search/schema";
 
 // Geolocation is a dependency of the mount sequence, not a thing these tests
 // are about — except MAP-14, which needs to control exactly when it resolves.

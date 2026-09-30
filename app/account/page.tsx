@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth/session";
 import { isTwoFactorConfigured } from "@/lib/env";
-import { prisma } from "@/lib/prisma";
 import { getTranslations } from "@/lib/i18n/server";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { EmailForm } from "@/components/account/EmailForm";
@@ -13,6 +10,7 @@ import { ConnectedAccounts } from "@/components/account/ConnectedAccounts";
 import { SessionsCard } from "@/components/account/SessionsCard";
 import { TwoFactorCard } from "@/components/account/TwoFactorCard";
 import { DeleteAccountForm } from "@/components/account/DeleteAccountForm";
+import { getAccountOverview } from "@/server/account/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
@@ -20,34 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AccountPage() {
-  // Middleware already redirects unauthenticated visitors, but this is the
-  // check that actually matters: middleware only decodes the JWT, while
-  // `getCurrentUser` runs the session callback and honours revocation.
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login?callbackUrl=/account");
-  }
-
+  // Authenticates (and redirects a signed-out visitor) before any read.
+  const record = await getAccountOverview();
   const t = await getTranslations();
-
-  // `password` is null for OAuth-only accounts, which changes which forms
-  // apply. Only the presence flag crosses to the client, never the hash.
-  const record = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: {
-      password: true,
-      name: true,
-      email: true,
-      emailVerified: true,
-      twoFactorEnabledAt: true,
-      accounts: { select: { provider: true } },
-    },
-  });
-
-  if (!record) {
-    redirect("/login");
-  }
 
   const providers = record.accounts.map((account) => account.provider);
 

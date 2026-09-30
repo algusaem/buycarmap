@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BellRing, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { deleteAlert } from "@/app/actions/alerts";
+import { deleteAlert } from "@/server/alerts/actions";
 import type { AlertSummary } from "@/interfaces/alert";
-import type { SearchInput } from "@/lib/validations/search";
+import type { SearchInput } from "@/lib/search/schema";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAlertError } from "@/lib/i18n/errors";
 

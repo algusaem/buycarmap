@@ -16,7 +16,7 @@ import {
   disableTwoFactor,
   regenerateRecoveryCodes,
   startTwoFactorSetup,
-} from "@/app/actions/two-factor";
+} from "@/server/two-factor/actions";
 import { RecoveryCodesPanel } from "./RecoveryCodesPanel";
 import { TwoFactorSetup } from "./TwoFactorSetup";
 

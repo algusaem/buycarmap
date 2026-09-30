@@ -21,8 +21,9 @@ flowchart TB
     end
     subgraph server [Next.js server]
         H -->|fetch| P[Proxy routes<br/>app/api/*]
-        C -->|server action| A[Actions<br/>app/actions/*]
-        A --> DB[(Neon Postgres<br/>via Prisma)]
+        C -->|server action| A[Actions<br/>server/*/actions.ts]
+        A --> SV[Services<br/>server/*/service.ts]
+        SV --> DB[(Neon Postgres<br/>via Prisma)]
     end
     P --> U[Wallapop · coches.net · Milanuncios]
 ```
@@ -32,8 +33,10 @@ Two rules fall out of that picture and explain most of the code:
 - **Components never call `fetch`.** Request lifecycles live in `lib/hooks/*`,
   which call clients in `lib/<source>/*`. A component consumes a hook.
 - **Mutations are server actions; route handlers are only for proxying.**
-  Anything writing to the database is an action in `app/actions/`. The `app/api/`
-  routes exist because the upstream marketplaces cannot be called from a browser.
+  Anything writing to the database is an action in `server/<feature>/actions.ts`,
+  which reaches Prisma only through that feature's `service.ts`
+  ([specs/core-layout.md](specs/core-layout.md)). The `app/api/` routes exist
+  because the upstream marketplaces cannot be called from a browser.
 
 ## Path 1 — a search
 
@@ -185,8 +188,9 @@ sequenceDiagram
     end
 ```
 
-[`app/actions/favorites.ts`](../app/actions/favorites.ts) is the shape every
-server action follows:
+[`server/favorites/actions.ts`](../server/favorites/actions.ts) is the shape every
+server action follows, with its database work in
+[`server/favorites/service.ts`](../server/favorites/service.ts):
 
 1. `getCurrentUser()` **first** — before validation, before any query.
 2. Zod `safeParse` on the input.
@@ -220,13 +224,14 @@ application never did.
 ## Path 4 — a poll with no user in it
 
 The three paths above all begin with a request. Alerts do not: a GitHub Actions
-cron POSTs to `app/api/alerts/run/route.ts`, which claims work off a Postgres
+cron POSTs to `app/api/alerts/run/route.ts`, which authenticates the caller and
+hands the run to `server/alerts/service.ts`, which claims work off a Postgres
 queue and drains it. Two consequences reshape the rules above rather than
 following them.
 
 **It cannot use `lib/*/client.ts`.** Those resolve their URL against
 `window.location.origin` and call the proxy routes — which is precisely what the
-proxies are for. A cron has neither, so `lib/alerts/search.ts` calls the three
+proxies are for. A cron has neither, so `server/alerts/search.ts` calls the three
 upstreams directly with the same headers the proxies send.
 
 **It cannot use `getCurrentUser()`.** The caller is a machine, so the endpoint
@@ -267,18 +272,19 @@ Spanish or English in components.
 
 | Path | Holds |
 | --- | --- |
-| `app/` | Routes, layouts, server actions, proxy route handlers |
-| `app/actions/` | Server actions — every mutation |
+| `app/` | Routes, layouts, proxy route handlers |
+| `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/options.ts` until phase 11 — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
 | `components/map/` | The search + map feature |
-| `lib/alerts/` | The background poller's own source fan-out and unsubscribe tokens |
 | `components/ui/` | Radix-wrapped primitives |
 | `lib/hooks/` | Every request lifecycle |
 | `lib/wallapop/`, `lib/cochesnet/`, `lib/milanuncios/` | One module per source: client, normalize, taxonomy |
 | `lib/auth/` | Session, password policy, tokens, two-factor |
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
-| `lib/validations/` | Zod schemas with exported inferred types |
+| `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database, apart from the LAYOUT-7 exception, `lib/auth/options.ts` until phase 11 (see [specs/core-layout.md](specs/core-layout.md)) |
+| `lib/listings/` | The pure search-merge logic: interleaving, the radius and model post-filters, the page-state advance |
+| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Tooling: branch databases, spec, docs and TODO checks — dependency-free except the TODO check, which loads `typescript` |
 
@@ -318,7 +324,7 @@ erDiagram
 #### User
 
 The account. `password` is **nullable** — OAuth-only accounts never set one, so
-credentials login must guard on it (`lib/auth/authorize.ts`).
+credentials login must guard on it (`server/auth/service.ts`).
 
 `image`, not `avatarUrl`: the NextAuth Prisma adapter writes the OAuth profile
 picture to that exact field name, and renaming it breaks linking silently.
@@ -488,11 +494,11 @@ So: the map, the threat model in a paragraph, and where to read next.
 ```mermaid
 flowchart TB
     subgraph entry [Ways in]
-        C[Credentials] --> AZ[lib/auth/authorize.ts]
+        C[Credentials] --> AZ[server/auth/service.ts]
         O[Google · GitHub] --> SI[signIn callback]
     end
     AZ --> TF{2FA enabled?}
-    TF -->|yes| V[lib/auth/two-factor/verify.ts]
+    TF -->|yes| V[server/two-factor/service.ts]
     TF -->|no| J[jwt callback]
     V --> J
     SI --> J
@@ -503,13 +509,13 @@ flowchart TB
 | Area | Lives in |
 | --- | --- |
 | NextAuth config, callbacks, providers | `lib/auth/options.ts` |
-| Credentials verification | `lib/auth/authorize.ts` |
+| Credentials verification | `server/auth/service.ts` — `authorizeCredentials()` |
 | The only authorization check | `lib/auth/session.ts` — `getCurrentUser()` |
 | Password rules | `lib/auth/password-policy.ts`, `password-strength.ts`, `pwned.ts` |
 | Hashing | `lib/auth/hash.ts` — bcryptjs, 12 rounds |
 | Tokens | `lib/auth/tokens.ts` — SHA-256, single-use |
 | TOTP | `lib/auth/two-factor/` — built on `node:crypto`, no dependency |
-| Rate limiting | `lib/rate-limit.ts` — Postgres-backed |
+| Rate limiting | `server/rate-limit/service.ts` — Postgres-backed |
 | Route redirects | `proxy.ts` |
 | Email | `lib/email/` — Resend over `fetch` |
 
@@ -754,8 +760,8 @@ work down a level is almost always right.
 
 Split by environment, not by kind — see [`vitest.config.ts`](../vitest.config.ts).
 
-**`unit`** (jsdom) is the default: everything under `lib/`, `components/` and
-`app/` matching `*.test.{ts,tsx}`.
+**`unit`** (jsdom) is the default: everything under `lib/`, `components/`,
+`app/` and `server/` matching `*.test.{ts,tsx}`.
 
 **`node`** is opt-in **by filename**: `*.node.test.ts`. Route handlers and server
 actions need Node's real `Request`/`Response`, which jsdom does not provide.
@@ -766,7 +772,7 @@ project; the pre-commit hook runs the unit tests related to the staged files.
 Two entries in the `node` include list are worth knowing:
 
 - `proxy.node.test.ts` is listed explicitly, because Next's file convention
-  forces `proxy.ts` to sit at the repo root where the `{lib,app}/**` glob cannot
+  forces `proxy.ts` to sit at the repo root where the `{lib,app,server}/**` glob cannot
   reach it.
 - `scripts/**/*.node.test.ts` is covered even though it is not app code — a bug
   in `db-branch.mjs` clobbers real secrets.

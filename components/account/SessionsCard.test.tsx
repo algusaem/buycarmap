@@ -15,7 +15,7 @@ vi.mock("next-auth/react", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const signOutEverywhere = vi.fn();
-vi.mock("@/app/actions/account", () => ({
+vi.mock("@/server/account/actions", () => ({
   signOutEverywhere: (...args: unknown[]) => signOutEverywhere(...args),
 }));
 

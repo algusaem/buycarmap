@@ -6,7 +6,7 @@ import type { RunSummary } from "@/interfaces/alert";
 let store: ReturnType<typeof createAlertStore>;
 let emailConfigured = true;
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/lib/db/prisma", () => ({
   get prisma() {
     return store.client;
   },
@@ -23,10 +23,10 @@ vi.mock("@/lib/env", () => ({
 }));
 
 vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/alerts/search", () => ({ searchAllSources: vi.fn() }));
+vi.mock("@/server/alerts/search", () => ({ searchAllSources: vi.fn() }));
 
 import { sendEmail } from "@/lib/email/client";
-import { searchAllSources } from "@/lib/alerts/search";
+import { searchAllSources } from "@/server/alerts/search";
 import { POST } from "./route";
 
 const NOW = new Date("2026-08-03T10:00:00.000Z");

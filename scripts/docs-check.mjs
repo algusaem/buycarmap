@@ -46,6 +46,7 @@ const SOURCE_ROOTS = [
   "lib",
   "prisma",
   "scripts",
+  "server",
   "test",
   "types",
 ];
@@ -278,6 +279,17 @@ export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
 export function isUnbuiltSpec(file, text) {
   if (!posix(file).startsWith("docs/specs/")) return false;
   return !/^Status:\s*Implemented\s*$/im.test(text);
+}
+
+/**
+ * Whether a doc is a dated record whose source paths are not checked: an ADR under
+ * `docs/decisions/`. See docs/specs/core-layout.md LAYOUT-4.
+ *
+ * @param {string} file
+ * @returns {boolean}
+ */
+export function isDatedRecord(file) {
+  return posix(file).startsWith("docs/decisions/");
 }
 
 /**
@@ -526,6 +538,7 @@ async function checkLinks(sources, slugsFor, problems) {
 async function checkSourcePaths(sources, problems) {
   for (const [file, text] of sources) {
     if (isUnbuiltSpec(file, text)) continue;
+    if (isDatedRecord(file)) continue;
     for (const path of extractSourcePaths(text)) {
       if (ALLOWED_MISSING.some((pattern) => pattern.test(path))) continue;
       if (!(await exists(path))) {

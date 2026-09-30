@@ -4,9 +4,9 @@ import { makeFavoriteInput } from "@/test/fixtures/favorites";
 
 const useSession = vi.fn();
 vi.mock("next-auth/react", () => ({ useSession: () => useSession() }));
-vi.mock("@/app/actions/favorites", () => ({ listFavorites: vi.fn() }));
+vi.mock("@/server/favorites/actions", () => ({ listFavorites: vi.fn() }));
 
-import { listFavorites } from "@/app/actions/favorites";
+import { listFavorites } from "@/server/favorites/actions";
 import { useFavorites } from "./useFavorites";
 
 const signedIn = () =>

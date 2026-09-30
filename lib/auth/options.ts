@@ -3,8 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
-import { authorizeCredentials } from "@/lib/auth/authorize";
+import { prisma } from "@/lib/db/prisma";
+import { authorizeCredentials } from "@/server/auth/service";
 import { appUrl, env, isGitHubConfigured, isGoogleConfigured } from "@/lib/env";
 
 // Sessions last a week rather than NextAuth's 30-day default: a stolen JWT is

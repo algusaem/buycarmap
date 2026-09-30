@@ -1,6 +1,6 @@
+import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { evaluatePassword } from "@/lib/auth/password-strength";
 import { checkPasswordBreached } from "@/lib/auth/pwned";
-import { AUTH_ERROR, type AuthErrorCode } from "@/lib/validations/auth";
 
 // Server-side gate for any password a user is *setting* (register, reset,
 // change). The Zod schemas only enforce length because these two checks are

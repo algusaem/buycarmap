@@ -20,7 +20,7 @@ vi.mock("next-auth/react", () => ({
   }),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock("@/app/actions/favorites", () => ({
+vi.mock("@/server/favorites/actions", () => ({
   saveFavorite: vi.fn(async () => ({ success: true })),
   removeFavorite: vi.fn(async () => ({ success: true })),
 }));

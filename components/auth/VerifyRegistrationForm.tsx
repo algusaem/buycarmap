@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { verifyRegistration } from "@/app/actions/verify-registration";
+import { verifyRegistration } from "@/server/registration/actions";
 
 interface VerifyRegistrationFormProps {
   token: string;

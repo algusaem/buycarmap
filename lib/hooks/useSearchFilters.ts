@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
-import type { SearchInput } from "@/lib/validations/search";
+import type { SearchInput } from "@/lib/search/schema";
 import type { SelectedLocation } from "@/interfaces/location";
 import { initUserGeolocation, waitForGeolocation } from "@/lib/geo/user-location";
 

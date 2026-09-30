@@ -26,7 +26,7 @@ export default defineConfig({
     },
     coverage: {
       provider: "v8",
-      include: ["lib/**", "components/**", "app/**"],
+      include: ["lib/**", "components/**", "app/**", "server/**", "proxy.ts"],
       exclude: ["app/generated/**", "**/*.test.{ts,tsx}", "**/*.d.ts", "**/index.ts"],
       // A ratchet, not a target. Set a point below what the suite measured
       // when it was introduced, so ordinary variance doesn't fail CI but a
@@ -52,7 +52,7 @@ export default defineConfig({
           name: "unit",
           environment: "jsdom",
           setupFiles: ["./test/setup.jsdom.ts"],
-          include: ["{lib,components,app}/**/*.test.{ts,tsx}"],
+          include: ["{lib,components,app,server}/**/*.test.{ts,tsx}"],
           exclude: ["**/*.node.test.ts", "e2e/**", "node_modules/**"],
         },
       },
@@ -63,7 +63,7 @@ export default defineConfig({
           environment: "node",
           setupFiles: ["./test/setup.node.ts"],
           include: [
-            "{lib,app}/**/*.node.test.ts",
+            "{lib,app,server}/**/*.node.test.ts",
             // `proxy.ts` is required to sit at the repo root by Next's file
             // convention, so its colocated test does not match the glob above.
             "proxy.node.test.ts",

@@ -126,7 +126,7 @@ Contracts › Routing). For a signed-out visitor the control leads to sign-in
 
 ### Server actions
 
-In `app/actions/favorites.ts`, following the project's action conventions —
+In `server/favorites/actions.ts`, following the project's action conventions —
 `getCurrentUser()` first, Zod `safeParse`, and a typed
 `{ success, error?: FavoriteErrorCode }` return where the error is a **code**,
 never prose:
@@ -135,7 +135,7 @@ never prose:
 - `removeFavorite(listingId)` — FAV-3, FAV-4, FAV-5, FAV-6
 - `listFavorites()` — FAV-8
 
-Error codes in `lib/validations/favorites.ts`, mirroring the `AUTH_ERROR` shape:
+Error codes in `server/favorites/schema.ts`, mirroring the `AUTH_ERROR` shape:
 `unauthenticated`, `invalidListing`, `unexpected`.
 
 ### Routing
@@ -247,7 +247,7 @@ own spec if it is wanted.
 
 ### No rate limit for now
 
-`lib/rate-limit.ts` exists and is applied to every auth surface, but those are
+`server/rate-limit/service.ts` exists and is applied to every auth surface, but those are
 unauthenticated endpoints where the abuse is enumeration and credential
 stuffing. Saving a favorite requires a session, writes one small row, and is
 bounded by a unique constraint, so the worst a determined user achieves is
@@ -281,7 +281,7 @@ about whether the constraint exists.
    scope here.
 3. **Decided: no rate limit.** Saving requires a session, writes one small row,
    and is bounded by a unique constraint, so the worst a determined user
-   achieves is filling their own list. `lib/rate-limit.ts` exists for
+   achieves is filling their own list. `server/rate-limit/service.ts` exists for
    unauthenticated surfaces where the abuse is enumeration and credential
    stuffing; applying it here would be reflex rather than reasoning. Revisit if
    a real abuse pattern appears.

@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { updateProfileSchema, type UpdateProfileInput } from "@/lib/validations/auth";
-import { updateProfile } from "@/app/actions/account";
+import { updateProfileSchema, type UpdateProfileInput } from "@/server/account/schema";
+import { updateProfile } from "@/server/account/actions";
 
 interface ProfileFormProps {
   name: string;

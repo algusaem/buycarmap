@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import type { CarListing } from "@/interfaces/listing";
 import { SourceBadge } from "@/components/map/SourceBadge";
 import { useTranslation } from "@/lib/i18n/client";
-import { removeFavorite, saveFavorite } from "@/app/actions/favorites";
+import { removeFavorite, saveFavorite } from "@/server/favorites/actions";
 
 interface CarListingCardProps extends CarListing {
   isFavorite?: boolean;

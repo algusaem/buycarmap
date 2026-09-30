@@ -104,10 +104,12 @@ pnpm build            # prisma generate && next build
 pnpm start            # next start
 pnpm check             # The verification contract: lint → typecheck → test → build
 pnpm check:full        # pnpm check, then the Playwright e2e suite
-pnpm lint              # Biome, knip, spec:check, docs:check, todo:check
+pnpm lint              # Biome, depcruise, knip, spec:check, docs:check, todo:check
 pnpm typecheck         # tsc --noEmit and type-coverage
+pnpm depcruise         # dependency-cruiser boundaries (.dependency-cruiser.cjs), 0 violations required
+pnpm gen feature <name> # Scaffold server/<name>/{queries,actions,service,schema}.ts and its spec (plop)
 pnpm spec:check       # Assert every approved acceptance criterion still has a test
-pnpm docs:check       # Assert doc links, referenced source paths and the ownership map resolve
+pnpm docs:check       # Assert doc links, referenced source paths (ADR source paths excepted, LAYOUT-4) and the ownership map resolve
 pnpm todo:check       # No TODO comment without an issue reference
 pnpm test              # Vitest, both projects, with the coverage thresholds
 pnpm test:unit         # Vitest jsdom project
@@ -180,7 +182,7 @@ reasonable-looking change, because breaking one is silent:
   city- or province-level approximations. Wallapop's are exact when the listing
   carries coordinates (SRC-3).
 - **The merge post-filters by radius and model** (`applyResultFilters` in
-  `lib/hooks/useListingsSearch.ts`). It looks redundant — "upstream already
+  `lib/listings/merge.ts`, applied by `collectRoundResults`, which `lib/hooks/useListingsSearch.ts` calls). It looks redundant — "upstream already
   filters" — but only Wallapop enforces the radius and Milanuncios matches the
   model as free text. Removing it silently reverts to nationwide results
   (MAP-16..18). **Because that filter can empty a page**, the first search and
@@ -192,7 +194,7 @@ reasonable-looking change, because breaking one is silent:
 - **Server code cannot call the browser-bound fetchers** — `searchWallapop`,
   `searchCochesNet`, `searchMilanuncios`, `lib/wallapop/filters.ts` and
   `lib/cochesnet/models.ts` resolve URLs against `window.location.origin`. The alert
-  runner goes through `lib/alerts/search.ts`, which reuses only the pure query builders
+  runner goes through `server/alerts/search.ts`, which reuses only the pure query builders
   from `lib/*/client.ts`.
 - Respect robots.txt and the upstreams' rate limits.
 - Where it helps performance, keep map markers clustered or limited and lazy-load
@@ -334,7 +336,8 @@ anything here** — every property below is load-bearing and most are not obviou
 Any change here needs approval first (`RULES.md` §1).
 
 - **Never call `getServerSession` directly** — use `getCurrentUser()` from
-  `lib/auth/session.ts`. Every server action touching user data must call it.
+  `lib/auth/session.ts`. Every server action (`server/<feature>/actions.ts`) and page read
+  (`server/<feature>/queries.ts`) touching user data must call it.
   Only it honours revocation. `proxy.ts` only decodes the JWT and cannot see
   revocations, so it is UX, not authorization.
 - **`authOptions` lives in `lib/auth/options.ts`**, never the route file —
@@ -346,10 +349,11 @@ Any change here needs approval first (`RULES.md` §1).
   is what counts.
 - **Password reset must not bypass 2FA**, and the email-change link must go to
   the **new** address with the current password required to start the change.
-- **Return codes, never prose** (`AUTH_ERROR`). Forms resolve them with
+- **Return codes, never prose** (`AUTH_ERROR`, in `lib/auth/errors.ts`). Forms resolve them with
   `translateAuthError(t, code)`; pass `setError` the raw code.
 - **Do not add a scheduler.** Expired tokens are pruned opportunistically by
-  `lib/auth/cleanup.ts`, the same way `lib/rate-limit.ts` prunes its rows.
+  `maybePruneExpiredAuthRows` in `server/auth/service.ts`, the same way
+  `server/rate-limit/service.ts` prunes its rows.
 - **Do not weaken enumeration resistance.** Identical responses, dummy-hash
   timing equalization, and bcrypt run *before* any existence check. Registration
   is verify-first when email is configured — `register` writes a

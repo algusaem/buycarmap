@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/alerts",
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock("@/app/actions/alerts", () => ({
+vi.mock("@/server/alerts/actions", () => ({
   deleteAlert: vi.fn(async () => ({ success: true })),
 }));
 

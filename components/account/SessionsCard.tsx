@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { signOutEverywhere } from "@/app/actions/account";
+import { signOutEverywhere } from "@/server/account/actions";
 
 export function SessionsCard() {
   const { t } = useTranslation();

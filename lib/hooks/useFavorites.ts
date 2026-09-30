@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { listFavorites } from "@/app/actions/favorites";
+import { listFavorites } from "@/server/favorites/actions";
 
 /**
  * The listing ids the signed-in user has saved.

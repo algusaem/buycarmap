@@ -10,6 +10,7 @@ import {
   globToRegExp,
   headingSlugs,
   INDEX,
+  isDatedRecord,
   isGap,
   isUnbuiltSpec,
   ownableFiles,
@@ -219,6 +220,14 @@ describe("isGap", () => {
   it("does not treat a real doc path as a gap", () => {
     expect(isGap("data-model.md")).toBe(false);
     expect(isGap("integrations/wallapop.md")).toBe(false);
+  });
+});
+
+describe("isDatedRecord", () => {
+  it("LAYOUT-4: an ADR is a dated record whose paths are not checked; other docs are", () => {
+    expect(isDatedRecord("docs/decisions/0007-adopt-core-rules.md")).toBe(true);
+    expect(isDatedRecord("docs/ARCHITECTURE.md")).toBe(false);
+    expect(isDatedRecord("docs/specs/alerts.md")).toBe(false);
   });
 });
 

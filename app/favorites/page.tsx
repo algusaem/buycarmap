@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth/session";
 import { getTranslations } from "@/lib/i18n/server";
-import { listFavorites } from "@/app/actions/favorites";
+import { listFavoritesForPage } from "@/server/favorites/queries";
 import { FavoritesList } from "@/components/favorites/FavoritesList";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,14 +11,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function FavoritesPage() {
-  // `proxy.ts` already redirects anonymous visitors, but this is the check that
-  // matters: the proxy only decodes the JWT, while `getCurrentUser` runs the
-  // session callback and honours revocation.
-  const user = await getCurrentUser();
-  if (!user) redirect("/login?callbackUrl=%2Ffavorites");
-
+  const favorites = await listFavoritesForPage();
   const t = await getTranslations();
-  const result = await listFavorites();
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
@@ -40,7 +32,7 @@ export default async function FavoritesPage() {
         </div>
       </div>
 
-      <FavoritesList favorites={result.data ?? []} />
+      <FavoritesList favorites={favorites} />
     </div>
   );
 }

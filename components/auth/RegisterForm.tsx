@@ -27,9 +27,8 @@ import { PasswordInput } from "./PasswordInput";
 import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
-import { register as registerUser } from "@/app/actions/register";
-import { resendConfirmation } from "@/app/actions/resend-confirmation";
+import { registerSchema, type RegisterInput } from "@/server/registration/schema";
+import { register as registerUser, resendConfirmation } from "@/server/registration/actions";
 
 export function RegisterForm() {
   const { t } = useTranslation();

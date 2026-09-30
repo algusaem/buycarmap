@@ -16,8 +16,9 @@ import { PasswordInput } from "./PasswordInput";
 import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
 import { useTranslation } from "@/lib/i18n/client";
 import { translateAuthError } from "@/lib/i18n/errors";
-import { AUTH_ERROR, resetPasswordSchema, type ResetPasswordInput } from "@/lib/validations/auth";
-import { resetPassword } from "@/app/actions/reset-password";
+import { AUTH_ERROR } from "@/lib/auth/errors";
+import { resetPasswordSchema, type ResetPasswordInput } from "@/server/password-reset/schema";
+import { resetPassword } from "@/server/password-reset/actions";
 
 interface ResetPasswordFormProps {
   token: string;

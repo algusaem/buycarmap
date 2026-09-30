@@ -22,7 +22,7 @@ vi.mock("next-auth/react", () => ({
 vi.mock("next-themes", () => ({ useTheme: () => ({ resolvedTheme: "dark" }) }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const registerUser = vi.fn();
-vi.mock("@/app/actions/register", () => ({
+vi.mock("@/server/registration/actions", () => ({
   register: (...args: unknown[]) => registerUser(...args),
 }));
 import { toast } from "sonner";
