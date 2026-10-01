@@ -1,7 +1,7 @@
 # Data model conventions (migration phase 8)
 
 Key: DATA
-Status: Approved
+Status: Implemented
 Last updated: 2026-10-01
 
 ---
@@ -28,56 +28,56 @@ This is phase 8 of ADR 0007: row 18.
 
 ### Ids
 
-- [ ] DATA-1 · unit — Every model's primary key is `id String @id @default(uuid(7)) @db.Uuid`, and every foreign key to it is `@db.Uuid`.
+- [x] DATA-1 · unit — Every model's primary key is `id String @id @default(uuid(7)) @db.Uuid`, and every foreign key to it is `@db.Uuid`.
   - `RateLimit` and `SourceHealth` gain such an `id`. Their natural keys (`key`, `source`) become `@unique`.
   - `VerificationToken` gains an `id`. Its `[identifier, token]` stays `@@unique`.
   - A test reads `prisma/schema.prisma` and fails on any `cuid()` or any `@id` that is not a UUID.
-- [ ] DATA-2 · node — The migration converts every existing id to a UUIDv7 and rewrites every foreign key to match.
+- [x] DATA-2 · node — The migration converts every existing id to a UUIDv7 and rewrites every foreign key to match.
   - Every row survives, and so does every relation: a user's favorites, alerts and matches still belong to that user.
   - Rows get UUIDv7 values in `createdAt` order, so ids sort like the rows they replace.
   - The migration is proven on a migrated copy of a fixture database holding one of each relation, checking counts and joins before and after. It is then rehearsed on a Neon branch of production before merge (Contracts).
-- [ ] DATA-3 · unit — `lib/ids.ts` exports a branded type per model: `UserId`, `AlertId`, `FavoriteId` and so on, each `string & { readonly __brand: "<Model>Id" }`.
+- [x] DATA-3 · unit — `lib/ids.ts` exports a branded type per model: `UserId`, `AlertId`, `FavoriteId` and so on, each `string & { readonly __brand: "<Model>Id" }`.
   - Every function in `server/*/service.ts` and `server/*/queries.ts` that takes an entity id takes its branded type.
   - Every Zod schema that accepts an id from the client parses it with `z.uuid().brand<"<Model>Id">()`.
   - A type-level test (`expectTypeOf`) proves that passing an `AlertId` where a `UserId` is expected does not compile.
-- [ ] DATA-4 · node — Every signed-in user is signed out once when this ships: their JWT carries the old id, `getCurrentUser()` finds no user with it, and it treats that as a revoked session (existing behaviour). Signing in again works. The PR states the one-time sign-out.
+- [x] DATA-4 · node — Every signed-in user is signed out once when this ships: their JWT carries the old id, `getCurrentUser()` finds no user with it, and it treats that as a revoked session (existing behaviour). Signing in again works. The PR states the one-time sign-out.
 
 ### Names and types
 
-- [ ] DATA-5 · unit — Every model maps to a snake_case plural table (`@@map("alert_poll_jobs")`) and every multi-word field to a snake_case column (`@map("created_at")`). TypeScript names do not change. A test fails on any model without `@@map` or any multi-word field without `@map`.
-- [ ] DATA-6 · node — Every `DateTime` column is `@db.Timestamptz(3)`. The migration converts existing values with `AT TIME ZONE 'UTC'`, so an instant is unchanged: a row created at `2026-09-30 10:00:00` UTC reads back as the same instant.
-- [ ] DATA-7 · node — `AlertPollJob.status` is a Prisma enum `AlertPollJobStatus { pending running failed }`. Existing rows convert with a cast. A value outside the enum is rejected by the database.
+- [x] DATA-5 · unit — Every model maps to a snake_case plural table (`@@map("alert_poll_jobs")`) and every multi-word field to a snake_case column (`@map("created_at")`). TypeScript names do not change. A test fails on any model without `@@map` or any multi-word field without `@map`.
+- [x] DATA-6 · node — Every `DateTime` column is `@db.Timestamptz(3)`. The migration converts existing values with `AT TIME ZONE 'UTC'`, so an instant is unchanged: a row created at `2026-09-30 10:00:00` UTC reads back as the same instant.
+- [x] DATA-7 · node — `AlertPollJob.status` is a Prisma enum `AlertPollJobStatus { pending running failed }`. Existing rows convert with a cast. A value outside the enum is rejected by the database.
 
 ### Standard columns
 
-- [ ] DATA-8 · unit — Every model has `createdAt`, `updatedAt`, `createdById`, `updatedById`, `deletedAt` and `version Int @default(1)`.
+- [x] DATA-8 · unit — Every model has `createdAt`, `updatedAt`, `createdById`, `updatedById`, `deletedAt` and `version Int @default(1)`.
   - `createdById` and `updatedById` are nullable FKs to `User` with `onDelete: SetNull`. Null means the system wrote the row: the cron, the rate limiter, sign-up before the user exists.
   - A test fails on any model missing one of these.
-- [ ] DATA-9 · node — Services set `createdById` on create and `updatedById` on update to the signed-in user's id wherever one exists, and leave them null for system writes.
+- [x] DATA-9 · node — Services set `createdById` on create and `updatedById` on update to the signed-in user's id wherever one exists, and leave them null for system writes.
 
 ### Soft delete
 
-- [ ] DATA-10 · node — Deleting a favorite or an alert sets `deletedAt` instead of removing the row. Every read in `server/*/queries.ts` and `server/*/service.ts` excludes rows with `deletedAt` set, through one helper in `lib/db/`. A user never sees, and the alert runner never polls, something deleted.
-- [ ] DATA-11 · node — Saving a favorite or creating an alert that matches a soft-deleted row (the same `[userId, listingId]` or `[userId, criteriaId]` unique) restores that row, clearing `deletedAt` and bumping `version`, instead of failing on the unique constraint.
-- [ ] DATA-12 · node — Soft-deleted rows are erased 30 days after `deletedAt` (owner's decision, 2026-10-01). The purge is opportunistic, run from the same paths that already prune expired auth rows (`maybePruneExpiredAuthRows`), with no new scheduler. `docs/privacy/data-inventory.md` records the 30-day retention for every soft-deletable personal field.
-- [ ] DATA-13 · node — Deleting an account still erases at once, as today. The user row and every row that belongs to it are removed, not soft-deleted (`RULES.md` §12). `createdById`/`updatedById` pointing at that user become null.
-- [ ] DATA-14 · node — System rows are still removed outright when pruned: expired tokens, rate-limit windows, finished poll jobs and stale seen listings. `deletedAt` exists on them for uniformity and is never set.
+- [x] DATA-10 · node — Deleting a favorite or an alert sets `deletedAt` instead of removing the row. Every read in `server/*/queries.ts` and `server/*/service.ts` excludes rows with `deletedAt` set, through one helper in `lib/db/`. A user never sees, and the alert runner never polls, something deleted.
+- [x] DATA-11 · node — Saving a favorite or creating an alert that matches a soft-deleted row (the same `[userId, listingId]` or `[userId, criteriaId]` unique) restores that row, clearing `deletedAt` and bumping `version`, instead of failing on the unique constraint.
+- [x] DATA-12 · node — Soft-deleted rows are erased 30 days after `deletedAt` (owner's decision, 2026-10-01). The purge is opportunistic, run from the same paths that already prune expired auth rows (`maybePruneExpiredAuthRows`), with no new scheduler. `docs/privacy/data-inventory.md` records the 30-day retention for every soft-deletable personal field.
+- [x] DATA-13 · node — Deleting an account still erases at once, as today. The user row and every row that belongs to it are removed, not soft-deleted (`RULES.md` §12). `createdById`/`updatedById` pointing at that user become null.
+- [x] DATA-14 · node — System rows are still removed outright when pruned: expired tokens, rate-limit windows, finished poll jobs and stale seen listings. `deletedAt` exists on them for uniformity and is never set.
 
 ### Optimistic locking
 
-- [ ] DATA-15 · node — The two form-based edits of a `User`, `updateProfile` and `changePassword`, assert the `version` the form rendered and increment it, in one `updateMany({ where: { id, version } })`.
+- [x] DATA-15 · node — The two form-based edits of a `User`, `updateProfile` and `changePassword`, assert the `version` the form rendered and increment it, in one `updateMany({ where: { id, version } })`.
   - When no row matches, the action returns `AUTH_ERROR.conflict` and changes nothing.
   - Every other write still increments `version` (two-factor, `setLocale`, the system writes) without asserting it, because nothing the user edits by hand is at stake there.
   - Alerts and favorites have no update today, only create and delete.
-- [ ] DATA-16 · unit + e2e — On `conflict` the UI shows a translated message, in both locales, telling the user that the item changed elsewhere and to reload. The e2e test opens `/account` in two pages, saves a new name in the first, saves another in the second, and sees the message there. The first name stays.
+- [x] DATA-16 · unit + e2e — On `conflict` the UI shows a translated message, in both locales, telling the user that the item changed elsewhere and to reload. The e2e test opens `/account` in two pages, saves a new name in the first, saves another in the second, and sees the message there. The first name stays.
 
 ### Relations
 
-- [ ] DATA-17 · unit — The 12 existing `onDelete: Cascade` relations stay, because each child is meaningless without its parent. Each carries a one-line schema comment saying so. Any other relation is `Restrict` unless its comment justifies otherwise. A test fails on a `Cascade` without a comment on the line above.
+- [x] DATA-17 · unit — The 12 existing `onDelete: Cascade` relations stay, because each child is meaningless without its parent. Each carries a one-line schema comment saying so. Any other relation is `Restrict` unless its comment justifies otherwise. A test fails on a `Cascade` without a comment on the line above.
 
 ### Docs
 
-- [ ] DATA-18 · unit — `docs/ARCHITECTURE.md` › Data model describes ids, naming, the standard columns, soft delete and purge, optimistic locking and the cascade rule. `docs/privacy/data-inventory.md` and `docs/privacy/deletion.md` record the 30-day soft-delete retention and that account deletion still erases at once. ADR 0015 records the decisions below. ADR 0007 marks row 18 `Resolved in phase 8`.
+- [x] DATA-18 · unit — `docs/ARCHITECTURE.md` › Data model describes ids, naming, the standard columns, soft delete and purge, optimistic locking and the cascade rule. `docs/privacy/data-inventory.md` and `docs/privacy/deletion.md` record the 30-day soft-delete retention and that account deletion still erases at once. ADR 0015 records the decisions below. ADR 0007 marks row 18 `Resolved in phase 8`.
 
 ## Worked examples
 
