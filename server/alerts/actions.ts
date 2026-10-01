@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { type AppError, err, ok, type Result } from "@/lib/result";
 import { withRequestContext } from "@/lib/request-context";
 import { searchSchema, type SearchInput } from "@/lib/search/schema";
+import { alertIdSchema, asUserId } from "@/lib/ids";
 import { ALERT_ERROR, type AlertErrorCode } from "./schema";
 import { createAlertForUser, deleteAlertForUser, isSpecificEnough } from "./service";
 
@@ -37,7 +38,7 @@ export async function createAlert(
       return err(alertError(ALERT_ERROR.invalidCriteria));
     }
 
-    const createError = await createAlertForUser(user.id, parsed.data, trimmedLabel);
+    const createError = await createAlertForUser(asUserId(user.id), parsed.data, trimmedLabel);
     if (createError) {
       return err(alertError(createError));
     }
@@ -51,7 +52,14 @@ export async function deleteAlert(alertId: string): Promise<Result<void, AlertEr
     const user = await getCurrentUser();
     if (!user) return err(alertError(ALERT_ERROR.unauthenticated));
 
-    await deleteAlertForUser(user.id, alertId);
+    // A malformed id cannot belong to this (or any) user, so it is handled
+    // the same way an id that simply does not exist is below: silently.
+    const parsedId = alertIdSchema.safeParse(alertId);
+    if (!parsedId.success) {
+      return ok(undefined);
+    }
+
+    await deleteAlertForUser(asUserId(user.id), parsedId.data);
     return ok(undefined);
   });
 }

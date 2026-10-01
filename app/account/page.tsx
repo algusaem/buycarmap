@@ -45,7 +45,7 @@ export default async function AccountPage() {
         </header>
 
         <div className="space-y-6">
-          <ProfileForm name={record.name ?? ""} />
+          <ProfileForm name={record.name ?? ""} version={record.version} />
 
           <EmailForm
             email={record.email}
@@ -57,7 +57,7 @@ export default async function AccountPage() {
 
           {/* Hidden rather than disabled for OAuth-only accounts: there is no
               current password to enter, so the form has nothing to act on. */}
-          {record.password && <ChangePasswordForm email={record.email} />}
+          {record.password && <ChangePasswordForm email={record.email} version={record.version} />}
 
           {/* Only offered to credential accounts: an OAuth-only user signs in
               through their provider, which owns its own second factor. */}

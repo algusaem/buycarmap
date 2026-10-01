@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
+import { asAlertId, asUserId } from "@/lib/ids";
 import { createAlert } from "@/test/factories/alert";
 import { createAlertCriteria } from "@/test/factories/alert-criteria";
 import { createUser } from "@/test/factories/user";
@@ -26,7 +27,7 @@ describe("findAlertWithMatches", () => {
       criteria: { connect: { id: criteria.id } },
     });
 
-    const alert = await findAlertWithMatches(ada.id, gracesAlert.id);
+    const alert = await findAlertWithMatches(asUserId(ada.id), asAlertId(gracesAlert.id));
 
     expect(alert).toBeNull();
   });
@@ -39,7 +40,7 @@ describe("findAlertWithMatches", () => {
       criteria: { connect: { id: criteria.id } },
     });
 
-    const alert = await findAlertWithMatches(ada.id, adasAlert.id);
+    const alert = await findAlertWithMatches(asUserId(ada.id), asAlertId(adasAlert.id));
 
     expect(alert).toMatchObject({ id: adasAlert.id, userId: ada.id });
   });
@@ -49,9 +50,9 @@ describe("findAlertSummaries", () => {
   it("ALERT-1: the alert is readable on a later request", async () => {
     const ada = await createUser({ email: "ada@example.com" });
 
-    await createAlertForUser(ada.id, makeCriteria(), "Audi A3 under 20k");
+    await createAlertForUser(asUserId(ada.id), makeCriteria(), "Audi A3 under 20k");
 
-    const result = await findAlertSummaries(ada.id);
+    const result = await findAlertSummaries(asUserId(ada.id));
 
     expect(result.map((row) => row.label)).toEqual(["Audi A3 under 20k"]);
   });
@@ -60,10 +61,10 @@ describe("findAlertSummaries", () => {
     const ada = await createUser({ email: "ada@example.com" });
     const grace = await createUser({ email: "grace@example.com" });
 
-    await createAlertForUser(grace.id, makeCriteria({ brand: "BMW" }), "Grace's search");
-    await createAlertForUser(ada.id, makeCriteria(), "Ada's search");
+    await createAlertForUser(asUserId(grace.id), makeCriteria({ brand: "BMW" }), "Grace's search");
+    await createAlertForUser(asUserId(ada.id), makeCriteria(), "Ada's search");
 
-    const result = await findAlertSummaries(ada.id);
+    const result = await findAlertSummaries(asUserId(ada.id));
 
     expect(result.map((row) => row.label)).toEqual(["Ada's search"]);
   });
@@ -71,20 +72,20 @@ describe("findAlertSummaries", () => {
   it("ALERT-1: an empty list is a success, not an error", async () => {
     const ada = await createUser({ email: "ada@example.com" });
 
-    const result = await findAlertSummaries(ada.id);
+    const result = await findAlertSummaries(asUserId(ada.id));
 
     expect(result).toEqual([]);
   });
 
   it("ALERT-42: an inactive alert still holds its criteria set", async () => {
     const ada = await createUser({ email: "ada@example.com" });
-    await createAlertForUser(ada.id, makeCriteria(), "Audi A3 under 20k");
+    await createAlertForUser(asUserId(ada.id), makeCriteria(), "Audi A3 under 20k");
     const [alert] = await prisma.alert.findMany({ where: { userId: ada.id } });
     // Unsubscribing deactivates; only deletion releases the criteria, so the
     // matches page still renders and re-enabling loses nothing.
     await prisma.alert.update({ where: { id: alert.id }, data: { active: false } });
 
-    await expect(findAlertSummaries(ada.id)).resolves.toEqual([
+    await expect(findAlertSummaries(asUserId(ada.id))).resolves.toEqual([
       expect.objectContaining({ label: "Audi A3 under 20k", matchCount: 0, active: false }),
     ]);
     expect(await prisma.alertCriteria.count()).toBe(1);

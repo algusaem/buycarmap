@@ -7,12 +7,13 @@ import {
   tokenExpiry,
 } from "@/lib/auth/tokens";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
+import type { UserId } from "@/lib/ids";
 import { maybePruneExpiredAuthRows } from "@/server/auth/service";
 
 // One row per user at a time: issuing a new link retires any earlier one, so a
 // stale link in an old email cannot still move the account later.
 export async function replaceVerificationToken(
-  userId: string,
+  userId: UserId,
   newEmail: string | null,
 ): Promise<string> {
   await maybePruneExpiredAuthRows();
@@ -36,7 +37,7 @@ export async function replaceVerificationToken(
   return token;
 }
 
-export async function findEmailVerificationState(userId: string) {
+export async function findEmailVerificationState(userId: UserId) {
   return prisma.user.findUnique({
     where: { id: userId },
     select: { email: true, emailVerified: true },
@@ -59,7 +60,7 @@ export async function findEmailVerificationToken(tokenHash: string) {
 
 interface RedeemableEmailToken {
   id: string;
-  userId: string;
+  userId: UserId;
   newEmail: string | null;
 }
 

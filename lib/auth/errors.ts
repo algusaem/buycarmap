@@ -32,6 +32,10 @@ export const AUTH_ERROR = {
   lastSignInMethod: "lastSignInMethod",
   rateLimited: "rateLimited",
   unauthorized: "unauthorized",
+  // DATA-15/DATA-16 (docs/specs/core-data-model.md): optimistic-locking
+  // conflict on updateProfile/changePassword — the `version` the form
+  // rendered no longer matches the row.
+  conflict: "conflict",
   generic: "generic",
 } as const;
 

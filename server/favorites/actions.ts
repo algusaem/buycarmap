@@ -3,6 +3,7 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { type AppError, err, ok, type Result } from "@/lib/result";
 import { withRequestContext } from "@/lib/request-context";
+import { asUserId } from "@/lib/ids";
 import type { CarListing } from "@/interfaces/listing";
 import { FAVORITE_ERROR, type FavoriteErrorCode, favoriteListingSchema } from "./schema";
 import { deleteFavorite, findFavorites, upsertFavorite } from "./service";
@@ -25,7 +26,7 @@ export async function saveFavorite(listing: CarListing): Promise<Result<void, Fa
 
     const { id: listingId, ...snapshot } = parsed.data;
 
-    await upsertFavorite(user.id, listingId, snapshot);
+    await upsertFavorite(asUserId(user.id), listingId, snapshot);
     return ok(undefined);
   });
 }
@@ -41,7 +42,7 @@ export async function removeFavorite(listingId: string): Promise<Result<void, Fa
     // from "was never yours" would confirm that someone else's favorite
     // exists, which is the kind of thing the rest of this codebase avoids
     // leaking.
-    await deleteFavorite(user.id, listingId);
+    await deleteFavorite(asUserId(user.id), listingId);
     return ok(undefined);
   });
 }
@@ -51,6 +52,6 @@ export async function listFavorites(): Promise<Result<CarListing[], FavoriteErro
     const user = await getCurrentUser();
     if (!user) return err(favoriteError(FAVORITE_ERROR.unauthenticated));
 
-    return ok(await findFavorites(user.id));
+    return ok(await findFavorites(asUserId(user.id)));
   });
 }

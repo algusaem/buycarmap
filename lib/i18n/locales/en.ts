@@ -262,6 +262,7 @@ export const en: Translations = {
     lastSignInMethod: "That's your only way to sign in. Set a password before disconnecting it.",
     rateLimited: "Too many attempts. Please wait a few minutes and try again.",
     unauthorized: "You need to sign in to do that",
+    conflict: "This changed in another tab or device. Reload the page to see the current version.",
     generic: "Something went wrong. Please try again.",
   },
   passwordStrength: {

@@ -26,6 +26,11 @@ export function buildAlert(overrides: AlertOverrides): Prisma.AlertCreateInput {
     label: `${faker.vehicle.manufacturer()} ${faker.vehicle.model()} alert`,
     active: true,
     unsubscribeTokenHash: faker.string.hexadecimal({ length: 64, casing: "lower", prefix: "" }),
+    // Mirrors the real service (server/alerts/service.ts): a freshly minted
+    // alert's unsubscribeSubject is its own id. This factory does not control
+    // the id the database assigns, so it uses an independent UUID instead —
+    // nothing reads the two back as equal here, only that the column is set.
+    unsubscribeSubject: faker.string.uuid(),
     ...overrides,
   };
 }

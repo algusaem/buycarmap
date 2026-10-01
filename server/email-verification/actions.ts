@@ -14,6 +14,7 @@ import { requiredString } from "@/lib/form-data";
 import { getLocale } from "@/lib/i18n/server";
 import { findPasswordAndEmail } from "@/server/account/service";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
+import { asUserId } from "@/lib/ids";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/server/rate-limit/service";
 import { changeEmailSchema } from "./schema";
 import {
@@ -51,7 +52,7 @@ export async function requestEmailVerification(): Promise<EmailVerificationResul
     return { success: false, error: AUTH_ERROR.rateLimited };
   }
 
-  const record = await findEmailVerificationState(user.id);
+  const record = await findEmailVerificationState(asUserId(user.id));
 
   if (!record) {
     return { success: false, error: AUTH_ERROR.unauthorized };
@@ -61,7 +62,7 @@ export async function requestEmailVerification(): Promise<EmailVerificationResul
     return { success: false, error: AUTH_ERROR.alreadyVerified };
   }
 
-  const token = await replaceVerificationToken(user.id, null);
+  const token = await replaceVerificationToken(asUserId(user.id), null);
   const locale = await getLocale();
   const { subject, html, text } = renderVerifyEmailAddressEmail(
     locale,
@@ -112,7 +113,7 @@ export async function requestEmailChange(formData: FormData): Promise<EmailVerif
 
   const { email: newEmail, currentPassword } = parsed.data;
 
-  const record = await findPasswordAndEmail(user.id);
+  const record = await findPasswordAndEmail(asUserId(user.id));
 
   if (!record?.password) {
     // OAuth-only accounts have no password to check, so this flow does not
@@ -135,7 +136,7 @@ export async function requestEmailChange(formData: FormData): Promise<EmailVerif
   // this caps that at the 6/hour rate limit and reveals nothing per attempt.
   // The unique index is still the real guard at redemption time.
   if (!existing) {
-    const token = await replaceVerificationToken(user.id, newEmail);
+    const token = await replaceVerificationToken(asUserId(user.id), newEmail);
     const locale = await getLocale();
     const { subject, html, text } = renderEmailChangeEmail(
       locale,
@@ -178,7 +179,10 @@ export async function confirmEmail(formData: FormData): Promise<EmailVerificatio
   const previousEmail = record.user.email;
   const now = new Date();
 
-  const redeemError = await redeemEmailVerificationToken(record, now);
+  const redeemError = await redeemEmailVerificationToken(
+    { id: record.id, userId: asUserId(record.userId), newEmail: record.newEmail },
+    now,
+  );
 
   if (redeemError) {
     return { success: false, error: redeemError };

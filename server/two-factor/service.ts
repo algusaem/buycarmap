@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { decryptSecret } from "@/lib/auth/two-factor/encryption";
 import { hashRecoveryCode } from "@/lib/auth/two-factor/recovery-codes";
 import { verifyTotp } from "@/lib/auth/two-factor/totp";
+import type { UserId } from "@/lib/ids";
 
 // verifyAndConsumeTwoFactor is shared by the login path and by the account
 // actions, so the rules about replay and single-use recovery codes cannot
@@ -95,7 +96,7 @@ export async function verifyAndConsumeTwoFactor(
 }
 
 /** What enrolment needs to know before minting a secret. */
-export async function findTwoFactorSetupState(userId: string) {
+export async function findTwoFactorSetupState(userId: UserId) {
   return prisma.user.findUnique({
     where: { id: userId },
     select: { email: true, password: true, twoFactorEnabledAt: true },
@@ -104,7 +105,7 @@ export async function findTwoFactorSetupState(userId: string) {
 
 /** Stores a freshly minted, already encrypted secret and clears the replay step. */
 export async function storePendingTwoFactorSecret(
-  userId: string,
+  userId: UserId,
   encryptedSecret: string,
 ): Promise<void> {
   await prisma.user.update({
@@ -117,7 +118,7 @@ export async function storePendingTwoFactorSecret(
 }
 
 /** What confirming enrolment needs: the pending secret and whether 2FA is already on. */
-export async function findTwoFactorConfirmState(userId: string) {
+export async function findTwoFactorConfirmState(userId: UserId) {
   return prisma.user.findUnique({
     where: { id: userId },
     select: { twoFactorSecret: true, twoFactorEnabledAt: true },
@@ -126,7 +127,7 @@ export async function findTwoFactorConfirmState(userId: string) {
 
 /** Switches 2FA on and replaces the recovery codes, in one transaction. */
 export async function enableTwoFactor(
-  userId: string,
+  userId: UserId,
   enabledAt: Date,
   lastStep: number,
   recoveryCodeHashes: string[],
@@ -145,7 +146,7 @@ export async function enableTwoFactor(
 }
 
 /** What turning 2FA off needs: the password hash and the current 2FA state. */
-export async function findTwoFactorDisableState(userId: string) {
+export async function findTwoFactorDisableState(userId: UserId) {
   return prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -158,7 +159,7 @@ export async function findTwoFactorDisableState(userId: string) {
 }
 
 /** Clears the secret and every recovery code, in one transaction. */
-export async function disableTwoFactorForUser(userId: string): Promise<void> {
+export async function disableTwoFactorForUser(userId: UserId): Promise<void> {
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
@@ -173,7 +174,7 @@ export async function disableTwoFactorForUser(userId: string): Promise<void> {
 }
 
 /** What regenerating recovery codes needs: the password hash and whether 2FA is on. */
-export async function findRecoveryCodesState(userId: string) {
+export async function findRecoveryCodesState(userId: UserId) {
   return prisma.user.findUnique({
     where: { id: userId },
     select: { password: true, twoFactorEnabledAt: true },
@@ -182,7 +183,7 @@ export async function findRecoveryCodesState(userId: string) {
 
 /** Replaces every recovery code with a fresh set, in one transaction. */
 export async function replaceRecoveryCodes(
-  userId: string,
+  userId: UserId,
   recoveryCodeHashes: string[],
 ): Promise<void> {
   await prisma.$transaction([

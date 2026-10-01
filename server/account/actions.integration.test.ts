@@ -31,9 +31,13 @@ import {
 
 const NEW_PASSWORD = "harbour-lentil-quilt";
 
+// DATA-15 (docs/specs/core-data-model.md): version is now required by
+// updateProfileServerSchema/changePasswordServerSchema, so every call needs
+// one. "1" is a fresh factory user's starting version; a test asserting the
+// optimistic lock overrides it explicitly.
 function formData(fields: Record<string, string>): FormData {
   const fd = new FormData();
-  for (const [key, value] of Object.entries(fields)) fd.set(key, value);
+  for (const [key, value] of Object.entries({ version: "1", ...fields })) fd.set(key, value);
   return fd;
 }
 
@@ -200,6 +204,37 @@ describe("changePassword", () => {
       success: false,
       error: "rateLimited",
     });
+  });
+});
+
+// DATA-15 (docs/specs/core-data-model.md): `version` does not exist on User
+// yet, so passing it as an override and reading it back both fail until
+// DATA-8 adds it.
+describe("DATA-15: optimistic locking on updateProfile and changePassword", () => {
+  it("DATA-15 (worked example): a stale version is rejected as a conflict, and the name is unchanged", async () => {
+    const user = await signedInAsNewUser({ name: "Ana", version: 3 });
+
+    const first = await updateProfile(formData({ name: "Ana María", version: "3" }));
+    expect(first).toEqual({ success: true });
+    const afterFirst = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(afterFirst?.version).toBe(4);
+
+    const second = await updateProfile(formData({ name: "Anita", version: "3" }));
+
+    expect(second).toEqual({ success: false, error: "conflict" });
+    const afterSecond = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(afterSecond?.name).toBe("Ana María");
+  });
+
+  it("DATA-15: changePassword with a stale version is rejected as a conflict", async () => {
+    const user = await signedInAsNewUser();
+    vi.mocked(verifyPassword).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    // Bumped from under the caller, the way a concurrent edit would.
+    await prisma.user.update({ where: { id: user.id }, data: { version: 4 } });
+
+    const result = await changePassword(changeRequest({ version: "3" }));
+
+    expect(result).toEqual({ success: false, error: "conflict" });
   });
 });
 

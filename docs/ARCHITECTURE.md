@@ -302,6 +302,36 @@ listing storage. Listings are fetched live on every search and persisted only as
 snapshots — on `Favorite` when someone saves one, and on `AlertMatch` when a
 poll discovers one.
 
+### Conventions
+
+Every model follows the same conventions, decided in
+[`specs/core-data-model.md`](specs/core-data-model.md) and recorded in
+[ADR 0015](decisions/0015-data-model-conventions.md):
+
+- **Ids are UUIDv7** (`id String @id @default(uuid(7)) @db.Uuid`), not `cuid()`, so they still sort
+  in creation order. Every foreign key is `@db.Uuid` to match — except `Favorite.listingId`,
+  `AlertSeenListing.listingId`, `AlertMatch.listingId` and `Account.providerAccountId`, which end in
+  `Id` but are not foreign keys into this schema (an external listing id, an OAuth provider's own
+  user id) and stay plain `String`.
+- **Tables and multi-word columns are snake_case** (`@@map`/`@map`), TypeScript names unchanged —
+  `AlertPollJob` → `alert_poll_jobs`, `createdAt` → `created_at`.
+- **Every `DateTime` is `@db.Timestamptz(3)`**, not `timestamp` without time zone.
+- **Every model carries six standard columns**: `createdAt`, `updatedAt`, `createdById`,
+  `updatedById` (nullable FKs to `User`, null for system writes), `deletedAt` and
+  `version Int @default(1)`. Unused on a given model (`deletedAt` on `RateLimit`, `createdById` on
+  a cron-only row), they still exist, for uniformity.
+- **Soft delete, not hard delete, for `Favorite` and `Alert`.** Deleting either sets `deletedAt`
+  instead of removing the row; every read excludes it through `notDeleted` (`lib/db/soft-delete.ts`).
+  Saving over a soft-deleted row restores it (clears `deletedAt`, bumps `version`) rather than
+  failing on the unique constraint. `server/retention/service.ts`'s `purgeSoftDeletedRows` erases
+  rows **30 days** after `deletedAt`, called from the same opportunistic paths that already prune
+  expired auth rows — no new scheduler. Account deletion is unaffected: it still erases at once.
+- **Optimistic locking on the two user-editable `User` forms.** `updateProfile` and
+  `changePassword` assert the `version` the form rendered and increment it in one `updateMany`; a
+  mismatch returns the `conflict` error code instead of silently overwriting a concurrent edit.
+- **`onDelete: Cascade` only where the child is meaningless without its parent**, each with a
+  one-line comment saying why; every other relation is `Restrict`.
+
 ### The models
 
 ```mermaid

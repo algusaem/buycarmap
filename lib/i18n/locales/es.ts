@@ -267,6 +267,8 @@ export const es: Translations = {
       "Es tu única forma de iniciar sesión. Establece una contraseña antes de desconectarla.",
     rateLimited: "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
     unauthorized: "Necesitas iniciar sesión para hacer eso",
+    conflict:
+      "Estos datos han cambiado en otra pestaña o dispositivo. Recarga la página para ver la versión actual.",
     generic: "Algo ha ido mal. Inténtalo de nuevo.",
   },
   passwordStrength: {

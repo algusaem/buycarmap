@@ -162,6 +162,12 @@ async function seedAlerts(prisma: PrismaClient, faker: Faker, users: User[]): Pr
         criteria: { connect: { id: criteria.id } },
         label: `${brand} ${model} alert`,
         unsubscribeTokenHash: `seed-alert-token-hash-${index + 1}`,
+        // Mirrors the real service: a freshly minted alert's
+        // unsubscribeSubject is its own id, but the id is not known before
+        // the insert here (the upsert key is the token hash, not an
+        // explicit id) — a seed-stable placeholder is fine, since no seeded
+        // alert's unsubscribe link is ever actually emailed.
+        unsubscribeSubject: `seed-alert-subject-${index + 1}`,
       },
     });
 

@@ -451,6 +451,7 @@ function gitGrepZodOffenders(): string[] {
     /^server\/[^/]+\/schema\.ts$/,
     /^lib\/search\/schema\.ts$/,
     /^lib\/env\.ts$/,
+    /^lib\/ids\.ts$/,
     /\.test\.tsx?$/,
   ];
   return files.filter((file) => !ALLOWED.some((pattern) => pattern.test(file)));

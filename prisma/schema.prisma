@@ -14,8 +14,23 @@ datasource db {
 
 }
 
+// docs/specs/core-data-model.md (phase 8 of ADR 0007, row 18): every model's
+// id is a UUIDv7, every table and multi-word column is snake_case, every
+// `DateTime` is timestamptz(3), and every model carries the same six standard
+// columns (createdAt, updatedAt, createdById, updatedById, deletedAt,
+// version). See docs/ARCHITECTURE.md › Data model for the summary and
+// docs/decisions/0015-data-model-conventions.md for the decisions.
+
+enum AlertPollJobStatus {
+  pending
+  running
+  failed
+
+  @@map("alert_poll_job_status")
+}
+
 model User {
-  id       String  @id @default(cuid())
+  id       String  @id @default(uuid(7)) @db.Uuid
   email    String  @unique
   // Nullable: OAuth-only accounts never set a password. Credentials login
   // must guard on this (see server/auth/service.ts).
@@ -25,7 +40,7 @@ model User {
   // the OAuth profile picture to this exact field.
   image    String?
 
-  emailVerified DateTime?
+  emailVerified DateTime? @db.Timestamptz(3) @map("email_verified")
 
   // Which language to write this account's alert emails in. Null on accounts
   // that predate the column and on anyone who has never touched the language
@@ -39,21 +54,25 @@ model User {
   // AES-256-GCM ciphertext, not a hash: verifying a code means recomputing the
   // HMAC from the original secret, so it has to be recoverable. The key lives
   // in TWO_FACTOR_ENCRYPTION_KEY, so the database alone is not enough.
-  twoFactorSecret String?
+  twoFactorSecret String? @map("two_factor_secret")
   // Null while enrolment is half-finished — a secret exists but no code has
   // been verified yet, so 2FA is NOT enforced. Only this field gates login.
-  twoFactorEnabledAt DateTime?
+  twoFactorEnabledAt DateTime? @db.Timestamptz(3) @map("two_factor_enabled_at")
   // Highest TOTP counter step already accepted. Anything at or below it is
   // refused, so a code seen over someone's shoulder cannot be replayed inside
   // its own 30-second window.
-  twoFactorLastStep Int?
+  twoFactorLastStep Int? @map("two_factor_last_step")
   // Bumped on every password change / reset. The JWT callback compares the
   // token's issue time against this and revokes older sessions, which is how
   // "sign out everywhere" works under a stateless JWT strategy.
-  passwordChangedAt DateTime @default(now())
+  passwordChangedAt DateTime @default(now()) @db.Timestamptz(3) @map("password_changed_at")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
 
   // Relations
   accounts               Account[]
@@ -64,6 +83,48 @@ model User {
   passwordResetTokens    PasswordResetToken[]
   emailVerificationToken EmailVerificationToken[]
   twoFactorRecoveryCodes TwoFactorRecoveryCode[]
+
+  // Self-relation: who created/updated this user row (null for sign-up, which
+  // has no actor yet).
+  createdBy User?  @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User?  @relation("UserUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  usersCreated User[] @relation("UserCreatedBy")
+  usersUpdated User[] @relation("UserUpdatedBy")
+
+  twoFactorRecoveryCodesCreated TwoFactorRecoveryCode[] @relation("TwoFactorRecoveryCodeCreatedBy")
+  twoFactorRecoveryCodesUpdated TwoFactorRecoveryCode[] @relation("TwoFactorRecoveryCodeUpdatedBy")
+  accountsCreated               Account[]               @relation("AccountCreatedBy")
+  accountsUpdated               Account[]               @relation("AccountUpdatedBy")
+  sessionsCreated               Session[]               @relation("SessionCreatedBy")
+  sessionsUpdated               Session[]               @relation("SessionUpdatedBy")
+  verificationTokensCreated     VerificationToken[]     @relation("VerificationTokenCreatedBy")
+  verificationTokensUpdated     VerificationToken[]     @relation("VerificationTokenUpdatedBy")
+  passwordResetTokensCreated    PasswordResetToken[]    @relation("PasswordResetTokenCreatedBy")
+  passwordResetTokensUpdated    PasswordResetToken[]    @relation("PasswordResetTokenUpdatedBy")
+  pendingRegistrationsCreated   PendingRegistration[]   @relation("PendingRegistrationCreatedBy")
+  pendingRegistrationsUpdated   PendingRegistration[]   @relation("PendingRegistrationUpdatedBy")
+  emailVerificationTokensCreated EmailVerificationToken[] @relation("EmailVerificationTokenCreatedBy")
+  emailVerificationTokensUpdated EmailVerificationToken[] @relation("EmailVerificationTokenUpdatedBy")
+  rateLimitsCreated             RateLimit[]             @relation("RateLimitCreatedBy")
+  rateLimitsUpdated             RateLimit[]             @relation("RateLimitUpdatedBy")
+  favoritesCreated              Favorite[]              @relation("FavoriteCreatedBy")
+  favoritesUpdated              Favorite[]              @relation("FavoriteUpdatedBy")
+  alertCriteriaCreated          AlertCriteria[]         @relation("AlertCriteriaCreatedBy")
+  alertCriteriaUpdated          AlertCriteria[]         @relation("AlertCriteriaUpdatedBy")
+  alertsCreated                 Alert[]                 @relation("AlertCreatedBy")
+  alertsUpdated                 Alert[]                 @relation("AlertUpdatedBy")
+  alertSeenListingsCreated      AlertSeenListing[]      @relation("AlertSeenListingCreatedBy")
+  alertSeenListingsUpdated      AlertSeenListing[]      @relation("AlertSeenListingUpdatedBy")
+  alertMatchesCreated           AlertMatch[]            @relation("AlertMatchCreatedBy")
+  alertMatchesUpdated           AlertMatch[]            @relation("AlertMatchUpdatedBy")
+  alertPollJobsCreated          AlertPollJob[]          @relation("AlertPollJobCreatedBy")
+  alertPollJobsUpdated          AlertPollJob[]          @relation("AlertPollJobUpdatedBy")
+  sourceHealthsCreated          SourceHealth[]          @relation("SourceHealthCreatedBy")
+  sourceHealthsUpdated          SourceHealth[]          @relation("SourceHealthUpdatedBy")
+  searchHistoriesCreated        SearchHistory[]         @relation("SearchHistoryCreatedBy")
+  searchHistoriesUpdated        SearchHistory[]         @relation("SearchHistoryUpdatedBy")
+
+  @@map("users")
 }
 
 // The way back in when the authenticator is lost. Password reset deliberately
@@ -74,24 +135,34 @@ model User {
 // of entropy, so there is no dictionary to grind, and a unique index makes
 // redemption a single indexed lookup instead of ten slow comparisons.
 model TwoFactorRecoveryCode {
-  id        String    @id @default(cuid())
-  userId    String
-  codeHash  String    @unique
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  id       String    @id @default(uuid(7)) @db.Uuid
+  userId   String    @db.Uuid @map("user_id")
+  codeHash String    @unique @map("code_hash")
+  usedAt   DateTime? @db.Timestamptz(3) @map("used_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  // A recovery code is meaningless without the account it unlocks.
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("TwoFactorRecoveryCodeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("TwoFactorRecoveryCodeUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@map("two_factor_recovery_codes")
 }
 
 // Required by @next-auth/prisma-adapter to link OAuth identities to a User.
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
+  id                String  @id @default(uuid(7)) @db.Uuid
+  userId            String  @db.Uuid @map("user_id")
   type              String
   provider          String
-  providerAccountId String
+  providerAccountId String  @map("provider_account_id")
   refresh_token     String?
   access_token      String?
   expires_at        Int?
@@ -100,49 +171,93 @@ model Account {
   id_token          String?
   session_state     String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  // An OAuth identity link is meaningless without the account it signs in to.
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("AccountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("AccountUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
+  @@map("accounts")
 }
 
 // Adapter-shaped session table. Unused while `session.strategy` is "jwt", but
 // the adapter's type contract requires the model to exist.
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
+  id           String   @id @default(uuid(7)) @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  userId       String   @db.Uuid @map("user_id")
+  expires      DateTime @db.Timestamptz(3)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  // An adapter session is meaningless without the account it belongs to.
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("SessionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("SessionUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@map("sessions")
 }
 
 // Required by @next-auth/prisma-adapter (email/magic-link flows). Distinct from
 // EmailVerificationToken below, which backs our own hashed-token verification.
 model VerificationToken {
+  id         String   @id @default(uuid(7)) @db.Uuid
   identifier String
   token      String   @unique
-  expires    DateTime
+  expires    DateTime @db.Timestamptz(3)
+
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  createdBy User? @relation("VerificationTokenCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("VerificationTokenUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 model PasswordResetToken {
-  id        String    @id @default(cuid())
-  userId    String
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid @map("user_id")
   // sha-256 of the token we emailed. The raw token exists only in the link, so
   // a database leak does not hand an attacker working reset links.
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @db.Timestamptz(3) @map("expires_at")
+  usedAt    DateTime? @db.Timestamptz(3) @map("used_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  // A reset token is meaningless without the account it resets.
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("PasswordResetTokenCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("PasswordResetTokenUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 // A signup that has been submitted but not yet confirmed from the inbox.
@@ -154,16 +269,26 @@ model PasswordResetToken {
 // Holding the bcrypt hash (never the plaintext) means confirmation does not
 // have to ask for the password again.
 model PendingRegistration {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7)) @db.Uuid
   email     String
   password  String
   name      String?
-  tokenHash String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @db.Timestamptz(3) @map("expires_at")
+
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  createdBy User? @relation("PendingRegistrationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("PendingRegistrationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([email])
   @@index([expiresAt])
+  @@map("pending_registrations")
 }
 
 // Backs two flows that are the same mechanism with different targets:
@@ -174,29 +299,51 @@ model PendingRegistration {
 // the new one. That is what stops an attacker with a hijacked session from
 // silently moving an account to an inbox they control.
 model EmailVerificationToken {
-  id        String    @id @default(cuid())
-  userId    String
-  tokenHash String    @unique
-  newEmail  String?
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  newEmail  String?   @map("new_email")
+  expiresAt DateTime  @db.Timestamptz(3) @map("expires_at")
+  usedAt    DateTime? @db.Timestamptz(3) @map("used_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  // A verification token is meaningless without the account it verifies.
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("EmailVerificationTokenCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("EmailVerificationTokenUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([expiresAt])
+  @@map("email_verification_tokens")
 }
 
 // Fixed-window counters for the auth rate limiter. Lives in Postgres rather
 // than memory because Vercel runs each request on a possibly-cold instance,
 // so an in-process Map would reset constantly and limit nothing.
 model RateLimit {
-  key       String   @id
+  id        String   @id @default(uuid(7)) @db.Uuid
+  key       String   @unique
   count     Int      @default(0)
-  expiresAt DateTime
+  expiresAt DateTime @db.Timestamptz(3) @map("expires_at")
+
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  createdBy User? @relation("RateLimitCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("RateLimitUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([expiresAt])
+  @@map("rate_limits")
 }
 
 // A listing someone saved, stored as a full snapshot rather than a reference.
@@ -213,12 +360,18 @@ model RateLimit {
 // that already fail often enough to need `Promise.allSettled`. A page that
 // always renders last week's price beats one that is blank when a source is
 // down. See docs/specs/favorites.md.
+//
+// `listingId` keeps its name and `String` type across this migration even
+// though it ends in "Id": it is not a foreign key, it is the normalized,
+// source-prefixed external listing id (`wallapop-abc123`), which is never a
+// UUID. Marking it `@db.Uuid` would reject every real value and break the
+// migration itself (docs/decisions/0015-data-model-conventions.md).
 model Favorite {
-  id        String @id @default(cuid())
-  userId    String
+  id        String @id @default(uuid(7)) @db.Uuid
+  userId    String @db.Uuid @map("user_id")
   // The normalized, source-prefixed listing id: `wallapop-abc123`. Already
   // unique across sources, so it needs no separate source column to be a key.
-  listingId String
+  listingId String @map("listing_id")
 
   // --- snapshot of CarListing at save time ---
   source   String
@@ -236,15 +389,27 @@ model Favorite {
   lat      Float
   lng      Float
 
-  createdAt DateTime @default(now())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  // DATA-10/DATA-11 (docs/specs/core-data-model.md): set instead of deleting,
+  // so a mistaken removal can be undone; purged 30 days later
+  // (server/retention/service.ts).
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // A favorite is meaningless without the user who saved it.
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("FavoriteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("FavoriteUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   // Saving is a toggle a user can click twice in a second. This is what makes
   // "saving twice leaves one row" true in the database rather than in a
   // read-then-write race in application code.
   @@unique([userId, listingId])
   @@index([userId])
+  @@map("favorites")
 }
 
 // One deduplicated question, polled once however many users subscribe to it.
@@ -255,34 +420,43 @@ model Favorite {
 // requests, not three hundred. Getting the deployment's IP blocked would break
 // search, not merely alerts. See docs/specs/alerts.md › Decisions and rationale.
 model AlertCriteria {
-  id String @id @default(cuid())
+  id String @id @default(uuid(7)) @db.Uuid
 
   // SHA-256 of the canonicalised SearchInput — keys sorted, undefined dropped,
   // arrays sorted — so filters that mean the same thing hash the same and share
   // one row regardless of how the object was built.
-  criteriaHash String @unique
+  criteriaHash String @unique @map("criteria_hash")
   // The SearchInput itself. Re-validated with searchSchema on read; never
   // trusted as typed just because it came from our own database.
   criteria     Json
 
   // Null until the first successful poll. Drives which criteria are due
   // (ALERT-10) and the reported lap age (ALERT-31).
-  lastPolledAt DateTime?
+  lastPolledAt DateTime? @db.Timestamptz(3) @map("last_polled_at")
 
-  createdAt DateTime @default(now())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
 
   alerts Alert[]
   seen   AlertSeenListing[]
   job    AlertPollJob?
 
+  createdBy User? @relation("AlertCriteriaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("AlertCriteriaUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
   @@index([lastPolledAt])
+  @@map("alert_criteria")
 }
 
 // A user's subscription to a criteria set.
 model Alert {
-  id         String @id @default(cuid())
-  userId     String
-  criteriaId String
+  id         String @id @default(uuid(7)) @db.Uuid
+  userId     String @db.Uuid @map("user_id")
+  criteriaId String @db.Uuid @map("criteria_id")
 
   // Human summary shown on the alerts page. A saved SearchInput is unreadable
   // as JSON, and someone with several alerts has to tell them apart.
@@ -297,19 +471,39 @@ model Alert {
   // the email, so a database leak does not hand over working links. Unlike a
   // password-reset token it never expires: an unsubscribe link in a year-old
   // email must still work, or the mail cannot be stopped.
-  unsubscribeTokenHash String @unique
+  unsubscribeTokenHash String @unique @map("unsubscribe_token_hash")
+  // DATA-2 edge case / unsubscribe tokens move off the id
+  // (docs/specs/core-data-model.md): the HMAC subject for the unsubscribe
+  // token. New alerts set it to their own (newly generated) id, so the link
+  // survives a future re-key the way this migration's own id change does not
+  // break links already sent — the migration copies each alert's OLD id in
+  // here before the id itself changes.
+  unsubscribeSubject String @map("unsubscribe_subject")
 
-  createdAt DateTime @default(now())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  // DATA-10/DATA-11: set instead of deleting; purged 30 days later
+  // (server/retention/service.ts).
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
 
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // A subscription is meaningless without its subscriber.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // A subscription is meaningless without the criteria set it watches.
   criteria AlertCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
   matches  AlertMatch[]
+
+  createdBy User? @relation("AlertCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("AlertUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   // Makes "saving the same search twice leaves one alert" true in the database
   // rather than in a read-then-write race.
   @@unique([userId, criteriaId])
   @@index([userId])
   @@index([criteriaId])
+  @@map("alerts")
 }
 
 // The dedup memory, and the only definition of "new" available.
@@ -318,30 +512,46 @@ model Alert {
 // once a location is set, so an alert cannot ask "what appeared since 09:05?".
 // It asks "what is listed now?" and subtracts this. Deliberately holds no
 // snapshot: these rows are numerous and mostly never emailed.
+//
+// `listingId` keeps its name and `String` type — see Favorite's comment above.
 model AlertSeenListing {
-  id         String @id @default(cuid())
-  criteriaId String
-  listingId  String
+  id         String @id @default(uuid(7)) @db.Uuid
+  criteriaId String @db.Uuid @map("criteria_id")
+  listingId  String @map("listing_id")
   // Which source produced it, so a source that failed contributes nothing and
   // its listings stay new (ALERT-17).
   source     String
 
-  firstSeenAt DateTime @default(now())
+  firstSeenAt DateTime @default(now()) @db.Timestamptz(3) @map("first_seen_at")
 
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  // The seen-memory is meaningless without the criteria set it dedups for.
   criteria AlertCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+
+  createdBy User? @relation("AlertSeenListingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("AlertSeenListingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   // The backstop that holds even if two workers race past SKIP LOCKED.
   @@unique([criteriaId, listingId])
   @@index([criteriaId])
+  @@map("alert_seen_listings")
 }
 
 // One row per user per newly discovered listing, carrying the snapshot for the
 // same reason Favorite does: no source client can fetch a single listing by id,
 // so an email built from a reference alone would have nothing to render.
+//
+// `listingId` keeps its name and `String` type — see Favorite's comment above.
 model AlertMatch {
-  id        String @id @default(cuid())
-  alertId   String
-  listingId String
+  id        String @id @default(uuid(7)) @db.Uuid
+  alertId   String @db.Uuid @map("alert_id")
+  listingId String @map("listing_id")
 
   // --- snapshot of CarListing at discovery time ---
   source   String
@@ -362,39 +572,61 @@ model AlertMatch {
   // Null means pending delivery. Discovery and delivery are separate stages
   // because sendEmail returns false rather than throwing: a one-stage design
   // would mark a listing seen with nobody told, and it is never new again.
-  notifiedAt DateTime?
+  notifiedAt DateTime? @db.Timestamptz(3) @map("notified_at")
 
-  createdAt DateTime @default(now())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
 
+  // A delivery snapshot is meaningless without the subscription it was found for.
   alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  createdBy User? @relation("AlertMatchCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("AlertMatchUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@unique([alertId, listingId])
   @@index([alertId, notifiedAt])
+  @@map("alert_matches")
 }
 
 // The queue. One row per criteria set, reused rather than appended, which makes
 // "enqueuing twice leaves one job" a unique constraint instead of a check.
 model AlertPollJob {
-  id         String @id @default(cuid())
-  criteriaId String @unique
+  id         String @id @default(uuid(7)) @db.Uuid
+  criteriaId String @unique @db.Uuid @map("criteria_id")
 
-  status   String @default("pending") // pending · running · failed
-  attempts Int    @default(0)
+  status   AlertPollJobStatus @default(pending)
+  attempts Int                @default(0)
 
   // Backoff: a retried job is not claimable until this passes. Deliberately
   // longer than the poll interval — a failing upstream should be polled less.
-  availableAt DateTime @default(now())
+  availableAt DateTime  @default(now()) @db.Timestamptz(3) @map("available_at")
   // Lease timestamp, so a worker killed mid-run does not strand its job.
-  lockedAt    DateTime?
-  lastError   String?
+  lockedAt    DateTime? @db.Timestamptz(3) @map("locked_at")
+  lastError   String?   @map("last_error")
 
   // Claim order. A fair queue bounds the worst-case lag; an arbitrary one
   // bounds only the average, and the freshness target is about the worst case.
-  enqueuedAt DateTime @default(now())
+  enqueuedAt DateTime @default(now()) @db.Timestamptz(3) @map("enqueued_at")
 
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  // A queue row is meaningless without the criteria set it polls.
   criteria AlertCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
 
+  createdBy User? @relation("AlertPollJobCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("AlertPollJobUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
   @@index([status, availableAt, enqueuedAt])
+  @@map("alert_poll_jobs")
 }
 
 // Global, not per criteria: a broken parser breaks every criteria set at once,
@@ -405,19 +637,42 @@ model AlertPollJob {
 // indistinguishable from "nothing new", so an alert can be dead for weeks while
 // looking healthy.
 model SourceHealth {
-  source               String    @id
-  lastOkAt             DateTime?
-  consecutiveEmptyRuns Int       @default(0)
-  updatedAt            DateTime  @updatedAt
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  source               String    @unique
+  lastOkAt             DateTime? @db.Timestamptz(3) @map("last_ok_at")
+  consecutiveEmptyRuns Int       @default(0) @map("consecutive_empty_runs")
+
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  createdBy User? @relation("SourceHealthCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("SourceHealthUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("source_healths")
 }
 
 model SearchHistory {
-  id        String   @id @default(cuid())
-  userId    String
-  query     String
-  createdAt DateTime @default(now())
+  id     String @id @default(uuid(7)) @db.Uuid
+  userId String @db.Uuid @map("user_id")
+  query  String
 
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3) @map("updated_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+  updatedById String?   @db.Uuid @map("updated_by_id")
+  deletedAt   DateTime? @db.Timestamptz(3) @map("deleted_at")
+  version     Int       @default(1)
+
+  // A past search is meaningless without the user who searched it.
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  createdBy User? @relation("SearchHistoryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("SearchHistoryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
   @@index([userId])
+  @@map("search_histories")
 }

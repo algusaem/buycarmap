@@ -282,4 +282,49 @@ test.describe("authenticated flows (real database)", () => {
     await expect(page.getByText(/already exists|ya existe/i)).toBeVisible();
     await expect(navSavedCars(page)).toHaveCount(0);
   });
+
+  // DATA-16 (docs/specs/core-data-model.md): on a version conflict the UI
+  // shows a translated message telling the user the item changed elsewhere
+  // and to reload. The exact copy is implementation's to choose; these
+  // constants are the keyphrases the spec itself uses, in both locales.
+  // The copy itself (lib/i18n/locales/{en,es}.ts authErrors.conflict) — keep
+  // these matchers in sync with it (docs/specs/core-data-model.md DATA-16).
+  const CONFLICT_MESSAGE_EN = /changed in another tab or device/i;
+  const CONFLICT_MESSAGE_ES = /cambiado en otra pestaña o dispositivo/i;
+
+  dbTest(
+    "DATA-16: a stale save on /account is rejected as a conflict, and the first save wins",
+    async ({ page, context }) => {
+      const email = e2eEmail("conflict");
+      await seedUser(email, PASSWORD, "Ana");
+
+      await loginViaUi(page, email, PASSWORD);
+      await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
+
+      const second = await context.newPage();
+      await page.goto("/account");
+      await second.goto("/account");
+
+      const nameField1 = page.getByLabel(/^name$|^nombre$/i);
+      const nameField2 = second.getByLabel(/^name$|^nombre$/i);
+      await expect(nameField1).toHaveValue("Ana");
+      await expect(nameField2).toHaveValue("Ana");
+
+      await nameField1.fill("Ana María");
+      await page.getByRole("button", { name: /save changes|guardar cambios/i }).click();
+      await expect(page.getByText(/profile updated|perfil actualizado/i)).toBeVisible();
+
+      await nameField2.fill("Anita");
+      await second.getByRole("button", { name: /save changes|guardar cambios/i }).click();
+
+      await expect(
+        second.getByText(
+          new RegExp(`${CONFLICT_MESSAGE_EN.source}|${CONFLICT_MESSAGE_ES.source}`, "i"),
+        ),
+      ).toBeVisible();
+
+      await page.reload();
+      await expect(page.getByLabel(/^name$|^nombre$/i)).toHaveValue("Ana María");
+    },
+  );
 });
