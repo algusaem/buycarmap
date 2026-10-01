@@ -10,6 +10,7 @@ import { buildOtpAuthUri, generateTotpSecret, verifyTotp } from "@/lib/auth/two-
 import { generateRecoveryCodes } from "@/lib/auth/two-factor/recovery-codes";
 import { requiredString } from "@/lib/form-data";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
+import { asUserId } from "@/lib/ids";
 import { RATE_LIMITS, consumeRateLimit } from "@/server/rate-limit/service";
 import { disableTwoFactorSchema, twoFactorCodeSchema } from "./schema";
 import {
@@ -76,7 +77,7 @@ export async function startTwoFactorSetup(): Promise<SetupResult> {
     return { success: false, error: AUTH_ERROR.totpUnavailable };
   }
 
-  const record = await findTwoFactorSetupState(user.id);
+  const record = await findTwoFactorSetupState(asUserId(user.id));
 
   if (!record?.password) {
     // OAuth-only accounts sign in through their provider, which owns its own
@@ -93,7 +94,7 @@ export async function startTwoFactorSetup(): Promise<SetupResult> {
   // Restarting setup replaces any half-finished secret, so an abandoned
   // attempt cannot later be confirmed by whoever still has that QR open.
   await storePendingTwoFactorSecret(
-    user.id,
+    asUserId(user.id),
     encryptSecret(secret, env.TWO_FACTOR_ENCRYPTION_KEY as string),
   );
 
@@ -142,7 +143,7 @@ export async function confirmTwoFactorSetup(formData: FormData): Promise<Confirm
     };
   }
 
-  const record = await findTwoFactorConfirmState(user.id);
+  const record = await findTwoFactorConfirmState(asUserId(user.id));
 
   if (record?.twoFactorEnabledAt) {
     return { success: false, error: AUTH_ERROR.totpAlreadyEnabled };
@@ -170,7 +171,7 @@ export async function confirmTwoFactorSetup(formData: FormData): Promise<Confirm
   const { plain, hashes } = generateRecoveryCodes();
   const now = new Date();
 
-  await enableTwoFactor(user.id, now, result.step, hashes);
+  await enableTwoFactor(asUserId(user.id), now, result.step, hashes);
 
   return { success: true, recoveryCodes: plain };
 }
@@ -209,7 +210,7 @@ export async function disableTwoFactor(formData: FormData): Promise<TwoFactorRes
     };
   }
 
-  const record = await findTwoFactorDisableState(user.id);
+  const record = await findTwoFactorDisableState(asUserId(user.id));
 
   if (!record?.twoFactorEnabledAt) {
     return { success: false, error: AUTH_ERROR.totpNotEnabled };
@@ -232,7 +233,7 @@ export async function disableTwoFactor(formData: FormData): Promise<TwoFactorRes
     return { success: false, error: AUTH_ERROR.totpInvalid };
   }
 
-  await disableTwoFactorForUser(user.id);
+  await disableTwoFactorForUser(asUserId(user.id));
 
   return { success: true };
 }
@@ -266,7 +267,7 @@ export async function regenerateRecoveryCodes(formData: FormData): Promise<Confi
     return { success: false, error: AUTH_ERROR.passwordRequired };
   }
 
-  const record = await findRecoveryCodesState(user.id);
+  const record = await findRecoveryCodesState(asUserId(user.id));
 
   if (!record?.twoFactorEnabledAt) {
     return { success: false, error: AUTH_ERROR.totpNotEnabled };
@@ -278,7 +279,7 @@ export async function regenerateRecoveryCodes(formData: FormData): Promise<Confi
 
   const { plain, hashes } = generateRecoveryCodes();
 
-  await replaceRecoveryCodes(user.id, hashes);
+  await replaceRecoveryCodes(asUserId(user.id), hashes);
 
   return { success: true, recoveryCodes: plain };
 }

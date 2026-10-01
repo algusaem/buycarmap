@@ -260,6 +260,7 @@ export interface Translations {
     lastSignInMethod: string;
     rateLimited: string;
     unauthorized: string;
+    conflict: string;
     generic: string;
   };
   passwordStrength: {

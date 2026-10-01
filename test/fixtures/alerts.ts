@@ -290,6 +290,33 @@ export function createAlertStore(seed: Partial<Tables> = {}) {
         t.alerts.push(row);
         return row;
       }),
+      // DATA-11 (docs/specs/core-data-model.md): createAlertForUser upserts
+      // on the same [userId, criteriaId] unique key `create` above enforces by
+      // hand, so a soft-deleted row is restored instead of colliding.
+      upsert: vi.fn(
+        async ({
+          where,
+          create,
+          update,
+        }: {
+          where: { userId_criteriaId: { userId: string; criteriaId: string } };
+          create: Omit<AlertRow, "id">;
+          update: Partial<AlertRow>;
+        }) => {
+          const existing = t.alerts.find(
+            (row) =>
+              row.userId === where.userId_criteriaId.userId &&
+              row.criteriaId === where.userId_criteriaId.criteriaId,
+          );
+          if (existing) {
+            Object.assign(existing, update);
+            return existing;
+          }
+          const row: AlertRow = { id: nextId("alert"), ...create };
+          t.alerts.push(row);
+          return row;
+        },
+      ),
       update: vi.fn(async ({ where, data }: { where: { id: string }; data: Partial<AlertRow> }) => {
         const row = t.alerts.find((alert) => alert.id === where.id);
         if (!row) throw new Error("Alert not found");

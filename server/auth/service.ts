@@ -8,6 +8,7 @@ import {
   resetRateLimit,
 } from "@/server/rate-limit/service";
 import { verifyAndConsumeTwoFactor } from "@/server/two-factor/service";
+import { purgeSoftDeletedRows } from "@/server/retention/service";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { logger } from "@/lib/logger";
 
@@ -171,8 +172,22 @@ export async function pruneExpiredAuthRows(): Promise<void> {
  *
  * Split from the function above so tests can exercise the deletion logic
  * without depending on a coin flip.
+ *
+ * DATA-12 (docs/specs/core-data-model.md): also runs the soft-delete purge
+ * (`server/retention/service.ts`), on the same opportunistic schedule rather
+ * than a scheduler of its own — a cross-feature import through `service.ts`,
+ * which `.dependency-cruiser.cjs`'s `cross-feature-only-service-or-schema`
+ * rule allows.
  */
 export async function maybePruneExpiredAuthRows(): Promise<void> {
   if (Math.random() >= PRUNE_PROBABILITY) return;
+
   await pruneExpiredAuthRows();
+
+  try {
+    await purgeSoftDeletedRows(new Date());
+  } catch (error) {
+    // Housekeeping only — it must never affect the request that triggered it.
+    logger.error({ err: error }, "Failed to purge soft-deleted rows");
+  }
 }

@@ -15,7 +15,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AlertMatchesPage({ params }: PageProps) {
   const { id } = await params;
 
-  // Authenticates first; another account's alert is a 404.
+  // Authenticates first; another account's alert is a 404. An id that does
+  // not even look like a UUID is a 404 too (getAlertWithMatches).
   const alert = await getAlertWithMatches(id);
 
   return (

@@ -1,10 +1,21 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
 import { appUrl, isEmailConfigured } from "@/lib/app-config";
 import { sendEmail } from "@/lib/email/client";
 import { renderAlertEmail } from "@/lib/email/templates/alert-emails";
 import { DEFAULT_LOCALE, isValidLocale } from "@/lib/i18n/config";
 import { getLocale } from "@/lib/i18n/server";
+import { notDeleted } from "@/lib/db/soft-delete";
+import {
+  alertIdSchema,
+  type AlertCriteriaId,
+  type AlertId,
+  type AlertPollJobId,
+  asAlertCriteriaId,
+  asAlertPollJobId,
+  type UserId,
+  uuidv7,
+} from "@/lib/ids";
 import { saveUserLocale } from "@/server/locale/service";
 import { searchAllSources } from "./search";
 import { hashUnsubscribeToken, unsubscribeTokenFor } from "./unsubscribe-token";
@@ -76,7 +87,7 @@ export function hashCriteria(criteria: SearchInput): string {
 // --- Subscriptions (the actions in ./actions.ts) -----------------------------
 
 /** Records listings as already seen for a criteria set, so they are never new again. */
-async function recordSeen(criteriaId: string, listings: CarListing[]): Promise<void> {
+async function recordSeen(criteriaId: AlertCriteriaId, listings: CarListing[]): Promise<void> {
   await prisma.alertSeenListing.createMany({
     data: listings.map((listing) => ({
       criteriaId,
@@ -96,7 +107,7 @@ async function recordSeen(criteriaId: string, listings: CarListing[]): Promise<v
  * which the first real poll fills — a noisy first alert is a far better outcome
  * than refusing to create the alert at all.
  */
-async function seedSeenListings(criteriaId: string, criteria: SearchInput): Promise<void> {
+async function seedSeenListings(criteriaId: AlertCriteriaId, criteria: SearchInput): Promise<void> {
   try {
     const { listings } = await searchAllSources(criteria);
     if (listings.length === 0) return;
@@ -112,13 +123,15 @@ async function seedSeenListings(criteriaId: string, criteria: SearchInput): Prom
  * Returns the error code to report, or null when the user now watches it.
  */
 export async function createAlertForUser(
-  userId: string,
+  userId: UserId,
   criteria: SearchInput,
   label: string,
 ): Promise<AlertErrorCode | null> {
   const criteriaHash = hashCriteria(criteria);
 
-  const count = await prisma.alert.count({ where: { userId } });
+  // DATA-10 (docs/specs/core-data-model.md): a soft-deleted alert does not
+  // count against the cap — it is no longer an active subscription.
+  const count = await prisma.alert.count({ where: { userId, ...notDeleted } });
   if (count >= MAX_ALERTS_PER_USER) {
     return ALERT_ERROR.tooManyAlerts;
   }
@@ -132,36 +145,41 @@ export async function createAlertForUser(
       data: { criteriaHash, criteria },
     });
   }
+  const criteriaId = asAlertCriteriaId(criteriaRow.id);
 
   // An explicit id, because the unsubscribe token is an HMAC over it and the
-  // row needs the hash at insert time.
-  const alertId = randomUUID();
-  try {
-    await prisma.alert.create({
-      data: {
-        id: alertId,
-        userId,
-        criteriaId: criteriaRow.id,
-        label,
-        active: true,
-        unsubscribeTokenHash: hashUnsubscribeToken(unsubscribeTokenFor(alertId)),
-      },
-    });
-  } catch (error) {
-    // The unique index on (userId, criteriaId) firing means this user already
-    // watches this search. Saving is idempotent, so that is an ordinary
-    // event, not a failure to recover from.
-    if ((error as { code?: string }).code === "P2002") {
-      return null;
-    }
-    throw error;
-  }
+  // row needs the hash at insert time — and because `unsubscribeSubject`
+  // needs it too (docs/decisions/0015-data-model-conventions.md). Generated
+  // here, not left to the database default, so both can be set on the same
+  // insert with no follow-up write.
+  const alertId = uuidv7();
+  const unsubscribeTokenHash = hashUnsubscribeToken(unsubscribeTokenFor(alertId));
+
+  // DATA-11: upsert rather than create-and-catch — a row this user already
+  // has (live or soft-deleted) is matched by the same unique key regardless
+  // of `deletedAt`, so the `update` branch restores a deleted one (clearing
+  // `deletedAt`, bumping `version`) exactly as saving over a soft-deleted
+  // favorite does.
+  await prisma.alert.upsert({
+    where: { userId_criteriaId: { userId, criteriaId } },
+    create: {
+      id: alertId,
+      userId,
+      criteriaId,
+      label,
+      active: true,
+      unsubscribeTokenHash,
+      unsubscribeSubject: alertId,
+      createdById: userId,
+    },
+    update: { deletedAt: null, version: { increment: 1 }, updatedById: userId },
+  });
 
   // Only when the criteria set is new: an existing one already has a
   // seen-list, and re-seeding would spend three upstream requests to learn
   // what is already recorded.
   if (criteriaIsNew) {
-    await seedSeenListings(criteriaRow.id, criteria);
+    await seedSeenListings(criteriaId, criteria);
   }
 
   await backfillLocale(userId);
@@ -178,7 +196,7 @@ export async function createAlertForUser(
  * browser asked for. This is the moment that starts to matter, and it costs one
  * write per user.
  */
-async function backfillLocale(userId: string): Promise<void> {
+async function backfillLocale(userId: UserId): Promise<void> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   // An explicit choice outranks an inferred one, so a stored value is never
   // overwritten here.
@@ -188,9 +206,9 @@ async function backfillLocale(userId: string): Promise<void> {
   await saveUserLocale(userId, locale);
 }
 
-export async function findAlertSummaries(userId: string): Promise<AlertSummary[]> {
+export async function findAlertSummaries(userId: UserId): Promise<AlertSummary[]> {
   const rows = await prisma.alert.findMany({
-    where: { userId },
+    where: { userId, ...notDeleted },
     include: { criteria: true, _count: { select: { matches: true } } },
     orderBy: { createdAt: "desc" },
   });
@@ -206,18 +224,22 @@ export async function findAlertSummaries(userId: string): Promise<AlertSummary[]
   }));
 }
 
-export async function deleteAlertForUser(userId: string, alertId: string): Promise<void> {
+/** Soft delete (DATA-10): sets `deletedAt` rather than removing the row. */
+export async function deleteAlertForUser(userId: UserId, alertId: AlertId): Promise<void> {
   const doomed = await prisma.alert.findFirst({
-    where: { id: alertId, userId },
+    where: { id: alertId, userId, ...notDeleted },
   });
 
   // Scoped by userId, so this cannot reach another account's row. Reports
   // success whether or not anything matched: the caller asked for the alert
   // not to exist, and it does not. Saying otherwise would confirm that
   // someone else's alert does.
-  await prisma.alert.deleteMany({ where: { id: alertId, userId } });
+  await prisma.alert.updateMany({
+    where: { id: alertId, userId, ...notDeleted },
+    data: { deletedAt: new Date() },
+  });
 
-  if (doomed) await releaseCriteriaIfUnused(doomed.criteriaId);
+  if (doomed) await releaseCriteriaIfUnused(asAlertCriteriaId(doomed.criteriaId));
 }
 
 /**
@@ -229,9 +251,15 @@ export async function deleteAlertForUser(userId: string, alertId: string): Promi
  * one poll while costing a cleanup path and rows that accumulate forever.
  *
  * An *inactive* alert still counts as a reference, so unsubscribing keeps the
- * criteria and its history.
+ * criteria and its history. **Deliberately unfiltered by `deletedAt` too**
+ * (DATA-10/DATA-12): `AlertCriteria` cascades to `Alert` on delete, so
+ * releasing it the instant its last alert is soft-deleted would hard-delete
+ * that alert immediately, through the cascade — defeating the 30-day undo
+ * window the soft delete exists to give it. A criteria set left with only
+ * soft-deleted referrers is released once `server/retention/service.ts`
+ * purges them (ALERT-42, DATA-12), 30 days after the last one was deleted.
  */
-async function releaseCriteriaIfUnused(criteriaId: string): Promise<void> {
+async function releaseCriteriaIfUnused(criteriaId: AlertCriteriaId): Promise<void> {
   const remaining = await prisma.alert.count({ where: { criteriaId } });
   if (remaining > 0) return;
   await prisma.alertCriteria.delete({ where: { id: criteriaId } });
@@ -239,10 +267,20 @@ async function releaseCriteriaIfUnused(criteriaId: string): Promise<void> {
 
 // --- The alert matches page (./queries.ts) -----------------------------------
 
-export async function findAlertWithMatches(userId: string, alertId: string) {
+/**
+ * Still re-validates `alertId`'s shape here even though the parameter is
+ * branded: `server/alerts/queries.ts` casts a raw URL segment to `AlertId`
+ * with `asAlertId` rather than parsing it, so the brand alone does not
+ * guarantee a well-formed UUID reached this call. A malformed id resolves to
+ * "not found" here instead of throwing out of Prisma the way a well-formed
+ * but non-existent one does.
+ */
+export async function findAlertWithMatches(userId: UserId, alertId: AlertId) {
+  if (!alertIdSchema.safeParse(alertId).success) return null;
+
   // Scoped by userId, so another account's alert is not found at all.
   return prisma.alert.findFirst({
-    where: { id: alertId, userId },
+    where: { id: alertId, userId, ...notDeleted },
     include: { matches: { orderBy: { createdAt: "desc" } } },
   });
 }
@@ -318,10 +356,11 @@ export async function runAlerts(now: Date): Promise<RunSummary> {
 }
 
 async function enqueueDueCriteria(now: Date, summary: RunSummary): Promise<void> {
-  // Only criteria with at least one *active* subscriber. An alert everyone has
-  // unsubscribed from must stop consuming upstream requests.
+  // Only criteria with at least one *active*, non-soft-deleted subscriber. An
+  // alert everyone has unsubscribed from, or soft-deleted (DATA-10), must
+  // stop consuming upstream requests.
   const subscribed = await prisma.alertCriteria.findMany({
-    where: { alerts: { some: { active: true } } },
+    where: { alerts: { some: { active: true, deletedAt: null } } },
   });
 
   summary.criteriaCount = subscribed.length;
@@ -360,11 +399,11 @@ async function drainQueue(now: Date, summary: RunSummary): Promise<void> {
   // whole point: plain FOR UPDATE would make a second worker queue behind the
   // first, which is a slower version of one worker.
   const claimed = await prisma.$queryRaw<{ id: string }[]>`
-    UPDATE "AlertPollJob" SET status = 'running', "lockedAt" = now()
+    UPDATE alert_poll_jobs SET status = 'running', locked_at = now()
     WHERE id IN (
-      SELECT id FROM "AlertPollJob"
-      WHERE status = 'pending' AND "availableAt" <= now()
-      ORDER BY "enqueuedAt" ASC
+      SELECT id FROM alert_poll_jobs
+      WHERE status = 'pending' AND available_at <= now()
+      ORDER BY enqueued_at ASC
       LIMIT ${SLICE_SIZE}
       FOR UPDATE SKIP LOCKED
     )
@@ -383,7 +422,7 @@ async function drainQueue(now: Date, summary: RunSummary): Promise<void> {
       await releaseUnprocessed(claimed.slice(index).map((job) => job.id));
       break;
     }
-    await pollOne(id, now, summary);
+    await pollOne(asAlertPollJobId(id), now, summary);
   }
 }
 
@@ -395,12 +434,13 @@ async function releaseUnprocessed(jobIds: string[]): Promise<void> {
   });
 }
 
-async function pollOne(jobId: string, now: Date, summary: RunSummary): Promise<void> {
+async function pollOne(jobId: AlertPollJobId, now: Date, summary: RunSummary): Promise<void> {
   const job = await prisma.alertPollJob.findUnique({ where: { id: jobId } });
   if (!job) return;
 
+  const criteriaId = asAlertCriteriaId(job.criteriaId);
   const criteriaRow = await prisma.alertCriteria.findUnique({
-    where: { id: job.criteriaId },
+    where: { id: criteriaId },
   });
   const criteria = criteriaRow && parseStoredCriteria(criteriaRow.criteria);
   if (!criteria) {
@@ -413,7 +453,7 @@ async function pollOne(jobId: string, now: Date, summary: RunSummary): Promise<v
     await recordSourceHealth(result.perSourceCounts, now);
 
     const seen = await prisma.alertSeenListing.findMany({
-      where: { criteriaId: job.criteriaId },
+      where: { criteriaId },
     });
     const seenIds = new Set(seen.map((row) => row.listingId));
 
@@ -425,12 +465,12 @@ async function pollOne(jobId: string, now: Date, summary: RunSummary): Promise<v
     const fresh = usable.filter((listing) => !seenIds.has(listing.id));
 
     if (fresh.length > 0) {
-      await createMatches(job.criteriaId, fresh, summary);
-      await recordSeen(job.criteriaId, fresh);
+      await createMatches(criteriaId, fresh, summary);
+      await recordSeen(criteriaId, fresh);
     }
 
     await prisma.alertCriteria.update({
-      where: { id: job.criteriaId },
+      where: { id: criteriaId },
       data: { lastPolledAt: now },
     });
     // Success removes the row; the next enqueue recreates it.
@@ -441,7 +481,7 @@ async function pollOne(jobId: string, now: Date, summary: RunSummary): Promise<v
     const attempts = job.attempts + 1;
     const exhausted = attempts >= MAX_ATTEMPTS;
 
-    summary.failures.push(`${job.criteriaId}: ${message}`);
+    summary.failures.push(`${criteriaId}: ${message}`);
 
     await prisma.alertPollJob.update({
       where: { id: jobId },
@@ -463,12 +503,13 @@ async function pollOne(jobId: string, now: Date, summary: RunSummary): Promise<v
 
 /** Fans one poll out to every active subscriber, in the database. */
 async function createMatches(
-  criteriaId: string,
+  criteriaId: AlertCriteriaId,
   listings: CarListing[],
   summary: RunSummary,
 ): Promise<void> {
+  // Soft-deleted subscribers (DATA-10) are not notified.
   const subscribers = await prisma.alert.findMany({
-    where: { criteriaId, active: true },
+    where: { criteriaId, active: true, ...notDeleted },
   });
   if (subscribers.length === 0) return;
 
@@ -543,7 +584,7 @@ async function deliverPendingMatches(summary: RunSummary): Promise<void> {
   }
 
   const alerts = await prisma.alert.findMany({
-    where: { id: { in: [...byAlert.keys()] }, active: true },
+    where: { id: { in: [...byAlert.keys()] }, active: true, ...notDeleted },
     include: { user: true },
   });
 
@@ -561,7 +602,7 @@ async function deliverPendingMatches(summary: RunSummary): Promise<void> {
     const locale =
       alert.user.locale && isValidLocale(alert.user.locale) ? alert.user.locale : DEFAULT_LOCALE;
 
-    const token = unsubscribeTokenFor(alert.id);
+    const token = unsubscribeTokenFor(alert.unsubscribeSubject);
     const email = await renderAlertEmail({
       locale,
       alertLabel: alert.label,

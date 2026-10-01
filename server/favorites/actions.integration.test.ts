@@ -19,8 +19,11 @@ function signedOut() {
   vi.mocked(getCurrentUser).mockResolvedValue(null);
 }
 
+// DATA-10 (docs/specs/core-data-model.md): a removed favorite is soft-deleted,
+// not gone, so "the user's favorites" excludes it the same way the real
+// findFavorites query does.
 async function forUser(userId: string) {
-  return prisma.favorite.findMany({ where: { userId } });
+  return prisma.favorite.findMany({ where: { userId, deletedAt: null } });
 }
 
 beforeEach(async () => {
@@ -233,3 +236,36 @@ function toSnapshot() {
   const { id: _id, ...snapshot } = makeFavoriteInput();
   return snapshot;
 }
+
+// DATA-10/DATA-11 (docs/specs/core-data-model.md): `deletedAt` and `version`
+// do not exist on Favorite yet, so these reads are expected to fail until
+// DATA-8 adds them.
+describe("DATA-10/DATA-11: soft delete and restore", () => {
+  it("DATA-10: removeFavorite sets deletedAt, and listFavorites excludes it", async () => {
+    signedInAs(ADA);
+    await saveFavorite(makeFavoriteInput());
+
+    await removeFavorite("wallapop-abc123");
+
+    const stored = await prisma.favorite.findFirst({ where: { userId: ADA.id } });
+    expect(stored?.deletedAt).toBeInstanceOf(Date);
+
+    const result = await listFavorites();
+    expect(result.ok && result.value).toEqual([]);
+  });
+
+  it("DATA-11 (worked example): saving the same listing again restores the same row, deletedAt null, version 2", async () => {
+    signedInAs(ADA);
+    const first = await saveFavorite(makeFavoriteInput());
+    expect(first).toEqual({ ok: true, value: undefined });
+    const [savedRow] = await forUser(ADA.id);
+
+    await removeFavorite("wallapop-abc123");
+    await saveFavorite(makeFavoriteInput());
+
+    const restored = await prisma.favorite.findFirst({ where: { userId: ADA.id } });
+    expect(restored?.id).toBe(savedRow.id);
+    expect(restored?.deletedAt).toBeNull();
+    expect(restored?.version).toBe(2);
+  });
+});

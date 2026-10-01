@@ -78,18 +78,19 @@ export async function consumeRateLimit(key: string, rule: RateLimitRule): Promis
 
   try {
     const rows = await prisma.$queryRaw<RateLimitRow[]>`
-      INSERT INTO "RateLimit" ("key", "count", "expiresAt")
-      VALUES (${key}, 1, ${expiresAt})
-      ON CONFLICT ("key") DO UPDATE SET
-        "count" = CASE
-          WHEN "RateLimit"."expiresAt" <= NOW() THEN 1
-          ELSE "RateLimit"."count" + 1
+      INSERT INTO rate_limits (id, key, count, expires_at, created_at, updated_at)
+      VALUES (uuid_generate_v7(), ${key}, 1, ${expiresAt}, NOW(), NOW())
+      ON CONFLICT (key) DO UPDATE SET
+        count = CASE
+          WHEN rate_limits.expires_at <= NOW() THEN 1
+          ELSE rate_limits.count + 1
         END,
-        "expiresAt" = CASE
-          WHEN "RateLimit"."expiresAt" <= NOW() THEN EXCLUDED."expiresAt"
-          ELSE "RateLimit"."expiresAt"
-        END
-      RETURNING "count", "expiresAt"
+        expires_at = CASE
+          WHEN rate_limits.expires_at <= NOW() THEN EXCLUDED.expires_at
+          ELSE rate_limits.expires_at
+        END,
+        updated_at = NOW()
+      RETURNING count, expires_at AS "expiresAt"
     `;
 
     if (Math.random() < PRUNE_PROBABILITY) {

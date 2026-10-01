@@ -18,9 +18,12 @@ import { changePassword } from "@/server/account/actions";
 
 interface ChangePasswordFormProps {
   email: string;
+  // DATA-15 (docs/specs/core-data-model.md): the version the page rendered,
+  // sent back so the server can detect a concurrent edit.
+  version: number;
 }
 
-export function ChangePasswordForm({ email }: ChangePasswordFormProps) {
+export function ChangePasswordForm({ email, version }: ChangePasswordFormProps) {
   const { t } = useTranslation();
 
   const {
@@ -42,6 +45,7 @@ export function ChangePasswordForm({ email }: ChangePasswordFormProps) {
     formData.append("currentPassword", data.currentPassword);
     formData.append("password", data.password);
     formData.append("confirmPassword", data.confirmPassword);
+    formData.append("version", String(version));
 
     const result = await changePassword(formData);
 

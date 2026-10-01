@@ -24,6 +24,7 @@ const RECORD = {
   email: "ada@example.com",
   emailVerified: null,
   twoFactorEnabledAt: null,
+  version: 1,
   accounts: [],
 };
 

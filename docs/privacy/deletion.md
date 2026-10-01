@@ -39,6 +39,16 @@ enforced by Postgres, not by application code
 Unsubscribing from an alert is not a deletion: it sets `Alert.active` to false
 and keeps the row until the account is deleted.
 
+## Removing a favorite or an alert
+
+Removing a `Favorite` or deleting an `Alert` (docs/specs/core-data-model.md, DATA-10..12) sets
+`deletedAt` instead of removing the row, so a mistaken removal can be undone. Every read excludes a
+soft-deleted row — its owner included — and saving over one restores it instead of erroring.
+`server/retention/service.ts`'s `purgeSoftDeletedRows`, called from the same opportunistic paths
+that already prune expired auth rows, hard-deletes a soft-deleted `Favorite` or `Alert` **30 days**
+after `deletedAt`. Account deletion is unaffected by any of this: it still erases every row the
+account owns at once, soft-deleted or not, exactly as described above.
+
 ## No export
 
 There is no way for a person to export their data

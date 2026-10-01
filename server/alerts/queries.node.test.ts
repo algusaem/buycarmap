@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
 
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { asAlertId, asUserId } from "@/lib/ids";
 import { findAlertSummaries, findAlertWithMatches } from "@/server/alerts/service";
 import { getAlertWithMatches, listAlertsForPage } from "./queries";
 
@@ -55,7 +56,10 @@ describe("getAlertWithMatches", () => {
 
     expect(notFound).toHaveBeenCalledTimes(1);
     expect(findAlertWithMatches).toHaveBeenCalledTimes(1);
-    expect(findAlertWithMatches).toHaveBeenCalledWith("user-ada", "alert-of-grace");
+    expect(findAlertWithMatches).toHaveBeenCalledWith(
+      asUserId("user-ada"),
+      asAlertId("alert-of-grace"),
+    );
   });
 });
 
@@ -77,7 +81,7 @@ describe("listAlertsForPage", () => {
 
     expect(alerts).toEqual([SUMMARY]);
     expect(findAlertSummaries).toHaveBeenCalledTimes(1);
-    expect(findAlertSummaries).toHaveBeenCalledWith("user-ada");
+    expect(findAlertSummaries).toHaveBeenCalledWith(asUserId("user-ada"));
     expect(redirect).not.toHaveBeenCalled();
   });
 

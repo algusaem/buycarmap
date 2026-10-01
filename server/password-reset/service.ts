@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/email/client";
 import { renderPasswordResetEmail } from "@/lib/email/templates/auth-emails";
 import { appUrl } from "@/lib/app-config";
 import { getLocale } from "@/lib/i18n/server";
+import type { UserId } from "@/lib/ids";
 import { maybePruneExpiredAuthRows } from "@/server/auth/service";
 
 export async function findResetCandidate(email: string) {
@@ -15,7 +16,7 @@ export async function findResetCandidate(email: string) {
 
 // Mints a token and emails the link. Split out so the caller's control flow
 // stays identical whether or not an account was found.
-export async function issueResetToken(userId: string, email: string): Promise<void> {
+export async function issueResetToken(userId: UserId, email: string): Promise<void> {
   // Opportunistic housekeeping, on a path that already writes a token row.
   await maybePruneExpiredAuthRows();
 
@@ -56,7 +57,7 @@ export async function findPasswordResetToken(tokenHash: string) {
 
 interface RedeemableResetToken {
   id: string;
-  userId: string;
+  userId: UserId;
 }
 
 /**
@@ -76,6 +77,9 @@ export async function completePasswordReset(
         // Bumping this invalidates every JWT issued before now — the reset is
         // pointless if whoever prompted it keeps a live session.
         passwordChangedAt: now,
+        // No signed-in actor during a password reset, so updatedById stays
+        // null (DATA-9) — only the version counter moves.
+        version: { increment: 1 },
       },
     }),
     prisma.passwordResetToken.update({

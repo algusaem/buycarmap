@@ -39,7 +39,7 @@ describe("ChangePasswordForm", () => {
   });
 
   it("submits the current password alongside the new one", async () => {
-    renderWithI18n(<ChangePasswordForm email={EMAIL} />);
+    renderWithI18n(<ChangePasswordForm email={EMAIL} version={1} />);
 
     await fillValid();
     await submit();
@@ -52,7 +52,7 @@ describe("ChangePasswordForm", () => {
   });
 
   it("blocks submission when the confirmation does not match", async () => {
-    renderWithI18n(<ChangePasswordForm email={EMAIL} />);
+    renderWithI18n(<ChangePasswordForm email={EMAIL} version={1} />);
 
     await userEvent.type(screen.getByLabelText("Current password"), CURRENT);
     await userEvent.type(screen.getByLabelText("New password"), NEW_PASSWORD);
@@ -68,7 +68,7 @@ describe("ChangePasswordForm", () => {
       success: false,
       error: "currentPasswordIncorrect",
     });
-    renderWithI18n(<ChangePasswordForm email={EMAIL} />);
+    renderWithI18n(<ChangePasswordForm email={EMAIL} version={1} />);
 
     await fillValid();
     await submit();
@@ -82,7 +82,7 @@ describe("ChangePasswordForm", () => {
       success: false,
       error: "passwordBreached",
     });
-    renderWithI18n(<ChangePasswordForm email={EMAIL} />);
+    renderWithI18n(<ChangePasswordForm email={EMAIL} version={1} />);
 
     await fillValid();
     await submit();
@@ -97,7 +97,7 @@ describe("ChangePasswordForm", () => {
 
   it("toasts a rejection no field can fix", async () => {
     changePassword.mockResolvedValue({ success: false, error: "rateLimited" });
-    renderWithI18n(<ChangePasswordForm email={EMAIL} />);
+    renderWithI18n(<ChangePasswordForm email={EMAIL} version={1} />);
 
     await fillValid();
     await submit();
@@ -111,7 +111,7 @@ describe("ChangePasswordForm", () => {
   });
 
   it("silently re-authenticates so this device stays signed in", async () => {
-    renderWithI18n(<ChangePasswordForm email={EMAIL} />);
+    renderWithI18n(<ChangePasswordForm email={EMAIL} version={1} />);
 
     await fillValid();
     await submit();
@@ -130,7 +130,7 @@ describe("ChangePasswordForm", () => {
   });
 
   it("clears the fields once the change succeeded", async () => {
-    renderWithI18n(<ChangePasswordForm email={EMAIL} />);
+    renderWithI18n(<ChangePasswordForm email={EMAIL} version={1} />);
 
     await fillValid();
     await submit();
@@ -142,7 +142,7 @@ describe("ChangePasswordForm", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = renderWithI18n(<ChangePasswordForm email={EMAIL} />);
+    const { container } = renderWithI18n(<ChangePasswordForm email={EMAIL} version={1} />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

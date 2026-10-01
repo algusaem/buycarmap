@@ -53,6 +53,8 @@ In scope:
   Two Zod schemas stay outside `server/` until their phase, by the owner's decision of 2026-09-29:
   - `lib/search/schema.ts`, until phase 9, because the search has no server code before then (ADR 0007 row 19);
   - the env schema in `lib/env.ts`, until phase 6 (row 11).
+
+  `lib/ids.ts` may also import zod: it holds the branded id schemas (`docs/specs/core-data-model.md`, DATA-3).
 - [x] LAYOUT-6 · unit — `lint` runs dependency-cruiser with a committed config, and the tree has 0 violations. Type-only imports count like any other import. Test files (`*.test.ts(x)`) are exempt from the layer rules, because they import what they test and mock the database, but not from the cycle rule (owner's decision, 2026-09-29). The config enforces these rules:
   - `@prisma/*`, the generated client and `lib/db/**` are imported only from `server/**/service.ts`, `lib/db/**` and the exceptions of LAYOUT-7;
   - `app/**` imports only `queries.ts`, `actions.ts` and `schema.ts` from `server/**`, except under LAYOUT-8;

@@ -17,12 +17,22 @@ import { prisma } from "@/lib/db/prisma";
 
 const BUILD_SEED = 20260930;
 
-type FavoriteOverrides = Partial<Prisma.FavoriteCreateInput> &
-  Pick<Prisma.FavoriteCreateInput, "user">;
+// Built against the *unchecked* create input rather than the checked one:
+// DATA-9/DATA-13 (docs/specs/core-data-model.md) tests pass `createdById` as a
+// plain scalar override alongside `user: { connect: { id } } }`, and Prisma's
+// checked `FavoriteCreateInput` has no raw `createdById` (only a nested
+// `createdBy` relation) — mixing the two in one object does not type-check.
+// `user` is kept as the public override shape (every call site already uses
+// it) and converted to `userId` internally.
+type FavoriteOverrides = Partial<Omit<Prisma.FavoriteUncheckedCreateInput, "userId">> & {
+  user: { connect: { id: string } };
+};
 
-export function buildFavorite(overrides: FavoriteOverrides): Prisma.FavoriteCreateInput {
+export function buildFavorite(overrides: FavoriteOverrides): Prisma.FavoriteUncheckedCreateInput {
   faker.seed(BUILD_SEED);
+  const { user, ...rest } = overrides;
   return {
+    userId: user.connect.id,
     listingId: `wallapop-${faker.string.alphanumeric(8)}`,
     source: "Wallapop",
     title: faker.vehicle.vehicle(),
@@ -38,7 +48,7 @@ export function buildFavorite(overrides: FavoriteOverrides): Prisma.FavoriteCrea
     year: faker.number.int({ min: 2000, max: 2025 }),
     lat: 40.4168,
     lng: -3.7038,
-    ...overrides,
+    ...rest,
   };
 }
 

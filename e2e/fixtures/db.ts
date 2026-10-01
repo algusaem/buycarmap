@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { randomUUID } from "node:crypto";
 import pg from "pg";
 import bcrypt from "bcryptjs";
 
@@ -30,11 +31,13 @@ export async function seedUser(
   password: string,
   name = "Seeded User",
 ): Promise<void> {
-  const id = `${e2eEmail("id")}`;
+  // DATA-1 (docs/specs/core-data-model.md): `id` is a UUID with no database
+  // default, so a raw insert has to mint one itself.
+  const id = randomUUID();
   const hash = await bcrypt.hash(password, 12);
   await withClient((client) =>
     client.query(
-      'INSERT INTO "User"(id, email, password, name, "updatedAt") VALUES ($1, $2, $3, $4, now())',
+      "INSERT INTO users(id, email, password, name, updated_at) VALUES ($1, $2, $3, $4, now())",
       [id, email, hash, name],
     ),
   );
@@ -42,7 +45,7 @@ export async function seedUser(
 
 export async function userExists(email: string): Promise<boolean> {
   return withClient(async (client) => {
-    const result = await client.query('SELECT 1 FROM "User" WHERE email = $1', [email]);
+    const result = await client.query("SELECT 1 FROM users WHERE email = $1", [email]);
     return (result.rowCount ?? 0) > 0;
   });
 }
@@ -50,7 +53,7 @@ export async function userExists(email: string): Promise<boolean> {
 /** Delete every account created by this suite. Safe to call repeatedly. */
 export async function cleanupE2eUsers(): Promise<number> {
   return withClient(async (client) => {
-    const result = await client.query(`DELETE FROM "User" WHERE email LIKE $1`, [
+    const result = await client.query(`DELETE FROM users WHERE email LIKE $1`, [
       `%@${E2E_EMAIL_DOMAIN}`,
     ]);
     return result.rowCount ?? 0;
@@ -66,7 +69,7 @@ export async function cleanupE2eUsers(): Promise<number> {
  * dedicated tests; here it is environmental noise.
  */
 export async function clearRateLimits(): Promise<void> {
-  await withClient((client) => client.query('DELETE FROM "RateLimit"'));
+  await withClient((client) => client.query("DELETE FROM rate_limits"));
 }
 
 /**
@@ -79,7 +82,7 @@ export async function clearRateLimits(): Promise<void> {
 export async function favoriteCount(email: string): Promise<number> {
   return withClient(async (client) => {
     const result = await client.query(
-      'SELECT COUNT(*)::int AS n FROM "Favorite" f JOIN "User" u ON u.id = f."userId" WHERE u.email = $1',
+      "SELECT COUNT(*)::int AS n FROM favorites f JOIN users u ON u.id = f.user_id WHERE u.email = $1 AND f.deleted_at IS NULL",
       [email],
     );
     return result.rows[0].n as number;
@@ -101,18 +104,18 @@ export interface ClaimedJob {
 
 /** The claim query the runner issues. Kept here so the tests exercise it verbatim. */
 const CLAIM_SQL = `
-  SELECT id, EXTRACT(EPOCH FROM (now() - "enqueuedAt")) / 60 AS minutes
-  FROM "AlertPollJob"
-  WHERE status = 'pending' AND "availableAt" <= now()
-  ORDER BY "enqueuedAt" ASC
+  SELECT id, EXTRACT(EPOCH FROM (now() - enqueued_at)) / 60 AS minutes
+  FROM alert_poll_jobs
+  WHERE status = 'pending' AND available_at <= now()
+  ORDER BY enqueued_at ASC
   LIMIT $1
   FOR UPDATE SKIP LOCKED
 `;
 
 export async function clearAlertQueue(): Promise<void> {
   await withClient(async (client) => {
-    await client.query('DELETE FROM "AlertPollJob"');
-    await client.query('DELETE FROM "AlertCriteria" WHERE "criteriaHash" LIKE $1', ["e2e-%"]);
+    await client.query("DELETE FROM alert_poll_jobs");
+    await client.query("DELETE FROM alert_criteria WHERE criteria_hash LIKE $1", ["e2e-%"]);
   });
 }
 
@@ -131,18 +134,23 @@ export async function seedAlertJobs(
 ): Promise<void> {
   await withClient(async (client) => {
     for (let n = 0; n < count; n++) {
-      const criteriaId = `e2e-crit-${Date.now()}-${n}`;
+      // DATA-1: both ids are UUIDs with no database default now, minted here
+      // — the `e2e-` tag moves to criteriaHash, the field clearAlertQueue's
+      // cleanup query actually matches on.
+      const criteriaId = randomUUID();
+      const jobId = randomUUID();
+      const criteriaHash = `e2e-crit-${Date.now()}-${n}`;
       const enqueued = options.enqueuedMinutesAgo?.[n] ?? n;
       const available = options.availableInMinutes?.[n] ?? 0;
       await client.query(
-        `INSERT INTO "AlertCriteria"(id, "criteriaHash", criteria)
-         VALUES ($1, $2, '{}'::jsonb)`,
-        [criteriaId, `e2e-${criteriaId}`],
+        `INSERT INTO alert_criteria(id, criteria_hash, criteria, updated_at)
+         VALUES ($1, $2, '{}'::jsonb, now())`,
+        [criteriaId, criteriaHash],
       );
       await client.query(
-        `INSERT INTO "AlertPollJob"(id, "criteriaId", status, attempts, "availableAt", "enqueuedAt")
-         VALUES ($1, $2, 'pending', 0, now() + ($3 || ' minutes')::interval, now() - ($4 || ' minutes')::interval)`,
-        [`e2e-job-${criteriaId}`, criteriaId, String(available), String(enqueued)],
+        `INSERT INTO alert_poll_jobs(id, criteria_id, status, attempts, available_at, enqueued_at, updated_at)
+         VALUES ($1, $2, 'pending', 0, now() + ($3 || ' minutes')::interval, now() - ($4 || ' minutes')::interval, now())`,
+        [jobId, criteriaId, String(available), String(enqueued)],
       );
     }
   });
@@ -208,7 +216,7 @@ export async function claimConcurrently(
  */
 export async function resetRateLimits(): Promise<number> {
   return withClient(async (client) => {
-    const result = await client.query('DELETE FROM "RateLimit"');
+    const result = await client.query("DELETE FROM rate_limits");
     return result.rowCount ?? 0;
   });
 }

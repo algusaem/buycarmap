@@ -74,7 +74,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-39 · component — Selecting an alert lists what it has found, newest first, rendered from stored snapshots with no request to any source API
 - [x] ALERT-40 · component — An alert that has found nothing shows an empty state explaining it is watching, not a blank list
 - [x] ALERT-41 · node — A criteria set whose subscribers are all inactive is not enqueued, and stops consuming upstream requests
-- [x] ALERT-42 · node — Deleting the last alert that references a criteria set deletes the criteria set and its seen-list
+- [x] ALERT-42 · node — Deleting the last alert that references a criteria set stops it being polled at once (DATA-10); the criteria set and its seen-list are deleted when the last alert referencing it is purged (DATA-12, 30 days after deletion), so a restored alert keeps its seen-list
 
 Forty-two criteria: thirty-five on the server boundary, four on rendering, one on
 the email template, two on real Postgres. Nine cover the management surface, ten
@@ -647,7 +647,9 @@ A null locale still falls back to `DEFAULT_LOCALE` rather than blocking the send
 Unsubscribing deactivates an alert; deleting one is what releases the criteria
 set. A criteria set nobody actively subscribes to stops being polled (ALERT-41),
 and once no alert references it at all it is deleted together with its seen-list
-(ALERT-42).
+(ALERT-42). A deleted alert is soft-deleted and still counts as referencing it
+until it is purged 30 days later (`docs/specs/core-data-model.md`, DATA-12), so a
+restored alert keeps its seen-list.
 
 Retaining orphaned seen-lists — pruned after some idle period — was specified
 first, on the reasoning that it saves re-notifying everything if someone
@@ -694,6 +696,7 @@ All settled. Kept as a record of what was decided and what would reopen it.
    **Settled 2026-08-03: deleted** (ALERT-41, ALERT-42). The retention argument
    was wrong — seeding is already silent, so a rebuilt seen-list notifies nobody
    and retention only saves one poll. See Decisions and rationale.
+   Amended 2026-10-01 by `docs/specs/core-data-model.md` (soft delete).
 5. ~~Does forcing `order_by=newest` for Wallapop in the alert path belong here or
    in `data-sources.md`?~~ **Settled 2026-08-03: `data-sources.md`.** It changes
    a shared client's contract, and that spec owns it. **This spec cannot be

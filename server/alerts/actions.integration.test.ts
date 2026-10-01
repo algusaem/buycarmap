@@ -16,7 +16,10 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email/client";
 import { getLocale } from "@/lib/i18n/server";
 import { searchAllSources } from "@/server/alerts/search";
+import { purgeSoftDeletedRows } from "@/server/retention/service";
 import { createAlert, deleteAlert } from "./actions";
+
+const THIRTY_ONE_DAYS_MS = 31 * 24 * 60 * 60 * 1000;
 
 let ADA: { id: string; email: string };
 let GRACE: { id: string; email: string };
@@ -287,7 +290,7 @@ describe("deleteAlert", () => {
     expect(await alertsFor(ADA.id)).toHaveLength(1);
   });
 
-  it("ALERT-42: deleting the last alert for a criteria set deletes the criteria and its seen-list", async () => {
+  it("ALERT-42: deleting the last alert for a criteria set stops it being polled at once, but keeps the criteria and its seen-list until purged", async () => {
     signedInAs(ADA);
     sourcesReturn(makeMatchListing({ id: "wallapop-abc123" }));
     await createAlert(makeCriteria(), "Audi A3 under 20k");
@@ -296,6 +299,21 @@ describe("deleteAlert", () => {
     expect(await seenFor(criteria.id)).toHaveLength(1);
 
     await deleteAlert(alert.id);
+
+    // DATA-10: the only alert now has deletedAt set, so the criteria has no
+    // active, non-deleted subscriber left — the same query enqueueDueCriteria
+    // runs, so it stops being polled at once.
+    const subscribed = await prisma.alertCriteria.findMany({
+      where: { alerts: { some: { active: true, deletedAt: null } } },
+    });
+    expect(subscribed.map((row) => row.id)).not.toContain(criteria.id);
+
+    // ALERT-42/DATA-12: not deleted yet — the 30-day undo window still
+    // applies, so a restored alert keeps its seen-list.
+    expect(await prisma.alertCriteria.count()).toBe(1);
+    expect(await seenFor(criteria.id)).toHaveLength(1);
+
+    await purgeSoftDeletedRows(new Date(Date.now() + THIRTY_ONE_DAYS_MS));
 
     expect(await prisma.alertCriteria.count()).toBe(0);
     expect(await prisma.alertSeenListing.count()).toBe(0);
@@ -313,5 +331,31 @@ describe("deleteAlert", () => {
 
     expect(await prisma.alertCriteria.count()).toBe(1);
     expect(await alertsFor(GRACE.id)).toHaveLength(1);
+  });
+
+  // DATA-10/DATA-11 (docs/specs/core-data-model.md): `deletedAt` does not
+  // exist on Alert yet, so the read below is expected to fail until DATA-8
+  // adds it.
+  it("DATA-10: deleteAlert sets deletedAt", async () => {
+    signedInAs(ADA);
+    await createAlert(makeCriteria(), "Audi A3 under 20k");
+    const [alert] = await alertsFor(ADA.id);
+
+    await deleteAlert(alert.id);
+
+    const found = await prisma.alert.findUnique({ where: { id: alert.id } });
+    expect(found?.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it("DATA-11: creating the same criteria again after deleting restores the same alert row", async () => {
+    signedInAs(ADA);
+    await createAlert(makeCriteria(), "Audi A3 under 20k");
+    const [original] = await alertsFor(ADA.id);
+
+    await deleteAlert(original.id);
+    await createAlert(makeCriteria(), "Audi A3 under 20k");
+
+    const [restored] = await alertsFor(ADA.id);
+    expect(restored.id).toBe(original.id);
   });
 });

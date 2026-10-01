@@ -47,7 +47,7 @@ beforeEach(() => {
 describe("createAlert", () => {
   it("PLAT-12: a database failure rejects instead of returning an error Result", async () => {
     signedInAs(ADA);
-    vi.mocked(store.client.alert.create).mockRejectedValueOnce(new Error("connection refused"));
+    vi.mocked(store.client.alert.upsert).mockRejectedValueOnce(new Error("connection refused"));
 
     await expect(createAlert(makeCriteria(), "Audi A3 under 20k")).rejects.toThrow();
   });
@@ -58,7 +58,7 @@ describe("deleteAlert", () => {
     signedInAs(ADA);
     await createAlert(makeCriteria(), "Audi A3 under 20k");
     const [alert] = store.alertsFor(ADA.id);
-    vi.mocked(store.client.alert.deleteMany).mockRejectedValueOnce(new Error("connection refused"));
+    vi.mocked(store.client.alert.updateMany).mockRejectedValueOnce(new Error("connection refused"));
 
     await expect(deleteAlert(alert.id)).rejects.toThrow();
   });

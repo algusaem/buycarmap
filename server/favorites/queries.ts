@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { asUserId } from "@/lib/ids";
 import type { CarListing } from "@/interfaces/listing";
 import { findFavorites } from "./service";
 
@@ -18,5 +19,5 @@ export async function listFavoritesForPage(): Promise<CarListing[]> {
   // rendered an empty list on a failed read until this phase (ADR 0012),
   // which showed "no favorites yet" to a user whose favorites exist. The new
   // app/favorites/error.tsx shows a translated error and a retry instead.
-  return await findFavorites(user.id);
+  return await findFavorites(asUserId(user.id));
 }

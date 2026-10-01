@@ -37,6 +37,16 @@ describe("translateAuthError", () => {
     );
   });
 
+  it("DATA-16: has non-generic copy for the 'conflict' code in both locales", () => {
+    const enResult = translateAuthError(en, "conflict");
+    const esResult = translateAuthError(es, "conflict");
+
+    expect(enResult).toBeTruthy();
+    expect(enResult).not.toBe(en.authErrors.generic);
+    expect(esResult).toBeTruthy();
+    expect(esResult).not.toBe(es.authErrors.generic);
+  });
+
   it("has copy for every error code the server can return", () => {
     // A code with no entry renders as "generic", which silently loses the
     // actual reason — so adding to AUTH_ERROR must mean adding to both locales.

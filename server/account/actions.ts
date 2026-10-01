@@ -5,11 +5,12 @@ import { hashPassword, verifyPassword } from "@/lib/auth/hash";
 import { validateNewPassword } from "@/lib/auth/password-policy";
 import { sendEmail } from "@/lib/email/client";
 import { renderPasswordChangedEmail } from "@/lib/email/templates/auth-emails";
-import { requiredString } from "@/lib/form-data";
+import { optionalString, requiredString } from "@/lib/form-data";
 import { getLocale } from "@/lib/i18n/server";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
+import { asAccountId, asUserId } from "@/lib/ids";
 import { RATE_LIMITS, consumeRateLimit } from "@/server/rate-limit/service";
-import { changePasswordSchema, updateProfileSchema } from "./schema";
+import { changePasswordServerSchema, updateProfileServerSchema } from "./schema";
 import {
   deleteLinkedAccount,
   deleteUser,
@@ -35,8 +36,9 @@ export async function updateProfile(formData: FormData): Promise<AccountResult> 
     return { success: false, error: AUTH_ERROR.unauthorized };
   }
 
-  const parsed = updateProfileSchema.safeParse({
+  const parsed = updateProfileServerSchema.safeParse({
     name: requiredString(formData.get("name")),
+    version: optionalString(formData.get("version")),
   });
 
   if (!parsed.success) {
@@ -49,7 +51,14 @@ export async function updateProfile(formData: FormData): Promise<AccountResult> 
   try {
     // Scoped to the session's own id — the form carries no user identifier,
     // so there is nothing for a caller to tamper with.
-    await updateUserName(user.id, parsed.data.name || null);
+    const matched = await updateUserName(
+      asUserId(user.id),
+      parsed.data.name || null,
+      parsed.data.version,
+    );
+    if (!matched) {
+      return { success: false, error: AUTH_ERROR.conflict };
+    }
   } catch {
     return { success: false, error: AUTH_ERROR.generic };
   }
@@ -64,6 +73,8 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
     return { success: false, error: AUTH_ERROR.unauthorized };
   }
 
+  const userId = asUserId(user.id);
+
   // Keyed on the account, not the IP: this endpoint needs a valid session, so
   // the account is the meaningful unit to bound.
   const budget = await consumeRateLimit(
@@ -75,10 +86,11 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
     return { success: false, error: AUTH_ERROR.rateLimited };
   }
 
-  const parsed = changePasswordSchema.safeParse({
+  const parsed = changePasswordServerSchema.safeParse({
     currentPassword: requiredString(formData.get("currentPassword")),
     password: requiredString(formData.get("password")),
     confirmPassword: requiredString(formData.get("confirmPassword")),
+    version: optionalString(formData.get("version")),
   });
 
   if (!parsed.success) {
@@ -90,7 +102,7 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
 
   const { currentPassword, password } = parsed.data;
 
-  const record = await findPasswordAndEmail(user.id);
+  const record = await findPasswordAndEmail(userId);
 
   if (!record?.password) {
     // OAuth-only account: there is no current password to verify, so this form
@@ -116,7 +128,15 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
 
   const now = new Date();
 
-  await replacePassword(user.id, await hashPassword(password), now);
+  const matched = await replacePassword(
+    userId,
+    await hashPassword(password),
+    now,
+    parsed.data.version,
+  );
+  if (!matched) {
+    return { success: false, error: AUTH_ERROR.conflict };
+  }
 
   const locale = await getLocale();
   await sendEmail({ to: record.email, ...renderPasswordChangedEmail(locale) });
@@ -140,7 +160,7 @@ export async function signOutEverywhere(): Promise<AccountResult> {
   }
 
   try {
-    await revokeAllSessions(user.id);
+    await revokeAllSessions(asUserId(user.id));
   } catch {
     return { success: false, error: AUTH_ERROR.generic };
   }
@@ -169,7 +189,7 @@ export async function unlinkAccount(formData: FormData): Promise<AccountResult> 
     return { success: false, error: AUTH_ERROR.generic };
   }
 
-  const record = await findSignInMethods(user.id);
+  const record = await findSignInMethods(asUserId(user.id));
 
   if (!record) {
     return { success: false, error: AUTH_ERROR.unauthorized };
@@ -189,7 +209,7 @@ export async function unlinkAccount(formData: FormData): Promise<AccountResult> 
   }
 
   try {
-    await deleteLinkedAccount(target.id);
+    await deleteLinkedAccount(asAccountId(target.id));
   } catch {
     return { success: false, error: AUTH_ERROR.generic };
   }
@@ -204,7 +224,7 @@ export async function deleteAccount(formData: FormData): Promise<AccountResult> 
     return { success: false, error: AUTH_ERROR.unauthorized };
   }
 
-  const record = await findPasswordHash(user.id);
+  const record = await findPasswordHash(asUserId(user.id));
 
   if (!record) {
     return { success: false, error: AUTH_ERROR.unauthorized };
@@ -227,7 +247,7 @@ export async function deleteAccount(formData: FormData): Promise<AccountResult> 
 
   try {
     // Sessions, accounts, tokens and search history all cascade from here.
-    await deleteUser(user.id);
+    await deleteUser(asUserId(user.id));
   } catch {
     return { success: false, error: AUTH_ERROR.generic };
   }

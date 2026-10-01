@@ -8,6 +8,7 @@ import { authorizeCredentials } from "@/server/auth/service";
 import { appUrl, isGitHubConfigured, isGoogleConfigured } from "@/lib/app-config";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { userIdSchema } from "@/lib/ids";
 
 // A short NEXTAUTH_SECRET weakens the HMAC protecting every session JWT. This
 // warns rather than throws so an existing deployment is not bricked by an
@@ -175,8 +176,25 @@ export const authOptions: AuthOptions = {
         return token;
       }
 
+      // DATA-4 (docs/specs/core-data-model.md): `id` is `@db.Uuid` since
+      // DATA-1, so a token minted before the migration re-keyed every id to a
+      // UUIDv7 carries a value that is not even syntactically a UUID —
+      // `prisma.user.findUnique` would throw a validation error, not return
+      // null, for that shape. Treating it as "no such user" up front, the
+      // same as a genuinely deleted account, is what makes every such session
+      // revoke the same way (Throwing here is the documented-by-behaviour
+      // revocation hook below).
+      const parsedId = userIdSchema.safeParse(token.id);
+
+      // Throwing here is the documented-by-behaviour revocation hook: NextAuth's
+      // session route catches it, clears the session cookie, and returns a null
+      // session. Returning a token — any token — would keep the user signed in.
+      if (!parsedId.success) {
+        throw new Error("SessionRevoked");
+      }
+
       const dbUser = await prisma.user.findUnique({
-        where: { id: token.id },
+        where: { id: parsedId.data },
         select: {
           email: true,
           name: true,
@@ -185,9 +203,6 @@ export const authOptions: AuthOptions = {
         },
       });
 
-      // Throwing here is the documented-by-behaviour revocation hook: NextAuth's
-      // session route catches it, clears the session cookie, and returns a null
-      // session. Returning a token — any token — would keep the user signed in.
       if (!dbUser) {
         // Account deleted while the session was live.
         throw new Error("SessionRevoked");

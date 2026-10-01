@@ -16,10 +16,13 @@ import { updateProfile } from "@/server/account/actions";
 
 interface ProfileFormProps {
   name: string;
+  // DATA-15 (docs/specs/core-data-model.md): the version the page rendered,
+  // sent back so the server can detect a concurrent edit.
+  version: number;
 }
 
 // The email address moved to EmailForm, which owns verification and changes.
-export function ProfileForm({ name }: ProfileFormProps) {
+export function ProfileForm({ name, version }: ProfileFormProps) {
   const { t } = useTranslation();
   const { update } = useSession();
 
@@ -35,6 +38,7 @@ export function ProfileForm({ name }: ProfileFormProps) {
   const onSubmit = async (data: UpdateProfileInput) => {
     const formData = new FormData();
     formData.append("name", data.name);
+    formData.append("version", String(version));
 
     const result = await updateProfile(formData);
 

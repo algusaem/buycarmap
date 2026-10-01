@@ -9,6 +9,7 @@ import { requiredString } from "@/lib/form-data";
 import { getLocale } from "@/lib/i18n/server";
 import { logger } from "@/lib/logger";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
+import { asUserId } from "@/lib/ids";
 import { forgotPasswordSchema } from "@/server/auth/schema";
 import { loginEmailRateKey } from "@/server/auth/service";
 import {
@@ -64,7 +65,7 @@ export async function requestPasswordReset(formData: FormData): Promise<Password
   // none to reset. Both cases fall through to the same generic success.
   if (user?.password) {
     try {
-      await issueResetToken(user.id, email);
+      await issueResetToken(asUserId(user.id), email);
     } catch (error) {
       // Swallowed on purpose. Surfacing this would make "did an error occur?"
       // a signal for whether the account exists — the one thing this whole
@@ -128,7 +129,11 @@ export async function resetPassword(formData: FormData): Promise<PasswordResetRe
   const hashedPassword = await hashPassword(password);
   const now = new Date();
 
-  await completePasswordReset(record, hashedPassword, now);
+  await completePasswordReset(
+    { id: record.id, userId: asUserId(record.userId) },
+    hashedPassword,
+    now,
+  );
 
   // The user just proved control of the mailbox, so a lockout from the failed
   // attempts that led here should not survive the reset.

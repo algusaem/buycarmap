@@ -458,6 +458,10 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/map/page.tsx` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/api/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `app/login/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `lib/ids.ts` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
+| `lib/db/soft-delete.ts` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
+| `server/retention/**` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
+| `server/db-conventions.integration.test.ts` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
 | `app/register/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `app/account/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `app/forgot-password/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { asUserId } from "@/lib/ids";
 import { findAccountOverview } from "./service";
 
 /**
@@ -18,7 +19,7 @@ export async function getAccountOverview() {
 
   // `password` is null for OAuth-only accounts, which changes which forms
   // apply. Only the presence flag crosses to the client, never the hash.
-  const record = await findAccountOverview(user.id);
+  const record = await findAccountOverview(asUserId(user.id));
 
   if (!record) {
     redirect("/login");

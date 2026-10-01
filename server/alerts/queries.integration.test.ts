@@ -23,7 +23,7 @@ vi.mock("next/navigation", () => ({
 
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getAlertWithMatches } from "./queries";
+import { getAlertWithMatches, listAlertsForPage } from "./queries";
 
 beforeEach(() => {
   vi.mocked(getCurrentUser).mockReset();
@@ -62,5 +62,25 @@ describe("getAlertWithMatches", () => {
     const alert = await getAlertWithMatches(adasAlert.id);
 
     expect(alert).toMatchObject({ id: adasAlert.id, userId: userA.id });
+  });
+});
+
+// DATA-10 (docs/specs/core-data-model.md): `deletedAt` does not exist on
+// Alert yet, so the update below is expected to fail until DATA-8 adds it.
+describe("listAlertsForPage", () => {
+  it("DATA-10: excludes a soft-deleted alert", async () => {
+    const userA = await createUser({ email: "ada@example.com" });
+    const criteria = await createAlertCriteria();
+    const adasAlert = await createAlert({
+      user: { connect: { id: userA.id } },
+      criteria: { connect: { id: criteria.id } },
+      label: "Ada's search",
+    });
+    await prisma.alert.update({ where: { id: adasAlert.id }, data: { deletedAt: new Date() } });
+    vi.mocked(getCurrentUser).mockResolvedValue(userA);
+
+    const summaries = await listAlertsForPage();
+
+    expect(summaries.map((row) => row.id)).not.toContain(adasAlert.id);
   });
 });

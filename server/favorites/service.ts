@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/db/prisma";
+import { notDeleted } from "@/lib/db/soft-delete";
+import type { ListingRef, UserId } from "@/lib/ids";
 import type { CarListing } from "@/interfaces/listing";
 
 // The stored row carries the row's own id and the user's; the card only ever
 // wants the listing it snapshotted.
 interface FavoriteRow extends Omit<CarListing, "id"> {
-  listingId: string;
+  listingId: ListingRef;
 }
 
 function toListing(row: FavoriteRow): CarListing {
@@ -28,29 +30,39 @@ function toListing(row: FavoriteRow): CarListing {
 }
 
 export async function upsertFavorite(
-  userId: string,
-  listingId: string,
+  userId: UserId,
+  listingId: ListingRef,
   snapshot: Omit<CarListing, "id">,
 ): Promise<void> {
   // Upsert rather than create-and-catch: saving is a toggle, so a second
   // click on an already-saved listing is an ordinary event, not an error to
-  // recover from. `update: {}` deliberately leaves the original snapshot
-  // alone — re-saving is not a refresh, and silently rewriting the stored
+  // recover from. The snapshot itself is never rewritten on the `update`
+  // branch — re-saving is not a refresh, and silently rewriting the stored
   // price would make the staleness harder to reason about, not easier.
+  //
+  // DATA-11 (docs/specs/core-data-model.md): the same branch also restores a
+  // row soft-deleted by `deleteFavorite`, clearing `deletedAt` and bumping
+  // `version`, instead of failing on the unique constraint — the unique key
+  // is `[userId, listingId]` regardless of `deletedAt`, so a deleted row is
+  // still the one this upsert matches.
   await prisma.favorite.upsert({
     where: { userId_listingId: { userId, listingId } },
-    create: { userId, listingId, ...snapshot },
-    update: {},
+    create: { userId, listingId, ...snapshot, createdById: userId },
+    update: { deletedAt: null, version: { increment: 1 }, updatedById: userId },
   });
 }
 
-export async function deleteFavorite(userId: string, listingId: string): Promise<void> {
-  await prisma.favorite.deleteMany({ where: { userId, listingId } });
+/** Soft delete (DATA-10): sets `deletedAt` rather than removing the row. */
+export async function deleteFavorite(userId: UserId, listingId: ListingRef): Promise<void> {
+  await prisma.favorite.updateMany({
+    where: { userId, listingId, ...notDeleted },
+    data: { deletedAt: new Date() },
+  });
 }
 
-export async function findFavorites(userId: string): Promise<CarListing[]> {
+export async function findFavorites(userId: UserId): Promise<CarListing[]> {
   const rows = await prisma.favorite.findMany({
-    where: { userId },
+    where: { userId, ...notDeleted },
     orderBy: { createdAt: "desc" },
   });
   return rows.map(toListing);

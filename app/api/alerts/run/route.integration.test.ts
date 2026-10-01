@@ -129,7 +129,10 @@ async function seenFor(criteriaId: string) {
 
 beforeEach(async () => {
   const [{ now }] = await prisma.$queryRaw<{ now: Date }[]>`SELECT now() AS now`;
-  NOW = now;
+  // A few seconds behind the database clock: the Docker VM's clock is synced
+  // in steps and can jump back slightly, which would put rows stamped at NOW
+  // ahead of a later SQL now() and make the claim skip them.
+  NOW = new Date(now.getTime() - 5_000);
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
   emailConfigured = true;
@@ -289,6 +292,25 @@ describe("enqueueing", () => {
 
     const jobs = await prisma.alertPollJob.findMany({ where: { criteriaId: criteria.id } });
     expect(jobs).toHaveLength(1);
+  });
+
+  // DATA-10 (docs/specs/core-data-model.md): `deletedAt` does not exist on
+  // Alert yet, so the update below is expected to fail until DATA-8 adds it.
+  it("DATA-10: a criteria set whose only alert is soft-deleted is not enqueued", async () => {
+    const criteria = await createAlertCriteria({
+      criteria: makeCriteria(),
+      lastPolledAt: minutesAgo(30),
+    });
+    const alert = await createAlert({
+      user: { connect: { id: ADA.id } },
+      criteria: { connect: { id: criteria.id } },
+    });
+    await prisma.alert.update({ where: { id: alert.id }, data: { deletedAt: new Date() } });
+
+    await run();
+
+    expect(await prisma.alertPollJob.count()).toBe(0);
+    expect(searchAllSources).not.toHaveBeenCalled();
   });
 });
 
