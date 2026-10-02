@@ -3,7 +3,7 @@
 import { startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 interface RouteErrorProps {
@@ -22,7 +22,7 @@ interface RouteErrorProps {
  * would leak internal detail for no benefit.
  */
 export function RouteError({ reset }: RouteErrorProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
   const router = useRouter();
 
   function retry() {
@@ -40,8 +40,8 @@ export function RouteError({ reset }: RouteErrorProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24 text-center">
       <AlertTriangle className="h-10 w-10 text-muted-foreground/40" aria-hidden="true" />
-      <p className="text-sm text-muted-foreground">{t.errors.pageLoadFailed}</p>
-      <Button onClick={retry}>{t.errors.retry}</Button>
+      <p className="text-sm text-muted-foreground">{t("errors.pageLoadFailed")}</p>
+      <Button onClick={retry}>{t("errors.retry")}</Button>
     </div>
   );
 }

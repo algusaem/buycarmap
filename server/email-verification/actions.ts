@@ -11,7 +11,7 @@ import {
   renderVerifyEmailAddressEmail,
 } from "@/lib/email/templates/auth-emails";
 import { requiredString } from "@/lib/form-data";
-import { getLocale } from "@/lib/i18n/server";
+import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { findPasswordAndEmail } from "@/server/account/service";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { asUserId } from "@/lib/ids";
@@ -63,7 +63,7 @@ export async function requestEmailVerification(): Promise<EmailVerificationResul
   }
 
   const token = await replaceVerificationToken(asUserId(user.id), null);
-  const locale = await getLocale();
+  const locale = await getCurrentLocale();
   const { subject, html, text } = renderVerifyEmailAddressEmail(
     locale,
     `${appUrl}/confirm-email?token=${encodeURIComponent(token)}`,
@@ -137,7 +137,7 @@ export async function requestEmailChange(formData: FormData): Promise<EmailVerif
   // The unique index is still the real guard at redemption time.
   if (!existing) {
     const token = await replaceVerificationToken(asUserId(user.id), newEmail);
-    const locale = await getLocale();
+    const locale = await getCurrentLocale();
     const { subject, html, text } = renderEmailChangeEmail(
       locale,
       `${appUrl}/confirm-email?token=${encodeURIComponent(token)}`,
@@ -191,7 +191,7 @@ export async function confirmEmail(formData: FormData): Promise<EmailVerificatio
   // Tell the old address that the account moved, so its owner can react if the
   // change was not theirs. Best effort — the change already succeeded.
   if (record.newEmail) {
-    const locale = await getLocale();
+    const locale = await getCurrentLocale();
     await sendEmail({
       to: previousEmail,
       ...renderEmailChangedNoticeEmail(locale),

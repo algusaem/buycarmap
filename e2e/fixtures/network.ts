@@ -1,9 +1,17 @@
 import type { Page } from "@playwright/test";
 
-// Deterministic proxy responses so e2e never touches live Wallapop/coches.net.
-// Kept intentionally small and self-contained (e2e can't import Vitest fixtures
-// cleanly across the tsconfig boundary).
-const wallapop = {
+// Deterministic payloads for the mock upstream server
+// (e2e/fixtures/upstream-server.ts) so e2e never touches live
+// Wallapop/coches.net/Milanuncios. Kept intentionally small and
+// self-contained (e2e can't import Vitest fixtures cleanly across the
+// tsconfig boundary).
+//
+// FRONT-22 (docs/specs/core-frontend.md): search now runs through a Server
+// Action (server/search/service.ts), so page.route() can no longer stub it —
+// the request never reaches the browser. mockListingSources switches the mock
+// upstream server's scenario instead of routing the page; only image
+// optimisation requests (still browser-side) are routed here.
+export const wallapopFixture = {
   data: {
     section: {
       type: "cars",
@@ -50,7 +58,7 @@ const wallapop = {
   meta: { next_page: null },
 };
 
-const cochesnet = {
+export const cochesNetFixture = {
   items: [
     {
       id: "e2e-cn-1",
@@ -84,7 +92,10 @@ const cochesnet = {
   meta: { totalPages: 1, totalResults: 1 },
 };
 
-const milanuncios = {
+// The raw ads+pagination node — upstream-server.ts wraps it in the HTML shell
+// Milanuncios actually serves (lib/milanuncios/parse.ts's extractInitialProps
+// reads window.__INITIAL_PROPS__ = JSON.parse("…") back out of it).
+export const milanunciosFixture = {
   ads: [
     {
       id: "e2e-mn-1",
@@ -109,6 +120,46 @@ const milanuncios = {
   pagination: { page: 1, resultsPerPage: 41, totalAds: 1, totalPages: 1 },
 };
 
+// The "empty" scenario: all three sources return zero listings, formerly
+// screenshots.spec.ts's own inline page.route() overrides for its "map
+// results list — empty" screenshot.
+export const emptyWallapopFixture = {
+  data: { section: { type: "cars", title: "Cars", items: [] } },
+  meta: { next_page: null },
+};
+export const emptyCochesNetFixture = {
+  items: [],
+  paidItems: [],
+  meta: { totalPages: 0, totalResults: 0 },
+};
+export const emptyMilanunciosFixture = {
+  ads: [],
+  pagination: { page: 1, resultsPerPage: 41, totalAds: 0, totalPages: 0 },
+};
+
+// The two model-lookup endpoints (server/search/service.ts's
+// WALLAPOP_MODELS_URL / COCHESNET_MODELS_URL) stay empty in every scenario —
+// no e2e test asserts on a specific model list, only that filtering by model
+// doesn't crash the round.
+export const wallapopModelsFixture = { type: "model", id: "model", title: "Model", options: [] };
+export const cochesNetModelsFixture = { items: [] };
+
+// Wraps a Milanuncios ads+pagination node in the SSR page shell
+// lib/milanuncios/parse.ts's extractInitialProps reads back out of:
+// window.__INITIAL_PROPS__ = JSON.parse("<escaped>"). Mirrors
+// test/fixtures/milanuncios.ts's makeMilanunciosHtml, which e2e can't import
+// across the tsconfig boundary (see the file header).
+export function milanunciosHtml(response: typeof milanunciosFixture): string {
+  const props = {
+    adListPagination: {
+      adList: { ads: response.ads },
+      pagination: response.pagination,
+    },
+  };
+  const literal = JSON.stringify(JSON.stringify(props));
+  return `<!doctype html><html><head></head><body><script>window.__INITIAL_PROPS__ = JSON.parse(${literal});</script></body></html>`;
+}
+
 // A 1x1 opaque PNG. The fixture listings point at real hosts (next.config only
 // allows a fixed set), but those URLs do not exist — so next/image really
 // fetched them and really got 403/404, and the resulting empty image slot
@@ -131,17 +182,35 @@ async function mockListingImages(page: Page) {
   );
 }
 
-/** Route all three source proxies to fixed payloads. */
+// Must match e2e/fixtures/upstream-server.ts's own default — duplicated
+// rather than shared through a third file, the same call favorites.spec.ts's
+// header comment makes about not coupling files to save a few lines.
+const UPSTREAM_PORT = process.env.E2E_UPSTREAM_PORT ?? "3912";
+
+/**
+ * Switches the mock upstream server's scenario (e2e/fixtures/upstream-server.ts).
+ *
+ * FRONT-22 (docs/specs/core-frontend.md): search now runs through a Server
+ * Action, so the request this used to intercept with `page.route()` never
+ * reaches the browser — this is a Node-to-Node control-plane call instead,
+ * not something the page sees.
+ */
+export async function setUpstreamScenario(scenario: "default" | "empty"): Promise<void> {
+  const response = await fetch(`http://localhost:${UPSTREAM_PORT}/__scenario`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scenario }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to switch e2e upstream scenario to "${scenario}": ${response.status}`);
+  }
+}
+
+/** Points the mock upstream server at its "default" scenario (one listing per source). */
 export async function mockListingSources(page: Page) {
   // Images are part of "don't touch the network", so they belong here rather
   // than in each caller.
   await mockListingImages(page);
 
-  await page.route("**/api/wallapop/search**", (route) => route.fulfill({ json: wallapop }));
-  await page.route("**/api/cochesnet/search**", (route) => route.fulfill({ json: cochesnet }));
-  await page.route("**/api/milanuncios/search**", (route) => route.fulfill({ json: milanuncios }));
-  await page.route("**/api/cochesnet/models**", (route) => route.fulfill({ json: { items: [] } }));
-  await page.route("**/api/wallapop/filters/models**", (route) =>
-    route.fulfill({ json: { type: "model", id: "model", title: "Model", options: [] } }),
-  );
+  await setUpstreamScenario("default");
 }

@@ -6,7 +6,7 @@ import { e2eEmail, seedUser, userExists } from "./fixtures/db";
 const SIGN_IN = /sign in|entrar/i;
 const SIGN_UP = /sign up|registr|crear/i;
 const SIGN_OUT = /sign out|cerrar sesi/i;
-// lib/i18n/locales/en.ts nav.favorites: "Saved cars"; es.ts: "Coches guardados".
+// messages/en.json nav.favorites: "Saved cars"; messages/es.json: "Coches guardados".
 const SAVED_CARS = /saved cars|coches guardados/i;
 
 // Real register/login persist to a database. They run only with E2E_DB=1 (and a
@@ -287,7 +287,7 @@ test.describe("authenticated flows (real database)", () => {
   // shows a translated message telling the user the item changed elsewhere
   // and to reload. The exact copy is implementation's to choose; these
   // constants are the keyphrases the spec itself uses, in both locales.
-  // The copy itself (lib/i18n/locales/{en,es}.ts authErrors.conflict) — keep
+  // The copy itself (messages/{en,es}.json authErrors.conflict) — keep
   // these matchers in sync with it (docs/specs/core-data-model.md DATA-16).
   const CONFLICT_MESSAGE_EN = /changed in another tab or device/i;
   const CONFLICT_MESSAGE_ES = /cambiado en otra pestaña o dispositivo/i;

@@ -7,7 +7,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 /**
@@ -35,19 +35,19 @@ interface NavMenuProps {
  * query against it. See docs/specs/navbar.md, "Breakpoints stay in CSS".
  */
 export function NavMenu({ open, onOpenChange, children }: NavMenuProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={t.nav.menu}>
+        <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={t("nav.menu")}>
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent closeLabel={t.nav.closeMenu}>
+      <SheetContent closeLabel={t("nav.closeMenu")}>
         {/* Radix requires a title for the dialog's accessible name; the panel
             is visually self-evident, so it is announced rather than shown. */}
-        <SheetTitle className="sr-only">{t.nav.menu}</SheetTitle>
+        <SheetTitle className="sr-only">{t("nav.menu")}</SheetTitle>
         {/* A div, not a second <nav>: an unlabelled duplicate landmark is an
             axe violation, and the dialog already scopes these links. */}
         <div className="mt-10 flex flex-col gap-1">{children}</div>

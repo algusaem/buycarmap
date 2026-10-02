@@ -2,7 +2,8 @@
 
 import { Fragment } from "react";
 import * as motion from "motion/react-client";
-import { useTranslation } from "@/lib/i18n/client";
+import { useLocale } from "next-intl";
+import { useLocaleSwitcher } from "@/lib/hooks/useLocaleSwitcher";
 import { LOCALES, type Locale } from "@/lib/i18n/config";
 import { Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,8 @@ const LOCALE_NAMES: Record<Locale, string> = {
 };
 
 export function LanguageSwitcher() {
-  const { locale, setLocale, isPending } = useTranslation();
+  const locale = useLocale() as Locale;
+  const { setLocale, isPending } = useLocaleSwitcher();
 
   return (
     <div className={cn("flex items-center gap-2", isPending && "pointer-events-none")}>

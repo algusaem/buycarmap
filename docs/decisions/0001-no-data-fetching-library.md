@@ -1,5 +1,11 @@
 # 0001 — No data-fetching library
 
+> **Superseded by [0016](0016-server-search-and-next-intl.md).** The search path no longer fans
+> out three browser fetches from `useListingsSearch`: the hook calls one Server Action
+> (`searchListings`), which runs the three-source fan-out on the server. The conclusion here — no
+> TanStack Query, SWR, RTK Query or Redux — still holds; 0016 records the narrower request shape
+> that replaces the one described below.
+
 ## Decided
 
 There is no TanStack Query, SWR, RTK Query or Redux. Every request lifecycle

@@ -47,24 +47,34 @@ sequenceDiagram
     participant U as User
     participant F as useSearchFilters
     participant S as useListingsSearch
-    participant P as /api/* proxies
+    participant A as searchListings (Server Action)
+    participant R as searchRound
     participant X as Upstream APIs
 
     U->>F: change a filter
     F->>F: debounce 400 ms
     F->>S: search(SearchInput)
     S->>S: validate + cache lookup
-    par three sources at once
-        S->>P: searchWallapop
-        S->>P: searchCochesNet
-        S->>P: searchMilanuncios
+    S->>A: searchListings(input, cursors)
+    A->>A: validate + rate-limit (per IP)
+    A->>R: searchRound(input, cursors)
+    par three sources at once, on the server
+        R->>X: Wallapop
+        R->>X: coches.net
+        R->>X: Milanuncios
     end
-    P->>X: proxied request with required headers
-    X-->>P: source-shaped JSON
-    P-->>S: passthrough
-    S->>S: normalize → interleave → CarListing[]
+    X-->>R: source-shaped responses
+    R->>R: normalize → interleave → CarListing[]
+    A->>A: applyResultFilters (radius + model)
+    A-->>S: listings, next cursors, failedSources
     S-->>U: cards + map markers
 ```
+
+ADR 0016: the fan-out is server-only now — `server/search/service.ts`'s
+`searchRound` is the one place that calls the three upstreams, shared by the
+interactive search (`server/search/actions.ts`) and the alert poller
+(`server/alerts/search.ts`). There is no `/api/<source>/` proxy and no
+browser-bound `searchWallapop`/`searchCochesNet`/`searchMilanuncios` any more.
 
 **Filters.** [`lib/hooks/useSearchFilters.ts`](../lib/hooks/useSearchFilters.ts)
 holds every filter in one `FilterValues` object and exposes a typed setter per
@@ -84,14 +94,35 @@ starts browser geolocation, and re-searches when geolocation resolves — but on
 if the user has not meanwhile picked an explicit location. Doing it in that order
 is what stops the first paint waiting on a permission prompt.
 
+**URL state (FRONT-13, ADR 0016).** The filters, the selected location and the
+radius live in the URL through [nuqs](https://nuqs.dev) parsers in
+[`lib/search/url-state.ts`](../lib/search/url-state.ts) (`searchParsers`,
+plus `filtersToUrlState`/`urlStateToFilters` to convert to and from the hook's
+`FilterValues`), so a filtered search deep-links and a reload restores it. The
+URL is only written at the same points the hook already calls `search()` —
+the debounce firing, an explicit `triggerSearch()`, or `clearAll()` — each as
+a pushed history entry, not on every keystroke; a `useEffect` watching the
+nuqs-backed state resyncs and re-searches when the URL changes from outside
+the hook's own writes (Back/Forward, or a hand-edited URL). The root layout
+wraps the app in `nuqs/adapters/next/app`'s `NuqsAdapter`; a component test
+that renders a URL-state-backed component uses `nuqs/adapters/testing`'s
+`NuqsTestingAdapter` (wired into `renderWithI18n` for component tests, and
+per-test via `withNuqsTestingAdapter()` for hook tests that use `renderHook`
+directly, e.g. `lib/hooks/useSearchFilters.test.tsx`).
+
 **Fan-out.** [`lib/hooks/useListingsSearch.ts`](../lib/hooks/useListingsSearch.ts)
 validates the params with `searchSchema`, checks a 60-second in-memory cache
-(`lib/wallapop/cache.ts`, keyed by the JSON-stringified params), then calls all
-three sources under `Promise.allSettled`.
+(`lib/wallapop/cache.ts`, keyed by the JSON-stringified params), then calls the
+`searchListings` Server Action once per round — one call, not three fetches.
+The Server Action itself (`server/search/actions.ts`) re-validates, rate-limits
+per client IP, and calls `server/search/service.ts`'s `searchRound`, which runs
+the three upstreams under `Promise.all` and reports each one's next cursor, its
+has-more flag and whether it failed.
 
-**Partial failure is the normal case.** Only if *all three* reject does the user
-see an error; otherwise the survivors render. Three reverse-engineered upstreams
-means one being unavailable is a Tuesday, not an outage.
+**Partial failure is the normal case.** Only if *all three* fail does the user
+see the inline error state; otherwise the survivors render. Three
+reverse-engineered upstreams means one being unavailable is a Tuesday, not an
+outage.
 
 Results are merged **round-robin**, not concatenated, so every source appears
 near the top instead of whichever returned most dominating the first screen.
@@ -111,11 +142,13 @@ was in flight. With a 400 ms debounce and three sources of differing latency, a
 slow earlier search would otherwise overwrite a fast later one.
 
 **Pagination is per-source**, because the three APIs page differently: Wallapop
-returns a `next_page` cursor, the other two take page numbers with a total. The
-sentinel calls `loadMore()`, which only re-requests sources that still have more.
-`loadMore` is not part of the hook's public surface — it fires from an
-`IntersectionObserver` attached via `sentinelRef`, which is also how it has to be
-tested.
+returns a `next_page` cursor, the other two take page numbers with a total —
+carried as `SearchCursors` (`server/search/service.ts`) between rounds. The
+sentinel calls `loadMore()`, which asks for another round with the cursors the
+last one returned; `searchRound` requests the next page only from a source
+whose `hasMore` was true. `loadMore` is not part of the hook's public surface —
+it fires from an `IntersectionObserver` attached via `sentinelRef`, which is
+also how it has to be tested.
 
 Because the post-filter above can empty a page, fetching a page and growing the
 list are no longer the same event, and both the first search and `loadMore`
@@ -725,27 +758,60 @@ popover content (2026-09-28).
 
 ### Internationalisation
 
-Two locales, `en` and `es`. **The default is `es`** — a detail that has caused
-real bugs, because hardcoded English strings reach most users.
+Two locales, `en` and `es`, through [next-intl](https://next-intl.dev).
+**The default is `es`** — a detail that has caused real bugs, because
+hardcoded English strings reach most users. `messages/en.json` is the source
+language (ADR 0016); `messages/es.json` mirrors it key for key, enforced by
+`messages/messages.test.ts`.
 
 Config in [`lib/i18n/config.ts`](../lib/i18n/config.ts): `LOCALES`,
 `DEFAULT_LOCALE`, `COOKIE_NAME = "locale"`.
 
-**Server.** `getLocale()` reads the `locale` cookie, then falls back to
-`Accept-Language`, then the default. `getTranslations()` is used in `layout.tsx`
-for metadata and SSR.
+**No URL prefix.** The locale stays in a cookie rather than a `/en`/`/es`
+segment, so no link or bookmark breaks when it changes (ADR 0016).
 
-**Client.** `I18nProvider` wraps the app; `useTranslation()` returns
-`{ locale, t, setLocale, isPending }`. `setLocale` writes a one-year cookie and
-`router.refresh()`es inside a transition, so switching language does not blank
-the page.
+**Server.** [`i18n/request.ts`](../i18n/request.ts)'s `getRequestConfig`
+resolves the locale per request: the `locale` cookie wins; absent, it checks
+`Accept-Language` for English and falls back to Spanish otherwise
+(`resolveLocale`, a pure function covered directly by
+`i18n/request.node.test.ts`, including `docs/specs/cross-cutting.md`
+CORE-1..4). It also resolves the time zone from a `tz` cookie — written once
+per browser by [`lib/geo/TimeZoneCookie.tsx`](../lib/geo/TimeZoneCookie.tsx)
+from `Intl.DateTimeFormat().resolvedOptions().timeZone` — falling back to
+`UTC` until that cookie lands. Server components call `getTranslations()`
+and `getLocale()` from `next-intl/server`; `app/layout.tsx`'s
+`generateMetadata` and the root layout itself both use it.
 
-**All user-facing text must use `t.*` keys.** No hardcoded English or Spanish in
-components. New keys go in `lib/i18n/locales/en.ts`, `es.ts` **and**
-`lib/i18n/types.ts`.
+**Client.** The root layout wraps the app in `NextIntlClientProvider`, fed
+the request's locale and messages. Client components call `useTranslations()`
+(and `useLocale()` where they need the raw locale string, e.g. for
+`lib/format.ts`). [`lib/hooks/useLocaleSwitcher.ts`](../lib/hooks/useLocaleSwitcher.ts)
+replaces the old `I18nProvider.setLocale`: it writes the one-year `locale`
+cookie directly (next-intl has no client API of its own for changing it) and
+`router.refresh()`es inside a transition, so switching language does not
+blank the page.
 
-Key parity is enforced by the compiler, not by a test: both locale files are
-typed `: Translations`, so a missing key fails the build.
+**All user-facing text must use next-intl message keys** (`t("namespace.key")`).
+No hardcoded English or Spanish in components. New keys go in both
+`messages/en.json` **and** `messages/es.json`; `lib/i18n/types.ts`'s
+`Translations` interface describes their shape for code that needs the raw
+message tree rather than a translator function (`translateAuthError`,
+`translateError` in `lib/i18n/errors.ts` — client components reach it via
+`useMessages()`).
+
+Key parity is enforced by `messages/messages.test.ts` (FRONT-8), not the
+compiler: a key present in one locale and absent from the other fails that
+test by name.
+
+**Alert emails** (`lib/email/templates/alert-emails.ts`) render outside any
+request, so there is no `getTranslations()` to call — they use next-intl's
+`createTranslator({ locale, messages })` directly, with the recipient's saved
+locale and the same JSON message files.
+
+**Tests.** `test/utils/render.tsx`'s `renderWithI18n` wraps components in
+`NextIntlClientProvider` with `messages/en.json` and locale `en` (plus nuqs's
+testing adapter, for components that read or write URL state — see
+"URL state" below), so component tests query stable English labels.
 
 Errors reach the UI as codes and are translated at render — see
 [Patterns that apply everywhere](#patterns-that-apply-everywhere).
@@ -830,7 +896,7 @@ Two entries in the `node` include list are worth knowing:
 
 | File | Holds |
 | --- | --- |
-| `test/msw/handlers.ts` | Default happy-path handlers — the local proxy routes for jsdom clients, the upstream APIs for node route tests |
+| `test/msw/handlers.ts` | Default happy-path handlers for the three upstream marketplaces (`server/search/service.ts`'s server-side fan-out), Nominatim and the Have I Been Pwned range API |
 | `test/msw/server.ts` | The server instance |
 | `test/fixtures/*.ts` | Typed builders — `makeWallapopItem`, `makeCochesNetItem`, … |
 | `test/mocks/intersection-observer.ts` | Controllable IO; `triggerIntersection()` drives infinite scroll |
@@ -842,9 +908,15 @@ Override per-test with `server.use(...)`. Handlers reset in `afterEach`.
 **Fixtures: override only the field under test.** A builder that spells out every
 field in every test is how a fixture stops describing anything.
 
-**`renderWithI18n` wraps in `I18nProvider locale="en"`** so tests can query stable
-English labels. Without a provider `useTranslation` falls back to Spanish, which
-is the app default but makes assertions read strangely.
+**`renderWithI18n` wraps in `NextIntlClientProvider` with `messages/en.json`,
+locale `en` and timeZone `UTC`** (plus nuqs's `NuqsTestingAdapter`, with
+`hasMemory` so a component that both reads and writes URL state round-trips
+within one test), so tests can query stable English labels. Unlike the
+removed hand-rolled `I18nProvider`, `useTranslations()` throws with no
+provider in scope at all — there is no silent Spanish fallback — so every
+component test that renders a component using it goes through
+`renderWithI18n` (or wraps it some other way) rather than a bare
+`render(...)`.
 
 ### Contract tests
 
@@ -866,10 +938,9 @@ degrades to zero ads rather than an error — see
 Every entry here is a trap someone already fell into. That is what earns them the
 space.
 
-**Module-level caches persist across tests.** `lib/wallapop/cache.ts`,
-`lib/cochesnet/models.ts` (`modelsByMake`) and `lib/geo/user-location.ts` all
-hold module state with no reset hook. Use distinct keys or brands per test, or
-fake timers.
+**Module-level caches persist across tests.** `lib/wallapop/cache.ts` and
+`lib/geo/user-location.ts` hold module state with no reset hook. Use distinct
+keys per test, or fake timers.
 
 **Fake timers and `userEvent` do not mix.** Testing Library's async wrapper awaits
 a `setTimeout` it only advances when it detects *jest's* fake clock, which Vitest
@@ -915,13 +986,40 @@ it for real only in Playwright.
 `E2E_PORT` (default 3000) sets the port Playwright starts the app on and reuses
 locally; set it when another app already listens on 3000.
 
-**The source proxies are mocked at the browser level** (`page.route`, in
-`e2e/fixtures/network.ts`), so e2e never touches live Wallapop, coches.net or
-Milanuncios. Fixture image URLs must use a host allowed in `next.config.ts`
+**Search is mocked by a local upstream server, not `page.route()`**
+(FRONT-22, `docs/specs/core-frontend.md`). Search runs through a Server
+Action (`server/search/service.ts`), so the request that used to be stubbed
+in the browser is now made by the Next dev server itself — `page.route()`
+cannot see it. `e2e/fixtures/upstream-server.ts` is a plain `node:http`
+server standing in for Wallapop, coches.net and Milanuncios; `lib/env.ts`'s
+`WALLAPOP_API_BASE_URL`/`COCHESNET_API_BASE_URL`/`MILANUNCIOS_BASE_URL`
+default to the real hosts and are the only thing that points the app at it.
+`playwright.config.ts` gives it its own `webServer` array entry (`pnpm exec
+tsx e2e/fixtures/upstream-server.ts`) on a fixed port (`E2E_UPSTREAM_PORT`,
+default `3912`) — fixed because Playwright starts every `webServer` entry
+before running `globalSetup`, so a port `globalSetup` picked itself would
+already be too late for the `pnpm dev` entry's env — and points the three
+base-URL vars at it.
+
+It serves one of two **scenarios**, switched through its control endpoint
+(`POST /__scenario { "scenario": "default" | "empty" }`): `"default"` (one
+listing per source) and `"empty"` (every source returns zero listings,
+`screenshots.spec.ts`'s "map results list — empty" screenshot). Every spec
+but `screenshots.spec.ts` only ever needs `"default"`, which
+`e2e/fixtures/network.ts`'s `mockListingSources` sets; `e2e/global-setup.ts`
+also resets to `"default"` once the server answers, since
+`reuseExistingServer` (on outside CI) can carry a scenario over from a
+previous run's process the same way it already does for `pnpm dev`.
+`screenshots.spec.ts` is the only file that ever switches to `"empty"`, and
+it runs its own tests serially (`test.describe.configure({ mode: "serial" })`)
+with a `afterEach` reset back to `"default"`, since the mock server — like
+the one shared `pnpm dev` server — is a single process every worker talks
+to. Fixture image URLs must use a host allowed in `next.config.ts`
 (`**.wallapop.com`, `**.ccdn.es`) or `next/image` throws a client exception.
-`mockListingSources` also stubs `**/_next/image**` — the fixture URLs use allowed
-hosts but do not exist, so `next/image` really fetched them, really 404'd, and
-rendered differently depending on timing.
+`mockListingSources` also stubs `**/_next/image**` (still a real browser
+request) — the fixture URLs use allowed hosts but do not exist, so
+`next/image` really fetched them, really 404'd, and rendered differently
+depending on timing.
 
 Three projects, all run by `pnpm test:e2e`: `chromium` and `mobile` (functional)
 plus `visual` (screenshots). `pnpm test:visual` runs the screenshots alone.

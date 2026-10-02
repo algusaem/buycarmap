@@ -5,7 +5,7 @@ import { makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
 
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
+vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
 // The seed poll (ALERT-2) is the only network this module does. Stubbed at the
 // server-side search seam rather than at fetch, so the action's own behaviour —
@@ -14,7 +14,7 @@ vi.mock("@/server/alerts/search", () => ({ searchAllSources: vi.fn() }));
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email/client";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale } from "next-intl/server";
 import { searchAllSources } from "@/server/alerts/search";
 import { purgeSoftDeletedRows } from "@/server/retention/service";
 import { createAlert, deleteAlert } from "./actions";

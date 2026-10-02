@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { updateProfileSchema, type UpdateProfileInput } from "@/server/account/schema";
 import { updateProfile } from "@/server/account/actions";
 
@@ -23,7 +24,8 @@ interface ProfileFormProps {
 
 // The email address moved to EmailForm, which owns verification and changes.
 export function ProfileForm({ name, version }: ProfileFormProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const { update } = useSession();
 
   const {
@@ -43,38 +45,38 @@ export function ProfileForm({ name, version }: ProfileFormProps) {
     const result = await updateProfile(formData);
 
     if (!result.success) {
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
     // Forces the `jwt` callback to re-read the row so the navbar picks up the
     // new name without a sign-out.
     await update();
-    toast.success(t.account.profile.success);
+    toast.success(t("account.profile.success"));
   };
 
   return (
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-lg font-bold">{t.account.profile.title}</CardTitle>
-        <CardDescription>{t.account.profile.description}</CardDescription>
+        <CardTitle className="text-lg font-bold">{t("account.profile.title")}</CardTitle>
+        <CardDescription>{t("account.profile.description")}</CardDescription>
       </CardHeader>
 
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="account-name">{t.account.profile.name}</Label>
+            <Label htmlFor="account-name">{t("account.profile.name")}</Label>
             <Input
               id="account-name"
               type="text"
-              placeholder={t.account.profile.namePlaceholder}
+              placeholder={t("account.profile.namePlaceholder")}
               autoComplete="name"
               className="bg-background/50"
               {...register("name")}
             />
             {errors.name && (
               <p className="text-sm text-destructive">
-                {translateAuthError(t, errors.name.message)}
+                {translateAuthError(messages, errors.name.message)}
               </p>
             )}
           </div>
@@ -83,10 +85,10 @@ export function ProfileForm({ name, version }: ProfileFormProps) {
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                {t.account.profile.submitting}
+                {t("account.profile.submitting")}
               </span>
             ) : (
-              t.account.profile.submit
+              t("account.profile.submit")
             )}
           </Button>
         </form>

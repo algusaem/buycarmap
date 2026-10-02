@@ -25,6 +25,12 @@ const ROUTES = [
 const READY_TIMEOUT_MS = 120_000;
 const ROUTE_TIMEOUT_MS = 120_000;
 
+// Must match playwright.config.ts's own default (E2E_UPSTREAM_PORT) and
+// e2e/fixtures/network.ts's — duplicated rather than shared through a fourth
+// file, per this suite's own convention of favouring a few repeated lines
+// over coupling files together (see favorites.spec.ts's header comment).
+const UPSTREAM_PORT = process.env.E2E_UPSTREAM_PORT ?? "3912";
+
 async function waitForServer(baseURL: string): Promise<void> {
   const deadline = Date.now() + READY_TIMEOUT_MS;
 
@@ -43,10 +49,28 @@ async function waitForServer(baseURL: string): Promise<void> {
   throw new Error(`Dev server did not become ready at ${baseURL}`);
 }
 
+// FRONT-22 (docs/specs/core-frontend.md): resets the mock upstream server
+// (e2e/fixtures/upstream-server.ts) to its "default" scenario. Playwright's
+// `reuseExistingServer` (on outside CI) keeps that process alive between runs
+// the same way it does `pnpm dev`, so without this a run could start with
+// whatever scenario the previous run — e.g. screenshots.spec.ts's "empty" —
+// left set, rather than a clean baseline.
+async function resetUpstreamScenario(): Promise<void> {
+  const response = await fetch(`http://localhost:${UPSTREAM_PORT}/__scenario`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scenario: "default" }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to reset e2e upstream scenario: ${response.status}`);
+  }
+}
+
 export default async function globalSetup(config: FullConfig): Promise<void> {
   const baseURL = config.projects[0]?.use?.baseURL ?? "http://localhost:3000";
 
   await waitForServer(baseURL);
+  await resetUpstreamScenario();
 
   // Only meaningful when the DB-gated flows run; there is no real database
   // otherwise. See resetRateLimits for why this is necessary.

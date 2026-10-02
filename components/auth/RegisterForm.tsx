@@ -25,13 +25,15 @@ import {
 import { OAuthButtons } from "./OAuthButtons";
 import { PasswordInput } from "./PasswordInput";
 import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { registerSchema, type RegisterInput } from "@/server/registration/schema";
 import { register as registerUser, resendConfirmation } from "@/server/registration/actions";
 
 export function RegisterForm() {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const router = useRouter();
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
@@ -65,7 +67,7 @@ export function RegisterForm() {
     const result = await registerUser(formData);
 
     if (!result.success) {
-      toast.error(translateAuthError(t, result.error) ?? t.auth.registrationFailed);
+      toast.error(translateAuthError(messages, result.error) ?? t("auth.registrationFailed"));
       return;
     }
 
@@ -87,7 +89,7 @@ export function RegisterForm() {
       redirect: false,
     });
 
-    toast.success(t.auth.accountCreated);
+    toast.success(t("auth.accountCreated"));
 
     // Account exists now; if the auto sign-in somehow failed, send them to
     // the login page rather than an unauthenticated home page.
@@ -110,13 +112,13 @@ export function RegisterForm() {
     setIsResending(false);
 
     if (!result.success) {
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
     // Same neutral wording as the panel itself — this must not become a second
     // way to learn whether the address has a pending signup.
-    toast.success(t.verifyEmail.resent);
+    toast.success(t("verifyEmail.resent"));
   };
 
   return (
@@ -128,13 +130,15 @@ export function RegisterForm() {
             className="-ml-1 mb-2 inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
           >
             <ArrowLeft className="h-3 w-3" />
-            {t.auth.return}
+            {t("auth.return")}
           </Link>
           <CardTitle className="text-2xl font-bold">
-            {awaitingConfirmation ? t.verifyEmail.pendingTitle : t.auth.createAccount}
+            {awaitingConfirmation ? t("verifyEmail.pendingTitle") : t("auth.createAccount")}
           </CardTitle>
           <CardDescription>
-            {awaitingConfirmation ? t.verifyEmail.pendingDescription : t.auth.signUpDescription}
+            {awaitingConfirmation
+              ? t("verifyEmail.pendingDescription")
+              : t("auth.signUpDescription")}
           </CardDescription>
         </CardHeader>
 
@@ -157,15 +161,15 @@ export function RegisterForm() {
                 {isResending ? (
                   <span className="flex items-center gap-2">
                     <AiOutlineLoading3Quarters className="h-3.5 w-3.5 animate-spin" />
-                    {t.verifyEmail.resending}
+                    {t("verifyEmail.resending")}
                   </span>
                 ) : (
-                  t.verifyEmail.resend
+                  t("verifyEmail.resend")
                 )}
               </Button>
 
               <Button asChild variant="outline" className="w-full" size="lg">
-                <Link href="/login">{t.auth.signIn}</Link>
+                <Link href="/login">{t("auth.signIn")}</Link>
               </Button>
             </div>
           </CardContent>
@@ -175,60 +179,60 @@ export function RegisterForm() {
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">{t.auth.name}</Label>
+                <Label htmlFor="name">{t("auth.name")}</Label>
                 <Input
                   id="name"
                   type="text"
-                  placeholder={t.auth.namePlaceholder}
+                  placeholder={t("auth.namePlaceholder")}
                   autoComplete="name"
                   className="bg-background/50"
                   {...register("name")}
                 />
                 {errors.name && (
                   <p className="text-sm text-destructive">
-                    {translateAuthError(t, errors.name.message)}
+                    {translateAuthError(messages, errors.name.message)}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">{t.auth.email}</Label>
+                <Label htmlFor="email">{t("auth.email")}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder={t.auth.emailPlaceholder}
+                  placeholder={t("auth.emailPlaceholder")}
                   autoComplete="email"
                   className="bg-background/50"
                   {...register("email")}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">
-                    {translateAuthError(t, errors.email.message)}
+                    {translateAuthError(messages, errors.email.message)}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">{t.auth.password}</Label>
+                <Label htmlFor="password">{t("auth.password")}</Label>
                 <PasswordInput
                   id="password"
-                  placeholder={t.auth.passwordPlaceholder}
+                  placeholder={t("auth.passwordPlaceholder")}
                   autoComplete="new-password"
                   className="bg-background/50"
-                  error={translateAuthError(t, errors.password?.message)}
+                  error={translateAuthError(messages, errors.password?.message)}
                   {...register("password")}
                 />
                 <PasswordStrengthMeter password={password} userInputs={[email, name]} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
+                <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
                 <PasswordInput
                   id="confirmPassword"
-                  placeholder={t.auth.confirmPasswordPlaceholder}
+                  placeholder={t("auth.confirmPasswordPlaceholder")}
                   autoComplete="new-password"
                   className="bg-background/50"
-                  error={translateAuthError(t, errors.confirmPassword?.message)}
+                  error={translateAuthError(messages, errors.confirmPassword?.message)}
                   {...register("confirmPassword")}
                 />
               </div>
@@ -237,10 +241,10 @@ export function RegisterForm() {
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                    {t.auth.creatingAccount}
+                    {t("auth.creatingAccount")}
                   </span>
                 ) : (
-                  t.auth.signUp
+                  t("auth.signUp")
                 )}
               </Button>
             </form>
@@ -256,12 +260,12 @@ export function RegisterForm() {
 
         <CardFooter className="flex-col gap-4 border-t border-border/50 pt-6">
           <p className="text-center text-sm text-muted-foreground">
-            {t.auth.alreadyHaveAccount}{" "}
+            {t("auth.alreadyHaveAccount")}{" "}
             <Link
               href="/login"
               className="font-medium text-primary transition-colors hover:text-primary/80"
             >
-              {t.auth.signIn}
+              {t("auth.signIn")}
             </Link>
           </p>
         </CardFooter>

@@ -1,12 +1,13 @@
 "use client";
 
-import L from "leaflet";
+import L, { type LeafletEvent } from "leaflet";
 import { MapContainer, TileLayer, ZoomControl, Marker, Popup, useMap } from "react-leaflet";
 import { useTheme } from "next-themes";
 import { useMounted } from "@/lib/hooks/useMounted";
 import type { CarListing } from "@/interfaces/listing";
 import { useEffect, useMemo } from "react";
-import { useTranslation } from "@/lib/i18n/client";
+import { useLocale, useTranslations } from "next-intl";
+import { formatPrice } from "@/lib/format";
 
 const TILE_URLS = {
   dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -47,7 +48,8 @@ interface ListingsMapProps {
 
 export function ListingsMap({ listings = [] }: ListingsMapProps) {
   const { resolvedTheme } = useTheme();
-  const { locale } = useTranslation();
+  const locale = useLocale();
+  const t = useTranslations();
   const mounted = useMounted();
 
   const carIcon = useMemo(() => {
@@ -73,18 +75,32 @@ export function ListingsMap({ listings = [] }: ListingsMapProps) {
         <ZoomControl position="bottomright" />
         <FitBounds listings={listings} />
         {carIcon &&
-          listings.map((listing) => (
-            <Marker key={listing.id} position={[listing.lat, listing.lng]} icon={carIcon}>
-              <Popup>
-                <div className="text-sm">
-                  <p className="font-semibold">{listing.title}</p>
-                  <p className="font-mono text-primary">
-                    {listing.price.toLocaleString(locale)} &euro;
-                  </p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          listings.map((listing) => {
+            const markerLabel = t("map.markerLabel", {
+              title: listing.title,
+              price: formatPrice(listing.price, locale),
+            });
+
+            return (
+              <Marker
+                key={listing.id}
+                position={[listing.lat, listing.lng]}
+                icon={carIcon}
+                eventHandlers={{
+                  add: (e: LeafletEvent) => {
+                    e.target.getElement()?.setAttribute("aria-label", markerLabel);
+                  },
+                }}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <p className="font-semibold">{listing.title}</p>
+                    <p className="font-mono text-primary">{formatPrice(listing.price, locale)}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
       </MapContainer>
     </div>
   );

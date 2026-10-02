@@ -394,12 +394,10 @@ Do not point a gap at a loosely related file to make it look covered.
 
 | Source | Governing doc |
 | --- | --- |
-| `app/api/wallapop/**` | [docs/specs/data-sources.md](docs/specs/data-sources.md) |
-| `app/api/cochesnet/**` | [docs/specs/data-sources.md](docs/specs/data-sources.md) |
-| `app/api/milanuncios/**` | [docs/specs/data-sources.md](docs/specs/data-sources.md) |
 | `lib/wallapop/**` | [docs/specs/data-sources.md](docs/specs/data-sources.md) |
 | `lib/cochesnet/**` | [docs/specs/data-sources.md](docs/specs/data-sources.md) |
 | `lib/milanuncios/**` | [docs/specs/data-sources.md](docs/specs/data-sources.md) |
+| `server/search/**` | [docs/specs/core-frontend.md](docs/specs/core-frontend.md) |
 | `components/map/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `lib/hooks/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
@@ -423,6 +421,9 @@ Do not point a gap at a loosely related file to make it look covered.
 | `components/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `components/account/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `lib/i18n/**` | [docs/specs/cross-cutting.md](docs/specs/cross-cutting.md) |
+| `i18n/**` | [docs/specs/core-frontend.md](docs/specs/core-frontend.md) |
+| `messages/**` | [docs/specs/core-frontend.md](docs/specs/core-frontend.md) |
+| `lib/format.ts` | [docs/specs/core-frontend.md](docs/specs/core-frontend.md) |
 | `server/locale/**` | [docs/specs/cross-cutting.md](docs/specs/cross-cutting.md) |
 | `lib/geo/**` | [docs/specs/cross-cutting.md](docs/specs/cross-cutting.md) |
 | `scripts/**` | [README.md](README.md) |
@@ -494,6 +495,8 @@ Do not point a gap at a loosely related file to make it look covered.
 | `release-please-config.json` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `.release-please-manifest.json` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `.claude/commands/**` | [README.md](README.md) |
+| `.claude/skills/**` | [STACK.md](STACK.md) |
+| `.claude/agents/**` | [STACK.md](STACK.md) |
 | `.claude/review-protocol.md` | [README.md](README.md) |
 | `.claude/settings.json` | [README.md](README.md) |
 

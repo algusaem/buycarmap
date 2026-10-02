@@ -5,11 +5,13 @@ import { useCallback, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { ListingsHeader } from "@/components/map/ListingsHeader";
 import { CarListingCard } from "@/components/map/CarListingCard";
+import { ListingsSkeleton } from "@/components/map/ListingsSkeleton";
 import { MobileMapOverlay } from "@/components/map/MobileMapOverlay";
+import { Button } from "@/components/ui/button";
 import { useListingsSearch } from "@/lib/hooks/useListingsSearch";
 import { useSearchFilters } from "@/lib/hooks/useSearchFilters";
 import { useFavorites } from "@/lib/hooks/useFavorites";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 import type { SearchFiltersProps } from "@/components/map/SearchFilters";
 
 const ListingsMap = dynamic(
@@ -22,10 +24,11 @@ interface MapViewProps {
 }
 
 export function MapView({ initialQuery = "" }: MapViewProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [showMap, setShowMap] = useState(false);
-  const { listings, isLoading, isLoadingMore, hasMore, search, sentinelRef } = useListingsSearch();
+  const { listings, isLoading, isLoadingMore, hasMore, error, search, retry, sentinelRef } =
+    useListingsSearch();
   // Results know nothing about what this user saved; without this every card
   // renders unsaved even for a car already in their favorites.
   const { favoriteIds, setFavorite } = useFavorites();
@@ -88,13 +91,15 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
 
         <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
-            <div className="flex h-full items-center justify-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">{t.map.searching}</p>
+            <ListingsSkeleton />
+          ) : error ? (
+            <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+              <p className="text-sm text-muted-foreground">{t("map.searchFailed")}</p>
+              <Button onClick={retry}>{t("errors.retry")}</Button>
             </div>
           ) : listings.length === 0 ? (
             <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-muted-foreground">{t.map.emptyState}</p>
+              <p className="text-sm text-muted-foreground">{t("map.emptyState")}</p>
             </div>
           ) : (
             <>
@@ -113,7 +118,7 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
                   {isLoadingMore && (
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm text-muted-foreground">{t.map.loading}</span>
+                      <span className="text-sm text-muted-foreground">{t("map.loading")}</span>
                     </div>
                   )}
                 </div>

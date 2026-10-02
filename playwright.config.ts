@@ -14,6 +14,17 @@ const dbEnabled = !!process.env.E2E_DB;
 const PORT = process.env.E2E_PORT ?? "3000";
 const BASE_URL = `http://localhost:${PORT}`;
 
+// FRONT-22 (docs/specs/core-frontend.md): the mock upstream server
+// (e2e/fixtures/upstream-server.ts) that stands in for Wallapop, coches.net
+// and Milanuncios now that search runs through a Server Action and
+// page.route() can no longer stub it. Playwright starts every `webServer`
+// entry before running globalSetup, so — unlike a port globalSetup picked
+// itself — a fixed port chosen here is already known when the `pnpm dev`
+// entry below needs to put it in WALLAPOP_API_BASE_URL/COCHESNET_API_BASE_URL/
+// MILANUNCIOS_BASE_URL (lib/env.ts).
+const UPSTREAM_PORT = process.env.E2E_UPSTREAM_PORT ?? "3912";
+const UPSTREAM_URL = `http://localhost:${UPSTREAM_PORT}`;
+
 // Throwaway, but at least 32 characters: lib/env.ts logs a security warning
 // below that length, and a warning on every e2e run trains people to ignore it.
 const E2E_FALLBACK_SECRET = "e2e-secret-at-least-32-characters-long";
@@ -32,24 +43,36 @@ const E2E_FALLBACK_SECRET = "e2e-secret-at-least-32-characters-long";
 // `isEmailConfigured` is a Boolean() of both values, so "" reads as unset.
 const NO_EMAIL = { RESEND_API_KEY: "", EMAIL_FROM: "" };
 
+// FRONT-22: every upstream base URL points at the mock server above, so the
+// Next dev server never resolves the real marketplace hosts during e2e.
+const UPSTREAM_ENV = {
+  WALLAPOP_API_BASE_URL: UPSTREAM_URL,
+  COCHESNET_API_BASE_URL: UPSTREAM_URL,
+  MILANUNCIOS_BASE_URL: UPSTREAM_URL,
+};
+
 const serverEnv = dbEnabled
   ? {
       ...NO_EMAIL,
+      ...UPSTREAM_ENV,
       DATABASE_URL: process.env.DATABASE_URL ?? "",
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? E2E_FALLBACK_SECRET,
       NEXTAUTH_URL: BASE_URL,
     }
   : {
       ...NO_EMAIL,
+      ...UPSTREAM_ENV,
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
       NEXTAUTH_SECRET: E2E_FALLBACK_SECRET,
       NEXTAUTH_URL: BASE_URL,
     };
 
-// E2E runs against a real Next dev server; the two source proxies are mocked at
-// the browser level (see e2e/fixtures/network.ts) so runs never hit the live
-// Wallapop/coches.net APIs. Visual tests live in their own project so their
-// pixel diffs never gate functional PRs.
+// E2E runs against a real Next dev server; search runs server-side
+// (server/search/service.ts) and is mocked by pointing its upstream base URLs
+// at the mock server above (see e2e/fixtures/upstream-server.ts and
+// e2e/fixtures/network.ts) so runs never hit the live Wallapop/coches.net/
+// Milanuncios hosts. Visual tests live in their own project so their pixel
+// diffs never gate functional PRs.
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -111,13 +134,25 @@ export default defineConfig({
       testMatch: /visual\.spec\.ts/,
     },
   ],
-  webServer: {
-    command: "pnpm dev",
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    // PORT goes through the env object rather than inline in `command`, which
-    // would be POSIX-only syntax and break on Windows. Next reads it directly.
-    env: { ...serverEnv, PORT },
-  },
+  webServer: [
+    {
+      // tsx over a compiled .mjs: already a devDependency (used nowhere else
+      // in this config), and runs upstream-server.ts directly rather than
+      // maintaining a second, hand-compiled copy of it.
+      command: `pnpm exec tsx e2e/fixtures/upstream-server.ts`,
+      port: Number(UPSTREAM_PORT),
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+      env: { E2E_UPSTREAM_PORT: UPSTREAM_PORT },
+    },
+    {
+      command: "pnpm dev",
+      url: BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      // PORT goes through the env object rather than inline in `command`, which
+      // would be POSIX-only syntax and break on Windows. Next reads it directly.
+      env: { ...serverEnv, PORT },
+    },
+  ],
 });

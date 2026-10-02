@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
 import { makeCochesNetItem, makeCochesNetResponse } from "@/test/fixtures/cochesnet";
 import { makeCriteria } from "@/test/fixtures/alerts";
+import * as searchService from "@/server/search/service";
 import { searchAllSources } from "./search";
 
 const WALLAPOP = "https://api.wallapop.com/api/v3/search/section";
@@ -158,5 +159,21 @@ describe("searchAllSources", () => {
       expect(typeof listing.title).toBe("string");
       expect(typeof listing.price).toBe("number");
     }
+  });
+
+  // FRONT-6 (docs/specs/core-frontend.md): the runner must stop keeping its
+  // own fan-out and delegate to server/search/service.ts's searchRound, so
+  // there is one fan-out shared with the interactive search.
+  it("FRONT-6: delegates its fan-out to server/search/service's searchRound", async () => {
+    const spy = vi.spyOn(searchService, "searchRound");
+
+    // The point of this assertion is only that the runner calls searchRound
+    // at all, not what it returns — tolerate a throw regardless of cause.
+    await searchAllSources(makeCriteria()).catch(() => {
+      // Intentionally ignored; see above.
+    });
+
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

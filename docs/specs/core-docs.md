@@ -78,8 +78,8 @@ this diff.
 - **No behaviour change.** No criterion changes meaning and no id is renumbered. The only edits to
   existing tests are:
   - the two import statements that drop `as unknown as`;
-  - the SRC-12 assertion in `app/api/wallapop/search/route.node.test.ts`, tightened to the exact
-    body of the SRC-12 worked example refined in this phase;
+  - the SRC-12 assertion in the Wallapop search route's test (since deleted, ADR 0016), tightened
+    to the exact body of the SRC-12 worked example refined in this phase;
   - comment-only re-points of stale spec section references.
 
   All are the owner's decisions, 2026-09-28.
@@ -151,9 +151,9 @@ Regions other than Neon's, and every DPA link, read "phase 12".
 
 **Fixtures.** The new `spec-check` and `docs-check` cases use checklist items. The only edits to
 existing test lines are the two import statements that drop `as unknown as`, the SRC-12 assertion
-in `app/api/wallapop/search/route.node.test.ts` tightened to the exact body of the SRC-12 worked
-example refined in this phase, and comment-only re-points of stale spec section references (the
-owner's decisions, 2026-09-28).
+in the Wallapop search route's test (since deleted, ADR 0016) tightened to the exact body of the
+SRC-12 worked example refined in this phase, and comment-only re-points of stale spec section
+references (the owner's decisions, 2026-09-28).
 
 ## Decisions and rationale
 

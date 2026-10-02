@@ -1,12 +1,4 @@
-import type { WallapopSearchResponse } from "@/interfaces/wallapop";
 import type { SearchInput } from "@/lib/search/schema";
-import { getUserLocation } from "@/lib/geo/user-location";
-
-const BASE_URL = "/api/wallapop/search";
-
-// Center of Spain — ultimate fallback when both explicit location
-// and browser geolocation are unavailable (e.g. permissions denied).
-const SPAIN_CENTER = { lat: 40.0, lng: -3.5 };
 
 export interface WallapopQueryOptions {
   lat: number;
@@ -70,33 +62,4 @@ export function buildWallapopQuery(
   if (options.nextPage) url.searchParams.set("next_page", options.nextPage);
 
   return url.searchParams;
-}
-
-export async function searchWallapop(
-  params: SearchInput,
-  nextPage?: string,
-): Promise<WallapopSearchResponse> {
-  const url = new URL(BASE_URL, window.location.origin);
-  const hasLocation = params.latitude != null && params.longitude != null;
-
-  // Priority: explicit location > browser geolocation > Spain center.
-  // Always send coordinates so Wallapop doesn't geo-filter by server IP
-  // (Vercel servers are in the US, which would return US listings).
-  const userLoc = getUserLocation();
-  url.search = buildWallapopQuery(params, {
-    lat: params.latitude ?? userLoc?.lat ?? SPAIN_CENTER.lat,
-    lng: params.longitude ?? userLoc?.lng ?? SPAIN_CENTER.lng,
-    distance: hasLocation ? params.distanceInKm : 1000,
-    nextPage,
-  }).toString();
-
-  const response = await fetch(url.toString(), {
-    headers: { Accept: "application/json" },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Wallapop API error: ${response.status} ${response.statusText}`);
-  }
-
-  return response.json() as Promise<WallapopSearchResponse>;
 }

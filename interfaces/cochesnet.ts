@@ -49,7 +49,7 @@ export interface CochesNetSearchResponse {
   meta: CochesNetMeta;
 }
 
-export interface CochesNetTaxonomyOption {
+interface CochesNetTaxonomyOption {
   id: number;
   label: string;
 }

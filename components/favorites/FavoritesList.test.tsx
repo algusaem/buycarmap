@@ -71,7 +71,9 @@ describe("FavoritesList", () => {
   it("FAV-13: shows the snapshotted price, not a re-fetched one", () => {
     renderWithI18n(<FavoritesList favorites={saved} />);
 
-    expect(screen.getByText(/11\.200/)).toBeInTheDocument();
+    // FRONT-11 (docs/specs/core-frontend.md) makes the price locale-aware;
+    // renderWithI18n renders English, so formatPrice produces "€11,200".
+    expect(screen.getByText(/11,200/)).toBeInTheDocument();
   });
 
   it("FAV-13: links each saved listing back to its source", () => {
@@ -94,5 +96,23 @@ describe("FavoritesList", () => {
     const { container } = renderWithI18n(<FavoritesList favorites={[]} />);
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  // FRONT-14 (docs/specs/core-frontend.md): two of the four states —
+  // populated and empty-with-a-primary-action — already hold for
+  // FavoritesList itself; loading and error are route-level
+  // (app/favorites/loading.test.tsx, app/favorites/error.test.tsx), since
+  // this component only ever receives already-fetched data as a prop.
+  it("FRONT-14: populated shows the saved items", () => {
+    renderWithI18n(<FavoritesList favorites={saved} />);
+
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+  });
+
+  it("FRONT-14: empty shows written copy and a primary-action link", () => {
+    renderWithI18n(<FavoritesList favorites={[]} />);
+
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/map");
   });
 });

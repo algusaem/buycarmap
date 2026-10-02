@@ -38,7 +38,7 @@ approval (2026-09-28); MAP-20 is its only user-visible change.
 - [x] TOOLING-9 · unit — The repository has `.github/pull_request_template.md` with the sections Description · Main changes · Impact · Tests · Validation · Decisions and open questions · Checklist, `.github/CODEOWNERS`, `renovate.json`, and release-please (config, manifest and workflow)
 - [x] TOOLING-10 · unit — `TODO.md` is gone; each item it held is a GitHub issue
 - [x] TOOLING-11 · unit — A failing hook or check is never bypassed: `--no-verify` and `HUSKY=0` appear in no `package.json` script, workflow or Git hook
-- [x] TOOLING-12 · unit — `lint` fails when a code comment holds a `TODO` with no issue reference (`#<number>` in the same comment, on the same line), as `STACK.md` §5 requires and Biome cannot express (`scripts/todo-check.mjs`, the owner's decision, 2026-09-28). Scanned: the tracked `.ts`, `.tsx`, `.mjs`, `.cjs`, `.js` and `.css` files.
+- [x] TOOLING-12 · unit — `lint` fails when a code comment holds a `TODO` with no issue reference (`#<number>` in the same comment, on the same line), as `STACK.md` §5 requires and Biome cannot express (`scripts/todo-check.mjs`, the owner's decision, 2026-09-28). Scanned: the tracked `.ts`, `.tsx`, `.mjs`, `.cjs`, `.js` and `.css` files, except vendored code under `.claude/skills/`.
 
 ## Worked examples
 

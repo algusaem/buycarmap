@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
-import { getLocale, getTranslations } from "@/lib/i18n/server";
-import { I18nProvider } from "@/lib/i18n/client";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { TimeZoneCookie } from "@/lib/geo/TimeZoneCookie";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Navbar } from "@/components/Navbar";
@@ -22,10 +24,10 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations();
+  const t = await getTranslations("meta");
   return {
-    title: t.meta.title,
-    description: t.meta.description,
+    title: t("title"),
+    description: t("description"),
   };
 }
 
@@ -34,7 +36,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getLocale();
+  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
   // Passed to next-themes so its inline bootstrap script (which sets the
   // theme class before paint) carries the per-request nonce the CSP in
   // proxy.ts requires (PLAT-23, docs/specs/core-platform.md).
@@ -53,18 +55,21 @@ export default async function RootLayout({
             disableTransitionOnChange
             nonce={nonce}
           >
-            <I18nProvider locale={locale}>
-              <Navbar />
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
-              <Toaster
-                position="top-center"
-                toastOptions={{
-                  classNames: {
-                    toast: "bg-card border-border text-foreground",
-                  },
-                }}
-              />
-            </I18nProvider>
+            <NextIntlClientProvider locale={locale} messages={messages}>
+              <NuqsAdapter>
+                <TimeZoneCookie />
+                <Navbar />
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+                <Toaster
+                  position="top-center"
+                  toastOptions={{
+                    classNames: {
+                      toast: "bg-card border-border text-foreground",
+                    },
+                  }}
+                />
+              </NuqsAdapter>
+            </NextIntlClientProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

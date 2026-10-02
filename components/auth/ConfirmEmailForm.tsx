@@ -9,8 +9,9 @@ import { CircleCheck } from "lucide-react";
 import { fadeInUp } from "@/lib/animations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { confirmEmail } from "@/server/email-verification/actions";
 
 interface ConfirmEmailFormProps {
@@ -18,7 +19,8 @@ interface ConfirmEmailFormProps {
 }
 
 export function ConfirmEmailForm({ token }: ConfirmEmailFormProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -34,7 +36,7 @@ export function ConfirmEmailForm({ token }: ConfirmEmailFormProps) {
 
     if (!result.success) {
       setIsSubmitting(false);
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
@@ -46,10 +48,10 @@ export function ConfirmEmailForm({ token }: ConfirmEmailFormProps) {
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-2xl font-bold">
-            {confirmed ? t.confirmEmail.successTitle : t.confirmEmail.title}
+            {confirmed ? t("confirmEmail.successTitle") : t("confirmEmail.title")}
           </CardTitle>
           <CardDescription>
-            {confirmed ? t.confirmEmail.successDescription : t.confirmEmail.description}
+            {confirmed ? t("confirmEmail.successDescription") : t("confirmEmail.description")}
           </CardDescription>
         </CardHeader>
 
@@ -60,7 +62,7 @@ export function ConfirmEmailForm({ token }: ConfirmEmailFormProps) {
                 <CircleCheck className="h-6 w-6 text-accent" />
               </div>
               <Button asChild className="w-full" size="lg">
-                <Link href="/account">{t.confirmEmail.backToAccount}</Link>
+                <Link href="/account">{t("confirmEmail.backToAccount")}</Link>
               </Button>
             </div>
           )}
@@ -76,10 +78,10 @@ export function ConfirmEmailForm({ token }: ConfirmEmailFormProps) {
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                  {t.confirmEmail.submitting}
+                  {t("confirmEmail.submitting")}
                 </span>
               ) : (
-                t.confirmEmail.submit
+                t("confirmEmail.submit")
               )}
             </Button>
           )}

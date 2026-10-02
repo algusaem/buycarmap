@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "@/components/auth/PasswordInput";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import {
   disableTwoFactor,
   regenerateRecoveryCodes,
@@ -32,24 +33,25 @@ interface SetupState {
 }
 
 function StatusBadge({ isEnabled }: { isEnabled: boolean }) {
-  const { t } = useTranslation();
+  const t = useTranslations();
 
   // Icon plus word, never colour alone.
   return isEnabled ? (
     <span className="inline-flex items-center gap-1 text-xs text-accent">
       <ShieldCheck className="h-3.5 w-3.5" />
-      {t.account.twoFactor.enabled}
+      {t("account.twoFactor.enabled")}
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
       <ShieldOff className="h-3.5 w-3.5" />
-      {t.account.twoFactor.disabled}
+      {t("account.twoFactor.disabled")}
     </span>
   );
 }
 
 export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const router = useRouter();
   const [setup, setSetup] = useState<SetupState | null>(null);
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
@@ -63,7 +65,7 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
     setPending(null);
 
     if (!result.success || !result.otpauthUri || !result.secret) {
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
@@ -81,13 +83,13 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
     setPending(null);
 
     if (!result.success) {
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
     setPassword("");
     setCode("");
-    toast.success(t.account.twoFactor.disabledToast);
+    toast.success(t("account.twoFactor.disabledToast"));
     router.refresh();
   };
 
@@ -101,7 +103,7 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
     setPending(null);
 
     if (!result.success || !result.recoveryCodes) {
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
@@ -120,15 +122,15 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
         <CardTitle className="flex items-center justify-between gap-3 text-lg font-bold">
-          {t.account.twoFactor.title}
+          {t("account.twoFactor.title")}
           {isAvailable && <StatusBadge isEnabled={isEnabled} />}
         </CardTitle>
-        <CardDescription>{t.account.twoFactor.description}</CardDescription>
+        <CardDescription>{t("account.twoFactor.description")}</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {!isAvailable && (
-          <p className="text-sm text-muted-foreground">{t.account.twoFactor.unavailable}</p>
+          <p className="text-sm text-muted-foreground">{t("account.twoFactor.unavailable")}</p>
         )}
 
         {/* Recovery codes take over the card entirely: they are shown once, so
@@ -151,10 +153,10 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
             {pending === "start" ? (
               <span className="flex items-center gap-2">
                 <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                {t.account.twoFactor.starting}
+                {t("account.twoFactor.starting")}
               </span>
             ) : (
-              t.account.twoFactor.enableCta
+              t("account.twoFactor.enableCta")
             )}
           </Button>
         )}
@@ -162,11 +164,11 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
         {isAvailable && !recoveryCodes && !setup && isEnabled && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="two-factor-password">{t.account.twoFactor.currentPassword}</Label>
+              <Label htmlFor="two-factor-password">{t("account.twoFactor.currentPassword")}</Label>
               <PasswordInput
                 id="two-factor-password"
                 autoComplete="current-password"
-                placeholder={t.account.twoFactor.currentPasswordPlaceholder}
+                placeholder={t("account.twoFactor.currentPasswordPlaceholder")}
                 className="bg-background/50"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -174,7 +176,9 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
             </div>
 
             <div className="space-y-2 border-t border-border/50 pt-4">
-              <p className="text-xs text-muted-foreground">{t.account.twoFactor.regenerateHint}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("account.twoFactor.regenerateHint")}
+              </p>
               <Button
                 type="button"
                 variant="outline"
@@ -185,26 +189,26 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
                 {pending === "regenerate" ? (
                   <span className="flex items-center gap-2">
                     <AiOutlineLoading3Quarters className="h-3.5 w-3.5 animate-spin" />
-                    {t.account.twoFactor.regenerating}
+                    {t("account.twoFactor.regenerating")}
                   </span>
                 ) : (
-                  t.account.twoFactor.regenerateCta
+                  t("account.twoFactor.regenerateCta")
                 )}
               </Button>
             </div>
 
             <div className="space-y-2 border-t border-border/50 pt-4">
-              <Label htmlFor="two-factor-disable-code">{t.account.twoFactor.codeLabel}</Label>
+              <Label htmlFor="two-factor-disable-code">{t("account.twoFactor.codeLabel")}</Label>
               <Input
                 id="two-factor-disable-code"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                placeholder={t.account.twoFactor.codePlaceholder}
+                placeholder={t("account.twoFactor.codePlaceholder")}
                 className="bg-background/50 font-mono tracking-widest"
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
               />
-              <p className="text-xs text-muted-foreground">{t.account.twoFactor.disableHint}</p>
+              <p className="text-xs text-muted-foreground">{t("account.twoFactor.disableHint")}</p>
               <Button
                 type="button"
                 variant="destructive"
@@ -215,10 +219,10 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
                 {pending === "disable" ? (
                   <span className="flex items-center gap-2">
                     <AiOutlineLoading3Quarters className="h-3.5 w-3.5 animate-spin" />
-                    {t.account.twoFactor.disabling}
+                    {t("account.twoFactor.disabling")}
                   </span>
                 ) : (
-                  t.account.twoFactor.disableCta
+                  t("account.twoFactor.disableCta")
                 )}
               </Button>
             </div>

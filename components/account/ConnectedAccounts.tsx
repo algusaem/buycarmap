@@ -8,8 +8,9 @@ import { FaGithub } from "react-icons/fa";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { unlinkAccount } from "@/server/account/actions";
 
 interface ConnectedAccountsProps {
@@ -29,7 +30,8 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 export function ConnectedAccounts({ providers, hasPassword }: ConnectedAccountsProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
 
@@ -43,24 +45,24 @@ export function ConnectedAccounts({ providers, hasPassword }: ConnectedAccountsP
     setPending(null);
 
     if (!result.success) {
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
-    toast.success(t.account.providers.unlinked);
+    toast.success(t("account.providers.unlinked"));
     router.refresh();
   };
 
   return (
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-lg font-bold">{t.account.providers.title}</CardTitle>
-        <CardDescription>{t.account.providers.description}</CardDescription>
+        <CardTitle className="text-lg font-bold">{t("account.providers.title")}</CardTitle>
+        <CardDescription>{t("account.providers.description")}</CardDescription>
       </CardHeader>
 
       <CardContent>
         {providers.length === 0 && (
-          <p className="text-sm text-muted-foreground">{t.account.providers.none}</p>
+          <p className="text-sm text-muted-foreground">{t("account.providers.none")}</p>
         )}
 
         {providers.length > 0 && (
@@ -86,16 +88,16 @@ export function ConnectedAccounts({ providers, hasPassword }: ConnectedAccountsP
                     variant="ghost"
                     size="sm"
                     disabled={isLastMethod || pending !== null}
-                    title={isLastMethod ? t.account.providers.lastMethodHint : undefined}
+                    title={isLastMethod ? t("account.providers.lastMethodHint") : undefined}
                     onClick={() => onUnlink(provider)}
                   >
                     {pending === provider ? (
                       <span className="flex items-center gap-2">
                         <AiOutlineLoading3Quarters className="h-3.5 w-3.5 animate-spin" />
-                        {t.account.providers.unlinking}
+                        {t("account.providers.unlinking")}
                       </span>
                     ) : (
-                      t.account.providers.unlink
+                      t("account.providers.unlink")
                     )}
                   </Button>
                 </li>
@@ -105,7 +107,9 @@ export function ConnectedAccounts({ providers, hasPassword }: ConnectedAccountsP
         )}
 
         {!hasPassword && providers.length === 1 && (
-          <p className="mt-3 text-xs text-muted-foreground">{t.account.providers.lastMethodHint}</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {t("account.providers.lastMethodHint")}
+          </p>
         )}
       </CardContent>
     </Card>

@@ -13,7 +13,7 @@ const PASSWORD = "harbour-lentil-quilt-97";
 const FAVORITE = /add to favorites|guardar en favoritos/i;
 const UNFAVORITE = /remove from favorites|quitar de favoritos/i;
 const AUDI = "Audi A3 2.0 TDI";
-// lib/i18n/locales/en.ts nav.favorites: "Saved cars"; es.ts: "Coches guardados".
+// messages/en.json nav.favorites: "Saved cars"; messages/es.json: "Coches guardados".
 const SAVED_CARS = /saved cars|coches guardados/i;
 
 // Deliberately duplicated from auth.spec.ts rather than shared: five lines of

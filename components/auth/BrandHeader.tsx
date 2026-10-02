@@ -2,11 +2,11 @@
 
 import * as motion from "motion/react-client";
 import { MapPin } from "lucide-react";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 import { fadeInDown } from "@/lib/animations";
 
 export function BrandHeader() {
-  const { t } = useTranslation();
+  const t = useTranslations();
   return (
     <motion.div className="space-y-2 text-center" {...fadeInDown}>
       <div className="mb-6 flex items-center justify-center gap-3">
@@ -15,7 +15,7 @@ export function BrandHeader() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">BuyCarMap</h1>
       </div>
-      <p className="text-sm text-muted-foreground">{t.auth.brandTagline}</p>
+      <p className="text-sm text-muted-foreground">{t("auth.brandTagline")}</p>
     </motion.div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 import type { Translations } from "@/lib/i18n/types";
 import {
   evaluatePassword,
@@ -62,7 +62,7 @@ function Segment({ active, score }: { active: boolean; score: PasswordScore }) {
 }
 
 export function PasswordStrengthMeter({ password, userInputs = [] }: PasswordStrengthMeterProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
 
   // Re-scoring on every keystroke is cheap, but the dependency on a joined
   // string keeps the array identity from busting the memo each render.
@@ -75,7 +75,7 @@ export function PasswordStrengthMeter({ password, userInputs = [] }: PasswordStr
   if (!password) return null;
 
   const filled = filledSegments(score);
-  const label = t.passwordStrength.scores[SCORE_LABEL_KEY[score]];
+  const label = t(`passwordStrength.scores.${SCORE_LABEL_KEY[score]}`);
 
   return (
     <div className="space-y-1.5">
@@ -88,7 +88,7 @@ export function PasswordStrengthMeter({ password, userInputs = [] }: PasswordStr
       {/* The bar is decorative; this line carries the same information as text
           so strength is never communicated by colour alone. */}
       <p className="flex items-center justify-between gap-2 text-xs" aria-live="polite">
-        <span className="text-muted-foreground">{t.passwordStrength.label}</span>
+        <span className="text-muted-foreground">{t("passwordStrength.label")}</span>
         <span className={`font-medium ${SCORE_TEXT[score]}`}>{label}</span>
       </p>
 
@@ -96,14 +96,14 @@ export function PasswordStrengthMeter({ password, userInputs = [] }: PasswordStr
         <ul className="space-y-0.5">
           {issues.map((issue: PasswordIssue) => (
             <li key={issue} className="text-xs text-muted-foreground">
-              {t.passwordStrength.issues[issue]}
+              {t(`passwordStrength.issues.${issue}`)}
             </li>
           ))}
         </ul>
       )}
 
       {issues.length === 0 && score < 3 && (
-        <p className="text-xs text-muted-foreground">{t.passwordStrength.hint}</p>
+        <p className="text-xs text-muted-foreground">{t("passwordStrength.hint")}</p>
       )}
     </div>
   );

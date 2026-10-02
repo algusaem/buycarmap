@@ -89,6 +89,14 @@ Out of scope, deliberately:
 
 ## Contracts
 
+> **FRONT-5/ADR 0016 (2026-10-02):** the five proxy routes this section's code references
+> (`app/api/wallapop/*`, `app/api/cochesnet/*`, `app/api/milanuncios/*`) are deleted. The upstream
+> calls, headers and error handling described below now live in
+> [`server/search/service.ts`](../../server/search/service.ts), called from the `searchListings` and
+> `listCarModels` Server Actions (`server/search/actions.ts`) instead of a route handler. The
+> contracts, failure modes and worked examples below are otherwise unchanged — only where the code
+> lives moved; the file-path references in this section have not all been swept yet.
+
 - **`CarListing`** (`interfaces/listing.ts`) is the shape all three normalize
   into, and the only shape anything downstream knows about.
 - **Upstream shapes** are captured as Zod schemas in `test/contract/*` — they
@@ -127,8 +135,8 @@ x-deviceos: 0
 x-appversion: 85000
 ```
 
-They are added by the proxy route
-([`app/api/wallapop/search/route.ts`](../../app/api/wallapop/search/route.ts)),
+They are added server-side
+([`server/search/service.ts`](../../server/search/service.ts)),
 never by the browser.
 
 **Never call Wallapop from the browser.** CORS and CloudFront both block it. That
@@ -320,8 +328,8 @@ mapped:
 
 - [`lib/cochesnet/taxonomy.ts`](../../lib/cochesnet/taxonomy.ts) — brand name →
   `makeId`, and Wallapop fuel/transmission tokens → coches.net numeric ids.
-- [`lib/cochesnet/models.ts`](../../lib/cochesnet/models.ts) — model **name** →
-  `modelId`, resolved against `GET /models?makeId=`.
+- [`server/search/service.ts`](../../server/search/service.ts)'s `resolveCochesNetModelId` —
+  model **name** → `modelId`, resolved against `GET /models?makeId=`.
 
 The model dropdown stores the model *name*, because Wallapop uses the name as its
 own option id. That happens to make the shared value source-agnostic: coches.net
@@ -400,8 +408,8 @@ server-rendered HTML with the results embedded in a script tag:
 window.__INITIAL_PROPS__ = JSON.parse("{…escaped json…}")
 ```
 
-[`app/api/milanuncios/search/route.ts`](../../app/api/milanuncios/search/route.ts)
-fetches that page server-side and returns the extracted node as clean JSON, so
+[`server/search/service.ts`](../../server/search/service.ts)
+fetches that page server-side and extracts the node (`lib/milanuncios/parse.ts`), so
 the client never knows the difference.
 
 **Browser-like headers are required.** The site gates datacenter IPs behind bot
@@ -602,23 +610,19 @@ path for the same reason. See [alerts.md](alerts.md).
 
 ## Open questions
 
-1. ~~SRC-12 is a defect, in four places.~~ **Fixed** — all four routes now
-   match Milanuncios and answer 502. Original finding: Only
-   `app/api/milanuncios/search/route.ts` wraps its `fetch` in a try/catch. The
-   other four routes — both Wallapop routes and both coches.net routes — have no
-   error handling at all, so a connection failure (DNS, reset, timeout: routine
-   for these upstreams) throws out of the handler and Next answers with an
-   unhandled 500 instead of the `{ error }` shape every other path promises.
-   The user-visible damage is limited, because the client treats any non-ok as a
-   failure and `allSettled` absorbs it — but it logs an unhandled exception in
-   production and breaks the response contract. Fix: match Milanuncios.
-2. ~~SRC-14 is a defect.~~ **Fixed** — the failure branch no longer writes to
-   the cache, so the next search retries. Original finding: `lib/cochesnet/models.ts` caches a *failed* model
-   fetch as an empty list for the lifetime of the session:
-   `modelsByMake.set(makeId, [])` on the non-ok branch. One transient blip
-   therefore disables model filtering for that make until the page is reloaded,
-   and because the cache is module-level it cannot be cleared. Caching the
-   success is right; caching the failure is not.
+1. ~~SRC-12 is a defect, in four places.~~ **Fixed, then superseded.** All four
+   proxy routes were brought in line with Milanuncios' error handling (only the
+   Milanuncios route originally wrapped its `fetch` in a try/catch, so a
+   connection failure on the other four threw out of the handler as an
+   unhandled 500 instead of the `{ error }` shape every path promised). ADR
+   0016 then deleted all five routes; the equivalent handling now lives in
+   `server/search/service.ts`, whose `fetchJson` wraps every upstream call.
+2. ~~SRC-14 is a defect.~~ **Fixed, then superseded.** The browser-side
+   coches.net model cache this finding was about (module-level, caching a
+   *failed* lookup as an empty list for the session) no longer exists — ADR
+   0016 moved model resolution server-side, where `resolveCochesNetModelId`
+   (`server/search/service.ts`) holds no cross-request cache at all, so a
+   failed lookup never outlives the request that saw it.
 3. ~~SRC-11 is a partial gap.~~ **Closed** — both `models` routes now cover it.
    Original finding: Error passthrough is tested on three of five
    routes; the two `models` routes are untested on that branch.

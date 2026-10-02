@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { isTwoFactorConfigured } from "@/lib/app-config";
-import { getTranslations } from "@/lib/i18n/server";
+import { getTranslations } from "next-intl/server";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { EmailForm } from "@/components/account/EmailForm";
 import { ChangePasswordForm } from "@/components/account/ChangePasswordForm";
@@ -14,7 +14,7 @@ import { getAccountOverview } from "@/server/account/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
-  return { title: `${t.account.title} · ${t.meta.title}` };
+  return { title: `${t("account.title")} · ${t("meta.title")}` };
 }
 
 export default async function AccountPage() {
@@ -36,12 +36,12 @@ export default async function AccountPage() {
           className="-ml-1 mb-6 inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
         >
           <ArrowLeft className="h-3 w-3" />
-          {t.account.backToMap}
+          {t("account.backToMap")}
         </Link>
 
         <header className="mb-8 space-y-1">
-          <h1 className="text-3xl font-extrabold tracking-tight">{t.account.title}</h1>
-          <p className="text-sm text-muted-foreground">{t.account.description}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">{t("account.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("account.description")}</p>
         </header>
 
         <div className="space-y-6">

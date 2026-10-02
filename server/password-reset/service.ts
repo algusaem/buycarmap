@@ -3,7 +3,7 @@ import { PASSWORD_RESET_TTL_MS, generateToken, hashToken, tokenExpiry } from "@/
 import { sendEmail } from "@/lib/email/client";
 import { renderPasswordResetEmail } from "@/lib/email/templates/auth-emails";
 import { appUrl } from "@/lib/app-config";
-import { getLocale } from "@/lib/i18n/server";
+import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import type { UserId } from "@/lib/ids";
 import { maybePruneExpiredAuthRows } from "@/server/auth/service";
 
@@ -39,7 +39,7 @@ export async function issueResetToken(userId: UserId, email: string): Promise<vo
     },
   });
 
-  const locale = await getLocale();
+  const locale = await getCurrentLocale();
   const { subject, html, text } = renderPasswordResetEmail(
     locale,
     `${appUrl}/reset-password?token=${encodeURIComponent(token)}`,

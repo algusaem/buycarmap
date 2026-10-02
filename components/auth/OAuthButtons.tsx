@@ -6,7 +6,7 @@ import { FaGithub } from "react-icons/fa";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 import { useOAuthProviders } from "@/lib/hooks/useOAuthProviders";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 
@@ -16,7 +16,7 @@ interface OAuthButtonsProps {
 }
 
 export function OAuthButtons({ callbackUrl = "/" }: OAuthButtonsProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
   const providers = useOAuthProviders();
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export function OAuthButtons({ callbackUrl = "/" }: OAuthButtonsProps) {
         {/* Just "or": the buttons now say "Continue with …" themselves, so the
             old "or continue with" divider repeated the same words twice. */}
         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-          {t.common.or}
+          {t("common.or")}
         </span>
       </div>
 
@@ -69,7 +69,7 @@ export function OAuthButtons({ callbackUrl = "/" }: OAuthButtonsProps) {
             ) : (
               <FaGithub className="h-[18px] w-[18px] shrink-0" />
             )}
-            {t.auth.continueWithGithub}
+            {t("auth.continueWithGithub")}
           </Button>
         )}
       </div>

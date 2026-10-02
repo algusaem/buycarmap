@@ -15,7 +15,7 @@ import { makeCriteria } from "@/test/fixtures/alerts";
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/server/alerts/search", () => ({ searchAllSources: vi.fn() }));
 vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
+vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
 vi.mock("@/lib/auth/hash", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/auth/hash")>()),
   verifyPassword: vi.fn(),

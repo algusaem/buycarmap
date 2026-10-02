@@ -16,6 +16,8 @@ const ISSUE_REFERENCE = /#\d+/;
 const CSS_COMMENT = /\/\*[\s\S]*?\*\//g;
 const SCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mjs", ".cjs", ".js"]);
 const TRACKED_EXTENSIONS = new Set([...SCRIPT_EXTENSIONS, ".css"]);
+// Vendored verbatim from upstream tags; STACK.md §17.
+const VENDORED_PREFIXES = [".claude/skills/"];
 
 /** @typedef {{ path: string, text: string }} TodoCheckFile */
 /** @typedef {{ path: string, line: number }} TodoCheckHit */
@@ -136,7 +138,11 @@ export function findUnreferencedTodos(files) {
  * @returns {string[]}
  */
 function trackedFiles(cwd) {
-  return gitTrackedFiles(cwd).filter((path) => TRACKED_EXTENSIONS.has(extname(path)));
+  return gitTrackedFiles(cwd).filter(
+    (path) =>
+      TRACKED_EXTENSIONS.has(extname(path)) &&
+      !VENDORED_PREFIXES.some((prefix) => path.startsWith(prefix)),
+  );
 }
 
 /**

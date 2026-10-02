@@ -11,8 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "@/components/auth/PasswordInput";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { changeEmailSchema, type ChangeEmailInput } from "@/server/email-verification/schema";
 import { requestEmailChange, requestEmailVerification } from "@/server/email-verification/actions";
@@ -25,14 +26,14 @@ interface EmailFormProps {
 }
 
 function VerificationBadge({ isVerified }: { isVerified: boolean }) {
-  const { t } = useTranslation();
+  const t = useTranslations();
 
   // Icon plus text, never colour alone.
   if (isVerified) {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-accent">
         <BadgeCheck className="h-3.5 w-3.5" />
-        {t.account.email.verified}
+        {t("account.email.verified")}
       </span>
     );
   }
@@ -40,13 +41,14 @@ function VerificationBadge({ isVerified }: { isVerified: boolean }) {
   return (
     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
       <TriangleAlert className="h-3.5 w-3.5" />
-      {t.account.email.unverified}
+      {t("account.email.unverified")}
     </span>
   );
 }
 
 export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const [isVerifying, setIsVerifying] = useState(false);
   const [changeRequested, setChangeRequested] = useState(false);
 
@@ -65,11 +67,11 @@ export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
     setIsVerifying(false);
 
     if (!result.success) {
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
-    toast.success(t.account.email.verifySent);
+    toast.success(t("account.email.verifySent"));
   };
 
   const onSubmit = async (data: ChangeEmailInput) => {
@@ -88,7 +90,7 @@ export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
         setError("email", { message: result.error });
         return;
       }
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
@@ -99,13 +101,13 @@ export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
   return (
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-lg font-bold">{t.account.email.title}</CardTitle>
-        <CardDescription>{t.account.email.description}</CardDescription>
+        <CardTitle className="text-lg font-bold">{t("account.email.title")}</CardTitle>
+        <CardDescription>{t("account.email.description")}</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="current-email">{t.account.email.current}</Label>
+          <Label htmlFor="current-email">{t("account.email.current")}</Label>
           <Input
             id="current-email"
             type="email"
@@ -127,10 +129,10 @@ export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
                 {isVerifying ? (
                   <span className="flex items-center gap-2">
                     <AiOutlineLoading3Quarters className="h-3.5 w-3.5 animate-spin" />
-                    {t.account.email.verifying}
+                    {t("account.email.verifying")}
                   </span>
                 ) : (
-                  t.account.email.verifyCta
+                  t("account.email.verifyCta")
                 )}
               </Button>
             )}
@@ -142,7 +144,7 @@ export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
             className="rounded-md border border-accent/20 bg-accent/5 p-3 text-sm text-muted-foreground"
             aria-live="polite"
           >
-            {t.account.email.submitted}
+            {t("account.email.submitted")}
           </p>
         )}
 
@@ -152,46 +154,46 @@ export function EmailForm({ email, isVerified, canChange }: EmailFormProps) {
             className="space-y-4 border-t border-border/50 pt-6"
           >
             <div className="space-y-2">
-              <Label htmlFor="new-email">{t.account.email.newEmail}</Label>
+              <Label htmlFor="new-email">{t("account.email.newEmail")}</Label>
               <Input
                 id="new-email"
                 type="email"
-                placeholder={t.account.email.newEmailPlaceholder}
+                placeholder={t("account.email.newEmailPlaceholder")}
                 autoComplete="email"
                 className="bg-background/50"
                 {...register("email")}
               />
               {errors.email && (
                 <p className="text-sm text-destructive">
-                  {translateAuthError(t, errors.email.message)}
+                  {translateAuthError(messages, errors.email.message)}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email-current-password">{t.account.email.currentPassword}</Label>
+              <Label htmlFor="email-current-password">{t("account.email.currentPassword")}</Label>
               {/* Required as well as the emailed link: a hijacked session alone
                   must not be enough to move the account to another inbox. */}
               <PasswordInput
                 id="email-current-password"
-                placeholder={t.account.email.currentPasswordPlaceholder}
+                placeholder={t("account.email.currentPasswordPlaceholder")}
                 autoComplete="current-password"
                 className="bg-background/50"
-                error={translateAuthError(t, errors.currentPassword?.message)}
+                error={translateAuthError(messages, errors.currentPassword?.message)}
                 {...register("currentPassword")}
               />
             </div>
 
-            <p className="text-xs text-muted-foreground">{t.account.email.notice}</p>
+            <p className="text-xs text-muted-foreground">{t("account.email.notice")}</p>
 
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                  {t.account.email.submitting}
+                  {t("account.email.submitting")}
                 </span>
               ) : (
-                t.account.email.submit
+                t("account.email.submit")
               )}
             </Button>
           </form>

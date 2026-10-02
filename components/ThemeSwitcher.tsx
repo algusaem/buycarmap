@@ -6,7 +6,7 @@ import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMounted } from "@/lib/hooks/useMounted";
 import { useThemeTransition } from "@/lib/hooks/useThemeTransition";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 
 const iconAnimation = {
   initial: { opacity: 0, rotate: -90, scale: 0.5 },
@@ -34,7 +34,7 @@ interface ThemeSwitcherProps {
 
 export function ThemeSwitcher({ showLabel = true }: ThemeSwitcherProps) {
   const { resolvedTheme, toggleTheme } = useThemeTransition();
-  const { t } = useTranslation();
+  const t = useTranslations();
   const mounted = useMounted();
 
   if (!mounted) {
@@ -43,7 +43,7 @@ export function ThemeSwitcher({ showLabel = true }: ThemeSwitcherProps) {
 
   const isDark = resolvedTheme === "dark";
   const Icon = isDark ? Moon : Sun;
-  const label = isDark ? t.theme.dark : t.theme.light;
+  const label = isDark ? t("theme.dark") : t("theme.light");
 
   return (
     <Button

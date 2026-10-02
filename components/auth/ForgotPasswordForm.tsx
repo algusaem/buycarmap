@@ -13,13 +13,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/server/auth/schema";
 import { requestPasswordReset } from "@/server/password-reset/actions";
 
 export function ForgotPasswordForm() {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const [submitted, setSubmitted] = useState(false);
 
   const {
@@ -36,7 +38,7 @@ export function ForgotPasswordForm() {
 
     const result = await requestPasswordReset(formData);
     if (!result.success) {
-      toast.error(translateAuthError(t, result.error) ?? t.forgotPassword.genericError);
+      toast.error(translateAuthError(messages, result.error) ?? t("forgotPassword.genericError"));
       return;
     }
 
@@ -52,13 +54,13 @@ export function ForgotPasswordForm() {
             className="-ml-1 mb-2 inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
           >
             <ArrowLeft className="h-3 w-3" />
-            {t.forgotPassword.backToLogin}
+            {t("forgotPassword.backToLogin")}
           </Link>
           <CardTitle className="text-2xl font-bold">
-            {submitted ? t.forgotPassword.successTitle : t.forgotPassword.title}
+            {submitted ? t("forgotPassword.successTitle") : t("forgotPassword.title")}
           </CardTitle>
           <CardDescription>
-            {submitted ? t.forgotPassword.successDescription : t.forgotPassword.description}
+            {submitted ? t("forgotPassword.successDescription") : t("forgotPassword.description")}
           </CardDescription>
         </CardHeader>
 
@@ -69,24 +71,24 @@ export function ForgotPasswordForm() {
                 <MailCheck className="h-6 w-6 text-accent" />
               </div>
               <Button asChild variant="outline" className="w-full" size="lg">
-                <Link href="/login">{t.forgotPassword.backToLogin}</Link>
+                <Link href="/login">{t("forgotPassword.backToLogin")}</Link>
               </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">{t.auth.email}</Label>
+                <Label htmlFor="email">{t("auth.email")}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder={t.auth.emailPlaceholder}
+                  placeholder={t("auth.emailPlaceholder")}
                   autoComplete="email"
                   className="bg-background/50"
                   {...register("email")}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">
-                    {translateAuthError(t, errors.email.message)}
+                    {translateAuthError(messages, errors.email.message)}
                   </p>
                 )}
               </div>
@@ -95,10 +97,10 @@ export function ForgotPasswordForm() {
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                    {t.forgotPassword.submitting}
+                    {t("forgotPassword.submitting")}
                   </span>
                 ) : (
-                  t.forgotPassword.submit
+                  t("forgotPassword.submit")
                 )}
               </Button>
             </form>

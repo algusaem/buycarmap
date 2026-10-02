@@ -18,7 +18,7 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   resetRateLimit: vi.fn(async () => undefined),
 }));
 vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/i18n/server", () => ({ getLocale: vi.fn(async () => "en") }));
+vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
 import { verifyPassword } from "@/lib/auth/hash";
 import { consumeRateLimit, resetRateLimit } from "@/server/rate-limit/service";

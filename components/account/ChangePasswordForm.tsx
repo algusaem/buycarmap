@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { changePasswordSchema, type ChangePasswordInput } from "@/server/account/schema";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { changePassword } from "@/server/account/actions";
@@ -24,7 +25,8 @@ interface ChangePasswordFormProps {
 }
 
 export function ChangePasswordForm({ email, version }: ChangePasswordFormProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
 
   const {
     register,
@@ -68,7 +70,7 @@ export function ChangePasswordForm({ email, version }: ChangePasswordFormProps) 
         return;
       }
 
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
@@ -83,14 +85,14 @@ export function ChangePasswordForm({ email, version }: ChangePasswordFormProps) 
     });
 
     reset();
-    toast.success(t.account.security.success);
+    toast.success(t("account.security.success"));
   };
 
   return (
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-lg font-bold">{t.account.security.title}</CardTitle>
-        <CardDescription>{t.account.security.description}</CardDescription>
+        <CardTitle className="text-lg font-bold">{t("account.security.title")}</CardTitle>
+        <CardDescription>{t("account.security.description")}</CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -100,52 +102,52 @@ export function ChangePasswordForm({ email, version }: ChangePasswordFormProps) 
           <input type="email" name="email" value={email} autoComplete="username" readOnly hidden />
 
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">{t.account.security.currentPassword}</Label>
+            <Label htmlFor="currentPassword">{t("account.security.currentPassword")}</Label>
             <PasswordInput
               id="currentPassword"
-              placeholder={t.account.security.currentPasswordPlaceholder}
+              placeholder={t("account.security.currentPasswordPlaceholder")}
               autoComplete="current-password"
               className="bg-background/50"
-              error={translateAuthError(t, errors.currentPassword?.message)}
+              error={translateAuthError(messages, errors.currentPassword?.message)}
               {...register("currentPassword")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">{t.account.security.newPassword}</Label>
+            <Label htmlFor="newPassword">{t("account.security.newPassword")}</Label>
             <PasswordInput
               id="newPassword"
-              placeholder={t.account.security.newPasswordPlaceholder}
+              placeholder={t("account.security.newPasswordPlaceholder")}
               autoComplete="new-password"
               className="bg-background/50"
-              error={translateAuthError(t, errors.password?.message)}
+              error={translateAuthError(messages, errors.password?.message)}
               {...register("password")}
             />
             <PasswordStrengthMeter password={password} userInputs={[email]} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmNewPassword">{t.account.security.confirmPassword}</Label>
+            <Label htmlFor="confirmNewPassword">{t("account.security.confirmPassword")}</Label>
             <PasswordInput
               id="confirmNewPassword"
-              placeholder={t.account.security.confirmPasswordPlaceholder}
+              placeholder={t("account.security.confirmPasswordPlaceholder")}
               autoComplete="new-password"
               className="bg-background/50"
-              error={translateAuthError(t, errors.confirmPassword?.message)}
+              error={translateAuthError(messages, errors.confirmPassword?.message)}
               {...register("confirmPassword")}
             />
           </div>
 
-          <p className="text-xs text-muted-foreground">{t.account.security.signOutNotice}</p>
+          <p className="text-xs text-muted-foreground">{t("account.security.signOutNotice")}</p>
 
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                {t.account.security.submitting}
+                {t("account.security.submitting")}
               </span>
             ) : (
-              t.account.security.submit
+              t("account.security.submit")
             )}
           </Button>
         </form>

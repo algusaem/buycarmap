@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
+import { withNuqsTestingAdapter } from "nuqs/adapters/testing";
 import type { SearchInput } from "@/lib/search/schema";
 
 // Geolocation is a dependency of the mount sequence, not a thing these tests
@@ -28,7 +29,7 @@ afterEach(() => vi.useRealTimers());
 describe("useSearchFilters", () => {
   it("fires an immediate search on mount with the Spain-center fallback params", () => {
     const search = vi.fn();
-    renderHook(() => useSearchFilters(search, () => ""));
+    renderHook(() => useSearchFilters(search, () => ""), { wrapper: withNuqsTestingAdapter() });
 
     expect(search).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -44,7 +45,7 @@ describe("useSearchFilters", () => {
     // A landing-page search seeds the map via /map?q=... — the keyword must be
     // carried into the very first search, not dropped in favour of "".
     const search = vi.fn();
-    renderHook(() => useSearchFilters(search, () => "golf"));
+    renderHook(() => useSearchFilters(search, () => "golf"), { wrapper: withNuqsTestingAdapter() });
 
     expect(search).toHaveBeenCalledWith(expect.objectContaining({ keywords: "golf" }));
   });
@@ -52,7 +53,9 @@ describe("useSearchFilters", () => {
   it("MAP-11: debounces filter updates by 400ms before searching", async () => {
     vi.useFakeTimers();
     const search = vi.fn();
-    const { result } = renderHook(() => useSearchFilters(search, () => ""));
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
     // Flush the mount's post-geolocation re-search microtask, then isolate.
     await act(async () => {
       await Promise.resolve();
@@ -75,7 +78,9 @@ describe("useSearchFilters", () => {
   it("MAP-11: triggerSearch searches immediately, bypassing the debounce", () => {
     vi.useFakeTimers();
     const search = vi.fn();
-    const { result } = renderHook(() => useSearchFilters(search, () => "kw"));
+    const { result } = renderHook(() => useSearchFilters(search, () => "kw"), {
+      wrapper: withNuqsTestingAdapter(),
+    });
     search.mockClear();
 
     act(() => result.current.setMinPrice(5000));
@@ -88,7 +93,9 @@ describe("useSearchFilters", () => {
 
   it("tracks the active filter count", () => {
     const search = vi.fn();
-    const { result } = renderHook(() => useSearchFilters(search, () => ""));
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
 
     expect(result.current.activeCount).toBe(0);
     act(() => result.current.setEngine(["gasoil"]));
@@ -100,13 +107,17 @@ describe("useSearchFilters", () => {
 
 describe("useSearchFilters panel visibility", () => {
   it("starts collapsed", () => {
-    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
 
     expect(result.current.isOpen).toBe(false);
   });
 
   it("toggles open and closed", () => {
-    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
 
     act(() => result.current.toggle());
     expect(result.current.isOpen).toBe(true);
@@ -118,7 +129,9 @@ describe("useSearchFilters panel visibility", () => {
   it("collapses the panel when a search is triggered", () => {
     // The results sit behind the expanded panel, so leaving it open after an
     // explicit search hides the very thing the user asked for.
-    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
 
     act(() => result.current.toggle());
     expect(result.current.isOpen).toBe(true);
@@ -131,7 +144,9 @@ describe("useSearchFilters panel visibility", () => {
   it("still searches when the panel was already closed", () => {
     // Triggering from the search box with no panel open must behave normally.
     const search = vi.fn();
-    const { result } = renderHook(() => useSearchFilters(search, () => "golf"));
+    const { result } = renderHook(() => useSearchFilters(search, () => "golf"), {
+      wrapper: withNuqsTestingAdapter(),
+    });
     search.mockClear();
 
     act(() => result.current.triggerSearch());
@@ -144,7 +159,9 @@ describe("useSearchFilters panel visibility", () => {
     // `update()` re-searches on every change. Collapsing there would shut the
     // panel the moment someone picked a brand, mid-edit.
     vi.useFakeTimers();
-    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
 
     act(() => result.current.toggle());
     act(() => result.current.setBrand("Audi"));
@@ -155,7 +172,9 @@ describe("useSearchFilters panel visibility", () => {
 
   it("leaves the panel open when filters are cleared", () => {
     // Clearing is an editing action, not a "show me the results" action.
-    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""));
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
 
     act(() => result.current.toggle());
     act(() => result.current.clearAll());
@@ -168,7 +187,9 @@ describe("useSearchFilters filter coupling", () => {
   it("MAP-12: clears the selected model when the brand changes", async () => {
     vi.useFakeTimers();
     const search = vi.fn();
-    const { result } = renderHook(() => useSearchFilters(search, () => ""));
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
     await act(async () => {
       await Promise.resolve();
     });
@@ -198,7 +219,9 @@ describe("useSearchFilters filter coupling", () => {
   it("MAP-13: sends no radius until a location is chosen", async () => {
     vi.useFakeTimers();
     const search = vi.fn();
-    const { result } = renderHook(() => useSearchFilters(search, () => ""));
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
     await act(async () => {
       await Promise.resolve();
     });
@@ -243,7 +266,7 @@ describe("useSearchFilters geolocation", () => {
   it("MAP-14: searches once immediately, then again when the position arrives", async () => {
     pendingGeolocation();
     const search = vi.fn();
-    renderHook(() => useSearchFilters(search, () => ""));
+    renderHook(() => useSearchFilters(search, () => ""), { wrapper: withNuqsTestingAdapter() });
 
     // The first search must not wait on geolocation: a permission prompt the
     // user ignores would otherwise leave the map empty indefinitely.
@@ -262,7 +285,9 @@ describe("useSearchFilters geolocation", () => {
   it("MAP-14: does not override a location the user chose first", async () => {
     pendingGeolocation();
     const search = vi.fn<(params: SearchInput) => void>();
-    const { result } = renderHook(() => useSearchFilters(search, () => ""));
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
     search.mockClear();
 
     act(() =>
@@ -287,7 +312,9 @@ describe("useSearchFilters geolocation", () => {
   it("MAP-21: does not re-search after unmounting before geolocation resolves", async () => {
     pendingGeolocation();
     const search = vi.fn();
-    const { unmount } = renderHook(() => useSearchFilters(search, () => ""));
+    const { unmount } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
 
     unmount();
 

@@ -6,12 +6,14 @@ import { toast } from "sonner";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { signOutEverywhere } from "@/server/account/actions";
 
 export function SessionsCard() {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const onSignOutEverywhere = async () => {
@@ -21,7 +23,7 @@ export function SessionsCard() {
 
     if (!result.success) {
       setIsSigningOut(false);
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
@@ -33,12 +35,12 @@ export function SessionsCard() {
   return (
     <Card className="border-border/50 bg-card/80">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-lg font-bold">{t.account.sessions.title}</CardTitle>
-        <CardDescription>{t.account.sessions.description}</CardDescription>
+        <CardTitle className="text-lg font-bold">{t("account.sessions.title")}</CardTitle>
+        <CardDescription>{t("account.sessions.description")}</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">{t.account.sessions.warning}</p>
+        <p className="text-sm text-muted-foreground">{t("account.sessions.warning")}</p>
 
         <Button
           type="button"
@@ -49,10 +51,10 @@ export function SessionsCard() {
           {isSigningOut ? (
             <span className="flex items-center gap-2">
               <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-              {t.account.sessions.submitting}
+              {t("account.sessions.submitting")}
             </span>
           ) : (
-            t.account.sessions.submit
+            t("account.sessions.submit")
           )}
         </Button>
       </CardContent>

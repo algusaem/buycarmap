@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { LocationSearch } from "@/components/map/LocationSearch";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 import type { SelectedLocation } from "@/interfaces/location";
 import {
   FUEL_OPTIONS,
@@ -91,7 +91,7 @@ export function SearchFilters({
   onDistanceChange,
   onClearAll,
 }: SearchFiltersProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
   const { models, isLoading: isLoadingModels } = useCarModels(brand);
 
   const hasFilters =
@@ -154,13 +154,13 @@ export function SearchFilters({
         {/* Fuel type */}
         <div className="flex flex-col gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {t.filters.fuelType}
+            {t("filters.fuelType")}
           </span>
           <div className="flex flex-wrap gap-2">
             {FUEL_OPTIONS.map((opt) => (
               <ToggleChip
                 key={opt.value}
-                label={t.filters.fuelTypes[opt.labelKey]}
+                label={t(`filters.fuelTypes.${opt.labelKey}`)}
                 active={engine.includes(opt.value)}
                 onClick={() => toggleEngine(opt.value)}
               />
@@ -171,13 +171,13 @@ export function SearchFilters({
         {/* Transmission */}
         <div className="flex flex-col gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {t.filters.transmission}
+            {t("filters.transmission")}
           </span>
           <div className="flex flex-wrap gap-2">
             {TRANSMISSION_OPTIONS.map((opt) => (
               <ToggleChip
                 key={opt.value}
-                label={t.filters.transmissions[opt.labelKey]}
+                label={t(`filters.transmissions.${opt.labelKey}`)}
                 active={gearbox.includes(opt.value)}
                 onClick={() => toggleGearbox(opt.value)}
               />
@@ -188,27 +188,27 @@ export function SearchFilters({
         {/* Numeric ranges + Brand */}
         <div className="flex flex-wrap items-end gap-3">
           <RangeInput
-            label={t.filters.price}
-            minPlaceholder={t.filters.minPrice}
-            maxPlaceholder={t.filters.maxPrice}
+            label={t("filters.price")}
+            minPlaceholder={t("filters.minPrice")}
+            maxPlaceholder={t("filters.maxPrice")}
             minValue={minPrice}
             maxValue={maxPrice}
             onMinChange={onMinPriceChange}
             onMaxChange={onMaxPriceChange}
           />
           <RangeInput
-            label={t.filters.mileage}
-            minPlaceholder={t.filters.minKm}
-            maxPlaceholder={t.filters.maxKm}
+            label={t("filters.mileage")}
+            minPlaceholder={t("filters.minKm")}
+            maxPlaceholder={t("filters.maxKm")}
             minValue={minKm}
             maxValue={maxKm}
             onMinChange={onMinKmChange}
             onMaxChange={onMaxKmChange}
           />
           <RangeInput
-            label={t.filters.year}
-            minPlaceholder={t.filters.minYear}
-            maxPlaceholder={t.filters.maxYear}
+            label={t("filters.year")}
+            minPlaceholder={t("filters.minYear")}
+            maxPlaceholder={t("filters.maxYear")}
             minValue={minYear}
             maxValue={maxYear}
             onMinChange={onMinYearChange}
@@ -216,9 +216,9 @@ export function SearchFilters({
             min={1900}
           />
           <RangeInput
-            label={t.filters.horsePower}
-            minPlaceholder={t.filters.minHp}
-            maxPlaceholder={t.filters.maxHp}
+            label={t("filters.horsePower")}
+            minPlaceholder={t("filters.minHp")}
+            maxPlaceholder={t("filters.maxHp")}
             minValue={minHorsePower}
             maxValue={maxHorsePower}
             onMinChange={onMinHorsePowerChange}
@@ -231,7 +231,7 @@ export function SearchFilters({
               id="filter-brand-label"
               className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
             >
-              {t.filters.brand}
+              {t("filters.brand")}
             </span>
             <Select value={brand || SELECT_ANY} onValueChange={handleBrandChange}>
               {/* Naming the trigger by the visible label *and* itself is the
@@ -242,10 +242,10 @@ export function SearchFilters({
                 id="filter-brand-trigger"
                 aria-labelledby="filter-brand-label filter-brand-trigger"
               >
-                <SelectValue placeholder={t.filters.any} />
+                <SelectValue placeholder={t("filters.any")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={SELECT_ANY}>{t.filters.any}</SelectItem>
+                <SelectItem value={SELECT_ANY}>{t("filters.any")}</SelectItem>
                 {BRANDS.map((b) => (
                   <SelectItem key={b} value={b}>
                     {b}
@@ -262,7 +262,7 @@ export function SearchFilters({
                 id="filter-model-label"
                 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                {t.filters.model}
+                {t("filters.model")}
               </span>
               <Select
                 value={model || SELECT_ANY}
@@ -274,14 +274,14 @@ export function SearchFilters({
                   aria-labelledby="filter-model-label filter-model-trigger"
                 >
                   <SelectValue
-                    placeholder={isLoadingModels ? t.filters.loadingModels : t.filters.any}
+                    placeholder={isLoadingModels ? t("filters.loadingModels") : t("filters.any")}
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={SELECT_ANY}>{t.filters.any}</SelectItem>
+                  <SelectItem value={SELECT_ANY}>{t("filters.any")}</SelectItem>
                   {models.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
-                      {m.title}
+                      {m.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -297,7 +297,7 @@ export function SearchFilters({
               onClick={onClearAll}
             >
               <X className="h-3.5 w-3.5" />
-              {t.filters.clearFilters}
+              {t("filters.clearFilters")}
             </Button>
           )}
         </div>
@@ -305,13 +305,13 @@ export function SearchFilters({
         {/* Time filter */}
         <div className="flex flex-col gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {t.filters.listed}
+            {t("filters.listed")}
           </span>
           <div className="flex flex-wrap gap-2">
             {TIME_FILTER_OPTIONS.map((opt) => (
               <ToggleChip
                 key={opt.value}
-                label={t.filters.timeFilters[opt.labelKey]}
+                label={t(`filters.timeFilters.${opt.labelKey}`)}
                 active={timeFilter === opt.value}
                 onClick={() => onTimeFilterChange(timeFilter === opt.value ? "" : opt.value)}
               />
