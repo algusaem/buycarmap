@@ -617,12 +617,13 @@ the damage. The number belongs in Contracts › Constants and the reasoning is i
 ### The user's locale has to be stored, because a cron has no request
 
 Every other email in this system is sent from a request whose locale
-`getLocale()` can resolve — a cookie, then `accept-language`, then the default.
-The alert email is sent by a cron with neither, and the default locale is `es`,
-so falling back would quietly mail Spanish to every English-speaking user.
+`i18n/request.ts`'s `resolveLocale()` can resolve — a cookie, then
+`accept-language`, then the default. The alert email is sent by a cron with
+neither, and the default locale is `es`, so falling back would quietly mail
+Spanish to every English-speaking user.
 
 So `User` gains a `locale` column. The question is what writes it, and the
-answer is **the language switcher the user already has** — `lib/i18n/client.tsx`
+answer is **the language switcher the user already has** — `lib/hooks/useLocaleSwitcher.ts`
 sets a cookie today, and for a signed-in user that same action persists to the
 account (ALERT-33). It is the only signal that is an actual stated preference
 rather than an inference.

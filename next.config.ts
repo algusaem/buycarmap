@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
 import { env } from "@/lib/env";
 
+// ADR 0016: `next-intl/plugin` only sets this same alias (plus a webpack
+// equivalent we don't need — this config has no custom `webpack()`); it is
+// set directly because the plugin itself cannot load on this machine (its
+// eager `@swc/core` require fails here — see the ADR for why).
+
 // The policy header that blocks inline-script injection now lives in
 // proxy.ts, with a fresh per-request nonce (PLAT-21/PLAT-24,
 // docs/specs/core-platform.md). It used to be sent here as a static header
@@ -53,6 +58,11 @@ const nextConfig: NextConfig = {
   // Pino ships native code paths pino-pretty's worker-thread transport needs;
   // bundling either into the server build breaks at runtime (PLAT-16).
   serverExternalPackages: ["pino", "pino-pretty"],
+  turbopack: {
+    resolveAlias: {
+      "next-intl/config": "./i18n/request.ts",
+    },
+  },
   async headers() {
     return [
       {

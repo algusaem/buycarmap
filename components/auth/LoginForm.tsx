@@ -24,8 +24,9 @@ import {
 } from "@/components/ui/card";
 import { PasswordInput } from "./PasswordInput";
 import { OAuthButtons } from "./OAuthButtons";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { loginSchema, type LoginInput } from "@/server/auth/schema";
 
@@ -40,7 +41,8 @@ function safeRedirectTarget(callbackUrl: string | null): string {
 }
 
 export function LoginForm() {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = safeRedirectTarget(searchParams.get("callbackUrl"));
@@ -91,13 +93,13 @@ export function LoginForm() {
       // than to keep guessing, and reveals nothing about the account.
       toast.error(
         result.error === AUTH_ERROR.rateLimited
-          ? t.authErrors.rateLimited
-          : t.auth.invalidCredentials,
+          ? t("authErrors.rateLimited")
+          : t("auth.invalidCredentials"),
       );
       return;
     }
 
-    toast.success(t.auth.signInSuccess);
+    toast.success(t("auth.signInSuccess"));
     router.push(redirectTo);
     router.refresh();
   };
@@ -111,10 +113,10 @@ export function LoginForm() {
             className="-ml-1 mb-2 inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
           >
             <ArrowLeft className="h-3 w-3" />
-            {t.auth.return}
+            {t("auth.return")}
           </Link>
-          <CardTitle className="text-2xl font-bold">{t.auth.welcomeBack}</CardTitle>
-          <CardDescription>{t.auth.signInDescription}</CardDescription>
+          <CardTitle className="text-2xl font-bold">{t("auth.welcomeBack")}</CardTitle>
+          <CardDescription>{t("auth.signInDescription")}</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -123,51 +125,53 @@ export function LoginForm() {
               className="mb-4 rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-muted-foreground"
               role="alert"
             >
-              {oauthError === "AccessDenied" ? t.authErrors.oauthLinkBlocked : t.authErrors.generic}
+              {oauthError === "AccessDenied"
+                ? t("authErrors.oauthLinkBlocked")
+                : t("authErrors.generic")}
             </p>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">{t.auth.email}</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder={t.auth.emailPlaceholder}
+                placeholder={t("auth.emailPlaceholder")}
                 autoComplete="email"
                 className="bg-background/50"
                 {...register("email")}
               />
               {errors.email && (
                 <p className="text-sm text-destructive">
-                  {translateAuthError(t, errors.email.message)}
+                  {translateAuthError(messages, errors.email.message)}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">{t.auth.password}</Label>
+                <Label htmlFor="password">{t("auth.password")}</Label>
                 <Link
                   href="/forgot-password"
                   className="text-xs text-muted-foreground transition-colors hover:text-primary"
                 >
-                  {t.auth.forgotPassword}
+                  {t("auth.forgotPassword")}
                 </Link>
               </div>
               <PasswordInput
                 id="password"
-                placeholder={t.auth.passwordPlaceholder}
+                placeholder={t("auth.passwordPlaceholder")}
                 autoComplete="current-password"
                 className="bg-background/50"
-                error={translateAuthError(t, errors.password?.message)}
+                error={translateAuthError(messages, errors.password?.message)}
                 {...register("password")}
               />
             </div>
 
             {needsTwoFactor && (
               <div className="space-y-2" aria-live="polite">
-                <Label htmlFor="totp">{t.account.twoFactor.codeLabel}</Label>
+                <Label htmlFor="totp">{t("account.twoFactor.codeLabel")}</Label>
                 <Input
                   id="totp"
                   // `one-time-code` lets password managers and iOS autofill
@@ -175,17 +179,19 @@ export function LoginForm() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   autoFocus
-                  placeholder={t.account.twoFactor.codePlaceholder}
+                  placeholder={t("account.twoFactor.codePlaceholder")}
                   className="bg-background/50 font-mono tracking-widest"
                   {...register("totp")}
                 />
                 {/* Without this, someone who has lost their phone has no way
                     of knowing a recovery code goes in this same field — the
                     label only mentions six digits. */}
-                <p className="text-xs text-muted-foreground">{t.account.twoFactor.recoveryHint}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("account.twoFactor.recoveryHint")}
+                </p>
                 {errors.totp && (
                   <p className="text-sm text-destructive">
-                    {translateAuthError(t, errors.totp.message)}
+                    {translateAuthError(messages, errors.totp.message)}
                   </p>
                 )}
               </div>
@@ -195,10 +201,10 @@ export function LoginForm() {
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                  {t.auth.signingIn}
+                  {t("auth.signingIn")}
                 </span>
               ) : (
-                t.auth.signIn
+                t("auth.signIn")
               )}
             </Button>
           </form>
@@ -210,12 +216,12 @@ export function LoginForm() {
 
         <CardFooter className="flex-col gap-4 border-t border-border/50 pt-6">
           <p className="text-center text-sm text-muted-foreground">
-            {t.auth.noAccount}{" "}
+            {t("auth.noAccount")}{" "}
             <Link
               href="/register"
               className="font-medium text-primary transition-colors hover:text-primary/80"
             >
-              {t.auth.createOne}
+              {t("auth.createOne")}
             </Link>
           </p>
         </CardFooter>

@@ -5,7 +5,7 @@ personal data, why it is held, and how long it is kept. Retention is what the
 code and the published privacy page define today; where neither defines one, the
 row says so and links the issue.
 
-The published privacy page (`lib/i18n/locales/en.ts`) states: "We keep account
+The published privacy page (`messages/en.json`'s `legal.privacy`) states: "We keep account
 and search data for as long as your account is active. When you delete your
 account, the associated data is removed." How deletion works, and what it leaves
 behind, is in [deletion.md](deletion.md). Who else receives personal data is in

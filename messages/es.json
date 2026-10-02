@@ -1,0 +1,486 @@
+{
+  "common": {
+    "search": "Buscar",
+    "popular": "Populares:",
+    "or": "o"
+  },
+  "hero": {
+    "title": "Tu próximo coche",
+    "titleHighlight": "está en el mapa",
+    "subtitle": "Compara miles de coches de segunda mano de Wallapop, Milanuncios, Coches.net y más. Todo en nuestro mapa interactivo.",
+    "searchPlaceholder": "Marca, modelo o ubicación...",
+    "exploreMap": "Ver el mapa",
+    "signInToSave": "Accede para guardar búsquedas",
+    "stats": {
+      "listings": "Anuncios",
+      "platforms": "Plataformas",
+      "free": "Gratuito"
+    }
+  },
+  "auth": {
+    "welcomeBack": "¡Hola!",
+    "signInDescription": "Accede a tus búsquedas guardadas y anuncios favoritos",
+    "email": "Correo electrónico",
+    "emailPlaceholder": "tu@correo.com",
+    "password": "Contraseña",
+    "forgotPassword": "He olvidado mi contraseña",
+    "signIn": "Entrar",
+    "signingIn": "Entrando...",
+    "noAccount": "¿Aún no tienes cuenta?",
+    "createOne": "Regístrate",
+    "continueWithGoogle": "Continuar con Google",
+    "continueWithGithub": "Continuar con GitHub",
+    "invalidCredentials": "Email o contraseña incorrectos",
+    "createAccount": "Crear cuenta",
+    "signUpDescription": "Regístrate para guardar búsquedas y seguir anuncios",
+    "name": "Nombre",
+    "namePlaceholder": "Tu nombre (opcional)",
+    "confirmPassword": "Confirmar contraseña",
+    "passwordPlaceholder": "Introduce tu contraseña",
+    "confirmPasswordPlaceholder": "Confirma tu contraseña",
+    "signUp": "Registrarse",
+    "creatingAccount": "Creando cuenta...",
+    "alreadyHaveAccount": "¿Ya tienes cuenta?",
+    "registrationFailed": "Error al registrarse. Inténtalo de nuevo.",
+    "signInSuccess": "¡Bienvenido de nuevo!",
+    "accountCreated": "¡Cuenta creada con éxito!",
+    "legalNotice": "Al iniciar sesión, aceptas nuestros",
+    "terms": "Términos",
+    "and": "y",
+    "privacyPolicy": "Política de privacidad",
+    "brandTagline": "Encuentra tu próximo coche en el mapa",
+    "return": "Volver"
+  },
+  "forgotPassword": {
+    "title": "Restablecer tu contraseña",
+    "description": "Introduce el correo asociado a tu cuenta y te enviaremos un enlace para elegir una nueva contraseña.",
+    "submit": "Enviar enlace",
+    "submitting": "Enviando…",
+    "backToLogin": "Volver a iniciar sesión",
+    "successTitle": "Revisa tu correo",
+    "successDescription": "Si existe una cuenta con ese correo, te enviaremos un enlace para restablecer tu contraseña. Puede tardar unos minutos en llegar.",
+    "genericError": "Algo ha ido mal. Inténtalo de nuevo."
+  },
+  "verifyEmail": {
+    "pendingTitle": "Revisa tu correo",
+    "pendingDescription": "Si esa dirección puede usarse para una cuenta nueva, te hemos enviado un enlace para confirmarla. El enlace caduca en 24 horas.",
+    "title": "Confirma tu cuenta",
+    "description": "Un último paso: confirma que esta dirección es tuya para terminar de crear tu cuenta.",
+    "submit": "Confirmar mi cuenta",
+    "submitting": "Confirmando…",
+    "success": "Cuenta creada. Ya puedes iniciar sesión.",
+    "successTitle": "Todo listo",
+    "successDescription": "Tu cuenta está preparada. Inicia sesión para empezar.",
+    "signIn": "Ir a iniciar sesión",
+    "invalidTitle": "Este enlace ya no es válido",
+    "invalidDescription": "Los enlaces de confirmación caducan a las 24 horas y solo pueden usarse una vez. Regístrate de nuevo para obtener uno nuevo.",
+    "backToRegister": "Volver al registro",
+    "resend": "¿No te ha llegado? Enviar de nuevo",
+    "resending": "Enviando…",
+    "resent": "Enviado. Revisa tu bandeja dentro de un minuto."
+  },
+  "confirmEmail": {
+    "title": "Confirma tu dirección de correo",
+    "description": "Confirma esta dirección para completar el cambio.",
+    "submit": "Confirmar esta dirección",
+    "submitting": "Confirmando…",
+    "successTitle": "Correo confirmado",
+    "successDescription": "Tu dirección de correo está verificada y actualizada.",
+    "backToAccount": "Volver a tu cuenta",
+    "invalidTitle": "Este enlace ya no es válido",
+    "invalidDescription": "Los enlaces de confirmación caducan a las 24 horas y solo pueden usarse una vez. Solicita uno nuevo desde los ajustes de tu cuenta."
+  },
+  "resetPassword": {
+    "title": "Elige una nueva contraseña",
+    "description": "Elige una contraseña que no uses en ningún otro sitio.",
+    "newPassword": "Nueva contraseña",
+    "newPasswordPlaceholder": "Introduce una nueva contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "confirmPasswordPlaceholder": "Confirma tu nueva contraseña",
+    "submit": "Actualizar contraseña",
+    "submitting": "Actualizando…",
+    "success": "Contraseña actualizada. Ya puedes iniciar sesión.",
+    "invalidTitle": "Este enlace ya no es válido",
+    "invalidDescription": "Los enlaces caducan al cabo de una hora y solo pueden usarse una vez. Solicita uno nuevo para continuar.",
+    "requestNewLink": "Solicitar un enlace nuevo",
+    "backToLogin": "Volver a iniciar sesión"
+  },
+  "account": {
+    "title": "Cuenta",
+    "description": "Gestiona tu perfil y tus ajustes de seguridad.",
+    "backToMap": "Volver al mapa",
+    "profile": {
+      "title": "Perfil",
+      "description": "Cómo aparece tu nombre en BuyCarMap.",
+      "name": "Nombre",
+      "namePlaceholder": "Tu nombre",
+      "email": "Correo electrónico",
+      "emailHint": "Tu dirección de correo no se puede cambiar.",
+      "submit": "Guardar cambios",
+      "submitting": "Guardando…",
+      "success": "Perfil actualizado."
+    },
+    "email": {
+      "title": "Dirección de correo",
+      "description": "La dirección con la que inicias sesión y recibes avisos.",
+      "current": "Dirección actual",
+      "verified": "Verificada",
+      "unverified": "Sin verificar",
+      "verifyCta": "Enviar correo de verificación",
+      "verifying": "Enviando…",
+      "verifySent": "Correo de verificación enviado. Revisa tu bandeja.",
+      "newEmail": "Nueva dirección de correo",
+      "newEmailPlaceholder": "nueva@correo.com",
+      "currentPassword": "Contraseña actual",
+      "currentPasswordPlaceholder": "Introduce tu contraseña actual",
+      "submit": "Cambiar correo",
+      "submitting": "Enviando…",
+      "submitted": "Si esa dirección está disponible, le hemos enviado un enlace de confirmación. El cambio se aplica cuando lo pulses allí.",
+      "notice": "Enviaremos un enlace a la nueva dirección. Tu correo solo cambiará cuando lo confirmes allí."
+    },
+    "twoFactor": {
+      "title": "Verificación en dos pasos",
+      "description": "Pide un código de tu móvil además de la contraseña.",
+      "enabled": "Activada",
+      "disabled": "Desactivada",
+      "unavailable": "No disponible en este despliegue: al servidor le falta su clave de cifrado.",
+      "enableCta": "Configurar dos pasos",
+      "starting": "Preparando…",
+      "scanTitle": "Escanea esto con tu app de autenticación",
+      "scanDescription": "Vale Google Authenticator, 1Password, Authy o cualquier otra app TOTP.",
+      "manualLabel": "¿No puedes escanear? Introduce esta clave a mano",
+      "manualHint": "Escríbela tal cual, sin espacios.",
+      "codeLabel": "Introduce el código de 6 dígitos",
+      "codePlaceholder": "123456",
+      "recoveryHint": "¿Has perdido el móvil? Escribe aquí uno de tus códigos de recuperación.",
+      "confirm": "Activar dos pasos",
+      "confirming": "Verificando…",
+      "cancel": "Cancelar",
+      "enabledToast": "Verificación en dos pasos activada.",
+      "recoveryTitle": "Guarda tus códigos de recuperación",
+      "recoveryDescription": "Cada código sirve una vez y te deja entrar si pierdes el móvil.",
+      "recoveryWarning": "Es la única vez que se muestran. Guárdalos en un sitio seguro antes de continuar.",
+      "copyCodes": "Copiar códigos",
+      "copied": "Copiado al portapapeles.",
+      "copyFailed": "No se ha podido copiar automáticamente. Selecciona los códigos de arriba y cópialos a mano.",
+      "recoveryDone": "Ya los he guardado",
+      "regenerateCta": "Generar códigos nuevos",
+      "regenerating": "Generando…",
+      "regenerateHint": "Sustituye a los actuales. Los anteriores dejan de funcionar de inmediato.",
+      "disableCta": "Desactivar dos pasos",
+      "disabling": "Desactivando…",
+      "disableHint": "Requiere tu contraseña y un código actual, para que una sesión robada no baste para quitarla.",
+      "disabledToast": "Verificación en dos pasos desactivada.",
+      "currentPassword": "Tu contraseña",
+      "currentPasswordPlaceholder": "Introduce tu contraseña"
+    },
+    "sessions": {
+      "title": "Sesiones activas",
+      "description": "¿Has iniciado sesión en algún sitio que ya no usas?",
+      "submit": "Cerrar sesión en todas partes",
+      "submitting": "Cerrando sesión…",
+      "warning": "Esto cerrará la sesión en todos los dispositivos, incluido este. Tendrás que volver a iniciar sesión."
+    },
+    "providers": {
+      "title": "Cuentas conectadas",
+      "description": "Servicios con los que puedes iniciar sesión.",
+      "none": "No hay cuentas conectadas.",
+      "unlink": "Desconectar",
+      "unlinking": "Desconectando…",
+      "unlinked": "Cuenta desconectada.",
+      "lastMethodHint": "Es tu única forma de iniciar sesión. Establece una contraseña antes de desconectarla."
+    },
+    "security": {
+      "title": "Contraseña",
+      "description": "Cambia la contraseña con la que inicias sesión.",
+      "currentPassword": "Contraseña actual",
+      "currentPasswordPlaceholder": "Introduce tu contraseña actual",
+      "newPassword": "Nueva contraseña",
+      "newPasswordPlaceholder": "Introduce una nueva contraseña",
+      "confirmPassword": "Confirmar nueva contraseña",
+      "confirmPasswordPlaceholder": "Confirma tu nueva contraseña",
+      "submit": "Actualizar contraseña",
+      "submitting": "Actualizando…",
+      "success": "Contraseña actualizada.",
+      "signOutNotice": "Al cambiar la contraseña se cerrará la sesión en el resto de dispositivos. En este seguirás conectado."
+    },
+    "danger": {
+      "title": "Eliminar cuenta",
+      "description": "Elimina de forma permanente tu cuenta y todos sus datos.",
+      "warning": "Esta acción no se puede deshacer. Tu cuenta, tus búsquedas guardadas y tu historial se eliminarán de inmediato.",
+      "confirmLabel": "Escribe ELIMINAR para confirmar",
+      "confirmHint": "Escribe ELIMINAR en mayúsculas para activar el botón.",
+      "confirmWord": "ELIMINAR",
+      "password": "Tu contraseña",
+      "passwordPlaceholder": "Introduce tu contraseña",
+      "submit": "Eliminar mi cuenta",
+      "submitting": "Eliminando…",
+      "success": "Tu cuenta ha sido eliminada."
+    }
+  },
+  "authErrors": {
+    "emailRequired": "El correo electrónico es obligatorio",
+    "emailInvalid": "Introduce un correo electrónico válido",
+    "passwordRequired": "La contraseña es obligatoria",
+    "passwordTooShort": "Usa al menos 12 caracteres",
+    "passwordTooLong": "Usa como máximo 72 caracteres",
+    "passwordsDoNotMatch": "Las contraseñas no coinciden",
+    "confirmPasswordRequired": "Confirma tu contraseña",
+    "nameTooLong": "Usa como máximo 80 caracteres",
+    "emailTaken": "Ya existe una cuenta con este correo electrónico",
+    "passwordBreached": "Esta contraseña ha aparecido en una filtración de datos conocida. Elige otra distinta.",
+    "passwordWeak": "Esta contraseña es demasiado fácil de adivinar. Prueba con una más larga o menos predecible.",
+    "passwordReused": "Elige una contraseña distinta de la actual",
+    "currentPasswordIncorrect": "Tu contraseña actual no es correcta",
+    "tokenInvalid": "Este enlace no es válido o ha caducado",
+    "totpRequired": "Introduce el código de tu app de autenticación",
+    "totpInvalid": "Ese código no es válido. Revisa tu app e inténtalo de nuevo.",
+    "totpAlreadyEnabled": "La verificación en dos pasos ya está activada",
+    "totpNotEnabled": "La verificación en dos pasos no está configurada",
+    "totpUnavailable": "La verificación en dos pasos no está disponible en este despliegue",
+    "oauthLinkBlocked": "Esta cuenta usa verificación en dos pasos. Entra con tu contraseña y luego conecta este proveedor desde los ajustes de tu cuenta.",
+    "alreadyVerified": "Tu dirección de correo ya está verificada",
+    "sameEmail": "Esa ya es tu dirección de correo",
+    "lastSignInMethod": "Es tu única forma de iniciar sesión. Establece una contraseña antes de desconectarla.",
+    "rateLimited": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+    "unauthorized": "Necesitas iniciar sesión para hacer eso",
+    "conflict": "Estos datos han cambiado en otra pestaña o dispositivo. Recarga la página para ver la versión actual.",
+    "generic": "Algo ha ido mal. Inténtalo de nuevo."
+  },
+  "passwordStrength": {
+    "label": "Seguridad de la contraseña",
+    "hint": "Tres o cuatro palabras sin relación entre sí forman una contraseña segura y fácil de recordar.",
+    "scores": {
+      "veryWeak": "Muy débil",
+      "weak": "Débil",
+      "fair": "Aceptable",
+      "good": "Buena",
+      "strong": "Muy segura"
+    },
+    "issues": {
+      "tooShort": "Demasiado corta: usa al menos 12 caracteres",
+      "tooLong": "Demasiado larga: usa como máximo 72 caracteres",
+      "common": "Esta contraseña es muy común",
+      "sequential": "Evita secuencias como “abcd” o “1234”",
+      "repeated": "Evita repetir el mismo carácter",
+      "personal": "Evita usar tu nombre o tu correo"
+    }
+  },
+  "legal": {
+    "backToHome": "Volver al inicio",
+    "lastUpdated": "Última actualización",
+    "terms": {
+      "title": "Términos del servicio",
+      "updated": "7 de julio de 2026",
+      "intro": "Estos términos regulan el uso de BuyCarMap. Al acceder o utilizar el servicio, los aceptas. Léelos con atención.",
+      "sections": [
+        {
+          "heading": "Sobre el servicio",
+          "body": "BuyCarMap agrupa anuncios de coches de segunda mano publicados en plataformas de terceros como Wallapop, coches.net y Milanuncios, y los muestra juntos en un mapa interactivo. Somos una herramienta de búsqueda y comparación: no vendemos vehículos, no alojamos los anuncios ni participamos en ninguna transacción entre comprador y vendedor."
+        },
+        {
+          "heading": "Tu cuenta",
+          "body": "Puedes navegar sin cuenta. Si creas una, eres responsable de mantener tus credenciales seguras y de toda la actividad realizada con ella. Facilita información veraz y avísanos de cualquier uso no autorizado."
+        },
+        {
+          "heading": "Uso aceptable",
+          "body": "Utiliza BuyCarMap solo con fines lícitos, personales y no comerciales. No intentes extraer datos de forma masiva, sobrecargar, aplicar ingeniería inversa ni interrumpir el servicio, ni lo uses para vulnerar los derechos de terceros."
+        },
+        {
+          "heading": "Anuncios de terceros",
+          "body": "Los datos de cada anuncio —precio, kilometraje, fotos, disponibilidad e información del vendedor— provienen de las plataformas de origen y se muestran tal cual. No los verificamos y no podemos garantizar su exactitud, integridad ni que el vehículo siga disponible. Confirma siempre los detalles directamente con el vendedor antes de actuar."
+        },
+        {
+          "heading": "Sin garantías",
+          "body": "El servicio se presta «tal cual» y «según disponibilidad», sin garantías de ningún tipo. No garantizamos que BuyCarMap funcione sin interrupciones ni errores, ni que los resultados se ajusten a tus necesidades."
+        },
+        {
+          "heading": "Limitación de responsabilidad",
+          "body": "En la medida permitida por la ley, BuyCarMap no se hace responsable de ninguna pérdida derivada del uso del servicio ni de cualquier transacción con un vendedor encontrado a través de él, incluida la compra de un vehículo."
+        },
+        {
+          "heading": "Cambios en los términos",
+          "body": "Podemos actualizar estos términos a medida que el servicio evoluciona. Los cambios relevantes se reflejarán en la fecha de «última actualización», y el uso continuado de BuyCarMap implica que aceptas los términos revisados."
+        },
+        {
+          "heading": "Contacto",
+          "body": "¿Dudas sobre estos términos? Escríbenos a hello@buycarmap.com."
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Política de privacidad",
+      "updated": "7 de julio de 2026",
+      "intro": "Esta política explica qué datos recopila BuyCarMap, por qué y qué puedes hacer al respecto. Intentamos recopilar los mínimos posibles.",
+      "sections": [
+        {
+          "heading": "Información que recopilamos",
+          "body": "Si creas una cuenta, guardamos tu correo electrónico, un nombre opcional y una contraseña cifrada de forma segura, nunca la contraseña en sí. Cuando has iniciado sesión, guardamos tus búsquedas para que puedas volver a ellas. También procesamos datos técnicos básicos necesarios para ofrecer la aplicación."
+        },
+        {
+          "heading": "Cómo usamos tus datos",
+          "body": "Usamos tus datos para prestar el servicio: autenticarte, mantener tu sesión, guardar tus búsquedas y mejorar el funcionamiento de BuyCarMap. No vendemos tus datos personales."
+        },
+        {
+          "heading": "Ubicación",
+          "body": "Para centrar el mapa en ti, podemos pedir tu ubicación al navegador. Solo se usa para ordenar los resultados y no se almacena en nuestros servidores salvo que guardes expresamente una ubicación dentro de una búsqueda. Puedes rechazarlo y usaremos una región por defecto."
+        },
+        {
+          "heading": "Cookies",
+          "body": "Usamos un número reducido de cookies solo para funciones esenciales: mantener tu sesión y recordar tus preferencias de idioma y tema. No usamos cookies publicitarias."
+        },
+        {
+          "heading": "Servicios de terceros",
+          "body": "Para mostrar anuncios y mapas contactamos con proveedores externos, como Wallapop, coches.net y Milanuncios (anuncios), OpenStreetMap / Nominatim (geocodificación), CARTO (teselas del mapa) y Neon (alojamiento de la base de datos). El tratamiento que hagan de los datos se rige por sus propias políticas de privacidad."
+        },
+        {
+          "heading": "Conservación de datos",
+          "body": "Conservamos los datos de cuenta y de búsqueda mientras tu cuenta esté activa. Cuando eliminas tu cuenta, los datos asociados se eliminan."
+        },
+        {
+          "heading": "Tus derechos",
+          "body": "Puedes solicitar en cualquier momento el acceso, la rectificación o la eliminación de tus datos personales. Según dónde residas, puedes tener derechos adicionales conforme a normativas como el RGPD."
+        },
+        {
+          "heading": "Contacto",
+          "body": "Para cualquier consulta o solicitud sobre privacidad, escríbenos a privacy@buycarmap.com."
+        }
+      ]
+    }
+  },
+  "map": {
+    "searching": "Buscando…",
+    "emptyState": "Busca coches para ver resultados",
+    "loading": "Cargando…",
+    "filters": "Filtros",
+    "backToHome": "Volver al inicio",
+    "closeMap": "Cerrar mapa",
+    "addFavorite": "Guardar en favoritos",
+    "removeFavorite": "Quitar de favoritos",
+    "unknownTitle": "Desconocido",
+    "searchFailed": "No se pudieron cargar los anuncios. Inténtalo de nuevo.",
+    "loadMoreFailed": "No se pudieron cargar más anuncios.",
+    "invalidSearch": "Esos filtros de búsqueda no son válidos.",
+    "markerLabel": "{title}, {price}"
+  },
+  "favorites": {
+    "title": "Coches guardados",
+    "subtitle": "Los precios son del día en que los guardaste.",
+    "empty": "Todavía no has guardado ningún coche.",
+    "emptyCta": "Buscar coches"
+  },
+  "alerts": {
+    "title": "Alertas",
+    "subtitle": "Comprobamos cada pocos minutos y te avisamos por correo cuando aparece algo nuevo.",
+    "empty": "Todavía no tienes ninguna alerta.",
+    "emptyCta": "Buscar coches",
+    "create": "Avisarme de coches nuevos",
+    "delete": "Eliminar alerta",
+    "matchCount": "coches encontrados",
+    "inactive": "En pausa",
+    "noMatchesYet": "Vigilando: todavía no hay nada nuevo.",
+    "backToAlerts": "Volver a las alertas",
+    "unsubscribed": "Alerta pausada",
+    "unsubscribedBody": "No recibirás más correos sobre esta búsqueda. Tus otras alertas no cambian.",
+    "email": {
+      "subject": "Nuevo coche para tu alerta",
+      "heading": "Coches nuevos para tu alerta",
+      "intro": "Estos han aparecido desde la última comprobación:",
+      "viewAll": "Ver todos los coches",
+      "unsubscribe": "Dejar de recibir estos correos",
+      "footer": "Recibes esto porque creaste una alerta en BuyCarMap."
+    },
+    "foundAt": "Encontrado {time}"
+  },
+  "alertErrors": {
+    "unauthenticated": "Inicia sesión para gestionar tus alertas.",
+    "invalidCriteria": "Esos filtros de alerta no son válidos.",
+    "criteriaTooBroad": "Esa alerta es demasiado amplia. Añade una marca, un precio máximo o una ubicación.",
+    "tooManyAlerts": "Has alcanzado el número máximo de alertas.",
+    "unexpected": "Algo ha salido mal. Inténtalo de nuevo."
+  },
+  "favoriteErrors": {
+    "unauthenticated": "Inicia sesión para guardar favoritos.",
+    "invalidListing": "No se pudo guardar ese anuncio."
+  },
+  "localeErrors": {
+    "invalidLocale": "Ese idioma no está disponible."
+  },
+  "theme": {
+    "dark": "Oscuro",
+    "light": "Claro"
+  },
+  "password": {
+    "show": "Mostrar contraseña",
+    "hide": "Ocultar contraseña"
+  },
+  "filters": {
+    "fuelType": "Combustible",
+    "transmission": "Cambio",
+    "brand": "Marca",
+    "model": "Modelo",
+    "loadingModels": "Cargando…",
+    "price": "Precio",
+    "minPrice": "Mín €",
+    "maxPrice": "Máx €",
+    "mileage": "Kilometraje",
+    "minKm": "Mín km",
+    "maxKm": "Máx km",
+    "year": "Año",
+    "minYear": "Desde",
+    "maxYear": "Hasta",
+    "horsePower": "Potencia",
+    "minHp": "Mín CV",
+    "maxHp": "Máx CV",
+    "listed": "Publicado",
+    "any": "Cualquiera",
+    "clearFilters": "Borrar filtros",
+    "fuelTypes": {
+      "gasoline": "Gasolina",
+      "gasoil": "Diésel",
+      "electricHybrid": "Eléctrico/Híbrido",
+      "hybrid": "Híbrido",
+      "hybridPlugin": "Híbrido enchufable",
+      "lpg": "GLP",
+      "cng": "GNC"
+    },
+    "transmissions": {
+      "manual": "Manual",
+      "automatic": "Automático",
+      "semiautomatic": "Semiautomático"
+    },
+    "timeFilters": {
+      "today": "Hoy",
+      "lastWeek": "Última semana",
+      "lastMonth": "Último mes"
+    },
+    "location": "Ubicación",
+    "locationPlaceholder": "Ciudad o dirección…",
+    "distance": "Distancia",
+    "noResults": "No se encontraron ubicaciones",
+    "distanceOptions": {
+      "km10": "10 km",
+      "km25": "25 km",
+      "km50": "50 km",
+      "km100": "100 km",
+      "km200": "200 km"
+    }
+  },
+  "nav": {
+    "signIn": "Entrar",
+    "signUp": "Registrarse",
+    "signOut": "Cerrar sesión",
+    "account": "Cuenta",
+    "favorites": "Coches guardados",
+    "menu": "Menú",
+    "closeMenu": "Cerrar menú"
+  },
+  "meta": {
+    "title": "Buy Car Map",
+    "description": "Encuentra coches de segunda mano cerca de ti. Comparador de anuncios en mapa."
+  },
+  "errors": {
+    "pageLoadFailed": "No se pudo cargar esta página. Inténtalo de nuevo.",
+    "retry": "Reintentar"
+  }
+}

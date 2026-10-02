@@ -3,8 +3,8 @@
 import { FcGoogle } from "react-icons/fc";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 import { useMounted } from "@/lib/hooks/useMounted";
-import { useTranslation } from "@/lib/i18n/client";
 
 interface GoogleSignInButtonProps {
   isPending: boolean;
@@ -33,7 +33,7 @@ const PALETTE = {
 } as const;
 
 export function GoogleSignInButton({ isPending, disabled, onClick }: GoogleSignInButtonProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
   const { resolvedTheme } = useTheme();
   // Without this the server renders one palette and the client another,
   // producing a hydration mismatch — same guard ListingsMap uses.
@@ -74,7 +74,7 @@ export function GoogleSignInButton({ isPending, disabled, onClick }: GoogleSignI
       ) : (
         <FcGoogle className="relative h-[18px] w-[18px] shrink-0" />
       )}
-      <span className="relative truncate">{t.auth.continueWithGoogle}</span>
+      <span className="relative truncate">{t("auth.continueWithGoogle")}</span>
     </button>
   );
 }

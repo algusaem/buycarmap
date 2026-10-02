@@ -1,8 +1,5 @@
-import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
 import type { SearchInput } from "@/lib/search/schema";
 import { mapBrandToSlug, mapFuelTokens, mapTransmissionToken } from "@/lib/milanuncios/taxonomy";
-
-const BASE_URL = "/api/milanuncios/search";
 
 function addNumericRangeParams(params: SearchInput, query: URLSearchParams): void {
   if (params.minPrice != null) query.set("desde", String(params.minPrice));
@@ -45,20 +42,4 @@ export function buildMilanunciosQuery(params: SearchInput, page: number): URLSea
   if (page > 1) query.set("pagina", String(page));
 
   return query;
-}
-
-export async function searchMilanuncios(
-  params: SearchInput,
-  page = 1,
-): Promise<MilanunciosSearchResponse> {
-  const url = new URL(BASE_URL, window.location.origin);
-  url.search = buildMilanunciosQuery(params, page).toString();
-
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
-
-  if (!response.ok) {
-    throw new Error(`Milanuncios API error: ${response.status}`);
-  }
-
-  return response.json() as Promise<MilanunciosSearchResponse>;
 }

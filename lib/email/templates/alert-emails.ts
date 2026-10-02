@@ -1,7 +1,11 @@
+import { createTranslator } from "next-intl";
 import type { CarListing } from "@/interfaces/listing";
 import type { Locale } from "@/lib/i18n/config";
-import { getTranslationsSync } from "@/lib/i18n/server";
+import enMessages from "@/messages/en.json";
+import esMessages from "@/messages/es.json";
 import { escapeHtml, renderLayout, renderParagraph, renderRawLink } from "./layout";
+
+const MESSAGES = { en: enMessages, es: esMessages } satisfies Record<Locale, unknown>;
 
 // The alert digest.
 //
@@ -68,37 +72,42 @@ export async function renderAlertEmail({
   unsubscribeUrl,
   alertUrl,
 }: AlertEmailInput): Promise<RenderedEmail> {
-  const t = getTranslationsSync(locale);
+  // FRONT-9/FRONT-10 (docs/specs/core-frontend.md): no request is in flight
+  // here (the cron has no request to resolve a locale from), so this is
+  // `createTranslator`, next-intl's standalone entry point, rather than
+  // `getTranslations()` — with the recipient's own saved locale and the same
+  // JSON messages every other surface uses.
+  const t = createTranslator({ locale, messages: MESSAGES[locale], namespace: "alerts.email" });
 
   const subject =
     matches.length === 1
-      ? `${t.alerts.email.subject}: ${matches[0].title}`
-      : `${t.alerts.email.subject} (${matches.length})`;
+      ? `${t("subject")}: ${matches[0].title}`
+      : `${t("subject")} (${matches.length})`;
 
   const bodyHtml = [
-    renderParagraph(`${t.alerts.email.intro} ${alertLabel}`),
+    renderParagraph(`${t("intro")} ${alertLabel}`),
     ...matches.map(renderMatch),
     alertUrl ? renderRawLink(alertUrl) : "",
-    `<p style="margin:24px 0 0;font-size:12px;color:${MUTED};">${escapeHtml(t.alerts.email.unsubscribe)}</p>`,
+    `<p style="margin:24px 0 0;font-size:12px;color:${MUTED};">${escapeHtml(t("unsubscribe"))}</p>`,
     renderRawLink(unsubscribeUrl),
   ].join("\n");
 
   const text = [
-    `${t.alerts.email.heading} — ${alertLabel}`,
+    `${t("heading")} — ${alertLabel}`,
     "",
     ...matches.map(
       (listing) => `${listing.title} — ${formatNumber(listing.price)} € — ${listing.url}`,
     ),
     "",
-    `${t.alerts.email.unsubscribe}: ${unsubscribeUrl}`,
+    `${t("unsubscribe")}: ${unsubscribeUrl}`,
   ].join("\n");
 
   return {
     subject,
     html: renderLayout({
-      heading: t.alerts.email.heading,
+      heading: t("heading"),
       bodyHtml,
-      footer: t.alerts.email.footer,
+      footer: t("footer"),
     }),
     text,
   };

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "@/lib/i18n/server";
+import { getTranslations } from "next-intl/server";
 import { AlertMatchesList } from "@/components/alerts/AlertMatchesList";
 import { getAlertWithMatches } from "@/server/alerts/queries";
 
@@ -9,7 +9,7 @@ interface PageProps {
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
-  return { title: `${t.alerts.title} · ${t.meta.title}` };
+  return { title: `${t("alerts.title")} · ${t("meta.title")}` };
 }
 
 export default async function AlertMatchesPage({ params }: PageProps) {

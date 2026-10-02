@@ -11,17 +11,21 @@ import {
   makeMilanunciosResponse,
 } from "../fixtures/milanuncios";
 
-// Default happy-path handlers. Two audiences share this file:
-//   - jsdom source clients hit the local proxy routes (`/api/...`).
-//   - node route-handler tests hit the upstream APIs the proxy forwards to.
-// A test that needs a specific shape (error, empty, drift) overrides with
-// `server.use(...)`.
+// Default happy-path handlers. A test that needs a specific shape (error,
+// empty, drift) overrides with `server.use(...)`.
+//
+// FRONT-5 (docs/specs/core-frontend.md) deleted the five proxy routes and the
+// browser-bound fetchers that called them, so the local-proxy defaults that
+// used to live here (`*/api/wallapop/search` and its siblings) are gone too —
+// nothing calls those paths any more. A handful of tests still register a
+// local override for one of those paths on purpose, to prove the negative
+// (e.g. "no source API touched" in lib/email/templates/alert-emails.test.ts);
+// that is unrelated to these shared defaults.
 export const handlers = [
-  // ---- local proxy routes (consumed by lib/*/client.ts in jsdom) ----
-  http.get("*/api/wallapop/search", () =>
-    HttpResponse.json(makeWallapopResponse([makeWallapopItem()], "page-2")),
-  ),
-  http.get("*/api/wallapop/filters/models", () =>
+  // server/search/service.ts resolves coches.net's model id, and FRONT-4's
+  // listCarModels its model list, by calling these upstreams directly — there
+  // is no proxy route for either any more.
+  http.get("https://api.wallapop.com/api/v3/search/filters/model", () =>
     HttpResponse.json({
       type: "model",
       id: "model",
@@ -29,14 +33,8 @@ export const handlers = [
       options: [{ id: "A3", title: "A3" }],
     }),
   ),
-  http.post("*/api/cochesnet/search", () =>
-    HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 3)),
-  ),
-  http.get("*/api/cochesnet/models", () =>
+  http.get("https://web.gw.coches.net/models", () =>
     HttpResponse.json(makeCochesNetTaxonomy([{ id: 4321, label: "Serie 3" }])),
-  ),
-  http.get("*/api/milanuncios/search", () =>
-    HttpResponse.json(makeMilanunciosResponse([makeMilanunciosAd()], 5)),
   ),
 
   // ---- Nominatim geocoding (consumed by lib/geo/nominatim.ts) ----
@@ -52,7 +50,7 @@ export const handlers = [
     ]),
   ),
 
-  // ---- upstream APIs (consumed by app/api/*/route.ts in node) ----
+  // ---- upstream APIs (consumed by server/search/service.ts's server-side fan-out) ----
   http.get("https://api.wallapop.com/api/v3/search/section", () =>
     HttpResponse.json(makeWallapopResponse([makeWallapopItem()], "page-2")),
   ),

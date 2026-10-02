@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, delay } from "msw";
 import { server } from "@/test/msw/server";
 import { renderWithI18n } from "@/test/utils/render";
 import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
@@ -17,6 +17,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/map",
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+import { toast } from "sonner";
 // CarListingCard reads the session to decide what its favorite control does,
 // and calls the favorites actions. Neither is what these tests are about.
 // Typed so a test can widen it to an authenticated session; inferring from the
@@ -33,6 +34,22 @@ vi.mock("@/server/favorites/actions", () => ({
 }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
 
+// The mock IS the real fan-out: it delegates to the real `searchRound`
+// (server/search/service.ts) against the MSW upstream handlers below — the
+// same pattern lib/hooks/useListingsSearch.test.tsx uses, since FRONT-5
+// deletes the local `/api/wallapop|cochesnet|milanuncios` proxies this file
+// used to override.
+vi.mock("@/server/search/actions", async () => {
+  const { searchRound } = await import("@/server/search/service");
+  const { applyResultFilters } = await import("@/lib/listings/merge");
+  return {
+    searchListings: vi.fn(async (input, cursors) => {
+      const round = await searchRound(input, cursors);
+      return { ok: true, value: { ...round, listings: applyResultFilters(round.listings, input) } };
+    }),
+  };
+});
+
 // Leaflet cannot run in jsdom. MapView loads the map through next/dynamic, so
 // the stub stands in for the whole module and reports what it was handed.
 vi.mock("@/components/map/ListingsMap", () => ({
@@ -46,10 +63,14 @@ vi.mock("@/components/map/ListingsMap", () => ({
 // query, which is both the cache key and the keyword sent upstream.
 const WALLAPOP_TITLE = "Audi A3 2.0 TDI";
 
+const WALLAPOP = "https://api.wallapop.com/api/v3/search/section";
+const COCHESNET = "https://web.gw.coches.net/search/listing";
+const MILANUNCIOS = "https://www.milanuncios.com/*";
+
 // Narrow the search to Wallapop so a case can control a single source.
 const onlyWallapop = [
-  http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([], 0))),
-  http.get("*/api/milanuncios/search", () => HttpResponse.json(makeMilanunciosResponse([], 0))),
+  http.post(COCHESNET, () => HttpResponse.json(makeCochesNetResponse([], 0))),
+  http.get(MILANUNCIOS, () => HttpResponse.json(makeMilanunciosResponse([], 0))),
 ];
 
 // Records the keywords of every Wallapop call so a case can assert what the
@@ -58,7 +79,7 @@ function captureWallapopKeywords(response: () => Response) {
   const keywords: (string | null)[] = [];
   server.use(
     ...onlyWallapop,
-    http.get("*/api/wallapop/search", ({ request }) => {
+    http.get(WALLAPOP, ({ request }) => {
       keywords.push(new URL(request.url).searchParams.get("keywords"));
       return response();
     }),
@@ -78,7 +99,7 @@ describe("MapView results", () => {
   it("MAP-15: shows the empty state when no source has anything", async () => {
     server.use(
       ...onlyWallapop,
-      http.get("*/api/wallapop/search", () => HttpResponse.json(makeWallapopResponse([], null))),
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([], null))),
     );
 
     renderWithI18n(<MapView initialQuery="case-empty" />);
@@ -129,7 +150,7 @@ describe("MapView infinite scroll", () => {
   it("MAP-8: appends the next page when the sentinel comes into view", async () => {
     server.use(
       ...onlyWallapop,
-      http.get("*/api/wallapop/search", ({ request }) => {
+      http.get(WALLAPOP, ({ request }) => {
         const isNextPage = new URL(request.url).searchParams.get("next_page") !== null;
         return HttpResponse.json(
           isNextPage
@@ -155,7 +176,7 @@ describe("MapView infinite scroll", () => {
     let calls = 0;
     server.use(
       ...onlyWallapop,
-      http.get("*/api/wallapop/search", () => {
+      http.get(WALLAPOP, () => {
         calls += 1;
         return HttpResponse.json(makeWallapopResponse([makeWallapopItem()], null));
       }),
@@ -219,5 +240,54 @@ describe("MapView favorites", () => {
 
     expect(screen.queryByRole("button", { name: "Remove from favorites" })).not.toBeInTheDocument();
     expect(listFavorites).not.toHaveBeenCalled();
+  });
+});
+
+// FRONT-14 (docs/specs/core-frontend.md): the map results list's four
+// states. Populated is covered above ("renders what the sources return") and
+// empty by MAP-15. These two are new: a loading skeleton (RULES.md §19:
+// "skeletons mirror final content"), replacing the Loader2 spinner MapView
+// renders today, and an inline error with a Retry button — the exact
+// FRONT-14 worked example — replacing the toast MAP-3 asserts today.
+describe("MapView result states (FRONT-14)", () => {
+  it("FRONT-14: shows a loading skeleton, not a bare spinner, while the round is in flight", async () => {
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, async () => {
+        await delay(50);
+        return HttpResponse.json(makeWallapopResponse([makeWallapopItem()]));
+      }),
+    );
+    const { container } = renderWithI18n(<MapView initialQuery="loading-skeleton-case" />);
+
+    // aria-busy, not colour alone, marks the region as loading for assistive
+    // tech while the skeleton mirrors the eventual card grid. Not
+    // role="status": that would clash with LocationSearch's own live region
+    // under strict mode (MAP-20).
+    await waitFor(() => {
+      expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument();
+    });
+
+    await screen.findByText(WALLAPOP_TITLE);
+  });
+
+  it("FRONT-14: a rejecting search shows the error state with Retry and never a toast (worked example)", async () => {
+    server.use(
+      http.get(WALLAPOP, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.post(COCHESNET, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.get(MILANUNCIOS, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+    );
+    renderWithI18n(<MapView initialQuery="error-state-case" />);
+
+    const retry = await screen.findByRole("button", { name: /retry/i });
+    expect(toast.error).not.toHaveBeenCalled();
+
+    // Retry re-runs the same round rather than leaving the user stuck.
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([makeWallapopItem()]))),
+    );
+    await userEvent.click(retry);
+    await screen.findByText(WALLAPOP_TITLE);
   });
 });

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
@@ -64,11 +64,12 @@ beforeEach(() => {
 
 describe("CarListingCard", () => {
   it("renders the title, locale-formatted price, and links out to the source", () => {
-    render(<CarListingCard {...listing} />);
+    renderWithI18n(<CarListingCard {...listing} />);
 
     expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
-    // es-ES thousands separator is a dot.
-    expect(screen.getByText(/14\.500/)).toBeInTheDocument();
+    // FRONT-10/FRONT-11 (docs/specs/core-frontend.md): renderWithI18n renders
+    // English, and formatPrice is now locale-aware — en-US groups with a comma.
+    expect(screen.getByText(/14,500/)).toBeInTheDocument();
 
     const [link] = screen.getAllByRole("link");
     expect(link).toHaveAttribute("href", listing.url);
@@ -77,17 +78,17 @@ describe("CarListingCard", () => {
   });
 
   it("shows the fallback icon instead of an image when there is no image", () => {
-    render(<CarListingCard {...listing} image="" />);
+    renderWithI18n(<CarListingCard {...listing} image="" />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
   it("omits year and mileage separators when those fields are empty", () => {
-    render(<CarListingCard {...listing} year={0} mileage={0} />);
+    renderWithI18n(<CarListingCard {...listing} year={0} mileage={0} />);
     expect(screen.queryByText(/km/)).not.toBeInTheDocument();
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = render(<CarListingCard {...listing} />);
+    const { container } = renderWithI18n(<CarListingCard {...listing} />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

@@ -14,8 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "./PasswordInput";
 import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { resetPasswordSchema, type ResetPasswordInput } from "@/server/password-reset/schema";
 import { resetPassword } from "@/server/password-reset/actions";
@@ -25,7 +26,8 @@ interface ResetPasswordFormProps {
 }
 
 export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const router = useRouter();
 
   const {
@@ -67,11 +69,11 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         return;
       }
 
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
-    toast.success(t.resetPassword.success);
+    toast.success(t("resetPassword.success"));
     // Deliberately not auto-signing in: the reset invalidated every session,
     // and requiring the new password once confirms it was actually memorized.
     router.push("/login");
@@ -86,35 +88,35 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             className="-ml-1 mb-2 inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
           >
             <ArrowLeft className="h-3 w-3" />
-            {t.resetPassword.backToLogin}
+            {t("resetPassword.backToLogin")}
           </Link>
-          <CardTitle className="text-2xl font-bold">{t.resetPassword.title}</CardTitle>
-          <CardDescription>{t.resetPassword.description}</CardDescription>
+          <CardTitle className="text-2xl font-bold">{t("resetPassword.title")}</CardTitle>
+          <CardDescription>{t("resetPassword.description")}</CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">{t.resetPassword.newPassword}</Label>
+              <Label htmlFor="password">{t("resetPassword.newPassword")}</Label>
               <PasswordInput
                 id="password"
-                placeholder={t.resetPassword.newPasswordPlaceholder}
+                placeholder={t("resetPassword.newPasswordPlaceholder")}
                 autoComplete="new-password"
                 className="bg-background/50"
-                error={translateAuthError(t, errors.password?.message)}
+                error={translateAuthError(messages, errors.password?.message)}
                 {...register("password")}
               />
               <PasswordStrengthMeter password={password} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">{t.resetPassword.confirmPassword}</Label>
+              <Label htmlFor="confirmPassword">{t("resetPassword.confirmPassword")}</Label>
               <PasswordInput
                 id="confirmPassword"
-                placeholder={t.resetPassword.confirmPasswordPlaceholder}
+                placeholder={t("resetPassword.confirmPasswordPlaceholder")}
                 autoComplete="new-password"
                 className="bg-background/50"
-                error={translateAuthError(t, errors.confirmPassword?.message)}
+                error={translateAuthError(messages, errors.confirmPassword?.message)}
                 {...register("confirmPassword")}
               />
             </div>
@@ -123,10 +125,10 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                  {t.resetPassword.submitting}
+                  {t("resetPassword.submitting")}
                 </span>
               ) : (
-                t.resetPassword.submit
+                t("resetPassword.submit")
               )}
             </Button>
           </form>

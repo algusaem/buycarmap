@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -282,6 +282,21 @@ describe("main", () => {
     await main({ cwd: repo, log, exit });
 
     expect(log).toHaveBeenCalledWith("todo:check passed - 0 file(s) scanned.");
+    expect(exit).not.toHaveBeenCalled();
+  });
+
+  it("TOOLING-12: ignores an unreferenced marker under vendored .claude/skills/", async () => {
+    mkdirSync(join(repo, ".claude", "skills", "x"), { recursive: true });
+    writeFileSync(join(repo, ".claude", "skills", "x", "y.js"), `// ${TAG}: x`);
+    execFileSync("git", ["add", ".claude/skills/x/y.js"], { cwd: repo });
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(log).toHaveBeenCalledWith("todo:check passed - 0 file(s) scanned.");
+    expect(error).not.toHaveBeenCalled();
     expect(exit).not.toHaveBeenCalled();
   });
 });

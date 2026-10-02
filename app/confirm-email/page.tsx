@@ -5,7 +5,7 @@ import { ConfirmEmailForm } from "@/components/auth/ConfirmEmailForm";
 import { LegalNotice } from "@/components/auth/LegalNotice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTranslations } from "@/lib/i18n/server";
+import { getTranslations } from "next-intl/server";
 
 interface ConfirmEmailPageProps {
   // Next 16 delivers search params as a Promise.
@@ -31,12 +31,14 @@ export default async function ConfirmEmailPage({ searchParams }: ConfirmEmailPag
           ) : (
             <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
               <CardHeader className="space-y-1 pb-4">
-                <CardTitle className="text-2xl font-bold">{t.confirmEmail.invalidTitle}</CardTitle>
-                <CardDescription>{t.confirmEmail.invalidDescription}</CardDescription>
+                <CardTitle className="text-2xl font-bold">
+                  {t("confirmEmail.invalidTitle")}
+                </CardTitle>
+                <CardDescription>{t("confirmEmail.invalidDescription")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button asChild className="w-full" size="lg">
-                  <Link href="/account">{t.confirmEmail.backToAccount}</Link>
+                  <Link href="/account">{t("confirmEmail.backToAccount")}</Link>
                 </Button>
               </CardContent>
             </Card>

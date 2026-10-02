@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import type { WallapopFilterOption } from "@/interfaces/wallapop";
-import { fetchModelsByBrand } from "@/lib/wallapop/filters";
+import { listCarModels, type CarModel } from "@/server/search/actions";
 
 interface ModelsState {
-  models: WallapopFilterOption[];
+  models: CarModel[];
   loadedBrand: string;
 }
 
+// FRONT-4 (docs/specs/core-frontend.md): calls the listCarModels Server
+// Action instead of fetching the (deleted) wallapop/filters/models proxy.
 export function useCarModels(brand: string) {
   const [state, setState] = useState<ModelsState>({
     models: [],
@@ -20,14 +21,15 @@ export function useCarModels(brand: string) {
 
     async function load() {
       try {
-        const response = await fetchModelsByBrand(brand);
-        if (!cancelled) {
-          setState({ models: response.options ?? [], loadedBrand: brand });
-        }
+        const result = await listCarModels(brand);
+        if (cancelled) return;
+        setState({ models: result.ok ? result.value : [], loadedBrand: brand });
       } catch {
-        if (!cancelled) {
-          setState({ models: [], loadedBrand: brand });
-        }
+        // A rejected call (a network failure reaching the Server Action,
+        // rather than the action itself returning an error Result) still
+        // resolves to no models rather than leaving the hook loading forever.
+        if (cancelled) return;
+        setState({ models: [], loadedBrand: brand });
       }
     }
 
@@ -38,7 +40,7 @@ export function useCarModels(brand: string) {
     };
   }, [brand]);
 
-  const empty: WallapopFilterOption[] = [];
+  const empty: CarModel[] = [];
   if (!brand) return { models: empty, isLoading: false };
   if (state.loadedBrand === brand) return { models: state.models, isLoading: false };
   return { models: empty, isLoading: true };

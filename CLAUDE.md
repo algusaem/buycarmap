@@ -78,7 +78,8 @@ Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prism
 with the **`@prisma/adapter-pg`** driver adapter · NextAuth 4 (JWT sessions) ·
 React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
 `components/ui/*` · Motion · Sonner · next-themes · Leaflet + react-leaflet ·
-Lucide React and React Icons.
+Lucide React and React Icons · next-intl (i18n) · nuqs (URL state) · date-fns
+and `@date-fns/tz` (formatting).
 
 Where this differs from `STACK.md` it is a deviation the adoption ADR accepts until its phase,
 or an installed dependency the ADR approves or accepts until its phase (see its dependency list). Constraints that hold until then, and that a plausible-looking change will break:
@@ -87,11 +88,12 @@ or an installed dependency the ADR approves or accepts until its phase (see its 
   serverless driver. Do not change this outside phase 6 (ADR 0007 row 12).
 - The Prisma client is generated to `app/generated/prisma` — gitignored, and
   required before `pnpm typecheck` and before tests will even import.
-- Hooks in `lib/hooks/*` own every client request lifecycle (ADR 0007 row 19)
-  (`docs/decisions/0001-no-data-fetching-library.md`) and guard against out-of-order
-  responses with a version ref or `cancelled` flag, as the existing hooks do.
-  Cross-cutting fetch helpers live in `lib/<source>/*` and `lib/geo/*`; hooks call
-  those, not raw endpoints.
+- Hooks in `lib/hooks/*` own every client request lifecycle (ADR 0007 row 19, resolved;
+  `docs/decisions/0001-no-data-fetching-library.md`, `docs/decisions/0016-server-search-and-next-intl.md`)
+  and guard against out-of-order responses with a version ref or `cancelled` flag, as the
+  existing hooks do. The search and car-models hooks call the `searchListings` and
+  `listCarModels` Server Actions (`server/search/actions.ts`); every other hook calls a
+  cross-cutting helper in `lib/<source>/*` or `lib/geo/*` — never a raw endpoint.
 
 Full detail: `docs/ARCHITECTURE.md`.
 
@@ -176,7 +178,9 @@ Owned by `.claude/commands/check-sources.md`. The facts most likely to be broken
 reasonable-looking change, because breaking one is silent:
 
 - **Never call an upstream marketplace from the browser.** CORS, CloudFront and
-  bot protection all block it. Everything from the browser goes through `app/api/<source>/`.
+  bot protection all block it. The browser calls the `searchListings` and
+  `listCarModels` Server Actions (`server/search/actions.ts`), which run the
+  fan-out server-side through `server/search/service.ts` (ADR 0016).
 - **Wallapop coordinates are always sent**, even with no location chosen —
   otherwise it geo-filters by the server's IP and a Spanish user gets US
   listings from Vercel. Invisible locally.
@@ -186,7 +190,8 @@ reasonable-looking change, because breaking one is silent:
   city- or province-level approximations. Wallapop's are exact when the listing
   carries coordinates (SRC-3).
 - **The merge post-filters by radius and model** (`applyResultFilters` in
-  `lib/listings/merge.ts`, applied by `collectRoundResults`, which `lib/hooks/useListingsSearch.ts` calls). It looks redundant — "upstream already
+  `lib/listings/merge.ts`, applied by `server/search/actions.ts`'s `searchListings` after
+  `server/search/service.ts`'s `searchRound` returns). It looks redundant — "upstream already
   filters" — but only Wallapop enforces the radius and Milanuncios matches the
   model as free text. Removing it silently reverts to nationwide results
   (MAP-16..18). **Because that filter can empty a page**, the first search and
@@ -195,11 +200,12 @@ reasonable-looking change, because breaking one is silent:
   makes an empty first page permanent (MAP-19). Every round advances each source's
   cursor or page, or clears its has-more flag: that, not a round cap, is what
   ends the loops.
-- **Server code cannot call the browser-bound fetchers** — `searchWallapop`,
-  `searchCochesNet`, `searchMilanuncios`, `lib/wallapop/filters.ts` and
-  `lib/cochesnet/models.ts` resolve URLs against `window.location.origin`. The alert
-  runner goes through `server/alerts/search.ts`, which reuses only the pure query builders
-  from `lib/*/client.ts`.
+- **The search fan-out is server-only, in one place.** `server/search/service.ts`'s
+  `searchRound` calls the upstreams directly and is the only fan-out —
+  `server/search/actions.ts` (the interactive search) and `server/alerts/search.ts`
+  (the poller) both call it, reusing the pure query builders from `lib/*/client.ts`.
+  There are no browser-bound fetchers or proxy routes left to resolve a URL
+  against `window.location.origin` (ADR 0016).
 - Respect robots.txt and the upstreams' rate limits.
 - Where it helps performance, keep map markers clustered or limited and lazy-load
   listing detail.
@@ -213,8 +219,9 @@ reasonable-looking change, because breaking one is silent:
 
 ## Other invariants
 
-- **All user-facing text goes through `t.*` keys** in both locales. The default
-  locale is **`es`**, so a hardcoded English string reaches most users.
+- **All user-facing text goes through next-intl message keys** in
+  `messages/en.json` and `messages/es.json`. The default locale is **`es`**, so
+  a hardcoded English string reaches most users.
 - **Errors are codes, not prose.** Server code cannot read the client i18n
   context.
 

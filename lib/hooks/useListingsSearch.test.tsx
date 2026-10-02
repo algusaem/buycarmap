@@ -4,20 +4,50 @@ import { http, HttpResponse, delay } from "msw";
 import { server } from "@/test/msw/server";
 import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
 import { makeCochesNetItem, makeCochesNetResponse } from "@/test/fixtures/cochesnet";
-import { makeMilanunciosAd, makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
+import {
+  makeMilanunciosAd,
+  makeMilanunciosHtml,
+  makeMilanunciosResponse,
+} from "@/test/fixtures/milanuncios";
 import { triggerIntersection } from "@/test/mocks/intersection-observer";
-import { I18nProvider } from "@/lib/i18n/client";
+import type { SearchInput } from "@/lib/search/schema";
+import type { SearchCursors } from "@/server/search/service";
 import { useListingsSearch } from "./useListingsSearch";
+
+// FRONT-3 (docs/specs/core-frontend.md): every round now goes through the
+// `searchListings` Server Action instead of three separate fetches, so the
+// network setup targets the upstream APIs directly (same hosts
+// server/search/service.node.test.ts and server/alerts/search.node.test.ts
+// use) rather than the local `/api/wallapop|cochesnet|milanuncios/search`
+// proxies FRONT-5 deletes. Every fixture and expected value below is
+// unchanged from before the conversion — only which URL carries them moved.
+const WALLAPOP = "https://api.wallapop.com/api/v3/search/section";
+const COCHESNET = "https://web.gw.coches.net/search/listing";
+const MILANUNCIOS = "https://www.milanuncios.com/*";
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
-// I18nProvider refreshes the route when the locale changes; MAP-7 wraps the
-// hook in one to assert the failure copy comes from the locale files.
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-}));
+// The mock IS the real fan-out: it delegates to the real `searchRound`
+// (server/search/service.ts) against the MSW upstream handlers above, so
+// every MAP-1..22 expected value keeps coming from the same merge/filter/
+// normalize code path it always has — only the transport (one Server Action
+// call instead of three direct fetches) is what FRONT-3 changes.
+// `searchRound` is still a stub that throws ("not implemented"), so until it
+// and the hook itself are implemented, this mock is a correct contract
+// nothing yet exercises through the hook.
+vi.mock("@/server/search/actions", async () => {
+  const { searchRound } = await import("@/server/search/service");
+  const { applyResultFilters } = await import("@/lib/listings/merge");
+  return {
+    searchListings: vi.fn(async (input: SearchInput, cursors: SearchCursors) => {
+      const round = await searchRound(input, cursors);
+      return { ok: true, value: { ...round, listings: applyResultFilters(round.listings, input) } };
+    }),
+  };
+});
 import { toast } from "sonner";
+import { searchListings } from "@/server/search/actions";
 
 afterEach(() => vi.clearAllMocks());
 
@@ -42,11 +72,7 @@ describe("useListingsSearch", () => {
   });
 
   it("MAP-2: still renders the remaining sources when one fails", async () => {
-    server.use(
-      http.get("*/api/wallapop/search", () =>
-        HttpResponse.json({ error: "down" }, { status: 500 }),
-      ),
-    );
+    server.use(http.get(WALLAPOP, () => HttpResponse.json({ error: "down" }, { status: 500 })));
     const { result } = renderHook(() => useListingsSearch());
 
     await act(async () => {
@@ -57,17 +83,14 @@ describe("useListingsSearch", () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it("MAP-3: toasts and renders nothing when every source fails", async () => {
+  it("MAP-3: sets the error state and renders nothing when every source fails", async () => {
+    // FRONT-15 (docs/specs/core-frontend.md): a failed read is never a toast —
+    // MapView renders the FRONT-14 inline error state (with Retry) from this
+    // boolean instead.
     server.use(
-      http.get("*/api/wallapop/search", () =>
-        HttpResponse.json({ error: "down" }, { status: 500 }),
-      ),
-      http.post("*/api/cochesnet/search", () =>
-        HttpResponse.json({ error: "down" }, { status: 500 }),
-      ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json({ error: "down" }, { status: 500 }),
-      ),
+      http.get(WALLAPOP, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.post(COCHESNET, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.get(MILANUNCIOS, () => HttpResponse.json({ error: "down" }, { status: 500 })),
     );
     const { result } = renderHook(() => useListingsSearch());
 
@@ -76,11 +99,8 @@ describe("useListingsSearch", () => {
     });
 
     expect(result.current.listings).toEqual([]);
-    // No I18nProvider here, so useTranslation falls back to the default locale,
-    // which is Spanish. MAP-7 covers the localisation itself.
-    expect(toast.error).toHaveBeenCalledWith(
-      "No se pudieron cargar los anuncios. Inténtalo de nuevo.",
-    );
+    expect(result.current.error).toBe(true);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("MAP-5: serves a repeated identical search from cache without refetching", async () => {
@@ -93,9 +113,9 @@ describe("useListingsSearch", () => {
 
     // Every endpoint now fails — a cache hit means we never touch them.
     server.use(
-      http.get("*/api/wallapop/search", () => HttpResponse.json({}, { status: 500 })),
-      http.post("*/api/cochesnet/search", () => HttpResponse.json({}, { status: 500 })),
-      http.get("*/api/milanuncios/search", () => HttpResponse.json({}, { status: 500 })),
+      http.get(WALLAPOP, () => HttpResponse.json({}, { status: 500 })),
+      http.post(COCHESNET, () => HttpResponse.json({}, { status: 500 })),
+      http.get(MILANUNCIOS, () => HttpResponse.json({}, { status: 500 })),
     );
 
     await act(async () => {
@@ -109,7 +129,7 @@ describe("useListingsSearch", () => {
   it("MAP-4: discards a stale response that resolves after a newer search", async () => {
     let call = 0;
     server.use(
-      http.get("*/api/wallapop/search", async () => {
+      http.get(WALLAPOP, async () => {
         call += 1;
         if (call === 1) {
           await delay(80); // the stale, slow first search
@@ -117,7 +137,7 @@ describe("useListingsSearch", () => {
         }
         return HttpResponse.json(makeWallapopResponse([makeWallapopItem({ id: "fresh" })]));
       }),
-      http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([]))),
+      http.post(COCHESNET, () => HttpResponse.json(makeCochesNetResponse([]))),
     );
 
     const { result } = renderHook(() => useListingsSearch());
@@ -135,14 +155,14 @@ describe("useListingsSearch", () => {
 
   it("MAP-8: appends the next page when the scroll sentinel intersects", async () => {
     server.use(
-      http.get("*/api/wallapop/search", () =>
+      http.get(WALLAPOP, () =>
         HttpResponse.json(makeWallapopResponse([makeWallapopItem()], "page-2")),
       ),
-      http.post("*/api/cochesnet/search", () =>
+      http.post(COCHESNET, () =>
         HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 3)),
       ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json(makeMilanunciosResponse([makeMilanunciosAd()], 5)),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([makeMilanunciosAd()], 5))),
       ),
     );
     const { result } = renderHook(() => useListingsSearch());
@@ -172,9 +192,9 @@ describe("useListingsSearch validation and copy", () => {
       return HttpResponse.json({});
     };
     server.use(
-      http.get("*/api/wallapop/search", record),
-      http.post("*/api/cochesnet/search", record),
-      http.get("*/api/milanuncios/search", record),
+      http.get(WALLAPOP, record),
+      http.post(COCHESNET, record),
+      http.get(MILANUNCIOS, record),
     );
     const { result } = renderHook(() => useListingsSearch());
 
@@ -188,46 +208,35 @@ describe("useListingsSearch validation and copy", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("MAP-7: reports a failed search in the user's language", async () => {
+  it("MAP-7: sets the error state when every source fails, never a toast", async () => {
+    // FRONT-15 (docs/specs/core-frontend.md) supersedes MAP-7's original
+    // toast-in-the-user's-language behaviour: the results list now renders
+    // its own inline error state (FRONT-14), translated there, not surfaced
+    // through a toast at all.
     server.use(
-      http.get("*/api/wallapop/search", () =>
-        HttpResponse.json({ error: "down" }, { status: 500 }),
-      ),
-      http.post("*/api/cochesnet/search", () =>
-        HttpResponse.json({ error: "down" }, { status: 500 }),
-      ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json({ error: "down" }, { status: 500 }),
-      ),
+      http.get(WALLAPOP, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.post(COCHESNET, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.get(MILANUNCIOS, () => HttpResponse.json({ error: "down" }, { status: 500 })),
     );
-    const { result } = renderHook(() => useListingsSearch(), {
-      wrapper: ({ children }) => <I18nProvider locale="es">{children}</I18nProvider>,
-    });
+    const { result } = renderHook(() => useListingsSearch());
 
     await act(async () => {
       await result.current.search({ keywords: "localised-failure" });
     });
 
-    // Hand-derived from lib/i18n/locales/es.ts. The point of the assertion is
-    // that the copy comes from the locale file at all: this path used to show
-    // a hardcoded English string to a user whose default language is Spanish.
-    expect(toast.error).toHaveBeenCalledWith(
-      "No se pudieron cargar los anuncios. Inténtalo de nuevo.",
-    );
+    expect(result.current.error).toBe(true);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it("MAP-7: reports invalid filters in the user's language", async () => {
-    const { result } = renderHook(() => useListingsSearch(), {
-      wrapper: ({ children }) => <I18nProvider locale="es">{children}</I18nProvider>,
-    });
+  it("MAP-7: sets the error state for invalid filters, never a toast", async () => {
+    const { result } = renderHook(() => useListingsSearch());
 
     await act(async () => {
       await result.current.search({ keywords: "localised-invalid", latitude: 999 });
     });
 
-    // Previously this surfaced the raw Zod issue message, which is English
-    // prose written for developers.
-    expect(toast.error).toHaveBeenCalledWith("Esos filtros de búsqueda no son válidos.");
+    expect(result.current.error).toBe(true);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });
 
@@ -243,7 +252,7 @@ describe("useListingsSearch radius filter", () => {
 
   it("MAP-16: drops listings outside the chosen radius from every source", async () => {
     server.use(
-      http.get("*/api/wallapop/search", () =>
+      http.get(WALLAPOP, () =>
         HttpResponse.json(
           makeWallapopResponse([
             makeWallapopItem({ id: "wp-near" }), // fixture default: Madrid, 0 km
@@ -261,7 +270,7 @@ describe("useListingsSearch radius filter", () => {
           ]),
         ),
       ),
-      http.post("*/api/cochesnet/search", () =>
+      http.post(COCHESNET, () =>
         HttpResponse.json(
           makeCochesNetResponse([
             makeCochesNetItem({
@@ -280,19 +289,21 @@ describe("useListingsSearch radius filter", () => {
           ]),
         ),
       ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json(
-          makeMilanunciosResponse([
-            makeMilanunciosAd({
-              id: "mn-near",
-              location: {
-                city: { id: 1, name: "Alcalá de Henares", slug: "alcala" },
-                province: { id: 28, name: "Madrid", slug: "madrid" },
-                region: { id: 13, name: "Comunidad de Madrid", slug: "madrid" },
-              },
-            }),
-            makeMilanunciosAd({ id: "mn-far" }), // fixture default: Oliva → Valencia
-          ]),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(
+          makeMilanunciosHtml(
+            makeMilanunciosResponse([
+              makeMilanunciosAd({
+                id: "mn-near",
+                location: {
+                  city: { id: 1, name: "Alcalá de Henares", slug: "alcala" },
+                  province: { id: 28, name: "Madrid", slug: "madrid" },
+                  region: { id: 13, name: "Comunidad de Madrid", slug: "madrid" },
+                },
+              }),
+              makeMilanunciosAd({ id: "mn-far" }), // fixture default: Oliva → Valencia
+            ]),
+          ),
         ),
       ),
     );
@@ -318,7 +329,7 @@ describe("useListingsSearch radius filter", () => {
 
   it("MAP-16: applies the radius to pages appended by the scroll sentinel", async () => {
     server.use(
-      http.get("*/api/wallapop/search", ({ request }) => {
+      http.get(WALLAPOP, ({ request }) => {
         const isNextPage = new URL(request.url).searchParams.get("next_page") !== null;
         if (isNextPage) {
           // Page 2 is entirely outside the radius.
@@ -342,8 +353,10 @@ describe("useListingsSearch radius filter", () => {
           makeWallapopResponse([makeWallapopItem({ id: "wp-page1-near" })], "page-2"),
         );
       }),
-      http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([], 0))),
-      http.get("*/api/milanuncios/search", () => HttpResponse.json(makeMilanunciosResponse([], 0))),
+      http.post(COCHESNET, () => HttpResponse.json(makeCochesNetResponse([], 0))),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([], 0))),
+      ),
     );
     const { result } = renderHook(() => useListingsSearch());
 
@@ -371,7 +384,7 @@ describe("useListingsSearch radius filter", () => {
     // Negative path: the same far-flung items survive when the user picked no
     // location — the radius must never apply to an unlocated search.
     server.use(
-      http.get("*/api/wallapop/search", () =>
+      http.get(WALLAPOP, () =>
         HttpResponse.json(
           makeWallapopResponse([
             makeWallapopItem({
@@ -388,11 +401,13 @@ describe("useListingsSearch radius filter", () => {
           ]),
         ),
       ),
-      http.post("*/api/cochesnet/search", () =>
+      http.post(COCHESNET, () =>
         HttpResponse.json(makeCochesNetResponse([makeCochesNetItem({ id: "cn-bcn" })])),
       ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json(makeMilanunciosResponse([makeMilanunciosAd({ id: "mn-oliva" })])),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(
+          makeMilanunciosHtml(makeMilanunciosResponse([makeMilanunciosAd({ id: "mn-oliva" })])),
+        ),
       ),
     );
     const { result } = renderHook(() => useListingsSearch());
@@ -415,7 +430,7 @@ describe("useListingsSearch radius filter", () => {
     // so only the title can prove a match. coches.net leaks only when its
     // model-name resolution fell back to make-only filtering.
     server.use(
-      http.get("*/api/wallapop/search", () =>
+      http.get(WALLAPOP, () =>
         HttpResponse.json(
           makeWallapopResponse([
             makeWallapopItem({
@@ -434,7 +449,7 @@ describe("useListingsSearch radius filter", () => {
           ]),
         ),
       ),
-      http.post("*/api/cochesnet/search", () =>
+      http.post(COCHESNET, () =>
         HttpResponse.json(
           makeCochesNetResponse([
             makeCochesNetItem({ id: "cn-match" }), // fixture default: model "Serie 3"
@@ -446,18 +461,20 @@ describe("useListingsSearch radius filter", () => {
           ]),
         ),
       ),
-      http.get("*/api/milanuncios/search", () =>
-        HttpResponse.json(
-          makeMilanunciosResponse([
-            makeMilanunciosAd({
-              id: "mn-match",
-              title: "BMW Serie 3 318d Touring",
-            }),
-            makeMilanunciosAd({
-              id: "mn-diluted",
-              title: "BMW Serie 5 530d Luxury",
-            }),
-          ]),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(
+          makeMilanunciosHtml(
+            makeMilanunciosResponse([
+              makeMilanunciosAd({
+                id: "mn-match",
+                title: "BMW Serie 3 318d Touring",
+              }),
+              makeMilanunciosAd({
+                id: "mn-diluted",
+                title: "BMW Serie 5 530d Luxury",
+              }),
+            ]),
+          ),
         ),
       ),
     );
@@ -486,8 +503,8 @@ describe("useListingsSearch radius filter", () => {
     // ≈49 km from Madrid. A plain distance check would let these through; the
     // criterion is that an unresolvable location is excluded, not radius-checked.
     server.use(
-      http.get("*/api/wallapop/search", () => HttpResponse.json(makeWallapopResponse([]))),
-      http.post("*/api/cochesnet/search", () =>
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([]))),
+      http.post(COCHESNET, () =>
         HttpResponse.json(
           makeCochesNetResponse([
             makeCochesNetItem({
@@ -517,7 +534,7 @@ describe("useListingsSearch radius filter", () => {
           ]),
         ),
       ),
-      http.get("*/api/milanuncios/search", () =>
+      http.get(MILANUNCIOS, () =>
         HttpResponse.json(
           makeMilanunciosResponse([
             makeMilanunciosAd({
@@ -561,9 +578,11 @@ describe("useListingsSearch filtered-away pages", () => {
   /** Only Wallapop pages; the other two return nothing and stay exhausted. */
   function onlyWallapop(handler: Parameters<typeof http.get>[1]): Parameters<typeof server.use> {
     return [
-      http.get("*/api/wallapop/search", handler),
-      http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([], 0))),
-      http.get("*/api/milanuncios/search", () => HttpResponse.json(makeMilanunciosResponse([], 0))),
+      http.get(WALLAPOP, handler),
+      http.post(COCHESNET, () => HttpResponse.json(makeCochesNetResponse([], 0))),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([], 0))),
+      ),
     ];
   }
 
@@ -686,15 +705,17 @@ describe("useListingsSearch pagination guards", () => {
   it("MAP-10: does not fetch the same next page twice when the sentinel fires repeatedly", async () => {
     let pageRequests = 0;
     server.use(
-      http.get("*/api/wallapop/search", ({ request }) => {
+      http.get(WALLAPOP, ({ request }) => {
         const isNextPage = new URL(request.url).searchParams.get("next_page") !== null;
         if (isNextPage) pageRequests += 1;
         return HttpResponse.json(
           makeWallapopResponse([makeWallapopItem()], isNextPage ? null : "page-2"),
         );
       }),
-      http.post("*/api/cochesnet/search", () => HttpResponse.json(makeCochesNetResponse([], 0))),
-      http.get("*/api/milanuncios/search", () => HttpResponse.json(makeMilanunciosResponse([], 0))),
+      http.post(COCHESNET, () => HttpResponse.json(makeCochesNetResponse([], 0))),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([], 0))),
+      ),
     );
     const { result } = renderHook(() => useListingsSearch());
 
@@ -710,5 +731,18 @@ describe("useListingsSearch pagination guards", () => {
     });
 
     expect(pageRequests).toBe(1);
+  });
+});
+
+describe("useListingsSearch server action fan-out", () => {
+  it("FRONT-3: one search round makes exactly one searchListings call, not three fetches", async () => {
+    vi.mocked(searchListings).mockClear();
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({ keywords: "one-action-call" });
+    });
+
+    expect(searchListings).toHaveBeenCalledTimes(1);
   });
 });

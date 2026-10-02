@@ -6,7 +6,7 @@ import { ArrowLeft, Search, SlidersHorizontal, MapIcon, Loader2 } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchFilters, type SearchFiltersProps } from "@/components/map/SearchFilters";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 
 interface ListingsHeaderProps {
   searchQuery: string;
@@ -31,7 +31,7 @@ export function ListingsHeader({
   activeFilterCount,
   filterProps,
 }: ListingsHeaderProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -45,7 +45,7 @@ export function ListingsHeader({
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            aria-label={t.map.backToHome}
+            aria-label={t("map.backToHome")}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-card hover:text-foreground"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -59,7 +59,7 @@ export function ListingsHeader({
             )}
             <Input
               type="text"
-              placeholder={t.hero.searchPlaceholder}
+              placeholder={t("hero.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -73,10 +73,10 @@ export function ListingsHeader({
             className="h-10 gap-2 border-border/50"
             onClick={onSearch}
             disabled={isLoading}
-            aria-label={t.common.search}
+            aria-label={t("common.search")}
           >
             <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.common.search}</span>
+            <span className="hidden sm:inline">{t("common.search")}</span>
           </Button>
 
           <Button
@@ -84,11 +84,11 @@ export function ListingsHeader({
             size="sm"
             className={`relative h-10 gap-2 border-border/50 ${filtersOpen ? "bg-primary/10 border-primary/30 text-primary" : ""}`}
             onClick={onToggleFilters}
-            aria-label={t.map.filters}
+            aria-label={t("map.filters")}
             aria-expanded={filtersOpen}
           >
             <SlidersHorizontal className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.map.filters}</span>
+            <span className="hidden sm:inline">{t("map.filters")}</span>
             {activeFilterCount > 0 && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground">
                 {activeFilterCount}
@@ -101,7 +101,7 @@ export function ListingsHeader({
             size="sm"
             className="h-10 gap-2 border-border/50 lg:hidden"
             onClick={onShowMap}
-            aria-label={t.hero.exploreMap}
+            aria-label={t("hero.exploreMap")}
           >
             <MapIcon className="h-4 w-4" />
           </Button>

@@ -18,7 +18,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useLocale } from "next-intl";
+import { useLocaleSwitcher } from "@/lib/hooks/useLocaleSwitcher";
 import { LOCALES, type Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
@@ -106,7 +107,7 @@ interface SignedInControlsProps extends ControlsProps {
 }
 
 function SignedOutControls({ menuOpen, onMenuOpenChange, pathname }: ControlsProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
 
   return (
     <>
@@ -114,10 +115,10 @@ function SignedOutControls({ menuOpen, onMenuOpenChange, pathname }: ControlsPro
         <ThemeSwitcher showLabel={false} />
         <LanguageSwitcher />
         <Button asChild variant="ghost" size="sm">
-          <Link href="/login">{t.nav.signIn}</Link>
+          <Link href="/login">{t("nav.signIn")}</Link>
         </Button>
         <Button asChild size="sm">
-          <Link href="/register">{t.nav.signUp}</Link>
+          <Link href="/register">{t("nav.signUp")}</Link>
         </Button>
       </div>
 
@@ -126,14 +127,14 @@ function SignedOutControls({ menuOpen, onMenuOpenChange, pathname }: ControlsPro
           a menu would still hide that it is possible at all. */}
       <div className="flex items-center gap-2 lg:hidden">
         <Button asChild size="sm" className="h-11">
-          <Link href="/register">{t.nav.signUp}</Link>
+          <Link href="/register">{t("nav.signUp")}</Link>
         </Button>
         <NavMenu open={menuOpen} onOpenChange={onMenuOpenChange}>
           <NavMenuLink href="/login" pathname={pathname}>
-            {t.nav.signIn}
+            {t("nav.signIn")}
           </NavMenuLink>
           <NavMenuLink href="/register" pathname={pathname}>
-            {t.nav.signUp}
+            {t("nav.signUp")}
           </NavMenuLink>
         </NavMenu>
       </div>
@@ -148,7 +149,9 @@ function SignedInControls({
   onMenuOpenChange,
   pathname,
 }: SignedInControlsProps) {
-  const { t, locale, setLocale } = useTranslation();
+  const t = useTranslations();
+  const locale = useLocale() as Locale;
+  const { setLocale } = useLocaleSwitcher();
 
   return (
     <>
@@ -161,13 +164,13 @@ function SignedInControls({
         <Button asChild variant="ghost" size="sm">
           <Link href="/favorites" aria-current={currentPage(pathname, "/favorites")}>
             <Heart className="h-4 w-4 shrink-0" />
-            {t.nav.favorites}
+            {t("nav.favorites")}
           </Link>
         </Button>
         <Button asChild variant="ghost" size="sm">
           <Link href="/alerts" aria-current={currentPage(pathname, "/alerts")}>
             <BellRing className="h-4 w-4 shrink-0" />
-            {t.alerts.title}
+            {t("alerts.title")}
           </Link>
         </Button>
 
@@ -182,7 +185,7 @@ function SignedInControls({
             <DropdownMenuItem asChild>
               <Link href="/account">
                 <User />
-                {t.nav.account}
+                {t("nav.account")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -207,7 +210,7 @@ function SignedInControls({
                 used to sit next to at 32px tall. */}
             <DropdownMenuItem onSelect={() => signOut({ callbackUrl: "/" })}>
               <LogOut />
-              {t.nav.signOut}
+              {t("nav.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -217,15 +220,15 @@ function SignedInControls({
         <NavMenu open={menuOpen} onOpenChange={onMenuOpenChange}>
           <NavMenuLink href="/favorites" pathname={pathname}>
             <Heart className="h-4 w-4 shrink-0" />
-            {t.nav.favorites}
+            {t("nav.favorites")}
           </NavMenuLink>
           <NavMenuLink href="/alerts" pathname={pathname}>
             <BellRing className="h-4 w-4 shrink-0" />
-            {t.alerts.title}
+            {t("alerts.title")}
           </NavMenuLink>
           <NavMenuLink href="/account" pathname={pathname}>
             <User className="h-4 w-4 shrink-0" />
-            {t.nav.account}
+            {t("nav.account")}
           </NavMenuLink>
           <Button
             variant="ghost"
@@ -233,7 +236,7 @@ function SignedInControls({
             onClick={() => signOut({ callbackUrl: "/" })}
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {t.nav.signOut}
+            {t("nav.signOut")}
           </Button>
         </NavMenu>
       </div>

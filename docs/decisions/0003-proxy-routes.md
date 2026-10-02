@@ -1,5 +1,11 @@
 # 0003 — Proxy routes for every source
 
+> **Superseded by [0016](0016-server-search-and-next-intl.md).** The five route handlers this ADR
+> describes (`app/api/wallapop/*`, `app/api/cochesnet/*`, `app/api/milanuncios/*`) are deleted.
+> The upstream headers and error contract this ADR won still apply — they moved into
+> `server/search/service.ts`, called from a Server Action instead of a route handler, since the
+> browser still cannot reach these upstreams directly for the reasons below.
+
 ## Decided
 
 The browser never calls Wallapop, coches.net or Milanuncios. Every source is

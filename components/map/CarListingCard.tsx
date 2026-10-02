@@ -11,13 +11,17 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { CarListing } from "@/interfaces/listing";
 import { SourceBadge } from "@/components/map/SourceBadge";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useLocale, useMessages } from "next-intl";
 import { translateError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
+import { formatMileage, formatNumber, formatPrice, formatRelativeTime } from "@/lib/format";
 import { removeFavorite, saveFavorite } from "@/server/favorites/actions";
 
 interface CarListingCardProps extends CarListing {
   isFavorite?: boolean;
   onFavoriteChange?: (listingId: string, saved: boolean) => void;
+  /** Only set for an alert's matches — when the card was discovered, not when the listing was published (no source exposes that). */
+  foundAt?: Date;
 }
 
 export function CarListingCard({
@@ -25,8 +29,11 @@ export function CarListingCard({
   onFavoriteChange,
   ...listing
 }: CarListingCardProps) {
-  const { id, image, title, subtitle, price, mileage, year, fuel, location, source, url } = listing;
-  const { t } = useTranslation();
+  const { id, image, title, subtitle, price, mileage, year, fuel, location, source, url, foundAt } =
+    listing;
+  const t = useTranslations();
+  const locale = useLocale();
+  const messages = useMessages() as Translations;
   const router = useRouter();
   const pathname = usePathname();
   const { status } = useSession();
@@ -76,7 +83,7 @@ export function CarListingCard({
       if (!result.ok) {
         setFavorite(!next);
         onFavoriteChange?.(id, !next);
-        toast.error(translateError(t, result.error.messageKey));
+        toast.error(translateError(messages, result.error.messageKey));
       }
     } catch {
       // An expected failure (invalid listing, signed out mid-request) reads
@@ -86,7 +93,7 @@ export function CarListingCard({
       // specific to say about it.
       setFavorite(!next);
       onFavoriteChange?.(id, !next);
-      toast.error(t.alertErrors.unexpected);
+      toast.error(t("alertErrors.unexpected"));
     }
   }
 
@@ -120,7 +127,7 @@ export function CarListingCard({
               toggleFavorite();
             }}
             className="absolute right-3 top-3 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-            aria-label={favorite ? t.map.removeFavorite : t.map.addFavorite}
+            aria-label={favorite ? t("map.removeFavorite") : t("map.addFavorite")}
           >
             <Heart
               className={cn(
@@ -149,23 +156,26 @@ export function CarListingCard({
             </Link>
           </h3>
           <span className="shrink-0 font-mono text-base font-semibold text-primary">
-            {price.toLocaleString("es-ES")}&nbsp;&euro;
+            {formatPrice(price, locale)}
           </span>
         </div>
 
         <p className="text-sm text-muted-foreground line-clamp-1">{subtitle}</p>
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {year > 0 && <span>{year}</span>}
+          {year > 0 && <span>{formatNumber(year, locale)}</span>}
           {year > 0 && mileage > 0 && <span>&middot;</span>}
-          {mileage > 0 && (
-            <span className="font-mono">{mileage.toLocaleString("es-ES")}&nbsp;km</span>
-          )}
+          {mileage > 0 && <span className="font-mono">{formatMileage(mileage, locale)}</span>}
           {(year > 0 || mileage > 0) && fuel && <span>&middot;</span>}
           {fuel && <span>{fuel}</span>}
         </div>
 
         <p className="text-sm text-muted-foreground">{location}</p>
+        {foundAt && (
+          <p className="text-xs text-muted-foreground/70">
+            {t("alerts.foundAt", { time: formatRelativeTime(foundAt, locale) })}
+          </p>
+        )}
       </div>
     </article>
   );

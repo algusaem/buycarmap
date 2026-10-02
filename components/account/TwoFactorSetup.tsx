@@ -7,8 +7,9 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { confirmTwoFactorSetup } from "@/server/two-factor/actions";
 
 interface TwoFactorSetupProps {
@@ -23,7 +24,8 @@ interface TwoFactorSetupProps {
  * enforced. Nothing here changes how login behaves until the code is accepted.
  */
 export function TwoFactorSetup({ otpauthUri, secret, onConfirmed, onCancel }: TwoFactorSetupProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -40,19 +42,19 @@ export function TwoFactorSetup({ otpauthUri, secret, onConfirmed, onCancel }: Tw
     setIsSubmitting(false);
 
     if (!result.success || !result.recoveryCodes) {
-      setError(translateAuthError(t, result.error));
+      setError(translateAuthError(messages, result.error));
       return;
     }
 
-    toast.success(t.account.twoFactor.enabledToast);
+    toast.success(t("account.twoFactor.enabledToast"));
     onConfirmed(result.recoveryCodes);
   };
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-1">
-        <h3 className="font-semibold">{t.account.twoFactor.scanTitle}</h3>
-        <p className="text-sm text-muted-foreground">{t.account.twoFactor.scanDescription}</p>
+        <h3 className="font-semibold">{t("account.twoFactor.scanTitle")}</h3>
+        <p className="text-sm text-muted-foreground">{t("account.twoFactor.scanDescription")}</p>
       </div>
 
       {/* Rendered as inline SVG on a white plate: QR scanners need the light
@@ -62,22 +64,22 @@ export function TwoFactorSetup({ otpauthUri, secret, onConfirmed, onCancel }: Tw
       </div>
 
       <div className="space-y-1">
-        <p className="text-sm font-medium">{t.account.twoFactor.manualLabel}</p>
+        <p className="text-sm font-medium">{t("account.twoFactor.manualLabel")}</p>
         <code className="block break-all rounded-md border border-border/50 bg-background/50 p-2 font-mono text-sm">
           {secret}
         </code>
-        <p className="text-xs text-muted-foreground">{t.account.twoFactor.manualHint}</p>
+        <p className="text-xs text-muted-foreground">{t("account.twoFactor.manualHint")}</p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="two-factor-code">{t.account.twoFactor.codeLabel}</Label>
+        <Label htmlFor="two-factor-code">{t("account.twoFactor.codeLabel")}</Label>
         <Input
           id="two-factor-code"
           // `inputMode` brings up the numeric keypad; `one-time-code` lets
           // password managers and iOS autofill offer the code directly.
           inputMode="numeric"
           autoComplete="one-time-code"
-          placeholder={t.account.twoFactor.codePlaceholder}
+          placeholder={t("account.twoFactor.codePlaceholder")}
           className="bg-background/50 font-mono tracking-widest"
           maxLength={6}
           value={code}
@@ -91,14 +93,14 @@ export function TwoFactorSetup({ otpauthUri, secret, onConfirmed, onCancel }: Tw
           {isSubmitting ? (
             <span className="flex items-center gap-2">
               <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-              {t.account.twoFactor.confirming}
+              {t("account.twoFactor.confirming")}
             </span>
           ) : (
-            t.account.twoFactor.confirm
+            t("account.twoFactor.confirm")
           )}
         </Button>
         <Button type="button" variant="ghost" disabled={isSubmitting} onClick={onCancel}>
-          {t.account.twoFactor.cancel}
+          {t("account.twoFactor.cancel")}
         </Button>
       </div>
     </form>

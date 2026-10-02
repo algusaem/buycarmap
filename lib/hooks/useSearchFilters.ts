@@ -1,27 +1,18 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import { useQueryStates } from "nuqs";
 import type { SearchInput } from "@/lib/search/schema";
 import type { SelectedLocation } from "@/interfaces/location";
 import { initUserGeolocation, waitForGeolocation } from "@/lib/geo/user-location";
+import {
+  searchParsers,
+  filtersToUrlState,
+  urlStateToFilters,
+  type UrlFilterValues,
+} from "@/lib/search/url-state";
 
 type TimeFilter = "" | "today" | "lastWeek" | "lastMonth";
 
-interface FilterValues {
-  engine: string[];
-  gearbox: string[];
-  brand: string;
-  model: string;
-  minPrice: number | undefined;
-  maxPrice: number | undefined;
-  minKm: number | undefined;
-  maxKm: number | undefined;
-  minYear: number | undefined;
-  maxYear: number | undefined;
-  minHorsePower: number | undefined;
-  maxHorsePower: number | undefined;
-  timeFilter: TimeFilter;
-  selectedLocation: SelectedLocation | undefined;
-  distanceInKm: number;
-}
+type FilterValues = UrlFilterValues;
 
 const INITIAL_FILTERS: FilterValues = {
   engine: [],
@@ -85,18 +76,38 @@ function countActive(f: FilterValues): number {
 const DEBOUNCE_MS = 400;
 
 export function useSearchFilters(search: (params: SearchInput) => void, getKeywords: () => string) {
-  const [filters, setFilters] = useState<FilterValues>(INITIAL_FILTERS);
+  // FRONT-13 (docs/specs/core-frontend.md): the URL is the deep-linkable
+  // record of the filters. It is only written at the same points this hook
+  // already calls `search()` (the debounce firing, an explicit trigger, or
+  // clearing) — not on every keystroke — so typing doesn't spam history and
+  // Back/Forward move between meaningful searches, not individual keystrokes.
+  const [urlState, setUrlState] = useQueryStates(searchParsers);
+  const lastUrlSerializedRef = useRef(JSON.stringify(urlState));
+
+  const [filters, setFilters] = useState<FilterValues>(() =>
+    urlStateToFilters(urlState, INITIAL_FILTERS),
+  );
   const [isOpen, setIsOpen] = useState(false);
-  const filtersRef = useRef<FilterValues>(INITIAL_FILTERS);
+  const filtersRef = useRef<FilterValues>(filters);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const activeCount = countActive(filters);
 
+  const commitUrl = useCallback(
+    (next: FilterValues) => {
+      const nextUrlState = filtersToUrlState(next);
+      lastUrlSerializedRef.current = JSON.stringify({ ...urlState, ...nextUrlState });
+      void setUrlState(nextUrlState, { history: "push" });
+    },
+    [setUrlState, urlState],
+  );
+
   const runInitialSearch = useEffectEvent(async (isCancelled: () => boolean) => {
     // Fire an immediate search (uses Spain-center fallback if geolocation
-    // hasn't resolved yet), then re-search once geolocation finishes so
-    // results are centered on the user's actual location.
-    search(toParams(getKeywords(), INITIAL_FILTERS));
+    // hasn't resolved yet, or the deep-linked filters otherwise), then
+    // re-search once geolocation finishes so results are centered on the
+    // user's actual location.
+    search(toParams(getKeywords(), filtersRef.current));
     initUserGeolocation();
     await waitForGeolocation();
     if (isCancelled()) return;
@@ -120,6 +131,25 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
     return () => clearTimeout(debounceRef.current);
   }, []);
 
+  // Back/Forward (or a hand-edited URL) changes `urlState` out from under us.
+  // A change we made ourselves already matches `lastUrlSerializedRef` by the
+  // time this effect runs, so only an external change reaches the branch
+  // below — guarding against searching twice for the same commit. `search`
+  // and `getKeywords` are plain functions redefined every render (like the
+  // rest of this hook), so listing them only means this effect's guard also
+  // re-checks on an unrelated re-render — it exits immediately when nothing
+  // changed, same as today.
+  useEffect(() => {
+    const serialized = JSON.stringify(urlState);
+    if (serialized === lastUrlSerializedRef.current) return;
+    lastUrlSerializedRef.current = serialized;
+
+    const next = urlStateToFilters(urlState, INITIAL_FILTERS);
+    filtersRef.current = next;
+    setFilters(next);
+    search(toParams(getKeywords(), next));
+  }, [urlState, search, getKeywords]);
+
   const update = useCallback(
     (patch: Partial<FilterValues>) => {
       setFilters((prev) => {
@@ -130,9 +160,10 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
       clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         search(toParams(getKeywords(), filtersRef.current));
+        commitUrl(filtersRef.current);
       }, DEBOUNCE_MS);
     },
-    [search, getKeywords],
+    [search, getKeywords, commitUrl],
   );
 
   const triggerSearch = useCallback(() => {
@@ -143,14 +174,16 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
     // the panel out from under someone still adjusting them would be hostile.
     setIsOpen(false);
     search(toParams(getKeywords(), filtersRef.current));
-  }, [search, getKeywords]);
+    commitUrl(filtersRef.current);
+  }, [search, getKeywords, commitUrl]);
 
   const clearAll = useCallback(() => {
     clearTimeout(debounceRef.current);
     filtersRef.current = INITIAL_FILTERS;
     setFilters(INITIAL_FILTERS);
     search({ keywords: getKeywords() });
-  }, [search, getKeywords]);
+    commitUrl(INITIAL_FILTERS);
+  }, [search, getKeywords, commitUrl]);
 
   const toggle = useCallback(() => setIsOpen((o) => !o), []);
 

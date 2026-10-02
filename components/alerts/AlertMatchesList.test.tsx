@@ -128,4 +128,22 @@ describe("AlertMatchesList", () => {
 
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  // FRONT-14 (docs/specs/core-frontend.md): populated and
+  // empty-with-a-primary-action already hold for AlertMatchesList (the
+  // "back to alerts" link renders whether or not there are matches); loading
+  // and error are route-level (app/alerts/[id]/loading.test.tsx,
+  // app/alerts/[id]/error.test.tsx).
+  it("FRONT-14: populated shows the matches", () => {
+    renderWithI18n(<AlertMatchesList alertLabel="Audi A3 under 20k" matches={MATCHES} />);
+
+    expect(screen.getAllByRole("article").length).toBeGreaterThan(0);
+  });
+
+  it("FRONT-14: empty shows written copy and a primary-action link", () => {
+    renderWithI18n(<AlertMatchesList alertLabel="Audi A3 under 20k" matches={[]} />);
+
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/alerts");
+  });
 });

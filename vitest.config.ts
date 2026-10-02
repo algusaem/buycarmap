@@ -65,7 +65,11 @@ export default defineConfig({
           name: "unit",
           environment: "jsdom",
           setupFiles: ["./test/setup.jsdom.ts"],
-          include: ["{lib,components,app,server}/**/*.test.{ts,tsx}"],
+          include: [
+            "{lib,components,app,server}/**/*.test.{ts,tsx}",
+            // FRONT-8/FRONT-21: the message files' own key-parity test.
+            "messages/**/*.test.ts",
+          ],
           exclude: ["**/*.node.test.ts", "**/*.integration.test.ts", "e2e/**", "node_modules/**"],
         },
       },
@@ -80,6 +84,8 @@ export default defineConfig({
             // `proxy.ts` is required to sit at the repo root by Next's file
             // convention, so its colocated test does not match the glob above.
             "proxy.node.test.ts",
+            // FRONT-9: next-intl's getRequestConfig locale resolution.
+            "i18n/**/*.node.test.ts",
             "test/contract/**/*.test.ts",
             // Dev tooling that rewrites .env files. Not app code, but a bug
             // here clobbers real secrets, so it is covered.

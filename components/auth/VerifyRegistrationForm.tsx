@@ -9,8 +9,9 @@ import { CircleCheck } from "lucide-react";
 import { fadeInUp } from "@/lib/animations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
+import type { Translations } from "@/lib/i18n/types";
 import { verifyRegistration } from "@/server/registration/actions";
 
 interface VerifyRegistrationFormProps {
@@ -18,7 +19,8 @@ interface VerifyRegistrationFormProps {
 }
 
 export function VerifyRegistrationForm({ token }: VerifyRegistrationFormProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
+  const messages = useMessages() as Translations;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -35,12 +37,12 @@ export function VerifyRegistrationForm({ token }: VerifyRegistrationFormProps) {
 
     if (!result.success) {
       setIsSubmitting(false);
-      toast.error(translateAuthError(t, result.error));
+      toast.error(translateAuthError(messages, result.error));
       return;
     }
 
     setConfirmed(true);
-    toast.success(t.verifyEmail.success);
+    toast.success(t("verifyEmail.success"));
   };
 
   return (
@@ -48,10 +50,10 @@ export function VerifyRegistrationForm({ token }: VerifyRegistrationFormProps) {
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-2xl font-bold">
-            {confirmed ? t.verifyEmail.successTitle : t.verifyEmail.title}
+            {confirmed ? t("verifyEmail.successTitle") : t("verifyEmail.title")}
           </CardTitle>
           <CardDescription>
-            {confirmed ? t.verifyEmail.successDescription : t.verifyEmail.description}
+            {confirmed ? t("verifyEmail.successDescription") : t("verifyEmail.description")}
           </CardDescription>
         </CardHeader>
 
@@ -62,7 +64,7 @@ export function VerifyRegistrationForm({ token }: VerifyRegistrationFormProps) {
                 <CircleCheck className="h-6 w-6 text-accent" />
               </div>
               <Button asChild className="w-full" size="lg">
-                <Link href="/login">{t.verifyEmail.signIn}</Link>
+                <Link href="/login">{t("verifyEmail.signIn")}</Link>
               </Button>
             </div>
           )}
@@ -78,10 +80,10 @@ export function VerifyRegistrationForm({ token }: VerifyRegistrationFormProps) {
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                  {t.verifyEmail.submitting}
+                  {t("verifyEmail.submitting")}
                 </span>
               ) : (
-                t.verifyEmail.submit
+                t("verifyEmail.submit")
               )}
             </Button>
           )}

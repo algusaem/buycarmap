@@ -4,7 +4,7 @@ import { appUrl, isEmailConfigured } from "@/lib/app-config";
 import { sendEmail } from "@/lib/email/client";
 import { renderAlertEmail } from "@/lib/email/templates/alert-emails";
 import { DEFAULT_LOCALE, isValidLocale } from "@/lib/i18n/config";
-import { getLocale } from "@/lib/i18n/server";
+import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { notDeleted } from "@/lib/db/soft-delete";
 import {
   alertIdSchema,
@@ -202,7 +202,7 @@ async function backfillLocale(userId: UserId): Promise<void> {
   // overwritten here.
   if (!user || user.locale) return;
 
-  const locale = await getLocale();
+  const locale = await getCurrentLocale();
   await saveUserLocale(userId, locale);
 }
 

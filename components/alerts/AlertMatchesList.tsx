@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, BellRing } from "lucide-react";
 import type { AlertMatch } from "@/interfaces/alert";
 import { CarListingCard } from "@/components/map/CarListingCard";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 
 interface AlertMatchesListProps {
   alertLabel: string;
@@ -12,7 +12,7 @@ interface AlertMatchesListProps {
 }
 
 function EmptyState() {
-  const { t } = useTranslation();
+  const t = useTranslations();
 
   return (
     <div
@@ -21,13 +21,13 @@ function EmptyState() {
     >
       <BellRing className="h-10 w-10 text-muted-foreground/40" />
       {/* "Nothing yet" and "broken" look identical without saying which. */}
-      <p className="text-sm text-muted-foreground">{t.alerts.noMatchesYet}</p>
+      <p className="text-sm text-muted-foreground">{t("alerts.noMatchesYet")}</p>
     </div>
   );
 }
 
 export function AlertMatchesList({ alertLabel, matches }: AlertMatchesListProps) {
-  const { t } = useTranslation();
+  const t = useTranslations();
 
   // Newest first here rather than relying on the order received, so the page is
   // right whatever the caller hands it.
@@ -41,7 +41,7 @@ export function AlertMatchesList({ alertLabel, matches }: AlertMatchesListProps)
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          {t.alerts.backToAlerts}
+          {t("alerts.backToAlerts")}
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-foreground">{alertLabel}</h1>
       </div>

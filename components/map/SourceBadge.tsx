@@ -9,9 +9,9 @@ interface SourceStyle {
 // Wallapop = turquoise, coches.net = orange-red, Milanuncios = green. Falls
 // back to a neutral chip.
 const SOURCE_STYLES: Record<string, SourceStyle> = {
-  Wallapop: { label: "Wallapop", className: "bg-[#13C1AC] text-white" },
-  "Coches.net": { label: "coches.net", className: "bg-[#FF5A1F] text-white" },
-  Milanuncios: { label: "Milanuncios", className: "bg-[#66B01E] text-white" },
+  Wallapop: { label: "Wallapop", className: "bg-source-wallapop text-white" },
+  "Coches.net": { label: "coches.net", className: "bg-source-cochesnet text-white" },
+  Milanuncios: { label: "Milanuncios", className: "bg-source-milanuncios text-white" },
 };
 
 interface SourceBadgeProps {

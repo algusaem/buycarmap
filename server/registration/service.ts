@@ -7,7 +7,7 @@ import {
   renderVerifyRegistrationEmail,
 } from "@/lib/email/templates/auth-emails";
 import { appUrl } from "@/lib/app-config";
-import { getLocale } from "@/lib/i18n/server";
+import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { logger } from "@/lib/logger";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { maybePruneExpiredAuthRows } from "@/server/auth/service";
@@ -36,14 +36,14 @@ export async function deletePendingRegistrations(email: string): Promise<void> {
 
 // Tells the owner of the address that someone tried to sign up with it.
 export async function notifyExistingAccount(email: string): Promise<void> {
-  const locale = await getLocale();
+  const locale = await getCurrentLocale();
   const { subject, html, text } = renderExistingAccountEmail(locale, `${appUrl}/login`);
   await sendEmail({ to: email, subject, html, text });
 }
 
 // Emails the link that confirms a pending signup.
 async function sendVerificationEmail(email: string, token: string): Promise<void> {
-  const locale = await getLocale();
+  const locale = await getCurrentLocale();
   const { subject, html, text } = renderVerifyRegistrationEmail(
     locale,
     `${appUrl}/verify-email?token=${encodeURIComponent(token)}`,

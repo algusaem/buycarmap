@@ -6,7 +6,7 @@ import { validateNewPassword } from "@/lib/auth/password-policy";
 import { sendEmail } from "@/lib/email/client";
 import { renderPasswordChangedEmail } from "@/lib/email/templates/auth-emails";
 import { optionalString, requiredString } from "@/lib/form-data";
-import { getLocale } from "@/lib/i18n/server";
+import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { asAccountId, asUserId } from "@/lib/ids";
 import { RATE_LIMITS, consumeRateLimit } from "@/server/rate-limit/service";
@@ -138,7 +138,7 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
     return { success: false, error: AUTH_ERROR.conflict };
   }
 
-  const locale = await getLocale();
+  const locale = await getCurrentLocale();
   await sendEmail({ to: record.email, ...renderPasswordChangedEmail(locale) });
 
   return { success: true };

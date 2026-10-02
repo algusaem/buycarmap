@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
-import { I18nProvider } from "@/lib/i18n/client";
+import { NextIntlClientProvider } from "next-intl";
 import { renderWithI18n } from "@/test/utils/render";
+import esMessages from "@/messages/es.json";
 
 // NAV-7 reads the current route to mark the active destination, so the pathname
 // is controllable rather than fixed.
@@ -271,7 +272,11 @@ describe("Navbar language", () => {
     // The contract this asserts: a `nav.menu` key exists in both locales, with
     // the Spanish value "Menú".
     render(<Navbar />, {
-      wrapper: ({ children }) => <I18nProvider locale="es">{children}</I18nProvider>,
+      wrapper: ({ children }) => (
+        <NextIntlClientProvider locale="es" messages={esMessages} timeZone="UTC">
+          {children}
+        </NextIntlClientProvider>
+      ),
     });
 
     expect(screen.getByRole("button", { name: "Menú" })).toBeInTheDocument();

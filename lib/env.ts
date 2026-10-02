@@ -49,6 +49,16 @@ export const env = createEnv({
     // to DATABASE_URL when unset.
     DIRECT_URL: z.string().optional(),
 
+    // Upstream marketplace base URLs (FRONT-22, docs/specs/core-frontend.md).
+    // Each defaults to the real host, exactly as server/search/service.ts
+    // called it before this existed. For e2e only: playwright.config.ts
+    // points all three at the local mock upstream server
+    // (e2e/fixtures/upstream-server.ts) so a Playwright run never reaches a
+    // real marketplace. Production never sets these.
+    WALLAPOP_API_BASE_URL: z.string().url().default("https://api.wallapop.com"),
+    COCHESNET_API_BASE_URL: z.string().url().default("https://web.gw.coches.net"),
+    MILANUNCIOS_BASE_URL: z.string().url().default("https://www.milanuncios.com"),
+
     // Sentry (lib/sentry.ts, instrumentation.ts). Inert without a DSN.
     SENTRY_DSN: z.string().optional(),
     SENTRY_AUTH_TOKEN: z.string().optional(),

@@ -53,7 +53,7 @@ untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 
 ## Worked examples
 
-- **MAP-7** — Locale es, all three proxies 500 → toast "No se pudieron cargar los anuncios. Inténtalo de nuevo."; latitude 999 → "Esos filtros de búsqueda no son válidos."
+- **MAP-7** — Locale es, all three sources 500 → the results list's inline error state reads "No se pudieron cargar los anuncios. Inténtalo de nuevo." with a Retry button (FRONT-14); latitude 999 → "Esos filtros de búsqueda no son válidos."
 - **MAP-16** — Centre Madrid (40.4168, −3.7038), radius 100 km, each source one near and one far item (far Wallapop in Barcelona 41.3874, 2.1686) → exactly wallapop-wp-near, cochesnet-cn-near, milanuncios-mn-near.
 - **MAP-17** — Madrid, 100 km; coches.net Getafe cn-near plus coches.net and Milanuncios items with unresolvable "Villarriba" / province 99 (pinned at the Spain centre 40.0, −3.5, ~49 km away) → exactly ["cochesnet-cn-near"].
 - **MAP-18** — Brand "BMW", model "Serie 3", no location; coches.net cn-contradicts (model "Serie 5", title "BMW Serie 5 530d") and Milanuncios mn-diluted (title "BMW Serie 5 530d Luxury") among matches → exactly wallapop-wp-match, cochesnet-cn-match, milanuncios-mn-match.
@@ -164,8 +164,9 @@ expose no comparable relevance score.
 `Promise.allSettled`, not `Promise.all`. These are three reverse-engineered
 APIs; one being down is a normal Tuesday. `all` would mean any single failure
 blanks the entire page. The user is only told something went wrong when **all
-three** fail, because a toast for a partial failure would fire regularly and be
-ignored within a week.
+three** fail, because an error for a partial failure would show regularly and be
+ignored within a week. Since `docs/specs/core-frontend.md` (FRONT-14) that error is
+the results list's inline error state with Retry, not a toast.
 
 ### The cache holds page 1 only, and resets pagination on a hit
 
@@ -302,7 +303,7 @@ does not remove the need for this rule.
 ### Brand and model are coupled in one direction
 
 Setting a brand clears the model (MAP-12); setting a model does not touch the
-brand. Model ids are only meaningful within a brand — `lib/cochesnet/models.ts`
+brand. Model ids are only meaningful within a brand — `server/search/service.ts`
 resolves them per `makeId` — so a model left over from the previous brand is
 either meaningless or, worse, silently matches something unintended.
 

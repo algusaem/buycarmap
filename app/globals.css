@@ -50,6 +50,11 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
+
+  /* Source badge colors (components/map/SourceBadge.tsx) - same value in both themes */
+  --color-source-wallapop: var(--source-wallapop);
+  --color-source-cochesnet: var(--source-cochesnet);
+  --color-source-milanuncios: var(--source-milanuncios);
 }
 
 :root {
@@ -106,6 +111,12 @@
   --success: oklch(0.62 0.12 160); /* available, good deal */
   --warning: oklch(0.75 0.14 75); /* price change, attention */
   --info: oklch(0.55 0.08 200); /* metadata, neutral */
+
+  /* Source badge colors (components/map/SourceBadge.tsx) - white text passes
+     contrast in both themes, so these are not redefined in .light */
+  --source-wallapop: oklch(0.552 0.101 178.8); /* #008573 */
+  --source-cochesnet: oklch(0.584 0.208 34.4); /* #db3500 */
+  --source-milanuncios: oklch(0.545 0.164 136.5); /* #3c8400 */
 }
 
 /* Light mode alternative - warm paper aesthetic */
@@ -119,7 +130,7 @@
   --popover: oklch(0.99 0.005 80);
   --popover-foreground: oklch(0.2 0.02 250);
 
-  --primary: oklch(0.65 0.16 75); /* darker amber for contrast */
+  --primary: oklch(0.54 0.16 75); /* darker amber for contrast */
   --primary-foreground: oklch(0.99 0.005 80);
 
   --secondary: oklch(0.94 0.01 80);
@@ -137,7 +148,7 @@
   --input: oklch(0.88 0.01 80);
   --ring: oklch(0.65 0.16 75);
 
-  --chart-1: oklch(0.65 0.16 75);
+  --chart-1: oklch(0.54 0.16 75);
   --chart-2: oklch(0.52 0.12 160);
   --chart-3: oklch(0.6 0.1 50);
   --chart-4: oklch(0.45 0.08 200);
@@ -145,7 +156,7 @@
 
   --sidebar: oklch(0.95 0.01 80);
   --sidebar-foreground: oklch(0.2 0.02 250);
-  --sidebar-primary: oklch(0.65 0.16 75);
+  --sidebar-primary: oklch(0.54 0.16 75);
   --sidebar-primary-foreground: oklch(0.99 0.005 80);
   --sidebar-accent: oklch(0.92 0.01 80);
   --sidebar-accent-foreground: oklch(0.2 0.02 250);

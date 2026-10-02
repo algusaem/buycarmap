@@ -74,7 +74,7 @@ export interface WallapopSearchResponse {
   meta: WallapopSearchMeta;
 }
 
-export interface WallapopFilterOption {
+interface WallapopFilterOption {
   id: string;
   title: string;
 }

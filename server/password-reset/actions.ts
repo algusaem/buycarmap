@@ -6,7 +6,7 @@ import { hashToken } from "@/lib/auth/tokens";
 import { sendEmail } from "@/lib/email/client";
 import { renderPasswordChangedEmail } from "@/lib/email/templates/auth-emails";
 import { requiredString } from "@/lib/form-data";
-import { getLocale } from "@/lib/i18n/server";
+import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { logger } from "@/lib/logger";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { asUserId } from "@/lib/ids";
@@ -139,7 +139,7 @@ export async function resetPassword(formData: FormData): Promise<PasswordResetRe
   // attempts that led here should not survive the reset.
   await resetRateLimit(loginEmailRateKey(record.user.email));
 
-  const locale = await getLocale();
+  const locale = await getCurrentLocale();
   const notice = renderPasswordChangedEmail(locale);
   await sendEmail({ to: record.user.email, ...notice });
 

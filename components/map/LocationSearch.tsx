@@ -11,7 +11,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations, useLocale } from "next-intl";
 import { useLocationSearch } from "@/lib/hooks/useLocationSearch";
 import { crossFade, dropdownReveal } from "@/lib/animations";
 import type { SelectedLocation } from "@/interfaces/location";
@@ -123,7 +123,8 @@ export function LocationSearch({
   onLocationChange,
   onDistanceChange,
 }: LocationSearchProps) {
-  const { t, locale } = useTranslation();
+  const t = useTranslations();
+  const locale = useLocale();
   const { query, setQuery, results, isSearching, clear } = useLocationSearch(locale);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -135,7 +136,7 @@ export function LocationSearch({
 
   let statusText = "";
   if (showDropdown && !listboxOpen) {
-    statusText = isSearching ? t.map.loading : t.filters.noResults;
+    statusText = isSearching ? t("map.loading") : t("filters.noResults");
   }
 
   useEffect(() => {
@@ -200,7 +201,7 @@ export function LocationSearch({
   return (
     <div className="flex flex-col gap-2">
       <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {t.filters.location}
+        {t("filters.location")}
       </span>
 
       <div className="flex flex-wrap items-start gap-3">
@@ -214,7 +215,7 @@ export function LocationSearch({
                 type="button"
                 onClick={handleClear}
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground"
-                aria-label={t.filters.clearFilters}
+                aria-label={t("filters.clearFilters")}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -238,7 +239,7 @@ export function LocationSearch({
                   }}
                   onFocus={() => setIsOpen(true)}
                   onKeyDown={handleKeyDown}
-                  placeholder={t.filters.locationPlaceholder}
+                  placeholder={t("filters.locationPlaceholder")}
                   className="flex h-10 w-full rounded-md border border-border/50 bg-card/50 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                   role="combobox"
                   aria-expanded={listboxOpen}
@@ -285,13 +286,13 @@ export function LocationSearch({
           >
             {/* No visible label sits above this one — the trigger shows the
                 distance itself — so it needs an explicit name. */}
-            <SelectTrigger aria-label={t.filters.distance}>
-              <SelectValue placeholder={t.filters.distance} />
+            <SelectTrigger aria-label={t("filters.distance")}>
+              <SelectValue placeholder={t("filters.distance")} />
             </SelectTrigger>
             <SelectContent>
               {DISTANCE_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
-                  {t.filters.distanceOptions[opt.labelKey]}
+                  {t(`filters.distanceOptions.${opt.labelKey}`)}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -112,4 +112,20 @@ describe("AlertsList", () => {
 
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  // FRONT-14 (docs/specs/core-frontend.md): populated and
+  // empty-with-a-primary-action already hold for AlertsList; loading and
+  // error are route-level (app/alerts/loading.test.tsx, app/alerts/error.test.tsx).
+  it("FRONT-14: populated shows the saved alerts", () => {
+    renderWithI18n(<AlertsList alerts={ALERTS} />);
+
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+  });
+
+  it("FRONT-14: empty shows written copy and a primary-action link", () => {
+    renderWithI18n(<AlertsList alerts={[]} />);
+
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/map");
+  });
 });

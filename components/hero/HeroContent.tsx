@@ -8,12 +8,12 @@ import * as motion from "motion/react-client";
 import { Search, MapPin, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTranslation } from "@/lib/i18n/client";
+import { useTranslations } from "next-intl";
 import { fadeInUpVariant, staggerContainer, buttonTap } from "@/lib/animations";
 
 export function HeroContent() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { t } = useTranslation();
+  const t = useTranslations();
   const router = useRouter();
   // Checked against "unauthenticated" rather than falsiness so the CTA stays
   // hidden while the session is still loading, instead of flashing in and out.
@@ -25,9 +25,9 @@ export function HeroContent() {
   };
 
   const stats = [
-    { value: "50K+", label: t.hero.stats.listings },
-    { value: "12", label: t.hero.stats.platforms },
-    { value: "100%", label: t.hero.stats.free },
+    { value: "50K+", label: t("hero.stats.listings") },
+    { value: "12", label: t("hero.stats.platforms") },
+    { value: "100%", label: t("hero.stats.free") },
   ];
 
   return (
@@ -41,9 +41,9 @@ export function HeroContent() {
         variants={fadeInUpVariant}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        {t.hero.title}
+        {t("hero.title")}
         <br />
-        <span className="text-primary">{t.hero.titleHighlight}</span>
+        <span className="text-primary">{t("hero.titleHighlight")}</span>
       </motion.h1>
 
       {/* Subheadline */}
@@ -52,7 +52,7 @@ export function HeroContent() {
         variants={fadeInUpVariant}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        {t.hero.subtitle}
+        {t("hero.subtitle")}
       </motion.p>
 
       {/* Search bar */}
@@ -73,21 +73,21 @@ export function HeroContent() {
             <Input
               type="text"
               name="q"
-              placeholder={t.hero.searchPlaceholder}
+              placeholder={t("hero.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="border-0 bg-transparent pl-10 text-base shadow-none focus-visible:ring-0"
             />
           </div>
-          <Button type="submit" size="lg" className="gap-2 px-6" aria-label={t.common.search}>
-            <span className="hidden sm:inline">{t.common.search}</span>
+          <Button type="submit" size="lg" className="gap-2 px-6" aria-label={t("common.search")}>
+            <span className="hidden sm:inline">{t("common.search")}</span>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </form>
 
         {/* Quick filters */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-sm text-muted-foreground">{t.common.popular}</span>
+          <span className="text-sm text-muted-foreground">{t("common.popular")}</span>
           {["Golf", "Seat León", "BMW Serie 3", "Audi A4"].map((term, i) => (
             <motion.button
               key={term}
@@ -114,19 +114,19 @@ export function HeroContent() {
         <Button variant="outline" size="lg" className="gap-2" asChild>
           <Link href="/map">
             <MapPin className="h-4 w-4" />
-            {t.hero.exploreMap}
+            {t("hero.exploreMap")}
           </Link>
         </Button>
         {/* Only pitch signing in to people who aren't. Showing "sign in to
             save searches" to an already-authenticated user reads as broken. */}
         {status === "unauthenticated" && (
           <>
-            <span className="text-sm text-muted-foreground">{t.common.or}</span>
+            <span className="text-sm text-muted-foreground">{t("common.or")}</span>
             <Link
               href="/login"
               className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
             >
-              {t.hero.signInToSave} →
+              {t("hero.signInToSave")} →
             </Link>
           </>
         )}
