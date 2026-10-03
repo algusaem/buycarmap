@@ -23,7 +23,7 @@ const SEARCH_ERROR = {
 type SearchErrorCode = (typeof SEARCH_ERROR)[keyof typeof SEARCH_ERROR];
 export type SearchError = AppError<SearchErrorCode>;
 
-const SEARCH_RATE_LIMIT = { limit: 120, windowMs: 60_000 };
+const SEARCH_RATE_LIMIT = { name: "search", limit: 120, windowMs: 60_000 };
 
 /** A merged model option, the shape `listCarModels` hands back to the client. */
 export interface CarModel {

@@ -19,7 +19,7 @@ import {
 // used to live here (`*/api/wallapop/search` and its siblings) are gone too —
 // nothing calls those paths any more. A handful of tests still register a
 // local override for one of those paths on purpose, to prove the negative
-// (e.g. "no source API touched" in lib/email/templates/alert-emails.test.ts);
+// (e.g. "no source API touched" in emails/emails.node.test.ts);
 // that is unrelated to these shared defaults.
 export const handlers = [
   // server/search/service.ts resolves coches.net's model id, and FRONT-4's

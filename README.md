@@ -48,7 +48,11 @@ the four commands do not tell you.
   `pnpm-lock.yaml` and there is no `package-lock.json` — npm and yarn will resolve a different tree.
 - **Docker Desktop**, with **WSL 2** on Windows, running before `pnpm db:up` or `pnpm db:branch`.
   Local work and the integration tests (Testcontainers) both run against the Postgres it starts —
-  nothing here needs a Neon account or network access. Production still runs on Neon; see
+  nothing here needs a Neon account or network access. There is no local Redis: without
+  `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`, rate limiting disables itself (one warning,
+  every request allowed) rather than reaching a Redis whose Lua scripts a local Redis would reject
+  anyway (`@upstash/ratelimit` relies on an Upstash-only extension). Production and preview still
+  run on Neon and Upstash; see
   [Environments and operations](docs/ARCHITECTURE.md#environments-and-operations).
 - **gitleaks** on your PATH — `winget install Gitleaks.Gitleaks` on Windows, `brew install gitleaks`
   on macOS. The pre-commit hook runs it.
@@ -150,6 +154,23 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm db:branch:rm` | Delete it |
 | `pnpm db:seed` | Fill an empty local database with development data |
 | `pnpm gen feature <name>` | Scaffold `server/<name>/{queries,actions,service,schema}.ts` and its spec (plop) |
+| `pnpm qstash:schedule` | Create or update the QStash schedule that drains alerts (production setup, below; run twice, it leaves exactly one) |
+
+### Production setup (Upstash, QStash)
+
+One-time, after the five Upstash/QStash variables below are set in Vercel and the app is deployed:
+
+1. Create an Upstash Redis database in the **EU (Frankfurt)** region (console.upstash.com → Redis),
+   and a QStash instance (console.upstash.com → QStash).
+2. Set `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `QSTASH_TOKEN`,
+   `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY` in Vercel (Production and Preview) —
+   see [`.env.example`](.env.example) for where each comes from.
+3. Run `pnpm qstash:schedule` with `QSTASH_TOKEN` and `APP_URL` pointing at the deployment. It
+   creates the five-minute schedule that drains `/api/alerts/run`; run it again after changing the
+   cadence or retries and it replaces the old schedule rather than adding a second one.
+
+Full reasoning: [docs/decisions/0017-upstash-qstash-react-email.md](docs/decisions/0017-upstash-qstash-react-email.md).
+Runbooks: [docs/ARCHITECTURE.md › Background work (alerts)](docs/ARCHITECTURE.md#background-work-alerts).
 
 ### Git hooks
 
@@ -407,8 +428,6 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/api/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `components/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `server/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
-| `lib/email/templates/alert-emails.ts` | [docs/specs/alerts.md](docs/specs/alerts.md) |
-| `.github/workflows/alerts.yml` | [docs/decisions/0006-alert-scheduling.md](docs/decisions/0006-alert-scheduling.md) |
 | `lib/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `server/rate-limit/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `server/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
@@ -417,7 +436,6 @@ Do not point a gap at a loosely related file to make it look covered.
 | `server/password-reset/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `server/registration/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `server/two-factor/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
-| `lib/email/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `components/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `components/account/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `lib/i18n/**` | [docs/specs/cross-cutting.md](docs/specs/cross-cutting.md) |
@@ -462,6 +480,9 @@ Do not point a gap at a loosely related file to make it look covered.
 | `lib/ids.ts` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
 | `lib/db/soft-delete.ts` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
 | `server/retention/**` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
+| `lib/platform/**` | [docs/specs/core-integrations.md](docs/specs/core-integrations.md) |
+| `emails/**` | [docs/specs/core-integrations.md](docs/specs/core-integrations.md) |
+| `scripts/qstash-schedule.mjs` | [docs/specs/core-integrations.md](docs/specs/core-integrations.md) |
 | `server/db-conventions.integration.test.ts` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
 | `app/register/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `app/account/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |

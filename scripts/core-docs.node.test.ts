@@ -362,7 +362,7 @@ describe("docs tree and spec format", () => {
       "Wallapop",
       "coches.net",
       "Milanuncios",
-      "GitHub Actions",
+      "Upstash",
     ];
 
     const source = readIfExists("docs/privacy/processors.md");

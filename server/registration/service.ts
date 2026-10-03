@@ -1,11 +1,17 @@
+import { createElement } from "react";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { REGISTRATION_TTL_MS, generateToken, hashToken, tokenExpiry } from "@/lib/auth/tokens";
-import { sendEmail } from "@/lib/email/client";
+import { sendEmail } from "@/lib/platform/email";
+import { renderEmail } from "@/emails/render";
 import {
-  renderExistingAccountEmail,
-  renderVerifyRegistrationEmail,
-} from "@/lib/email/templates/auth-emails";
+  ExistingAccountEmail,
+  subject as existingAccountSubject,
+} from "@/emails/ExistingAccountEmail";
+import {
+  VerifyRegistrationEmail,
+  subject as verifyRegistrationSubject,
+} from "@/emails/VerifyRegistrationEmail";
 import { appUrl } from "@/lib/app-config";
 import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { logger } from "@/lib/logger";
@@ -37,19 +43,21 @@ export async function deletePendingRegistrations(email: string): Promise<void> {
 // Tells the owner of the address that someone tried to sign up with it.
 export async function notifyExistingAccount(email: string): Promise<void> {
   const locale = await getCurrentLocale();
-  const { subject, html, text } = renderExistingAccountEmail(locale, `${appUrl}/login`);
-  await sendEmail({ to: email, subject, html, text });
+  const props = { locale, loginUrl: `${appUrl}/login` };
+  const { html, text } = await renderEmail(createElement(ExistingAccountEmail, props));
+  await sendEmail({ to: email, subject: existingAccountSubject(locale, props), html, text });
 }
 
 // Emails the link that confirms a pending signup.
 async function sendVerificationEmail(email: string, token: string): Promise<void> {
   const locale = await getCurrentLocale();
-  const { subject, html, text } = renderVerifyRegistrationEmail(
+  const props = {
     locale,
-    `${appUrl}/verify-email?token=${encodeURIComponent(token)}`,
-  );
+    verifyUrl: `${appUrl}/verify-email?token=${encodeURIComponent(token)}`,
+  };
+  const { html, text } = await renderEmail(createElement(VerifyRegistrationEmail, props));
 
-  await sendEmail({ to: email, subject, html, text });
+  await sendEmail({ to: email, subject: verifyRegistrationSubject(locale, props), html, text });
 }
 
 // Stores the signup and emails a confirmation link. Nothing is written to

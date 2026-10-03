@@ -34,10 +34,19 @@ export const env = createEnv({
     // refusing to boot.
     TWO_FACTOR_ENCRYPTION_KEY: z.string().optional(),
 
-    // Shared secret the alert cron authenticates with. Optional, like the
-    // rest: without it the run endpoint refuses every request, so alerts
-    // simply never fire rather than the app refusing to boot.
-    ALERTS_CRON_SECRET: z.string().optional(),
+    // Upstash Redis (docs/decisions/0017-upstash-qstash-react-email.md):
+    // rate limiting (lib/platform/rate-limit.ts). Optional, like email and
+    // OAuth: without them `consume`/`peek` fail open rather than the app
+    // refusing to boot.
+    UPSTASH_REDIS_REST_URL: z.string().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+
+    // QStash (lib/platform/qstash.ts): signs the alert runner's schedule.
+    // Optional: without them /api/alerts/run refuses every request, so
+    // alerts simply never fire rather than the app refusing to boot.
+    QSTASH_TOKEN: z.string().optional(),
+    QSTASH_CURRENT_SIGNING_KEY: z.string().optional(),
+    QSTASH_NEXT_SIGNING_KEY: z.string().optional(),
 
     // OAuth. Each provider is enabled only when both halves are present.
     GOOGLE_CLIENT_ID: z.string().optional(),
@@ -93,6 +102,29 @@ export const env = createEnv({
     typeof window === "undefined" || (typeof process !== "undefined" && !!process.env.VITEST),
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
+  // INT-5 (docs/specs/core-integrations.md): a production or preview build
+  // without Upstash configured must fail at boot, the same way a missing
+  // DATABASE_URL does — rather than silently shipping with rate limiting
+  // disabled (lib/platform/rate-limit.ts's fallback for local development,
+  // where there is no Upstash-compatible Redis at all any more). Checked
+  // through `createFinalSchema` because it needs both UPSTASH_* fields and
+  // VERCEL_ENV together, which a per-field schema in `server` above cannot
+  // express.
+  createFinalSchema: (shape, isServer) =>
+    z.object(shape).superRefine((value, ctx) => {
+      if (!isServer) return;
+      if (value.VERCEL_ENV !== "production" && value.VERCEL_ENV !== "preview") return;
+
+      for (const name of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"] as const) {
+        if (!value[name]) {
+          ctx.addIssue({
+            code: "custom",
+            path: [name],
+            message: `${name} is required in production and preview (rate limiting needs Upstash).`,
+          });
+        }
+      }
+    }),
   onValidationError: (issues) => {
     const details = issues
       .map((issue) => `  - ${(issue.path ?? []).join(".")}: ${issue.message}`)
@@ -111,4 +143,17 @@ export const env = createEnv({
  */
 export function isDevelopmentRuntime(): boolean {
   return process.env.NODE_ENV === "development";
+}
+
+/**
+ * A live read of one `process.env` variable, for the same reason
+ * `isDevelopmentRuntime()` above reads `NODE_ENV` live rather than through
+ * `env.*`: `lib/platform/rate-limit.ts`'s `redisKey` needs `VERCEL_ENV` to
+ * change between calls (a test `vi.stubEnv`s it per case), and
+ * `lib/platform/email.ts`'s `sendEmail` needs the same for
+ * `RESEND_API_KEY`/`EMAIL_FROM`. Routed through lib/env.ts so neither module
+ * reads `process.env` directly (PLAT-4, docs/specs/core-platform.md).
+ */
+export function liveEnv(name: string): string | undefined {
+  return process.env[name];
 }

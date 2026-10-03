@@ -199,14 +199,14 @@ Not documented here: no distinct navigation visual spec was found beyond the sha
 
 ## Email
 
-Transactional emails (`lib/email/templates/`) render outside the app's own CSS and theme entirely, so they do not — and cannot — follow the tokens above.
+Transactional emails (`emails/*.tsx`, built with **react-email** — `@react-email/components`, rendered to HTML and plain text with `@react-email/render`) render outside the app's own CSS and theme entirely, so they do not — and cannot — follow the tokens above.
 
 - **Font stack:** `-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif`, not Plus Jakarta Sans / JetBrains Mono. Mail clients cannot load a web font, so the templates fall back to each platform's own system sans, with Helvetica/Arial as the final fallback.
-- **Colors:** `#F5F5F4` (body background) and `#FFFFFF` (card background), not `--background` / `--card`. Mail clients strip `<style>` blocks and ignore CSS custom properties, so `lib/email/templates/layout.ts` hardcodes hex equivalents and always renders light, regardless of the app's dark-first theme — most clients do not honour `prefers-color-scheme` reliably. `PRIMARY` (`#E8A849`) and `INK` (`#1C2128`) in that file are the dark-theme amber and ink hex values restated literally for the same reason.
+- **Colors:** `#F5F5F4` (body background) and `#FFFFFF` (card background), not `--background` / `--card`. Mail clients strip `<style>` blocks and ignore CSS custom properties, so `emails/components.tsx`'s shared `EmailLayout` hardcodes hex equivalents as inline styles on each react-email component and always renders light, regardless of the app's dark-first theme — most clients do not honour `prefers-color-scheme` reliably. `PRIMARY` (`#E8A849`) and `INK` (`#1C2128`) in that file are the dark-theme amber and ink hex values restated literally for the same reason.
 - **Radius:** the email card uses a hardcoded `border-radius: 12px`, between the app's `xl` (14px) and `lg` (10px) tokens rather than equal to either — chosen directly in the hex-only email context, not derived from `--radius`.
 
 ### Named Rules (optional)
-**The Email-Is-Its-Own-World Rule.** Nothing under `lib/email/templates/` references an app token or Tailwind class. Every value there is a literal, chosen to read correctly in a mail client that has none of the app's CSS.
+**The Email-Is-Its-Own-World Rule.** Nothing under `emails/` references an app token or Tailwind class. Every value there is a literal, chosen to read correctly in a mail client that has none of the app's CSS.
 
 ## Do's and Don'ts
 

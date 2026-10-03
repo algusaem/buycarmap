@@ -192,12 +192,13 @@ transaction. Missing, expired and already-used tokens return one identical
 error.
 
 #### Email (Iteration A)
-`lib/email/client.ts` wraps Resend's REST API with plain `fetch` — no SDK, so
-MSW intercepts it like every other outbound call. `sendEmail` never throws:
-letting a provider error surface would make "did the send succeed?" an
-enumeration oracle. Unconfigured, it no-ops with a warning. Templates
-(`lib/email/templates/`) are bilingual plain-string builders with inline styles,
-since mail clients strip `<style>` and ignore CSS variables.
+`lib/platform/email.ts` wraps the Resend SDK (originally a plain `fetch` call
+to Resend's REST API with no SDK — superseded in phase 10, see
+[`0017-upstash-qstash-react-email.md`](../decisions/0017-upstash-qstash-react-email.md)).
+`sendEmail` never throws: letting a provider error surface would make "did
+the send succeed?" an enumeration oracle. Unconfigured, it no-ops with a
+warning. Templates (`emails/`) are bilingual react-email components with
+inline styles, since mail clients strip `<style>` and ignore CSS variables.
 
 #### Account management
 `/account` — profile, email (verification badge, re-send link, and address

@@ -86,6 +86,9 @@ export default defineConfig({
             "proxy.node.test.ts",
             // FRONT-9: next-intl's getRequestConfig locale resolution.
             "i18n/**/*.node.test.ts",
+            // INT-13/INT-14 (docs/specs/core-integrations.md): react-email
+            // templates render server-side, same reasoning as i18n/ above.
+            "emails/**/*.node.test.ts",
             "test/contract/**/*.test.ts",
             // Dev tooling that rewrites .env files. Not app code, but a bug
             // here clobbers real secrets, so it is covered.

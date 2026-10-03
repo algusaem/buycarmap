@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+import { after } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { verifyPassword, DUMMY_PASSWORD_HASH } from "@/lib/auth/hash";
 import {
@@ -168,10 +170,12 @@ export async function pruneExpiredAuthRows(): Promise<void> {
 }
 
 /**
- * Prunes on roughly `PRUNE_PROBABILITY` of calls.
- *
- * Split from the function above so tests can exercise the deletion logic
- * without depending on a coin flip.
+ * The actual housekeeping, run from inside `after()` below so it never
+ * delays the response that happened to trigger it (INT-10,
+ * docs/specs/core-integrations.md). Wrapped in its own try/catch: a failure
+ * here must never reach the caller — there is no request left to fail by
+ * the time this runs — and is reported to Sentry rather than only logged,
+ * since nothing else will ever retry it.
  *
  * DATA-12 (docs/specs/core-data-model.md): also runs the soft-delete purge
  * (`server/retention/service.ts`), on the same opportunistic schedule rather
@@ -179,15 +183,32 @@ export async function pruneExpiredAuthRows(): Promise<void> {
  * which `.dependency-cruiser.cjs`'s `cross-feature-only-service-or-schema`
  * rule allows.
  */
+async function runDeferredHousekeeping(): Promise<void> {
+  try {
+    await pruneExpiredAuthRows();
+    await purgeSoftDeletedRows(new Date());
+  } catch (error) {
+    logger.error({ err: error }, "Failed post-response auth housekeeping");
+    Sentry.captureException(error);
+  }
+}
+
+/**
+ * Prunes on roughly `PRUNE_PROBABILITY` of calls.
+ *
+ * Split from `runDeferredHousekeeping` so tests can exercise the deletion
+ * logic without depending on a coin flip.
+ */
 export async function maybePruneExpiredAuthRows(): Promise<void> {
   if (Math.random() >= PRUNE_PROBABILITY) return;
 
-  await pruneExpiredAuthRows();
-
   try {
-    await purgeSoftDeletedRows(new Date());
-  } catch (error) {
-    // Housekeeping only — it must never affect the request that triggered it.
-    logger.error({ err: error }, "Failed to purge soft-deleted rows");
+    after(runDeferredHousekeeping);
+  } catch {
+    // `after()` throws when called outside a request scope (INT-10 is a
+    // response-deferral mechanism — it has nothing to defer to when there is
+    // no request in flight, e.g. a script or a test calling this directly).
+    // Fall back to running the housekeeping inline rather than losing it.
+    await runDeferredHousekeeping();
   }
 }

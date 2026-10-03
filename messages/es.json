@@ -482,5 +482,64 @@
   "errors": {
     "pageLoadFailed": "No se pudo cargar esta página. Inténtalo de nuevo.",
     "retry": "Reintentar"
+  },
+  "transactionalEmail": {
+    "passwordReset": {
+      "subject": "Restablece tu contraseña de BuyCarMap",
+      "heading": "Restablece tu contraseña",
+      "intro": "Hemos recibido una solicitud para establecer una nueva contraseña en tu cuenta de BuyCarMap. Pulsa el botón para elegir una.",
+      "button": "Elegir una nueva contraseña",
+      "expiry": "Este enlace caduca en una hora y solo puede usarse una vez.",
+      "ignore": "Si no has sido tú, puedes ignorar este correo: tu contraseña no cambiará.",
+      "fallback": "Si el botón no funciona, pega este enlace en tu navegador:"
+    },
+    "passwordChanged": {
+      "subject": "Se ha cambiado tu contraseña de BuyCarMap",
+      "heading": "Tu contraseña ha cambiado",
+      "intro": "La contraseña de tu cuenta de BuyCarMap acaba de cambiar. Se ha cerrado la sesión en el resto de dispositivos.",
+      "action": "Si no has sido tú, restablece tu contraseña de inmediato y contacta con nosotros."
+    },
+    "existingAccount": {
+      "subject": "Alguien ha intentado registrarse con tu correo",
+      "heading": "Ya tienes una cuenta",
+      "intro": "Alguien acaba de intentar crear una cuenta de BuyCarMap con esta dirección de correo. Ya existe una cuenta, así que no se ha creado nada.",
+      "button": "Iniciar sesión",
+      "ignore": "Si has sido tú y has olvidado tu contraseña, usa el enlace de recuperación en la página de inicio de sesión.",
+      "fallback": "Si el botón no funciona, pega este enlace en tu navegador:"
+    },
+    "verifyRegistration": {
+      "subject": "Confirma tu cuenta de BuyCarMap",
+      "heading": "Confirma tu cuenta",
+      "intro": "Alguien —esperamos que tú— se ha registrado en BuyCarMap con esta dirección de correo. Confirma abajo para terminar de crear tu cuenta.",
+      "button": "Confirmar mi cuenta",
+      "expiry": "Este enlace caduca en 24 horas y solo puede usarse una vez.",
+      "ignore": "Si no has sido tú, puedes ignorar este correo. No se ha creado ninguna cuenta.",
+      "fallback": "Si el botón no funciona, pega este enlace en tu navegador:"
+    },
+    "verifyEmailAddress": {
+      "subject": "Verifica tu correo de BuyCarMap",
+      "heading": "Verifica tu dirección de correo",
+      "intro": "Confirma esta dirección para que podamos contactarte sobre tu cuenta, por ejemplo si alguna vez necesitas restablecer tu contraseña.",
+      "button": "Verificar mi correo",
+      "expiry": "Este enlace caduca en 24 horas y solo puede usarse una vez.",
+      "ignore": "Si no has solicitado esto, puedes ignorar este correo. No cambiará nada.",
+      "fallback": "Si el botón no funciona, pega este enlace en tu navegador:"
+    },
+    "emailChange": {
+      "subject": "Confirma tu nueva dirección de BuyCarMap",
+      "heading": "Confirma tu nueva dirección",
+      "intro": "Se ha solicitado mover una cuenta de BuyCarMap a esta dirección de correo. Confirma abajo para completar el cambio.",
+      "button": "Confirmar esta dirección",
+      "expiry": "Este enlace caduca en 24 horas y solo puede usarse una vez.",
+      "ignore": "Si no esperabas esto, ignora este correo. No cambiará nada ni se moverá ninguna cuenta a esta dirección.",
+      "fallback": "Si el botón no funciona, pega este enlace en tu navegador:"
+    },
+    "emailChangedNotice": {
+      "subject": "Se ha cambiado el correo de tu cuenta de BuyCarMap",
+      "heading": "Tu dirección de correo ha cambiado",
+      "intro": "La dirección de correo de tu cuenta de BuyCarMap se ha cambiado por otra. Recibes este aviso en tu dirección anterior para que sepas que ha ocurrido.",
+      "action": "Si no has sido tú, es posible que alguien tenga acceso a tu cuenta. Restablece tu contraseña de inmediato y contacta con nosotros."
+    },
+    "footer": "BuyCarMap — coches de segunda mano en un mapa"
   }
 }

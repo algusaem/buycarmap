@@ -4,7 +4,7 @@ import { createUser } from "@/test/factories/user";
 import { makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
 
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
-vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
+vi.mock("@/lib/platform/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
 // The seed poll (ALERT-2) is the only network this module does. Stubbed at the
@@ -13,7 +13,7 @@ vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
 vi.mock("@/server/alerts/search", () => ({ searchAllSources: vi.fn() }));
 
 import { getCurrentUser } from "@/lib/auth/session";
-import { sendEmail } from "@/lib/email/client";
+import { sendEmail } from "@/lib/platform/email";
 import { getLocale } from "next-intl/server";
 import { searchAllSources } from "@/server/alerts/search";
 import { purgeSoftDeletedRows } from "@/server/retention/service";

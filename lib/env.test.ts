@@ -45,4 +45,21 @@ describe("lib/env.ts validation", () => {
 
     await expect(loadEnvModule()).resolves.toBeDefined();
   });
+
+  it("INT-5: production and preview builds require the Upstash variables", async () => {
+    vi.stubEnv("DATABASE_URL", "postgresql://user:pass@localhost:5432/buycarmap_test");
+    vi.stubEnv("NEXTAUTH_SECRET", "test-secret-at-least-32-characters-long");
+    vi.stubEnv("SKIP_ENV_VALIDATION", undefined);
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", undefined);
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", undefined);
+
+    vi.stubEnv("VERCEL_ENV", "production");
+    await expect(loadEnvModule()).rejects.toThrow(/UPSTASH_REDIS_REST_URL/);
+
+    vi.stubEnv("VERCEL_ENV", "preview");
+    await expect(loadEnvModule()).rejects.toThrow(/UPSTASH_REDIS_REST_TOKEN/);
+
+    vi.stubEnv("VERCEL_ENV", undefined);
+    await expect(loadEnvModule()).resolves.toBeDefined();
+  });
 });

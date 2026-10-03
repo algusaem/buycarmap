@@ -6,7 +6,7 @@ import { createAlertCriteria } from "@/test/factories/alert-criteria";
 import { createUser } from "@/test/factories/user";
 import { makeCriteria } from "@/test/fixtures/alerts";
 
-vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
+vi.mock("@/lib/platform/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
 // The seed poll (ALERT-2) is the only network createAlertForUser does. Stubbed

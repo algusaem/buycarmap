@@ -14,7 +14,7 @@ import { makeCriteria } from "@/test/fixtures/alerts";
 
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/server/alerts/search", () => ({ searchAllSources: vi.fn() }));
-vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
+vi.mock("@/lib/platform/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
 vi.mock("@/lib/auth/hash", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/auth/hash")>()),
@@ -26,7 +26,6 @@ import { searchAllSources } from "@/server/alerts/search";
 import { saveFavorite } from "@/server/favorites/actions";
 import { createAlert } from "@/server/alerts/actions";
 import { deleteAccount } from "@/server/account/actions";
-import { consumeRateLimit, RATE_LIMITS } from "@/server/rate-limit/service";
 import { createPasswordResetToken } from "@/test/factories/auth-tokens";
 import { pruneExpiredAuthRows } from "@/server/auth/service";
 
@@ -92,10 +91,19 @@ describe("DATA-9: createdById/updatedById follow the actor, and are null for sys
     expect(row?.createdById).toBe(user.id);
   });
 
-  it("DATA-9: a rate-limit consume leaves createdById null (a system write)", async () => {
-    await consumeRateLimit("data-9:system-write", RATE_LIMITS.loginPerIp);
+  it("DATA-9: a source-health upsert leaves createdById null (a system write)", async () => {
+    // Rate limiting moved off Postgres in phase 10 (docs/specs/core-integrations.md,
+    // INT-1) — `RateLimit` no longer demonstrates this. `SourceHealth` is
+    // written only by the alert runner, with no signed-in actor behind it.
+    await prisma.sourceHealth.upsert({
+      where: { source: "data-9:system-write" },
+      create: { source: "data-9:system-write" },
+      update: {},
+    });
 
-    const row = await prisma.rateLimit.findUnique({ where: { key: "data-9:system-write" } });
+    const row = await prisma.sourceHealth.findUnique({
+      where: { source: "data-9:system-write" },
+    });
     expect(row?.createdById).toBeNull();
   });
 });

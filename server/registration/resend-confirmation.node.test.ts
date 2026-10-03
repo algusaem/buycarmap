@@ -15,9 +15,9 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
     retryAfterMs: 0,
   })),
 }));
-vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
+vi.mock("@/lib/platform/email", () => ({ sendEmail: vi.fn(async () => true) }));
 
-import { sendEmail } from "@/lib/email/client";
+import { sendEmail } from "@/lib/platform/email";
 import { consumeRateLimit } from "@/server/rate-limit/service";
 import { resendConfirmation } from "./actions";
 

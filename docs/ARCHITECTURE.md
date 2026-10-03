@@ -452,9 +452,11 @@ recovery codes a lost phone is a lost account.
 
 #### RateLimit
 
-Fixed-window counters, keyed by `key`. In Postgres rather than memory because
-Vercel runs each request on a possibly-cold instance, so an in-process `Map`
-would reset constantly and limit nothing.
+**Unused since phase 10** ([ADR 0017](decisions/0017-upstash-qstash-react-email.md);
+[`docs/specs/core-integrations.md`](specs/core-integrations.md) INT-6). Counters now
+live in Upstash Redis — see [Rate limiting](#rate-limiting) below. The table and
+model stay until a later migration drops them (expand/contract, `RULES.md` §11) —
+tracked in [issue #59](https://github.com/algusaem/buycarmap/issues/59).
 
 #### Adapter-required models
 
@@ -578,9 +580,9 @@ flowchart TB
 | Hashing | `lib/auth/hash.ts` — bcryptjs, 12 rounds |
 | Tokens | `lib/auth/tokens.ts` — SHA-256, single-use |
 | TOTP | `lib/auth/two-factor/` — built on `node:crypto`, no dependency |
-| Rate limiting | `server/rate-limit/service.ts` — Postgres-backed |
+| Rate limiting | `server/rate-limit/service.ts` over `lib/platform/rate-limit.ts` — Upstash Redis |
 | Route redirects | `proxy.ts` |
-| Email | `lib/email/` — Resend over `fetch` |
+| Email | `emails/` (react-email) sent by `lib/platform/email.ts` — the Resend SDK |
 
 ### The threat model in a paragraph
 
@@ -803,7 +805,7 @@ Key parity is enforced by `messages/messages.test.ts` (FRONT-8), not the
 compiler: a key present in one locale and absent from the other fails that
 test by name.
 
-**Alert emails** (`lib/email/templates/alert-emails.ts`) render outside any
+**Alert emails** (`emails/AlertDigestEmail.tsx`) render outside any
 request, so there is no `getTranslations()` to call — they use next-intl's
 `createTranslator({ locale, messages })` directly, with the recipient's saved
 locale and the same JSON message files.
@@ -1289,7 +1291,9 @@ Optional — each disables a feature rather than blocking startup:
 | `TWO_FACTOR_ENCRYPTION_KEY` | Two-factor is hidden and enrolment refused. **Changing it makes every existing enrolment unreadable** |
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google button does not render. Both halves of the pair are required |
 | `GITHUB_ID` + `GITHUB_SECRET` | GitHub button does not render. Both halves of the pair are required |
-| `ALERTS_CRON_SECRET` | The alert run endpoint refuses every request, so alerts never fire. Must match the GitHub repository secret of the same name |
+| `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | `lib/platform/rate-limit.ts` disables rate limiting — every request is allowed and one warning is logged per process. Required when `VERCEL_ENV` is `production` or `preview`; the build fails without them there |
+| `QSTASH_TOKEN` | `scripts/qstash-schedule.mjs` refuses to run |
+| `QSTASH_CURRENT_SIGNING_KEY` + `QSTASH_NEXT_SIGNING_KEY` | The alert run endpoint refuses every request (no valid `Upstash-Signature` can ever verify), so alerts never fire |
 | `DIRECT_URL` | Prisma's migration commands (`prisma.config.ts`) use `DATABASE_URL` instead — fine locally, but that must be an unpooled connection on Vercel, where `DATABASE_URL` is the pooled (`-pooler`) host |
 | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | Sentry stays uninitialised; nothing is sent |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry build-time source-map upload is skipped |
@@ -1320,9 +1324,6 @@ Neon project directly from a runbook — everything else in this section runs lo
 | `e2e` | pull requests only | `prisma generate` → Playwright, chromium, no retries; uploads the report as an artifact |
 | `contract-live` | nightly cron (04:00 UTC) | `test:contract:live` against the real upstream APIs |
 
-[`.github/workflows/alerts.yml`](../.github/workflows/alerts.yml) is not a test
-job — it is production scheduling. See [Alerts](#alerts) below.
-
 [`.github/workflows/pr-title.yml`](../.github/workflows/pr-title.yml) checks that the pull request
 title is a Conventional Commit — it becomes the squash commit on master.
 [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) opens and updates
@@ -1346,18 +1347,68 @@ The required checks are `Check`, `Secrets (gitleaks)`, `End-to-end (Playwright)`
 Commits title`. `.github/CODEOWNERS` requests the owner's review on every pull request, and
 `.github/pull_request_template.md` is the description `/check-pr` fills in.
 
-### Alerts
+### Rate limiting
 
-Saved searches are polled by [`.github/workflows/alerts.yml`](../.github/workflows/alerts.yml)
-on `*/5 * * * *`, a matrix of jobs each POSTing to `/api/alerts/run` with
-`ALERTS_CRON_SECRET`. Why a GitHub cron rather than Vercel Cron, pg_cron or an
-in-process timer: [`decisions/0006-alert-scheduling.md`](decisions/0006-alert-scheduling.md).
+**Upstash Redis**, through `lib/platform/rate-limit.ts` — the only module that
+imports `@upstash/ratelimit` or `@upstash/redis`
+([ADR 0017](decisions/0017-upstash-qstash-react-email.md); supersedes
+[ADR 0005](decisions/0005-postgres-rate-limiting.md)'s Postgres table, now
+unused — see [RateLimit](#ratelimit) above). `server/rate-limit/service.ts`
+keeps its own public API (`consumeRateLimit`, `isRateLimited`,
+`resetRateLimit`, `RATE_LIMITS`) and calls the adapter instead of Prisma.
+
+A sliding window per rule, built with `Ratelimit.slidingWindow(limit,
+"<windowMs> ms")`. Every key carries an environment prefix —
+`production:`/`preview:`/`development:`, from `VERCEL_ENV` — so a preview
+deployment and an e2e run never consume production's budget. An
+`:email:<value>` segment is replaced with the sha256 hex of the lowercased
+address before it ever reaches Redis (`docs/privacy/processors.md`); an IP
+segment is sent as-is, because a per-IP limit needs the IP. On any Redis
+error, `consume`/`peek` fail open — the same behaviour the Postgres version
+had — and log a `warn` naming the rule, never the key.
+
+**No local Redis.** `@upstash/ratelimit`'s Lua scripts carry a Redis flag
+that is an Upstash-only extension, which a real local Redis rejects outright
+([ADR 0017](decisions/0017-upstash-qstash-react-email.md)). Without
+`UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`, `consume`/`peek` allow
+every request and `reset` no-ops, logging one `warn` per process rather than
+reaching a Redis that was never going to run the real algorithm anyway —
+local development, e2e and the integration tests all run with neither
+variable set. `lib/env.ts` requires both when `VERCEL_ENV` is `production`
+or `preview`, so a deploy without them fails the build instead of shipping
+with rate limiting silently off.
+
+`consume`/`peek`/`reset` take an optional `redis`/`limiterFactory` pair (the
+real `Ratelimit` by default), so `server/rate-limit/service.integration.test.ts`
+can inject an in-memory sliding-window fake (`test/fakes/ratelimit.ts`) and
+exercise the real limiting math — remaining budget, retry wait, reset —
+without reaching any Redis at all.
+
+### Background work (alerts)
+
+Saved searches are drained by a **QStash schedule** calling `POST
+/api/alerts/run` every five minutes (`*/5 * * * *`, 3 retries) — set up once
+with `pnpm qstash:schedule` (`scripts/qstash-schedule.mjs`) after the owner's
+QStash variables are in Vercel. Why QStash rather than the GitHub Actions
+cron this replaced: [`decisions/0006-alert-scheduling.md`](decisions/0006-alert-scheduling.md)
+(superseded by [ADR 0017](decisions/0017-upstash-qstash-react-email.md)).
 Behaviour: [`specs/alerts.md`](specs/alerts.md).
 
-**Two repository secrets are required**, and neither is the Vercel env var:
-`ALERTS_CRON_SECRET` (matching the deployment's) and `APP_URL`. With either
-missing the workflow exits 0 with a message rather than failing — a red cron
-every five minutes would train everyone to ignore it.
+**The route trusts only QStash's own signature**, verified by
+`lib/platform/qstash.ts`'s `verifyQstashSignature` (`@upstash/qstash`'s
+`Receiver`) against the `Upstash-Signature` header and
+`QSTASH_CURRENT_SIGNING_KEY`/`QSTASH_NEXT_SIGNING_KEY` — accepting both lets a
+key rotation in the Upstash console skip a deploy. An unsigned or wrongly
+signed request gets `401` and nothing runs.
+
+**Post-response housekeeping — the opportunistic auth-token prune and the
+DATA-12 soft-delete purge — runs inside `after()`** from `next/server`
+(`server/auth/service.ts`'s `maybePruneExpiredAuthRows`), so it never delays
+the response that happened to trigger it. A failure inside that callback is
+logged and reported to Sentry, never thrown. Calling `after()` outside a
+request scope (a script, or a test calling the function directly) throws, so
+`maybePruneExpiredAuthRows` falls back to running the housekeeping inline in
+that case rather than losing it.
 
 **The run's response is the instrument.** Read it before anything else:
 
@@ -1369,29 +1420,34 @@ every five minutes would train everyone to ignore it.
 | `skippedNoEmail` | Matches found but not sent, because the mailer is unconfigured |
 | `failures` | Per-criteria poll errors, with the upstream message |
 
-**Scheduled runs drift.** GitHub delays schedules under load, sometimes by
-several minutes, so the cadence is approximate. Judge health by
+**Scheduled runs can still drift.** QStash retries and delivers on schedule far
+more reliably than GitHub's best-effort cron did, but judge health by
 `oldestPendingAgeMs`, not by wall-clock spacing between runs.
 
-**GitHub disables scheduled workflows after 60 days of repository inactivity.**
-If alerts stop entirely and the endpoint answers fine by hand, check that first.
+**The first deploy, before the schedule exists.** Alerts pause until the owner
+runs `pnpm qstash:schedule` against the deployment. The queue keeps its jobs
+and drains on the first run once the schedule is created.
 
 #### Alerts stopped arriving
 
-1. `curl -X POST -H "Authorization: Bearer $ALERTS_CRON_SECRET" $APP_URL/api/alerts/run`.
-   A 401 means the secret differs between Vercel and GitHub.
-2. Check `skippedNoEmail`. Non-zero means matches are being found and the mailer
-   is unconfigured — see the Resend runbook below.
-3. Check `unhealthySources`. A source listed there has returned nothing for
+1. Check the schedule exists and is active in the Upstash console (QStash →
+   Schedules), or run `pnpm qstash:schedule` again — run twice, it leaves
+   exactly one schedule rather than creating a duplicate.
+2. `curl -i -X POST $APP_URL/api/alerts/run` by hand. A `401` with no
+   `Upstash-Signature` is expected (this does not forge QStash's signature) —
+   it only confirms the route itself answers.
+3. Check `skippedNoEmail`. Non-zero means matches are being found and the mailer
+   is unconfigured — see the Email section below.
+4. Check `unhealthySources`. A source listed there has returned nothing for
    three runs, which for Milanuncios usually means the parser broke rather than
    that there is nothing new.
-4. Check the workflow's run history for the 60-day disable.
 
 #### Alerts are late
 
-`oldestPendingAgeMs` climbing while `intervalMs` stays at 300000 means the drain
-is the bottleneck, not the cadence: raise the matrix size in `alerts.yml`. Each
-leg drains its own slice, so more legs is the lever.
+`oldestPendingAgeMs` climbing while `intervalMs` stays at 300000 means the
+drain is the bottleneck, not the cadence: raise the parallelism of whatever
+calls `/api/alerts/run` (today, a single QStash schedule — splitting the work
+further is out of scope until it is actually needed).
 
 `intervalMs` above 300000 means the criteria count has outgrown the 60 req/min
 ceiling and everything is polled less often. That ceiling was settled at 60/min
@@ -1407,6 +1463,43 @@ The queue is claimed with `FOR UPDATE SKIP LOCKED` and `AlertMatch` has a unique
 index on `(alertId, listingId)`, so this should be impossible. If it happens,
 the second guard failed too — check the migration actually created that index
 before looking at application code.
+
+### Email
+
+**The Resend SDK**, through `lib/platform/email.ts` — the only module that
+imports `resend` ([ADR 0017](decisions/0017-upstash-qstash-react-email.md);
+supersedes the hand-written `fetch` client this replaced). `sendEmail` no-ops
+and logs once, as before, when `RESEND_API_KEY` or `EMAIL_FROM` is missing; a
+Resend error is logged with its name and status, never the recipient, and the
+send is reported as failed rather than thrown — callers in enumeration-
+sensitive flows (registration, password reset) must keep ignoring the result.
+
+**Every email is a react-email component** in [`emails/`](../emails), built
+from `@react-email/components` and rendered to HTML and plain text with
+`@react-email/render` (`emails/render.ts`). Copy comes from
+`messages/{en,es}.json`'s `transactionalEmail`/`alerts.email` namespaces
+through `createTranslator` — the same standalone entry point the alert
+digest always used, since no request is in flight when a cron sends mail.
+Each component's layout (`emails/components.tsx`) reproduces the amber-on-
+white card the string templates it replaced used; mail clients strip
+`<style>` blocks and ignore CSS variables, so the app's theme tokens are
+hardcoded to their hex equivalents here and every email renders light
+regardless of the app's dark-first theme.
+
+**`scripts/render-emails.ts`** renders every template, in both locales, to
+static HTML for Playwright to screenshot (`e2e/emails.spec.ts`, gated behind
+`SCREENSHOTS=1` like `e2e/screenshots.spec.ts`) — the owner reviews those
+before any email-copy or layout change ships.
+
+#### Mail never arrives
+
+1. Confirm `RESEND_API_KEY` and `EMAIL_FROM` are set — without either, the
+   mailer no-ops and logs a `warn` once per process.
+2. In production, `EMAIL_FROM` must be on a domain verified with Resend
+   (SPF/DKIM) — Resend's sandbox sender (`resend.dev`) only delivers to the
+   Resend account's own address.
+3. Check the logs for `"Resend rejected"` or `"Failed to send"` — the error's
+   name and status are logged, never the recipient.
 
 ### Runbooks
 

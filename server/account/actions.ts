@@ -3,8 +3,13 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { hashPassword, verifyPassword } from "@/lib/auth/hash";
 import { validateNewPassword } from "@/lib/auth/password-policy";
-import { sendEmail } from "@/lib/email/client";
-import { renderPasswordChangedEmail } from "@/lib/email/templates/auth-emails";
+import { createElement } from "react";
+import { sendEmail } from "@/lib/platform/email";
+import {
+  PasswordChangedEmail,
+  subject as passwordChangedSubject,
+} from "@/emails/PasswordChangedEmail";
+import { renderEmail } from "@/emails/render";
 import { optionalString, requiredString } from "@/lib/form-data";
 import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
@@ -139,7 +144,13 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
   }
 
   const locale = await getCurrentLocale();
-  await sendEmail({ to: record.email, ...renderPasswordChangedEmail(locale) });
+  const { html, text } = await renderEmail(createElement(PasswordChangedEmail, { locale }));
+  await sendEmail({
+    to: record.email,
+    subject: passwordChangedSubject(locale, { locale }),
+    html,
+    text,
+  });
 
   return { success: true };
 }
