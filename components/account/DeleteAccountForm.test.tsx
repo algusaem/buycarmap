@@ -6,13 +6,17 @@ import { renderWithI18n } from "@/test/utils/render";
 import { toast } from "sonner";
 import { DeleteAccountForm } from "./DeleteAccountForm";
 
+// BAUTH-1 (docs/specs/core-better-auth.md), harness change: deletion now
+// calls `authClient.signOut()` (Better Auth), not NextAuth's
+// `next-auth/react` `signOut`.
 const signOut = vi.fn();
-vi.mock("next-auth/react", () => ({
-  signOut: (...args: unknown[]) => signOut(...args),
+vi.mock("@/lib/auth/auth-client", () => ({
+  authClient: { signOut: (...args: unknown[]) => signOut(...args) },
 }));
 // I18nProvider calls useRouter, which needs an app-router context jsdom lacks.
+const push = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push, refresh: vi.fn() }),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const deleteAccount = vi.fn();
@@ -25,6 +29,7 @@ const deleteButton = () => screen.getByRole("button", { name: "Delete my account
 describe("DeleteAccountForm confirmation gate", () => {
   beforeEach(() => {
     signOut.mockReset();
+    push.mockReset();
     deleteAccount.mockReset();
     vi.mocked(toast.error).mockClear();
   });
@@ -69,6 +74,7 @@ describe("DeleteAccountForm confirmation gate", () => {
 describe("DeleteAccountForm submission", () => {
   beforeEach(() => {
     signOut.mockReset();
+    push.mockReset();
     deleteAccount.mockReset();
     vi.mocked(toast.error).mockClear();
   });
@@ -91,7 +97,8 @@ describe("DeleteAccountForm submission", () => {
 
     // The user row is gone; clear the cookie now rather than waiting for the
     // next revalidation to notice.
-    await waitFor(() => expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/" }));
+    await waitFor(() => expect(signOut).toHaveBeenCalled());
+    expect(push).toHaveBeenCalledWith("/");
   });
 
   it("surfaces a wrong-password rejection and stays signed in", async () => {

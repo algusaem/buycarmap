@@ -9,16 +9,16 @@ describe("resolveAppUrl", () => {
     expect(
       resolveAppUrl({
         APP_URL: "https://buycarmap.com",
-        NEXTAUTH_URL: "https://other.example",
+        BETTER_AUTH_URL: "https://other.example",
         VERCEL_URL: "deployment.vercel.app",
       }),
     ).toBe("https://buycarmap.com");
   });
 
-  it("falls back to NEXTAUTH_URL", () => {
+  it("falls back to BETTER_AUTH_URL", () => {
     expect(
       resolveAppUrl({
-        NEXTAUTH_URL: "https://buycarmap.com",
+        BETTER_AUTH_URL: "https://buycarmap.com",
         VERCEL_URL: "deployment.vercel.app",
       }),
     ).toBe("https://buycarmap.com");
@@ -52,6 +52,6 @@ describe("resolveAppUrl", () => {
 
   it("ignores empty strings rather than treating them as configured", () => {
     // An env var declared but left blank is a common deploy mistake.
-    expect(resolveAppUrl({ APP_URL: "", NEXTAUTH_URL: "" })).toBe("http://localhost:3000");
+    expect(resolveAppUrl({ APP_URL: "", BETTER_AUTH_URL: "" })).toBe("http://localhost:3000");
   });
 });

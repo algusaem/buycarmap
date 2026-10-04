@@ -9,11 +9,14 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-const signIn = vi.fn();
-const getProviders = vi.fn();
-vi.mock("next-auth/react", () => ({
-  signIn: (...args: unknown[]) => signIn(...args),
-  getProviders: () => getProviders(),
+// BAUTH-1 (docs/specs/core-better-auth.md), harness change: which providers
+// are configured is now a prop (lib/app-config.ts, computed server-side in
+// app/login/page.tsx and app/register/page.tsx), not a client fetch through
+// NextAuth's `getProviders()` — so the component renders synchronously and
+// this file drives it with `providers` directly instead of mocking a fetch.
+const signInSocial = vi.fn();
+vi.mock("@/lib/auth/auth-client", () => ({
+  authClient: { signIn: { social: (...args: unknown[]) => signInSocial(...args) } },
 }));
 
 // GoogleSignInButton reads the resolved theme to pick Google's palette; the
@@ -21,93 +24,75 @@ vi.mock("next-auth/react", () => ({
 const useTheme = vi.fn();
 vi.mock("next-themes", () => ({ useTheme: () => useTheme() }));
 
-function provider(id: string) {
-  return { id, name: id, type: "oauth" };
-}
-
 beforeEach(() => {
-  signIn.mockReset();
-  getProviders.mockReset();
+  signInSocial.mockReset();
   useTheme.mockReturnValue({ resolvedTheme: "dark" });
 });
 
 describe("OAuthButtons visibility", () => {
-  it("renders nothing at all when no provider is configured", async () => {
-    getProviders.mockResolvedValue({});
-    const { container } = renderWithI18n(<OAuthButtons />);
+  it("renders nothing at all when no provider is configured", () => {
+    const { container } = renderWithI18n(<OAuthButtons providers={[]} />);
 
-    await waitFor(() => expect(getProviders).toHaveBeenCalled());
     // Including the divider — a lone "or" above empty space looks broken.
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("shows only the providers the server actually reports", async () => {
-    getProviders.mockResolvedValue({ google: provider("google") });
-    renderWithI18n(<OAuthButtons />);
+  it("shows only the providers it is given", () => {
+    renderWithI18n(<OAuthButtons providers={["google"]} />);
 
-    expect(
-      await screen.findByRole("button", { name: /continue with google/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /continue with github/i })).not.toBeInTheDocument();
-  });
-
-  it("ignores the credentials provider, which is not an OAuth button", async () => {
-    getProviders.mockResolvedValue({
-      credentials: { id: "credentials", name: "credentials", type: "credentials" },
-    });
-    const { container } = renderWithI18n(<OAuthButtons />);
-
-    await waitFor(() => expect(getProviders).toHaveBeenCalled());
-    expect(container).toBeEmptyDOMElement();
   });
 });
 
 describe("OAuthButtons interaction", () => {
-  beforeEach(() => {
-    getProviders.mockResolvedValue({
-      google: provider("google"),
-      github: provider("github"),
+  it("starts the provider round-trip with the requested callback", async () => {
+    renderWithI18n(<OAuthButtons providers={["google"]} callbackUrl="/account" />);
+
+    await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    expect(signInSocial).toHaveBeenCalledWith({
+      provider: "google",
+      callbackURL: "/account",
+      errorCallbackURL: "/login?callbackUrl=%2Faccount",
     });
   });
 
-  it("starts the provider round-trip with the requested callback", async () => {
-    renderWithI18n(<OAuthButtons callbackUrl="/account" />);
+  it("sends GitHub to its own provider id, not Google's", async () => {
+    renderWithI18n(<OAuthButtons providers={["github"]} />);
 
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: /continue with google/i,
-      }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /continue with github/i }));
 
-    expect(signIn).toHaveBeenCalledWith("google", { callbackUrl: "/account" });
+    expect(signInSocial).toHaveBeenCalledWith({
+      provider: "github",
+      callbackURL: "/",
+      errorCallbackURL: "/login",
+    });
   });
 
-  it("sends GitHub to its own provider id, not Google's", async () => {
-    renderWithI18n(<OAuthButtons />);
+  it("sends a rejected OAuth sign-in back to /login, not wherever it started", async () => {
+    // Security review fix: without an explicit errorCallbackURL, Better Auth
+    // defaults it to the current page, which is never /login for a provider
+    // button rendered somewhere else (e.g. /register).
+    renderWithI18n(<OAuthButtons providers={["google"]} />);
 
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: /continue with github/i,
-      }),
+    await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    expect(signInSocial).toHaveBeenCalledWith(
+      expect.objectContaining({ errorCallbackURL: "/login" }),
     );
-
-    expect(signIn).toHaveBeenCalledWith("github", { callbackUrl: "/" });
   });
 
   it("locks every provider while one redirect is in flight", async () => {
     // Never resolves, mimicking the full-page redirect.
-    signIn.mockReturnValue(
+    signInSocial.mockReturnValue(
       new Promise(() => {
         /* deliberately never settles */
       }),
     );
-    renderWithI18n(<OAuthButtons />);
+    renderWithI18n(<OAuthButtons providers={["google", "github"]} />);
 
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: /continue with google/i,
-      }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
 
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /continue with github/i })).toBeDisabled(),
@@ -115,16 +100,13 @@ describe("OAuthButtons interaction", () => {
   });
 
   it("unlocks the providers when the redirect never happens", async () => {
-    // signIn resolving means the browser stayed on the page — a misconfigured
-    // provider, say. Leaving the buttons dead would strand the visitor.
-    signIn.mockResolvedValue(undefined);
-    renderWithI18n(<OAuthButtons />);
+    // signIn.social resolving means the browser stayed on the page — a
+    // misconfigured provider, say. Leaving the buttons dead would strand the
+    // visitor.
+    signInSocial.mockResolvedValue(undefined);
+    renderWithI18n(<OAuthButtons providers={["google", "github"]} />);
 
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: /continue with google/i,
-      }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
 
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /continue with github/i })).toBeEnabled(),
@@ -132,8 +114,8 @@ describe("OAuthButtons interaction", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = renderWithI18n(<OAuthButtons />);
-    await screen.findByRole("button", { name: /continue with google/i });
+    const { container } = renderWithI18n(<OAuthButtons providers={["google", "github"]} />);
+    screen.getByRole("button", { name: /continue with google/i });
 
     expect(await axe(container)).toHaveNoViolations();
   });

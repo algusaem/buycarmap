@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
-import { env, isDevelopmentRuntime } from "@/lib/env";
+import { getSessionCookie } from "@/lib/auth/auth-client";
+import { isDevelopmentRuntime } from "@/lib/env";
 
 // Next 16 renamed the `middleware` file convention to `proxy`; the exported
 // function must match the filename. Behaviour is unchanged.
@@ -12,11 +12,6 @@ const PROTECTED_PREFIXES = ["/account", "/favorites", "/alerts"];
 
 // Routes that make no sense once signed in.
 const GUEST_ONLY_PATHS = ["/login", "/register", "/forgot-password"];
-
-// lib/env.ts is Edge-safe (no dotenv, no node: imports), so the proxy reads
-// its configuration through it rather than the raw environment directly
-// (PLAT-5, docs/specs/core-platform.md).
-const secureCookie = (env.APP_URL ?? env.NEXTAUTH_URL ?? "").startsWith("https://");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -85,17 +80,15 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // This only decodes and verifies the JWT signature; it does not run the
-  // `jwt` callback, so it cannot see revocations. That is fine for a redirect —
+  // BAUTH-5 (docs/specs/core-better-auth.md): a presence check on the Better
+  // Auth session cookie only — it does not look the session up, so it cannot
+  // see a revocation (a deleted session row). That is fine for a redirect —
   // every server action independently re-checks via `getCurrentUser()`, which
-  // does honour revocation. This layer is UX, not authorization.
-  const token = await getToken({
-    req: request,
-    secret: env.NEXTAUTH_SECRET,
-    secureCookie,
-  });
+  // does call `auth.api.getSession()` and so does honour revocation. This
+  // layer is UX, not authorization.
+  const sessionCookie = getSessionCookie(request);
 
-  if (isProtected(pathname) && !token) {
+  if (isProtected(pathname) && !sessionCookie) {
     const loginUrl = new URL("/login", request.url);
     // Preserve where they were headed so sign-in can return them there.
     // Only the path is carried over, never the full URL, and the sign-in form
@@ -104,7 +97,7 @@ export async function proxy(request: NextRequest) {
     return withResponseHeaders(NextResponse.redirect(loginUrl));
   }
 
-  if (GUEST_ONLY_PATHS.includes(pathname) && token) {
+  if (GUEST_ONLY_PATHS.includes(pathname) && sessionCookie) {
     return withResponseHeaders(NextResponse.redirect(new URL("/", request.url)));
   }
 

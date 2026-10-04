@@ -1,17 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-
-// Stub SessionProvider so this test doesn't try to fetch a real session; assert
-// AuthProvider forwards children through it.
-const SessionProvider = vi.fn(({ children }: { children: React.ReactNode }) => children);
-vi.mock("next-auth/react", () => ({
-  SessionProvider: (props: { children: React.ReactNode }) => SessionProvider(props),
-}));
-
 import { AuthProvider } from "./AuthProvider";
 
+// BAUTH-1 (docs/specs/core-better-auth.md), harness change: Better Auth's
+// `authClient.useSession()` reads from its own nanostores atom and needs no
+// context provider, unlike NextAuth's `SessionProvider` this used to wrap
+// `children` in — so there is nothing left to mock or assert on beyond
+// children actually rendering.
 describe("AuthProvider", () => {
-  it("wraps its children in a SessionProvider", () => {
+  it("renders its children", () => {
     render(
       <AuthProvider>
         <span>protected child</span>
@@ -19,6 +16,5 @@ describe("AuthProvider", () => {
     );
 
     expect(screen.getByText("protected child")).toBeInTheDocument();
-    expect(SessionProvider).toHaveBeenCalledOnce();
   });
 });

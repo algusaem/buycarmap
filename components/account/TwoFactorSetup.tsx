@@ -15,7 +15,13 @@ import { confirmTwoFactorSetup } from "@/server/two-factor/actions";
 interface TwoFactorSetupProps {
   otpauthUri: string;
   secret: string;
-  onConfirmed: (recoveryCodes: string[]) => void;
+  /**
+   * Called once the code is accepted. BAUTH-11 (docs/specs/core-better-auth.md):
+   * Better Auth's `twoFactor` plugin mints the recovery codes at setup, not at
+   * confirmation, so the caller already has them — this only signals that the
+   * authenticator itself has now proven to work.
+   */
+  onConfirmed: () => void;
   onCancel: () => void;
 }
 
@@ -41,13 +47,13 @@ export function TwoFactorSetup({ otpauthUri, secret, onConfirmed, onCancel }: Tw
     const result = await confirmTwoFactorSetup(formData);
     setIsSubmitting(false);
 
-    if (!result.success || !result.recoveryCodes) {
+    if (!result.success) {
       setError(translateAuthError(messages, result.error));
       return;
     }
 
     toast.success(t("account.twoFactor.enabledToast"));
-    onConfirmed(result.recoveryCodes);
+    onConfirmed();
   };
 
   return (

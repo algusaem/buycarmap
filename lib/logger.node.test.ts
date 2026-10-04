@@ -64,6 +64,30 @@ describe("createLogger redaction", () => {
     expect(headers["user-agent"]).toBe("vitest");
   });
 
+  it("security review fix: redacts ipAddress, userAgent and backupCodes, nested or top-level", () => {
+    const dest = makeDestination();
+    const log = createLogger(dest);
+
+    log.info(
+      {
+        ipAddress: "203.0.113.5",
+        userAgent: "Mozilla/5.0",
+        backupCodes: ["ABCDE-FGHJK-MNPQR"],
+        session: { ipAddress: "203.0.113.6", userAgent: "curl/8.0" },
+      },
+      "x",
+    );
+
+    expect(dest.lines.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(dest.lines[0]) as Record<string, unknown>;
+    expect(parsed.ipAddress).toBe("[Redacted]");
+    expect(parsed.userAgent).toBe("[Redacted]");
+    expect(parsed.backupCodes).toBe("[Redacted]");
+    const session = parsed.session as Record<string, unknown>;
+    expect(session.ipAddress).toBe("[Redacted]");
+    expect(session.userAgent).toBe("[Redacted]");
+  });
+
   it("PLAT-15: leaves an unrelated field untouched", () => {
     const dest = makeDestination();
     const log = createLogger(dest);

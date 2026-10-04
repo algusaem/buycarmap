@@ -27,6 +27,15 @@ const REDACT_PATHS = [
   "*.code",
   "headers.authorization",
   "headers.cookie",
+  // Security review fix: a client IP or user agent is personal data (RULES.md
+  // §12), and a backup code is a credential exactly like a password or TOTP
+  // code — none of the patterns above matched any of the three.
+  "ipAddress",
+  "*.ipAddress",
+  "userAgent",
+  "*.userAgent",
+  "backupCodes",
+  "*.backupCodes",
 ];
 
 /**

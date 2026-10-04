@@ -43,12 +43,43 @@ export function buildUser(overrides: Partial<Prisma.UserCreateInput> = {}): Pris
 
 let sequence = 0;
 
+// BAUTH-14 (docs/specs/core-better-auth.md): in the real database, every user
+// with a password has a matching `accounts` row with `provider = "credential"`
+// — the migration backfills it once for existing rows, and the app's own
+// flows (registration, password reset, change-password) keep writing it for
+// the rest. `createUser()` bypasses all of that and writes straight to
+// `User`, so without this a factory-created user is invisible to
+// `auth.api.signInEmail`, which looks the credential account up, not
+// `User.password`.
+async function upsertCredentialAccount(userId: string, password: string): Promise<void> {
+  await prisma.account.upsert({
+    where: { provider_providerAccountId: { provider: "credential", providerAccountId: userId } },
+    create: {
+      userId,
+      provider: "credential",
+      providerAccountId: userId,
+      type: "credential",
+      password,
+    },
+    update: { password },
+  });
+}
+
 export async function createUser(overrides: Partial<Prisma.UserCreateInput> = {}): Promise<User> {
   const data = buildUser(overrides);
+  let user: User;
+
   if (!("email" in overrides)) {
     sequence += 1;
     data.email = `${sequence}-${data.email}`;
-    return prisma.user.create({ data });
+    user = await prisma.user.create({ data });
+  } else {
+    user = await prisma.user.upsert({ where: { email: data.email }, create: data, update: data });
   }
-  return prisma.user.upsert({ where: { email: data.email }, create: data, update: data });
+
+  if (data.password) {
+    await upsertCredentialAccount(user.id, data.password);
+  }
+
+  return user;
 }

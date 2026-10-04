@@ -11,12 +11,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/favorites",
 }));
-vi.mock("next-auth/react", () => ({
-  useSession: () => ({
-    data: { user: { id: "user-ada" } },
-    status: "authenticated",
-  }),
-}));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/server/favorites/actions", () => ({
   saveFavorite: vi.fn(),

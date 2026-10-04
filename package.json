@@ -20,7 +20,7 @@
     "db:seed": "prisma db seed",
     "qstash:schedule": "node scripts/qstash-schedule.mjs",
     "auth:notify-2fa-reset": "tsx --env-file=.env scripts/notify-2fa-reset.mjs",
-    "depcruise": "depcruise app components lib interfaces types server proxy.ts --config .dependency-cruiser.cjs",
+    "depcruise": "depcruise app components lib interfaces server proxy.ts --config .dependency-cruiser.cjs",
     "gen": "plop",
     "spec:check": "node scripts/spec-check.mjs",
     "docs:check": "node scripts/docs-check.mjs",

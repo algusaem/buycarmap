@@ -1,33 +1,48 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
-import type { JWT } from "next-auth/jwt";
-
-// getToken is the dependency — it reads and verifies the cookie. What this file
-// exercises is the routing decision taken once that answer is known.
-vi.mock("next-auth/jwt", () => ({ getToken: vi.fn() }));
-
-import { getToken } from "next-auth/jwt";
 import { config, proxy } from "./proxy";
 
+// BAUTH-5 (docs/specs/core-better-auth.md), harness change: proxy.ts now
+// decides from the Better Auth session cookie's mere presence
+// (`getSessionCookie`), not from decoding a NextAuth JWT, so there is no
+// `getToken` left to mock. `signedIn()`/`signedOut()` instead toggle whether
+// that cookie rides along on every `request()`/`requestWithHeaders()` call
+// below, so the existing cases keep exercising the same routing decisions
+// through the new mechanism. The redirect/no-redirect assertions themselves
+// are unchanged.
+let sessionCookiePresent = false;
+
+function withSessionCookie(headers: Record<string, string> = {}): Record<string, string> {
+  if (!sessionCookiePresent) return headers;
+  const existing = headers.cookie ? `${headers.cookie}; ` : "";
+  return { ...headers, cookie: `${existing}better-auth.session_token=abc123` };
+}
+
 function request(pathname: string): NextRequest {
-  return new NextRequest(new URL(pathname, "http://localhost:3000"));
+  return new NextRequest(new URL(pathname, "http://localhost:3000"), {
+    headers: withSessionCookie(),
+  });
 }
 
 function requestWithHeaders(pathname: string, headers: Record<string, string>): NextRequest {
-  return new NextRequest(new URL(pathname, "http://localhost:3000"), { headers });
+  return new NextRequest(new URL(pathname, "http://localhost:3000"), {
+    headers: withSessionCookie(headers),
+  });
 }
 
 function signedIn() {
-  vi.mocked(getToken).mockResolvedValue({ id: "user-1" } as JWT);
+  sessionCookiePresent = true;
 }
 
 function signedOut() {
-  vi.mocked(getToken).mockResolvedValue(null);
+  sessionCookiePresent = false;
 }
 
 describe("proxy protected routes", () => {
-  beforeEach(() => vi.mocked(getToken).mockReset());
+  beforeEach(() => {
+    sessionCookiePresent = false;
+  });
 
   it("sends an anonymous visitor to sign in", async () => {
     signedOut();
@@ -76,7 +91,9 @@ describe("proxy protected routes", () => {
 });
 
 describe("proxy guest-only routes", () => {
-  beforeEach(() => vi.mocked(getToken).mockReset());
+  beforeEach(() => {
+    sessionCookiePresent = false;
+  });
 
   it("redirects a signed-in user away from the sign-in page", async () => {
     signedIn();
@@ -110,7 +127,9 @@ describe("proxy guest-only routes", () => {
 });
 
 describe("proxy favorites route", () => {
-  beforeEach(() => vi.mocked(getToken).mockReset());
+  beforeEach(() => {
+    sessionCookiePresent = false;
+  });
 
   it("FAV-15: sends an anonymous visitor from favorites to sign in", async () => {
     signedOut();
@@ -150,8 +169,45 @@ describe("proxy favorites route", () => {
   });
 });
 
+describe("proxy BAUTH-5 (docs/specs/core-better-auth.md): Better Auth session cookie presence", () => {
+  beforeEach(() => {
+    sessionCookiePresent = false;
+  });
+
+  function requestWithCookie(pathname: string, cookie?: string): NextRequest {
+    return new NextRequest(new URL(pathname, "http://localhost:3000"), {
+      headers: cookie ? { cookie } : undefined,
+    });
+  }
+
+  // proxy.ts decides from a presence check on the Better Auth cookie via
+  // `getSessionCookie` (`better-auth/cookies`). `signedOut()` only resets
+  // this file's own `sessionCookiePresent` flag, which `requestWithCookie`
+  // below ignores in favour of the literal cookie header it is given.
+  it("BAUTH-5: does not redirect /favorites when the Better Auth session cookie is present", async () => {
+    signedOut();
+
+    const response = await proxy(
+      requestWithCookie("/favorites", "better-auth.session_token=abc123"),
+    );
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("BAUTH-5: redirects /favorites to /login when the Better Auth session cookie is absent", async () => {
+    signedOut();
+
+    const response = await proxy(requestWithCookie("/favorites"));
+
+    expect(response.status).toBe(307);
+    expect(new URL(response.headers.get("location") as string).pathname).toBe("/login");
+  });
+});
+
 describe("proxy alerts route", () => {
-  beforeEach(() => vi.mocked(getToken).mockReset());
+  beforeEach(() => {
+    sessionCookiePresent = false;
+  });
 
   it("ALERT-30: sends an anonymous visitor from alerts to sign in", async () => {
     signedOut();

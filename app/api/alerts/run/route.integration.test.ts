@@ -21,9 +21,9 @@ import type { RunSummary } from "@/interfaces/alert";
 let emailConfigured = true;
 
 vi.mock("@/lib/env", () => ({
-  // NEXTAUTH_SECRET keys the unsubscribe-token HMAC, so the runner cannot build
-  // a link without it.
-  env: { NEXTAUTH_SECRET: "test-secret" },
+  // BETTER_AUTH_SECRET keys the unsubscribe-token HMAC, so the runner cannot
+  // build a link without it.
+  env: { BETTER_AUTH_SECRET: "test-secret" },
 }));
 
 vi.mock("@/lib/app-config", () => ({

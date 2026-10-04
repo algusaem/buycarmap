@@ -9,7 +9,7 @@ import { env } from "@/lib/env";
 // column workable: the runner sends the mail long after the alert was created
 // and only ever sees the hash, so a randomly-generated token would have to be
 // kept in the clear for the runner to rebuild the link. An HMAC keyed on
-// NEXTAUTH_SECRET lets the runner recompute it on demand while the database
+// BETTER_AUTH_SECRET lets the runner recompute it on demand while the database
 // still holds nothing usable — a leak yields digests, and forging a token needs
 // the signing secret.
 //
@@ -18,7 +18,7 @@ import { env } from "@/lib/env";
 // who cannot make the mail stop.
 
 export function unsubscribeTokenFor(alertId: string): string {
-  return createHmac("sha256", env.NEXTAUTH_SECRET)
+  return createHmac("sha256", env.BETTER_AUTH_SECRET)
     .update(`alert-unsubscribe:${alertId}`)
     .digest("hex");
 }

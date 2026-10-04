@@ -41,13 +41,13 @@ describe("env module", () => {
     expect(keys).toEqual(["NEXT_PUBLIC_SENTRY_DSN"]);
   });
 
-  it("PLAT-1: DATABASE_URL and NEXTAUTH_SECRET stay required (not .optional())", () => {
+  it("PLAT-1: DATABASE_URL and BETTER_AUTH_SECRET stay required (not .optional())", () => {
     const source = read("lib/env.ts");
 
     const databaseUrlLine = source.match(/DATABASE_URL:\s*[^\n]+/)?.[0] ?? "";
-    const nextAuthSecretLine = source.match(/NEXTAUTH_SECRET:\s*[^\n]+/)?.[0] ?? "";
+    const betterAuthSecretLine = source.match(/BETTER_AUTH_SECRET:\s*[^\n]+/)?.[0] ?? "";
     expect(databaseUrlLine).not.toContain(".optional()");
-    expect(nextAuthSecretLine).not.toContain(".optional()");
+    expect(betterAuthSecretLine).not.toContain(".optional()");
   });
 
   it("PLAT-2: lib/env.ts no longer imports dotenv", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { authClient } from "@/lib/auth/auth-client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ interface ProfileFormProps {
 export function ProfileForm({ name, version }: ProfileFormProps) {
   const t = useTranslations();
   const messages = useMessages() as Translations;
-  const { update } = useSession();
+  const { refetch } = authClient.useSession();
 
   const {
     register,
@@ -49,9 +49,9 @@ export function ProfileForm({ name, version }: ProfileFormProps) {
       return;
     }
 
-    // Forces the `jwt` callback to re-read the row so the navbar picks up the
-    // new name without a sign-out.
-    await update();
+    // Re-reads the session so the navbar picks up the new name without a
+    // sign-out.
+    await refetch();
     toast.success(t("account.profile.success"));
   };
 

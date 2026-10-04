@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth/auth-client";
 import { BellRing, Heart, LogOut, User } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { NavMenu, NavMenuLink, currentPage } from "./NavMenu";
@@ -31,7 +31,7 @@ const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 export function Navbar() {
-  const { data: session, status } = useSession();
+  const { data: session, isPending } = authClient.useSession();
   const pathname = usePathname();
   // Navigation is client-side, so the panel stays mounted straight through a
   // link click and would sit on top of the page it just opened. Rather than an
@@ -43,7 +43,7 @@ export function Navbar() {
   const menuOpen = menu.open && menu.at === pathname;
   const setMenuOpen = (open: boolean) => setMenu({ open, at: pathname });
 
-  const isLoading = status === "loading";
+  const isLoading = isPending;
 
   return (
     <nav className="w-full border-b border-border/50 bg-card/80 backdrop-blur-sm">
@@ -152,6 +152,12 @@ function SignedInControls({
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const { setLocale } = useLocaleSwitcher();
+  const router = useRouter();
+
+  const onSignOut = async () => {
+    await authClient.signOut();
+    router.push("/");
+  };
 
   return (
     <>
@@ -208,7 +214,7 @@ function SignedInControls({
             {/* The one control here with a consequence, which is why it is
                 behind a deliberate open rather than beside the account link it
                 used to sit next to at 32px tall. */}
-            <DropdownMenuItem onSelect={() => signOut({ callbackUrl: "/" })}>
+            <DropdownMenuItem onSelect={onSignOut}>
               <LogOut />
               {t("nav.signOut")}
             </DropdownMenuItem>
@@ -230,11 +236,7 @@ function SignedInControls({
             <User className="h-4 w-4 shrink-0" />
             {t("nav.account")}
           </NavMenuLink>
-          <Button
-            variant="ghost"
-            className="h-11 justify-start gap-3 px-3"
-            onClick={() => signOut({ callbackUrl: "/" })}
-          >
+          <Button variant="ghost" className="h-11 justify-start gap-3 px-3" onClick={onSignOut}>
             <LogOut className="h-4 w-4 shrink-0" />
             {t("nav.signOut")}
           </Button>

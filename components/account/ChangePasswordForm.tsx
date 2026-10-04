@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { authClient } from "@/lib/auth/auth-client";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -74,15 +74,12 @@ export function ChangePasswordForm({ email, version }: ChangePasswordFormProps) 
       return;
     }
 
-    // The change bumped `passwordChangedAt`, which revokes every JWT issued
-    // before it — including this tab's. Silently re-authenticating with the
-    // password we already have mints a fresh token so the user stays signed in
-    // here while every other device is signed out.
-    await signIn("credentials", {
-      email,
-      password: data.password,
-      redirect: false,
-    });
+    // The change revoked every *other* session (BAUTH-2) — this tab's own
+    // one survives (`replacePassword`'s `keepSessionId`, server/account/service.ts).
+    // Signing in again here is not about restoring this session, which was
+    // never revoked; it refreshes `authClient`'s own reactive session store,
+    // which nothing else here would otherwise touch.
+    await authClient.signIn.email({ email, password: data.password });
 
     reset();
     toast.success(t("account.security.success"));

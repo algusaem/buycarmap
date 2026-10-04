@@ -31,6 +31,15 @@ vi.mock("react-qr-code", () => ({
 
 const CODES = Array.from({ length: 10 }, (_, i) => `AAAAA-BBBBB-CCCC${i}`);
 
+// BAUTH-11 (docs/specs/core-better-auth.md): Better Auth's own
+// `enableTwoFactor` always requires a password, and mints the recovery
+// codes at setup rather than at confirmation — `startTwoFactorSetup` carries
+// both from here on.
+async function startSetup() {
+  await userEvent.type(screen.getByLabelText(/your password/i), "hunter2");
+  await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
+}
+
 beforeEach(() => {
   refresh.mockReset();
   startTwoFactorSetup.mockReset();
@@ -44,16 +53,9 @@ beforeEach(() => {
   });
 });
 
-describe("TwoFactorCard availability", () => {
-  it("explains itself when the server has no encryption key", () => {
-    renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable={false} />);
-
-    expect(screen.getByText(/missing its encryption key/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /set up two-factor/i })).not.toBeInTheDocument();
-  });
-
-  it("shows the current state when available", () => {
-    renderWithI18n(<TwoFactorCard isEnabled isAvailable />);
+describe("TwoFactorCard status", () => {
+  it("shows the current state", () => {
+    renderWithI18n(<TwoFactorCard isEnabled />);
 
     // Word plus icon, never colour alone.
     expect(screen.getByText("On")).toBeInTheDocument();
@@ -61,15 +63,23 @@ describe("TwoFactorCard availability", () => {
 });
 
 describe("TwoFactorCard enrolment", () => {
+  it("requires a password before starting", async () => {
+    renderWithI18n(<TwoFactorCard isEnabled={false} />);
+
+    expect(screen.getByRole("button", { name: /set up two-factor/i })).toBeDisabled();
+    expect(startTwoFactorSetup).not.toHaveBeenCalled();
+  });
+
   it("shows the QR and the manual key after starting", async () => {
     startTwoFactorSetup.mockResolvedValue({
       success: true,
       otpauthUri: "otpauth://totp/BuyCarMap:ada@example.com?secret=ABC",
       secret: "ABCDEFGHIJKLMNOP",
+      recoveryCodes: CODES,
     });
-    renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
+    renderWithI18n(<TwoFactorCard isEnabled={false} />);
 
-    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
+    await startSetup();
 
     expect(await screen.findByTestId("qr-code")).toHaveAttribute(
       "data-value",
@@ -77,6 +87,8 @@ describe("TwoFactorCard enrolment", () => {
     );
     // The manual key matters: not everyone can scan.
     expect(screen.getByText("ABCDEFGHIJKLMNOP")).toBeInTheDocument();
+    const submitted = startTwoFactorSetup.mock.calls[0][0] as FormData;
+    expect(submitted.get("password")).toBe("hunter2");
   });
 
   it("surfaces a rejection from the server", async () => {
@@ -84,9 +96,9 @@ describe("TwoFactorCard enrolment", () => {
       success: false,
       error: "totpAlreadyEnabled",
     });
-    renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
+    renderWithI18n(<TwoFactorCard isEnabled={false} />);
 
-    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
+    await startSetup();
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("Two-factor authentication is already on"),
@@ -98,14 +110,15 @@ describe("TwoFactorCard enrolment", () => {
       success: true,
       otpauthUri: "otpauth://totp/x",
       secret: "ABCDEFGH",
+      recoveryCodes: CODES,
     });
     confirmTwoFactorSetup.mockResolvedValue({
       success: false,
       error: "totpInvalid",
     });
-    renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
+    renderWithI18n(<TwoFactorCard isEnabled={false} />);
 
-    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
+    await startSetup();
     await userEvent.type(await screen.findByLabelText(/enter the 6-digit code/i), "000000");
     await userEvent.click(screen.getByRole("button", { name: /turn on two-factor/i }));
 
@@ -119,14 +132,12 @@ describe("TwoFactorCard enrolment", () => {
       success: true,
       otpauthUri: "otpauth://totp/x",
       secret: "ABCDEFGH",
-    });
-    confirmTwoFactorSetup.mockResolvedValue({
-      success: true,
       recoveryCodes: CODES,
     });
-    renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
+    confirmTwoFactorSetup.mockResolvedValue({ success: true });
+    renderWithI18n(<TwoFactorCard isEnabled={false} />);
 
-    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
+    await startSetup();
     await userEvent.type(await screen.findByLabelText(/enter the 6-digit code/i), "123456");
     await userEvent.click(screen.getByRole("button", { name: /turn on two-factor/i }));
 
@@ -143,14 +154,12 @@ describe("TwoFactorCard recovery codes", () => {
       success: true,
       otpauthUri: "otpauth://totp/x",
       secret: "ABCDEFGH",
-    });
-    confirmTwoFactorSetup.mockResolvedValue({
-      success: true,
       recoveryCodes: CODES,
     });
-    renderWithI18n(<TwoFactorCard isEnabled={false} isAvailable />);
+    confirmTwoFactorSetup.mockResolvedValue({ success: true });
+    renderWithI18n(<TwoFactorCard isEnabled={false} />);
 
-    await userEvent.click(screen.getByRole("button", { name: /set up two-factor/i }));
+    await startSetup();
     await userEvent.type(await screen.findByLabelText(/enter the 6-digit code/i), "123456");
     await userEvent.click(screen.getByRole("button", { name: /turn on two-factor/i }));
     await screen.findByText(/save your recovery codes/i);
@@ -217,7 +226,7 @@ describe("TwoFactorCard recovery codes", () => {
 
 describe("TwoFactorCard when enabled", () => {
   it("requires both a password and a code to turn off", async () => {
-    renderWithI18n(<TwoFactorCard isEnabled isAvailable />);
+    renderWithI18n(<TwoFactorCard isEnabled />);
 
     const disable = screen.getByRole("button", { name: /turn off two-factor/i });
     expect(disable).toBeDisabled();
@@ -231,7 +240,7 @@ describe("TwoFactorCard when enabled", () => {
 
   it("submits both fields when turning off", async () => {
     disableTwoFactor.mockResolvedValue({ success: true });
-    renderWithI18n(<TwoFactorCard isEnabled isAvailable />);
+    renderWithI18n(<TwoFactorCard isEnabled />);
 
     await userEvent.type(screen.getByLabelText(/your password/i), "hunter2");
     await userEvent.type(screen.getByLabelText(/enter the 6-digit code/i), "123456");
@@ -250,7 +259,7 @@ describe("TwoFactorCard when enabled", () => {
       success: true,
       recoveryCodes: CODES,
     });
-    renderWithI18n(<TwoFactorCard isEnabled isAvailable />);
+    renderWithI18n(<TwoFactorCard isEnabled />);
 
     await userEvent.type(screen.getByLabelText(/your password/i), "hunter2");
     await userEvent.click(screen.getByRole("button", { name: /generate new recovery codes/i }));
@@ -259,7 +268,7 @@ describe("TwoFactorCard when enabled", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = renderWithI18n(<TwoFactorCard isEnabled isAvailable />);
+    const { container } = renderWithI18n(<TwoFactorCard isEnabled />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

@@ -80,6 +80,8 @@ export async function redeemEmailVerificationToken(
           // Null newEmail means "just confirm what is already here".
           ...(record.newEmail ? { email: record.newEmail } : {}),
           emailVerified: now,
+          // BAUTH-7: Better Auth reads this boolean, not the DateTime above.
+          emailConfirmed: true,
         },
       }),
       prisma.emailVerificationToken.update({

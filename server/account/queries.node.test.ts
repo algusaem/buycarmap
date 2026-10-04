@@ -23,7 +23,7 @@ const RECORD = {
   name: "Ada",
   email: "ada@example.com",
   emailVerified: null,
-  twoFactorEnabledAt: null,
+  twoFactorEnabled: false,
   version: 1,
   accounts: [],
 };

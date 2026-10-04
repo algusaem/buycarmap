@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { authClient } from "@/lib/auth/auth-client";
 import * as Sentry from "@sentry/nextjs";
 import { listFavorites } from "@/server/favorites/actions";
 
@@ -19,7 +19,8 @@ import { listFavorites } from "@/server/favorites/actions";
 const NO_FAVORITES: ReadonlySet<string> = new Set<string>();
 
 export function useFavorites() {
-  const { status } = useSession();
+  const { data: session, isPending } = authClient.useSession();
+  const status = isPending ? "loading" : session ? "authenticated" : "unauthenticated";
   const [loaded, setLoaded] = useState<Set<string>>(new Set());
 
   useEffect(() => {

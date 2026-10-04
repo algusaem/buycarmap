@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { verifyPassword } from "@/lib/auth/hash";
+import { verifyPassword, hashPassword } from "@/lib/auth/hash";
 import { prisma } from "@/lib/db/prisma";
+import { createUser } from "@/test/factories/user";
 import { ensureTwoFactorUser, seed, SEED_PASSWORD } from "./seed";
 
 // TEST-11 (docs/specs/core-testing.md), run by the `integration` project
@@ -26,11 +27,13 @@ describe("seed", () => {
     await seed(prisma);
 
     const withTwoFactor = await prisma.user.findMany({
-      where: { twoFactorEnabledAt: { not: null } },
+      where: { twoFactorEnabled: true },
     });
 
     expect(withTwoFactor).toHaveLength(1);
-    expect(withTwoFactor[0].twoFactorSecret).not.toBeNull();
+    expect(
+      await prisma.twoFactor.findFirst({ where: { userId: withTwoFactor[0].id } }),
+    ).not.toBeNull();
   });
 
   it("TEST-11: every seeded user's password verifies against SEED_PASSWORD", async () => {
@@ -87,32 +90,38 @@ describe("seed", () => {
 });
 
 describe("ensureTwoFactorUser", () => {
-  it("TEST-11: with no configured encryption key, still enrols the user and logs that the secret will not survive the process", async () => {
-    const user = await prisma.user.create({ data: { email: "no-key@example.test" } });
+  it("TEST-11: enrols the user through the plugin and logs the secret", async () => {
+    const user = await createUser({
+      email: "seed-2fa@example.test",
+      password: await hashPassword(SEED_PASSWORD),
+    });
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
 
-    await ensureTwoFactorUser(prisma, user, undefined);
+    await ensureTwoFactorUser(prisma, user);
 
     const updated = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(updated?.twoFactorEnabledAt).not.toBeNull();
-    expect(updated?.twoFactorSecret).not.toBeNull();
-    expect(log.mock.calls.flat().join("\n")).toContain("TWO_FACTOR_ENCRYPTION_KEY is not set");
+    expect(updated?.twoFactorEnabled).toBe(true);
+    expect(await prisma.twoFactor.findFirst({ where: { userId: user.id } })).not.toBeNull();
+    expect(log.mock.calls.flat().join("\n")).toContain("TOTP secret");
 
     log.mockRestore();
   });
 
   it("TEST-11: a user already enrolled is left alone and logged as already enabled", async () => {
-    const user = await prisma.user.create({ data: { email: "already-2fa@example.test" } });
+    const user = await createUser({
+      email: "already-2fa@example.test",
+      password: await hashPassword(SEED_PASSWORD),
+    });
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
 
-    await ensureTwoFactorUser(prisma, user, undefined);
+    await ensureTwoFactorUser(prisma, user);
     log.mockClear();
-    const afterFirst = await prisma.user.findUnique({ where: { id: user.id } });
+    const afterFirst = await prisma.twoFactor.findFirst({ where: { userId: user.id } });
 
-    await ensureTwoFactorUser(prisma, user, undefined);
-    const afterSecond = await prisma.user.findUnique({ where: { id: user.id } });
+    await ensureTwoFactorUser(prisma, user);
+    const afterSecond = await prisma.twoFactor.findFirst({ where: { userId: user.id } });
 
-    expect(afterSecond?.twoFactorSecret).toBe(afterFirst?.twoFactorSecret);
+    expect(afterSecond?.secret).toBe(afterFirst?.secret);
     expect(log.mock.calls.flat().join("\n")).toContain("two-factor already enabled");
 
     log.mockRestore();

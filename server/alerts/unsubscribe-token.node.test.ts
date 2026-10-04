@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/env", () => ({ env: { NEXTAUTH_SECRET: "test-signing-secret" } }));
+vi.mock("@/lib/env", () => ({ env: { BETTER_AUTH_SECRET: "test-signing-secret" } }));
 
 import { hashUnsubscribeToken, unsubscribeTokenFor } from "./unsubscribe-token";
 

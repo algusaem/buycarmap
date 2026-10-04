@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentSessionId, getCurrentUser } from "@/lib/auth/session";
 import { hashPassword, verifyPassword } from "@/lib/auth/hash";
 import { validateNewPassword } from "@/lib/auth/password-policy";
 import { createElement } from "react";
@@ -13,28 +13,34 @@ import { renderEmail } from "@/emails/render";
 import { optionalString, requiredString } from "@/lib/form-data";
 import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
-import { asAccountId, asUserId } from "@/lib/ids";
+import { asAccountId, asSessionId, asUserId } from "@/lib/ids";
+import { can } from "@/lib/auth/permissions";
 import { RATE_LIMITS, consumeRateLimit } from "@/server/rate-limit/service";
 import { changePasswordServerSchema, updateProfileServerSchema } from "./schema";
 import {
   deleteLinkedAccount,
+  deleteOtherSessions,
+  deleteSession,
   deleteUser,
+  findMySessions,
   findPasswordAndEmail,
   findPasswordHash,
+  findSessionOwner,
   findSignInMethods,
   replacePassword,
   revokeAllSessions,
   updateUserName,
 } from "./service";
 
-interface AccountResult {
+export interface AccountResult {
   success: boolean;
   error?: AuthErrorCode;
 }
 
 export async function updateProfile(formData: FormData): Promise<AccountResult> {
-  // Never trust middleware for authorization: it only decodes the JWT and
-  // cannot see revocations. `getCurrentUser` runs the session callback.
+  // Never trust proxy.ts for authorization: it only checks whether the
+  // session cookie is present and cannot see a revocation. `getCurrentUser`
+  // calls `auth.api.getSession()`, which does.
   const user = await getCurrentUser();
 
   if (!user) {
@@ -132,12 +138,15 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
   }
 
   const now = new Date();
+  // BAUTH-2: this device's own session survives; every other one does not.
+  const currentSessionId = await getCurrentSessionId();
 
   const matched = await replacePassword(
     userId,
     await hashPassword(password),
     now,
     parsed.data.version,
+    currentSessionId,
   );
   if (!matched) {
     return { success: false, error: AUTH_ERROR.conflict };
@@ -158,10 +167,12 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
 /**
  * Revokes every session, including this device's.
  *
- * `passwordChangedAt` is the session-revocation clock (see lib/auth/options.ts):
- * any JWT stamped before it is rejected on the next revalidation. Bumping it
- * without touching the password is exactly the "sign out everywhere" primitive
- * — the field name is historical, its job is broader.
+ * BAUTH-2 (docs/specs/core-better-auth.md): sessions live in Postgres with no
+ * cookie cache, so deleting every row for this user (`revokeAllSessions`,
+ * server/account/service.ts) ends them on the very next request —
+ * `getCurrentUser()` calls `auth.api.getSession()`, which simply finds
+ * nothing. `passwordChangedAt` is still bumped alongside the delete, but it
+ * is no longer what revocation depends on.
  */
 export async function signOutEverywhere(): Promise<AccountResult> {
   const user = await getCurrentUser();
@@ -200,20 +211,36 @@ export async function unlinkAccount(formData: FormData): Promise<AccountResult> 
     return { success: false, error: AUTH_ERROR.generic };
   }
 
+  // BLOCKER fix (security review): "credential" is Better Auth's own
+  // sign-in plumbing (BAUTH-14's dual-write of a password into an `accounts`
+  // row), never a provider the user connected from this page. Deleting it
+  // would silently break `auth.api.signInEmail` — which reads this row, not
+  // `User.password` — while this very page kept showing a password as set.
+  // `lastSignInMethod` is the same code the stranding refusal below already
+  // uses, and it fits here too: removing this row removes the only way the
+  // account actually signs in.
+  if (provider === "credential") {
+    return { success: false, error: AUTH_ERROR.lastSignInMethod };
+  }
+
   const record = await findSignInMethods(asUserId(user.id));
 
   if (!record) {
     return { success: false, error: AUTH_ERROR.unauthorized };
   }
 
-  const target = record.accounts.find((a) => a.provider === provider);
+  // Never counted as a sign-in method a user could fall back on here — it is
+  // the password's own plumbing, which `record.password` already represents
+  // directly, so counting it again would double-count a single method as two.
+  const oauthAccounts = record.accounts.filter((a) => a.provider !== "credential");
+  const target = oauthAccounts.find((a) => a.provider === provider);
 
   if (!target) {
     // Already gone; nothing to do, and saying so reveals nothing.
     return { success: true };
   }
 
-  const wouldBeLocallyUnreachable = !record.password && record.accounts.length <= 1;
+  const wouldBeLocallyUnreachable = !record.password && oauthAccounts.length <= 1;
 
   if (wouldBeLocallyUnreachable) {
     return { success: false, error: AUTH_ERROR.lastSignInMethod };
@@ -224,6 +251,85 @@ export async function unlinkAccount(formData: FormData): Promise<AccountResult> 
   } catch {
     return { success: false, error: AUTH_ERROR.generic };
   }
+
+  return { success: true };
+}
+
+export interface MySession {
+  id: string;
+  // "" rather than null for a row with no recorded device — a session
+  // created outside a real browser request (an older row, or a test). The UI
+  // renders this the same way as an unrecognised device, never a blank cell.
+  userAgent: string;
+  ipAddress: string;
+  lastUsedAt: Date;
+  current: boolean;
+}
+
+/**
+ * BAUTH-4: the signed-in user's own sessions, for the "Active sessions"
+ * section on /account. `current` marks the session backing this very
+ * request, so the UI can label it "This device" and hide its own revoke
+ * button.
+ */
+export async function listMySessions(): Promise<MySession[]> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return [];
+  }
+
+  const [sessions, currentSessionId] = await Promise.all([
+    findMySessions(asUserId(user.id)),
+    getCurrentSessionId(),
+  ]);
+
+  return sessions.map((session) => ({
+    id: session.id,
+    userAgent: session.userAgent ?? "",
+    ipAddress: session.ipAddress ?? "",
+    lastUsedAt: session.updatedAt,
+    current: session.id === currentSessionId,
+  }));
+}
+
+/**
+ * BAUTH-4: revokes one of the signed-in user's own sessions.
+ * `lib/auth/permissions.ts`'s `can()` refuses another user's, the same way
+ * every other ownership check in this feature does (BAUTH-17).
+ */
+export async function revokeMySession(sessionId: string): Promise<AccountResult> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return { success: false, error: AUTH_ERROR.unauthorized };
+  }
+
+  const id = asSessionId(sessionId);
+  const ownerId = await findSessionOwner(id);
+
+  if (!ownerId || !can(user, "delete", { type: "session", userId: ownerId })) {
+    return { success: false, error: AUTH_ERROR.unauthorized };
+  }
+
+  await deleteSession(id);
+
+  return { success: true };
+}
+
+/**
+ * BAUTH-4: "Sign out of all other sessions" — keeps this device's own
+ * session alive, unlike signOutEverywhere which keeps none.
+ */
+export async function revokeOtherMySessions(): Promise<AccountResult> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return { success: false, error: AUTH_ERROR.unauthorized };
+  }
+
+  const currentSessionId = await getCurrentSessionId();
+  await deleteOtherSessions(asUserId(user.id), currentSessionId);
 
   return { success: true };
 }

@@ -20,5 +20,11 @@ export default defineConfig({
   },
   datasource: {
     url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
+    // Prisma 7 needs this to run `migrate dev` or `migrate diff` against a
+    // migrations directory — it applies every migration here, throwaway,
+    // rather than to the real database. Local-only: always the Compose
+    // Postgres (pnpm db:up), never Neon, so production's DIRECT_URL/
+    // DATABASE_URL never reach this branch.
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });

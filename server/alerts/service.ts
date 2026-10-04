@@ -8,6 +8,7 @@ import { renderEmail } from "@/emails/render";
 import { DEFAULT_LOCALE, isValidLocale } from "@/lib/i18n/config";
 import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { notDeleted } from "@/lib/db/soft-delete";
+import { ownedBy } from "@/lib/auth/permissions";
 import {
   alertIdSchema,
   type AlertCriteriaId,
@@ -133,7 +134,7 @@ export async function createAlertForUser(
 
   // DATA-10 (docs/specs/core-data-model.md): a soft-deleted alert does not
   // count against the cap — it is no longer an active subscription.
-  const count = await prisma.alert.count({ where: { userId, ...notDeleted } });
+  const count = await prisma.alert.count({ where: { ...ownedBy({ id: userId }), ...notDeleted } });
   if (count >= MAX_ALERTS_PER_USER) {
     return ALERT_ERROR.tooManyAlerts;
   }
@@ -163,7 +164,7 @@ export async function createAlertForUser(
   // `deletedAt`, bumping `version`) exactly as saving over a soft-deleted
   // favorite does.
   await prisma.alert.upsert({
-    where: { userId_criteriaId: { userId, criteriaId } },
+    where: { userId_criteriaId: { ...ownedBy({ id: userId }), criteriaId } },
     create: {
       id: alertId,
       userId,
@@ -210,7 +211,7 @@ async function backfillLocale(userId: UserId): Promise<void> {
 
 export async function findAlertSummaries(userId: UserId): Promise<AlertSummary[]> {
   const rows = await prisma.alert.findMany({
-    where: { userId, ...notDeleted },
+    where: { ...ownedBy({ id: userId }), ...notDeleted },
     include: { criteria: true, _count: { select: { matches: true } } },
     orderBy: { createdAt: "desc" },
   });
@@ -229,7 +230,7 @@ export async function findAlertSummaries(userId: UserId): Promise<AlertSummary[]
 /** Soft delete (DATA-10): sets `deletedAt` rather than removing the row. */
 export async function deleteAlertForUser(userId: UserId, alertId: AlertId): Promise<void> {
   const doomed = await prisma.alert.findFirst({
-    where: { id: alertId, userId, ...notDeleted },
+    where: { id: alertId, ...ownedBy({ id: userId }), ...notDeleted },
   });
 
   // Scoped by userId, so this cannot reach another account's row. Reports
@@ -237,7 +238,7 @@ export async function deleteAlertForUser(userId: UserId, alertId: AlertId): Prom
   // not to exist, and it does not. Saying otherwise would confirm that
   // someone else's alert does.
   await prisma.alert.updateMany({
-    where: { id: alertId, userId, ...notDeleted },
+    where: { id: alertId, ...ownedBy({ id: userId }), ...notDeleted },
     data: { deletedAt: new Date() },
   });
 
@@ -282,7 +283,7 @@ export async function findAlertWithMatches(userId: UserId, alertId: AlertId) {
 
   // Scoped by userId, so another account's alert is not found at all.
   return prisma.alert.findFirst({
-    where: { id: alertId, userId, ...notDeleted },
+    where: { id: alertId, ...ownedBy({ id: userId }), ...notDeleted },
     include: { matches: { orderBy: { createdAt: "desc" } } },
   });
 }

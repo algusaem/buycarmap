@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { authClient } from "@/lib/auth/auth-client";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -31,7 +31,12 @@ import type { Translations } from "@/lib/i18n/types";
 import { registerSchema, type RegisterInput } from "@/server/registration/schema";
 import { register as registerUser, resendConfirmation } from "@/server/registration/actions";
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  /** Which OAuth providers are configured server-side (lib/app-config.ts). */
+  oauthProviders: string[];
+}
+
+export function RegisterForm({ oauthProviders }: RegisterFormProps) {
   const t = useTranslations();
   const messages = useMessages() as Translations;
   const router = useRouter();
@@ -83,17 +88,16 @@ export function RegisterForm() {
 
     // Only reached when email is unconfigured, where the account is created
     // immediately and auto sign-in still applies.
-    const signInResult = await signIn("credentials", {
+    const { error: signInError } = await authClient.signIn.email({
       email: data.email,
       password: data.password,
-      redirect: false,
     });
 
     toast.success(t("auth.accountCreated"));
 
     // Account exists now; if the auto sign-in somehow failed, send them to
     // the login page rather than an unauthenticated home page.
-    if (signInResult?.error) {
+    if (signInError) {
       router.push("/login");
       return;
     }
@@ -250,11 +254,12 @@ export function RegisterForm() {
             </form>
 
             {/* Same component and same action as on the login page. With OAuth
-                there is no separate "register" — NextAuth creates the account
-                on first sign-in — so the only thing this adds is letting
-                someone who came here to sign up actually find the option,
-                instead of having to guess it lives behind "Welcome back". */}
-            <OAuthButtons />
+                there is no separate "register" — Better Auth creates the
+                account on first sign-in — so the only thing this adds is
+                letting someone who came here to sign up actually find the
+                option, instead of having to guess it lives behind "Welcome
+                back". */}
+            <OAuthButtons providers={oauthProviders} />
           </CardContent>
         )}
 

@@ -14,7 +14,7 @@ describe("startTwoFactorSetup", () => {
   it("refuses without a session", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue(null);
 
-    expect(await startTwoFactorSetup()).toEqual({
+    expect(await startTwoFactorSetup(new FormData())).toEqual({
       success: false,
       error: "unauthorized",
     });

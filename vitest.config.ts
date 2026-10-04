@@ -25,9 +25,16 @@ export default defineConfig({
     // test connects to a real database or signs a real production token.
     env: {
       DATABASE_URL: "postgresql://user:pass@localhost:5432/buycarmap_test",
-      NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long",
-      NEXTAUTH_URL: "http://localhost:3000",
+      BETTER_AUTH_SECRET: "test-secret-at-least-32-characters-long",
+      BETTER_AUTH_URL: "http://localhost:3000",
       APP_URL: "http://localhost:3000",
+      // BAUTH-8: dummy values so `isGoogleConfigured`/`isGitHubConfigured`
+      // (lib/app-config.ts) are true and lib/auth/auth.ts actually builds a
+      // `socialProviders` entry for each — no test signs in for real.
+      GOOGLE_CLIENT_ID: "test-google-client-id",
+      GOOGLE_CLIENT_SECRET: "test-google-client-secret",
+      GITHUB_ID: "test-github-client-id",
+      GITHUB_SECRET: "test-github-client-secret",
     },
     coverage: {
       provider: "v8",

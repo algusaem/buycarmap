@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { authClient } from "@/lib/auth/auth-client";
 import { toast } from "sonner";
 import { Heart, Car } from "lucide-react";
 import { useState } from "react";
@@ -36,7 +36,8 @@ export function CarListingCard({
   const messages = useMessages() as Translations;
   const router = useRouter();
   const pathname = usePathname();
-  const { status } = useSession();
+  const { data: session, isPending } = authClient.useSession();
+  const status = isPending ? "loading" : session ? "authenticated" : "unauthenticated";
   const [favorite, setFavorite] = useState(isFavorite);
   const [imgError, setImgError] = useState(false);
   const showImage = image && !imgError;

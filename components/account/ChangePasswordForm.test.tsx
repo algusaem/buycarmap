@@ -4,14 +4,20 @@ import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { toast } from "sonner";
-import { signIn } from "next-auth/react";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
 // I18nProvider calls useRouter to refresh after a locale switch, which needs an
 // app-router context this form never provides.
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock("next-auth/react", () => ({ signIn: vi.fn(async () => ({ ok: true })) }));
+// BAUTH-2 (docs/specs/core-better-auth.md), harness change: the silent
+// re-authentication after a password change now goes through
+// `authClient.signIn.email` (Better Auth's client), not NextAuth's
+// `next-auth/react` `signIn`.
+const signInEmail = vi.fn(async (..._args: unknown[]) => ({ data: { user: {} }, error: null }));
+vi.mock("@/lib/auth/auth-client", () => ({
+  authClient: { signIn: { email: (...args: unknown[]) => signInEmail(...args) } },
+}));
 const changePassword = vi.fn();
 vi.mock("@/server/account/actions", () => ({
   changePassword: (...args: unknown[]) => changePassword(...args),
@@ -33,7 +39,7 @@ describe("ChangePasswordForm", () => {
   beforeEach(() => {
     changePassword.mockReset();
     changePassword.mockResolvedValue({ success: true });
-    vi.mocked(signIn).mockClear();
+    signInEmail.mockClear();
     vi.mocked(toast.error).mockClear();
     vi.mocked(toast.success).mockClear();
   });
@@ -107,7 +113,7 @@ describe("ChangePasswordForm", () => {
         "Too many attempts. Please wait a few minutes and try again.",
       ),
     );
-    expect(signIn).not.toHaveBeenCalled();
+    expect(signInEmail).not.toHaveBeenCalled();
   });
 
   it("silently re-authenticates so this device stays signed in", async () => {
@@ -116,14 +122,13 @@ describe("ChangePasswordForm", () => {
     await fillValid();
     await submit();
 
-    // The change bumped `passwordChangedAt`, which revokes every JWT issued
-    // before it — including this tab's. Without this the user would be signed
-    // out of the very page they just used.
+    // The change revoked every session (BAUTH-2) — including this tab's.
+    // Without this the user would be signed out of the very page they just
+    // used.
     await waitFor(() =>
-      expect(signIn).toHaveBeenCalledWith("credentials", {
+      expect(signInEmail).toHaveBeenCalledWith({
         email: EMAIL,
         password: NEW_PASSWORD,
-        redirect: false,
       }),
     );
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Password updated."));

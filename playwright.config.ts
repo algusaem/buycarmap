@@ -67,16 +67,16 @@ const serverEnv = dbEnabled
       ...UPSTREAM_ENV,
       ...NO_REDIS,
       DATABASE_URL: process.env.DATABASE_URL ?? "",
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? E2E_FALLBACK_SECRET,
-      NEXTAUTH_URL: BASE_URL,
+      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? E2E_FALLBACK_SECRET,
+      BETTER_AUTH_URL: BASE_URL,
     }
   : {
       ...NO_EMAIL,
       ...UPSTREAM_ENV,
       ...NO_REDIS,
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
-      NEXTAUTH_SECRET: E2E_FALLBACK_SECRET,
-      NEXTAUTH_URL: BASE_URL,
+      BETTER_AUTH_SECRET: E2E_FALLBACK_SECRET,
+      BETTER_AUTH_URL: BASE_URL,
     };
 
 // E2E runs against a real Next dev server; search runs server-side

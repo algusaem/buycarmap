@@ -5,9 +5,9 @@ import { z } from "zod";
 //
 // Before this existed, `lib/prisma.ts` did `${process.env.DATABASE_URL}`, which
 // turns a missing variable into the literal string "undefined" and defers the
-// failure to the first query. A missing NEXTAUTH_SECRET was worse: NextAuth 4
-// silently auto-generates one in development, so JWTs quietly invalidate on
-// every restart and the misconfiguration only surfaces in production.
+// failure to the first query. A missing BETTER_AUTH_SECRET is worse: it signs
+// every session, so a weak or absent one invalidates sessions silently or
+// leaves them forgeable, and the misconfiguration only surfaces in production.
 //
 // Everything required is validated at import time so a bad deploy fails at
 // boot with a readable message instead of at 3am with a stack trace. Built on
@@ -18,21 +18,16 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().min(1),
-    NEXTAUTH_SECRET: z.string().min(1),
-    NEXTAUTH_URL: z.string().url().optional(),
+    BETTER_AUTH_SECRET: z.string().min(1),
+    BETTER_AUTH_URL: z.string().url().optional(),
 
-    // Base URL used to build links inside emails. Falls back to NEXTAUTH_URL.
+    // Base URL used to build links inside emails. Falls back to BETTER_AUTH_URL.
     APP_URL: z.string().url().optional(),
 
     // Transactional email (password reset, security notices). Optional: when
     // absent the mailer no-ops loudly instead of crashing the request.
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
-
-    // Encrypts TOTP secrets at rest. Optional, like email and OAuth: without
-    // it two-factor auth simply cannot be switched on, rather than the app
-    // refusing to boot.
-    TWO_FACTOR_ENCRYPTION_KEY: z.string().optional(),
 
     // Upstash Redis (docs/decisions/0017-upstash-qstash-react-email.md):
     // rate limiting (lib/platform/rate-limit.ts). Optional, like email and

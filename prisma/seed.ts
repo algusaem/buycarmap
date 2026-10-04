@@ -7,13 +7,12 @@
 // test/factories/*.ts's shared default `faker` — STACK.md §3: seed data is
 // written by its own code, not by the test factories.
 
-import { randomBytes } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { en, es, Faker } from "@faker-js/faker";
 import type { PrismaClient, User } from "@/app/generated/prisma/client";
 import { hashPassword } from "@/lib/auth/hash";
-import { encryptSecret } from "@/lib/auth/two-factor/encryption";
-import { generateTotpSecret } from "@/lib/auth/two-factor/totp";
+import { auth, createSessionCookie } from "@/lib/auth/auth";
 
 export const SEED_PASSWORD = "buycarmap-dev-1";
 
@@ -52,6 +51,30 @@ function vehicleSnapshot(faker: Faker, listingId: string) {
   };
 }
 
+/**
+ * BAUTH-14 (docs/specs/core-better-auth.md): Better Auth's sign-in (and,
+ * for `ensureTwoFactorUser` below, `auth.api.enableTwoFactor`) looks up the
+ * "credential" `accounts` row, not `users.password` — the same gap
+ * test/factories/user.ts's `createUser()` closes for the Vitest suite.
+ */
+async function upsertCredentialAccount(
+  prisma: PrismaClient,
+  userId: string,
+  passwordHash: string,
+): Promise<void> {
+  await prisma.account.upsert({
+    where: { provider_providerAccountId: { provider: "credential", providerAccountId: userId } },
+    create: {
+      userId,
+      provider: "credential",
+      providerAccountId: userId,
+      type: "credential",
+      password: passwordHash,
+    },
+    update: { password: passwordHash },
+  });
+}
+
 async function seedUsers(
   prisma: PrismaClient,
   faker: Faker,
@@ -69,48 +92,84 @@ async function seedUsers(
         locale: faker.helpers.arrayElement(["es", "en"]),
       },
     });
+    await upsertCredentialAccount(prisma, user.id, passwordHash);
     users.push(user);
   }
   return users;
 }
 
+const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+function decodeBase32(input: string): Buffer {
+  const bytes: number[] = [];
+  let buffer = 0;
+  let bitsCollected = 0;
+
+  for (const char of input.toUpperCase()) {
+    if (char === "=") continue;
+    const value = BASE32_ALPHABET.indexOf(char);
+    if (value === -1) continue;
+    buffer = (buffer << 5) | value;
+    bitsCollected += 5;
+    if (bitsCollected >= 8) {
+      bitsCollected -= 8;
+      bytes.push((buffer >> bitsCollected) & 0xff);
+    }
+  }
+
+  return Buffer.from(bytes);
+}
+
 /**
- * Enrols the first seeded user in two-factor, encrypted the way the app does
- * (`encryptSecret`, `lib/auth/two-factor/encryption.ts`). Without
- * `TWO_FACTOR_ENCRYPTION_KEY` the app itself refuses to enable two-factor at
- * all (`server/two-factor/actions.ts`), so a throwaway key encrypts the row
- * instead — the printed secret then only authenticates until the process
- * exits, which is what "skipped" means below: not a missing row, a row whose
- * working secret was never actually usable.
+ * The current 6-digit TOTP code for an `otpauth://` URI Better Auth's
+ * `twoFactor` plugin just minted — RFC 4226 §5.3's dynamic truncation,
+ * against the URI's own `secret` parameter (BAUTH-11,
+ * docs/specs/core-better-auth.md).
  */
-export async function ensureTwoFactorUser(
-  prisma: PrismaClient,
-  user: User,
-  configuredKey: string | undefined = process.env.TWO_FACTOR_ENCRYPTION_KEY,
-): Promise<void> {
+function currentTotpCode(otpauthUri: string): string {
+  const query = otpauthUri.split("?")[1] ?? "";
+  const secretParam = new URLSearchParams(query).get("secret") ?? "";
+  const key = decodeBase32(secretParam);
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000 / 30)));
+
+  const digest = createHmac("sha1", key).update(counter).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const truncated =
+    ((digest[offset] & 0x7f) << 24) |
+    ((digest[offset + 1] & 0xff) << 16) |
+    ((digest[offset + 2] & 0xff) << 8) |
+    (digest[offset + 3] & 0xff);
+
+  return (truncated % 1_000_000).toString().padStart(6, "0");
+}
+
+/**
+ * Enrols the first seeded user in two-factor through Better Auth's own
+ * `twoFactor` plugin (BAUTH-11, docs/specs/core-better-auth.md) — enrolment
+ * is always available now, encrypted with `BETTER_AUTH_SECRET`, which every
+ * environment already requires.
+ */
+export async function ensureTwoFactorUser(prisma: PrismaClient, user: User): Promise<void> {
   const existing = await prisma.user.findUnique({ where: { id: user.id } });
-  if (existing?.twoFactorEnabledAt) {
+  if (existing?.twoFactorEnabled) {
     console.log(`  two-factor already enabled for ${user.email}`);
     return;
   }
 
-  const secret = generateTotpSecret();
-  if (!configuredKey) {
-    console.log(
-      "  TWO_FACTOR_ENCRYPTION_KEY is not set — encryption skipped in the sense that this secret " +
-        "will not be usable after this process exits; a throwaway key encrypts the row so it still exists.",
-    );
-  }
-  const encryptionKey = configuredKey ?? randomBytes(32).toString("base64");
+  const cookie = await createSessionCookie(user.id);
+  const headers = new Headers({ cookie: `${cookie.name}=${cookie.value}` });
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      twoFactorSecret: encryptSecret(secret, encryptionKey),
-      twoFactorEnabledAt: new Date(),
-    },
-  });
-  console.log(`  two-factor enabled for ${user.email} — TOTP secret: ${secret}`);
+  const enabled = await auth.api.enableTwoFactor({ body: { password: SEED_PASSWORD }, headers });
+  if (enabled.method !== "totp" || !enabled.totpURI) {
+    throw new Error("expected a TOTP enrolment");
+  }
+
+  await auth.api.verifyTOTP({ body: { code: currentTotpCode(enabled.totpURI) }, headers });
+
+  const secretParam = new URLSearchParams(enabled.totpURI.split("?")[1] ?? "").get("secret") ?? "";
+  console.log(`  two-factor enabled for ${user.email} — TOTP secret: ${secretParam}`);
+  console.log(`  recovery codes: ${enabled.backupCodes.join(", ")}`);
 }
 
 async function seedFavorites(prisma: PrismaClient, faker: Faker, users: User[]): Promise<void> {

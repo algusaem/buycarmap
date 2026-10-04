@@ -163,3 +163,36 @@ describe("verifyRegistration account creation", () => {
     expect(await prisma.pendingRegistration.count({ where: { email: "ada@example.com" } })).toBe(1);
   });
 });
+
+// BAUTH-7 (docs/specs/core-better-auth.md): registration keeps its own
+// server action, token table and behaviour (AUTH-1, 2), but once confirmed
+// it must now also create the Better Auth `credential` account row and sign
+// the new user in through a real session. `accounts.password` does not exist
+// on this database until the migration lands, so the raw query below throws
+// rather than returning an empty result — that thrown error is this test's
+// red state today, not a clean assertion mismatch.
+describe("BAUTH-7: confirming a registration creates a credential account and a session", () => {
+  it("BAUTH-7: one credential account row with the stored hash, and one session, for the new user", async () => {
+    await seedPending();
+
+    const result = await verifyRegistration(formData({ token: RAW_TOKEN }));
+    expect(result).toEqual({ success: true, email: "ada@example.com" });
+
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: "ada@example.com" } });
+
+    const accounts = await prisma.$queryRaw<
+      { provider: string; provider_account_id: string; password: string }[]
+    >`SELECT provider, provider_account_id, password FROM accounts WHERE provider_account_id = ${user.id} AND provider = 'credential'`;
+
+    expect(accounts).toHaveLength(1);
+    // Reused as-is: the password was hashed at submit time (AUTH-2), so
+    // confirmation never has to ask for it again.
+    expect(accounts[0]?.password).toBe("already-bcrypt-hashed");
+
+    const sessions = await prisma.$queryRaw<{ user_id: string }[]>`
+      SELECT user_id FROM sessions WHERE user_id = ${user.id}
+    `;
+
+    expect(sessions.length).toBeGreaterThan(0);
+  });
+});

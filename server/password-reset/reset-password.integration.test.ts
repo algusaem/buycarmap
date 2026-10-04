@@ -176,11 +176,15 @@ describe("resetPassword success path", () => {
   });
 
   it("AUTH-11: leaves two-factor enrolment untouched, so a reset cannot bypass it", async () => {
-    const encrypted = "v1:encrypted-secret";
     const { user } = await seedToken();
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { twoFactorSecret: encrypted, twoFactorEnabledAt: new Date() },
+    await prisma.user.update({ where: { id: user.id }, data: { twoFactorEnabled: true } });
+    const twoFactor = await prisma.twoFactor.create({
+      data: {
+        user: { connect: { id: user.id } },
+        secret: "v1:encrypted-secret",
+        backupCodes: "[]",
+        verified: true,
+      },
     });
 
     // Control of the mailbox is enough to reset a password. If the reset also
@@ -189,8 +193,8 @@ describe("resetPassword success path", () => {
     await resetPassword(validRequest());
 
     const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.twoFactorSecret).toBe(encrypted);
-    expect(found?.twoFactorEnabledAt).not.toBeNull();
+    expect(found?.twoFactorEnabled).toBe(true);
+    expect(await prisma.twoFactor.findUnique({ where: { id: twoFactor.id } })).not.toBeNull();
   });
 
   it("marks the token used and clears sessions in one transaction", async () => {

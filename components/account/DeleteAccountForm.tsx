@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth/auth-client";
 import { toast } from "sonner";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { TriangleAlert } from "lucide-react";
@@ -23,6 +24,7 @@ interface DeleteAccountFormProps {
 export function DeleteAccountForm({ hasPassword }: DeleteAccountFormProps) {
   const t = useTranslations();
   const messages = useMessages() as Translations;
+  const router = useRouter();
   const [confirmation, setConfirmation] = useState("");
   const [password, setPassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -53,7 +55,8 @@ export function DeleteAccountForm({ hasPassword }: DeleteAccountFormProps) {
     toast.success(t("account.danger.success"));
     // The session's user row is gone; sign out explicitly rather than waiting
     // for the next revalidation to notice and clear the cookie.
-    await signOut({ callbackUrl: "/" });
+    await authClient.signOut();
+    router.push("/");
   };
 
   return (

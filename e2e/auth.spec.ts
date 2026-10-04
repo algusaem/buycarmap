@@ -45,9 +45,11 @@ async function signOut(page: Page, name: string) {
   // middleware then still sees a token and bounces the next /login straight
   // back. Waiting for that POST's response is the one signal that is true
   // regardless of which URL the page started from.
+  // BAUTH-1 (docs/specs/core-better-auth.md), harness change: sign-out is now
+  // Better Auth's `/api/auth/sign-out`, not NextAuth's `/api/auth/signout`.
   const signedOut = page.waitForResponse(
     (response) =>
-      response.url().includes("/api/auth/signout") && response.request().method() === "POST",
+      response.url().includes("/api/auth/sign-out") && response.request().method() === "POST",
   );
   await page.getByRole("menuitem", { name: SIGN_OUT }).click();
   await signedOut;
@@ -238,7 +240,7 @@ test.describe("authenticated flows (real database)", () => {
     // The account was actually written to the database.
     expect(await userExists(email)).toBe(true);
 
-    // Session survives a full reload (JWT cookie).
+    // Session survives a full reload (server-side session cookie).
     await page.reload();
     await expect(navSavedCars(page)).toBeVisible();
 

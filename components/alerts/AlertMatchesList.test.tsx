@@ -11,14 +11,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/alerts/alert-1",
 }));
-// The matches are rendered with CarListingCard, which reads the session to
-// decide what its favorite control does.
-vi.mock("next-auth/react", () => ({
-  useSession: () => ({
-    data: { user: { id: "user-ada" } },
-    status: "authenticated",
-  }),
-}));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/server/favorites/actions", () => ({
   saveFavorite: vi.fn(async () => ({ success: true })),

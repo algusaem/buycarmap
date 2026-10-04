@@ -83,6 +83,12 @@ export async function completePasswordReset(
         version: { increment: 1 },
       },
     }),
+    // BAUTH-14: dual-write during the expand phase — Better Auth's sign-in
+    // reads the credential account's password, not `User.password`.
+    prisma.account.updateMany({
+      where: { userId: record.userId, provider: "credential" },
+      data: { password: hashedPassword },
+    }),
     prisma.passwordResetToken.update({
       where: { id: record.id },
       data: { usedAt: now },
