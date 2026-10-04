@@ -23,7 +23,7 @@ be a security incident rather than a bug.
 - [x] AUTH-5 · node — Changing a password revokes every session issued before it
 - [x] AUTH-6 · unit — Failed sign-ins are counted per account and cleared on success
 - [x] AUTH-7 · unit — A correct password alone does not sign in an account with two-factor enabled
-- [x] AUTH-8 · node — A TOTP code cannot be reused inside its own window
+- [x] AUTH-8 · node — Withdrawn 2026-10-04 (docs/specs/core-better-auth.md, BAUTH-12): A TOTP code cannot be reused inside its own window. Better Auth's `twoFactor` plugin keeps no replay store, and the owner accepted that loss when adopting it. `spec:check` only requires that some test title still *mentions* the id (`checkDeclaredCriteria`) and that the id stays declared here so a test mentioning it is not flagged as a dangling reference (`checkDanglingReferences`) — `scripts/core-better-auth.node.test.ts`'s own BAUTH-12 tests, which check that this line says "Withdrawn" and that no test *claims* AUTH-8 any more, satisfy the first without re-adding a behavioural test for the second.
 - [x] AUTH-9 · unit — One step of clock drift either way is accepted
 - [x] AUTH-10 · node — A recovery code works exactly once
 - [x] AUTH-11 · node — A password reset leaves two-factor enrolment intact

@@ -80,7 +80,7 @@ to do it in phases, each on its own branch and PR, each closed by `/check-all`.
 | 22 | Rate limiting in a Postgres table (0005) instead of `@upstash/ratelimit` | `RULES.md` §16; `STACK.md` §10 | Resolved in phase 10 |
 | 23 | Background work: a GitHub Actions cron draining a Postgres queue (0006) instead of `after()` + QStash | `STACK.md` §13 | Resolved in phase 10 |
 | 24 | Email through `lib/email/*` with string templates, without the `resend` SDK or react-email | `STACK.md` §1 | Resolved in phase 10 |
-| 25 | NextAuth 4 with stateless JWT sessions and a revocation clock (0004); no central `can()` permissions layer (the app has no roles; ownership is checked in each action) | `RULES.md` §10, §16; `STACK.md` §1, §10 | Phase 11 |
+| 25 | NextAuth 4 with stateless JWT sessions and a revocation clock (0004); no central `can()` permissions layer (the app has no roles; ownership is checked in each action) | `RULES.md` §10, §16; `STACK.md` §1, §10 | Resolved in phase 11 |
 | 26 | No staging environment; previews not on a seed-only Neon parent; EU regions not recorded | `STACK.md` §2, §12 | Phase 12 |
 | 27 | Coverage leaves out `scripts/` and the root `proxy.ts` (outside `include`) and excludes `lib/mock/**` and `**/index.ts` | `RULES.md` §3 (coverage exclusions) | Resolved in phase 7 |
 | 28 | The axe accessibility check disables the `color-contrast` rule (`e2e/a11y.spec.ts`) | `RULES.md` §22 item 3; `STACK.md` §14, §16 | Resolved in phase 9 |

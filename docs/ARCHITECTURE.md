@@ -165,36 +165,45 @@ what each upstream actually does.
 
 ## Path 2 — sign-in and revocation
 
-NextAuth 4 with JWT sessions. The interesting part is not signing in; it is
-signing *out* a session you cannot delete.
+Better Auth, with sessions stored in Postgres (no cookie cache). The
+interesting part is not signing in; it is that signing *out* a session means
+deleting the row, so revocation takes effect on the very next request rather
+than waiting on a clock.
 
 ```mermaid
 flowchart LR
-    L[Credentials] --> AZ[authorize]
-    AZ -->|password ok, 2FA ok| J[jwt callback]
-    J -->|stamps pwdAt| T[JWT cookie]
-    T --> R{re-read user<br/>every 5 min}
-    R -->|password changed<br/>or user gone| E[throw → cookie cleared]
-    R -->|still valid| T
+    L[Credentials] --> SI[auth.api.signInEmail]
+    SI -->|2FA is on| TFR[twoFactorRedirect<br/>challenge cookie via nextCookies]
+    TFR --> V[verifySignInTotp /<br/>verifySignInBackupCode]
+    SI -->|2FA is off| S[(Session row)]
+    V --> S
+    S --> GC[getCurrentUser]
+    GC -->|row deleted: sign-out,<br/>password change or reset| N[null]
+    GC -->|row present| OK[user]
 ```
 
-A JWT lives in the browser and cannot be revoked server-side, so
-`User.passwordChangedAt` acts as a **revocation clock** the `jwt` callback
-checks on every re-read. See
-[specs/auth-email-and-oauth.md › Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation)
-for the mechanism.
-
-**`proxy.ts` is UX, not authorization.** Next 16 renamed the `middleware` file
-convention to `proxy`. It decodes and signature-checks the JWT, which is enough
-to redirect a signed-out visitor away from `/account` or `/favorites` — but it
-does **not** run the `jwt` callback, so it cannot see revocations. Every server
-action independently calls `getCurrentUser()` from
-[`lib/auth/session.ts`](../lib/auth/session.ts), which does.
+**`proxy.ts` is UX, not authorization.** It checks only for the session
+cookie's presence, with `getSessionCookie` from `better-auth/cookies` — enough
+to redirect a signed-out visitor away from `/account` or `/favorites`, but it
+cannot see a session that was just revoked. Every server action independently
+calls `getCurrentUser()` from
+[`lib/auth/session.ts`](../lib/auth/session.ts), which calls
+`auth.api.getSession()` and does.
 
 **Never call `getServerSession` directly.** `getCurrentUser()` is the only
 authorization check that honours revocation.
 
-The rest — password policy, enumeration resistance, 2FA, email flows — is
+**Two-factor runs on Better Auth's own `twoFactor` plugin**
+([`lib/auth/auth.ts`](../lib/auth/auth.ts)). Enrolment, confirmation, disabling
+and regenerating recovery codes all call its endpoints
+([`server/two-factor/actions.ts`](../server/two-factor/actions.ts)); the
+sign-in step above does the same
+([`server/auth/actions.ts`](../server/auth/actions.ts)'s `verifySignInTotp`
+and `verifySignInBackupCode`). The plugin's own state lives in
+`users.two_factor_enabled` and the `two_factors` table — see
+[specs/core-better-auth.md](specs/core-better-auth.md) › BAUTH-11.
+
+The rest — password policy, enumeration resistance, email flows — is
 specified in [`specs/auth-email-and-oauth.md`](specs/auth-email-and-oauth.md);
 the orientation is under [Authentication](#authentication) below.
 
@@ -306,7 +315,7 @@ Spanish or English in components.
 | Path | Holds |
 | --- | --- |
 | `app/` | Routes, layouts, proxy route handlers |
-| `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/options.ts` until phase 11 — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
+| `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/auth.ts` — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
 | `components/map/` | The search + map feature |
 | `components/ui/` | Radix-wrapped primitives |
@@ -315,7 +324,7 @@ Spanish or English in components.
 | `lib/auth/` | Session, password policy, tokens, two-factor |
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
-| `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database, apart from the LAYOUT-7 exception, `lib/auth/options.ts` until phase 11 (see [specs/core-layout.md](specs/core-layout.md)) |
+| `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database, apart from the LAYOUT-7 exception, `lib/auth/auth.ts` (see [specs/core-layout.md](specs/core-layout.md)) |
 | `lib/listings/` | The pure search-merge logic: interleaving, the radius and model post-filters, the page-state advance |
 | `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
@@ -396,10 +405,8 @@ Four fields exist purely to make security properties work:
 
 | Field | Job |
 | --- | --- |
-| `passwordChangedAt` | The revocation clock the `jwt` callback checks against every token — see [specs/auth-email-and-oauth.md › Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation) |
-| `twoFactorSecret` | AES-256-GCM ciphertext, **not a hash** — verifying a TOTP code means recomputing the HMAC, so the secret must be recoverable. The key is `TWO_FACTOR_ENCRYPTION_KEY`, so the database alone is not enough |
-| `twoFactorEnabledAt` | Null while enrolment is half-finished. **Only this field gates login**, which is what stops a user locking themselves out mid-setup |
-| `twoFactorLastStep` | Highest accepted TOTP counter step. Anything at or below it is refused, so a code read over a shoulder cannot be replayed inside its own 30-second window |
+| `passwordChangedAt` | Bumped on every password change or reset, so `changePassword`/`resetPassword` know which sessions to keep when revoking "every other" one (AUTH-5). Better Auth's own sessions are server-side rows — revocation deletes them directly; there is no JWT callback re-checking a clock any more (ADR 0004, superseded) |
+| `twoFactorSecret`, `twoFactorEnabledAt`, `twoFactorLastStep` | The pre-cutover TOTP implementation's own columns, frozen since BAUTH-11 (docs/specs/core-better-auth.md) moved enrolment, sign-in and disabling onto Better Auth's `twoFactor` plugin — its own state lives in `users.two_factor_enabled` and the `two_factors` table instead. Kept until a later PR drops them (BAUTH-14) |
 
 #### Favorite
 
@@ -547,41 +554,52 @@ replayed it on a shadow database and it matched.
 ## Authentication
 
 **This section is deliberately short.**
-[`specs/auth-email-and-oauth.md`](specs/auth-email-and-oauth.md) covers
-authentication in full and is enforced by `spec:check`. Writing a second,
-unenforced account of the same system is the most likely way this documentation
-ends up confidently wrong.
+[`specs/auth-email-and-oauth.md`](specs/auth-email-and-oauth.md) and
+[`specs/core-better-auth.md`](specs/core-better-auth.md) cover authentication in
+full and are enforced by `spec:check`. Writing a second, unenforced account of
+the same system is the most likely way this documentation ends up confidently
+wrong.
 
 So: the map, the threat model in a paragraph, and where to read next.
 
 ### The pieces
 
+Better Auth (`lib/auth/auth.ts`) replaced NextAuth in phase 11
+([0018](decisions/0018-better-auth.md)) for sessions, sign-in and OAuth, with
+server-side Postgres sessions instead of a JWT and a revocation clock. The
+flows that stay stricter than Better Auth's own defaults — verify-first
+registration, the per-account lockout, the fail-closed breach check,
+POST-only confirmation links — keep their own server actions, and Better
+Auth's own HTTP endpoints for them are disabled (`BAUTH-6`) so a client
+cannot reach them around our code.
+
 ```mermaid
 flowchart TB
     subgraph entry [Ways in]
-        C[Credentials] --> AZ[server/auth/service.ts]
-        O[Google · GitHub] --> SI[signIn callback]
+        C[Credentials] --> SI[auth.api.signInEmail]
+        O[Google · GitHub] --> SP[Better Auth social providers]
     end
-    AZ --> TF{2FA enabled?}
-    TF -->|yes| V[server/two-factor/service.ts]
-    TF -->|no| J[jwt callback]
-    V --> J
-    SI --> J
-    J --> S[JWT cookie]
+    SI -->|2FA on| TFR[twoFactorRedirect]
+    TFR --> V[verifySignInTotp /<br/>verifySignInBackupCode]
+    SI -->|2FA off| S[Postgres session row]
+    V --> S
+    SP --> S
     S --> GU[getCurrentUser]
 ```
 
 | Area | Lives in |
 | --- | --- |
-| NextAuth config, callbacks, providers | `lib/auth/options.ts` |
-| Credentials verification | `server/auth/service.ts` — `authorizeCredentials()` |
+| Better Auth instance, hooks, providers, the `twoFactor` plugin | `lib/auth/auth.ts` |
+| The browser-side client (`authClient`) | `lib/auth/auth-client.ts` |
+| Sign-in and its two-factor follow-ups | `server/auth/actions.ts` — `signIn()`, `verifySignInTotp()`, `verifySignInBackupCode()` |
 | The only authorization check | `lib/auth/session.ts` — `getCurrentUser()` |
+| The one home for ownership checks | `lib/auth/permissions.ts` — `can()`, `ownedBy()` |
 | Password rules | `lib/auth/password-policy.ts`, `password-strength.ts`, `pwned.ts` |
 | Hashing | `lib/auth/hash.ts` — bcryptjs, 12 rounds |
 | Tokens | `lib/auth/tokens.ts` — SHA-256, single-use |
-| TOTP | `lib/auth/two-factor/` — built on `node:crypto`, no dependency |
+| Two-factor enrolment, disabling, recovery codes | `server/two-factor/actions.ts` — calls the `twoFactor` plugin's own endpoints (`enableTwoFactor`, `verifyTOTP`, `disableTwoFactor`, `generateBackupCodes`) |
 | Rate limiting | `server/rate-limit/service.ts` over `lib/platform/rate-limit.ts` — Upstash Redis |
-| Route redirects | `proxy.ts` |
+| Route redirects | `proxy.ts` — `getSessionCookie`, a presence check only |
 | Email | `emails/` (react-email) sent by `lib/platform/email.ts` — the Resend SDK |
 
 ### The threat model in a paragraph
@@ -592,12 +610,16 @@ existence check so timing cannot substitute for the message, and registration
 that writes a `PendingRegistration` rather than a `User` until the inbox is
 proven. Passwords are gated by length and blocklists rather than composition
 rules (NIST SP 800-63B), with the breach check **failing open** so an outage
-cannot block signups. Sessions are stateless JWTs, revoked off the
-`passwordChangedAt` clock (see
-[specs/auth-email-and-oauth.md › Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation)).
-TOTP secrets are
-*encrypted*, not hashed, because verification recomputes the HMAC — which means
-`TWO_FACTOR_ENCRYPTION_KEY` is the thing a database leak alone does not give up.
+cannot block signups. Sessions are rows in Postgres, read on every request by
+`getCurrentUser()` — revoking one (`signOutEverywhere`, a password change or
+reset) ends it on the very next request, not after a JWT revalidation window
+(see
+[specs/core-better-auth.md › Sessions and sign-in](specs/core-better-auth.md#sessions-and-sign-in)).
+Two-factor runs entirely on Better Auth's own `twoFactor` plugin (BAUTH-11):
+TOTP secrets and backup codes are encrypted with `BETTER_AUTH_SECRET`, the
+same secret every environment already requires, so enrolment needs no key of
+its own any more. A TOTP code's own replay window (AUTH-8) is withdrawn as
+part of this phase — see [0018](decisions/0018-better-auth.md).
 
 ### Rules that are easy to break
 
@@ -606,15 +628,16 @@ The defences a plausible-looking change can quietly remove are listed in
 its [Permissions](specs/auth-email-and-oauth.md#permissions) section — a
 password reset leaves two-factor enrolment intact (AUTH-11), and an email
 change goes to the new address with the current password required to start it
-(AUTH-13) — and its
-[Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation)
-subsection, which bumping `passwordChangedAt` depends on.
+(AUTH-13) — and [specs/core-better-auth.md › Direct endpoint safety](specs/core-better-auth.md#direct-endpoint-safety),
+which the disabled Better Auth paths and `can()`/`ownedBy()` ownership checks
+depend on.
 
 ### Read next
 
 | For | Go to |
 | --- | --- |
 | Everything: policy, flows, 2FA, OAuth linking, enumeration | [`specs/auth-email-and-oauth.md`](specs/auth-email-and-oauth.md) |
+| Better Auth, sessions, the `can()` layer | [`specs/core-better-auth.md`](specs/core-better-auth.md), [0018](decisions/0018-better-auth.md) |
 | What the token tables defend against | [Auth tokens](#auth-tokens) |
 | Sign-in and revocation as a request path | [Path 2](#path-2--sign-in-and-revocation) |
 | Configuring email, OAuth and 2FA | [Environment variables](#environment-variables) |
@@ -1264,8 +1287,10 @@ throws at runtime rather than degrading.
 [`lib/env.ts`](../lib/env.ts) is built on **`@t3-oss/env-nextjs`**'s
 `createEnv`, validated at import, which throws at boot naming every invalid or
 missing variable rather than failing later. It is Edge-safe (no `dotenv`, no
-`node:*` import), so `proxy.ts` reads `APP_URL`, `NEXTAUTH_URL` and
-`NEXTAUTH_SECRET` through it too. No other file under `app/`, `components/`,
+`node:*` import), so `proxy.ts` can import it too — though today it only
+calls `isDevelopmentRuntime()` from there; routing decisions come from the
+Better Auth session cookie (`getSessionCookie`), not from reading
+`BETTER_AUTH_URL` or `BETTER_AUTH_SECRET` directly. No other file under `app/`, `components/`,
 `lib/` or `server/` reads `process.env` directly. `SKIP_ENV_VALIDATION=1`
 skips validation entirely — only `pnpm lint` (through `cross-env`) and CI's
 lint job set it. The flags and URLs derived from these variables
@@ -1279,16 +1304,15 @@ Required:
 | Variable | Notes |
 | --- | --- |
 | `DATABASE_URL` | Neon connection string. `lib/db/prisma.ts` builds the client with **`PrismaNeon`** over this (pooled) URL when `VERCEL` is set — every Vercel deployment — and with `PrismaPg` otherwise |
-| `NEXTAUTH_SECRET` | Signs every session JWT. `openssl rand -base64 32`. Under 32 chars logs a warning. **Rotating it signs everyone out** |
+| `BETTER_AUTH_SECRET` | Signs every session. `openssl rand -base64 32`. Under 32 chars logs a warning. **Rotating it signs everyone out.** In Vercel, set it to the *current* `NEXTAUTH_SECRET` value rather than a new one — the alert unsubscribe HMAC keys on it, and a new secret would stop already-sent links matching their stored hash ([ADR 0018](decisions/0018-better-auth.md)) |
 
 Optional — each disables a feature rather than blocking startup:
 
 | Variable | Absent means |
 | --- | --- |
-| `NEXTAUTH_URL` | Also decides `useSecureCookies`. Must be `https://` in production or session cookies ship without the Secure flag |
+| `BETTER_AUTH_URL` | Also decides `useSecureCookies`. Must be `https://` in production or session cookies ship without the Secure flag |
 | `RESEND_API_KEY` + `EMAIL_FROM` | Mailer no-ops, so password-reset links are never delivered. Registration falls back to immediate account creation, **which leaks whether an address is registered** |
-| `APP_URL` | Falls back to `NEXTAUTH_URL` → `https://$VERCEL_URL` → `http://localhost:3000`. Only set it when the canonical domain differs from `NEXTAUTH_URL` |
-| `TWO_FACTOR_ENCRYPTION_KEY` | Two-factor is hidden and enrolment refused. **Changing it makes every existing enrolment unreadable** |
+| `APP_URL` | Falls back to `BETTER_AUTH_URL` → `https://$VERCEL_URL` → `http://localhost:3000`. Only set it when the canonical domain differs from `BETTER_AUTH_URL` |
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google button does not render. Both halves of the pair are required |
 | `GITHUB_ID` + `GITHUB_SECRET` | GitHub button does not render. Both halves of the pair are required |
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | `lib/platform/rate-limit.ts` disables rate limiting — every request is allowed and one warning is logged per process. Required when `VERCEL_ENV` is `production` or `preview`; the build fails without them there |

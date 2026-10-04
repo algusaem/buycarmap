@@ -62,7 +62,7 @@ In scope:
   - `lib/**` imports neither `server/**` nor `app/**`, except under LAYOUT-7 and LAYOUT-10;
   - a feature imports another feature only through that feature's `service.ts` or `schema.ts`;
   - there are no circular dependencies.
-- [x] LAYOUT-7 · unit — The NextAuth exception is one edge set: `lib/auth/options.ts` may import `lib/db/**` and `server/auth/service.ts`. It is written in the dependency-cruiser config with a comment naming ADR 0007 row 25, and no other file may use it. Its `signIn` and `jwt` callbacks may read the user through `lib/db/prisma` until phase 11.
+- [x] LAYOUT-7 · unit — The Better Auth exception is one edge set: `lib/auth/auth.ts` may import `lib/db/**` and `server/rate-limit/service.ts`. It is written in the dependency-cruiser config with a comment naming ADR 0007 row 25, and no other file may use it. Resolved in phase 11: the NextAuth-era options module is gone, and the same exception now covers `lib/auth/auth.ts`'s Prisma adapter, `databaseHooks` and AUTH-6 lockout hook.
 - [x] LAYOUT-8 · unit — A `route.ts` under `app/api/**` may import a feature's `service.ts`, and every other file under `app/**` stays bound by LAYOUT-6. A route handler authenticates on its own (the cron secret, an unsubscribe token) because it has no user session and cannot go through `actions.ts` (owner's decision, 2026-09-29).
 - [x] LAYOUT-9 · unit — `pnpm gen feature <name>` scaffolds `server/<name>/{queries,actions,service,schema}.ts` and `docs/specs/<name>.md` from `docs/specs/_template.md`. It refuses a name whose folder or spec file already exists and writes nothing.
 - [x] LAYOUT-10 · unit — `lib/hooks/**` may import `actions.ts` and `schema.ts` from `server/**`, just as `components/**` may: a hook owns a request lifecycle, and the request is a Server Action (owner's decision, 2026-09-29). Every other file under `lib/**` stays bound by LAYOUT-6.
@@ -100,10 +100,10 @@ In scope:
 - **LAYOUT-7**:
 
   ```text
-  lib/auth/options.ts  →  @/lib/db/prisma             →  clean
-  lib/auth/options.ts  →  @/server/auth/service       →  clean
+  lib/auth/auth.ts     →  @/lib/db/prisma             →  clean
+  lib/auth/auth.ts     →  @/server/rate-limit/service →  clean
   lib/auth/session.ts  →  @/lib/db/prisma             →  reported
-  lib/auth/options.ts  →  @/server/favorites/service  →  reported
+  lib/auth/auth.ts     →  @/server/favorites/service  →  reported
   ```
 - **LAYOUT-8**:
 
@@ -132,7 +132,7 @@ In scope:
   ```text
   lib/geo/x.ts                           →  import type from @/server/favorites/schema  →  reported
   components/X.tsx                       →  @prisma/client                              →  reported
-  lib/auth/options.ts                    →  @prisma/client                              →  reported
+  lib/auth/auth.ts                       →  @prisma/client                              →  reported
   server/favorites/actions.node.test.ts  →  @/lib/db/prisma                             →  clean
   ```
 
@@ -215,9 +215,9 @@ Eight actions consume rate limiting, and several consume the auth core. Forbiddi
 
 The alert cron and the unsubscribe link have no user session. They authenticate with the cron secret and a hashed token, so they cannot go through `actions.ts`, whose actions start from `getCurrentUser()`. Like Server Actions, they are server entry points that validate and authorize on their own. `RULES.md` §9 and `STACK.md` §13 keep route handlers for exactly these cases.
 
-### A single, named exception for NextAuth until phase 11 (owner's decision, 2026-09-28)
+### A single, named exception, now for Better Auth (owner's decision, 2026-09-28; superseded in phase 11)
 
-`authOptions` needs the Prisma adapter and `authorize`. `CLAUDE.md` keeps it in `lib/auth/options.ts` so that server components can import it without dragging in the route. The exception covers one file and two targets, and phase 11 deletes it along with NextAuth.
+NextAuth's `authOptions` needed the Prisma adapter and `authorize`; phase 11 replaced it with Better Auth's instance, which needs the Prisma adapter and the rate-limit service for the same reason. `CLAUDE.md` keeps it in `lib/auth/auth.ts` so that server components can import it without dragging in the route. The exception still covers one file and two targets.
 
 ### Hooks may call Server Actions (owner's decision, 2026-09-29)
 

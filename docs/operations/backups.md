@@ -66,10 +66,13 @@ As measured through the Neon API on 2026-09-28:
    branch; a link consumed after the timestamp would otherwise be redeemable
    again, and the user can simply request a new one. Then set
    `passwordChangedAt` to the current time for every user on the restored
-   branch. That revokes every session issued before the restore (the `jwt`
-   callback compares it with the token's `pwdAt`, `lib/auth/options.ts`) —
-   within five minutes, since the callback re-reads `passwordChangedAt` at most
-   that often — so every user signs in again.
+   branch. **This step is stale since phase 11** (BAUTH-2,
+   [specs/core-better-auth.md](../specs/core-better-auth.md)): sessions are
+   now rows in `sessions` (read by `lib/auth/auth.ts`'s Better Auth
+   instance), not `passwordChangedAt`-gated JWTs, so revoking every session
+   issued before the restore means deleting the restored branch's `sessions`
+   rows for the affected users instead — the exact procedure needs
+   confirming against the live restore flow before the next real restore.
 8. **Put it into service**, one of two ways:
    - **Restore `main` from it**, so production keeps its branch and connection
      string. Neon can restore a branch from another branch or from a point in

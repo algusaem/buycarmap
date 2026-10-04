@@ -26,11 +26,15 @@ behind, is in [deletion.md](deletion.md). Who else receives personal data is in
 | `User` | `createdAt` | When the account was created | Until the account is deleted |
 | `TwoFactorRecoveryCode` | `codeHash` | SHA-256 of a recovery code, for signing in without the authenticator | Until the account is deleted (cascade) |
 | `TwoFactorRecoveryCode` | `usedAt` | Makes each code single-use | Until the account is deleted (cascade) |
+| `TwoFactor` | `secret` | Better Auth's own TOTP secret for the `twoFactor` plugin (BAUTH-11), encrypted by the plugin — not readable from the database alone | Until two-factor is disabled, re-enrolled, or the account is deleted (cascade) |
+| `TwoFactor` | `backupCodes` | The plugin's own encrypted backup codes, for signing in without the authenticator | Until two-factor is disabled, re-enrolled, or the account is deleted (cascade) |
 | `Account` | `providerAccountId` | The user's id at Google or GitHub, linking the OAuth identity | Until the provider is unlinked or the account is deleted (cascade) |
 | `Account` | `refresh_token` | OAuth token stored by the NextAuth adapter | Until the provider is unlinked or the account is deleted (cascade) |
 | `Account` | `access_token` | OAuth token stored by the NextAuth adapter | Until the provider is unlinked or the account is deleted (cascade) |
 | `Account` | `id_token` | OAuth token stored by the NextAuth adapter | Until the provider is unlinked or the account is deleted (cascade) |
-| `Session` | `sessionToken` | Required by the NextAuth adapter; never written while sessions are JWTs | Not written. A row would go with the account (cascade) |
+| `Session` | `sessionToken` | Better Auth's session token (phase 11, [0018](../decisions/0018-better-auth.md)) | Until the session expires, is revoked, or the account is deleted (cascade) |
+| `Session` | `ipAddress` | Lets a user see and revoke their own active sessions from `/account` (BAUTH-4) | The session's own lifetime — removed with it, or with the account (cascade) |
+| `Session` | `userAgent` | Same purpose: the device/browser label shown next to each session on `/account` | The session's own lifetime — removed with it, or with the account (cascade) |
 | `VerificationToken` | `identifier` | Required by the NextAuth adapter (its magic-link table); unused | Not written |
 | `VerificationToken` | `token` | Required by the NextAuth adapter (its magic-link table); unused | Not written |
 | `PasswordResetToken` | `tokenHash` | SHA-256 of a password-reset link | Until it expires; the expired row is deleted at the next opportunistic prune (2% of calls), so there is no fixed upper bound; also removed with the account (cascade) |

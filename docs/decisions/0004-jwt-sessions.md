@@ -1,5 +1,12 @@
 # 0004 — JWT sessions
 
+Superseded by [0018](0018-better-auth.md), 2026-10-04: Better Auth's
+server-side Postgres sessions replace the `passwordChangedAt` revocation
+clock this ADR chose, so revocation is immediate rather than bounded by the
+five-minute revalidation described below. Kept for its "what it costs" /
+"what would change our mind" record of why that clock existed in the first
+place.
+
 ## Decided
 
 NextAuth with `session.strategy: "jwt"`. The session lives in a signed cookie;
