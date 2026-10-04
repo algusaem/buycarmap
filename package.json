@@ -2,7 +2,7 @@
   "name": "buycarmap",
   "version": "0.2.0",
   "private": true,
-  "packageManager": "pnpm@11.28.1",
+  "packageManager": "pnpm@11.28.4",
   "engines": {
     "node": ">=22.18.0"
   },
