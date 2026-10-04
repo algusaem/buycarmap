@@ -24,7 +24,7 @@ The core's answer has three parts:
 
 This is phase 5 of `docs/decisions/0007-adopt-core-rules.md`: row 10, the phase-5 half of row 2 (dependency-cruiser, plop) and the phase-5 half of row 27 (`proxy.ts` in coverage).
 
-**The core's `src/` tree is not adopted.** The code keeps its root layout (`app/`, `components/`, `lib/`, `interfaces/`, `types/`, `e2e/`, `test/`, `proxy.ts`), and the server layer sits beside it in a root `server/`. Every core rule that names `src/` is applied to the root path instead.
+**The core's `src/` tree is not adopted.** The code keeps its root layout (`app/`, `components/`, `lib/`, `interfaces/`, `e2e/`, `test/`, `proxy.ts`), and the server layer sits beside it in a root `server/`. Every core rule that names `src/` is applied to the root path instead.
 
 In scope:
 
@@ -38,7 +38,7 @@ In scope:
 
 `unit` means a `*.node.test.ts` under `scripts/` that reads the working tree, or runs the tool under test on fixtures.
 
-- [x] LAYOUT-1 · unit — The root layout stays. `app/`, `components/`, `lib/`, `interfaces/`, `types/`, `e2e/`, `test/` and `proxy.ts` are at the repository root, and no tracked file sits under `src/`. ADR 0012 records the layout as a permanent deviation from `STACK.md` §6 (owner's decision, 2026-09-29).
+- [x] LAYOUT-1 · unit — The root layout stays. `app/`, `components/`, `lib/`, `interfaces/`, `e2e/`, `test/` and `proxy.ts` are at the repository root, and no tracked file sits under `src/`. ADR 0012 records the layout as a permanent deviation from `STACK.md` §6 (owner's decision, 2026-09-29).
 - [x] LAYOUT-2 · unit — Vitest's coverage `include` covers `proxy.ts`. The coverage thresholds are unchanged.
 - [x] LAYOUT-3 · unit — `lib/hooks/useListingsSearch.ts` holds only the request lifecycle. The pure merge logic lives in `lib/listings/` and the hook imports it from there. That logic is the interleaving, the radius and model post-filters and the page-state advance. MAP-1..22 keep passing unchanged.
 - [x] LAYOUT-4 · unit — `docs-check` does not require the source paths cited in `docs/decisions/` to exist, because an ADR is a dated record of the code as it was when the decision was taken. It still checks the ADRs' links. Every other backticked source path in the README, `CLAUDE.md`, `docs/`, `.claude/commands/` and the `Implemented` specs resolves (owner's decision, 2026-09-29).
