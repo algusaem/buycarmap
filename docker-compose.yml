@@ -1,10 +1,24 @@
-# Local Postgres for development and `pnpm db:branch`'s per-branch databases.
-# Matches the major version Neon runs (17.11 measured 2026-09-30) so what
-# passes locally runs in production. Published on 5433, not 5432, so it never
-# collides with a Postgres already running on the default port.
+# Local Postgres for development and `pnpm db:branch`'s per-branch databases
+# (docs/decisions/0017-upstash-qstash-react-email.md; docs/specs/core-integrations.md,
+# INT-5).
+#
+# Postgres matches the major version Neon runs (17.11 measured 2026-09-30) so
+# what passes locally runs in production. Published on 5433, not 5432, so it
+# never collides with a Postgres already running on the default port.
 #
 # pnpm db:up    # start (pnpm db:up)
 # pnpm db:down  # stop, keeping the volume — every branch database lives in it
+#
+# No local Redis: `@upstash/ratelimit`'s Lua scripts carry a Redis flag that
+# is an Upstash-only extension, which a real local Redis rejects outright, so
+# a local container never exercised the real sliding-window algorithm anyway.
+# Without `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` (see
+# `.env.example`), `lib/platform/rate-limit.ts` disables rate limiting
+# locally — one warning, every request allowed — and its own tests
+# (`server/rate-limit/service.integration.test.ts`) exercise the real
+# sliding-window math against an in-memory fake instead
+# (`test/fakes/ratelimit.ts`). Production and preview use the values from the
+# Upstash console (console.upstash.com), set in Vercel, never here.
 
 services:
   postgres:

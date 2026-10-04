@@ -24,6 +24,14 @@ const workerDatabase = `buycarmap_w${process.env.VITEST_POOL_ID ?? "0"}`;
 
 process.env.DATABASE_URL = `postgresql://${user}:${password}@${host}:${port}/${workerDatabase}`;
 
+// INT-5 (docs/specs/core-integrations.md): no local Upstash-compatible Redis
+// runs for this project any more, so UPSTASH_REDIS_REST_URL/TOKEN stay unset
+// here — lib/platform/rate-limit.ts disables rate limiting for the whole
+// integration run (one warning, allow every request) rather than reaching a
+// Redis whose Lua scripts a local OSS Redis would reject anyway.
+// server/rate-limit/service.integration.test.ts exercises the real
+// sliding-window math against an in-memory fake instead.
+
 async function ensureWorkerDatabase(): Promise<void> {
   const admin = new Client({ host, port, user, password, database: "postgres" });
   await admin.connect();

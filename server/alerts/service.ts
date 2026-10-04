@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
 import { appUrl, isEmailConfigured } from "@/lib/app-config";
-import { sendEmail } from "@/lib/email/client";
-import { renderAlertEmail } from "@/lib/email/templates/alert-emails";
+import { createElement } from "react";
+import { sendEmail } from "@/lib/platform/email";
+import { AlertDigestEmail, subject as alertDigestSubject } from "@/emails/AlertDigestEmail";
+import { renderEmail } from "@/emails/render";
 import { DEFAULT_LOCALE, isValidLocale } from "@/lib/i18n/config";
 import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { notDeleted } from "@/lib/db/soft-delete";
@@ -603,20 +605,21 @@ async function deliverPendingMatches(summary: RunSummary): Promise<void> {
       alert.user.locale && isValidLocale(alert.user.locale) ? alert.user.locale : DEFAULT_LOCALE;
 
     const token = unsubscribeTokenFor(alert.unsubscribeSubject);
-    const email = await renderAlertEmail({
+    const digestProps = {
       locale,
       alertLabel: alert.label,
       matches: matches.map((match) => ({ ...match, id: match.listingId })),
       unsubscribeUrl: `${appUrl}/api/alerts/unsubscribe?token=${token}`,
       alertUrl: `${appUrl}/alerts/${alert.id}`,
-    });
+    };
+    const { html, text } = await renderEmail(createElement(AlertDigestEmail, digestProps));
 
     // One mail per user per run carrying every match, not one per listing.
     const sent = await sendEmail({
       to: alert.user.email,
-      subject: email.subject,
-      html: email.html,
-      text: email.text,
+      subject: alertDigestSubject(locale, digestProps),
+      html,
+      text,
     });
 
     if (!sent) continue;

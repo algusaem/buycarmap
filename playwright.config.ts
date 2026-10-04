@@ -51,10 +51,21 @@ const UPSTREAM_ENV = {
   MILANUNCIOS_BASE_URL: UPSTREAM_URL,
 };
 
+// INT-5 (docs/specs/core-integrations.md): no local Upstash-compatible Redis
+// — `@upstash/ratelimit`'s Lua scripts carry an Upstash-only Redis flag that
+// a local Redis rejects outright
+// (docs/decisions/0017-upstash-qstash-react-email.md). Blanked here, rather
+// than left to the `.env` merge, so e2e is deterministic regardless of what
+// is in the developer's `.env`: without these, `lib/platform/rate-limit.ts`
+// disables rate limiting (one warning, every request allowed) instead of
+// reaching a Redis that was never going to run the real algorithm anyway.
+const NO_REDIS = { UPSTASH_REDIS_REST_URL: "", UPSTASH_REDIS_REST_TOKEN: "" };
+
 const serverEnv = dbEnabled
   ? {
       ...NO_EMAIL,
       ...UPSTREAM_ENV,
+      ...NO_REDIS,
       DATABASE_URL: process.env.DATABASE_URL ?? "",
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? E2E_FALLBACK_SECRET,
       NEXTAUTH_URL: BASE_URL,
@@ -62,6 +73,7 @@ const serverEnv = dbEnabled
   : {
       ...NO_EMAIL,
       ...UPSTREAM_ENV,
+      ...NO_REDIS,
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
       NEXTAUTH_SECRET: E2E_FALLBACK_SECRET,
       NEXTAUTH_URL: BASE_URL,

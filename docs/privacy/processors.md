@@ -22,11 +22,10 @@ those cells read "phase 12".
 | Wallapop | phase 12 | The search filters, and `latitude`/`longitude` on every search: the chosen location, the browser's position or the Spain-centre fallback (`lib/wallapop/client.ts`) | phase 12 |
 | coches.net | phase 12 | The search filters | phase 12 |
 | Milanuncios | phase 12 | The search filters | phase 12 |
-| GitHub Actions | phase 12 | Runs the alert cron, which POSTs to `/api/alerts/run`. The response it receives carries no user fields | phase 12 |
 | Sentry | EU (Frankfurt, Germany) | Error events: stack traces, the request URL and the `request_id` correlation tag only. No cookies, headers, request bodies, query strings, user identity (session, email, IP), database query data or stack-frame local variables are sent — `dataCollection` (`lib/sentry-privacy.ts`, `lib/sentry.ts`) turns all of them off, SDK 11's replacement for `sendDefaultPii: false`. Retention is Sentry's plan default. Inert with no `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` set | phase 12 |
+| Upstash | EU (Frankfurt) | **Redis** (`lib/platform/rate-limit.ts`): the client IP on every rate-limit key, and an `:email:` segment as the sha256 hex of the lowercased address — never the address itself. Kept at most the longest rule's window (1 hour, `RATE_LIMITS.resetRequestPerIp`/`resetRequestPerEmail`/`changePasswordPerUser` etc. in `server/rate-limit/service.ts`), since each key carries its own TTL. **QStash** (`scripts/qstash-schedule.mjs`, `lib/platform/qstash.ts`): only the alert runner's schedule (cron, destination URL, retry count) and, per invocation, the fact that `/api/alerts/run` was called — no user fields ever reach it. [ADR 0017](../decisions/0017-upstash-qstash-react-email.md) | phase 12 |
 
-Upstash and Cloudinary, which `STACK.md` §12 lists, are not used by this
-project.
+Cloudinary, which `STACK.md` §12 lists, is not used by this project.
 
 The upstream marketplaces are reached through this app's proxy routes, so they
 see the server's address, not the user's.

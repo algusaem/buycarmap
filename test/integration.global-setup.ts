@@ -7,6 +7,17 @@ import type { TestProject } from "vitest/node";
 // its own database from that template (test/setup.integration.ts), so
 // integration test files run in parallel without sharing rows.
 //
+// INT-5 (docs/specs/core-integrations.md): no local Upstash-compatible Redis
+// is started for this project. `@upstash/ratelimit`'s Lua scripts carry a
+// Redis flag that is an Upstash-only extension
+// (docs/decisions/0017-upstash-qstash-react-email.md); a real local Redis
+// rejects it outright, so a local container never exercised the real
+// sliding-window algorithm anyway. Without the `UPSTASH_*` variables,
+// `lib/platform/rate-limit.ts` disables rate limiting (one warning, allow
+// every request); `server/rate-limit/service.integration.test.ts` exercises
+// the real sliding-window math against an in-memory fake instead
+// (`test/fakes/ratelimit.ts`).
+//
 // The container's connection details are handed to every worker through
 // Vitest's `provide`/`inject`, declared below so `inject(...)` is typed.
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignoreDependencies": ["pino-pretty", "testcontainers"],
-  "entry": ["e2e/fixtures/upstream-server.ts"],
+  "entry": ["e2e/fixtures/upstream-server.ts", "scripts/render-emails.ts"],
   "ignore": [".claude/**"]
 }

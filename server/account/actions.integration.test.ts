@@ -15,7 +15,7 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
     retryAfterMs: 0,
   })),
 }));
-vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
+vi.mock("@/lib/platform/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
 import { getCurrentUser } from "@/lib/auth/session";

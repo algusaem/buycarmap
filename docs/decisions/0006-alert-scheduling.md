@@ -1,5 +1,11 @@
 # 0006 — Scheduling the alert runner
 
+**Superseded by [0017](0017-upstash-qstash-react-email.md).** Phase 10 moved the
+schedule onto QStash: GitHub's workflow drift and its 60-day inactivity disable
+(both named below under "What this costs") are exactly what QStash does not do.
+Kept for the reasoning that still applies: why an in-process timer, pg_cron and
+moving off Vercel were all rejected.
+
 ## Decided
 
 A GitHub Actions cron (`.github/workflows/alerts.yml`) on `*/5 * * * *`, running
@@ -93,6 +99,6 @@ scheduler choice as reversible is what makes it safe to start here.
 ## See also
 
 - [`specs/alerts.md`](../specs/alerts.md) — the criteria this serves
-- [ARCHITECTURE.md › Alerts](../ARCHITECTURE.md#alerts)
+- [ARCHITECTURE.md › Background work (alerts)](../ARCHITECTURE.md#background-work-alerts)
 - [0005](0005-postgres-rate-limiting.md) — the Postgres-over-a-service reasoning
   this reuses

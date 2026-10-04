@@ -63,12 +63,27 @@ const SPAIN_CENTER = { lat: 40.0, lng: -3.5 };
 
 // Base URLs come from lib/env.ts (FRONT-22): default to the real hosts, and
 // only ever overridden in e2e, which points them at the local mock upstream
-// server (e2e/fixtures/upstream-server.ts).
-const WALLAPOP_URL = `${env.WALLAPOP_API_BASE_URL}/api/v3/search/section`;
-const WALLAPOP_MODELS_URL = `${env.WALLAPOP_API_BASE_URL}/api/v3/search/filters/model`;
-const COCHESNET_SEARCH_URL = `${env.COCHESNET_API_BASE_URL}/search/listing`;
-const COCHESNET_MODELS_URL = `${env.COCHESNET_API_BASE_URL}/models`;
-const MILANUNCIOS_BASE = env.MILANUNCIOS_BASE_URL;
+// server (e2e/fixtures/upstream-server.ts). lib/env.ts's zod `.default()`
+// only applies when t3-env actually validates — `SKIP_ENV_VALIDATION` (set by
+// `pnpm lint`'s cross-env calls, and liable to leak into a later command in
+// the same shell on Windows) makes it return the raw environment values
+// unvalidated instead, so `env.*` can be `undefined` here even though its
+// declared type says `string`. These real-host constants are the same
+// fallback, applied again at the point of use so a skipped validation never
+// turns into `new URL(undefined)`.
+const DEFAULT_WALLAPOP_API_BASE_URL = "https://api.wallapop.com";
+const DEFAULT_COCHESNET_API_BASE_URL = "https://web.gw.coches.net";
+const DEFAULT_MILANUNCIOS_BASE_URL = "https://www.milanuncios.com";
+
+const WALLAPOP_API_BASE_URL = env.WALLAPOP_API_BASE_URL ?? DEFAULT_WALLAPOP_API_BASE_URL;
+const COCHESNET_API_BASE_URL = env.COCHESNET_API_BASE_URL ?? DEFAULT_COCHESNET_API_BASE_URL;
+const MILANUNCIOS_BASE_URL = env.MILANUNCIOS_BASE_URL ?? DEFAULT_MILANUNCIOS_BASE_URL;
+
+const WALLAPOP_URL = `${WALLAPOP_API_BASE_URL}/api/v3/search/section`;
+const WALLAPOP_MODELS_URL = `${WALLAPOP_API_BASE_URL}/api/v3/search/filters/model`;
+const COCHESNET_SEARCH_URL = `${COCHESNET_API_BASE_URL}/search/listing`;
+const COCHESNET_MODELS_URL = `${COCHESNET_API_BASE_URL}/models`;
+const MILANUNCIOS_BASE = MILANUNCIOS_BASE_URL;
 
 const COCHESNET_PAGE_SIZE = 40;
 const REQUEST_TIMEOUT_MS = 15_000;

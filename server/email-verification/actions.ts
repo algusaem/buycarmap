@@ -3,13 +3,19 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/hash";
 import { hashToken } from "@/lib/auth/tokens";
+import { createElement } from "react";
 import { appUrl } from "@/lib/app-config";
-import { sendEmail } from "@/lib/email/client";
+import { sendEmail } from "@/lib/platform/email";
+import { EmailChangeEmail, subject as emailChangeSubject } from "@/emails/EmailChangeEmail";
 import {
-  renderEmailChangeEmail,
-  renderEmailChangedNoticeEmail,
-  renderVerifyEmailAddressEmail,
-} from "@/lib/email/templates/auth-emails";
+  EmailChangedNoticeEmail,
+  subject as emailChangedNoticeSubject,
+} from "@/emails/EmailChangedNoticeEmail";
+import {
+  VerifyEmailAddressEmail,
+  subject as verifyEmailAddressSubject,
+} from "@/emails/VerifyEmailAddressEmail";
+import { renderEmail } from "@/emails/render";
 import { requiredString } from "@/lib/form-data";
 import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { findPasswordAndEmail } from "@/server/account/service";
@@ -64,12 +70,18 @@ export async function requestEmailVerification(): Promise<EmailVerificationResul
 
   const token = await replaceVerificationToken(asUserId(user.id), null);
   const locale = await getCurrentLocale();
-  const { subject, html, text } = renderVerifyEmailAddressEmail(
+  const props = {
     locale,
-    `${appUrl}/confirm-email?token=${encodeURIComponent(token)}`,
-  );
+    verifyUrl: `${appUrl}/confirm-email?token=${encodeURIComponent(token)}`,
+  };
+  const { html, text } = await renderEmail(createElement(VerifyEmailAddressEmail, props));
 
-  await sendEmail({ to: record.email, subject, html, text });
+  await sendEmail({
+    to: record.email,
+    subject: verifyEmailAddressSubject(locale, props),
+    html,
+    text,
+  });
 
   return { success: true };
 }
@@ -138,12 +150,13 @@ export async function requestEmailChange(formData: FormData): Promise<EmailVerif
   if (!existing) {
     const token = await replaceVerificationToken(asUserId(user.id), newEmail);
     const locale = await getCurrentLocale();
-    const { subject, html, text } = renderEmailChangeEmail(
+    const props = {
       locale,
-      `${appUrl}/confirm-email?token=${encodeURIComponent(token)}`,
-    );
+      confirmUrl: `${appUrl}/confirm-email?token=${encodeURIComponent(token)}`,
+    };
+    const { html, text } = await renderEmail(createElement(EmailChangeEmail, props));
 
-    await sendEmail({ to: newEmail, subject, html, text });
+    await sendEmail({ to: newEmail, subject: emailChangeSubject(locale, props), html, text });
   }
 
   return { success: true };
@@ -192,9 +205,12 @@ export async function confirmEmail(formData: FormData): Promise<EmailVerificatio
   // change was not theirs. Best effort — the change already succeeded.
   if (record.newEmail) {
     const locale = await getCurrentLocale();
+    const { html, text } = await renderEmail(createElement(EmailChangedNoticeEmail, { locale }));
     await sendEmail({
       to: previousEmail,
-      ...renderEmailChangedNoticeEmail(locale),
+      subject: emailChangedNoticeSubject(locale, { locale }),
+      html,
+      text,
     });
   }
 

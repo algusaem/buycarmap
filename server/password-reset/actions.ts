@@ -2,9 +2,14 @@
 
 import { hashPassword, verifyPassword } from "@/lib/auth/hash";
 import { validateNewPassword } from "@/lib/auth/password-policy";
+import { createElement } from "react";
 import { hashToken } from "@/lib/auth/tokens";
-import { sendEmail } from "@/lib/email/client";
-import { renderPasswordChangedEmail } from "@/lib/email/templates/auth-emails";
+import { sendEmail } from "@/lib/platform/email";
+import {
+  PasswordChangedEmail,
+  subject as passwordChangedSubject,
+} from "@/emails/PasswordChangedEmail";
+import { renderEmail } from "@/emails/render";
 import { requiredString } from "@/lib/form-data";
 import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { logger } from "@/lib/logger";
@@ -140,8 +145,13 @@ export async function resetPassword(formData: FormData): Promise<PasswordResetRe
   await resetRateLimit(loginEmailRateKey(record.user.email));
 
   const locale = await getCurrentLocale();
-  const notice = renderPasswordChangedEmail(locale);
-  await sendEmail({ to: record.user.email, ...notice });
+  const { html, text } = await renderEmail(createElement(PasswordChangedEmail, { locale }));
+  await sendEmail({
+    to: record.user.email,
+    subject: passwordChangedSubject(locale, { locale }),
+    html,
+    text,
+  });
 
   return { success: true };
 }

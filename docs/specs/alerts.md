@@ -98,7 +98,7 @@ than as documentation.
 
 - **ALERT-4** — No session; createAlert({brand:"Audi", model:"A3", maxPrice:20000, latitude:40.4168, longitude:-3.7038, distanceInKm:50}, "Audi A3 under 20k") → { success: false, error: "unauthenticated" }; 0 alerts, 0 criteria rows.
 - **ALERT-5** — Ada (user-ada) owns "Ada's search"; Grace (user-grace) calls deleteAlert(<Ada's id>) → success: true (nothing leaked), Ada still has 1 alert.
-- **ALERT-9** — ALERTS_CRON_SECRET="cron-secret"; POST /api/alerts/run with no Authorization → 401, no source searched, job stays "pending"; "Bearer not-the-secret" → 401; "Bearer cron-secret" → 200.
+- **ALERT-9** — POST /api/alerts/run with no valid `Upstash-Signature` → 401, no source searched, job stays "pending"; a valid signature → 200.
 - **ALERT-26** — Alert stored with unsubscribeTokenHash = sha256("raw-token-ada"); GET /api/alerts/unsubscribe?token=raw-token-ada, no session → 200, that alert active=false; unsubscribing raw-token-one leaves the raw-token-two alert active.
 - **ALERT-27** — GET ?token=some-token-nobody-issued → 200, Ada's alert stays active; token=garbage returns the same status and body as token=raw-token-ada.
 
@@ -208,9 +208,10 @@ alert belonging to a different user (ALERT-5). Every server action calls
 `getCurrentUser()` first (see Contracts › Server actions); `setLocale` no-ops for
 a signed-out caller (ALERT-33).
 
-The run endpoint is a machine caller: it requires the shared secret
-`ALERTS_CRON_SECRET` in an `Authorization: Bearer` header, compared in constant
-time, and not a user session (ALERT-9). The unsubscribe link needs no session:
+The run endpoint is a machine caller: it requires a request QStash itself
+signed (verified against the `Upstash-Signature` header, `lib/platform/qstash.ts`;
+docs/specs/core-integrations.md INT-7), and not a user session (ALERT-9). The
+unsubscribe link needs no session:
 its token is a bearer credential that deactivates exactly the alert it was
 issued for (ALERT-26), and an unknown, malformed or already-used token changes
 nothing (ALERT-27).
@@ -326,8 +327,10 @@ one worker. Skipping means worker two takes the next job instead of waiting.
 
 `app/api/alerts/run/route.ts` — the only new route, because this is a machine
 caller and not a user mutation, so the "prefer server actions" rule does not
-apply. The run itself is `runAlerts` in `server/alerts/service.ts`. Authorised by a constant-time comparison against `ALERTS_CRON_SECRET` in
-an `Authorization: Bearer` header (ALERT-9), **not** by `getCurrentUser()`.
+apply. The run itself is `runAlerts` in `server/alerts/service.ts`. Authorised
+by `lib/platform/qstash.ts`'s `verifyQstashSignature` against the
+`Upstash-Signature` header (ALERT-9; INT-7, docs/specs/core-integrations.md),
+**not** by `getCurrentUser()`.
 
 Returns a summary rather than `204`, because ALERT-31 and ALERT-25 are only
 observable if the run says what it did:
@@ -362,7 +365,7 @@ they made a mistake (ALERT-38).
 
 | Variable | Absent means |
 | --- | --- |
-| `ALERTS_CRON_SECRET` | The run endpoint refuses every request, so alerts never fire. Optional, like every other feature flag in `lib/env.ts` — it disables a feature rather than blocking boot |
+| `QSTASH_CURRENT_SIGNING_KEY` + `QSTASH_NEXT_SIGNING_KEY` | The run endpoint refuses every request (no signature can ever verify), so alerts never fire. Optional, like every other feature flag in `lib/env.ts` — it disables a feature rather than blocking boot |
 
 Delivery additionally needs `RESEND_API_KEY` + `EMAIL_FROM`; without them
 ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
@@ -383,17 +386,21 @@ ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
 
 ### Scheduling
 
-`.github/workflows/alerts.yml`, `*/5 * * * *`, a matrix of K jobs each POSTing
-to the run endpoint with the secret. Public repository, so Actions minutes are
-unlimited; the alert count does not affect the workflow's cost because the
-workflow only ever makes one request per job.
+A QStash schedule, `*/5 * * * *`, POSTing to the run endpoint with a request
+QStash itself signs (`lib/platform/qstash.ts`; INT-7,
+docs/specs/core-integrations.md). Originally a GitHub Actions workflow
+(a matrix of K jobs each POSTing with a shared secret) — superseded in phase
+10, see
+[`0017-upstash-qstash-react-email.md`](../decisions/0017-upstash-qstash-react-email.md).
 
-**This needs an ADR** —
+**This needed an ADR** —
 [`0005-postgres-rate-limiting.md`](../decisions/0005-postgres-rate-limiting.md)
-currently says, under "Rows accumulate", that there is no scheduler and no cron
-should be added. That is scoped to pruning rate-limit rows, but a reader will
-land on it and conclude the two contradict. `docs/decisions/0006-alert-scheduling.md`
-must record the choice and amend that line to say what it actually governs.
+said, under "Rows accumulate", that there is no scheduler and no cron
+should be added. That was scoped to pruning rate-limit rows, but a reader would
+land on it and conclude the two contradict.
+[`0006-alert-scheduling.md`](../decisions/0006-alert-scheduling.md) (itself
+now superseded by 0017) recorded the choice and amended that line to say what
+it actually governs.
 
 ### i18n
 
@@ -558,7 +565,7 @@ which is the one thing this feature must not do.
 
 The tempting design polls, and emails, in one step. It has a bug that loses
 mail: `sendEmail` never throws and returns `false` on failure
-([`lib/email/client.ts`](../../lib/email/client.ts)), so a Resend outage would
+([`lib/platform/email.ts`](../../lib/platform/email.ts)), so a Resend outage would
 leave listings marked seen with nobody told, and they would never be new again.
 The user silently misses exactly the cars they asked to be told about.
 

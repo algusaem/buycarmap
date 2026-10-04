@@ -482,5 +482,64 @@
   "errors": {
     "pageLoadFailed": "We could not load this page. Please try again.",
     "retry": "Retry"
+  },
+  "transactionalEmail": {
+    "passwordReset": {
+      "subject": "Reset your BuyCarMap password",
+      "heading": "Reset your password",
+      "intro": "We received a request to set a new password for your BuyCarMap account. Click the button below to choose one.",
+      "button": "Choose a new password",
+      "expiry": "This link expires in one hour and can only be used once.",
+      "ignore": "If you didn't request this, you can safely ignore this email — your password will not change.",
+      "fallback": "If the button doesn't work, paste this link into your browser:"
+    },
+    "passwordChanged": {
+      "subject": "Your BuyCarMap password was changed",
+      "heading": "Your password was changed",
+      "intro": "The password for your BuyCarMap account was just changed. You have been signed out on all other devices.",
+      "action": "If this wasn't you, reset your password immediately and contact us."
+    },
+    "existingAccount": {
+      "subject": "Someone tried to sign up with your email",
+      "heading": "You already have an account",
+      "intro": "Someone just tried to create a BuyCarMap account with this email address. An account already exists, so nothing was created.",
+      "button": "Sign in instead",
+      "ignore": "If this was you and you've forgotten your password, use the reset link on the sign-in page.",
+      "fallback": "If the button doesn't work, paste this link into your browser:"
+    },
+    "verifyRegistration": {
+      "subject": "Confirm your BuyCarMap account",
+      "heading": "Confirm your account",
+      "intro": "Someone — hopefully you — signed up for BuyCarMap with this email address. Confirm below to finish creating your account.",
+      "button": "Confirm my account",
+      "expiry": "This link expires in 24 hours and can only be used once.",
+      "ignore": "If you didn't sign up, you can safely ignore this email. No account has been created.",
+      "fallback": "If the button doesn't work, paste this link into your browser:"
+    },
+    "verifyEmailAddress": {
+      "subject": "Verify your BuyCarMap email address",
+      "heading": "Verify your email address",
+      "intro": "Confirm this address so we can reach you about your account — for example if you ever need to reset your password.",
+      "button": "Verify my email",
+      "expiry": "This link expires in 24 hours and can only be used once.",
+      "ignore": "If you didn't request this, you can safely ignore this email. Nothing will change.",
+      "fallback": "If the button doesn't work, paste this link into your browser:"
+    },
+    "emailChange": {
+      "subject": "Confirm your new BuyCarMap email address",
+      "heading": "Confirm your new address",
+      "intro": "A request was made to move a BuyCarMap account to this email address. Confirm below to complete the change.",
+      "button": "Confirm this address",
+      "expiry": "This link expires in 24 hours and can only be used once.",
+      "ignore": "If you weren't expecting this, ignore this email. Nothing will change and no account will be moved to this address.",
+      "fallback": "If the button doesn't work, paste this link into your browser:"
+    },
+    "emailChangedNotice": {
+      "subject": "Your BuyCarMap email address was changed",
+      "heading": "Your email address was changed",
+      "intro": "The email address on your BuyCarMap account was changed to a different one. You are receiving this at your previous address so you know it happened.",
+      "action": "If this wasn't you, someone may have access to your account. Reset your password immediately and contact us."
+    },
+    "footer": "BuyCarMap — second-hand cars on a map"
   }
 }

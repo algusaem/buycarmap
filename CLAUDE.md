@@ -128,6 +128,7 @@ pnpm db:down          # Stop it, keeping the volume
 pnpm db:branch        # Give the current git branch its own database inside it (see below)
 pnpm db:branch:rm     # Delete this branch's database when the work is merged
 pnpm db:seed          # Fill an empty local database with development data (Docker must be running)
+pnpm qstash:schedule  # Create or update the QStash schedule that drains alerts (production setup)
 ```
 
 **Local verification is `pnpm check`**, plus `pnpm check:full` when a user flow, auth, the map or an
@@ -233,7 +234,7 @@ account management, two-factor, optional OAuth. **Favorites are built** — mode
 server actions, `/favorites`, and reconciliation into search results.
 
 **Car alerts are built.** Saved criteria (deduplicated across users), a
-Postgres queue drained by a GitHub Actions cron every five minutes, email
+Postgres queue drained every five minutes by a QStash schedule, email
 digests, `/alerts` and `/alerts/[id]`, one-click unsubscribe. See
 `docs/specs/alerts.md`.
 
@@ -366,9 +367,13 @@ Any change here needs approval first (`RULES.md` §1).
   the **new** address with the current password required to start the change.
 - **Return codes, never prose** (`AUTH_ERROR`, in `lib/auth/errors.ts`). Forms resolve them with
   `translateAuthError(t, code)`; pass `setError` the raw code.
-- **Do not add a scheduler.** Expired tokens are pruned opportunistically by
-  `maybePruneExpiredAuthRows` in `server/auth/service.ts`, the same way
-  `server/rate-limit/service.ts` prunes its rows.
+- **Do not add a scheduler.** Expired tokens are still pruned opportunistically by
+  `maybePruneExpiredAuthRows` in `server/auth/service.ts`, on roughly 2% of the
+  requests that already write a token row — only *when* it runs changed: it
+  registers the work with `after()` so it runs after the response, instead of
+  being awaited inline. QStash is the owner-approved replacement for the old
+  GitHub Actions alert cron (`docs/decisions/0017-upstash-qstash-react-email.md`),
+  not a new scheduler for auth pruning.
 - **Do not weaken enumeration resistance.** Identical responses, dummy-hash
   timing equalization, and bcrypt run *before* any existence check. Registration
   is verify-first when email is configured — `register` writes a

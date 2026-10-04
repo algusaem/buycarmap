@@ -23,7 +23,7 @@ let emailConfigured = true;
 vi.mock("@/lib/env", () => ({
   // NEXTAUTH_SECRET keys the unsubscribe-token HMAC, so the runner cannot build
   // a link without it.
-  env: { ALERTS_CRON_SECRET: "cron-secret", NEXTAUTH_SECRET: "test-secret" },
+  env: { NEXTAUTH_SECRET: "test-secret" },
 }));
 
 vi.mock("@/lib/app-config", () => ({
@@ -33,10 +33,21 @@ vi.mock("@/lib/app-config", () => ({
   appUrl: "https://buycarmap.test",
 }));
 
-vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
+// Harness change (docs/specs/core-integrations.md, INT-13/decision 6):
+// server/alerts/service.ts now sends through lib/platform/email.ts, not the
+// deleted lib/email/client.ts — same mock shape, same call-site assertions.
+vi.mock("@/lib/platform/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("@/server/alerts/search", () => ({ searchAllSources: vi.fn() }));
+// docs/specs/core-integrations.md, INT-7: /api/alerts/run is meant to accept
+// only a request QStash itself signed, verified through this module. It does
+// not exist as a dependency of route.ts yet (lib/platform/qstash.ts is a
+// stub), so mocking it here changes nothing about today's behaviour — which
+// is exactly what makes the INT-7 cases below fail as assertions rather than
+// pass by accident.
+vi.mock("@/lib/platform/qstash", () => ({ verifyQstashSignature: vi.fn(async () => true) }));
 
-import { sendEmail } from "@/lib/email/client";
+import { sendEmail } from "@/lib/platform/email";
+import { verifyQstashSignature } from "@/lib/platform/qstash";
 import { searchAllSources } from "@/server/alerts/search";
 import { POST } from "./route";
 
@@ -140,6 +151,7 @@ beforeEach(async () => {
   GRACE = await createUser({ email: "grace@example.com", locale: "es" });
   vi.mocked(sendEmail).mockClear().mockResolvedValue(true);
   vi.mocked(searchAllSources).mockClear();
+  vi.mocked(verifyQstashSignature).mockClear().mockResolvedValue(true);
   sourcesReturn();
 });
 
@@ -148,8 +160,14 @@ afterEach(() => {
 });
 
 describe("authorisation", () => {
-  it("ALERT-9: refuses a request with no shared secret and does no work", async () => {
+  // Harness change (docs/specs/core-integrations.md, INT-7): the route no
+  // longer checks a shared bearer secret at all — every ALERT-9 case here now
+  // simulates "unauthorised" by mocking verifyQstashSignature's answer,
+  // rather than the Authorization header. Expected values (still 401/401/200)
+  // are unchanged.
+  it("ALERT-9: refuses a request with no valid signature and does no work", async () => {
     const { job } = await seedSubscribedCriteria();
+    vi.mocked(verifyQstashSignature).mockResolvedValueOnce(false);
 
     const response = await run(null);
 
@@ -159,19 +177,69 @@ describe("authorisation", () => {
     expect(found?.status).toBe("pending");
   });
 
-  it("ALERT-9: refuses a request with the wrong secret", async () => {
+  it("ALERT-9: refuses a request with the wrong signature", async () => {
     await seedSubscribedCriteria();
+    vi.mocked(verifyQstashSignature).mockResolvedValueOnce(false);
 
-    const response = await run("not-the-secret");
+    const response = await run(null);
 
     expect(response.status).toBe(401);
     expect(searchAllSources).not.toHaveBeenCalled();
   });
 
-  it("ALERT-9: accepts the correct secret", async () => {
+  it("ALERT-9: accepts a valid signature", async () => {
     await seedSubscribedCriteria();
 
     expect((await run()).status).toBe(200);
+  });
+});
+
+describe("INT-7 (docs/specs/core-integrations.md): QStash signature verification", () => {
+  it("INT-7: a wrong or missing QStash signature is refused even with the right bearer secret", async () => {
+    const { job } = await seedSubscribedCriteria();
+    vi.mocked(verifyQstashSignature).mockResolvedValueOnce(false);
+
+    const response = await run();
+
+    expect(response.status).toBe(401);
+    expect(searchAllSources).not.toHaveBeenCalled();
+    const found = await prisma.alertPollJob.findUnique({ where: { id: job.id } });
+    expect(found?.status).toBe("pending");
+  });
+
+  it("INT-7: a valid QStash signature is accepted with no bearer secret at all", async () => {
+    await seedSubscribedCriteria();
+    vi.mocked(verifyQstashSignature).mockResolvedValueOnce(true);
+
+    const response = await run(null);
+
+    expect(response.status).toBe(200);
+  });
+});
+
+describe("INT-11 (docs/specs/core-integrations.md): the runner's behaviour is unchanged", () => {
+  it("INT-11: a full run authorised only by a valid QStash signature still drains a job and creates a match", async () => {
+    const { criteria, alert } = await seedSubscribedCriteria();
+    vi.mocked(verifyQstashSignature).mockResolvedValue(true);
+    sourcesReturn(makeMatchListing({ id: "wallapop-new1" }));
+
+    // No Authorization header at all — mirrors ALERT-15's expected values
+    // ("an unseen listing becomes a match for the subscriber"), with the
+    // request authorised only by the (mocked) QStash signature.
+    const response = await POST(
+      new NextRequest("http://localhost:3000/api/alerts/run", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(200);
+    const matches = await matchesFor(alert.id);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({
+      listingId: "wallapop-new1",
+      title: "Audi A3 2.0 TDI",
+      price: 14500,
+      url: "https://es.wallapop.com/item/audi-a3-abc123",
+    });
+    expect((await seenFor(criteria.id)).map((row) => row.listingId)).toEqual(["wallapop-new1"]);
   });
 });
 

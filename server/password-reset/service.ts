@@ -1,7 +1,9 @@
+import { createElement } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { PASSWORD_RESET_TTL_MS, generateToken, hashToken, tokenExpiry } from "@/lib/auth/tokens";
-import { sendEmail } from "@/lib/email/client";
-import { renderPasswordResetEmail } from "@/lib/email/templates/auth-emails";
+import { sendEmail } from "@/lib/platform/email";
+import { PasswordResetEmail, subject as passwordResetSubject } from "@/emails/PasswordResetEmail";
+import { renderEmail } from "@/emails/render";
 import { appUrl } from "@/lib/app-config";
 import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import type { UserId } from "@/lib/ids";
@@ -40,12 +42,11 @@ export async function issueResetToken(userId: UserId, email: string): Promise<vo
   });
 
   const locale = await getCurrentLocale();
-  const { subject, html, text } = renderPasswordResetEmail(
-    locale,
-    `${appUrl}/reset-password?token=${encodeURIComponent(token)}`,
-  );
+  const resetUrl = `${appUrl}/reset-password?token=${encodeURIComponent(token)}`;
+  const props = { locale, resetUrl };
+  const { html, text } = await renderEmail(createElement(PasswordResetEmail, props));
 
-  await sendEmail({ to: email, subject, html, text });
+  await sendEmail({ to: email, subject: passwordResetSubject(locale, props), html, text });
 }
 
 export async function findPasswordResetToken(tokenHash: string) {

@@ -1,5 +1,12 @@
 # 0005 — Rate limiting in Postgres
 
+**Superseded by [0017](0017-upstash-qstash-react-email.md).** Phase 10 moved rate
+limiting onto Upstash Redis — the "no Redis" reasoning below no longer holds now
+that phase 11's Better Auth needs Redis anyway, and Vercel previews sharing
+production's limits (the cost this ADR accepted) is exactly what 0017 fixes.
+Kept for the reasoning that still applies elsewhere: the atomic-upsert-over-
+read-then-write argument, and failing open rather than closed.
+
 ## Decided
 
 `lib/rate-limit.ts`, backed by the `RateLimit` table: fixed windows, one row per

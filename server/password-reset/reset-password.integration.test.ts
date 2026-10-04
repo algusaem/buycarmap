@@ -17,12 +17,12 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   })),
   resetRateLimit: vi.fn(async () => undefined),
 }));
-vi.mock("@/lib/email/client", () => ({ sendEmail: vi.fn(async () => true) }));
+vi.mock("@/lib/platform/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
 
 import { verifyPassword } from "@/lib/auth/hash";
 import { consumeRateLimit, resetRateLimit } from "@/server/rate-limit/service";
-import { sendEmail } from "@/lib/email/client";
+import { sendEmail } from "@/lib/platform/email";
 import { resetPassword } from "./actions";
 
 const NEW_PASSWORD = "harbour-lentil-quilt";
