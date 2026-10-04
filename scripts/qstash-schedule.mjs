@@ -53,7 +53,9 @@ export async function main({
     return 1;
   }
 
-  const qstash = client ?? new Client({ token });
+  // QSTASH_URL picks the account's region (e.g. https://qstash-eu-central-1.upstash.io);
+  // without it the SDK uses its default endpoint.
+  const qstash = client ?? new Client({ token, baseUrl: env.QSTASH_URL });
   const destination = `${appUrl}/api/alerts/run`;
 
   // A schedule's `retries` is only compared when the listing actually reports
