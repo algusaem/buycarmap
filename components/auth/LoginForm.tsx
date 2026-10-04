@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
+import { signIn, verifySignInBackupCode, verifySignInTotp } from "@/server/auth/actions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -40,10 +40,14 @@ function safeRedirectTarget(callbackUrl: string | null): string {
   return callbackUrl;
 }
 
-export function LoginForm() {
+interface LoginFormProps {
+  /** Which OAuth providers are configured server-side (lib/app-config.ts). */
+  oauthProviders: string[];
+}
+
+export function LoginForm({ oauthProviders }: LoginFormProps) {
   const t = useTranslations();
   const messages = useMessages() as Translations;
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = safeRedirectTarget(searchParams.get("callbackUrl"));
 
@@ -52,6 +56,19 @@ export function LoginForm() {
   // A rejected OAuth sign-in redirects here with ?error=. Without this the
   // user would land back on the login page with no explanation at all.
   const oauthError = searchParams.get("error");
+
+  // Security review fix: Better Auth's own implicit-link refusal
+  // (oauth2/link-account.mjs, reached when `accountLinking.requireLocalEmailVerified`
+  // or our own `databaseHooks.account.create.before` blocks the link) returns a
+  // bare string that `api/routes/callback.mjs` turns into one of these two
+  // `?error=` codes by joining it on underscores — there is no
+  // OAUTH_CALLBACK_ERROR_CODES constant for either, since that mapping runs
+  // after the fact. Explicit linking is not offered today, so the other
+  // link-only codes (`email_does_not_match`,
+  // `account_already_linked_to_different_user`, only reachable through
+  // `/link-social`) never fire here.
+  const isOAuthLinkBlocked =
+    oauthError === "account_not_linked" || oauthError === "unable_to_link_account";
 
   const {
     register,
@@ -62,35 +79,56 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: LoginInput) => {
-    const result = await signIn("credentials", {
-      email: data.email,
-      password: data.password,
-      // Empty on the first attempt; the field only appears once the server
-      // says this account has two-factor enabled.
-      totp: data.totp ?? "",
-      redirect: false,
-    });
+  // Once the server has asked for a second factor, submitting the same form
+  // finishes that challenge instead of re-sending the password — BAUTH-11
+  // (docs/specs/core-better-auth.md), Better Auth's `twoFactor` plugin
+  // checks a TOTP code and a recovery code through two different endpoints,
+  // so the field's shape (six digits vs. a formatted recovery code) picks
+  // which one this calls.
+  const submitTwoFactorCode = async (data: LoginInput) => {
+    const code = (data.totp ?? "").trim();
+    // No email (BAUTH-3, security review fix): the signed two-factor cookie
+    // from the prior sign-in call is what identifies the account, so sending
+    // one here would only add a free way to enumerate accounts.
+    const formData = new FormData();
+    formData.set("code", code);
 
-    // The password was right and a code is needed. Reveal the field rather
-    // than showing an error — nothing has gone wrong yet.
-    if (result?.error === AUTH_ERROR.totpRequired) {
-      setNeedsTwoFactor(true);
-      return;
-    }
+    const verify = /^\d{6}$/.test(code) ? verifySignInTotp : verifySignInBackupCode;
+    const result = await verify(formData);
 
-    if (result?.error === AUTH_ERROR.totpInvalid) {
-      setNeedsTwoFactor(true);
+    if (!result.success) {
+      if ("error" in result && result.error === AUTH_ERROR.rateLimited) {
+        toast.error(t("authErrors.rateLimited"));
+        return;
+      }
       setError("totp", { message: AUTH_ERROR.totpInvalid });
       return;
     }
 
-    if (result?.error) {
-      // `authorize` returns null for both a wrong password and an unknown
-      // account, which arrives as the opaque "CredentialsSignin" — so the
-      // generic message here is the whole point, not a shortcut. Rate limiting
-      // is the one case worth naming, since it tells the user to wait rather
-      // than to keep guessing, and reveals nothing about the account.
+    toast.success(t("auth.signInSuccess"));
+    window.location.href = redirectTo;
+  };
+
+  const submitCredentials = async (data: LoginInput) => {
+    const formData = new FormData();
+    formData.set("email", data.email);
+    formData.set("password", data.password);
+
+    const result = await signIn(formData);
+
+    if ("twoFactorRequired" in result) {
+      // The password was right and a code is needed. Reveal the field rather
+      // than showing an error — nothing has gone wrong yet.
+      setNeedsTwoFactor(true);
+      return;
+    }
+
+    if (!result.success) {
+      // A wrong password and an unknown account answer identically — so the
+      // generic message here is the whole point, not a shortcut. Rate
+      // limiting is the one case worth naming, since it tells the user to
+      // wait rather than to keep guessing, and reveals nothing about the
+      // account.
       toast.error(
         result.error === AUTH_ERROR.rateLimited
           ? t("authErrors.rateLimited")
@@ -100,9 +138,19 @@ export function LoginForm() {
     }
 
     toast.success(t("auth.signInSuccess"));
-    router.push(redirectTo);
-    router.refresh();
+
+    // The session was created server-side (server/auth/actions.ts's signIn),
+    // not through authClient — so Better Auth's client only refetches a
+    // session on one of its own mutation paths (sign-in/sign-out/etc. called
+    // through `authClient` itself) or on a fresh mount. Neither happens from
+    // a Next.js client-side `router.push`, so every `authClient.useSession()`
+    // reader (Navbar, HeroContent, CarListingCard, useFavorites) would keep
+    // rendering signed-out. A full navigation forces that fresh mount.
+    window.location.href = redirectTo;
   };
+
+  const onSubmit = (data: LoginInput) =>
+    needsTwoFactor ? submitTwoFactorCode(data) : submitCredentials(data);
 
   return (
     <motion.div {...fadeInUp}>
@@ -125,9 +173,7 @@ export function LoginForm() {
               className="mb-4 rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-muted-foreground"
               role="alert"
             >
-              {oauthError === "AccessDenied"
-                ? t("authErrors.oauthLinkBlocked")
-                : t("authErrors.generic")}
+              {isOAuthLinkBlocked ? t("authErrors.oauthLinkBlocked") : t("authErrors.generic")}
             </p>
           )}
 
@@ -211,7 +257,7 @@ export function LoginForm() {
 
           {/* Renders nothing — divider included — when no OAuth provider is
               configured, so the layout has no orphaned separator. */}
-          <OAuthButtons callbackUrl={redirectTo} />
+          <OAuthButtons providers={oauthProviders} callbackUrl={redirectTo} />
         </CardContent>
 
         <CardFooter className="flex-col gap-4 border-t border-border/50 pt-6">

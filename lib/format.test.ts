@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMileage, formatPrice } from "./format";
+import { formatMileage, formatPrice, parseDeviceLabel } from "./format";
 
 // FRONT-11 (docs/specs/core-frontend.md) worked examples. Each expected
 // string was independently derived by running the equivalent
@@ -25,6 +25,37 @@ describe("formatPrice", () => {
 
   it("FRONT-11: formats euros for the English locale with the symbol first and a comma thousands separator", () => {
     expect(formatPrice(12500, "en")).toBe("€12,500");
+  });
+});
+
+// BAUTH-4 (docs/specs/core-better-auth.md): the "Active sessions" list on
+// /account reads both fields off a real `User-Agent` string.
+describe("parseDeviceLabel", () => {
+  it("BAUTH-4: reads Chrome on Windows", () => {
+    expect(
+      parseDeviceLabel(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
+      ),
+    ).toEqual({ browser: "Chrome", os: "Windows" });
+  });
+
+  it("BAUTH-4: reads Safari on iOS, not macOS, even though the UA string says 'like Mac OS X'", () => {
+    expect(
+      parseDeviceLabel("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1"),
+    ).toEqual({ browser: "Safari", os: "iOS" });
+  });
+
+  it("BAUTH-4: reads Edge, not Chrome, on an Edge UA string", () => {
+    expect(
+      parseDeviceLabel(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36 Edg/120.0",
+      ),
+    ).toEqual({ browser: "Edge", os: "Windows" });
+  });
+
+  it("BAUTH-4: returns null for both fields on an empty or unrecognised string", () => {
+    expect(parseDeviceLabel("")).toEqual({ browser: null, os: null });
+    expect(parseDeviceLabel("some-internal-script/1.0")).toEqual({ browser: null, os: null });
   });
 });
 

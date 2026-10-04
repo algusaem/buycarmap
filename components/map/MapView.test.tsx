@@ -18,15 +18,19 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 import { toast } from "sonner";
-// CarListingCard reads the session to decide what its favorite control does,
-// and calls the favorites actions. Neither is what these tests are about.
-// Typed so a test can widen it to an authenticated session; inferring from the
-// default would pin `data` to null.
-const useSession = vi.fn<() => { data: { user: { id: string } } | null; status: string }>(() => ({
-  data: null,
-  status: "unauthenticated",
+// CarListingCard reads the session (authClient.useSession(), Better Auth) to
+// decide what its favorite control does, and calls the favorites actions.
+// Neither is what these tests are about. Typed so a test can widen it to an
+// authenticated session; inferring from the default would pin `data` to null.
+const useSession = vi.fn<() => { data: { user: { id: string } } | null; isPending: boolean }>(
+  () => ({
+    data: null,
+    isPending: false,
+  }),
+);
+vi.mock("@/lib/auth/auth-client", () => ({
+  authClient: { useSession: () => useSession() },
 }));
-vi.mock("next-auth/react", () => ({ useSession: () => useSession() }));
 vi.mock("@/server/favorites/actions", () => ({
   saveFavorite: vi.fn(),
   removeFavorite: vi.fn(),
@@ -211,7 +215,7 @@ describe("MapView favorites", () => {
   it("FAV-16: shows an already-saved listing as saved in the results", async () => {
     useSession.mockReturnValue({
       data: { user: { id: "user-ada" } },
-      status: "authenticated",
+      isPending: false,
     });
     // The Wallapop fixture normalises to this id.
     vi.mocked(listFavorites).mockResolvedValue({
@@ -230,7 +234,7 @@ describe("MapView favorites", () => {
   });
 
   it("FAV-16: leaves listings unsaved for a signed-out visitor", async () => {
-    useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+    useSession.mockReturnValue({ data: null, isPending: false });
     // Call history accumulates across this file; the assertion below is about
     // what this render did, not what the previous test did.
     vi.mocked(listFavorites).mockClear();

@@ -193,7 +193,7 @@ describe("source layout", () => {
         typeOnly: true,
       },
       { from: "components/X.tsx", specifier: "@prisma/client", verdict: "reported" },
-      { from: "lib/auth/options.ts", specifier: "@prisma/client", verdict: "reported" },
+      { from: "lib/auth/auth.ts", specifier: "@prisma/client", verdict: "reported" },
       {
         from: "server/favorites/actions.node.test.ts",
         specifier: "@/lib/db/prisma",
@@ -297,23 +297,23 @@ describe("source layout", () => {
     ).toBe(true);
   });
 
-  it("LAYOUT-7: the NextAuth exception is scoped to lib/auth/options.ts importing only lib/db and server/auth/service", async () => {
+  it("LAYOUT-7: the Better Auth exception is scoped to lib/auth/auth.ts importing only lib/db and server/rate-limit/service", async () => {
     expect(exists(".dependency-cruiser.cjs")).toBe(true);
 
     const config = loadConfig();
     const exceptionRules = (config.forbidden ?? []).filter(
       (rule) =>
         (rule.comment ?? "").includes("ADR 0007 row 25") &&
-        JSON.stringify(rule).includes("lib/auth/options"),
+        JSON.stringify(rule).includes("lib/auth/auth"),
     );
     expect(exceptionRules.length).toBeGreaterThan(0);
 
     const rows: ImportRow[] = [
-      { from: "lib/auth/options.ts", specifier: "@/lib/db/prisma", verdict: "clean" },
-      { from: "lib/auth/options.ts", specifier: "@/server/auth/service", verdict: "clean" },
+      { from: "lib/auth/auth.ts", specifier: "@/lib/db/prisma", verdict: "clean" },
+      { from: "lib/auth/auth.ts", specifier: "@/server/rate-limit/service", verdict: "clean" },
       { from: "lib/auth/session.ts", specifier: "@/lib/db/prisma", verdict: "reported" },
       {
-        from: "lib/auth/options.ts",
+        from: "lib/auth/auth.ts",
         specifier: "@/server/favorites/service",
         verdict: "reported",
       },
@@ -424,7 +424,7 @@ describe("source layout", () => {
 /**
  * Tracked *.ts/*.tsx files that import lib/db, lib/prisma or the generated
  * Prisma client directly, outside the files the spec allows
- * (server/<feature>/service.ts, lib/db/**, lib/auth/options.ts, and tests,
+ * (server/<feature>/service.ts, lib/db/**, lib/auth/auth.ts, and tests,
  * which mock it).
  */
 function gitGrepDbOffenders(): string[] {
@@ -432,7 +432,7 @@ function gitGrepDbOffenders(): string[] {
   const ALLOWED = [
     /^server\/[^/]+\/service\.ts$/,
     /^lib\/db\//,
-    /^lib\/auth\/options\.ts$/,
+    /^lib\/auth\/auth\.ts$/,
     /\.test\.tsx?$/,
     /^test\//,
     /^prisma\/seed\.ts$/,

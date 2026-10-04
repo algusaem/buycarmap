@@ -11,18 +11,13 @@ import { env } from "@/lib/env";
 
 export const isEmailConfigured = Boolean(env.RESEND_API_KEY && env.EMAIL_FROM);
 
-// Two-factor is offered only when a key exists to encrypt secrets with. The
-// alternative — storing them in plaintext when the key is missing — would make
-// a database leak hand over every enrolled secret.
-export const isTwoFactorConfigured = Boolean(env.TWO_FACTOR_ENCRYPTION_KEY);
-
 export const isGoogleConfigured = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
 export const isGitHubConfigured = Boolean(env.GITHUB_ID && env.GITHUB_SECRET);
 
 interface AppUrlSources {
   APP_URL?: string;
-  NEXTAUTH_URL?: string;
+  BETTER_AUTH_URL?: string;
   /** Injected by Vercel on every deployment. Host only, no protocol. */
   VERCEL_URL?: string;
 }
@@ -44,7 +39,7 @@ interface AppUrlSources {
  */
 export function resolveAppUrl(sources: AppUrlSources): string {
   if (sources.APP_URL) return sources.APP_URL;
-  if (sources.NEXTAUTH_URL) return sources.NEXTAUTH_URL;
+  if (sources.BETTER_AUTH_URL) return sources.BETTER_AUTH_URL;
   // Vercel is always HTTPS, and VERCEL_URL carries no protocol of its own.
   if (sources.VERCEL_URL) return `https://${sources.VERCEL_URL}`;
   return "http://localhost:3000";
@@ -52,6 +47,6 @@ export function resolveAppUrl(sources: AppUrlSources): string {
 
 export const appUrl = resolveAppUrl({
   APP_URL: env.APP_URL,
-  NEXTAUTH_URL: env.NEXTAUTH_URL,
+  BETTER_AUTH_URL: env.BETTER_AUTH_URL,
   VERCEL_URL: env.VERCEL_URL,
 });

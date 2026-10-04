@@ -1,34 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { FaGithub } from "react-icons/fa";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useTranslations } from "next-intl";
-import { useOAuthProviders } from "@/lib/hooks/useOAuthProviders";
+import { authClient } from "@/lib/auth/auth-client";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 
 interface OAuthButtonsProps {
+  /** Which providers are configured server-side (lib/app-config.ts), passed
+   * down from the page rather than fetched client-side — Better Auth has no
+   * client endpoint listing them the way NextAuth's `getProviders()` did. */
+  providers: string[];
   /** Where to land after a successful provider round-trip. */
   callbackUrl?: string;
 }
 
-export function OAuthButtons({ callbackUrl = "/" }: OAuthButtonsProps) {
+export function OAuthButtons({ providers, callbackUrl = "/" }: OAuthButtonsProps) {
   const t = useTranslations();
-  const providers = useOAuthProviders();
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
 
   // Nothing configured — render nothing at all, divider included, rather than
   // buttons that cannot work.
   if (providers.length === 0) return null;
 
-  const onSignIn = async (provider: string) => {
+  const onSignIn = async (provider: "google" | "github") => {
     setPendingProvider(provider);
+    // Security review fix: Better Auth redirects an OAuth failure (an
+    // unverified provider email, a link it refuses) to `errorCallbackURL`
+    // — defaulting, with no explicit value, to the current page rather than
+    // back to /login (api/routes/sign-in.mjs's `errorCallbackURL` doc
+    // comment). Sent back to /login instead, with the same `callbackUrl`
+    // query param middleware already uses so a retry still lands on the
+    // original destination, LoginForm's own `?error=` handling can show it.
+    const errorCallbackURL =
+      callbackUrl === "/" ? "/login" : `/login?${new URLSearchParams({ callbackUrl }).toString()}`;
     // Full-page redirect to the provider, so this never resolves on success;
     // the pending state is cleared only if the redirect itself fails.
-    await signIn(provider, { callbackUrl });
+    await authClient.signIn.social({ provider, callbackURL: callbackUrl, errorCallbackURL });
     setPendingProvider(null);
   };
 

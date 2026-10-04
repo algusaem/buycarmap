@@ -196,6 +196,39 @@ export async function reset(
 }
 
 /**
+ * BAUTH-6 (docs/specs/core-better-auth.md): the storage Better Auth's own
+ * rate limiter writes its counters into, so its remaining (non-disabled)
+ * paths share Upstash with every rule above rather than falling back to
+ * in-memory counters that would not survive a serverless cold start. Built
+ * on `consume` so it fails open the same way: unconfigured or unreachable
+ * Upstash allows the request rather than taking the auth surface down.
+ *
+ * Better Auth 1.7.7's `customStorage` contract is a single atomic `consume`
+ * (window in seconds, not `RateLimitRule`'s milliseconds) — not the
+ * `get`/`set` pair some older versions used.
+ */
+export function createBetterAuthRateLimitStorage(): {
+  consume: (
+    key: string,
+    rule: { window: number; max: number },
+  ) => Promise<{ allowed: boolean; retryAfter: number | null }>;
+} {
+  return {
+    async consume(key, rule) {
+      const result = await consume(key, {
+        name: `better-auth:${key}`,
+        limit: rule.max,
+        windowMs: rule.window * 1000,
+      });
+      return {
+        allowed: result.allowed,
+        retryAfter: result.allowed ? null : Math.ceil(result.retryAfterMs / 1000),
+      };
+    },
+  };
+}
+
+/**
  * Applies the environment prefix (INT-2) and hashes an email segment
  * (INT-3).
  */

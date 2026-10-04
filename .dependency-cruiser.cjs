@@ -37,15 +37,16 @@ module.exports = {
       name: "no-db-module-outside-service",
       comment:
         "lib/db/** is reached only from a feature's server/<feature>/service.ts, from " +
-        "lib/db/** itself, or from lib/auth/options.ts: the NextAuth exception (ADR 0007 " +
-        "row 25, until phase 11, LAYOUT-7), whose Prisma adapter needs the client. Its " +
-        "other edge, to server/auth/service.ts, is auth-options-server-exception below.",
+        "lib/db/** itself, or from lib/auth/auth.ts: the Better Auth exception (ADR 0007 " +
+        "row 25, phase 11, LAYOUT-7, replacing the NextAuth-era lib/auth/options.ts), whose " +
+        "Prisma adapter and databaseHooks need the client directly. Its other edge, to " +
+        "server/rate-limit/service.ts, is auth-server-exception below.",
       severity: "error",
       from: {
         pathNot: [
           "^server/[^/]+/service\\.ts$",
           "^lib/db/",
-          "^lib/auth/options\\.ts$",
+          "^lib/auth/auth\\.ts$",
           "\\.test\\.tsx?$",
           "^test/",
         ],
@@ -118,14 +119,14 @@ module.exports = {
     {
       name: "no-server-from-lib",
       comment:
-        "lib/** never imports server/**, except lib/auth/options.ts, which has its own, " +
-        "narrower exception below (LAYOUT-7, auth-options-server-exception), and " +
+        "lib/** never imports server/**, except lib/auth/auth.ts, which has its own, " +
+        "narrower exception below (LAYOUT-7, auth-server-exception), and " +
         "lib/hooks/**, which has its own exception below (LAYOUT-10, " +
         "hooks-only-actions-or-schema).",
       severity: "error",
       from: {
         path: "^lib/",
-        pathNot: ["^lib/auth/options\\.ts$", "^lib/hooks/", "\\.test\\.tsx?$", "^test/"],
+        pathNot: ["^lib/auth/auth\\.ts$", "^lib/hooks/", "\\.test\\.tsx?$", "^test/"],
       },
       to: {
         path: "^server/",
@@ -149,21 +150,21 @@ module.exports = {
       },
     },
     {
-      name: "auth-options-server-exception",
+      name: "auth-server-exception",
       comment:
-        "The NextAuth exception (ADR 0007 row 25, until phase 11): lib/auth/options.ts needs " +
-        "the Prisma adapter and server/auth/service.ts's authorizeCredentials, and stays " +
-        "outside the server layer so server components can import it without dragging in a " +
-        "route (CLAUDE.md). This is the only edge allowed here — no other file under lib/ may " +
-        "reach server/auth/service.ts (see no-server-from-lib above), and this file may reach " +
-        "no other target under server/.",
+        "The Better Auth exception (ADR 0007 row 25, phase 11): lib/auth/auth.ts needs " +
+        "server/rate-limit/service.ts's isRateLimited (AUTH-6's per-account lockout, run " +
+        "from hooks.before on /sign-in/email) and stays outside the server layer so server " +
+        "components can import it without dragging in a route (CLAUDE.md). This is the only " +
+        "edge allowed here — no other file under lib/ may reach server/rate-limit/service.ts " +
+        "(see no-server-from-lib above), and this file may reach no other target under server/.",
       severity: "error",
       from: {
-        path: "^lib/auth/options\\.ts$",
+        path: "^lib/auth/auth\\.ts$",
       },
       to: {
         path: "^server/",
-        pathNot: "^server/auth/service\\.ts$",
+        pathNot: "^server/rate-limit/service\\.ts$",
       },
     },
     {

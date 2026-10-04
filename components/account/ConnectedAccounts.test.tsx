@@ -63,6 +63,18 @@ describe("ConnectedAccounts", () => {
     ).toBeInTheDocument();
   });
 
+  it("BAUTH-10: disables disconnect when it is the only way to sign in, same as AUTH-14", () => {
+    // BAUTH-10 (docs/specs/core-better-auth.md): unlinking keeps AUTH-14's
+    // rule unchanged under Better Auth — the only remaining way to sign in
+    // still cannot be disconnected from the UI.
+    renderWithI18n(<ConnectedAccounts providers={["google"]} hasPassword={false} />);
+
+    expect(disconnectButtons()[0]).toBeDisabled();
+    expect(
+      screen.getByText("This is your only way to sign in. Set a password before disconnecting it."),
+    ).toBeInTheDocument();
+  });
+
   it("allows disconnecting when a second provider remains", () => {
     renderWithI18n(<ConnectedAccounts providers={["google", "github"]} hasPassword={false} />);
 
@@ -75,6 +87,16 @@ describe("ConnectedAccounts", () => {
     renderWithI18n(<ConnectedAccounts providers={["google"]} hasPassword />);
 
     expect(disconnectButtons()[0]).toBeEnabled();
+  });
+
+  it("security review BLOCKER: never renders a 'credential' entry, even if passed one", () => {
+    renderWithI18n(<ConnectedAccounts providers={["credential", "google"]} hasPassword />);
+
+    expect(screen.queryByText("credential")).not.toBeInTheDocument();
+    expect(screen.getByText("Google")).toBeInTheDocument();
+    // Only the real provider gets a disconnect control — "credential" is
+    // Better Auth's own sign-in plumbing, never something to disconnect.
+    expect(disconnectButtons()).toHaveLength(1);
   });
 
   it("surfaces a server refusal without refreshing", async () => {

@@ -1,7 +1,10 @@
 import { createElement } from "react";
+import { cookies } from "next/headers";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { createSessionCookie } from "@/lib/auth/auth";
 import { REGISTRATION_TTL_MS, generateToken, hashToken, tokenExpiry } from "@/lib/auth/tokens";
+import { asUserId, type UserId } from "@/lib/ids";
 import { sendEmail } from "@/lib/platform/email";
 import { renderEmail } from "@/emails/render";
 import {
@@ -111,8 +114,21 @@ export async function registerWithoutEmail(
   }
 
   try {
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: { email, password: hashedPassword, name },
+    });
+
+    // BAUTH-7/BAUTH-14: the credential account Better Auth's own sign-in
+    // looks up — the caller (RegisterForm.tsx) signs in immediately after a
+    // success with `authClient.signIn.email`, which needs this row to exist.
+    await prisma.account.create({
+      data: {
+        userId: user.id,
+        provider: "credential",
+        providerAccountId: user.id,
+        type: "credential",
+        password: hashedPassword,
+      },
     });
   } catch (error) {
     // The check above is not atomic: the DB's unique index is the real guard.
@@ -145,8 +161,10 @@ interface ConfirmedRegistration {
 export async function createUserFromPendingRegistration(
   pending: ConfirmedRegistration,
 ): Promise<AuthErrorCode | null> {
+  let userId: UserId;
+
   try {
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email: pending.email,
         // Already bcrypt-hashed at submit time, so confirmation never has to
@@ -155,6 +173,21 @@ export async function createUserFromPendingRegistration(
         name: pending.name,
         // Redeeming this link *is* the proof of address ownership.
         emailVerified: new Date(),
+        emailConfirmed: true,
+      },
+    });
+    userId = asUserId(user.id);
+
+    // BAUTH-7/BAUTH-14: the credential account Better Auth's own sign-in
+    // looks up — `User.password` above is kept only for the old code reading
+    // it directly, not for Better Auth, which never reads it.
+    await prisma.account.create({
+      data: {
+        userId,
+        provider: "credential",
+        providerAccountId: userId,
+        type: "credential",
+        password: pending.password,
       },
     });
   } catch (error) {
@@ -168,6 +201,22 @@ export async function createUserFromPendingRegistration(
     if (!isDuplicate) {
       return AUTH_ERROR.generic;
     }
+
+    return null;
+  }
+
+  // BAUTH-7: confirming the link signs the new user in, the same as any
+  // other fresh sign-in. The session row itself always gets created; only
+  // setting its cookie needs a real request — `cookies()` throws outside one
+  // (a script, or a test calling this action directly rather than through an
+  // actual request), the same reason server/auth/service.ts's
+  // `maybePruneExpiredAuthRows` falls back around `after()`.
+  const cookie = await createSessionCookie(userId);
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(cookie.name, cookie.value, cookie.attributes);
+  } catch {
+    // No request to carry the cookie on; the caller is not a real sign-up.
   }
 
   return null;

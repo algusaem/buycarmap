@@ -143,7 +143,6 @@
       "description": "Pide un código de tu móvil además de la contraseña.",
       "enabled": "Activada",
       "disabled": "Desactivada",
-      "unavailable": "No disponible en este despliegue: al servidor le falta su clave de cifrado.",
       "enableCta": "Configurar dos pasos",
       "starting": "Preparando…",
       "scanTitle": "Escanea esto con tu app de autenticación",
@@ -179,7 +178,18 @@
       "description": "¿Has iniciado sesión en algún sitio que ya no usas?",
       "submit": "Cerrar sesión en todas partes",
       "submitting": "Cerrando sesión…",
-      "warning": "Esto cerrará la sesión en todos los dispositivos, incluido este. Tendrás que volver a iniciar sesión."
+      "warning": "Esto cerrará la sesión en todos los dispositivos, incluido este. Tendrás que volver a iniciar sesión.",
+      "listTitle": "Dispositivos con sesión iniciada",
+      "loading": "Cargando tus sesiones…",
+      "loadError": "No se han podido cargar tus sesiones.",
+      "empty": "No se han encontrado sesiones activas.",
+      "current": "Este dispositivo",
+      "unknownDevice": "Dispositivo desconocido",
+      "signOutSession": "Cerrar sesión",
+      "signingOutSession": "Cerrando sesión…",
+      "signOutOthers": "Cerrar sesión en todos los demás dispositivos",
+      "signingOutOthers": "Cerrando sesión…",
+      "signedOutOthers": "Se ha cerrado la sesión en todos los demás dispositivos."
     },
     "providers": {
       "title": "Cuentas conectadas",
@@ -233,12 +243,10 @@
     "passwordReused": "Elige una contraseña distinta de la actual",
     "currentPasswordIncorrect": "Tu contraseña actual no es correcta",
     "tokenInvalid": "Este enlace no es válido o ha caducado",
-    "totpRequired": "Introduce el código de tu app de autenticación",
     "totpInvalid": "Ese código no es válido. Revisa tu app e inténtalo de nuevo.",
     "totpAlreadyEnabled": "La verificación en dos pasos ya está activada",
     "totpNotEnabled": "La verificación en dos pasos no está configurada",
-    "totpUnavailable": "La verificación en dos pasos no está disponible en este despliegue",
-    "oauthLinkBlocked": "Esta cuenta usa verificación en dos pasos. Entra con tu contraseña y luego conecta este proveedor desde los ajustes de tu cuenta.",
+    "oauthLinkBlocked": "Ya existe una cuenta con este email. Inicia sesión con tu email y contraseña.",
     "alreadyVerified": "Tu dirección de correo ya está verificada",
     "sameEmail": "Esa ya es tu dirección de correo",
     "lastSignInMethod": "Es tu única forma de iniciar sesión. Establece una contraseña antes de desconectarla.",
@@ -539,6 +547,13 @@
       "heading": "Tu dirección de correo ha cambiado",
       "intro": "La dirección de correo de tu cuenta de BuyCarMap se ha cambiado por otra. Recibes este aviso en tu dirección anterior para que sepas que ha ocurrido.",
       "action": "Si no has sido tú, es posible que alguien tenga acceso a tu cuenta. Restablece tu contraseña de inmediato y contacta con nosotros."
+    },
+    "twoFactorReset": {
+      "subject": "Vuelve a activar la verificación en dos pasos",
+      "heading": "Vuelve a activar la verificación en dos pasos",
+      "intro": "BuyCarMap ha pasado a un nuevo sistema de inicio de sesión y, durante el cambio, se desactivó tu verificación en dos pasos anterior. Vuelve a configurarla desde la página de tu cuenta.",
+      "button": "Ir a mi cuenta",
+      "action": "Si no tenías activada la verificación en dos pasos, puedes ignorar este correo."
     },
     "footer": "BuyCarMap — coches de segunda mano en un mapa"
   }

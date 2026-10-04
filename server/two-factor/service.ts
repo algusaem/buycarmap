@@ -1,195 +1,27 @@
 import { prisma } from "@/lib/db/prisma";
-import { env } from "@/lib/env";
-import { logger } from "@/lib/logger";
-import { decryptSecret } from "@/lib/auth/two-factor/encryption";
-import { hashRecoveryCode } from "@/lib/auth/two-factor/recovery-codes";
-import { verifyTotp } from "@/lib/auth/two-factor/totp";
 import type { UserId } from "@/lib/ids";
 
-// verifyAndConsumeTwoFactor is shared by the login path and by the account
-// actions, so the rules about replay and single-use recovery codes cannot
-// drift between them. The login path (server/auth/service.ts) imports it from
-// here, and so do this feature's own actions.
-
-type TwoFactorMethod = "totp" | "recoveryCode";
-
-export interface TwoFactorCheck {
-  valid: boolean;
-  method: TwoFactorMethod | null;
-}
-
-interface TwoFactorUser {
-  id: string;
-  twoFactorSecret: string | null;
-  twoFactorLastStep: number | null;
-}
+// BAUTH-11 (docs/specs/core-better-auth.md): enrolment, verification and
+// recovery-code storage now live entirely in Better Auth's `twoFactor`
+// plugin (lib/auth/auth.ts, server/two-factor/actions.ts) — these two reads
+// are the only state this feature still needs straight from Prisma, each for
+// a check the plugin's own endpoints do not make the same way.
 
 /**
- * Checks a submitted code and, on success, consumes it.
- *
- * "Consumes" is the important part and is why this touches the database rather
- * than being a pure function: a TOTP code stays mathematically valid for its
- * whole window, and a recovery code forever, so both have to be burned at the
- * moment they are accepted.
+ * Whether the signed-in account has a password at all. OAuth-only accounts
+ * sign in through their provider, which owns its own second factor, so there
+ * is no password here for `auth.api.enableTwoFactor` to confirm.
  */
-export async function verifyAndConsumeTwoFactor(
-  user: TwoFactorUser,
-  submitted: string,
-): Promise<TwoFactorCheck> {
-  const code = submitted.trim();
-
-  if (!code || !user.twoFactorSecret || !env.TWO_FACTOR_ENCRYPTION_KEY) {
-    return { valid: false, method: null };
-  }
-
-  let secret: string;
-
-  try {
-    secret = decryptSecret(user.twoFactorSecret, env.TWO_FACTOR_ENCRYPTION_KEY);
-  } catch {
-    // Wrong key or a tampered row. Refusing is the only safe answer — the
-    // alternative is feeding garbage into an HMAC and comparing the result.
-    logger.error({ userId: user.id }, "Could not decrypt the two-factor secret");
-    return { valid: false, method: null };
-  }
-
-  const totp = verifyTotp(secret, code);
-
-  if (totp.valid && totp.step !== null) {
-    // Replay guard: a code observed over someone's shoulder is refused once
-    // its own step has been used, rather than staying good for the remainder
-    // of the window.
-    if (user.twoFactorLastStep !== null && totp.step <= user.twoFactorLastStep) {
-      return { valid: false, method: null };
-    }
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { twoFactorLastStep: totp.step },
-    });
-
-    return { valid: true, method: "totp" };
-  }
-
-  // Not a valid TOTP code — it may still be a recovery code. Looked up by
-  // digest, so an indexed equality match rather than ten comparisons.
-  const recovery = await prisma.twoFactorRecoveryCode.findUnique({
-    where: { codeHash: hashRecoveryCode(code) },
-  });
-
-  if (!recovery || recovery.userId !== user.id || recovery.usedAt !== null) {
-    return { valid: false, method: null };
-  }
-
-  // `updateMany` with a usedAt guard rather than `update`: two requests racing
-  // the same code both pass the check above, and only one may win.
-  const consumed = await prisma.twoFactorRecoveryCode.updateMany({
-    where: { id: recovery.id, usedAt: null },
-    data: { usedAt: new Date() },
-  });
-
-  if (consumed.count === 0) {
-    return { valid: false, method: null };
-  }
-
-  return { valid: true, method: "recoveryCode" };
+export async function hasPassword(userId: UserId): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { password: true } });
+  return Boolean(user?.password);
 }
 
-/** What enrolment needs to know before minting a secret. */
-export async function findTwoFactorSetupState(userId: UserId) {
-  return prisma.user.findUnique({
+/** Whether two-factor is currently on, for the actions that must refuse otherwise. */
+export async function isTwoFactorEnabled(userId: UserId): Promise<boolean> {
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, password: true, twoFactorEnabledAt: true },
+    select: { twoFactorEnabled: true },
   });
-}
-
-/** Stores a freshly minted, already encrypted secret and clears the replay step. */
-export async function storePendingTwoFactorSecret(
-  userId: UserId,
-  encryptedSecret: string,
-): Promise<void> {
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      twoFactorSecret: encryptedSecret,
-      twoFactorLastStep: null,
-    },
-  });
-}
-
-/** What confirming enrolment needs: the pending secret and whether 2FA is already on. */
-export async function findTwoFactorConfirmState(userId: UserId) {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: { twoFactorSecret: true, twoFactorEnabledAt: true },
-  });
-}
-
-/** Switches 2FA on and replaces the recovery codes, in one transaction. */
-export async function enableTwoFactor(
-  userId: UserId,
-  enabledAt: Date,
-  lastStep: number,
-  recoveryCodeHashes: string[],
-): Promise<void> {
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: userId },
-      data: { twoFactorEnabledAt: enabledAt, twoFactorLastStep: lastStep },
-    }),
-    // Any codes from a previous enrolment are gone; only this set works.
-    prisma.twoFactorRecoveryCode.deleteMany({ where: { userId } }),
-    prisma.twoFactorRecoveryCode.createMany({
-      data: recoveryCodeHashes.map((codeHash) => ({ userId, codeHash })),
-    }),
-  ]);
-}
-
-/** What turning 2FA off needs: the password hash and the current 2FA state. */
-export async function findTwoFactorDisableState(userId: UserId) {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      password: true,
-      twoFactorSecret: true,
-      twoFactorEnabledAt: true,
-      twoFactorLastStep: true,
-    },
-  });
-}
-
-/** Clears the secret and every recovery code, in one transaction. */
-export async function disableTwoFactorForUser(userId: UserId): Promise<void> {
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: userId },
-      data: {
-        twoFactorSecret: null,
-        twoFactorEnabledAt: null,
-        twoFactorLastStep: null,
-      },
-    }),
-    prisma.twoFactorRecoveryCode.deleteMany({ where: { userId } }),
-  ]);
-}
-
-/** What regenerating recovery codes needs: the password hash and whether 2FA is on. */
-export async function findRecoveryCodesState(userId: UserId) {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: { password: true, twoFactorEnabledAt: true },
-  });
-}
-
-/** Replaces every recovery code with a fresh set, in one transaction. */
-export async function replaceRecoveryCodes(
-  userId: UserId,
-  recoveryCodeHashes: string[],
-): Promise<void> {
-  await prisma.$transaction([
-    prisma.twoFactorRecoveryCode.deleteMany({ where: { userId } }),
-    prisma.twoFactorRecoveryCode.createMany({
-      data: recoveryCodeHashes.map((codeHash) => ({ userId, codeHash })),
-    }),
-  ]);
+  return Boolean(user?.twoFactorEnabled);
 }

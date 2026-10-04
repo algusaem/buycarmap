@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { isTwoFactorConfigured } from "@/lib/app-config";
 import { getTranslations } from "next-intl/server";
 import { ProfileForm } from "@/components/account/ProfileForm";
 import { EmailForm } from "@/components/account/EmailForm";
@@ -22,7 +21,14 @@ export default async function AccountPage() {
   const record = await getAccountOverview();
   const t = await getTranslations();
 
-  const providers = record.accounts.map((account) => account.provider);
+  // BAUTH-14's "credential" accounts row is Better Auth's own sign-in
+  // plumbing, never a provider the user connected — it must never reach the
+  // "connected accounts" list (security review BLOCKER). findAccountOverview
+  // already excludes it; filtered again here so this list stays correct even
+  // if that query's own shape ever changes.
+  const providers = record.accounts
+    .map((account) => account.provider)
+    .filter((provider) => provider !== "credential");
 
   return (
     // `overflow-y-auto` is required, not cosmetic: the root layout pins the
@@ -61,12 +67,7 @@ export default async function AccountPage() {
 
           {/* Only offered to credential accounts: an OAuth-only user signs in
               through their provider, which owns its own second factor. */}
-          {record.password && (
-            <TwoFactorCard
-              isEnabled={Boolean(record.twoFactorEnabledAt)}
-              isAvailable={isTwoFactorConfigured}
-            />
-          )}
+          {record.password && <TwoFactorCard isEnabled={record.twoFactorEnabled} />}
 
           <ConnectedAccounts providers={providers} hasPassword={Boolean(record.password)} />
 

@@ -23,13 +23,13 @@ import { TwoFactorSetup } from "./TwoFactorSetup";
 
 interface TwoFactorCardProps {
   isEnabled: boolean;
-  /** False when the server has no encryption key, so enrolment is impossible. */
-  isAvailable: boolean;
 }
 
 interface SetupState {
   otpauthUri: string;
   secret: string;
+  /** Minted at setup time by Better Auth's `twoFactor` plugin (BAUTH-11). */
+  recoveryCodes: string[];
 }
 
 function StatusBadge({ isEnabled }: { isEnabled: boolean }) {
@@ -49,7 +49,7 @@ function StatusBadge({ isEnabled }: { isEnabled: boolean }) {
   );
 }
 
-export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
+export function TwoFactorCard({ isEnabled }: TwoFactorCardProps) {
   const t = useTranslations();
   const messages = useMessages() as Translations;
   const router = useRouter();
@@ -61,15 +61,24 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
 
   const onStart = async () => {
     setPending("start");
-    const result = await startTwoFactorSetup();
+
+    const formData = new FormData();
+    formData.append("password", password);
+
+    const result = await startTwoFactorSetup(formData);
     setPending(null);
 
-    if (!result.success || !result.otpauthUri || !result.secret) {
+    if (!result.success || !result.otpauthUri || !result.secret || !result.recoveryCodes) {
       toast.error(translateAuthError(messages, result.error));
       return;
     }
 
-    setSetup({ otpauthUri: result.otpauthUri, secret: result.secret });
+    setPassword("");
+    setSetup({
+      otpauthUri: result.otpauthUri,
+      secret: result.secret,
+      recoveryCodes: result.recoveryCodes,
+    });
   };
 
   const onDisable = async () => {
@@ -123,45 +132,58 @@ export function TwoFactorCard({ isEnabled, isAvailable }: TwoFactorCardProps) {
       <CardHeader className="space-y-1">
         <CardTitle className="flex items-center justify-between gap-3 text-lg font-bold">
           {t("account.twoFactor.title")}
-          {isAvailable && <StatusBadge isEnabled={isEnabled} />}
+          <StatusBadge isEnabled={isEnabled} />
         </CardTitle>
         <CardDescription>{t("account.twoFactor.description")}</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {!isAvailable && (
-          <p className="text-sm text-muted-foreground">{t("account.twoFactor.unavailable")}</p>
-        )}
-
         {/* Recovery codes take over the card entirely: they are shown once, so
             nothing else should compete for attention while they are on screen. */}
-        {isAvailable && recoveryCodes && (
-          <RecoveryCodesPanel codes={recoveryCodes} onDismiss={onCodesSaved} />
-        )}
+        {recoveryCodes && <RecoveryCodesPanel codes={recoveryCodes} onDismiss={onCodesSaved} />}
 
-        {isAvailable && !recoveryCodes && setup && (
+        {!recoveryCodes && setup && (
           <TwoFactorSetup
             otpauthUri={setup.otpauthUri}
             secret={setup.secret}
-            onConfirmed={setRecoveryCodes}
+            onConfirmed={() => setRecoveryCodes(setup.recoveryCodes)}
             onCancel={() => setSetup(null)}
           />
         )}
 
-        {isAvailable && !recoveryCodes && !setup && !isEnabled && (
-          <Button type="button" disabled={pending !== null} onClick={onStart}>
-            {pending === "start" ? (
-              <span className="flex items-center gap-2">
-                <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                {t("account.twoFactor.starting")}
-              </span>
-            ) : (
-              t("account.twoFactor.enableCta")
-            )}
-          </Button>
+        {!recoveryCodes && !setup && !isEnabled && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="two-factor-setup-password">
+                {t("account.twoFactor.currentPassword")}
+              </Label>
+              <PasswordInput
+                id="two-factor-setup-password"
+                autoComplete="current-password"
+                placeholder={t("account.twoFactor.currentPasswordPlaceholder")}
+                className="bg-background/50"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              disabled={pending !== null || password.length === 0}
+              onClick={onStart}
+            >
+              {pending === "start" ? (
+                <span className="flex items-center gap-2">
+                  <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
+                  {t("account.twoFactor.starting")}
+                </span>
+              ) : (
+                t("account.twoFactor.enableCta")
+              )}
+            </Button>
+          </div>
         )}
 
-        {isAvailable && !recoveryCodes && !setup && isEnabled && (
+        {!recoveryCodes && !setup && isEnabled && (
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="two-factor-password">{t("account.twoFactor.currentPassword")}</Label>

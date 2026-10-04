@@ -1,19 +1,30 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { createUser } from "@/test/factories/user";
+import { deriveCodeFromUri } from "@/test/two-factor-totp";
 
-const { KEY } = vi.hoisted(() => ({
-  KEY: Buffer.alloc(32, 7).toString("base64"),
-}));
+// BAUTH-11 (docs/specs/core-better-auth.md): every case here moved onto
+// Better Auth's own `twoFactor` plugin — `auth.api.enableTwoFactor`,
+// `verifyTOTP`, `disableTwoFactor` and `generateBackupCodes` — in place of
+// lib/auth/two-factor/* (deleted). `getCurrentUser` is mocked the same way
+// the pre-cutover version of this file mocked it, but the plugin's own
+// endpoints still need a *real* signed session in `headers()`, since they
+// resolve the caller through Better Auth's own session middleware, not
+// through our mock.
+
+// The real plaintext behind test/factories/user.ts's default password hash —
+// using it lets every case below sign in through Better Auth for real,
+// rather than mocking password verification.
+const FACTORY_PASSWORD = "buycarmap-factory-password";
 
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
-vi.mock("@/lib/auth/hash", () => ({ verifyPassword: vi.fn() }));
-vi.mock("@/lib/env", () => ({
-  env: { TWO_FACTOR_ENCRYPTION_KEY: KEY },
+
+const requestHeaders = { current: new Headers() };
+vi.mock("next/headers", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/headers")>()),
+  headers: vi.fn(async () => requestHeaders.current),
 }));
-vi.mock("@/lib/app-config", () => ({
-  isTwoFactorConfigured: true,
-}));
+
 vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/server/rate-limit/service")>()),
   consumeRateLimit: vi.fn(async () => ({
@@ -22,17 +33,10 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
     retryAfterMs: 0,
   })),
 }));
-vi.mock("@/server/two-factor/service", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/server/two-factor/service")>()),
-  verifyAndConsumeTwoFactor: vi.fn(),
-}));
 
 import { getCurrentUser } from "@/lib/auth/session";
-import { verifyPassword } from "@/lib/auth/hash";
 import { consumeRateLimit } from "@/server/rate-limit/service";
-import { verifyAndConsumeTwoFactor } from "@/server/two-factor/service";
-import { decryptSecret, encryptSecret } from "@/lib/auth/two-factor/encryption";
-import { deriveCode, generateTotpSecret, stepForTime } from "@/lib/auth/two-factor/totp";
+import { auth, createSessionCookie } from "@/lib/auth/auth";
 import {
   confirmTwoFactorSetup,
   disableTwoFactor,
@@ -40,159 +44,160 @@ import {
   startTwoFactorSetup,
 } from "./actions";
 
-const SECRET = generateTotpSecret();
-const ENCRYPTED = encryptSecret(SECRET, KEY);
-
 function formData(fields: Record<string, string>): FormData {
   const fd = new FormData();
   for (const [key, value] of Object.entries(fields)) fd.set(key, value);
   return fd;
 }
 
-// Frozen for the same reason as verify.node.test.ts: the confirming step is
-// asserted against a recomputed clock read.
-const NOW = 1_800_000_000_000;
-const CURRENT_STEP = stepForTime(NOW);
-const currentCode = () => deriveCode(SECRET, CURRENT_STEP);
-
+/** Creates a real user and a real Better Auth session for it, and points
+ * `getCurrentUser()`/`headers()` at both — regardless of the account's
+ * two-factor state, unlike signing in through `auth.api.signInEmail`, which
+ * would redirect into the two-factor challenge instead of returning a token. */
 async function signedInAsNewUser(overrides: Parameters<typeof createUser>[0] = {}) {
-  const user = await createUser({ email: "ada@example.com", password: "hash", ...overrides });
+  const user = await createUser(overrides);
   vi.mocked(getCurrentUser).mockResolvedValue({ id: user.id, email: user.email });
+
+  const cookie = await createSessionCookie(user.id);
+  requestHeaders.current = new Headers({ cookie: `${cookie.name}=${cookie.value}` });
+
   return user;
 }
 
+/**
+ * Enrols a real, verified two-factor secret for the signed-in user.
+ *
+ * Better Auth's own `verifyTOTP` deletes the session behind the cookie it
+ * was called with and mints a fresh one when it first confirms enrolment
+ * (its own behaviour, not something this phase changes) — so this re-signs a
+ * current session afterward, or every later call in the same test would
+ * carry a cookie for a session that no longer exists.
+ */
+async function enrolRealTwoFactor(userId: string, password = FACTORY_PASSWORD) {
+  const enabled = await auth.api.enableTwoFactor({
+    body: { password },
+    headers: requestHeaders.current,
+  });
+
+  if (enabled.method !== "totp" || !enabled.totpURI) {
+    throw new Error("expected a TOTP enrolment");
+  }
+
+  await auth.api.verifyTOTP({
+    body: { code: deriveCodeFromUri(enabled.totpURI) },
+    headers: requestHeaders.current,
+  });
+
+  const cookie = await createSessionCookie(userId);
+  requestHeaders.current = new Headers({ cookie: `${cookie.name}=${cookie.value}` });
+
+  return enabled;
+}
+
 beforeEach(() => {
-  vi.useFakeTimers();
-  vi.setSystemTime(NOW);
   vi.mocked(getCurrentUser).mockReset();
-  vi.mocked(verifyPassword).mockReset();
-  vi.mocked(verifyAndConsumeTwoFactor).mockReset();
   vi.mocked(consumeRateLimit).mockResolvedValue({
     allowed: true,
     remaining: 9,
     retryAfterMs: 0,
   });
-});
-
-afterEach(() => {
-  vi.useRealTimers();
+  requestHeaders.current = new Headers();
 });
 
 describe("startTwoFactorSetup", () => {
   it("refuses for an OAuth-only account", async () => {
     await signedInAsNewUser({ email: "oauth@example.com", password: null });
 
-    expect(await startTwoFactorSetup()).toEqual({
+    expect(await startTwoFactorSetup(formData({ password: "anything" }))).toEqual({
       success: false,
       error: "unauthorized",
     });
   });
 
   it("refuses when two-factor is already on", async () => {
-    await signedInAsNewUser({ twoFactorEnabledAt: new Date() });
+    const user = await signedInAsNewUser({ email: "enrolled@example.com" });
+    await enrolRealTwoFactor(user.id);
 
-    expect(await startTwoFactorSetup()).toEqual({
+    expect(await startTwoFactorSetup(formData({ password: FACTORY_PASSWORD }))).toEqual(
+      expect.objectContaining({ success: false, error: "totpAlreadyEnabled" }),
+    );
+  });
+
+  it("rejects the wrong password", async () => {
+    await signedInAsNewUser({ email: "ada@example.com" });
+
+    expect(await startTwoFactorSetup(formData({ password: "not-the-password" }))).toEqual({
       success: false,
-      error: "totpAlreadyEnabled",
+      error: "currentPasswordIncorrect",
     });
   });
 
-  it("stores the secret encrypted, never in the clear", async () => {
-    const user = await signedInAsNewUser();
+  it("mints a scannable URI and ten recovery codes, and leaves two-factor off", async () => {
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
 
-    const result = await startTwoFactorSetup();
-    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    const result = await startTwoFactorSetup(formData({ password: FACTORY_PASSWORD }));
 
     expect(result.success).toBe(true);
-    expect(found?.twoFactorSecret).not.toBe(result.secret);
-    expect(found?.twoFactorSecret?.startsWith("v1:")).toBe(true);
-    // What was persisted must decrypt back to what the user was shown.
-    if (!found?.twoFactorSecret || !result.secret)
-      throw new Error("expected both secrets to be set");
-    expect(decryptSecret(found.twoFactorSecret, KEY)).toBe(result.secret);
-  });
-
-  it("leaves two-factor switched off until a code is confirmed", async () => {
-    const user = await signedInAsNewUser();
-
-    await startTwoFactorSetup();
-    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(result.otpauthUri).toContain("otpauth://totp/");
+    expect(result.secret).toMatch(/^[A-Z2-7]+$/);
+    expect(result.recoveryCodes).toHaveLength(10);
 
     // Enabling here would lock out anyone whose authenticator never worked.
-    expect(found?.twoFactorEnabledAt).toBeNull();
-  });
-
-  it("returns a scannable URI carrying the account email", async () => {
-    await signedInAsNewUser();
-
-    const { otpauthUri } = await startTwoFactorSetup();
-
-    expect(otpauthUri).toContain("otpauth://totp/");
-    expect(decodeURIComponent(otpauthUri as string)).toContain("ada@example.com");
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.twoFactorEnabled).toBe(false);
+    const row = await prisma.twoFactor.findFirst({ where: { userId: user.id } });
+    expect(row?.verified).toBe(false);
   });
 });
 
 describe("confirmTwoFactorSetup", () => {
+  it("refuses when setup was never started", async () => {
+    await signedInAsNewUser({ email: "ada@example.com" });
+
+    expect(await confirmTwoFactorSetup(formData({ code: "000000" }))).toEqual({
+      success: false,
+      error: "totpNotEnabled",
+    });
+  });
+
   it("rejects a wrong code and leaves two-factor off", async () => {
-    const user = await signedInAsNewUser({ twoFactorSecret: ENCRYPTED, twoFactorEnabledAt: null });
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
+    await startTwoFactorSetup(formData({ password: FACTORY_PASSWORD }));
 
     expect(await confirmTwoFactorSetup(formData({ code: "000000" }))).toEqual({
       success: false,
       error: "totpInvalid",
     });
     const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.twoFactorEnabledAt).toBeNull();
+    expect(found?.twoFactorEnabled).toBe(false);
   });
 
-  it("refuses when setup was never started", async () => {
-    await signedInAsNewUser({ twoFactorSecret: null, twoFactorEnabledAt: null });
+  it("AUTH-9: enables two-factor on a valid 6-digit, 30s-step code", async () => {
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
+    const setup = await startTwoFactorSetup(formData({ password: FACTORY_PASSWORD }));
+    if (!setup.otpauthUri) throw new Error("expected a URI");
 
-    expect(await confirmTwoFactorSetup(formData({ code: currentCode() }))).toEqual({
-      success: false,
-      error: "totpNotEnabled",
-    });
-  });
+    const result = await confirmTwoFactorSetup(
+      formData({ code: deriveCodeFromUri(setup.otpauthUri) }),
+    );
 
-  it("enables two-factor and returns ten recovery codes on a valid code", async () => {
-    const user = await signedInAsNewUser({ twoFactorSecret: ENCRYPTED, twoFactorEnabledAt: null });
-
-    const result = await confirmTwoFactorSetup(formData({ code: currentCode() }));
-
-    expect(result.success).toBe(true);
-    expect(result.recoveryCodes).toHaveLength(10);
-    expect(await prisma.twoFactorRecoveryCode.count({ where: { userId: user.id } })).toBe(10);
-  });
-
-  it("returns codes only in this response, never storing them readable", async () => {
-    await signedInAsNewUser({ twoFactorSecret: ENCRYPTED, twoFactorEnabledAt: null });
-
-    const result = await confirmTwoFactorSetup(formData({ code: currentCode() }));
-
-    const stored = await prisma.twoFactorRecoveryCode.findMany();
-    for (const code of result.recoveryCodes ?? []) {
-      expect(JSON.stringify(stored)).not.toContain(code);
-    }
-  });
-
-  it("records the confirming step so it cannot be replayed at login", async () => {
-    const user = await signedInAsNewUser({ twoFactorSecret: ENCRYPTED, twoFactorEnabledAt: null });
-
-    await confirmTwoFactorSetup(formData({ code: currentCode() }));
-
+    expect(result).toEqual({ success: true });
     const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.twoFactorEnabledAt).not.toBeNull();
-    expect(found?.twoFactorLastStep).toBe(CURRENT_STEP);
+    expect(found?.twoFactorEnabled).toBe(true);
+    const row = await prisma.twoFactor.findFirst({ where: { userId: user.id } });
+    expect(row?.verified).toBe(true);
   });
 
   it("refuses once the rate limit is spent", async () => {
-    await signedInAsNewUser({ twoFactorSecret: ENCRYPTED, twoFactorEnabledAt: null });
+    await signedInAsNewUser({ email: "ada@example.com" });
+    await startTwoFactorSetup(formData({ password: FACTORY_PASSWORD }));
     vi.mocked(consumeRateLimit).mockResolvedValue({
       allowed: false,
       remaining: 0,
       retryAfterMs: 60_000,
     });
 
-    expect(await confirmTwoFactorSetup(formData({ code: currentCode() }))).toEqual({
+    expect(await confirmTwoFactorSetup(formData({ code: "123456" }))).toEqual({
       success: false,
       error: "rateLimited",
     });
@@ -200,76 +205,124 @@ describe("confirmTwoFactorSetup", () => {
 });
 
 describe("disableTwoFactor", () => {
-  async function signedInWithTwoFactorEnabled() {
-    return signedInAsNewUser({
-      password: "hash",
-      twoFactorSecret: ENCRYPTED,
-      twoFactorEnabledAt: new Date(),
-      twoFactorLastStep: null,
+  it("refuses without a session", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+    expect(await disableTwoFactor(formData({ currentPassword: FACTORY_PASSWORD }))).toEqual({
+      success: false,
+      error: "unauthorized",
     });
-  }
+  });
+
+  it("rejects an empty password before checking anything else", async () => {
+    await signedInAsNewUser({ email: "ada@example.com" });
+
+    expect(await disableTwoFactor(formData({ currentPassword: "" }))).toEqual({
+      success: false,
+      error: "passwordRequired",
+    });
+  });
+
+  it("refuses once the rate limit is spent", async () => {
+    await signedInAsNewUser({ email: "ada@example.com" });
+    vi.mocked(consumeRateLimit).mockResolvedValue({
+      allowed: false,
+      remaining: 0,
+      retryAfterMs: 60_000,
+    });
+
+    expect(await disableTwoFactor(formData({ currentPassword: FACTORY_PASSWORD }))).toEqual({
+      success: false,
+      error: "rateLimited",
+    });
+  });
 
   it("refuses when two-factor is not on", async () => {
-    await signedInAsNewUser({ password: "hash", twoFactorEnabledAt: null });
+    await signedInAsNewUser({ email: "ada@example.com" });
 
-    expect(await disableTwoFactor(formData({ currentPassword: "pw", code: "123456" }))).toEqual({
+    expect(
+      await disableTwoFactor(formData({ currentPassword: FACTORY_PASSWORD, code: "123456" })),
+    ).toEqual({
       success: false,
       error: "totpNotEnabled",
     });
   });
 
-  it("rejects a wrong password before looking at the code", async () => {
-    await signedInWithTwoFactorEnabled();
-    vi.mocked(verifyPassword).mockResolvedValue(false);
+  it("BAUTH-11: correct password plus wrong code refuses and leaves two-factor on", async () => {
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
+    await enrolRealTwoFactor(user.id);
 
-    expect(await disableTwoFactor(formData({ currentPassword: "wrong", code: "123456" }))).toEqual({
+    expect(
+      await disableTwoFactor(formData({ currentPassword: FACTORY_PASSWORD, code: "000000" })),
+    ).toEqual({
+      success: false,
+      error: "totpInvalid",
+    });
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.twoFactorEnabled).toBe(true);
+  });
+
+  it("BAUTH-11: wrong password plus correct code refuses and leaves two-factor on", async () => {
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
+    const enrolled = await enrolRealTwoFactor(user.id);
+
+    expect(
+      await disableTwoFactor(
+        formData({ currentPassword: "wrong", code: deriveCodeFromUri(enrolled.totpURI) }),
+      ),
+    ).toEqual({
       success: false,
       error: "currentPasswordIncorrect",
     });
-    expect(verifyAndConsumeTwoFactor).not.toHaveBeenCalled();
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.twoFactorEnabled).toBe(true);
   });
 
-  it("rejects a right password with a wrong code", async () => {
-    // Both are required: a stolen session lacks the password, and knowing the
-    // password alone should not undo the second factor.
-    const user = await signedInWithTwoFactorEnabled();
-    vi.mocked(verifyPassword).mockResolvedValue(true);
-    vi.mocked(verifyAndConsumeTwoFactor).mockResolvedValue({ valid: false, method: null });
+  it("BAUTH-11: correct password plus correct code clears the secret and every recovery code", async () => {
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
+    const enrolled = await enrolRealTwoFactor(user.id);
 
     expect(
-      await disableTwoFactor(formData({ currentPassword: "correct", code: "000000" })),
-    ).toEqual({ success: false, error: "totpInvalid" });
-    const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.twoFactorSecret).toBe(ENCRYPTED);
-  });
-
-  it("clears the secret and every recovery code on success", async () => {
-    const user = await signedInWithTwoFactorEnabled();
-    await prisma.twoFactorRecoveryCode.create({
-      data: { user: { connect: { id: user.id } }, codeHash: "some-code-hash" },
+      await disableTwoFactor(
+        formData({ currentPassword: FACTORY_PASSWORD, code: deriveCodeFromUri(enrolled.totpURI) }),
+      ),
+    ).toEqual({
+      success: true,
     });
-    vi.mocked(verifyPassword).mockResolvedValue(true);
-    vi.mocked(verifyAndConsumeTwoFactor).mockResolvedValue({ valid: true, method: "totp" });
-
-    expect(
-      await disableTwoFactor(formData({ currentPassword: "correct", code: "123456" })),
-    ).toEqual({ success: true });
 
     const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.twoFactorSecret).toBeNull();
-    expect(found?.twoFactorEnabledAt).toBeNull();
-    expect(found?.twoFactorLastStep).toBeNull();
-    expect(await prisma.twoFactorRecoveryCode.count({ where: { userId: user.id } })).toBe(0);
+    expect(found?.twoFactorEnabled).toBe(false);
+    expect(await prisma.twoFactor.findFirst({ where: { userId: user.id } })).toBeNull();
   });
 });
 
 describe("regenerateRecoveryCodes", () => {
-  async function signedInWithTwoFactorEnabled() {
-    return signedInAsNewUser({ password: "hash", twoFactorEnabledAt: new Date() });
-  }
+  it("refuses without a session", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+    expect(await regenerateRecoveryCodes(formData({ currentPassword: FACTORY_PASSWORD }))).toEqual({
+      success: false,
+      error: "unauthorized",
+    });
+  });
+
+  it("refuses once the rate limit is spent", async () => {
+    await signedInAsNewUser({ email: "ada@example.com" });
+    vi.mocked(consumeRateLimit).mockResolvedValue({
+      allowed: false,
+      remaining: 0,
+      retryAfterMs: 60_000,
+    });
+
+    expect(await regenerateRecoveryCodes(formData({ currentPassword: FACTORY_PASSWORD }))).toEqual({
+      success: false,
+      error: "rateLimited",
+    });
+  });
 
   it("requires the password", async () => {
-    await signedInWithTwoFactorEnabled();
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
+    await enrolRealTwoFactor(user.id);
 
     expect(await regenerateRecoveryCodes(formData({ currentPassword: "" }))).toEqual({
       success: false,
@@ -277,9 +330,18 @@ describe("regenerateRecoveryCodes", () => {
     });
   });
 
+  it("refuses when two-factor is not on", async () => {
+    await signedInAsNewUser({ email: "ada@example.com" });
+
+    expect(await regenerateRecoveryCodes(formData({ currentPassword: FACTORY_PASSWORD }))).toEqual({
+      success: false,
+      error: "totpNotEnabled",
+    });
+  });
+
   it("rejects a wrong password", async () => {
-    await signedInWithTwoFactorEnabled();
-    vi.mocked(verifyPassword).mockResolvedValue(false);
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
+    await enrolRealTwoFactor(user.id);
 
     expect(await regenerateRecoveryCodes(formData({ currentPassword: "wrong" }))).toEqual({
       success: false,
@@ -287,37 +349,14 @@ describe("regenerateRecoveryCodes", () => {
     });
   });
 
-  it("does not demand a code, since the usual reason to be here is losing them", async () => {
-    await signedInWithTwoFactorEnabled();
-    vi.mocked(verifyPassword).mockResolvedValue(true);
+  it("AUTH-10: replaces the previous set with ten fresh, working codes", async () => {
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
+    const enrolled = await enrolRealTwoFactor(user.id);
 
-    const result = await regenerateRecoveryCodes(formData({ currentPassword: "correct" }));
+    const result = await regenerateRecoveryCodes(formData({ currentPassword: FACTORY_PASSWORD }));
 
     expect(result.success).toBe(true);
-    expect(verifyAndConsumeTwoFactor).not.toHaveBeenCalled();
-  });
-
-  it("replaces the previous set rather than adding to it", async () => {
-    const user = await signedInWithTwoFactorEnabled();
-    await prisma.twoFactorRecoveryCode.create({
-      data: { user: { connect: { id: user.id } }, codeHash: "old-code-hash" },
-    });
-    vi.mocked(verifyPassword).mockResolvedValue(true);
-
-    const result = await regenerateRecoveryCodes(formData({ currentPassword: "correct" }));
-
     expect(result.recoveryCodes).toHaveLength(10);
-    expect(
-      await prisma.twoFactorRecoveryCode.findFirst({ where: { codeHash: "old-code-hash" } }),
-    ).toBeNull();
-  });
-
-  it("refuses when two-factor is not on", async () => {
-    await signedInAsNewUser({ password: "hash", twoFactorEnabledAt: null });
-
-    expect(await regenerateRecoveryCodes(formData({ currentPassword: "correct" }))).toEqual({
-      success: false,
-      error: "totpNotEnabled",
-    });
+    expect(result.recoveryCodes).not.toEqual(enrolled.backupCodes);
   });
 });

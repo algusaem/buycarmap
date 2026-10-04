@@ -116,7 +116,10 @@ test("NAV-17: a visitor on a phone can register without opening the menu", async
 test("NAV-9: the bar does not shift when the session resolves", async ({ page }) => {
   // Hold the session request open so the placeholder state is measurable
   // rather than a frame that has already passed.
-  await page.route("**/api/auth/session", async (route) => {
+  // BAUTH-1 (docs/specs/core-better-auth.md), harness change: the session
+  // check is now Better Auth's `/api/auth/get-session`, not NextAuth's
+  // `/api/auth/session`.
+  await page.route("**/api/auth/get-session*", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await route.continue();
   });

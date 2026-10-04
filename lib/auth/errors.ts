@@ -20,13 +20,9 @@ export const AUTH_ERROR = {
   passwordReused: "passwordReused",
   currentPasswordIncorrect: "currentPasswordIncorrect",
   tokenInvalid: "tokenInvalid",
-  // Thrown only after a correct password, so it reveals nothing about whether
-  // an account exists — you already had to prove the credentials.
-  totpRequired: "totpRequired",
   totpInvalid: "totpInvalid",
   totpAlreadyEnabled: "totpAlreadyEnabled",
   totpNotEnabled: "totpNotEnabled",
-  totpUnavailable: "totpUnavailable",
   alreadyVerified: "alreadyVerified",
   sameEmail: "sameEmail",
   lastSignInMethod: "lastSignInMethod",

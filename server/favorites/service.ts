@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { notDeleted } from "@/lib/db/soft-delete";
+import { ownedBy } from "@/lib/auth/permissions";
 import type { ListingRef, UserId } from "@/lib/ids";
 import type { CarListing } from "@/interfaces/listing";
 
@@ -46,7 +47,7 @@ export async function upsertFavorite(
   // is `[userId, listingId]` regardless of `deletedAt`, so a deleted row is
   // still the one this upsert matches.
   await prisma.favorite.upsert({
-    where: { userId_listingId: { userId, listingId } },
+    where: { userId_listingId: { ...ownedBy({ id: userId }), listingId } },
     create: { userId, listingId, ...snapshot, createdById: userId },
     update: { deletedAt: null, version: { increment: 1 }, updatedById: userId },
   });
@@ -55,14 +56,14 @@ export async function upsertFavorite(
 /** Soft delete (DATA-10): sets `deletedAt` rather than removing the row. */
 export async function deleteFavorite(userId: UserId, listingId: ListingRef): Promise<void> {
   await prisma.favorite.updateMany({
-    where: { userId, listingId, ...notDeleted },
+    where: { ...ownedBy({ id: userId }), listingId, ...notDeleted },
     data: { deletedAt: new Date() },
   });
 }
 
 export async function findFavorites(userId: UserId): Promise<CarListing[]> {
   const rows = await prisma.favorite.findMany({
-    where: { userId, ...notDeleted },
+    where: { ...ownedBy({ id: userId }), ...notDeleted },
     orderBy: { createdAt: "desc" },
   });
   return rows.map(toListing);

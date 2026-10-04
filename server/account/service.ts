@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import type { AccountId, UserId } from "@/lib/ids";
+import type { AccountId, SessionId, UserId } from "@/lib/ids";
 
 // The account feature's database work: the actions in ./actions.ts and the
 // account page read in ./queries.ts call into here. Every function is scoped
@@ -20,9 +20,13 @@ export async function findAccountOverview(userId: UserId) {
       name: true,
       email: true,
       emailVerified: true,
-      twoFactorEnabledAt: true,
+      twoFactorEnabled: true,
       version: true,
-      accounts: { select: { provider: true } },
+      // BAUTH-14 dual-writes a "credential" accounts row for every password
+      // user — it is Better Auth's own sign-in plumbing, never a provider the
+      // user connected, so it must never reach the "connected accounts" list
+      // or its count (security review BLOCKER).
+      accounts: { where: { provider: { not: "credential" } }, select: { provider: true } },
     },
   });
 }
@@ -61,6 +65,12 @@ export async function replacePassword(
   hashedPassword: string,
   changedAt: Date,
   version: number,
+  // BAUTH-2: excluded from the delete below — changing a password from a
+  // signed-in session keeps that one session alive and revokes every other
+  // one, unlike signOutEverywhere, which keeps none. Null (no real session
+  // on the request, e.g. a test calling this action directly) excludes
+  // nothing, so every session is revoked.
+  keepSessionId: SessionId | null = null,
 ): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
     const { count } = await tx.user.updateMany({
@@ -73,7 +83,15 @@ export async function replacePassword(
       },
     });
     if (count === 0) return false;
-    await tx.session.deleteMany({ where: { userId } });
+    // BAUTH-14: dual-write during the expand phase — Better Auth's sign-in
+    // reads the credential account's password, not `User.password`.
+    await tx.account.updateMany({
+      where: { userId, provider: "credential" },
+      data: { password: hashedPassword },
+    });
+    await tx.session.deleteMany({
+      where: { userId, ...(keepSessionId ? { id: { not: keepSessionId } } : {}) },
+    });
     return true;
   });
 }
@@ -113,4 +131,36 @@ export async function findPasswordHash(userId: UserId) {
 
 export async function deleteUser(userId: UserId): Promise<void> {
   await prisma.user.delete({ where: { id: userId } });
+}
+
+/** BAUTH-4: the signed-in user's own sessions, newest-used first. */
+export async function findMySessions(userId: UserId) {
+  return prisma.session.findMany({
+    where: { userId },
+    select: { id: true, userAgent: true, ipAddress: true, updatedAt: true },
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
+/** BAUTH-4: the owning user id of a session, or null if it does not exist. */
+export async function findSessionOwner(sessionId: SessionId): Promise<UserId | null> {
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: { userId: true },
+  });
+  return (session?.userId as UserId | undefined) ?? null;
+}
+
+export async function deleteSession(sessionId: SessionId): Promise<void> {
+  await prisma.session.delete({ where: { id: sessionId } });
+}
+
+/** BAUTH-4: every one of the user's sessions except `keepSessionId`. */
+export async function deleteOtherSessions(
+  userId: UserId,
+  keepSessionId: SessionId | null,
+): Promise<void> {
+  await prisma.session.deleteMany({
+    where: { userId, ...(keepSessionId ? { id: { not: keepSessionId } } : {}) },
+  });
 }

@@ -2,7 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { createUser } from "@/test/factories/user";
 
-vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
+// BAUTH-2 (docs/specs/core-better-auth.md), harness change: changePassword
+// now also asks for the current session's own id so it can spare it from
+// the "revoke every other session" delete. Resolving to null here is the
+// same as "no real Better Auth session cookie in this test" — exactly what
+// the pre-existing session rows created directly below simulate.
+vi.mock("@/lib/auth/session", () => ({
+  getCurrentUser: vi.fn(),
+  getCurrentSessionId: vi.fn(async () => null),
+}));
 vi.mock("@/lib/auth/hash", () => ({
   hashPassword: vi.fn(async (p: string) => `hashed:${p}`),
   verifyPassword: vi.fn(),
@@ -24,6 +32,8 @@ import { consumeRateLimit } from "@/server/rate-limit/service";
 import {
   changePassword,
   deleteAccount,
+  listMySessions,
+  revokeMySession,
   signOutEverywhere,
   unlinkAccount,
   updateProfile,
@@ -350,6 +360,23 @@ describe("unlinkAccount", () => {
 
     expect(await unlinkAccount(formData({ provider: "github" }))).toEqual({ success: true });
   });
+
+  // Security review BLOCKER (item 1): "credential" is Better Auth's own
+  // sign-in plumbing (BAUTH-14's dual-write), not a provider the user chose
+  // to connect, and must never be removable from this action.
+  it("security review BLOCKER: refuses to unlink the credential row, which survives", async () => {
+    const user = await signedInAsNewUser({ password: "hash" });
+    const credential = await prisma.account.findFirst({
+      where: { userId: user.id, provider: "credential" },
+    });
+    if (!credential) throw new Error("expected createUser to dual-write a credential account");
+
+    expect(await unlinkAccount(formData({ provider: "credential" }))).toEqual({
+      success: false,
+      error: "lastSignInMethod",
+    });
+    expect(await prisma.account.findUnique({ where: { id: credential.id } })).not.toBeNull();
+  });
 });
 
 describe("deleteAccount", () => {
@@ -398,5 +425,74 @@ describe("deleteAccount", () => {
     expect(await deleteAccount(formData({ password: "" }))).toEqual({ success: true });
     expect(verifyPassword).not.toHaveBeenCalled();
     expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
+  });
+});
+
+// BAUTH-4 (docs/specs/core-better-auth.md): `listMySessions` and
+// `revokeMySession` are still the "not implemented" stubs server/account/actions.ts
+// declares for this phase — /account has nothing to read sessions from yet.
+// Every case below is red at that throw.
+describe("BAUTH-4: listMySessions", () => {
+  it("BAUTH-4: returns the signed-in user's own sessions, with device, browser and last use, and none of another user's", async () => {
+    const user = await signedInAsNewUser();
+    const other = await createUser({ password: "hash" });
+    const mine = await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-mine",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+    await prisma.session.create({
+      data: {
+        user: { connect: { id: other.id } },
+        sessionToken: "session-token-other",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    const sessions = await listMySessions();
+
+    expect(sessions.map((session) => session.id)).toEqual([mine.id]);
+    expect(sessions[0]).toMatchObject({
+      userAgent: expect.anything(),
+      ipAddress: expect.anything(),
+      lastUsedAt: expect.anything(),
+    });
+  });
+});
+
+describe("BAUTH-4: revokeMySession", () => {
+  it("BAUTH-4: refuses to revoke another user's session", async () => {
+    await signedInAsNewUser();
+    const other = await createUser({ password: "hash" });
+    const othersSession = await prisma.session.create({
+      data: {
+        user: { connect: { id: other.id } },
+        sessionToken: "session-token-other",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    const result = await revokeMySession(othersSession.id);
+
+    expect(result).toEqual({ success: false, error: "unauthorized" });
+    expect(await prisma.session.findUnique({ where: { id: othersSession.id } })).not.toBeNull();
+  });
+
+  it("BAUTH-4: deletes the signed-in user's own session", async () => {
+    const user = await signedInAsNewUser();
+    const mine = await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-mine",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    const result = await revokeMySession(mine.id);
+
+    expect(result).toEqual({ success: true });
+    expect(await prisma.session.findUnique({ where: { id: mine.id } })).toBeNull();
   });
 });

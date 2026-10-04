@@ -17,8 +17,8 @@ permissions:
 # padded past 32 characters only to keep the length warning out of CI logs.
 env:
   DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
-  NEXTAUTH_SECRET: "ci-test-secret-at-least-32-characters"
-  NEXTAUTH_URL: "http://localhost:3000"
+  BETTER_AUTH_SECRET: "ci-test-secret-at-least-32-characters"
+  BETTER_AUTH_URL: "http://localhost:3000"
 
 jobs:
   check:

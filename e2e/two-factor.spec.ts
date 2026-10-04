@@ -1,16 +1,18 @@
 import { test, expect, type Page } from "@playwright/test";
 import { clearRateLimits, e2eEmail, seedUser } from "./fixtures/db";
-import { deriveCode, stepForTime } from "../lib/auth/two-factor/totp";
+import { deriveCodeForStep, stepForTime } from "../test/two-factor-totp";
 
 // The integration the unit tests cannot reach: enrol through the real UI, then
 // sign in with a code the authenticator app would have produced. Everything
 // here goes through the browser and the real database.
 //
-// Codes are derived with the same module the server uses. That is not circular:
-// `totp.test.ts` pins that module against the published RFC 6238 vectors, so if
-// it were wrong those tests would fail first. What this file proves is the
-// wiring — that the secret shown on screen is the one stored, encrypted,
-// decrypted and verified across two separate requests.
+// BAUTH-11 (docs/specs/core-better-auth.md): two-factor now runs on Better
+// Auth's own `twoFactor` plugin, not a module of ours — codes are derived
+// straight from the `otpauth://` URI's own secret parameter
+// (`../test/two-factor-totp.ts`), the same RFC 6238 math the plugin itself
+// runs. What this file proves is the wiring — that the secret shown on
+// screen is the one the plugin stored and verifies across two separate
+// requests.
 
 const dbTest = process.env.E2E_DB ? test : test.skip;
 const PASSWORD = "harbour-lentil-quilt-97";
@@ -41,26 +43,23 @@ async function signOut(page: Page, name: string) {
   // middleware then still sees a token and bounces the next /login straight
   // back. Waiting for that POST's response is the one signal that is true
   // regardless of which URL the page started from.
+  // BAUTH-1 (docs/specs/core-better-auth.md), harness change: sign-out is now
+  // Better Auth's `/api/auth/sign-out`, not NextAuth's `/api/auth/signout`.
   const signedOut = page.waitForResponse(
     (response) =>
-      response.url().includes("/api/auth/signout") && response.request().method() === "POST",
+      response.url().includes("/api/auth/sign-out") && response.request().method() === "POST",
   );
   await page.getByRole("menuitem", { name: SIGN_OUT }).click();
   await signedOut;
 }
 
 /**
- * A code for the *next* counter step.
- *
- * Enrolment consumes the step of the code that confirmed it, so the same code
- * cannot then be used to sign in — that is the replay guard working, and it is
- * the behaviour a real user meets if they enable 2FA and immediately sign out
- * and back in within the same 30 seconds. Stepping forward one is what waiting
- * for the app's next code amounts to, without sleeping for half a minute. It
- * stays inside the ±1 drift window, so the server accepts it.
+ * A code for the *next* counter step, stepping forward without sleeping for
+ * half a minute. Stays inside the plugin's own ±1 drift window, so the
+ * server still accepts it.
  */
 function nextCode(secret: string): string {
-  return deriveCode(secret, stepForTime(Date.now()) + 1);
+  return deriveCodeForStep(secret, stepForTime(Date.now()) + 1);
 }
 
 async function loginViaUi(page: Page, email: string, code?: string) {
@@ -81,6 +80,11 @@ async function loginViaUi(page: Page, email: string, code?: string) {
 /** Runs enrolment through the UI and returns the secret and recovery codes. */
 async function enrolTwoFactor(page: Page) {
   await page.goto("/account");
+  // BAUTH-11 (docs/specs/core-better-auth.md): Better Auth's own
+  // `enableTwoFactor` always requires a password, so the "set up" button
+  // only activates once one is typed. Scoped by id, not label text: the
+  // delete-account password field on the same page shares the same label.
+  await page.locator("#two-factor-setup-password").fill(PASSWORD);
   await page.getByRole("button", { name: /set up two-factor|configurar dos pasos/i }).click();
 
   // The manual-entry key is on screen for anyone who cannot scan — which also
@@ -96,16 +100,19 @@ async function enrolTwoFactor(page: Page) {
 
   await page
     .getByLabel(/enter the 6-digit code|código de 6/i)
-    .fill(deriveCode(secret, stepForTime(Date.now())));
+    .fill(deriveCodeForStep(secret, stepForTime(Date.now())));
   await page.getByRole("button", { name: /turn on two-factor|activar dos pasos/i }).click();
 
   await expect(page.getByText(/save your recovery codes|guarda tus códigos/i)).toBeVisible({
     timeout: 15_000,
   });
 
+  // BAUTH-11: Better Auth's own `generateBackupCodes` mints these — two
+  // groups of 5 mixed-case alphanumeric characters, not our old three-group
+  // uppercase-only format (lib/auth/two-factor/recovery-codes.ts, deleted).
   const recoveryCodes = await page
     .locator("li")
-    .filter({ hasText: /^[A-Z2-9]{5}-[A-Z2-9]{5}-[A-Z2-9]{5}$/ })
+    .filter({ hasText: /^[a-zA-Z0-9]{5}-[a-zA-Z0-9]{5}$/ })
     .allInnerTexts();
 
   await page.getByRole("button", { name: /copy codes|copiar códigos/i }).click();
@@ -202,30 +209,11 @@ test.describe("two-factor authentication (real database)", () => {
     await expect(navSavedCars(page)).toHaveCount(0);
   });
 
-  dbTest("refuses to replay a code that already signed someone in", async ({ page }) => {
-    const email = e2eEmail("totp-replay");
-    const name = "Seeded User";
-    await seedUser(email, PASSWORD, name);
-
-    await loginViaUi(page, email);
-    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
-    const { secret } = await enrolTwoFactor(page);
-    await signOut(page, name);
-    await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
-
-    const code = nextCode(secret);
-
-    await loginViaUi(page, email, code);
-    await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
-    await signOut(page, name);
-    await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
-
-    // Still inside its 30-second window, so it is arithmetically valid — the
-    // stored step is what refuses it.
-    await loginViaUi(page, email, code);
-    await expect(page.getByText(/isn't valid|no es válido/i)).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(navSavedCars(page)).toHaveCount(0);
-  });
+  // AUTH-8 ("a TOTP code cannot be reused inside its own window") is
+  // withdrawn as of 2026-10-04 (docs/specs/core-better-auth.md, BAUTH-12):
+  // Better Auth's `twoFactor` plugin, which sign-in now runs on, keeps no
+  // replay store, so a code that already signed someone in works again
+  // inside its own 30-second window. The e2e test that stood here proved
+  // the opposite and is deleted, per that decision, rather than kept red or
+  // renamed onto a different claim.
 });

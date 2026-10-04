@@ -8,7 +8,7 @@ import type { LimiterFactory, RateLimitRule } from "@/lib/platform/rate-limit";
 // and every `RATE_LIMITS` value from the old Postgres-backed implementation;
 // only the storage moved, to `lib/platform/rate-limit.ts`'s adapter.
 //
-// Without this, `authorizeCredentials` accepts unlimited password guesses, and
+// Without this, `signIn` (server/auth/actions.ts) accepts unlimited password guesses, and
 // because every guess costs a bcrypt cost-12 comparison (~250ms of CPU), the
 // login endpoint doubles as a cheap CPU-exhaustion vector.
 
@@ -54,6 +54,16 @@ export const RATE_LIMITS = {
   // 15 minutes keeps brute force hopeless while leaving room for a mistyped
   // code or a phone whose clock has drifted.
   twoFactorPerUser: { name: "twoFactorPerUser", limit: 10, windowMs: 15 * 60 * 1000 },
+  // BAUTH-3 (docs/specs/core-better-auth.md), security review fix: the
+  // sign-in challenge (`verifySignInTotp`/`verifySignInBackupCode`,
+  // server/auth/actions.ts) takes no email, so there is no account to key a
+  // per-account budget on without accepting one from the caller — which
+  // would let an attacker enumerate accounts for free and lock a victim out
+  // by guessing against their address from a different IP. This per-IP
+  // budget is consumed on every call instead, on top of the plugin's own
+  // per-challenge and per-account lockout (both bound to the signed
+  // two-factor cookie, not to anything the caller asserts).
+  twoFactorPerIp: { name: "twoFactorPerIp", limit: 20, windowMs: 15 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 /**

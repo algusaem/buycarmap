@@ -35,12 +35,20 @@ export async function seedUser(
   // default, so a raw insert has to mint one itself.
   const id = randomUUID();
   const hash = await bcrypt.hash(password, 12);
-  await withClient((client) =>
-    client.query(
+  await withClient(async (client) => {
+    await client.query(
       "INSERT INTO users(id, email, password, name, updated_at) VALUES ($1, $2, $3, $4, now())",
       [id, email, hash, name],
-    ),
-  );
+    );
+    // BAUTH-14 (docs/specs/core-better-auth.md): Better Auth's sign-in looks
+    // up the "credential" accounts row, not users.password — the same gap
+    // test/factories/user.ts's createUser() closes for the Vitest suite.
+    await client.query(
+      `INSERT INTO accounts(id, user_id, type, provider, provider_account_id, password, updated_at)
+       VALUES ($1, $2, 'credential', 'credential', $3, $4, now())`,
+      [randomUUID(), id, id, hash],
+    );
+  });
 }
 
 export async function userExists(email: string): Promise<boolean> {

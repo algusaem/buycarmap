@@ -15,7 +15,7 @@ one shared listing shape. If a source is down, the others still render.
 
 ```bash
 pnpm install
-cp .env.example .env      # fill in NEXTAUTH_SECRET; DATABASE_URL's default already points at Compose
+cp .env.example .env      # fill in BETTER_AUTH_SECRET; DATABASE_URL's default already points at Compose
 pnpm db:up                 # start the local Postgres (needs Docker Desktop running)
 pnpm exec prisma generate
 pnpm db:branch && pnpm db:seed
@@ -67,13 +67,18 @@ step. `pnpm build` runs it for you; `pnpm dev`, `pnpm typecheck` and `pnpm test`
 
 ### The minimum env
 
-Only `DATABASE_URL` and `NEXTAUTH_SECRET` are required — `lib/env.ts` validates
+Only `DATABASE_URL` and `BETTER_AUTH_SECRET` are required — `lib/env.ts` validates
 them at import and throws at boot rather than failing later with an opaque
 error. Everything else is optional and **degrades a feature rather than breaking
 the app**, which is deliberate, so a contributor is never blocked on credentials
 they do not need. What each variable does when it is absent is in
 [Environment variables](docs/ARCHITECTURE.md#environment-variables);
 `.env.example` is the full reference, with the reasoning next to each entry.
+
+In Vercel (Production and Preview), set `BETTER_AUTH_SECRET` to the **current**
+`NEXTAUTH_SECRET` value, not a freshly generated one — the alert unsubscribe
+tokens are HMACs keyed on it, and a new secret would stop every link already
+sent from matching its stored hash ([ADR 0018](docs/decisions/0018-better-auth.md)).
 
 ### Working in a worktree
 
@@ -363,6 +368,7 @@ solo project is ceremony.
 | [core-tooling.md](docs/specs/core-tooling.md) | TOOLING | Implemented | Migration phase 3: the verification contract and repository tooling |
 | [core-docs.md](docs/specs/core-docs.md) | DOCS | Implemented | Migration phase 4: the core spec format and docs tree |
 | [core-layout.md](docs/specs/core-layout.md) | LAYOUT | Implemented | Migration phase 5: the server layer and the dependency rules |
+| [core-better-auth.md](docs/specs/core-better-auth.md) | BAUTH | In progress | Migration phase 11: Better Auth, server-side sessions, the permissions layer |
 
 ### Decisions
 
@@ -454,7 +460,6 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/globals.css` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `lib/form-data.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `interfaces/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| `types/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `lib/env.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `lib/app-config.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `lib/result.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |

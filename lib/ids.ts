@@ -18,13 +18,15 @@ import { z } from "zod";
 export const userIdSchema = z.uuid().brand<"UserId">();
 export const alertIdSchema = z.uuid().brand<"AlertId">();
 
-// These three never arrive as client input — every AlertCriteriaId,
-// AlertPollJobId and AccountId in this app is read back from Prisma or
-// cast with the `as*Id` helpers below — so the schema itself is private,
-// kept only to derive its branded type the same way the two above do.
+// These four never arrive as client input — every AlertCriteriaId,
+// AlertPollJobId, AccountId and SessionId in this app is read back from
+// Prisma/Better Auth or cast with the `as*Id` helpers below — so the schema
+// itself is private, kept only to derive its branded type the same way the
+// two above do.
 const alertCriteriaIdSchema = z.uuid().brand<"AlertCriteriaId">();
 const alertPollJobIdSchema = z.uuid().brand<"AlertPollJobId">();
 const accountIdSchema = z.uuid().brand<"AccountId">();
+const sessionIdSchema = z.uuid().brand<"SessionId">();
 
 // Derived from the schemas above (`z.infer`), not hand-rolled, so the type a
 // function declares and the type `.parse`/`.safeParse` actually produces are
@@ -34,6 +36,7 @@ export type AlertId = z.infer<typeof alertIdSchema>;
 export type AlertCriteriaId = z.infer<typeof alertCriteriaIdSchema>;
 export type AlertPollJobId = z.infer<typeof alertPollJobIdSchema>;
 export type AccountId = z.infer<typeof accountIdSchema>;
+export type SessionId = z.infer<typeof sessionIdSchema>;
 
 // At a Prisma boundary (a row just read back, or an id this process minted
 // itself with uuidv7()) the value is already a UUIDv7 by construction, so
@@ -65,6 +68,12 @@ export function asAlertPollJobId(value: string): AlertPollJobId {
 export function asAccountId(value: string): AccountId {
   // Safe: only ever called on an Account.id read from Prisma.
   return value as AccountId;
+}
+export function asSessionId(value: string): SessionId {
+  // Safe: only ever called on a Session.id read from Better Auth's own
+  // session object (BAUTH-2, docs/specs/core-better-auth.md), itself a row
+  // read from Prisma.
+  return value as SessionId;
 }
 
 // Generates a UUIDv7: the 48-bit unix millisecond timestamp, the version

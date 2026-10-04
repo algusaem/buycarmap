@@ -3,7 +3,9 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { makeFavoriteInput } from "@/test/fixtures/favorites";
 
 const useSession = vi.fn();
-vi.mock("next-auth/react", () => ({ useSession: () => useSession() }));
+vi.mock("@/lib/auth/auth-client", () => ({
+  authClient: { useSession: () => useSession() },
+}));
 vi.mock("@/server/favorites/actions", () => ({ listFavorites: vi.fn() }));
 vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 
@@ -14,9 +16,9 @@ import { useFavorites } from "./useFavorites";
 const signedIn = () =>
   useSession.mockReturnValue({
     data: { user: { id: "user-ada" } },
-    status: "authenticated",
+    isPending: false,
   });
-const signedOut = () => useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+const signedOut = () => useSession.mockReturnValue({ data: null, isPending: false });
 
 beforeEach(() => {
   vi.mocked(listFavorites).mockReset();

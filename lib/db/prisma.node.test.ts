@@ -60,7 +60,7 @@ beforeEach(() => {
   globalThis.prisma = undefined;
   vi.unstubAllEnvs();
   vi.stubEnv("DATABASE_URL", POOLED_URL);
-  vi.stubEnv("NEXTAUTH_SECRET", "test-secret-at-least-32-characters-long");
+  vi.stubEnv("BETTER_AUTH_SECRET", "test-secret-at-least-32-characters-long");
 });
 
 describe("createPrismaClient adapter selection", () => {

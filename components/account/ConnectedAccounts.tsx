@@ -35,6 +35,11 @@ export function ConnectedAccounts({ providers, hasPassword }: ConnectedAccountsP
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
 
+  // BAUTH-14's "credential" accounts row is Better Auth's own sign-in
+  // plumbing, never a provider the user connected — it must never render here
+  // (security review BLOCKER), even if a caller ever passes it through.
+  const visibleProviders = providers.filter((provider) => provider !== "credential");
+
   const onUnlink = async (provider: string) => {
     setPending(provider);
 
@@ -61,17 +66,17 @@ export function ConnectedAccounts({ providers, hasPassword }: ConnectedAccountsP
       </CardHeader>
 
       <CardContent>
-        {providers.length === 0 && (
+        {visibleProviders.length === 0 && (
           <p className="text-sm text-muted-foreground">{t("account.providers.none")}</p>
         )}
 
-        {providers.length > 0 && (
+        {visibleProviders.length > 0 && (
           <ul className="divide-y divide-border/50">
-            {providers.map((provider) => {
+            {visibleProviders.map((provider) => {
               const Icon = PROVIDER_ICONS[provider];
               // Removing the only way in would strand the account: no password
               // to fall back on, and password reset skips passwordless users.
-              const isLastMethod = !hasPassword && providers.length === 1;
+              const isLastMethod = !hasPassword && visibleProviders.length === 1;
 
               return (
                 <li
@@ -106,7 +111,7 @@ export function ConnectedAccounts({ providers, hasPassword }: ConnectedAccountsP
           </ul>
         )}
 
-        {!hasPassword && providers.length === 1 && (
+        {!hasPassword && visibleProviders.length === 1 && (
           <p className="mt-3 text-xs text-muted-foreground">
             {t("account.providers.lastMethodHint")}
           </p>

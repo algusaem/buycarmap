@@ -19,9 +19,12 @@ server action in `server/account/actions.ts` (its database work in
 Every relation owned by the user is `onDelete: Cascade`, so the same delete
 removes their `Account` (OAuth links), `Session`, `Favorite`, `Alert` (and each
 alert's `AlertMatch` rows), `SearchHistory`, `PasswordResetToken`,
-`EmailVerificationToken` and `TwoFactorRecoveryCode` rows. The cascade is
-enforced by Postgres, not by application code
-([Cascades](../ARCHITECTURE.md#cascades)).
+`EmailVerificationToken`, `TwoFactorRecoveryCode` and `TwoFactor` (Better
+Auth's own `twoFactor` plugin table, phase 11, [0018](../decisions/0018-better-auth.md))
+rows. The cascade is enforced by Postgres, not by application code
+([Cascades](../ARCHITECTURE.md#cascades)) — verified directly against
+`prisma/schema.prisma`: both `Session.user` and `TwoFactor.user` declare
+`onDelete: Cascade`.
 
 ## What survives
 

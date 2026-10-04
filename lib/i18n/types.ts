@@ -249,11 +249,9 @@ export interface Translations {
     passwordReused: string;
     currentPasswordIncorrect: string;
     tokenInvalid: string;
-    totpRequired: string;
     totpInvalid: string;
     totpAlreadyEnabled: string;
     totpNotEnabled: string;
-    totpUnavailable: string;
     oauthLinkBlocked: string;
     alreadyVerified: string;
     sameEmail: string;

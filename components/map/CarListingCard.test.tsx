@@ -17,7 +17,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 const useSession = vi.fn();
-vi.mock("next-auth/react", () => ({ useSession: () => useSession() }));
+vi.mock("@/lib/auth/auth-client", () => ({
+  authClient: { useSession: () => useSession() },
+}));
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
@@ -58,7 +60,7 @@ beforeEach(() => {
   push.mockReset();
   useSession.mockReturnValue({
     data: { user: { id: "user-ada" } },
-    status: "authenticated",
+    isPending: false,
   });
 });
 
@@ -179,7 +181,7 @@ describe("CarListingCard favorites", () => {
   });
 
   it("FAV-12: sends a signed-out visitor to sign in, and back again afterwards", async () => {
-    useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+    useSession.mockReturnValue({ data: null, isPending: false });
     renderWithI18n(<CarListingCard {...listing} />);
 
     await userEvent.click(favoriteControl());
@@ -189,7 +191,7 @@ describe("CarListingCard favorites", () => {
   });
 
   it("FAV-12: does not pretend the listing was saved", async () => {
-    useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+    useSession.mockReturnValue({ data: null, isPending: false });
     renderWithI18n(<CarListingCard {...listing} />);
 
     await userEvent.click(favoriteControl());
@@ -205,7 +207,7 @@ describe("CarListingCard favorites", () => {
     // valid token. The user lands on the home page and the click is lost.
     // Found by e2e/favorites.spec.ts FAV-3, which was flaky 2 runs in 3 because
     // /favorites is server-rendered and therefore clickable immediately.
-    useSession.mockReturnValue({ data: null, status: "loading" });
+    useSession.mockReturnValue({ data: null, isPending: true });
     renderWithI18n(<CarListingCard {...listing} />);
 
     await userEvent.click(favoriteControl());
@@ -214,7 +216,7 @@ describe("CarListingCard favorites", () => {
   });
 
   it("FAV-18: does not report the listing as saved while the session is still loading", async () => {
-    useSession.mockReturnValue({ data: null, status: "loading" });
+    useSession.mockReturnValue({ data: null, isPending: true });
     renderWithI18n(<CarListingCard {...listing} />);
 
     await userEvent.click(favoriteControl());

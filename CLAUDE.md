@@ -75,7 +75,7 @@ file is a rule; the explanations live in `docs/`.
 ## Stack today
 
 Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prisma 7
-with the **`@prisma/adapter-pg`** driver adapter · NextAuth 4 (JWT sessions) ·
+with the **`@prisma/adapter-pg`** driver adapter · Better Auth (Postgres sessions) ·
 React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
 `components/ui/*` · Motion · Sonner · next-themes · Leaflet + react-leaflet ·
 Lucide React and React Icons · next-intl (i18n) · nuqs (URL state) · date-fns
@@ -346,23 +346,27 @@ Working in a worktree and `docs/ARCHITECTURE.md` › Migrations.
 
 ## Authentication
 
-The system is documented in `docs/ARCHITECTURE.md` › Authentication (a short orientation) and specified
-in full in `docs/specs/auth-email-and-oauth.md`. **Read the spec before changing
-anything here** — every property below is load-bearing and most are not obvious.
+The system is Better Auth with sessions stored in Postgres (`docs/decisions/0018-better-auth.md`),
+documented in `docs/ARCHITECTURE.md` › Authentication and specified in
+`docs/specs/auth-email-and-oauth.md` and `docs/specs/core-better-auth.md`. **Read both specs before
+changing anything here** — every property below is load-bearing and most are not obvious.
 Any change here needs approval first (`RULES.md` §1).
 
-- **Never call `getServerSession` directly** — use `getCurrentUser()` from
-  `lib/auth/session.ts`. Every server action (`server/<feature>/actions.ts`) and page read
-  (`server/<feature>/queries.ts`) touching user data must call it.
-  Only it honours revocation. `proxy.ts` only decodes the JWT and cannot see
-  revocations, so it is UX, not authorization.
-- **`authOptions` lives in `lib/auth/options.ts`**, never the route file —
-  server components and actions import it, and pulling it from a route would
-  drag the handler along.
+- **The Better Auth instance lives in `lib/auth/auth.ts`** and is the only module importing
+  `better-auth` (plus `lib/auth/auth-client.ts` in the browser). Never instantiate another.
+- **Use `getCurrentUser()` from `lib/auth/session.ts`** in every server action
+  (`server/<feature>/actions.ts`) and page read (`server/<feature>/queries.ts`) touching user
+  data. It reads the session row, so revocation is immediate. `proxy.ts` only checks that a
+  session cookie exists, so it is UX, not authorization.
+- **Authorization goes through `can()` / `ownedBy()`** in `lib/auth/permissions.ts`. Never
+  compare `userId` to `user.id` inline.
+- **Registration, password reset, email verification and email change stay our own flows.**
+  Better Auth's equivalent endpoints are in `disabledPaths` so nobody can call them around our
+  rules; do not re-enable one. Its `/sign-in/email` and `/change-password` run our checks in
+  `hooks.before`.
 - **Any flow that sets a password must call `validateNewPassword()`**
-  (`lib/auth/password-policy.ts`) **and bump `passwordChangedAt`.** Skipping the
-  second signs nobody out. The client strength meter is a hint; the server gate
-  is what counts.
+  (`lib/auth/password-policy.ts`), write the `credential` account's hash, and revoke the
+  user's other sessions. The client strength meter is a hint; the server gate is what counts.
 - **Password reset must not bypass 2FA**, and the email-change link must go to
   the **new** address with the current password required to start the change.
 - **Return codes, never prose** (`AUTH_ERROR`, in `lib/auth/errors.ts`). Forms resolve them with
@@ -378,11 +382,11 @@ Any change here needs approval first (`RULES.md` §1).
   timing equalization, and bcrypt run *before* any existence check. Registration
   is verify-first when email is configured — `register` writes a
   `PendingRegistration`, never a `User`.
-- **Do not change the TOTP parameters** (HMAC-SHA1, 6 digits, 30s step, ±1 step
-  drift). They are what real authenticator apps assume.
-- **Do not "fix" `allowDangerousEmailAccountLinking`** or the `signIn` callback's
-  refusal to auto-link a new provider to a 2FA account, without reading the
-  reasoning in `options.ts` first. Both look wrong and are not.
+- **Do not change the TOTP parameters** of the `twoFactor` plugin (HMAC-SHA1, 6 digits, 30s
+  step, ±1 step drift). They are what real authenticator apps assume. A code can be reused
+  inside its window: AUTH-8 was withdrawn on purpose (BAUTH-12).
+- **Do not relax account linking.** A provider is auto-linked only when both emails are
+  verified, and never to an account with two-factor on (`lib/auth/linking.ts`, BAUTH-9).
 
 ## UI specifics
 

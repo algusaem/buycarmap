@@ -22,8 +22,13 @@ const MIGRATION_EXISTS = existsSync(NEW_MIGRATION_PATH);
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function oldMigrationSqlFiles(): string[] {
+  // Strictly before NEW_MIGRATION_DIR, not merely "a different name": a
+  // migration added after it (BAUTH-14's 20261004000000_better_auth, which
+  // assumes the snake_case table names NEW_MIGRATION_DIR itself introduces)
+  // would otherwise be swept in here and fail against the un-renamed tables
+  // this fixture deliberately stops short of.
   return readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && entry.name !== NEW_MIGRATION_DIR)
+    .filter((entry) => entry.isDirectory() && entry.name < NEW_MIGRATION_DIR)
     .map((entry) => entry.name)
     .sort()
     .map((name) => join(MIGRATIONS_DIR, name, "migration.sql"));

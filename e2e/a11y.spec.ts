@@ -36,6 +36,24 @@ async function setTheme(page: Page, theme: "light" | "dark") {
 }
 
 async function seriousViolations(page: Page) {
+  // Mount animations (fadeInUp) fade whole cards in from opacity 0; axe
+  // sampling mid-fade reports contrast against a half-transparent colour.
+  // Infinite animations (spinners, ambient backgrounds) never finish, so only
+  // finite ones are waited on. Motion drives some fades from JS rather than
+  // the Web Animations API, writing inline `opacity`, so any inline opacity
+  // below 1 means the fade is still running — or, before hydration, has not
+  // started yet (the server renders the `initial` opacity 0).
+  await page.waitForFunction(
+    () =>
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
+        .every((animation) => animation.playState !== "running") &&
+      Array.from(document.querySelectorAll<HTMLElement>("[style*='opacity']")).every((element) => {
+        const opacity = Number.parseFloat(element.style.opacity);
+        return Number.isNaN(opacity) || opacity === 1;
+      }),
+  );
   const { violations } = await new AxeBuilder({ page }).analyze();
   return violations.filter((v) => v.impact === "serious" || v.impact === "critical");
 }

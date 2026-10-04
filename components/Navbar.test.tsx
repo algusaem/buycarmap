@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { renderWithI18n } from "@/test/utils/render";
@@ -8,16 +8,22 @@ import esMessages from "@/messages/es.json";
 // NAV-7 reads the current route to mark the active destination, so the pathname
 // is controllable rather than fixed.
 const pathname = vi.fn(() => "/");
+const push = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push, refresh: vi.fn() }),
   usePathname: () => pathname(),
 }));
 
+// BAUTH-1 (docs/specs/core-better-auth.md), harness change: Navbar now reads
+// `authClient.useSession()` (Better Auth) and calls `authClient.signOut()`,
+// not NextAuth's `next-auth/react` hook and action.
 const useSession = vi.fn();
 const signOut = vi.fn();
-vi.mock("next-auth/react", () => ({
-  useSession: () => useSession(),
-  signOut: (...args: unknown[]) => signOut(...args),
+vi.mock("@/lib/auth/auth-client", () => ({
+  authClient: {
+    useSession: () => useSession(),
+    signOut: (...args: unknown[]) => signOut(...args),
+  },
 }));
 
 // Stubbed as findable controls rather than as null. These components own their
@@ -34,10 +40,10 @@ import { Navbar } from "./Navbar";
 
 const SIGNED_IN = {
   data: { user: { name: "Ada Lovelace", email: "ada@example.com" } },
-  status: "authenticated",
+  isPending: false,
 };
-const SIGNED_OUT = { data: null, status: "unauthenticated" };
-const LOADING = { data: null, status: "loading" };
+const SIGNED_OUT = { data: null, isPending: false };
+const LOADING = { data: null, isPending: true };
 
 // The collapsed menu on mobile: a Dialog, so its contents exist only while open.
 // That is what keeps a closed navbar from rendering every link twice in jsdom —
@@ -60,6 +66,7 @@ async function openAccountMenu(user: UserEvent) {
 beforeEach(() => {
   useSession.mockReset();
   signOut.mockReset();
+  push.mockReset();
   pathname.mockReturnValue("/");
 });
 
@@ -206,7 +213,8 @@ describe("Navbar session states", () => {
     // "/" and not the current page: the page they were on may be guarded, and
     // landing on a sign-in redirect immediately after signing out reads as the
     // sign-out having failed.
-    expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/" });
+    await waitFor(() => expect(signOut).toHaveBeenCalled());
+    expect(push).toHaveBeenCalledWith("/");
   });
 
   it("NAV-18: lets the language be chosen from the account menu with the keyboard alone", async () => {
@@ -241,7 +249,7 @@ describe("Navbar session states", () => {
   it("NAV-15: identifies a user with no display name by their email address", () => {
     useSession.mockReturnValue({
       data: { user: { name: null, email: "ada@example.com" } },
-      status: "authenticated",
+      isPending: false,
     });
     renderWithI18n(<Navbar />);
 
@@ -289,7 +297,7 @@ describe("Navbar favorites link", () => {
   it("FAV-17: gives a signed-in user a way to reach their saved cars", () => {
     useSession.mockReturnValue({
       data: { user: { email: "ada@example.com", name: "Ada" } },
-      status: "authenticated",
+      isPending: false,
     });
 
     renderWithI18n(<Navbar />);
@@ -299,7 +307,7 @@ describe("Navbar favorites link", () => {
   });
 
   it("FAV-17: does not offer it to a signed-out visitor", () => {
-    useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+    useSession.mockReturnValue({ data: null, isPending: false });
 
     renderWithI18n(<Navbar />);
 
