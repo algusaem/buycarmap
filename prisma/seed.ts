@@ -1,7 +1,9 @@
 // TEST-11/TEST-12 (docs/specs/core-testing.md): fills an empty local database
 // with deterministic development data — 3 users (one with two-factor on), 10
 // favorites and 3 alerts with matches — and refuses to run against anything
-// but a local database.
+// but a local database. ENV-4 (docs/specs/core-environments.md) amends
+// TEST-12's guard so the shared `preview` Neon branch can still be seeded
+// deliberately, by naming its exact host in SEED_TARGET_HOST.
 //
 // Uses its own seeded `Faker` instance (`en`/`es` locales), separate from
 // test/factories/*.ts's shared default `faker` — STACK.md §3: seed data is
@@ -29,6 +31,21 @@ export function assertLocalDatabase(url: string): void {
   if (hostname !== "localhost" && hostname !== "127.0.0.1") {
     throw new Error(`Refusing to seed "${hostname}": only localhost and 127.0.0.1 are allowed.`);
   }
+}
+
+/**
+ * ENV-4 (docs/specs/core-environments.md): amends TEST-12 so the shared
+ * `preview` Neon branch can be seeded deliberately. Allows `localhost` and
+ * `127.0.0.1` exactly as `assertLocalDatabase` does; otherwise allows only
+ * when `targetHost` names that exact hostname, and refuses — naming the
+ * hostname — in every other case, including when `targetHost` is set but
+ * differs.
+ */
+export function assertSeedTarget(url: string, targetHost: string | undefined): void {
+  const { hostname } = new URL(url);
+  if (hostname === "localhost" || hostname === "127.0.0.1") return;
+  if (targetHost === hostname) return;
+  throw new Error(`Refusing to seed "${hostname}": SEED_TARGET_HOST does not name it.`);
 }
 
 function vehicleSnapshot(faker: Faker, listingId: string) {
@@ -276,7 +293,7 @@ export async function main({
   loadPrisma?: () => Promise<PrismaClient>;
   seedFn?: typeof seed;
 } = {}): Promise<void> {
-  assertLocalDatabase(env.DATABASE_URL ?? "");
+  assertSeedTarget(env.DATABASE_URL ?? "", env.SEED_TARGET_HOST);
   const prisma = await loadPrisma();
   await seedFn(prisma);
 }

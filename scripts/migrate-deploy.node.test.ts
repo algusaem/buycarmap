@@ -41,16 +41,63 @@ describe("main", () => {
     expect(code).toBe(1);
   });
 
-  it("PLAT-9: preview skips the migration and exits 0", async () => {
+  // Amended by ENV-3 (docs/specs/core-environments.md): preview now migrates
+  // its own Neon branch, so the skip case is a development deployment.
+  it("PLAT-9: a development deployment skips the migration and exits 0", async () => {
     const run = vi.fn().mockResolvedValue(0);
 
-    const code = await main({ env: { VERCEL_ENV: "preview" }, run });
+    const code = await main({ env: { VERCEL_ENV: "development" }, run });
 
     expect(run).not.toHaveBeenCalled();
     expect(code).toBe(0);
   });
 
   it("PLAT-9: local (VERCEL_ENV unset) skips the migration and exits 0", async () => {
+    const run = vi.fn().mockResolvedValue(0);
+
+    const code = await main({ env: {}, run });
+
+    expect(run).not.toHaveBeenCalled();
+    expect(code).toBe(0);
+  });
+});
+
+// ENV-3 worked example (docs/specs/core-environments.md): previews now share
+// a seed-only Neon branch (ADR 0019), so `preview` also migrates — only
+// `production` did before this phase.
+//   VERCEL_ENV=production  -> migrates
+//   VERCEL_ENV=preview     -> migrates
+//   VERCEL_ENV=development -> skips, exit 0
+//   VERCEL_ENV unset       -> skips, exit 0
+describe("ENV-3: migrations run on production and preview", () => {
+  it("ENV-3: production migrates", async () => {
+    const run = vi.fn().mockResolvedValue(0);
+
+    const code = await main({ env: { VERCEL_ENV: "production" }, run });
+
+    expect(run).toHaveBeenCalledWith("pnpm", ["exec", "prisma", "migrate", "deploy"]);
+    expect(code).toBe(0);
+  });
+
+  it("ENV-3: preview migrates", async () => {
+    const run = vi.fn().mockResolvedValue(0);
+
+    const code = await main({ env: { VERCEL_ENV: "preview" }, run });
+
+    expect(run).toHaveBeenCalledWith("pnpm", ["exec", "prisma", "migrate", "deploy"]);
+    expect(code).toBe(0);
+  });
+
+  it("ENV-3: development skips", async () => {
+    const run = vi.fn().mockResolvedValue(0);
+
+    const code = await main({ env: { VERCEL_ENV: "development" }, run });
+
+    expect(run).not.toHaveBeenCalled();
+    expect(code).toBe(0);
+  });
+
+  it("ENV-3: unset skips", async () => {
     const run = vi.fn().mockResolvedValue(0);
 
     const code = await main({ env: {}, run });

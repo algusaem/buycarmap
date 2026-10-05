@@ -69,6 +69,11 @@ async function resetUpstreamScenario(): Promise<void> {
 export default async function globalSetup(config: FullConfig): Promise<void> {
   const baseURL = config.projects[0]?.use?.baseURL ?? "http://localhost:3000";
 
+  // Against a deployed preview (ENV-5, docs/specs/core-environments.md) the
+  // deployment is already live and there is no local dev server or mock
+  // upstream server to wait for or reset.
+  if (process.env.E2E_BASE_URL) return;
+
   await waitForServer(baseURL);
   await resetUpstreamScenario();
 

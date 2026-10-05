@@ -1166,12 +1166,44 @@ Surfaced by the suite and deliberately left:
 ## Environments and operations
 
 Deploying, configuring and fixing this in production. Production runs on one Neon project,
-`buycarmap`, whose `main` branch is production. There is no staging environment. Production is
-served at https://buycarmap.vercel.app.
+`buycarmap`, whose `main` branch is production, served at https://buycarmap.vercel.app. There is
+no staging environment ([ADR 0019](decisions/0019-environments.md)): three environments exist —
 
-**Local development and CI no longer touch Neon at all.** Both run against Docker Compose
-Postgres instead — see [Local database](#local-database) — which is what
-[ADR 0014](decisions/0014-local-database-and-integration-tests.md) records and why.
+- **Production** — Vercel's Production target, Neon's `main` branch.
+- **Preview** — every Vercel preview deployment (one per open PR) shares one long-lived Neon
+  branch, the `preview` Neon branch, created schema-less or from an empty parent — never a child
+  of production, so no preview ever reads or writes production data. It carries seed data only
+  (`pnpm db:seed` with `SEED_TARGET_HOST` set to it, below), migrated by the same
+  `scripts/migrate-deploy.mjs` step as production (ENV-3). `BETTER_AUTH_URL` is not set for the
+  Preview target, so `resolveAppUrl` (`lib/app-config.ts`) falls back to each deployment's own
+  `VERCEL_URL` instead of production's.
+- **Local** — Docker Compose Postgres, one database per git branch — see
+  [Local database](#local-database).
+
+**Local development and CI no longer touch Neon at all** for their own databases. Both run against
+Docker Compose Postgres instead — see [Local database](#local-database) — which is what
+[ADR 0014](decisions/0014-local-database-and-integration-tests.md) records and why. Migrations are
+rehearsed against Neon before they reach `preview` or production: create a temporary branch off
+`main` in the Neon console (auto-delete after a day), point `DATABASE_URL`/`DIRECT_URL` at it, and
+run `prisma migrate deploy` — the same procedure phase 11 used for the Better Auth migration,
+recorded for reuse rather than re-invented per migration.
+
+### Recovering a drifted `preview` branch
+
+Two open PRs with conflicting migrations (or a migration whose PR was abandoned after it ran) can
+leave the shared `preview` branch's schema inconsistent with `main`'s migration history
+(`docs/specs/core-environments.md` › Edge cases). The fix is to recreate it, not to reconcile it by
+hand:
+
+1. The owner deletes the `preview` branch in the Neon console and recreates it schema-only from
+   `main` (or as an empty branch) — this is a manual step, never automated against Neon.
+2. Mark every migration already in `main`'s history as applied, without re-running them:
+   `pnpm exec prisma migrate resolve --applied <migration-name>`, once per migration folder under
+   `prisma/migrations/`, in order.
+3. Seed it: `SEED_TARGET_HOST=<the branch's hostname> pnpm db:seed`, with `DATABASE_URL` pointed at
+   the branch — `assertSeedTarget` (`prisma/seed.ts`, ENV-4) refuses any non-local host whose
+   hostname `SEED_TARGET_HOST` does not name exactly, so this is the one deliberate exception to
+   the local-only guard the other worktree scripts enforce.
 
 ### Local database
 
@@ -1200,8 +1232,9 @@ production, by accident.
 empty database with three accounts sharing the password `buycarmap-dev-1` (one with two-factor
 on, its TOTP secret printed to the console), ten favorites and three alerts with matches. It is
 idempotent — rerunning it on an already-seeded database changes nothing — and refuses to run
-against anything but a local database, the same way `db-branch.mjs` does. It is never run in CI or
-the Vercel build.
+against anything but a local database, the same way `db-branch.mjs` does, unless `SEED_TARGET_HOST`
+names the exact hostname of a deliberate exception — the shared `preview` Neon branch, never
+production (ENV-4, `assertSeedTarget`). It is never run in CI or the Vercel build.
 
 The same container image and per-worker-database pattern back the `integration` Vitest project —
 see [Testing](#testing) — through `@testcontainers/postgresql` instead of Compose, so integration
@@ -1209,12 +1242,17 @@ tests need no `pnpm db:up` first.
 
 ### Deployment
 
-Vercel. `pnpm build` runs `prisma generate && node scripts/migrate-deploy.mjs
-&& next build`. The migration step runs `prisma migrate deploy` only when
-`VERCEL_ENV` is `production` — previews share the production database until
-phase 12, so migrating from a preview build would apply an unmerged schema
-to production. Everywhere else it prints one line and exits `0`; see
-[ADR 0013](decisions/0013-platform-runtime.md).
+Vercel. [`vercel.json`](../vercel.json) pins every function to the `fra1` (Frankfurt) region, next
+to Neon's `aws-eu-central-1` — before this, functions ran wherever Vercel scheduled them, and the
+Preview target had no region configured at all (ENV-2, [ADR 0019](decisions/0019-environments.md)).
+
+`pnpm build` runs `prisma generate && node scripts/migrate-deploy.mjs
+&& next build`. The migration step runs `prisma migrate deploy` when
+`VERCEL_ENV` is `production` or `preview` — previews have their own seed-only
+Neon branch, the `preview` Neon branch, since phase 12, so migrating from a
+preview build no longer touches production (ENV-3). Everywhere else it
+prints one line and exits `0`; see [ADR 0013](decisions/0013-platform-runtime.md)
+and [ADR 0019](decisions/0019-environments.md).
 
 `GET /api/health` answers `200 {"status":"ok"}` without touching the
 database. `GET /api/health/db` runs one `SELECT 1`
@@ -1347,6 +1385,7 @@ Neon project directly from a runbook — everything else in this section runs lo
 | `gitleaks` | push to master, pull requests | gitleaks over the pushed commits |
 | `e2e` | pull requests only | `prisma generate` → Playwright, chromium, no retries; uploads the report as an artifact |
 | `contract-live` | nightly cron (04:00 UTC) | `test:contract:live` against the real upstream APIs |
+| `Preview smoke` ([`e2e-preview.yml`](../.github/workflows/e2e-preview.yml)) | Vercel's `deployment_status` event, state `success`, environment `Preview` | Playwright, `e2e/preview-smoke.spec.ts` only, against `environment_url` with the Deployment Protection bypass header; uploads the report on failure |
 
 [`.github/workflows/pr-title.yml`](../.github/workflows/pr-title.yml) checks that the pull request
 title is a Conventional Commit — it becomes the squash commit on master.
@@ -1367,9 +1406,12 @@ out of the logs.
 [The database-backed suite](#the-database-backed-suite).
 
 **Branch protection on `master`**: the policy is [specs/core-tooling.md](specs/core-tooling.md) › Decisions and rationale.
-The required checks are `Check`, `Secrets (gitleaks)`, `End-to-end (Playwright)` and `Conventional
-Commits title`. `.github/CODEOWNERS` requests the owner's review on every pull request, and
-`.github/pull_request_template.md` is the description `/check-pr` fills in.
+The required checks are `Check`, `Secrets (gitleaks)`, `End-to-end (Playwright)`, `Conventional
+Commits title` and, since ENV-6, `Preview smoke` — required even though it only ever reports once
+Vercel's preview deployment exists, so a deployment that never happens leaves the PR blocked rather
+than silently passing (`docs/specs/core-environments.md` › Edge cases). `.github/CODEOWNERS`
+requests the owner's review on every pull request, and `.github/pull_request_template.md` is the
+description `/check-pr` fills in.
 
 ### Rate limiting
 

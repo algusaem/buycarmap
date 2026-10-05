@@ -1,13 +1,13 @@
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-// PLAT-9 (docs/specs/core-platform.md): `pnpm build` runs this after `prisma
-// generate` and before `next build`. Previews share the production database
-// until phase 12 (docs/decisions/0013-platform-runtime.md), so migrating from
-// a preview build would apply an unmerged schema to production — the
-// migration only runs when VERCEL_ENV is "production". Everywhere else it
-// prints one line and exits 0, so `pnpm build` still works with no Vercel
-// environment at all (a local build, or CI).
+// PLAT-9 (docs/specs/core-platform.md), amended by ENV-3
+// (docs/specs/core-environments.md): `pnpm build` runs this after `prisma
+// generate` and before `next build`. Previews now have their own Neon
+// branch, `preview` (ADR 0019), seed-only and never a child of production, so
+// the migration runs whenever VERCEL_ENV is "production" or "preview".
+// Everywhere else it prints one line and exits 0, so `pnpm build` still works
+// with no Vercel environment at all (a local build, or CI).
 
 // Exported so the colocated test can prove it actually spawns and resolves
 // with the child's real exit code, using a harmless real command (this same
@@ -24,8 +24,8 @@ export function run(command, args) {
 }
 
 export async function main({ env, run: runCommand }) {
-  if (env.VERCEL_ENV !== "production") {
-    console.log("Skipping prisma migrate deploy (VERCEL_ENV is not production).");
+  if (env.VERCEL_ENV !== "production" && env.VERCEL_ENV !== "preview") {
+    console.log("Skipping prisma migrate deploy (VERCEL_ENV is not production or preview).");
     return 0;
   }
 

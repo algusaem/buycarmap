@@ -369,6 +369,7 @@ solo project is ceremony.
 | [core-docs.md](docs/specs/core-docs.md) | DOCS | Implemented | Migration phase 4: the core spec format and docs tree |
 | [core-layout.md](docs/specs/core-layout.md) | LAYOUT | Implemented | Migration phase 5: the server layer and the dependency rules |
 | [core-better-auth.md](docs/specs/core-better-auth.md) | BAUTH | In progress | Migration phase 11: Better Auth, server-side sessions, the permissions layer |
+| [core-environments.md](docs/specs/core-environments.md) | ENV | Approved | Migration phase 12: environments, regions and processor DPAs |
 
 ### Decisions
 
@@ -402,6 +403,7 @@ name what it beat, it is a fact, and facts belong in the doc for that area.
 | [0010 — The TODO ban is a lint script, not a Biome rule](docs/decisions/0010-todo-check-script.md) | `scripts/todo-check.mjs` runs in `pnpm lint`, finding comments through TypeScript's syntactic classification |
 | [0011 — Keep criterion ids, spec:check and extra spec sections](docs/decisions/0011-spec-ids-and-sections.md) | The core spec sections plus optional Contracts, Decisions and rationale and Open questions; `KEY-n` checklist items still tied to test titles by `spec:check` |
 | [0012 — Root layout and server layer](docs/decisions/0012-root-layout-and-server-layer.md) | The root layout stays permanently instead of moving into `src/`; the server-layer dependency rules, the `schema.ts` and route-handler exceptions, and the NextAuth exception until phase 11 |
+| [0019 — Environments, regions and the base branch](docs/decisions/0019-environments.md) | No staging; one shared seed-only `preview` Neon branch; the full E2E suite stays local plus a preview smoke; `master` kept permanently |
 
 ## Ownership map
 
@@ -516,6 +518,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `.husky/**` | [README.md](README.md) |
 | `postcss.config.mjs` | [README.md](README.md) |
 | `.env.example` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `vercel.json` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `.github/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `renovate.json` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `release-please-config.json` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |

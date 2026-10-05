@@ -35,7 +35,7 @@ This is phase 6 of ADR 0007: rows 11–15.
 - [x] PLAT-6 · unit — `lib/db/prisma.ts` builds the client with `@prisma/adapter-neon` over the pooled `DATABASE_URL` when `VERCEL` is set, and with `@prisma/adapter-pg` otherwise. Nothing else instantiates `PrismaClient` or an adapter.
 - [x] PLAT-7 · unit — The dev-reload cache on `globalThis` is typed with a `declare global` augmentation, without `as unknown as`, and is used only when `NODE_ENV` is not `production`. This closes issue #47.
 - [x] PLAT-8 · unit — `DIRECT_URL` is an optional variable. `prisma.config.ts` gives Prisma's migration commands `DIRECT_URL` when it is set, and `DATABASE_URL` otherwise, so local work needs no second variable.
-- [x] PLAT-9 · unit — `pnpm build` is `prisma generate && node scripts/migrate-deploy.mjs && next build`. The script runs `prisma migrate deploy` only when `VERCEL_ENV` is `production`. Otherwise it prints one line saying it skipped and exits 0. A failed migration exits non-zero and stops the build.
+- [x] PLAT-9 · unit — `pnpm build` is `prisma generate && node scripts/migrate-deploy.mjs && next build`. The script runs `prisma migrate deploy` only when `VERCEL_ENV` is `production` or, since phase 12, `preview` (amended 2026-10-04 by ENV-3, docs/specs/core-environments.md). Otherwise it prints one line saying it skipped and exits 0. A failed migration exits non-zero and stops the build.
 
 ### Results and errors
 
@@ -87,7 +87,7 @@ This is phase 6 of ADR 0007: rows 11–15.
   | `VERCEL_ENV` | `prisma migrate deploy` | Exit |
   | --- | --- | --- |
   | `production` | runs | its exit code |
-  | `preview` | skipped | 0 |
+  | `preview` | runs (since ENV-3) | its exit code |
   | unset (local) | skipped | 0 |
 
 - **PLAT-10**:
