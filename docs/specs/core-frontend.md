@@ -2,7 +2,7 @@
 
 Key: FRONT
 Status: Implemented
-Last updated: 2026-10-01
+Last updated: 2026-10-05
 
 ---
 
@@ -72,6 +72,8 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
 
 - [x] FRONT-14 · component — Every list has four states: loading (a skeleton that mirrors the cards), empty (written copy with the primary action), error (inline, with a Retry button that re-runs the read) and populated. The lists are the map's results list, `/favorites`, `/alerts` and `/alerts/[id]` matches.
 - [x] FRONT-15 · unit — A failed **read** is never a toast. A test fails on `toast.error` inside `lib/hooks/` or in a component's data-loading path. `toast.error` stays only for the failure of an action the user just clicked that has no form to put the error in: saving or removing a favorite, deleting an alert. Validation errors stay inline.
+- [x] FRONT-23 · e2e — A toast takes its colours from the active theme's tokens: background `--card`, border `--border`, text `--foreground`, in both dark and light. The `<Toaster>` receives the resolved next-themes theme once mounted (`lib/hooks/useMounted.ts`), so Sonner's secondary styles follow the same theme, and the token classes carry Tailwind's important modifier because Sonner's unlayered styles otherwise beat Tailwind 4's `@layer utilities`. Any change to the toast's look is approved by the owner with screenshots in both themes, on mobile and desktop (`RULES.md` §1, §17).
+- [x] FRONT-24 · component — Signing in shows no success toast. `LoginForm` (password, and password plus two-factor code) navigates with a full page load, which tears the toast down before it paints; the redirect and the signed-in navbar are the confirmation. The `auth.signInSuccess` message key is removed from both locales (owner's decision, 2026-10-05).
 
 ### Design tooling and accessibility
 
@@ -115,6 +117,8 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
   - `formatMileage(84000, "es")` → `84.000 km`.
 - **FRONT-13**: `/map?make=seat&maxPrice=10000&radius=50` loads with those filters applied. Changing `maxPrice` to 8000 and pressing Back returns to 10 000, with that search's results.
 - **FRONT-14**: the search action rejects → the results list shows the error state and a "Retry" button, and no toast appears. Retry re-runs the same round.
+- **FRONT-23**: `/login` in the dark theme, submit a wrong password → the error toast's computed `background-color` equals the computed value of `var(--card)` in that theme, not `rgb(255, 255, 255)` (measured before the fix on sonner 2.0.7 and 2.0.8). The same check in the light theme → `var(--card)` of the light theme. Border and text match `var(--border)` and `var(--foreground)` the same way.
+- **FRONT-24**: valid credentials, no two-factor → `toast.success` is not called and `window.location.href` is set to the redirect target; valid credentials then a valid TOTP code → the same. `messages/en.json` and `messages/es.json` have no `auth.signInSuccess`.
 
 ## Data model
 

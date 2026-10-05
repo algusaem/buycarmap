@@ -396,8 +396,9 @@ Any change here needs approval first (`RULES.md` §1).
   switching uses the View Transitions API via `lib/hooks/useThemeTransition.ts` — use it rather
   than calling `setTheme` directly in the toggle.
 - **Forms**: `zodResolver`, inline field errors, and `isSubmitting` for the loading state.
-- **Toasts**: the Sonner `Toaster` is in the root layout; style it via `classNames`, not inline
-  styles.
+- **Toasts**: the Sonner `Toaster` (`components/Toaster.tsx`) is in the root layout and takes the
+  next-themes theme; style it via `classNames` with Tailwind's important modifier (Sonner's
+  unlayered styles beat `@layer utilities` otherwise), not inline styles (FRONT-23).
 - **Icons**: never raw SVGs. Lucide React for UI icons, React Icons for brand icons. Size with
   Tailwind (`h-4 w-4`).
 - **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }

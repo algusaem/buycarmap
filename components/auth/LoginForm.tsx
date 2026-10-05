@@ -105,7 +105,6 @@ export function LoginForm({ oauthProviders }: LoginFormProps) {
       return;
     }
 
-    toast.success(t("auth.signInSuccess"));
     window.location.href = redirectTo;
   };
 
@@ -137,8 +136,10 @@ export function LoginForm({ oauthProviders }: LoginFormProps) {
       return;
     }
 
-    toast.success(t("auth.signInSuccess"));
-
+    // No success toast (FRONT-24, docs/specs/core-frontend.md): the full
+    // navigation below tears it down before it paints. The redirect and the
+    // signed-in navbar are the confirmation.
+    //
     // The session was created server-side (server/auth/actions.ts's signIn),
     // not through authClient — so Better Auth's client only refetches a
     // session on one of its own mutation paths (sign-in/sign-out/etc. called
