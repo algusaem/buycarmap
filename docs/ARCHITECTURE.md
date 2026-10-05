@@ -1055,12 +1055,12 @@ plus `visual` (screenshots). `pnpm test:visual` runs the screenshots alone.
 alert-queue round trips against a real database — the only tests that prove
 anything about persistence, since Prisma is mocked everywhere in Vitest.
 
-**The alert-queue tests are the only ones with no browser in them.** They drive
-`FOR UPDATE SKIP LOCKED` through two overlapping `pg` transactions, because what
-they assert is what Postgres does when both reach for the same rows. There is no
-UI for that, and a Vitest fake would supply the exclusivity and the ordering
-itself — proving the fake. They live here because this is where a real database
-is. See [`specs/alerts.md`](specs/alerts.md).
+**The alert-queue tests are the only database-backed ones with no browser in
+them.** They drive `FOR UPDATE SKIP LOCKED` through two overlapping `pg`
+transactions, because what they assert is what Postgres does when both reach
+for the same rows. There is no UI for that, and a Vitest fake would supply the
+exclusivity and the ordering itself — proving the fake. They live here because
+this is where a real database is. See [`specs/alerts.md`](specs/alerts.md).
 
 **It needs `pnpm db:branch` first.** Without its own branch database it writes to
 whatever `DATABASE_URL` points at. Global teardown deletes every `@e2e.local`
@@ -1113,7 +1113,13 @@ the request. `e2e/favorites.spec.ts` polls the row count in Postgres instead.
 **Baselines are platform-specific** (`*-win32.png` locally; CI is ubuntu). Each
 visual test **skips itself with an explanatory reason** when the current platform
 has no baseline, so a Linux CI stays green until Linux baselines are committed.
-Generate them with `pnpm test:visual --update-snapshots` on that platform.
+Generate them with `pnpm test:visual --update-snapshots` on that platform: under
+that flag the tests run instead of skipping, and write the missing files
+([TEST-15](specs/core-testing.md)). Commit a new baseline only after the owner
+has reviewed the image. The skip rule is a pure function tested without a
+browser in `e2e/visual-baseline.spec.ts`, which runs in the `chromium` project
+and so in CI, where the visual tests themselves skip until Linux baselines are
+committed.
 
 **Screenshots must wait for the page to settle** (`waitForPageToSettle` in
 `e2e/visual.spec.ts`). The navbar swaps a placeholder for real links when

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
+import { visualBaselineSkipReason } from "./fixtures/visual-baseline";
 
 const SNAPSHOT_DIR = path.join(process.cwd(), "e2e", "visual.spec.ts-snapshots");
 
@@ -11,14 +12,24 @@ const SNAPSHOT_DIR = path.join(process.cwd(), "e2e", "visual.spec.ts-snapshots")
  * Font rasterisation differs per OS, so a Windows baseline can never match a
  * Linux run. Rather than excluding these tests wholesale — which hid them and
  * let them rot — each one skips with an explicit reason when its own platform
- * has no baseline yet, and runs normally as soon as one is committed.
+ * has no baseline yet, and runs normally as soon as one is committed — or
+ * when the run is updating snapshots, so the missing one can be written
+ * (TEST-15).
  */
 function hasBaseline(name: string): boolean {
   return fs.existsSync(path.join(SNAPSHOT_DIR, `${name}-visual-${process.platform}.png`));
 }
 
-const missingBaseline = (name: string) =>
-  `No ${process.platform} baseline for "${name}". Generate one on this platform with: pnpm test:visual --update-snapshots`;
+/** TEST-15: skips with a reason when this platform has no baseline to compare. */
+function skipWithoutBaseline(name: string) {
+  const reason = visualBaselineSkipReason({
+    name,
+    platform: process.platform,
+    updateSnapshots: test.info().config.updateSnapshots,
+    baselineExists: hasBaseline(name),
+  });
+  if (reason !== null) test.skip(true, reason);
+}
 
 // Screenshot baselines. Generate/update with:
 //   pnpm test:visual --update-snapshots
@@ -49,16 +60,16 @@ async function waitForPageToSettle(page: Page) {
   await page.evaluate(() => document.fonts.ready);
 }
 
-test("login page visual baseline", async ({ page }) => {
-  test.skip(!hasBaseline("login"), missingBaseline("login"));
+test("TEST-15: login page visual baseline", async ({ page }) => {
+  skipWithoutBaseline("login");
 
   await page.goto("/login");
   await waitForPageToSettle(page);
   await expect(page).toHaveScreenshot("login.png", { fullPage: true });
 });
 
-test("map page visual baseline", async ({ page }) => {
-  test.skip(!hasBaseline("map"), missingBaseline("map"));
+test("TEST-15: map page visual baseline", async ({ page }) => {
+  skipWithoutBaseline("map");
 
   await mockListingSources(page);
   await page.goto("/map");
