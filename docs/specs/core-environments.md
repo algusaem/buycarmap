@@ -156,7 +156,6 @@ header.
 - Running the full E2E suite against preview deployments (owner's decision 3, below).
 - Renaming `master` to `main` (owner decision: kept permanently).
 - The Dependabot findings.
-- Re-enabling Renovate: it is paused until the core migration and its dependency fixes land.
 
 ## Contracts
 
