@@ -1391,8 +1391,10 @@ Neon project directly from a runbook — everything else in this section runs lo
 title is a Conventional Commit — it becomes the squash commit on master.
 [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) opens and updates
 the release PR on every push to master; merging it tags the release and writes `CHANGELOG.md`,
-which is never edited by hand. Renovate (`renovate.json`) proposes dependency updates once the
-Renovate GitHub app is installed on the repository.
+which is never edited by hand. Renovate (`renovate.json`) proposes dependency updates: minor and
+patch bumps are grouped into one PR a week (Monday morning, Europe/Madrid), a PR rebases itself
+when it falls behind master instead of going stale, and a vulnerability alert can open a PR at any
+time rather than waiting for the weekly schedule.
 
 `pnpm check` stops at the first failing stage, and its static checks come first because they fail
 in seconds. `prisma generate` runs before it because `typecheck` and the tests import the
