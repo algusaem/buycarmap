@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PrismaClient } from "@/app/generated/prisma/client";
-import { assertLocalDatabase, main } from "./seed";
+import { assertLocalDatabase, assertSeedTarget, main } from "./seed";
 
 // Never dereferenced: `seedFn` is faked in every `main` test below, so this
 // only stands in for the identity `loadPrisma` would resolve to.
@@ -32,6 +32,43 @@ describe("assertLocalDatabase", () => {
 
     expect(() => assertLocalDatabase(url)).toThrow(
       /ep-dawn-recipe-pooler\.c-2\.eu-central-1\.aws\.neon\.tech/,
+    );
+  });
+});
+
+// ENV-4 worked examples (docs/specs/core-environments.md): amends TEST-12 so
+// the shared `preview` Neon branch can be seeded deliberately, by naming its
+// exact host in SEED_TARGET_HOST.
+//   localhost, no SEED_TARGET_HOST                       -> allowed
+//   127.0.0.1, no SEED_TARGET_HOST                       -> allowed
+//   a Neon host, no SEED_TARGET_HOST                     -> refused, naming the host
+//   the same Neon host, SEED_TARGET_HOST = that host      -> allowed
+//   the same Neon host, SEED_TARGET_HOST = a different host -> refused
+describe("ENV-4: assertSeedTarget", () => {
+  const NEON_URL = "postgresql://u:p@ep-quiet-sea-a1b2c3.eu-central-1.aws.neon.tech/neondb";
+  const NEON_HOST = "ep-quiet-sea-a1b2c3.eu-central-1.aws.neon.tech";
+
+  it("ENV-4: allows a localhost URL with no SEED_TARGET_HOST set", () => {
+    expect(() => assertSeedTarget("postgresql://u:p@localhost:5433/db", undefined)).not.toThrow();
+  });
+
+  it("ENV-4: allows a 127.0.0.1 URL with no SEED_TARGET_HOST set", () => {
+    expect(() => assertSeedTarget("postgresql://u:p@127.0.0.1:5432/db", undefined)).not.toThrow();
+  });
+
+  it("ENV-4: refuses a Neon host with no SEED_TARGET_HOST set, naming the host", () => {
+    expect(() => assertSeedTarget(NEON_URL, undefined)).toThrow(
+      new RegExp(NEON_HOST.replace(/\./g, "\\.")),
+    );
+  });
+
+  it("ENV-4: allows the same Neon host when SEED_TARGET_HOST names it exactly", () => {
+    expect(() => assertSeedTarget(NEON_URL, NEON_HOST)).not.toThrow();
+  });
+
+  it("ENV-4: refuses the Neon host when SEED_TARGET_HOST names a different host", () => {
+    expect(() => assertSeedTarget(NEON_URL, "ep-other.eu-central-1.aws.neon.tech")).toThrow(
+      /ep-quiet-sea-a1b2c3\.eu-central-1\.aws\.neon\.tech/,
     );
   });
 });

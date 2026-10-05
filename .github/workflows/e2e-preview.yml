@@ -1,0 +1,40 @@
+name: E2E preview
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Preview smoke
+    if: github.event.deployment_status.state == 'success' && github.event.deployment_status.environment == 'Preview'
+    runs-on: ubuntu-latest
+    # Dummy values so playwright.config.ts's own import chain (dotenv/config,
+    # then lib/env.ts through the app) doesn't fail on missing env — this job
+    # never boots the app itself, only Playwright against the deployed URL.
+    env:
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+      BETTER_AUTH_SECRET: "ci-test-secret-at-least-32-characters"
+      BETTER_AUTH_URL: "http://localhost:3000"
+      E2E_BASE_URL: ${{ github.event.deployment_status.environment_url }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.deployment.sha }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test e2e/preview-smoke.spec.ts --project=chromium
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

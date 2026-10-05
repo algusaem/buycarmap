@@ -61,6 +61,14 @@ const UPSTREAM_ENV = {
 // reaching a Redis that was never going to run the real algorithm anyway.
 const NO_REDIS = { UPSTASH_REDIS_REST_URL: "", UPSTASH_REDIS_REST_TOKEN: "" };
 
+// ENV-5/ENV-6 (docs/specs/core-environments.md): against a real deployed URL
+// (e2e/preview-smoke.spec.ts, run by .github/workflows/e2e-preview.yml), there
+// is no local Next dev server to start and no mock upstream server to stand
+// in for the marketplaces — the smoke suite only exercises public routes and
+// a health endpoint. `webServer` must stay empty, or Playwright would try to
+// boot both anyway before running against the given base URL.
+const previewBaseUrl = process.env.E2E_BASE_URL;
+
 const serverEnv = dbEnabled
   ? {
       ...NO_EMAIL,
@@ -106,10 +114,18 @@ export default defineConfig({
   // Pre-compiles every route so no test pays the cold-start cost. See the file.
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
-  use: {
-    baseURL: BASE_URL,
-    trace: "on-first-retry",
-  },
+  use: previewBaseUrl
+    ? {
+        baseURL: previewBaseUrl,
+        extraHTTPHeaders: {
+          "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "",
+        },
+        trace: "on-first-retry",
+      }
+    : {
+        baseURL: BASE_URL,
+        trace: "on-first-retry",
+      },
   expect: {
     toHaveScreenshot: {
       // A small budget for rasterisation noise, calibrated against measurements
@@ -146,25 +162,27 @@ export default defineConfig({
       testMatch: /visual\.spec\.ts/,
     },
   ],
-  webServer: [
-    {
-      // tsx over a compiled .mjs: already a devDependency (used nowhere else
-      // in this config), and runs upstream-server.ts directly rather than
-      // maintaining a second, hand-compiled copy of it.
-      command: `pnpm exec tsx e2e/fixtures/upstream-server.ts`,
-      port: Number(UPSTREAM_PORT),
-      reuseExistingServer: !process.env.CI,
-      timeout: 30_000,
-      env: { E2E_UPSTREAM_PORT: UPSTREAM_PORT },
-    },
-    {
-      command: "pnpm dev",
-      url: BASE_URL,
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-      // PORT goes through the env object rather than inline in `command`, which
-      // would be POSIX-only syntax and break on Windows. Next reads it directly.
-      env: { ...serverEnv, PORT },
-    },
-  ],
+  webServer: previewBaseUrl
+    ? []
+    : [
+        {
+          // tsx over a compiled .mjs: already a devDependency (used nowhere else
+          // in this config), and runs upstream-server.ts directly rather than
+          // maintaining a second, hand-compiled copy of it.
+          command: `pnpm exec tsx e2e/fixtures/upstream-server.ts`,
+          port: Number(UPSTREAM_PORT),
+          reuseExistingServer: !process.env.CI,
+          timeout: 30_000,
+          env: { E2E_UPSTREAM_PORT: UPSTREAM_PORT },
+        },
+        {
+          command: "pnpm dev",
+          url: BASE_URL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+          // PORT goes through the env object rather than inline in `command`, which
+          // would be POSIX-only syntax and break on Windows. Next reads it directly.
+          env: { ...serverEnv, PORT },
+        },
+      ],
 });

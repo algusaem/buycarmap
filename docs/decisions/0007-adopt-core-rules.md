@@ -59,9 +59,9 @@ to do it in phases, each on its own branch and PR, each closed by `/check-all`.
 | 1 | No `check`, `check:full` or `typecheck` scripts; `test` runs without the coverage threshold. Until phase 3 the local verification is the list in `CLAUDE.md` › Commands, which keeps every step the old checks ran; `/check-all` puts that list in `check-verify`'s brief, since the command's own fallback (`lint`, `typecheck`, `test`, `build`) would miss most of it | `STACK.md` §5 | Phase 3 |
 | 2 | ESLint instead of Biome; no dependency-cruiser, knip, type-coverage or plop | `STACK.md` §1, §5 | Phase 3 (Biome, knip, type-coverage); phase 5 (dependency-cruiser, plop) |
 | 3 | No Husky, lint-staged, commitlint or gitleaks | `STACK.md` §4 | Phase 3 |
-| 4 | CI: no typecheck, build, PR-title check or gitleaks; E2E runs on `pull_request` against a local app, with retries (2 in CI, 1 locally) | `STACK.md` §4, §5, §16 | Phase 3 (all but the E2E target); phase 12 (E2E against the preview) |
+| 4 | CI: no typecheck, build, PR-title check or gitleaks; E2E runs on `pull_request` against a local app, with retries (2 in CI, 1 locally) | `STACK.md` §4, §5, §16 | Resolved in phase 12 |
 | 5 | No PR template, CODEOWNERS, release-please, `CHANGELOG.md` or Renovate; no `packageManager`, `.nvmrc` or `engines` | `STACK.md` §1, §4 | Phase 3 |
-| 6 | The base branch is `master`, not `main`; commits have gone straight to it | `RULES.md` §3, §21; `STACK.md` §2, §4 | PRs from now on; branch protection in phase 3; the rename in phase 12, with Vercel's production branch |
+| 6 | The base branch is `master`, not `main`; commits have gone straight to it | `RULES.md` §3, §21; `STACK.md` §2, §4 | Kept permanently (ADR 0019) |
 | 7 | `TODO.md` at the repository root lists pending work outside issues | `RULES.md` §22 item 7; `STACK.md` §6 "Docs" | Phase 3 |
 | 8 | Spec template: `Key`, `Status`, criteria table with `KEY-n` ids, no Worked examples, Permissions or Edge cases sections; `pnpm spec:check` | `STACK.md` §15; `RULES.md` §4 (worked examples) | Phase 4 |
 | 9 | Docs tree: `architecture.md`, a single `operations.md`, and guides with no place in the core tree (`auth.md`, `data-model.md`, `frontend.md`, `getting-started.md`, `testing.md`, `integrations/`, the two plans); no `docs/privacy/` | `STACK.md` §6 "Docs", §12 | Phase 4 |
@@ -81,7 +81,7 @@ to do it in phases, each on its own branch and PR, each closed by `/check-all`.
 | 23 | Background work: a GitHub Actions cron draining a Postgres queue (0006) instead of `after()` + QStash | `STACK.md` §13 | Resolved in phase 10 |
 | 24 | Email through `lib/email/*` with string templates, without the `resend` SDK or react-email | `STACK.md` §1 | Resolved in phase 10 |
 | 25 | NextAuth 4 with stateless JWT sessions and a revocation clock (0004); no central `can()` permissions layer (the app has no roles; ownership is checked in each action) | `RULES.md` §10, §16; `STACK.md` §1, §10 | Resolved in phase 11 |
-| 26 | No staging environment; previews not on a seed-only Neon parent; EU regions not recorded | `STACK.md` §2, §12 | Phase 12 |
+| 26 | No staging environment; previews not on a seed-only Neon parent; EU regions not recorded | `STACK.md` §2, §12 | Resolved in phase 12 |
 | 27 | Coverage leaves out `scripts/` and the root `proxy.ts` (outside `include`) and excludes `lib/mock/**` and `**/index.ts` | `RULES.md` §3 (coverage exclusions) | Resolved in phase 7 |
 | 28 | The axe accessibility check disables the `color-contrast` rule (`e2e/a11y.spec.ts`) | `RULES.md` §22 item 3; `STACK.md` §14, §16 | Resolved in phase 9 |
 
