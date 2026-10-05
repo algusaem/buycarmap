@@ -92,9 +92,12 @@ async function mockUpstreams(page: Page) {
 
 async function openFilters(page: Page) {
   const toggle = page.getByRole("button", { name: /filter/i }).first();
-  if (await toggle.isVisible().catch(() => false)) {
+  // Back is a soft navigation: the panel can still be open, and clicking the
+  // toggle then would close it.
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
     await toggle.click();
   }
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
 }
 
 test("FRONT-13: a filtered search deep-links, reloads, and Back/Forward restore earlier filters", async ({
@@ -113,6 +116,12 @@ test("FRONT-13: a filtered search deep-links, reloads, and Back/Forward restore 
   await page.reload();
   await openFilters(page);
   await expect(page.getByPlaceholder(/^Max\s€$/)).toHaveValue("10000");
+
+  // nuqs (2.10.1) clears its queued update on Back only once its popstate
+  // listener is registered, after hydration; a Back before that leaves the
+  // filters on the queued value while the URL moves (FRONT-13 › Edge cases).
+  // Wait for that listener so the test exercises Back on a settled page.
+  await page.waitForFunction(() => "nuqs" in history);
 
   // Change maxPrice to 8000 …
   const maxPriceInput = page.getByPlaceholder(/^Max\s€$/);
