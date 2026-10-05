@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { toast } from "sonner";
+import en from "@/messages/en.json";
+import es from "@/messages/es.json";
 import { LoginForm } from "./LoginForm";
 
 // Mutable so a test can simulate arriving with ?callbackUrl=… from middleware.
@@ -341,5 +343,50 @@ describe("LoginForm recovery code discoverability", () => {
     expect(
       await screen.findByText(/lost your phone\? enter one of your recovery codes/i),
     ).toBeInTheDocument();
+  });
+});
+
+describe("LoginForm sign-in confirmation", () => {
+  beforeEach(() => {
+    signIn.mockReset();
+    verifySignInTotp.mockReset();
+    vi.mocked(toast.error).mockClear();
+    vi.mocked(toast.success).mockClear();
+    searchParams = new URLSearchParams();
+    stubLocation();
+  });
+
+  it("FRONT-24: signing in with a password shows no success toast and navigates to the redirect target", async () => {
+    signIn.mockResolvedValue({ success: true });
+    renderWithI18n(<LoginForm oauthProviders={[]} />);
+
+    await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "secret123");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await waitFor(() => expect(location.href).toBe("/"));
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("FRONT-24: signing in with a password and a two-factor code shows no success toast", async () => {
+    signIn.mockResolvedValueOnce({ success: false, twoFactorRequired: true });
+    verifySignInTotp.mockResolvedValueOnce({ success: true });
+    renderWithI18n(<LoginForm oauthProviders={[]} />);
+
+    await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "secret123");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    const codeInput = await screen.findByLabelText(/enter the 6-digit code/i);
+    await userEvent.type(codeInput, "123456");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await waitFor(() => expect(location.href).toBe("/"));
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("FRONT-24: the auth.signInSuccess message is gone from both locales", () => {
+    expect("signInSuccess" in en.auth).toBe(false);
+    expect("signInSuccess" in es.auth).toBe(false);
   });
 });
