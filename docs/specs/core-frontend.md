@@ -130,6 +130,7 @@ No change.
 - **Server Actions run one at a time per client.** One action per round keeps the three sources in parallel inside it. A second round waits for the first, which the hook's loop already does.
 - **A user types faster than rounds finish.** The hook's version guard still discards stale responses (`CLAUDE.md` › Stack today).
 - **JavaScript disabled.** The map needs JavaScript, as today.
+- **Back pressed before the page has settled (FRONT-13).** nuqs 2.10.1, the latest release, clears its queued URL update on Back only once its `popstate` listener is registered, which happens in an effect after hydration. If a filter is changed and Back pressed before then, for example on a slow device while the first search runs, the URL moves back but the filters and results stay on the changed value until the next filter change. This is a known library limitation, accepted on 2026-10-05; the FRONT-13 test waits for the listener before exercising Back.
 - **Unknown locale in the cookie.** Treated as absent.
 - **Contrast fixes in one theme.** Each theme passes axe on its own, and a fix in dark mode must not break light mode.
 
