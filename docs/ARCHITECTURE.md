@@ -764,6 +764,9 @@ Map tiles switch with `useTheme().resolvedTheme`:
 - Dark — `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`
 - Light — `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png`
 
+Both carry `?key=` with `NEXT_PUBLIC_CARTO_API_KEY` when it is set; without it CARTO serves an
+"API KEY REQUIRED" watermark tile instead of the map (MAP-23, [`docs/specs/map-and-search.md`](specs/map-and-search.md)).
+
 ### Animation
 
 Motion (`motion/react-client`, with `AnimatePresence` from `motion/react`) rather
@@ -1364,6 +1367,7 @@ Optional — each disables a feature rather than blocking startup:
 | `QSTASH_CURRENT_SIGNING_KEY` + `QSTASH_NEXT_SIGNING_KEY` | The alert run endpoint refuses every request (no valid `Upstash-Signature` can ever verify), so alerts never fire |
 | `DIRECT_URL` | Prisma's migration commands (`prisma.config.ts`) use `DATABASE_URL` instead — fine locally, but that must be an unpooled connection on Vercel, where `DATABASE_URL` is the pooled (`-pooler`) host |
 | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | Sentry stays uninitialised; nothing is sent |
+| `NEXT_PUBLIC_CARTO_API_KEY` | Map tiles show CARTO's "API KEY REQUIRED" watermark instead of the map |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry build-time source-map upload is skipped |
 | `SKIP_ENV_VALIDATION` | Tooling only — see above. Never set for `pnpm dev`/`build`/`start` |
 | `LOCAL_DATABASE_ADMIN_URL` | Tooling only, never read by the app. Overrides the admin connection `pnpm db:branch` uses to create and drop databases in the local Compose Postgres; the default matches `docker-compose.yml` |
