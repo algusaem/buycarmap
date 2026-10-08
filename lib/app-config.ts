@@ -2,9 +2,10 @@ import { env } from "@/lib/env";
 
 // Derived, server-only configuration flags and values built on top of
 // lib/env.ts's validated `env`. Split out of lib/env.ts (PLAT platform
-// migration) because lib/env.ts is imported by instrumentation-client.ts for
-// its one client-safe field (NEXT_PUBLIC_SENTRY_DSN); keeping these derived
-// values there meant importing lib/env.ts from the browser also evaluated
+// migration) because browser code imports lib/env.ts for its client-safe
+// fields (NEXT_PUBLIC_SENTRY_DSN in instrumentation-client.ts,
+// NEXT_PUBLIC_CARTO_API_KEY in components/map/ListingsMap.tsx); keeping these
+// derived values there meant importing lib/env.ts from the browser also evaluated
 // every server-only field below, which used to need a dedicated real-browser
 // detection guard to avoid tripping the client/server access check. This
 // module is never imported by client code, so no such guard is needed here.

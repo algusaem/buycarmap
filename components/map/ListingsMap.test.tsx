@@ -41,6 +41,15 @@ vi.mock("next-themes", () => ({
   useTheme: () => ({ resolvedTheme: resolvedTheme() }),
 }));
 
+const cartoApiKey = vi.fn<() => string | undefined>(() => undefined);
+vi.mock("@/lib/env", () => ({
+  env: {
+    get NEXT_PUBLIC_CARTO_API_KEY() {
+      return cartoApiKey();
+    },
+  },
+}));
+
 const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 const LIGHT_TILES = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
@@ -69,6 +78,7 @@ beforeEach(() => {
   fitBounds.mockClear();
   latLngBounds.mockClear();
   resolvedTheme.mockReturnValue("dark");
+  cartoApiKey.mockReturnValue(undefined);
 });
 
 describe("ListingsMap markers", () => {
@@ -138,5 +148,42 @@ describe("ListingsMap tiles", () => {
     renderWithI18n(<ListingsMap listings={[]} />);
 
     expect(screen.getByTestId("tiles")).toHaveAttribute("data-url", LIGHT_TILES);
+  });
+});
+
+describe("ListingsMap tiles key", () => {
+  it("MAP-23: carries the CARTO key as ?key= on both the dark and light tile URLs", () => {
+    cartoApiKey.mockReturnValue("cb1_test");
+
+    const { unmount } = renderWithI18n(<ListingsMap listings={[]} />);
+    expect(screen.getByTestId("tiles")).toHaveAttribute(
+      "data-url",
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_test",
+    );
+    unmount();
+
+    resolvedTheme.mockReturnValue("light");
+    renderWithI18n(<ListingsMap listings={[]} />);
+    expect(screen.getByTestId("tiles")).toHaveAttribute(
+      "data-url",
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_test",
+    );
+  });
+
+  it("MAP-23: URL-encodes a key that contains spaces and an ampersand", () => {
+    cartoApiKey.mockReturnValue("a b&c");
+
+    renderWithI18n(<ListingsMap listings={[]} />);
+
+    expect(screen.getByTestId("tiles")).toHaveAttribute(
+      "data-url",
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=a%20b%26c",
+    );
+  });
+
+  it("MAP-23: carries no key parameter when none is configured", () => {
+    renderWithI18n(<ListingsMap listings={[]} />);
+
+    expect(screen.getByTestId("tiles")).toHaveAttribute("data-url", DARK_TILES);
   });
 });

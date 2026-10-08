@@ -50,6 +50,7 @@ untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 - [x] MAP-20 · unit — While the location search is loading or has no results, no listbox is rendered: the combobox reports `aria-expanded="false"` with no `aria-controls`, and the loading or no-results text is announced through a polite status region that stays mounted. With results, `aria-controls="location-listbox"` and `aria-expanded="true"` point at the listbox of options. After the "Madrid" options show, typing more starts a new search: while it loads, no listbox is rendered (the previous options are not shown), `aria-expanded="false"`, and the status region reads "Loading…". While that new search loads, ArrowDown then Enter selects nothing — hidden options are not selectable. A response for an earlier query that arrives after a later query was typed is discarded: the listbox shows only the latest query's options, and while the latest search is pending it stays hidden. While options animate out — after a new query, Escape, a click outside, or a selection — they are no longer a listbox and cannot be selected; a click on a fading option selects nothing. A late response for "Madr" that arrives after the query was shortened to "M" is discarded: results stay empty and nothing is loading.
 - [x] MAP-21 · unit — If the map unmounts before the browser's geolocation resolves, the search is not repeated when it does.
 - [x] MAP-22 · unit — If the location search unmounts before its 400 ms debounce fires, no geocoding request is sent.
+- [x] MAP-23 · unit — Every map tile URL, dark and light, carries the CARTO Basemaps key from `NEXT_PUBLIC_CARTO_API_KEY` as the URL-encoded `key` query parameter; with no key configured the tile URLs carry no `key` parameter.
 
 ## Worked examples
 
@@ -61,6 +62,7 @@ untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 - **MAP-20** — typing "Nowhereville" (no results) → no listbox, `aria-expanded="false"`, the status region reads "No locations found", axe reports no violations; typing "Madrid" → listbox `location-listbox` with the option, `aria-expanded="true"`, axe reports no violations.
 - **MAP-21** — mount, unmount, then resolve geolocation → `search` was called exactly once (the immediate mount search).
 - **MAP-22** — type "Madrid", unmount, advance 400 ms → 0 requests to Nominatim.
+- **MAP-23** — key `cb1_test` → dark `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_test`, light `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_test`; key `a b&c` → dark `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=a%20b%26c`; no key → the dark and light URLs without `?key=`. The bug this records: on 2026-10-06 the map showed only CARTO's "API KEY REQUIRED" watermark, because every keyless tile request now returns that watermark (the same 2,513-byte PNG for any dark z/x/y) with a 200 status.
 
 ## Data model
 
@@ -306,6 +308,16 @@ Setting a brand clears the model (MAP-12); setting a model does not touch the
 brand. Model ids are only meaningful within a brand — `server/search/service.ts`
 resolves them per `makeId` — so a model left over from the previous brand is
 either meaningless or, worse, silently matches something unintended.
+
+### Tiles carry a CARTO key (MAP-23)
+
+CARTO's basemap CDN stopped serving keyless tiles under its Basemaps terms of 29 September 2026:
+a request without `?key=` gets a 200 with an "API KEY REQUIRED" watermark tile, so nothing errors
+and the map silently shows the watermark everywhere. The key travels in every tile URL the
+browser requests, so it is public by nature: it is a `NEXT_PUBLIC_` variable rather than a
+secret, and its protection is the domain restriction set in the CARTO dashboard. It is optional
+in `lib/env.ts` — without it the app still boots, and the watermark makes the missing key
+obvious at a glance.
 
 ## Open questions
 

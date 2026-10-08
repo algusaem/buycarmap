@@ -8,11 +8,18 @@ import type { CarListing } from "@/interfaces/listing";
 import { useEffect, useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/format";
+import { env } from "@/lib/env";
 
 const TILE_URLS = {
   dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
   light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
 };
+
+function withCartoKey(url: string): string {
+  const key = env.NEXT_PUBLIC_CARTO_API_KEY;
+  if (!key) return url;
+  return `${url}?key=${encodeURIComponent(key)}`;
+}
 
 function createCarIcon() {
   return L.divIcon({
@@ -57,7 +64,9 @@ export function ListingsMap({ listings = [] }: ListingsMapProps) {
     return createCarIcon();
   }, [mounted]);
 
-  const tileUrl = mounted && resolvedTheme === "light" ? TILE_URLS.light : TILE_URLS.dark;
+  const tileUrl = withCartoKey(
+    mounted && resolvedTheme === "light" ? TILE_URLS.light : TILE_URLS.dark,
+  );
 
   return (
     <div className="h-full w-full">

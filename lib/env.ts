@@ -78,12 +78,16 @@ export const env = createEnv({
   },
   client: {
     NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+    // CARTO Basemaps key (MAP-23, docs/specs/map-and-search.md), sent as `?key=` on every
+    // map tile. Public by design; optional — without it CARTO serves a watermark tile.
+    NEXT_PUBLIC_CARTO_API_KEY: z.string().optional(),
   },
   shared: {
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   },
   experimental__runtimeEnv: {
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_CARTO_API_KEY: process.env.NEXT_PUBLIC_CARTO_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
   },
   // t3-env's own default (`typeof window === "undefined"`) treats a Vitest
