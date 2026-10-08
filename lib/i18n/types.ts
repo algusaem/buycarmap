@@ -54,7 +54,6 @@ export interface Translations {
     creatingAccount: string;
     alreadyHaveAccount: string;
     registrationFailed: string;
-    signInSuccess: string;
     accountCreated: string;
     legalNotice: string;
     terms: string;

@@ -2,7 +2,7 @@
 
 Key: TEST
 Status: Implemented
-Last updated: 2026-09-30
+Last updated: 2026-10-05
 
 ---
 
@@ -16,6 +16,8 @@ The test and local-database setup predates the core and deviates from it in thre
 - **Coverage leaves out `scripts/`** and still excludes `**/index.ts` (`RULES.md` §3).
 
 This is phase 7 of ADR 0007: rows 16, 17 and the rest of row 27.
+
+Added on 2026-10-05, outside phase 7 (TEST-15): **a missing visual baseline could not be generated.** Each visual test skipped whenever its platform had no baseline, including under `pnpm test:visual --update-snapshots`, the command its own skip reason recommends, so that run wrote nothing.
 
 ## Acceptance criteria
 
@@ -60,6 +62,10 @@ This is phase 7 of ADR 0007: rows 16, 17 and the rest of row 27.
 
 - [x] TEST-14 · unit — `docs/ARCHITECTURE.md` › Testing describes the three projects, the per-worker databases, truncation and the factories. The environment section describes Docker Compose, the per-branch local databases and the seed. `CLAUDE.md`'s Commands and "Worktrees and the dev database" sections are updated. ADR 0014 records the decisions below, and ADR 0007 marks rows 16, 17 and 27 `Resolved in phase 7`.
 
+### Visual baselines
+
+- [x] TEST-15 · e2e — Each test in `e2e/visual.spec.ts` skips when the current platform has no baseline and the run is not updating snapshots, with a reason naming the platform and the command that generates the baseline. Under `pnpm test:visual --update-snapshots` (`updateSnapshots` `changed` or `all`) it runs instead, so the missing baseline is written. A plain run never writes one; a new baseline is committed only after the owner has reviewed the image.
+
 ## Worked examples
 
 - **TEST-2**:
@@ -80,6 +86,11 @@ This is phase 7 of ADR 0007: rows 16, 17 and the rest of row 27.
 - **TEST-12**:
   - `DATABASE_URL` host `localhost` → seeds.
   - `DATABASE_URL` host `ep-…-pooler….neon.tech` → exits 1 with a message containing `ep-…-pooler….neon.tech`, and writes nothing.
+- **TEST-15**, on Linux with only `login-visual-win32.png` and `map-visual-win32.png` committed. The failure it fixes: `pnpm test:visual --update-snapshots`, the command the skip reason recommends, skipped both tests and wrote nothing.
+  - `pnpm test:visual` → 2 skipped, 0 passed. Reason: `No linux baseline for "login". Generate one on this platform with: pnpm test:visual --update-snapshots`. No file is written.
+  - `pnpm test:visual --update-snapshots` → 2 passed, and `login-visual-linux.png` and `map-visual-linux.png` are written to `e2e/visual.spec.ts-snapshots/`.
+  - `pnpm test:visual --update-snapshots=none` → 2 skipped, with the same reason: it is not updating snapshots.
+  - On Windows, where both baselines exist, a plain run compares against them. `--update-snapshots` overwrites any baseline that differs instead of failing, so its output goes to the owner for review like a new baseline.
 
 ## Data model
 

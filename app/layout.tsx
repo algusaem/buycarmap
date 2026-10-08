@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
-import { Toaster } from "sonner";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -9,6 +8,7 @@ import { TimeZoneCookie } from "@/lib/geo/TimeZoneCookie";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Navbar } from "@/components/Navbar";
+import { Toaster } from "@/components/Toaster";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -60,14 +60,7 @@ export default async function RootLayout({
                 <TimeZoneCookie />
                 <Navbar />
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
-                <Toaster
-                  position="top-center"
-                  toastOptions={{
-                    classNames: {
-                      toast: "bg-card border-border text-foreground",
-                    },
-                  }}
-                />
+                <Toaster />
               </NuqsAdapter>
             </NextIntlClientProvider>
           </ThemeProvider>
