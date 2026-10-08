@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.2.0...buycarmap-v0.3.0) (2026-10-08)
+
+
+### Features
+
+* adopt the core platform runtime (env, database, errors, logging, CSP) ([#51](https://github.com/algusaem/buycarmap/issues/51)) ([afe5f63](https://github.com/algusaem/buycarmap/commit/afe5f63bc675fbda50a86fd7a4f8e68d48c4111b)), closes [#47](https://github.com/algusaem/buycarmap/issues/47) [#48](https://github.com/algusaem/buycarmap/issues/48)
+* give previews their own seed-only database and record EU regions ([#65](https://github.com/algusaem/buycarmap/issues/65)) ([52bd43f](https://github.com/algusaem/buycarmap/commit/52bd43f88039583ccd0425c9fa1d62b45766cb29))
+* move authentication to Better Auth with Postgres sessions ([#63](https://github.com/algusaem/buycarmap/issues/63)) ([b0e2136](https://github.com/algusaem/buycarmap/commit/b0e2136f453edfcdb38910b215ba67df7a6f0084))
+* move rate limiting to Upstash, alerts to QStash and email to react-email ([#61](https://github.com/algusaem/buycarmap/issues/61)) ([2d9b4f2](https://github.com/algusaem/buycarmap/commit/2d9b4f225ab58ea71fe380ad3a6264dc1f221488))
+* move search to the server and adopt the core frontend stack ([#58](https://github.com/algusaem/buycarmap/issues/58)) ([5163eec](https://github.com/algusaem/buycarmap/commit/5163eec1924fc4fc0ac059003af627b88dca5452))
+
+
+### Bug Fixes
+
+* **deps:** update next, vitest and vulnerable transitive dependencies ([#66](https://github.com/algusaem/buycarmap/issues/66)) ([75f3f49](https://github.com/algusaem/buycarmap/commit/75f3f499730a3963bd50088bf7b0456455c6e232))
+* **map:** show streets and labels on the map instead of a watermark ([#71](https://github.com/algusaem/buycarmap/issues/71)) ([5107a9e](https://github.com/algusaem/buycarmap/commit/5107a9e82321b2d43fd3074147196134e16c96cd))
+* spawn prisma migrate deploy without the DEP0190 warning ([#54](https://github.com/algusaem/buycarmap/issues/54)) ([80c581e](https://github.com/algusaem/buycarmap/commit/80c581e0620673350a6aebbe2dd915e377d80ace))
+* theme toasts from the tokens and drop the unseen sign-in toast ([#69](https://github.com/algusaem/buycarmap/issues/69)) ([a5436d0](https://github.com/algusaem/buycarmap/commit/a5436d09f30817031437e50aa9c9af1ef1fb100a))
+
 ## [0.2.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.1.0...buycarmap-v0.2.0) (2026-09-28)
 
 
