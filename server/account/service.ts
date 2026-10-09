@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import type { AccountId, SessionId, UserId } from "@/lib/ids";
+import { findCriteriaIdsForUser, releaseCriteriaIfUnused } from "@/server/alerts/service";
 
 // The account feature's database work: the actions in ./actions.ts and the
 // account page read in ./queries.ts call into here. Every function is scoped
@@ -129,8 +130,25 @@ export async function findPasswordHash(userId: UserId) {
   });
 }
 
+/**
+ * Deletes the user and, in the same transaction, releases every criteria set
+ * their alerts referenced — active, inactive or soft-deleted — that no alert
+ * references any more (ALERT-45, docs/specs/alerts.md). `AlertCriteria` has
+ * no link to a user, so the cascade on `Alert.user` removes the alerts
+ * themselves but not the criteria sets they leave behind; a criteria set
+ * another user's alert still references, inactive or soft-deleted included,
+ * is kept. One transaction, so a failure leaves both the account and its
+ * criteria in place rather than an account erased with its search
+ * coordinates still stored.
+ */
 export async function deleteUser(userId: UserId): Promise<void> {
-  await prisma.user.delete({ where: { id: userId } });
+  await prisma.$transaction(async (tx) => {
+    const criteriaIds = await findCriteriaIdsForUser(userId, tx);
+    await tx.user.delete({ where: { id: userId } });
+    for (const criteriaId of criteriaIds) {
+      await releaseCriteriaIfUnused(criteriaId, tx);
+    }
+  });
 }
 
 /** BAUTH-4: the signed-in user's own sessions, newest-used first. */

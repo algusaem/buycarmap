@@ -77,6 +77,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-42 · node — Deleting the last alert that references a criteria set stops it being polled at once (DATA-10); the criteria set and its seen-list are deleted when the last alert referencing it is purged (DATA-12, 30 days after deletion), so a restored alert keeps its seen-list
 - [x] ALERT-43 · node — A poll, and the seed poll of a new alert, apply the same post-filter as the map search (MAP-16, MAP-17, MAP-18): when the criteria name a location, a listing outside the radius or pinned at the country-centre fallback, and when they name a model, a listing naming that model in neither its model field nor its title, produces no match, is never emailed, and is not recorded as seen
 - [x] ALERT-44 · node — A poll whose listings are all removed by the post-filter requests no further page from any source, records no match, and still records each source's pre-filter result count for source health (ALERT-20)
+- [x] ALERT-45 · node — Deleting an account deletes, in the same transaction as the user row, every criteria set its alerts referenced — active, inactive or soft-deleted — that no alert references any more, together with its seen-list; a criteria set still referenced by another user's alert, inactive or soft-deleted included, is kept
 
 Forty-four criteria: thirty-seven on the server boundary, four on rendering, one on
 the email template, two on real Postgres. Nine cover the management surface, ten
@@ -105,6 +106,7 @@ than as documentation.
 - **ALERT-27** — GET ?token=some-token-nobody-issued → 200, Ada's alert stays active; token=garbage returns the same status and body as token=raw-token-ada.
 - **ALERT-43** — Criteria brand "BMW", model "Serie 3", centre Madrid (40.4168, −3.7038), radius 100 km; empty seen-set; the poll returns wallapop-wp-near (Alcalá de Henares 40.4818, −3.3643, model "Serie 3"), cochesnet-cn-far (Barcelona 41.3874, 2.1686, model "Serie 3"), milanuncios-mn-fallback (pinned at the Spain centre 40.0, −3.5, title "BMW Serie 3 320d") and cochesnet-cn-wrong-model (Getafe 40.3057, −3.7329, model "Serie 5", title "BMW Serie 5 530d") → matches exactly ["wallapop-wp-near"], seen-set exactly ["wallapop-wp-near"]; a second poll returning the same four listings → 0 new matches, seen-set unchanged. The seed poll of a new alert with the same criteria and the same four listings → seen-set exactly ["wallapop-wp-near"], 0 matches.
 - **ALERT-44** — Criteria brand "BMW", centre Madrid (40.4168, −3.7038), radius 100 km; Wallapop returns [], coches.net returns cochesnet-cn-bcn-1 and cochesnet-cn-bcn-2 (both Barcelona 41.3874, 2.1686) with more pages available, Milanuncios returns [] → exactly one request per source, 0 matches, seen-set unchanged, per-source counts { Wallapop: 0, Coches.net: 2, Milanuncios: 0 }, and `SourceHealth` for Coches.net has `consecutiveEmptyRuns` 0 and `lastOkAt` set to the run time.
+- **ALERT-45** — Ada (user-ada) and Grace (user-grace) each have one alert on the same criteria set C = {brand:"Audi", model:"A3", maxPrice:20000, latitude:40.4168, longitude:-3.7038, distanceInKm:50}, and C has 2 seen listings. Ada calls deleteAccount → success: true; Ada's alert is gone, C and its 2 seen rows remain, Grace still has 1 alert on C. Grace then calls deleteAccount → success: true; 0 criteria rows, 0 seen rows. Ada's only alert on C is inactive (active=false) and nobody else watches C; she deletes her account → C and its seen rows are gone. Grace's alert on C was soft-deleted 5 days ago; Ada deletes her account → C stays, until the purge removes Grace's alert (ALERT-42). The bug this records: before the fix, the sole subscriber deleting her account left C — coordinates included — and its seen rows in the database ([#21](https://github.com/algusaem/buycarmap/issues/21)).
 
 ## Data model
 
@@ -252,6 +254,7 @@ Routing). Signed-out visitors cannot have alerts (see Out of scope).
 - ALERT-41 — a criteria set whose subscribers are all inactive.
 - ALERT-43 — a listing outside the radius, at the country-centre fallback, or not naming the chosen model.
 - ALERT-44 — a poll whose listings are all removed by the post-filter.
+- ALERT-45 — deleting an account whose criteria set another user still watches, or that only an inactive or soft-deleted alert references.
 - A new listing ranked beyond the first page — see Decisions › "New" cannot mean "published recently", so it means "not seen before".
 - A source that returns zero ads on a parse failure — see Decisions › A silently empty source is the dangerous failure.
 - A source flapping, then recovering — see Decisions › Partial upstream failure must not poison the seen-set.
@@ -363,6 +366,7 @@ where the error is a **code**:
 - `createAlert(criteria, label)` — ALERT-1, ALERT-2, ALERT-3, ALERT-4, ALERT-6, ALERT-7, ALERT-8, ALERT-34
 - `listAlertsForPage()` in `server/alerts/queries.ts` — ALERT-4, ALERT-28
 - `deleteAlert(alertId)` — ALERT-4, ALERT-5
+- `deleteAccount(formData)` in `server/account/actions.ts` — ALERT-45, the release of the account's criteria sets
 - `setLocale(locale)` — ALERT-33, in `server/locale/actions.ts`. It no-ops for
   a signed-out caller, since the cookie already carries the preference for them
 
@@ -447,6 +451,13 @@ what stops a match count linking nowhere.
 > ([map-and-search.md](map-and-search.md), open question 5). The two criteria
 > make an alert's radius and model the same promise the map makes. See
 > Matches respect the radius and the model, as the map does.
+
+> **Amended 2026-10-09: ALERT-45, implemented ([#21](https://github.com/algusaem/buycarmap/issues/21)).**
+> Deleting an account cascaded its alerts but left every criteria set they
+> referenced, because `AlertCriteria` has no link to a user and only deleting an
+> alert released one. A criteria set can hold the coordinates the user chose, so
+> erasing the account did not erase it. The criterion releases them with the
+> account. See "An unused criteria set is deleted, seen-list and all" below.
 
 ### "New" cannot mean "published recently", so it means "not seen before"
 
@@ -692,6 +703,23 @@ that accumulate forever. Deleting is both simpler and no worse.
 An **inactive** alert keeps its criteria set, so its matches page still renders
 and re-enabling it does not lose history. Only deletion releases it.
 
+Deleting the **account** releases them too (ALERT-45). The cascade removes every
+alert the account owns, inactive and soft-deleted ones included, so nothing of
+the user's is left to restore and no undo window applies — account deletion
+erases at once (`docs/specs/core-data-model.md`, DATA-13). Each criteria set
+those alerts referenced is then released exactly as deleting an alert releases
+one: deleted, seen-list and all, if no alert references it any more, and kept if
+another user's alert does — inactive or soft-deleted, by the same rule as above.
+It runs in the same transaction as the user row's deletion (`RULES.md` §11), so
+a failure leaves both the account and its criteria in place rather than an
+account erased with its search coordinates still stored.
+
+The soft-delete purge already deletes any criteria set with no alert at all
+(`server/retention/service.ts`, ALERT-42), so without ALERT-45 an orphan left by
+an account deletion would eventually go at the next opportunistic prune. That is
+not enough: the prune runs on about 2% of the requests that write an auth token,
+so its timing has no upper bound, and the user asked for erasure now.
+
 ### Cascades and constraints are schema properties, not criteria
 
 Deleting a user must delete their alerts and matches; a criteria set with no
@@ -805,3 +833,11 @@ All settled. Kept as a record of what was decided and what would reopen it.
    The hole is shared with the interactive search, so it belongs in
    `searchSchema` or the map-and-search spec, as its own change, tracked at
    https://github.com/algusaem/buycarmap/issues/75.
+8. ~~Do criteria sets already orphaned in production need a one-off cleanup?~~
+   **Settled 2026-10-09: no migration or script.** Accounts deleted before
+   ALERT-45 may have left criteria sets with no alert. The soft-delete purge
+   already deletes every criteria set with no alert referencing it, whatever
+   orphaned it (`server/retention/service.ts`, ALERT-42), so in any deployment
+   running that purge those rows go at its next opportunistic run. Reopen by a
+   read-only count of `alert_criteria` rows with no `alerts` row in production,
+   if they must be confirmed gone (`RULES.md` §1, raw SQL).

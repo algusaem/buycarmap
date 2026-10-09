@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { createUser } from "@/test/factories/user";
+import { createAlertCriteria } from "@/test/factories/alert-criteria";
+import { createAlert } from "@/test/factories/alert";
 
 // BAUTH-2 (docs/specs/core-better-auth.md), harness change: changePassword
 // now also asks for the current session's own id so it can spare it from
@@ -425,6 +427,99 @@ describe("deleteAccount", () => {
     expect(await deleteAccount(formData({ password: "" }))).toEqual({ success: true });
     expect(verifyPassword).not.toHaveBeenCalled();
     expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
+  });
+});
+
+// ALERT-45 (docs/specs/alerts.md, #21): deleting an account releases every
+// criteria set its alerts referenced, in the same transaction as the user
+// row, unless another alert — another user's, inactive, or soft-deleted —
+// still references it.
+describe("ALERT-45: deleteAccount releases alert criteria", () => {
+  const CRITERIA_INPUT = {
+    brand: "Audi",
+    model: "A3",
+    maxPrice: 20000,
+    latitude: 40.4168,
+    longitude: -3.7038,
+    distanceInKm: 50,
+  };
+
+  it("ALERT-45: keeps a criteria set and its seen listings while another user's alert still references it, and releases it once the last one is deleted", async () => {
+    const ada = await createUser({ password: "old-hash" });
+    const grace = await createUser({ password: "old-hash" });
+    const criteria = await createAlertCriteria({ criteria: CRITERIA_INPUT });
+    await createAlert({
+      user: { connect: { id: ada.id } },
+      criteria: { connect: { id: criteria.id } },
+    });
+    await createAlert({
+      user: { connect: { id: grace.id } },
+      criteria: { connect: { id: criteria.id } },
+    });
+    await prisma.alertSeenListing.createMany({
+      data: [
+        { criteriaId: criteria.id, listingId: "wallapop-1", source: "Wallapop" },
+        { criteriaId: criteria.id, listingId: "wallapop-2", source: "Wallapop" },
+      ],
+    });
+
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: ada.id, email: ada.email });
+    vi.mocked(verifyPassword).mockResolvedValue(true);
+
+    expect(await deleteAccount(formData({ password: "correct" }))).toEqual({ success: true });
+
+    expect(await prisma.user.findUnique({ where: { id: ada.id } })).toBeNull();
+    expect(await prisma.alertCriteria.findUnique({ where: { id: criteria.id } })).not.toBeNull();
+    expect(await prisma.alertSeenListing.count({ where: { criteriaId: criteria.id } })).toBe(2);
+    expect(await prisma.alert.count({ where: { userId: grace.id, criteriaId: criteria.id } })).toBe(
+      1,
+    );
+
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: grace.id, email: grace.email });
+
+    expect(await deleteAccount(formData({ password: "correct" }))).toEqual({ success: true });
+
+    expect(await prisma.alertCriteria.findUnique({ where: { id: criteria.id } })).toBeNull();
+    expect(await prisma.alertSeenListing.count({ where: { criteriaId: criteria.id } })).toBe(0);
+  });
+
+  it("ALERT-45: releases a criteria set whose sole subscriber's alert is inactive", async () => {
+    const ada = await createUser({ password: "old-hash" });
+    const criteria = await createAlertCriteria({ criteria: CRITERIA_INPUT });
+    await createAlert({
+      user: { connect: { id: ada.id } },
+      criteria: { connect: { id: criteria.id } },
+      active: false,
+    });
+
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: ada.id, email: ada.email });
+    vi.mocked(verifyPassword).mockResolvedValue(true);
+
+    expect(await deleteAccount(formData({ password: "correct" }))).toEqual({ success: true });
+
+    expect(await prisma.alertCriteria.findUnique({ where: { id: criteria.id } })).toBeNull();
+  });
+
+  it("ALERT-45: keeps a criteria set that another user's soft-deleted alert still references", async () => {
+    const ada = await createUser({ password: "old-hash" });
+    const grace = await createUser({ password: "old-hash" });
+    const criteria = await createAlertCriteria({ criteria: CRITERIA_INPUT });
+    await createAlert({
+      user: { connect: { id: ada.id } },
+      criteria: { connect: { id: criteria.id } },
+    });
+    await createAlert({
+      user: { connect: { id: grace.id } },
+      criteria: { connect: { id: criteria.id } },
+      deletedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    });
+
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: ada.id, email: ada.email });
+    vi.mocked(verifyPassword).mockResolvedValue(true);
+
+    expect(await deleteAccount(formData({ password: "correct" }))).toEqual({ success: true });
+
+    expect(await prisma.alertCriteria.findUnique({ where: { id: criteria.id } })).not.toBeNull();
   });
 });
 
