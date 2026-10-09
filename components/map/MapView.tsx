@@ -27,8 +27,17 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   const t = useTranslations();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [showMap, setShowMap] = useState(false);
-  const { listings, isLoading, isLoadingMore, hasMore, error, search, retry, sentinelRef } =
-    useListingsSearch();
+  const {
+    listings,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    error,
+    resultsGeneration,
+    search,
+    retry,
+    sentinelRef,
+  } = useListingsSearch();
   // Results know nothing about what this user saved; without this every card
   // renders unsaved even for a car already in their favorites.
   const { favoriteIds, setFavorite } = useFavorites();
@@ -131,14 +140,14 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
       {/* Right - Map */}
       <div className="hidden p-4 lg:flex lg:flex-1">
         <div className="h-full w-full overflow-hidden rounded-2xl border border-border/50">
-          <ListingsMap listings={listings} />
+          <ListingsMap listings={listings} resultsGeneration={resultsGeneration} />
         </div>
       </div>
 
       {/* Mobile map */}
       {showMap && (
         <MobileMapOverlay onClose={() => setShowMap(false)}>
-          <ListingsMap listings={listings} />
+          <ListingsMap listings={listings} resultsGeneration={resultsGeneration} />
         </MobileMapOverlay>
       )}
     </div>

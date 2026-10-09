@@ -746,3 +746,57 @@ describe("useListingsSearch server action fan-out", () => {
     expect(searchListings).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("useListingsSearch results generation (MAP-25)", () => {
+  it("MAP-25: bumps the generation when a network search commits its first results, but not on loadMore", async () => {
+    server.use(
+      http.get(WALLAPOP, () =>
+        HttpResponse.json(makeWallapopResponse([makeWallapopItem()], "page-2")),
+      ),
+      http.post(COCHESNET, () =>
+        HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 3)),
+      ),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([makeMilanunciosAd()], 5))),
+      ),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    expect(result.current.resultsGeneration).toBe(0);
+
+    await act(async () => {
+      await result.current.search({ keywords: "generation-network" });
+    });
+    expect(result.current.resultsGeneration).toBe(1);
+
+    // loadMore appends a page; it must never bump the generation.
+    act(() => result.current.sentinelRef(document.createElement("div")));
+    await act(async () => {
+      triggerIntersection();
+    });
+    await waitFor(() => expect(result.current.listings).toHaveLength(6));
+    expect(result.current.resultsGeneration).toBe(1);
+  });
+
+  it("MAP-25: bumps the generation on a cache hit as well as on a fresh network search", async () => {
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({ keywords: "generation-cache" });
+    });
+    expect(result.current.resultsGeneration).toBe(1);
+
+    // Every endpoint fails now — a cache hit must still bump the generation
+    // while never touching the network.
+    server.use(
+      http.get(WALLAPOP, () => HttpResponse.json({}, { status: 500 })),
+      http.post(COCHESNET, () => HttpResponse.json({}, { status: 500 })),
+      http.get(MILANUNCIOS, () => HttpResponse.json({}, { status: 500 })),
+    );
+
+    await act(async () => {
+      await result.current.search({ keywords: "generation-cache" });
+    });
+    expect(result.current.resultsGeneration).toBe(2);
+  });
+});

@@ -51,6 +51,7 @@ untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 - [x] MAP-21 · unit — If the map unmounts before the browser's geolocation resolves, the search is not repeated when it does.
 - [x] MAP-22 · unit — If the location search unmounts before its 400 ms debounce fires, no geocoding request is sent.
 - [x] MAP-23 · unit — Every map tile URL, dark and light, carries the CARTO Basemaps key from `NEXT_PUBLIC_CARTO_API_KEY` as the URL-encoded `key` query parameter; with no key configured the tile URLs carry no `key` parameter.
+- [x] MAP-25 · unit — The map fits its viewport to the results when a search's first results arrive, and only then: appending the next page, or toggling a favourite, leaves the viewport where the user left it. A search whose first results are empty leaves the viewport alone.
 
 ## Worked examples
 
@@ -63,6 +64,7 @@ untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 - **MAP-21** — mount, unmount, then resolve geolocation → `search` was called exactly once (the immediate mount search).
 - **MAP-22** — type "Madrid", unmount, advance 400 ms → 0 requests to Nominatim.
 - **MAP-23** — key `cb1_test` → dark `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_test`, light `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_test`; key `a b&c` → dark `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=a%20b%26c`; no key → the dark and light URLs without `?key=`. The bug this records: on 2026-10-06 the map showed only CARTO's "API KEY REQUIRED" watermark, because every keyless tile request now returns that watermark (the same 2,513-byte PNG for any dark z/x/y) with a 200 status.
+- **MAP-25** — a search's first results are wallapop-1 (40.4168, −3.7038) and wallapop-2 (41.3874, 2.1686) → `fitBounds` is called once, with the bounds of [[40.4168, −3.7038], [41.3874, 2.1686]] and `{ padding: [40, 40], maxZoom: 14 }`; wallapop-1 is marked as a favourite → still exactly one call; the next page appends wallapop-3 (39.4699, −0.3763) → still exactly one call; a new search whose first results are wallapop-4 (37.3891, −5.9845) → a second call, with the bounds of [[37.3891, −5.9845]]; a new search with no results → no further call. The bug this records (issue #6): every appended page refitted the map to all the listings loaded so far, pulling it away from wherever the user had panned or zoomed.
 
 ## Data model
 
@@ -90,6 +92,8 @@ may do what to which records.
 - MAP-20 — no results, a pending search, and a late response for an earlier query.
 - MAP-21 — the map unmounts before geolocation resolves.
 - MAP-22 — the location search unmounts before its debounce fires.
+- MAP-25 — a page appended, a favourite toggled, and a new search with no results: none of them moves the map.
+- Opening the mobile map: see Decisions › The map fits on a new search, not on a new page (MAP-25).
 - Partial source failure: see Decisions › Sources fail independently.
 - Out-of-order responses: see Decisions › A version counter, not cancellation.
 - Pagination on a cache hit: see Decisions › The cache holds page 1 only, and resets pagination on a hit.
@@ -145,6 +149,12 @@ The contracts are:
 > because `IntersectionObserver` reports crossings rather than states. The
 > criterion makes a filtered-away page a reason to keep fetching, not an
 > answer.
+
+> **Amended 2026-10-09: MAP-25, implemented.** The map refitted its
+> viewport to every listing loaded so far each time the list changed, so
+> scrolling the list to load the next page pulled the map away from wherever
+> the user had panned (issue #6). The criterion ties the fit to a search's
+> first results, not to the list growing.
 
 > **This is a backfill.** The behaviour below is already built and working. The
 > spec was written from the code, so it cannot disagree with it — which is the
@@ -318,6 +328,47 @@ browser requests, so it is public by nature: it is a `NEXT_PUBLIC_` variable rat
 secret, and its protection is the domain restriction set in the CARTO dashboard. It is optional
 in `lib/env.ts` — without it the app still boots, and the watermark makes the missing key
 obvious at a glance.
+
+### The map fits on a new search, not on a new page (MAP-25)
+
+`FitBounds` in `components/map/ListingsMap.tsx` refits whenever the `listings` array changes, and
+`loadMore` in `lib/hooks/useListingsSearch.ts` replaces that array with the previous listings plus
+the new page. So every appended page refitted the map to everything loaded so far, discarding the
+user's pan and zoom. Fitting is right when the question changes — new filters, a new location, a
+Retry — because the old viewport describes results that are gone. It is wrong when the answer only
+grows: the user is reading the list, and the map is where they left it on purpose.
+
+How a new search is told apart from an appended page: `useListingsSearch` returns a results
+generation number that changes each time `search` commits a search's first results — the network
+path, after the MAP-19 loop, and the cache-hit path alike — and that `loadMore` never touches.
+`MapView` passes it to `ListingsMap`, and `FitBounds` fits when the generation changes (and when
+the map mounts), never on a change to the `listings` array alone. Rejected alternatives:
+
+- **`searchVersionRef`.** It already exists, but it increments when a search *starts*, before its
+  results arrive — the map would fit to the previous search's listings — and for searches that are
+  later superseded. It is also a ref, so changing it re-renders nothing.
+- **Comparing the new array with the previous one** (same first listings means an append). A new
+  search whose results begin with the same listings — the same query again, or a widened filter —
+  would be taken for an append and not refit. It infers from the data what the hook already knows.
+
+Consequences accepted deliberately:
+
+- **Appended pages never refit, even if the user has not touched the map.** A rule that refits
+  until the first pan would need to tell user moves from the map's own `fitBounds` animation, and
+  would still make the map jump while someone scrolls the list. Never refitting on an append is the
+  simpler rule and the predictable one. Pins from later pages can fall outside the current viewport;
+  zooming out shows them.
+- **Toggling a favourite does not refit.** Favourites reconcile in `MapView` through `favoriteIds`,
+  which only the cards receive; neither the listings nor the generation change.
+- **Opening the mobile map fits it.** `MobileMapOverlay` mounts a fresh `ListingsMap`, which fits
+  to every listing loaded so far on mount, as it does today. The desktop map is a separate
+  instance, so its viewport is not affected.
+- **An empty first page does not fit**, as before: there are no bounds to fit to.
+
+Why `unit` is enough: with `react-leaflet` mocked (Leaflet cannot run in jsdom — `docs/ARCHITECTURE.md`
+› Testing), the test can count `fitBounds` calls across re-renders, and "no call" is exactly the
+property — a viewport nothing refits stays where the user put it. Dragging the real map is not
+needed to prove it.
 
 ## Open questions
 

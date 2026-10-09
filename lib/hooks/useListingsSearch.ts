@@ -80,6 +80,11 @@ interface SearchStateSetters {
   setIsLoading: (value: boolean) => void;
   setHasMore: (value: boolean) => void;
   setError: (value: boolean) => void;
+  // MAP-25: bumped at exactly the two places a search's first results are
+  // committed (the network path below and the cache hit), never by
+  // `loadMore` — this is how the map tells a new search apart from an
+  // appended page.
+  bumpResultsGeneration: () => void;
 }
 
 interface SearchRunContext {
@@ -105,6 +110,7 @@ function applyCachedSearch(
   setters.setError(false);
   setters.setHasMore(false);
   setters.setListings(cached);
+  setters.bumpResultsGeneration();
 }
 
 // The network branch of `search`, once validation and the cache lookup are
@@ -131,6 +137,7 @@ async function runSearchRounds(
 
     ctx.cursorsRef.current = paginationResult.cursors;
     setters.setListings(paginationResult.collected);
+    setters.bumpResultsGeneration();
     setCached(cacheKey, paginationResult.collected);
     setters.setHasMore(paginationResult.more);
     setters.setIsLoading(false);
@@ -149,13 +156,24 @@ export function useListingsSearch() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState(false);
+  // MAP-25: changes only when a search's first results are committed, never
+  // on an appended page. `MapView` forwards it to `ListingsMap` so the map
+  // can fit on a new search without refitting while the list only grows.
+  const [resultsGeneration, setResultsGeneration] = useState(0);
 
   const cursorsRef = useRef<SearchCursors>(EMPTY_SEARCH_CURSORS);
   const lastParamsRef = useRef<SearchInput | null>(null);
   const isLoadingMoreRef = useRef(false);
   const searchVersionRef = useRef(0);
 
-  const setters: SearchStateSetters = { setListings, setIsLoading, setHasMore, setError };
+  const bumpResultsGeneration = useCallback(() => setResultsGeneration((g) => g + 1), []);
+  const setters: SearchStateSetters = {
+    setListings,
+    setIsLoading,
+    setHasMore,
+    setError,
+    bumpResultsGeneration,
+  };
   const ctx: SearchRunContext = { cursorsRef, lastParamsRef, searchVersionRef };
 
   async function search(input: SearchInput) {
@@ -268,6 +286,7 @@ export function useListingsSearch() {
     isLoadingMore,
     hasMore,
     error,
+    resultsGeneration,
     search,
     retry,
     sentinelRef,
