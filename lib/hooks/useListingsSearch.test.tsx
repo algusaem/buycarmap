@@ -701,6 +701,146 @@ describe("useListingsSearch filtered-away pages", () => {
   });
 });
 
+describe("useListingsSearch repeated Wallapop cursor", () => {
+  const MADRID = { latitude: 40.4168, longitude: -3.7038 };
+  const BARCELONA = {
+    latitude: 41.3874,
+    longitude: 2.1686,
+    postal_code: "08001",
+    city: "Barcelona",
+    region: "Cataluña",
+    country_code: "ES",
+  };
+  // coches.net items default to Barcelona (test/fixtures/cochesnet.ts); this
+  // override is what makes one land in Madrid instead, the same way
+  // "cn-near" does in the MAP-16 test above.
+  const MADRID_PROVINCE = {
+    provinceIds: [28],
+    regionId: 13,
+    regionLiteral: "Madrid",
+    mainProvince: "Madrid",
+    mainProvinceId: 28,
+    cityId: 2807,
+    cityLiteral: "Getafe",
+  };
+
+  it("MAP-24: a repeated Wallapop cursor (c1 -> c1) ends Wallapop but keeps paging coches.net", async () => {
+    const wallapopPages: string[] = [];
+    const cochesNetPages: number[] = [];
+    server.use(
+      http.get(WALLAPOP, ({ request }) => {
+        const next = new URL(request.url).searchParams.get("next_page");
+        wallapopPages.push(next ?? "first");
+        if (next === "c1") {
+          return HttpResponse.json(
+            makeWallapopResponse([makeWallapopItem({ id: "wp-madrid" })], "c1"),
+          );
+        }
+        return HttpResponse.json(
+          makeWallapopResponse([makeWallapopItem({ id: "wp-bcn", location: BARCELONA })], "c1"),
+        );
+      }),
+      http.post(COCHESNET, async ({ request }) => {
+        const body = (await request.json()) as { pagination: { page: number } };
+        cochesNetPages.push(body.pagination.page);
+        if (body.pagination.page === 3) {
+          return HttpResponse.json(
+            makeCochesNetResponse(
+              [makeCochesNetItem({ id: "cn-madrid", location: MADRID_PROVINCE })],
+              3,
+            ),
+          );
+        }
+        return HttpResponse.json(
+          makeCochesNetResponse([makeCochesNetItem({ id: `cn-bcn-${body.pagination.page}` })], 3),
+        );
+      }),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([], 0))),
+      ),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({ keywords: "repeat-c1-c1", ...MADRID, distanceInKm: 100 });
+    });
+
+    expect(wallapopPages).toEqual(["first", "c1"]);
+    expect(cochesNetPages).toEqual([1, 2]);
+    expect(result.current.listings.map((l) => l.id)).toEqual(["wallapop-wp-madrid"]);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.hasMore).toBe(true);
+
+    act(() => result.current.sentinelRef(document.createElement("div")));
+    await act(async () => {
+      triggerIntersection();
+    });
+
+    await waitFor(() =>
+      expect(result.current.listings.map((l) => l.id)).toEqual([
+        "wallapop-wp-madrid",
+        "cochesnet-cn-madrid",
+      ]),
+    );
+    // No third Wallapop request: the repeat already ended it on the first search.
+    expect(wallapopPages).toEqual(["first", "c1"]);
+    expect(result.current.hasMore).toBe(false);
+  });
+
+  it("MAP-24: a Wallapop cursor repeating after a cycle (c1 -> c2 -> c1) ends Wallapop while coches.net keeps paging", async () => {
+    const wallapopPages: string[] = [];
+    const cochesNetPages: number[] = [];
+    server.use(
+      http.get(WALLAPOP, ({ request }) => {
+        const next = new URL(request.url).searchParams.get("next_page");
+        wallapopPages.push(next ?? "first");
+        if (next === "c1") {
+          return HttpResponse.json(
+            makeWallapopResponse([makeWallapopItem({ id: "wp-bcn-2", location: BARCELONA })], "c2"),
+          );
+        }
+        if (next === "c2") {
+          return HttpResponse.json(
+            makeWallapopResponse([makeWallapopItem({ id: "wp-bcn-3", location: BARCELONA })], "c1"),
+          );
+        }
+        return HttpResponse.json(
+          makeWallapopResponse([makeWallapopItem({ id: "wp-bcn-1", location: BARCELONA })], "c1"),
+        );
+      }),
+      http.post(COCHESNET, async ({ request }) => {
+        const body = (await request.json()) as { pagination: { page: number } };
+        cochesNetPages.push(body.pagination.page);
+        if (body.pagination.page === 4) {
+          return HttpResponse.json(
+            makeCochesNetResponse(
+              [makeCochesNetItem({ id: "cn-madrid", location: MADRID_PROVINCE })],
+              4,
+            ),
+          );
+        }
+        return HttpResponse.json(
+          makeCochesNetResponse([makeCochesNetItem({ id: `cn-bcn-${body.pagination.page}` })], 4),
+        );
+      }),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([], 0))),
+      ),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({ keywords: "repeat-c1-c2-c1", ...MADRID, distanceInKm: 100 });
+    });
+
+    expect(wallapopPages).toEqual(["first", "c1", "c2"]);
+    expect(cochesNetPages).toEqual([1, 2, 3, 4]);
+    expect(result.current.listings.map((l) => l.id)).toEqual(["cochesnet-cn-madrid"]);
+    expect(result.current.hasMore).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
+});
+
 describe("useListingsSearch pagination guards", () => {
   it("MAP-10: does not fetch the same next page twice when the sentinel fires repeatedly", async () => {
     let pageRequests = 0;

@@ -10,6 +10,7 @@ import {
 } from "@/test/fixtures/milanuncios";
 import { makeCriteria } from "@/test/fixtures/alerts";
 import { EMPTY_SEARCH_CURSORS, fetchModelsForMake, searchRound } from "./service";
+import type { SearchCursors } from "./schema";
 
 // FRONT-1 (docs/specs/core-frontend.md). Same upstream URLs
 // server/alerts/search.ts and server/alerts/search.node.test.ts already use —
@@ -271,6 +272,62 @@ describe("searchRound", () => {
     const round = await searchRound(makeCriteria(), EMPTY_SEARCH_CURSORS);
 
     expect(round.failedSources).toEqual(["Milanuncios"]);
+  });
+
+  it("MAP-24: a Wallapop next_page equal to an already-requested cursor reports Wallapop exhausted, keeping the page's listings", async () => {
+    server.use(
+      http.get(WALLAPOP, ({ request }) => {
+        const next = new URL(request.url).searchParams.get("next_page");
+        expect(next).toBe("c2");
+        return HttpResponse.json(makeWallapopResponse([makeWallapopItem({ id: "wp-a" })], "c1"));
+      }),
+      http.post(COCHESNET, () =>
+        HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 5)),
+      ),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([makeMilanunciosAd()], 5))),
+      ),
+    );
+    const cursors: SearchCursors = {
+      wallapop: "c2",
+      wallapopRequested: ["c1"],
+      cochesNet: 2,
+      milanuncios: 0,
+    };
+
+    const round = await searchRound({}, cursors);
+
+    expect(round.listings.some((l) => l.id === "wallapop-wp-a")).toBe(true);
+    expect(round.cursors).toEqual({
+      wallapop: null,
+      wallapopRequested: ["c1", "c2"],
+      cochesNet: 3,
+      milanuncios: 1,
+    });
+    expect(round.hasMore.Wallapop).toBe(false);
+  });
+
+  it("MAP-24: a failed Wallapop request leaves its cursor and its requested-cursor history unchanged", async () => {
+    server.use(
+      http.get(WALLAPOP, () => new HttpResponse(null, { status: 500 })),
+      http.post(COCHESNET, () =>
+        HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 5)),
+      ),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([makeMilanunciosAd()], 5))),
+      ),
+    );
+    const cursors: SearchCursors = {
+      wallapop: "c2",
+      wallapopRequested: ["c1"],
+      cochesNet: 2,
+      milanuncios: 0,
+    };
+
+    const round = await searchRound({}, cursors);
+
+    expect(round.cursors.wallapop).toBe("c2");
+    expect(round.cursors.wallapopRequested).toEqual(["c1"]);
   });
 
   it("SRC-14: a failed model lookup does not disable a later lookup for the same brand", async () => {
