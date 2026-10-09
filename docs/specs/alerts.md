@@ -75,11 +75,13 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-40 · component — An alert that has found nothing shows an empty state explaining it is watching, not a blank list
 - [x] ALERT-41 · node — A criteria set whose subscribers are all inactive is not enqueued, and stops consuming upstream requests
 - [x] ALERT-42 · node — Deleting the last alert that references a criteria set stops it being polled at once (DATA-10); the criteria set and its seen-list are deleted when the last alert referencing it is purged (DATA-12, 30 days after deletion), so a restored alert keeps its seen-list
+- [x] ALERT-43 · node — A poll, and the seed poll of a new alert, apply the same post-filter as the map search (MAP-16, MAP-17, MAP-18): when the criteria name a location, a listing outside the radius or pinned at the country-centre fallback, and when they name a model, a listing naming that model in neither its model field nor its title, produces no match, is never emailed, and is not recorded as seen
+- [x] ALERT-44 · node — A poll whose listings are all removed by the post-filter requests no further page from any source, records no match, and still records each source's pre-filter result count for source health (ALERT-20)
 - [x] ALERT-45 · node — Deleting an account deletes, in the same transaction as the user row, every criteria set its alerts referenced — active, inactive or soft-deleted — that no alert references any more, together with its seen-list; a criteria set still referenced by another user's alert, inactive or soft-deleted included, is kept
 
-Forty-two criteria: thirty-five on the server boundary, four on rendering, one on
+Forty-four criteria: thirty-seven on the server boundary, four on rendering, one on
 the email template, two on real Postgres. Nine cover the management surface, ten
-the queue and cadence, six discovery, ten delivery, five the UI.
+the queue and cadence, eight discovery, ten delivery, five the UI.
 
 **ALERT-13 and ALERT-14 are the two `e2e` criteria, and they are the ones that
 cannot be faked.** Both are properties of the claim query — its exclusivity and
@@ -102,6 +104,8 @@ than as documentation.
 - **ALERT-9** — POST /api/alerts/run with no valid `Upstash-Signature` → 401, no source searched, job stays "pending"; a valid signature → 200.
 - **ALERT-26** — Alert stored with unsubscribeTokenHash = sha256("raw-token-ada"); GET /api/alerts/unsubscribe?token=raw-token-ada, no session → 200, that alert active=false; unsubscribing raw-token-one leaves the raw-token-two alert active.
 - **ALERT-27** — GET ?token=some-token-nobody-issued → 200, Ada's alert stays active; token=garbage returns the same status and body as token=raw-token-ada.
+- **ALERT-43** — Criteria brand "BMW", model "Serie 3", centre Madrid (40.4168, −3.7038), radius 100 km; empty seen-set; the poll returns wallapop-wp-near (Alcalá de Henares 40.4818, −3.3643, model "Serie 3"), cochesnet-cn-far (Barcelona 41.3874, 2.1686, model "Serie 3"), milanuncios-mn-fallback (pinned at the Spain centre 40.0, −3.5, title "BMW Serie 3 320d") and cochesnet-cn-wrong-model (Getafe 40.3057, −3.7329, model "Serie 5", title "BMW Serie 5 530d") → matches exactly ["wallapop-wp-near"], seen-set exactly ["wallapop-wp-near"]; a second poll returning the same four listings → 0 new matches, seen-set unchanged. The seed poll of a new alert with the same criteria and the same four listings → seen-set exactly ["wallapop-wp-near"], 0 matches.
+- **ALERT-44** — Criteria brand "BMW", centre Madrid (40.4168, −3.7038), radius 100 km; Wallapop returns [], coches.net returns cochesnet-cn-bcn-1 and cochesnet-cn-bcn-2 (both Barcelona 41.3874, 2.1686) with more pages available, Milanuncios returns [] → exactly one request per source, 0 matches, seen-set unchanged, per-source counts { Wallapop: 0, Coches.net: 2, Milanuncios: 0 }, and `SourceHealth` for Coches.net has `consecutiveEmptyRuns` 0 and `lastOkAt` set to the run time.
 - **ALERT-45** — Ada (user-ada) and Grace (user-grace) each have one alert on the same criteria set C = {brand:"Audi", model:"A3", maxPrice:20000, latitude:40.4168, longitude:-3.7038, distanceInKm:50}, and C has 2 seen listings. Ada calls deleteAccount → success: true; Ada's alert is gone, C and its 2 seen rows remain, Grace still has 1 alert on C. Grace then calls deleteAccount → success: true; 0 criteria rows, 0 seen rows. Ada's only alert on C is inactive (active=false) and nobody else watches C; she deletes her account → C and its seen rows are gone. Grace's alert on C was soft-deleted 5 days ago; Ada deletes her account → C stays, until the purge removes Grace's alert (ALERT-42). The bug this records: before the fix, the sole subscriber deleting her account left C — coordinates included — and its seen rows in the database ([#21](https://github.com/algusaem/buycarmap/issues/21)).
 
 ## Data model
@@ -248,6 +252,8 @@ Routing). Signed-out visitors cannot have alerts (see Out of scope).
 - ALERT-38 — criteria naming no brand, no maximum price and no location.
 - ALERT-40 — an alert that has found nothing.
 - ALERT-41 — a criteria set whose subscribers are all inactive.
+- ALERT-43 — a listing outside the radius, at the country-centre fallback, or not naming the chosen model.
+- ALERT-44 — a poll whose listings are all removed by the post-filter.
 - ALERT-45 — deleting an account whose criteria set another user still watches, or that only an inactive or soft-deleted alert references.
 - A new listing ranked beyond the first page — see Decisions › "New" cannot mean "published recently", so it means "not seen before".
 - A source that returns zero ads on a parse failure — see Decisions › A silently empty source is the dangerous failure.
@@ -306,6 +312,12 @@ never new again. **ALERT-20** needs `perSourceCounts`, because after merging,
 "Milanuncios returned nothing" and "Milanuncios returned nothing *this time*"
 are indistinguishable, which is precisely the silent-death failure that criterion
 exists to catch.
+
+Both fields describe what each source returned, **before** the radius and model
+post-filter of ALERT-43 is applied to the listings. A narrow radius routinely
+filters a nationwide coches.net or Milanuncios page down to nothing; counting
+after the filter would read that as the source being empty and mark it
+unhealthy (ALERT-44).
 
 This is why the alert path can force `order_by=newest` on Wallapop without
 touching the interactive search path — they no longer share a client.
@@ -428,6 +440,17 @@ is followed from an inbox with no session.
 what stops a match count linking nowhere.
 
 ## Decisions and rationale
+
+### About this spec
+
+> **Amended 2026-10-09: ALERT-43 and ALERT-44, implemented.** The alert runner
+> merged the three sources with no radius or model filter, so a
+> location-scoped alert matched and emailed nationwide coches.net and
+> Milanuncios listings, and a model alert matched related-but-wrong cars —
+> the hole the map search closed with MAP-16..18
+> ([map-and-search.md](map-and-search.md), open question 5). The two criteria
+> make an alert's radius and model the same promise the map makes. See
+> Matches respect the radius and the model, as the map does.
 
 > **Amended 2026-10-09: ALERT-45, implemented ([#21](https://github.com/algusaem/buycarmap/issues/21)).**
 > Deleting an account cascaded its alerts but left every criteria set they
@@ -705,6 +728,54 @@ a unique index, enforced by Postgres, and Vitest mocks Prisma — so a criterion
 for them would test that Prisma was called correctly and prove nothing. They are
 specified in Data model and left to review, exactly as the favorites spec did.
 
+### Matches respect the radius and the model, as the map does (ALERT-43, ALERT-44)
+
+Only Wallapop enforces the radius upstream, and Milanuncios matches the model
+as free text; the map search compensates with a post-filter where the three
+lists meet (`applyResultFilters` in `lib/listings/merge.ts`, MAP-16..18). The
+alert runner reads through the same fan-out but applied no such filter, so an
+alert for "BMW Serie 3 within 100 km of Madrid" could email a Serie 5 in
+Getafe or a Serie 3 in Barcelona. An alert is a saved search; it must not
+promise less than the search it was saved from.
+
+The rule: the poll applies the same post-filter, with the same semantics — a
+listing outside the radius, at the country-centre fallback when a location is
+set, or naming the chosen model in neither its model field nor its title is
+not a match. One filter, shared with the map, so what an alert emails is what
+the saved search would show.
+
+Three consequences, decided deliberately:
+
+- **A filtered-out listing is not recorded as seen.** The seen-set means "the
+  alert has already judged this listing a match", not "the alert has looked at
+  it". The filter is local and costs no upstream request, so re-judging a
+  filtered-out listing on every poll is free. Recording it instead would hide
+  it forever if it later passes — a listing whose city starts resolving moves
+  off the country-centre fallback into the radius, or a seller edits the title
+  to name the model — and the user would never hear about a car that now
+  matches. The seed poll (ALERT-2) follows the same rule, so the seen-set
+  never holds a listing the alert did not match.
+- **Source health counts before the filter.** ALERT-20 exists to catch a
+  source that has gone silent. A narrow radius filtering a nationwide page to
+  nothing is not silence, so the per-source counts it reads are taken from
+  what each source returned, not from what survived (see Contracts › The
+  runner needs its own way to reach the upstreams).
+- **The poll still reads one page per source; it does not keep fetching when
+  the filter empties it** (ALERT-44). The map search must (MAP-19), because a
+  page filtered to nothing there is a dead end with nothing left on screen to
+  ask for more. A poll has no such dead end — the next lap runs regardless —
+  and the request budget the cadence is built on (ALERT-35, ALERT-36) assumes
+  three requests per criteria set per lap. MAP-19's loop is deliberately
+  uncapped; for a narrow-radius alert it would walk a nationwide source's
+  pages on every lap, on the same IP that serves search. The cost is real and
+  is stated in open question 6: for a narrow radius, coches.net and
+  Milanuncios contribute only the local listings that happen to be on their
+  first nationwide page, so most of their local matches are missed. That is
+  the best-effort detection this spec already admits to, made more visible.
+
+Matches recorded before this rule existed are not revisited: the filter
+applies at discovery, and the delivery drain sends what discovery recorded.
+
 ## Open questions
 
 All settled. Kept as a record of what was decided and what would reopen it.
@@ -739,7 +810,30 @@ All settled. Kept as a record of what was decided and what would reopen it.
    implemented without a new criterion there** covering the alert path's
    ordering, plus its test — `data-sources.md` is `Implemented`, so editing it
    means `pnpm spec:check` demands the test in the same change.
-6. ~~Do criteria sets already orphaned in production need a one-off cleanup?~~
+6. ~~Should a poll keep fetching when the post-filter empties its page?~~
+   **Settled 2026-10-09: one page per source per poll.** ALERT-44 states this.
+   One page keeps every poll at three upstream requests, which the cadence
+   ceiling (ALERT-35, ALERT-36) is built on and which protects search from an
+   IP block; fetching on until a listing survives, as MAP-19 does for the map,
+   would find the local coches.net and Milanuncios listings beyond their first
+   nationwide page, at an unbounded number of requests per lap for
+   narrow-radius alerts. The better fix for the missed listings is to make the
+   upstream pages local — wiring coches.net's province filter and Milanuncios'
+   province slugs ([map-and-search.md](map-and-search.md), open question 6) —
+   which helps the map and the alerts alike without spending more requests.
+   Reopen if that wiring proves impossible and narrow-radius alerts are found
+   to miss most of their matches.
+7. ~~Criteria with coordinates but no radius.~~ **Settled 2026-10-09: split out
+   to issue #75.** Raised with [map-and-search.md](map-and-search.md) open
+   question 5: such criteria reach Wallapop with no `distance_in_km`, and
+   `filterByRadius` filters nothing without a radius, so ALERT-43 does not
+   bound them. The UI cannot produce them — the filter state always pairs a
+   chosen location with a radius, 50 km by default — but `searchSchema`
+   accepts them, from a direct Server Action call as much as from an alert.
+   The hole is shared with the interactive search, so it belongs in
+   `searchSchema` or the map-and-search spec, as its own change, tracked at
+   https://github.com/algusaem/buycarmap/issues/75.
+8. ~~Do criteria sets already orphaned in production need a one-off cleanup?~~
    **Settled 2026-10-09: no migration or script.** Accounts deleted before
    ALERT-45 may have left criteria sets with no alert. The soft-delete purge
    already deletes every criteria set with no alert referencing it, whatever

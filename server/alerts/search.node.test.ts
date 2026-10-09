@@ -3,8 +3,9 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
 import { makeCochesNetItem, makeCochesNetResponse } from "@/test/fixtures/cochesnet";
-import { makeCriteria } from "@/test/fixtures/alerts";
+import { makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
 import * as searchService from "@/server/search/service";
+import { EMPTY_SEARCH_CURSORS } from "@/server/search/service";
 import { searchAllSources } from "./search";
 
 const WALLAPOP = "https://api.wallapop.com/api/v3/search/section";
@@ -103,10 +104,126 @@ describe("searchAllSources", () => {
     expect(result.perSourceCounts["Coches.net"]).toBe(1);
   });
 
+  it("ALERT-43: drops a listing outside the radius, at the country-centre fallback, or naming a different model", async () => {
+    const wpNear = makeMatchListing({
+      id: "wallapop-wp-near",
+      source: "Wallapop",
+      model: "Serie 3",
+      title: "BMW Serie 3 320d",
+      lat: 40.4818,
+      lng: -3.3643,
+    });
+    const cnFar = makeMatchListing({
+      id: "cochesnet-cn-far",
+      source: "Coches.net",
+      model: "Serie 3",
+      title: "BMW Serie 3 320d",
+      lat: 41.3874,
+      lng: 2.1686,
+    });
+    const mnFallback = makeMatchListing({
+      id: "milanuncios-mn-fallback",
+      source: "Milanuncios",
+      model: "",
+      title: "BMW Serie 3 320d",
+      lat: 40.0,
+      lng: -3.5,
+    });
+    const cnWrongModel = makeMatchListing({
+      id: "cochesnet-cn-wrong-model",
+      source: "Coches.net",
+      model: "Serie 5",
+      title: "BMW Serie 5 530d",
+      lat: 40.3057,
+      lng: -3.7329,
+    });
+    const spy = vi.spyOn(searchService, "searchRound").mockResolvedValue({
+      listings: [wpNear, cnFar, mnFallback, cnWrongModel],
+      cursors: EMPTY_SEARCH_CURSORS,
+      hasMore: { Wallapop: false, "Coches.net": false, Milanuncios: false },
+      failedSources: [],
+    });
+
+    try {
+      const result = await searchAllSources(
+        makeCriteria({
+          brand: "BMW",
+          model: "Serie 3",
+          latitude: 40.4168,
+          longitude: -3.7038,
+          distanceInKm: 100,
+        }),
+      );
+
+      // The map search's own promise (MAP-16, MAP-17, MAP-18): wrong radius,
+      // the country-centre fallback, and a mismatched model are all excluded,
+      // so an alert never promises less than the search it was saved from.
+      expect(result.listings.map((listing) => listing.id)).toEqual(["wallapop-wp-near"]);
+      // Counted before the filter, not after (ALERT-44): a narrow radius
+      // filtering a nationwide page to nothing must not read as the source
+      // being empty.
+      expect(result.perSourceCounts).toEqual({ Wallapop: 1, "Coches.net": 2, Milanuncios: 1 });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("ALERT-44: a page the post-filter empties still reports its pre-filter count, with no further page requested", async () => {
+    const cnBcn1 = makeMatchListing({
+      id: "cochesnet-cn-bcn-1",
+      source: "Coches.net",
+      lat: 41.3874,
+      lng: 2.1686,
+    });
+    const cnBcn2 = makeMatchListing({
+      id: "cochesnet-cn-bcn-2",
+      source: "Coches.net",
+      lat: 41.3874,
+      lng: 2.1686,
+    });
+    const spy = vi.spyOn(searchService, "searchRound").mockResolvedValue({
+      listings: [cnBcn1, cnBcn2],
+      cursors: EMPTY_SEARCH_CURSORS,
+      // More pages are available, but the poll reads one page per source
+      // regardless (ALERT-44) — unlike the map search's MAP-19, which keeps
+      // fetching, because a poll has no dead end: the next lap runs anyway.
+      hasMore: { Wallapop: false, "Coches.net": true, Milanuncios: false },
+      failedSources: [],
+    });
+
+    try {
+      const result = await searchAllSources(
+        makeCriteria({
+          brand: "BMW",
+          model: undefined,
+          latitude: 40.4168,
+          longitude: -3.7038,
+          distanceInKm: 100,
+        }),
+      );
+
+      expect(result.listings).toEqual([]);
+      expect(result.perSourceCounts).toEqual({ Wallapop: 0, "Coches.net": 2, Milanuncios: 0 });
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("names a failed source and still returns the survivors' listings", async () => {
     server.use(http.get(WALLAPOP, failWith(503)));
 
-    const result = await searchAllSources(makeCriteria());
+    // No location or model: this test is about failedSources propagation,
+    // not the ALERT-43 post-filter, and the default fixtures' city/model do
+    // not match makeCriteria()'s defaults.
+    const result = await searchAllSources(
+      makeCriteria({
+        model: undefined,
+        latitude: undefined,
+        longitude: undefined,
+        distanceInKm: undefined,
+      }),
+    );
 
     expect(result.failedSources).toEqual(["Wallapop"]);
     expect(result.listings.length).toBeGreaterThan(0);
@@ -119,7 +236,15 @@ describe("searchAllSources", () => {
   it("survives two of the three failing", async () => {
     server.use(http.get(WALLAPOP, failWith(503)), http.post(COCHESNET, failWith(500)));
 
-    const result = await searchAllSources(makeCriteria());
+    // No location or model — see the comment in the test above.
+    const result = await searchAllSources(
+      makeCriteria({
+        model: undefined,
+        latitude: undefined,
+        longitude: undefined,
+        distanceInKm: undefined,
+      }),
+    );
 
     expect(result.failedSources.sort()).toEqual(["Coches.net", "Wallapop"]);
     expect(result.listings.length).toBeGreaterThan(0);
