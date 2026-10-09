@@ -157,6 +157,14 @@ Removing that loop reintroduces a dead end rather than merely a short page —
 the reasoning is MAP-19's, in
 [`specs/map-and-search.md`](specs/map-and-search.md).
 
+That loop terminates only because every round advances each source. coches.net
+and Milanuncios page by number, incremented server-side, so they advance by
+construction; Wallapop's `next_page` cursor is opaque, so `SearchCursors` also
+carries `wallapopRequested` — every cursor Wallapop has already been asked for
+in this search — and a round that gets the same cursor back, directly or after
+a cycle, reports Wallapop exhausted instead of asking for it again. MAP-24, in
+[`specs/map-and-search.md`](specs/map-and-search.md).
+
 **One shared filter set drives all three sources.** The UI builds a single
 `SearchInput`; each client translates it into that API's parameters. There is no
 per-source filter UI, and adding one would be the wrong shape — see
@@ -280,6 +288,15 @@ upstreams directly with the same headers the proxies send.
 authenticates with a shared secret in constant time. This is the one place the
 "prefer server actions, route handlers only for proxying" rule does not apply,
 because there is no session and no browser to run an action from.
+
+**It applies Path 1's post-filter too.** `server/alerts/search.ts` runs the
+same `applyResultFilters` (radius + model) on what `searchRound` returns,
+after counting each source's raw result for `SourceHealth` — a narrow radius
+filtering a nationwide page to nothing must not read as the source going
+quiet. A filtered-out listing is never recorded as seen and never matches,
+on the seed poll as well as every later one; see
+[`specs/alerts.md`](specs/alerts.md) › Matches respect the radius and the
+model, as the map does.
 
 Everything else it needs — locale for the email, the listing snapshot — is read
 from the database, because there is no request context to infer it from. Full
