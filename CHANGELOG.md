@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.3.0...buycarmap-v0.3.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **account:** release alert criteria when an account is deleted ([#77](https://github.com/algusaem/buycarmap/issues/77)) ([845b2ac](https://github.com/algusaem/buycarmap/commit/845b2ac79d6556dc1f6ee490de3c786a2016db35))
+* **alerts:** apply the map's radius and model filter to alert matches ([#78](https://github.com/algusaem/buycarmap/issues/78)) ([f962494](https://github.com/algusaem/buycarmap/commit/f962494afb34ab904fb9f2fead0a6a549cc5a857))
+* **map:** keep the user's viewport when the next page loads ([#84](https://github.com/algusaem/buycarmap/issues/84)) ([029c2c3](https://github.com/algusaem/buycarmap/commit/029c2c34a7ea6045397567c353956378c919892d))
+* **search:** treat a repeated Wallapop cursor as the end of Wallapop ([#76](https://github.com/algusaem/buycarmap/issues/76)) ([0f0fc52](https://github.com/algusaem/buycarmap/commit/0f0fc523b3540561ba0a0ead10957176b73c8251))
+
 ## [0.3.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.2.0...buycarmap-v0.3.0) (2026-10-08)
 
 
