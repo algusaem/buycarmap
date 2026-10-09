@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MotionGlobalConfig } from "motion/react";
@@ -305,6 +305,14 @@ describe("LocationSearch suggestions accessibility", () => {
 
       await userEvent.type(queryBox(), "Madrid");
       const option = await madridOption();
+
+      // An exit from opacity 0 is instant in Motion (0 to 0 is nothing to
+      // animate), so the options would vanish before this test can observe
+      // them mid-fade. Wait for the enter animation to have reached its
+      // first frame before typing again and triggering the exit.
+      await waitFor(() =>
+        expect(Number(screen.getByRole("listbox").style.opacity)).toBeGreaterThan(0),
+      );
 
       holdNominatimPending();
       await userEvent.type(queryBox(), " y");
