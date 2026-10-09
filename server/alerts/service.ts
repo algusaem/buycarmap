@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { appUrl, isEmailConfigured } from "@/lib/app-config";
 import { createElement } from "react";
@@ -261,11 +262,39 @@ export async function deleteAlertForUser(userId: UserId, alertId: AlertId): Prom
  * window the soft delete exists to give it. A criteria set left with only
  * soft-deleted referrers is released once `server/retention/service.ts`
  * purges them (ALERT-42, DATA-12), 30 days after the last one was deleted.
+ *
+ * Takes an optional transaction client so account deletion (ALERT-45,
+ * server/account/service.ts) can run the count and the delete inside the
+ * same transaction as the user row's own deletion, rather than duplicating
+ * this rule.
  */
-async function releaseCriteriaIfUnused(criteriaId: AlertCriteriaId): Promise<void> {
-  const remaining = await prisma.alert.count({ where: { criteriaId } });
+export async function releaseCriteriaIfUnused(
+  criteriaId: AlertCriteriaId,
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> {
+  const remaining = await db.alert.count({ where: { criteriaId } });
   if (remaining > 0) return;
-  await prisma.alertCriteria.delete({ where: { id: criteriaId } });
+  await db.alertCriteria.delete({ where: { id: criteriaId } });
+}
+
+/**
+ * Every criteria set a user's alerts reference — active, inactive or
+ * soft-deleted alike. Account deletion (ALERT-45) reads this *before*
+ * deleting the user, because the cascade on `Alert.user` removes the rows
+ * this query reads: calling it after would always see zero alerts of the
+ * user's own and release every criteria set, even one another user still
+ * watches.
+ */
+export async function findCriteriaIdsForUser(
+  userId: UserId,
+  db: Prisma.TransactionClient = prisma,
+): Promise<AlertCriteriaId[]> {
+  const rows = await db.alert.findMany({
+    where: { userId },
+    select: { criteriaId: true },
+    distinct: ["criteriaId"],
+  });
+  return rows.map((row) => asAlertCriteriaId(row.criteriaId));
 }
 
 // --- The alert matches page (./queries.ts) -----------------------------------

@@ -2,7 +2,7 @@
 
 Key: ALERT
 Status: Implemented
-Last updated: 2026-09-28
+Last updated: 2026-10-09
 
 ---
 
@@ -75,6 +75,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-40 · component — An alert that has found nothing shows an empty state explaining it is watching, not a blank list
 - [x] ALERT-41 · node — A criteria set whose subscribers are all inactive is not enqueued, and stops consuming upstream requests
 - [x] ALERT-42 · node — Deleting the last alert that references a criteria set stops it being polled at once (DATA-10); the criteria set and its seen-list are deleted when the last alert referencing it is purged (DATA-12, 30 days after deletion), so a restored alert keeps its seen-list
+- [x] ALERT-45 · node — Deleting an account deletes, in the same transaction as the user row, every criteria set its alerts referenced — active, inactive or soft-deleted — that no alert references any more, together with its seen-list; a criteria set still referenced by another user's alert, inactive or soft-deleted included, is kept
 
 Forty-two criteria: thirty-five on the server boundary, four on rendering, one on
 the email template, two on real Postgres. Nine cover the management surface, ten
@@ -101,6 +102,7 @@ than as documentation.
 - **ALERT-9** — POST /api/alerts/run with no valid `Upstash-Signature` → 401, no source searched, job stays "pending"; a valid signature → 200.
 - **ALERT-26** — Alert stored with unsubscribeTokenHash = sha256("raw-token-ada"); GET /api/alerts/unsubscribe?token=raw-token-ada, no session → 200, that alert active=false; unsubscribing raw-token-one leaves the raw-token-two alert active.
 - **ALERT-27** — GET ?token=some-token-nobody-issued → 200, Ada's alert stays active; token=garbage returns the same status and body as token=raw-token-ada.
+- **ALERT-45** — Ada (user-ada) and Grace (user-grace) each have one alert on the same criteria set C = {brand:"Audi", model:"A3", maxPrice:20000, latitude:40.4168, longitude:-3.7038, distanceInKm:50}, and C has 2 seen listings. Ada calls deleteAccount → success: true; Ada's alert is gone, C and its 2 seen rows remain, Grace still has 1 alert on C. Grace then calls deleteAccount → success: true; 0 criteria rows, 0 seen rows. Ada's only alert on C is inactive (active=false) and nobody else watches C; she deletes her account → C and its seen rows are gone. Grace's alert on C was soft-deleted 5 days ago; Ada deletes her account → C stays, until the purge removes Grace's alert (ALERT-42). The bug this records: before the fix, the sole subscriber deleting her account left C — coordinates included — and its seen rows in the database ([#21](https://github.com/algusaem/buycarmap/issues/21)).
 
 ## Data model
 
@@ -246,6 +248,7 @@ Routing). Signed-out visitors cannot have alerts (see Out of scope).
 - ALERT-38 — criteria naming no brand, no maximum price and no location.
 - ALERT-40 — an alert that has found nothing.
 - ALERT-41 — a criteria set whose subscribers are all inactive.
+- ALERT-45 — deleting an account whose criteria set another user still watches, or that only an inactive or soft-deleted alert references.
 - A new listing ranked beyond the first page — see Decisions › "New" cannot mean "published recently", so it means "not seen before".
 - A source that returns zero ads on a parse failure — see Decisions › A silently empty source is the dangerous failure.
 - A source flapping, then recovering — see Decisions › Partial upstream failure must not poison the seen-set.
@@ -351,6 +354,7 @@ where the error is a **code**:
 - `createAlert(criteria, label)` — ALERT-1, ALERT-2, ALERT-3, ALERT-4, ALERT-6, ALERT-7, ALERT-8, ALERT-34
 - `listAlertsForPage()` in `server/alerts/queries.ts` — ALERT-4, ALERT-28
 - `deleteAlert(alertId)` — ALERT-4, ALERT-5
+- `deleteAccount(formData)` in `server/account/actions.ts` — ALERT-45, the release of the account's criteria sets
 - `setLocale(locale)` — ALERT-33, in `server/locale/actions.ts`. It no-ops for
   a signed-out caller, since the cookie already carries the preference for them
 
@@ -424,6 +428,13 @@ is followed from an inbox with no session.
 what stops a match count linking nowhere.
 
 ## Decisions and rationale
+
+> **Amended 2026-10-09: ALERT-45, implemented ([#21](https://github.com/algusaem/buycarmap/issues/21)).**
+> Deleting an account cascaded its alerts but left every criteria set they
+> referenced, because `AlertCriteria` has no link to a user and only deleting an
+> alert released one. A criteria set can hold the coordinates the user chose, so
+> erasing the account did not erase it. The criterion releases them with the
+> account. See "An unused criteria set is deleted, seen-list and all" below.
 
 ### "New" cannot mean "published recently", so it means "not seen before"
 
@@ -669,6 +680,23 @@ that accumulate forever. Deleting is both simpler and no worse.
 An **inactive** alert keeps its criteria set, so its matches page still renders
 and re-enabling it does not lose history. Only deletion releases it.
 
+Deleting the **account** releases them too (ALERT-45). The cascade removes every
+alert the account owns, inactive and soft-deleted ones included, so nothing of
+the user's is left to restore and no undo window applies — account deletion
+erases at once (`docs/specs/core-data-model.md`, DATA-13). Each criteria set
+those alerts referenced is then released exactly as deleting an alert releases
+one: deleted, seen-list and all, if no alert references it any more, and kept if
+another user's alert does — inactive or soft-deleted, by the same rule as above.
+It runs in the same transaction as the user row's deletion (`RULES.md` §11), so
+a failure leaves both the account and its criteria in place rather than an
+account erased with its search coordinates still stored.
+
+The soft-delete purge already deletes any criteria set with no alert at all
+(`server/retention/service.ts`, ALERT-42), so without ALERT-45 an orphan left by
+an account deletion would eventually go at the next opportunistic prune. That is
+not enough: the prune runs on about 2% of the requests that write an auth token,
+so its timing has no upper bound, and the user asked for erasure now.
+
 ### Cascades and constraints are schema properties, not criteria
 
 Deleting a user must delete their alerts and matches; a criteria set with no
@@ -711,3 +739,11 @@ All settled. Kept as a record of what was decided and what would reopen it.
    implemented without a new criterion there** covering the alert path's
    ordering, plus its test — `data-sources.md` is `Implemented`, so editing it
    means `pnpm spec:check` demands the test in the same change.
+6. ~~Do criteria sets already orphaned in production need a one-off cleanup?~~
+   **Settled 2026-10-09: no migration or script.** Accounts deleted before
+   ALERT-45 may have left criteria sets with no alert. The soft-delete purge
+   already deletes every criteria set with no alert referencing it, whatever
+   orphaned it (`server/retention/service.ts`, ALERT-42), so in any deployment
+   running that purge those rows go at its next opportunistic run. Reopen by a
+   read-only count of `alert_criteria` rows with no `alerts` row in production,
+   if they must be confirmed gone (`RULES.md` §1, raw SQL).
