@@ -273,6 +273,36 @@ function collectFailedSources(
   return failedSources;
 }
 
+// MAP-24 (docs/specs/map-and-search.md › A repeated Wallapop cursor ends
+// Wallapop): coches.net and Milanuncios page by number, incremented here, so
+// they advance by construction. Wallapop pages by an opaque next_page cursor
+// stored as given, so nothing guarantees it advances — a cursor already
+// requested, directly or after a cycle, means Wallapop has nothing further
+// for this search.
+function nextWallapopCursor(
+  cursors: SearchCursors,
+  wallapop: SourceOutcome<WallapopSearchResponse>,
+): { wallapop: string | null; wallapopRequested: string[] } {
+  // Not requested, or the request failed: cursor and history both untouched,
+  // so a retry asks for the same page with the same history (FRONT-1).
+  if (!wallapop.requested || wallapop.failed) {
+    return { wallapop: cursors.wallapop, wallapopRequested: cursors.wallapopRequested };
+  }
+
+  // The first round requests no specific cursor, so it has nothing to add to
+  // the history and cannot repeat.
+  const requestedCursor = cursors.wallapop;
+  const wallapopRequested =
+    requestedCursor === null
+      ? cursors.wallapopRequested
+      : [...cursors.wallapopRequested, requestedCursor];
+
+  const returned = wallapop.data?.meta?.next_page ?? null;
+  const repeated = returned !== null && wallapopRequested.includes(returned);
+
+  return { wallapop: repeated ? null : returned, wallapopRequested };
+}
+
 function nextCursors(
   cursors: SearchCursors,
   wallapop: SourceOutcome<WallapopSearchResponse>,
@@ -281,14 +311,11 @@ function nextCursors(
 ): SearchCursors {
   // A failed request leaves its cursor untouched, so a retry asks for the
   // same page again rather than skipping ahead (FRONT-1).
-  const wallapopNext = !wallapop.requested
-    ? cursors.wallapop
-    : wallapop.failed
-      ? cursors.wallapop
-      : (wallapop.data?.meta?.next_page ?? null);
+  const { wallapop: wallapopNext, wallapopRequested } = nextWallapopCursor(cursors, wallapop);
 
   return {
     wallapop: wallapopNext,
+    wallapopRequested,
     cochesNet: cochesNet.failed ? cursors.cochesNet : cursors.cochesNet + 1,
     milanuncios: milanuncios.failed ? cursors.milanuncios : cursors.milanuncios + 1,
   };

@@ -157,6 +157,14 @@ Removing that loop reintroduces a dead end rather than merely a short page —
 the reasoning is MAP-19's, in
 [`specs/map-and-search.md`](specs/map-and-search.md).
 
+That loop terminates only because every round advances each source. coches.net
+and Milanuncios page by number, incremented server-side, so they advance by
+construction; Wallapop's `next_page` cursor is opaque, so `SearchCursors` also
+carries `wallapopRequested` — every cursor Wallapop has already been asked for
+in this search — and a round that gets the same cursor back, directly or after
+a cycle, reports Wallapop exhausted instead of asking for it again. MAP-24, in
+[`specs/map-and-search.md`](specs/map-and-search.md).
+
 **One shared filter set drives all three sources.** The UI builds a single
 `SearchInput`; each client translates it into that API's parameters. There is no
 per-source filter UI, and adding one would be the wrong shape — see

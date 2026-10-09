@@ -2,7 +2,7 @@
 
 Key: MAP
 Status: Implemented
-Last updated: 2026-09-28
+Last updated: 2026-10-09
 
 ---
 
@@ -27,6 +27,7 @@ MAP-1 through MAP-15 are proven. Nine already held when the spec was written;
 six were gaps, and two of those (MAP-7) were defects rather than merely
 untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 2026-08-12, and MAP-19 the same day, to close the failure mode they introduced.
+MAP-24 was amended in and implemented test-first on 2026-10-09.
 
 - [x] MAP-1 · unit — A search queries all three sources and interleaves the results, so no single source fills the top of the list
 - [x] MAP-2 · unit — When some sources fail, the results from the rest still render
@@ -51,6 +52,7 @@ untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 - [x] MAP-21 · unit — If the map unmounts before the browser's geolocation resolves, the search is not repeated when it does.
 - [x] MAP-22 · unit — If the location search unmounts before its 400 ms debounce fires, no geocoding request is sent.
 - [x] MAP-23 · unit — Every map tile URL, dark and light, carries the CARTO Basemaps key from `NEXT_PUBLIC_CARTO_API_KEY` as the URL-encoded `key` query parameter; with no key configured the tile URLs carry no `key` parameter.
+- [x] MAP-24 · unit — Within one search, a Wallapop `next_page` cursor that was already requested — the same cursor handed back again (c1 → c1) or an earlier one coming round again (c1 → c2 → c1) — is treated as Wallapop being exhausted: that round reports no next Wallapop cursor and `hasMore.Wallapop` false, the page that carried the repeat keeps its listings, and the other sources keep paging, so neither the first search nor the sentinel loops forever
 
 ## Worked examples
 
@@ -59,6 +61,10 @@ untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 - **MAP-17** — Madrid, 100 km; coches.net Getafe cn-near plus coches.net and Milanuncios items with unresolvable "Villarriba" / province 99 (pinned at the Spain centre 40.0, −3.5, ~49 km away) → exactly ["cochesnet-cn-near"].
 - **MAP-18** — Brand "BMW", model "Serie 3", no location; coches.net cn-contradicts (model "Serie 5", title "BMW Serie 5 530d") and Milanuncios mn-diluted (title "BMW Serie 5 530d Luxury") among matches → exactly wallapop-wp-match, cochesnet-cn-match, milanuncios-mn-match.
 - **MAP-19** — Madrid, 100 km, only Wallapop answers; page 1 = one Barcelona item wp-bcn with next_page "page-2", page 2 = wp-madrid → pages requested ["first","page-2"], listings ["wallapop-wp-madrid"], isLoading false; both pages Barcelona-only → exactly 2 requests, listings [], hasMore false.
+- **MAP-24** — The bug this records (#72): Wallapop handing back a cursor already requested, on a page the filters empty, made the MAP-19 loop refetch it forever.
+  - *One round, server side.* Cursors `{ wallapop: "c2", wallapopRequested: ["c1"], cochesNet: 2, milanuncios: 0 }`; Wallapop's "c2" page is wp-a with `next_page` "c1", coches.net and Milanuncios answering → the round's listings include `wallapop-wp-a`, its cursors are `{ wallapop: null, wallapopRequested: ["c1", "c2"], cochesNet: 3, milanuncios: 1 }`, `hasMore.Wallapop` false. The same round with Wallapop failing → `wallapop` "c2" and `wallapopRequested` ["c1"], unchanged.
+  - *c1 → c1, the repeat page kept.* Madrid, 100 km, Milanuncios returns no ads; coches.net has 3 pages, pages 1–2 one Barcelona item each (cn-bcn-1, cn-bcn-2), page 3 cn-madrid. Wallapop first page = wp-bcn (Barcelona) with `next_page` "c1"; its "c1" page = wp-madrid with `next_page` "c1" again → the first search requests Wallapop pages ["first","c1"] and coches.net pages [1,2], listings ["wallapop-wp-madrid"], isLoading false, hasMore true; the sentinel then requests no Wallapop page and coches.net page 3 → listings ["wallapop-wp-madrid","cochesnet-cn-madrid"], hasMore false. Wallapop is requested exactly 2 times in all.
+  - *c1 → c2 → c1, another source still paging.* Madrid, 100 km, Milanuncios returns no ads; Wallapop first page wp-bcn-1 `next_page` "c1", "c1" page wp-bcn-2 `next_page` "c2", "c2" page wp-bcn-3 `next_page` "c1" — all Barcelona; coches.net has 4 pages, pages 1–3 Barcelona only, page 4 cn-madrid → the first search requests Wallapop pages exactly ["first","c1","c2"] and coches.net pages [1,2,3,4], listings ["cochesnet-cn-madrid"], hasMore false, isLoading false. Before the fix the same input never settles.
 - **MAP-20** — typing "Nowhereville" (no results) → no listbox, `aria-expanded="false"`, the status region reads "No locations found", axe reports no violations; typing "Madrid" → listbox `location-listbox` with the option, `aria-expanded="true"`, axe reports no violations.
 - **MAP-21** — mount, unmount, then resolve geolocation → `search` was called exactly once (the immediate mount search).
 - **MAP-22** — type "Madrid", unmount, advance 400 ms → 0 requests to Nominatim.
@@ -90,10 +96,11 @@ may do what to which records.
 - MAP-20 — no results, a pending search, and a late response for an earlier query.
 - MAP-21 — the map unmounts before geolocation resolves.
 - MAP-22 — the location search unmounts before its debounce fires.
+- MAP-24 — Wallapop hands back a cursor already requested in this search, directly or after a cycle.
 - Partial source failure: see Decisions › Sources fail independently.
 - Out-of-order responses: see Decisions › A version counter, not cancellation.
 - Pagination on a cache hit: see Decisions › The cache holds page 1 only, and resets pagination on a hit.
-- Termination of the fetch loop: see Decisions › A page filtered down to nothing must not end the load (MAP-19).
+- Termination of the fetch loop: see Decisions › A page filtered down to nothing must not end the load (MAP-19), and › A repeated Wallapop cursor ends Wallapop (MAP-24).
 
 ## Out of scope
 
@@ -145,6 +152,13 @@ The contracts are:
 > because `IntersectionObserver` reports crossings rather than states. The
 > criterion makes a filtered-away page a reason to keep fetching, not an
 > answer.
+
+> **Amended 2026-10-09: MAP-24, implemented.** MAP-19's loops end only
+> because every round advances each source, and Wallapop's cursor is whatever
+> its `next_page` says. When Wallapop hands back a cursor it has already been
+> asked for, on a page the filters empty, nothing advances and the search
+> refetches the same page forever (#72). The criterion makes a repeated cursor
+> mean Wallapop has nothing more for this search.
 
 > **This is a backfill.** The behaviour below is already built and working. The
 > spec was written from the code, so it cannot disagree with it — which is the
@@ -292,7 +306,9 @@ the first search and on the sentinel alike.
 
 It terminates. Every round advances Wallapop's cursor and each paged source's
 page number, or clears that source's has-more flag, so the loop is bounded by
-the sources' own page counts. Deliberately **not** capped at N rounds: a cap
+the sources' own page counts. Wallapop's cursor is opaque, so "advances" holds
+only because a cursor already requested is refused — see A repeated Wallapop
+cursor ends Wallapop (MAP-24). Deliberately **not** capped at N rounds: a cap
 is just the same dead end further away, and the case that would hit it — a
 rare model in a tight radius — is exactly the search where giving up early
 shows "nothing found" about a country that has one.
@@ -301,6 +317,55 @@ The cost is honest and accepted: a narrow radius can spend several sequential
 upstream round trips on one gesture, with the spinner showing throughout.
 Wiring the upstream location filters (open question 6) reduces the waste; it
 does not remove the need for this rule.
+
+### A repeated Wallapop cursor ends Wallapop (MAP-24)
+
+coches.net and Milanuncios page by number, and the server increments it, so
+they advance by construction. Wallapop pages by an opaque `next_page` cursor
+that the server stores as given, so nothing guaranteed it advances: a cursor
+handed back again — c1 → c1, or c1 → c2 → c1 — on a page the post-filter
+empties made MAP-19's loop request the same page forever (#72).
+
+The rule (owner's decision, 2026-10-09): within one search, a `next_page` equal
+to any Wallapop cursor already requested means Wallapop is exhausted. The round
+reports no next Wallapop cursor and `hasMore.Wallapop` false, exactly as if
+Wallapop had returned no `next_page`. The page that carried the repeat is still
+a real page, so its listings are kept. The other sources are untouched and keep
+paging.
+
+**The mechanism is server-side, and the client only carries it.** The fan-out
+is server-only (ADR 0016), and each round is a separate `searchListings` call
+whose only memory is the `SearchCursors` the client hands back. So the history
+travels with the cursors: `SearchCursors` (`server/search/schema.ts`) gains
+`wallapopRequested: string[]` — every Wallapop cursor requested in earlier
+rounds of this search — and `EMPTY_SEARCH_CURSORS` starts it at `[]`.
+`searchRound` (`server/search/service.ts`) reads it and writes it:
+
+- A round that requests Wallapop with cursor X and succeeds returns
+  `wallapopRequested` with X appended. If the `next_page` it got back equals X
+  or is already in the list, it returns `wallapop: null`, which `roundHasMore`
+  already reads as no more Wallapop.
+- The first round requests no cursor, so it appends nothing and cannot repeat.
+- A round that does not request Wallapop, or whose Wallapop request fails,
+  returns `wallapopRequested` unchanged — the same rule as the cursor itself
+  (FRONT-1), so a retry asks for the same page with the same history.
+
+`lib/hooks/useListingsSearch.ts` keeps its logic: it already passes back the
+`cursors` each round returns, and resets them to `EMPTY_SEARCH_CURSORS` on a
+new search and on a cache hit, which is what scopes the history to one search.
+Detecting the repeat in the hook was rejected: it would put source-specific
+pagination knowledge back in the browser, while the server would still store
+whatever cursor it was given.
+
+`wallapopRequested` defaults to `[]` in `searchCursorsSchema`, so a client
+built before this change and still open during a deploy keeps validating; it
+only lacks the protection until it reloads. The list holds client-supplied
+strings that are only compared with Wallapop's answer, never sent upstream.
+
+**The alert runner is not affected.** `server/alerts/search.ts` calls
+`searchRound` once per poll with `EMPTY_SEARCH_CURSORS` and never follows a
+cursor, so it cannot loop; it picks up the new field through that constant and
+its behaviour does not change.
 
 ### Brand and model are coupled in one direction
 
@@ -369,3 +434,11 @@ obvious at a glance.
    Milanuncios' province URL slugs) would cut the fetched-then-discarded waste
    that MAP-16 introduces for narrow radii. Efficiency follow-up, needs live
    probing of unverified upstream shapes; the post-filter stays either way.
+7. ~~Should `wallapopRequested` be bounded (MAP-24)?~~ **Settled 2026-10-09: no
+   bound.** It grows by one cursor per Wallapop round and resets with every new
+   search, so it is bounded by how many pages Wallapop serves for one query.
+   That count, and the length of a real `next_page` cursor, are not measured,
+   so the payload each round carries back is unknown. A `.max(n)` on the schema
+   would turn a long legitimate scroll into an `invalidInput` error, so none is
+   added; if a bound is wanted later, it needs a measured n and a defined
+   behaviour at the limit.
