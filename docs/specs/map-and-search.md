@@ -420,7 +420,10 @@ obvious at a glance.
    never passes it, so hovering a card highlights nothing on the map. Either it
    was intended to and the wiring was lost, or it should be removed. Not
    specified here because it is not currently a behaviour.
-5. **The alert runner has the same hole (found with MAP-16).**
+5. **The alert runner has the same hole (found with MAP-16).** Taken up by
+   ALERT-43 and ALERT-44 in [alerts.md](alerts.md), which apply this spec's
+   post-filter to every alert poll; the coordinates-without-radius case is
+   alerts.md open question 7. Original note:
    `server/alerts/search.ts` merges all three sources with no distance filter
    either, so a location-scoped alert emails nationwide coches.net and
    Milanuncios matches. It also passes `distanceInKm` straight through: stored

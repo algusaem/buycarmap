@@ -1,5 +1,6 @@
 import type { CarListing } from "@/interfaces/listing";
 import type { SearchInput } from "@/lib/search/schema";
+import { applyResultFilters } from "@/lib/listings/merge";
 import { EMPTY_SEARCH_CURSORS, searchRound } from "@/server/search/service";
 
 // FRONT-6 (docs/specs/core-frontend.md): the alert runner's path to the three
@@ -62,8 +63,16 @@ export async function searchAllSources(criteria: SearchInput): Promise<AlertSear
     perSourceCounts[source] = round.listings.filter((listing) => listing.source === source).length;
   }
 
+  // ALERT-43/ALERT-44 (docs/specs/alerts.md › Matches respect the radius and
+  // the model, as the map does): the same post-filter the map search applies
+  // at its merge (MAP-16, MAP-17, MAP-18), so an alert never promises less
+  // than the search it was saved from. Applied after perSourceCounts above,
+  // which must stay pre-filter — a narrow radius filtering a nationwide page
+  // to nothing is not the source going silent.
+  const listings = applyResultFilters(round.listings, input);
+
   return {
-    listings: round.listings,
+    listings,
     failedSources: round.failedSources,
     perSourceCounts,
   };
