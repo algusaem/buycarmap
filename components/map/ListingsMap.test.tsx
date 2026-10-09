@@ -135,6 +135,41 @@ describe("ListingsMap viewport", () => {
   });
 });
 
+describe("ListingsMap viewport generation (MAP-25)", () => {
+  it("MAP-25: fits only on a new search, not on an appended page or a favourite toggle", () => {
+    const wallapop1 = makeListing({ id: "wallapop-1", lat: 40.4168, lng: -3.7038 });
+    const wallapop2 = makeListing({ id: "wallapop-2", lat: 41.3874, lng: 2.1686 });
+    const wallapop3 = makeListing({ id: "wallapop-3", lat: 39.4699, lng: -0.3763 });
+    const wallapop4 = makeListing({ id: "wallapop-4", lat: 37.3891, lng: -5.9845 });
+
+    const { rerender } = renderWithI18n(
+      <ListingsMap listings={[wallapop1, wallapop2]} resultsGeneration={1} />,
+    );
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(latLngBounds).toHaveBeenLastCalledWith([
+      [40.4168, -3.7038],
+      [41.3874, 2.1686],
+    ]);
+
+    // A favourite toggled on wallapop-1: same listings, same generation.
+    rerender(<ListingsMap listings={[wallapop1, wallapop2]} resultsGeneration={1} />);
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+
+    // The next page appends wallapop-3: the list grows, the generation does not.
+    rerender(<ListingsMap listings={[wallapop1, wallapop2, wallapop3]} resultsGeneration={1} />);
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+
+    // A new search whose first results are wallapop-4: a new generation.
+    rerender(<ListingsMap listings={[wallapop4]} resultsGeneration={2} />);
+    expect(fitBounds).toHaveBeenCalledTimes(2);
+    expect(latLngBounds).toHaveBeenLastCalledWith([[37.3891, -5.9845]]);
+
+    // A new search with no results: a new generation, nothing to fit.
+    rerender(<ListingsMap listings={[]} resultsGeneration={3} />);
+    expect(fitBounds).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("ListingsMap tiles", () => {
   it("uses the dark basemap by default", () => {
     renderWithI18n(<ListingsMap listings={[]} />);

@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, ZoomControl, Marker, Popup, useMap } from "rea
 import { useTheme } from "next-themes";
 import { useMounted } from "@/lib/hooks/useMounted";
 import type { CarListing } from "@/interfaces/listing";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/format";
 import { env } from "@/lib/env";
@@ -37,23 +37,37 @@ function createCarIcon() {
   });
 }
 
+// MAP-25: fits once, on mount, and never again for as long as this instance
+// stays mounted — so appending a page or toggling a favourite (which only
+// change the `listings` prop, not the instance) never refits. `ListingsMap`
+// gives this component `key={resultsGeneration}` below, so a new search's
+// first results remount a fresh `FitBounds` and fit to them; `map` and
+// `listings` are read through refs, not the effect's dependencies, because
+// this same instance still re-renders with a new `listings` array on every
+// appended page and must not re-fit then.
 function FitBounds({ listings }: { listings: CarListing[] }) {
   const map = useMap();
+  const mapRef = useRef(map);
+  mapRef.current = map;
+  const listingsRef = useRef(listings);
+  listingsRef.current = listings;
 
   useEffect(() => {
-    if (listings.length === 0) return;
-    const bounds = L.latLngBounds(listings.map((l) => [l.lat, l.lng]));
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-  }, [map, listings]);
+    const current = listingsRef.current;
+    if (current.length === 0) return;
+    const bounds = L.latLngBounds(current.map((l) => [l.lat, l.lng]));
+    mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+  }, []);
 
   return null;
 }
 
 interface ListingsMapProps {
   listings?: CarListing[];
+  resultsGeneration?: number;
 }
 
-export function ListingsMap({ listings = [] }: ListingsMapProps) {
+export function ListingsMap({ listings = [], resultsGeneration }: ListingsMapProps) {
   const { resolvedTheme } = useTheme();
   const locale = useLocale();
   const t = useTranslations();
@@ -82,7 +96,7 @@ export function ListingsMap({ listings = [] }: ListingsMapProps) {
           url={tileUrl}
         />
         <ZoomControl position="bottomright" />
-        <FitBounds listings={listings} />
+        <FitBounds key={resultsGeneration} listings={listings} />
         {carIcon &&
           listings.map((listing) => {
             const markerLabel = t("map.markerLabel", {

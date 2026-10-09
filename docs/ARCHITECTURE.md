@@ -690,8 +690,10 @@ MapView
 
 **`ListingsMap` is loaded via `next/dynamic` with `ssr: false`.** Leaflet needs
 the DOM and will not survive server rendering. It switches CARTO tiles by theme,
-drops amber `divIcon` markers, and auto-fits bounds to the current listings via a
-`FitBounds` child using `useMap()`.
+drops amber `divIcon` markers, and fits bounds via a `FitBounds` child using
+`useMap()` — on a new search's first results only, not on every listings change
+(see `docs/specs/map-and-search.md` › Decisions › The map fits on a new search,
+not on a new page (MAP-25)).
 
 Consequences for tests: mock `react-leaflet` in component tests and render it for
 real only in Playwright — see [Environment gotchas](#environment-gotchas).
