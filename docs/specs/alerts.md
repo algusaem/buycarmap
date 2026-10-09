@@ -79,8 +79,8 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-44 · node — A poll whose listings are all removed by the post-filter requests no further page from any source, records no match, and still records each source's pre-filter result count for source health (ALERT-20)
 - [x] ALERT-45 · node — Deleting an account deletes, in the same transaction as the user row, every criteria set its alerts referenced — active, inactive or soft-deleted — that no alert references any more, together with its seen-list; a criteria set still referenced by another user's alert, inactive or soft-deleted included, is kept
 
-Forty-four criteria: thirty-seven on the server boundary, four on rendering, one on
-the email template, two on real Postgres. Nine cover the management surface, ten
+Forty-five criteria: thirty-eight on the server boundary, four on rendering, one on
+the email template, two on real Postgres. Ten cover the management surface, twelve
 the queue and cadence, eight discovery, ten delivery, five the UI.
 
 **ALERT-13 and ALERT-14 are the two `e2e` criteria, and they are the ones that
