@@ -14,7 +14,9 @@ server action in `server/account/actions.ts` (its database work in
    non-revoked session can reach it, and it only ever deletes that user.
 2. A credentials account must re-enter its current password; a missing or wrong
    password is refused. An OAuth-only account has no password to ask for.
-3. It runs `prisma.user.delete` on the user's row.
+3. It runs `prisma.user.delete` on the user's row and, in the same transaction,
+   releases the criteria sets the user's alerts referenced
+   ([alerts.md](../specs/alerts.md), ALERT-45).
 
 Every relation owned by the user is `onDelete: Cascade`, so the same delete
 removes their `Account` (OAuth links), `Session`, `Favorite`, `Alert` (and each
@@ -28,10 +30,14 @@ rows. The cascade is enforced by Postgres, not by application code
 
 ## What survives
 
-- **`AlertCriteria`.** The saved search behind an alert has no link to a user,
-  because one criteria set is shared by everyone watching the same search. It
-  can hold the coordinates the user chose, and it is not removed when the
-  account is ([#21](https://github.com/algusaem/buycarmap/issues/21)).
+- **`AlertCriteria`, while someone else still watches it.** The saved search
+  behind an alert has no link to a user, because one criteria set is shared by
+  everyone watching the same search, and it can hold the coordinates the user
+  chose. Deleting the account deletes each criteria set no other alert
+  references, with its seen-list; one that another user's alert still
+  references stays, because it is that user's saved search too
+  ([alerts.md](../specs/alerts.md), ALERT-45;
+  [#21](https://github.com/algusaem/buycarmap/issues/21)).
 - **`PendingRegistration` rows** for the same address are not linked to the
   `User`. Until it expires; the expired row is deleted at the next
   opportunistic prune (2% of calls), so there is no fixed upper bound.
