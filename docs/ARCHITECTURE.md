@@ -1032,8 +1032,9 @@ it for real only in Playwright.
 ### End-to-end
 
 `e2e/`, run against a real `next dev` server via Playwright's `webServer`.
-`E2E_PORT` (default 3000) sets the port Playwright starts the app on and reuses
-locally; set it when another app already listens on 3000.
+`E2E_PORT` (default 3000) sets the port Playwright starts the app on; neither
+`webServer` entry reuses an existing server (FRONT-25), so set it when another
+app already listens on 3000.
 
 **Search is mocked by a local upstream server, not `page.route()`**
 (FRONT-22, `docs/specs/core-frontend.md`). Search runs through a Server
@@ -1056,9 +1057,8 @@ listing per source) and `"empty"` (every source returns zero listings,
 `screenshots.spec.ts`'s "map results list — empty" screenshot). Every spec
 but `screenshots.spec.ts` only ever needs `"default"`, which
 `e2e/fixtures/network.ts`'s `mockListingSources` sets; `e2e/global-setup.ts`
-also resets to `"default"` once the server answers, since
-`reuseExistingServer` (on outside CI) can carry a scenario over from a
-previous run's process the same way it already does for `pnpm dev`.
+also resets to `"default"` once the server answers, so every run starts from
+`"default"` regardless.
 `screenshots.spec.ts` is the only file that ever switches to `"empty"`, and
 it runs its own tests serially (`test.describe.configure({ mode: "serial" })`)
 with a `afterEach` reset back to `"default"`, since the mock server — like
@@ -1239,7 +1239,10 @@ hand:
 
 `docker-compose.yml` runs one `postgres:17-alpine` service, published on `localhost:5433` (not
 5432, so it never collides with a Postgres already running there), with a named volume so branch
-databases survive a restart.
+databases survive a restart. Its Compose project name is fixed to `buycarmap`, so the main
+checkout and every git worktree resolve to the same project instead of Compose naming each
+checkout's project after its directory — one container, one port, one volume shared by all of them
+(TEST-16).
 
 ```bash
 pnpm db:up            # start it — Docker Desktop must be running

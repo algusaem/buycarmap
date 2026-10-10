@@ -6,11 +6,10 @@ import { defineConfig, devices } from "@playwright/test";
 // Otherwise the app runs against a throwaway URL (no real persistence needed).
 const dbEnabled = !!process.env.E2E_DB;
 
-// The suite defaults to 3000 and can be moved with E2E_PORT when something else
-// already owns it. This is not just convenience: `reuseExistingServer` is on
-// outside CI, so an unrelated app answering on 3000 is silently adopted as "the
-// dev server" and every assertion runs against someone else's HTML. Moving the
-// port is the difference between a real run and a wall of nonsense failures.
+// The suite defaults to 3000 and E2E_PORT moves it. Neither webServer entry
+// below reuses an existing server, because even a BuyCarMap dev server started
+// by hand lacks the env this file injects (mock upstreams, no email, no
+// Redis), so an occupied port fails the run before any test runs (FRONT-25).
 const PORT = process.env.E2E_PORT ?? "3000";
 const BASE_URL = `http://localhost:${PORT}`;
 
@@ -171,14 +170,14 @@ export default defineConfig({
           // maintaining a second, hand-compiled copy of it.
           command: `pnpm exec tsx e2e/fixtures/upstream-server.ts`,
           port: Number(UPSTREAM_PORT),
-          reuseExistingServer: !process.env.CI,
+          reuseExistingServer: false,
           timeout: 30_000,
           env: { E2E_UPSTREAM_PORT: UPSTREAM_PORT },
         },
         {
           command: "pnpm dev",
           url: BASE_URL,
-          reuseExistingServer: !process.env.CI,
+          reuseExistingServer: false,
           timeout: 120_000,
           // PORT goes through the env object rather than inline in `command`, which
           // would be POSIX-only syntax and break on Windows. Next reads it directly.

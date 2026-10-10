@@ -50,11 +50,10 @@ async function waitForServer(baseURL: string): Promise<void> {
 }
 
 // FRONT-22 (docs/specs/core-frontend.md): resets the mock upstream server
-// (e2e/fixtures/upstream-server.ts) to its "default" scenario. Playwright's
-// `reuseExistingServer` (on outside CI) keeps that process alive between runs
-// the same way it does `pnpm dev`, so without this a run could start with
-// whatever scenario the previous run — e.g. screenshots.spec.ts's "empty" —
-// left set, rather than a clean baseline.
+// (e2e/fixtures/upstream-server.ts) to its "default" scenario. The reset runs
+// unconditionally, so every run starts from "default" regardless of whatever
+// scenario an earlier spec file — e.g. screenshots.spec.ts's "empty" — left
+// set.
 async function resetUpstreamScenario(): Promise<void> {
   const response = await fetch(`http://localhost:${UPSTREAM_PORT}/__scenario`, {
     method: "POST",
