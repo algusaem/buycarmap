@@ -52,6 +52,7 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
   - Playwright's `webServer` points them at a local mock upstream server that `e2e/global-setup.ts` starts. It serves the e2e fixtures and exposes a per-test scenario switch.
   - Every spec that stubbed the proxies with `page.route()` uses that server instead. A test fails if any e2e file still routes `/api/wallapop`, `/api/cochesnet` or `/api/milanuncios`.
   - Production never sets the variables.
+- [x] FRONT-25 · unit — A local Playwright run never adopts a server it did not start: neither `webServer` entry (the mock upstream server and `pnpm dev`) reuses an existing server. If a port is already taken, the run fails before any test runs, and `E2E_PORT` / `E2E_UPSTREAM_PORT` still move the ports (issue #82).
 
 ### i18n and formatting
 
@@ -119,6 +120,9 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
 - **FRONT-14**: the search action rejects → the results list shows the error state and a "Retry" button, and no toast appears. Retry re-runs the same round.
 - **FRONT-23**: `/login` in the dark theme, submit a wrong password → the error toast's computed `background-color` equals the computed value of `var(--card)` in that theme, not `rgb(255, 255, 255)` (measured before the fix on sonner 2.0.7 and 2.0.8). The same check in the light theme → `var(--card)` of the light theme. Border and text match `var(--border)` and `var(--foreground)` the same way.
 - **FRONT-24**: valid credentials, no two-factor → `toast.success` is not called and `window.location.href` is set to the redirect target; valid credentials then a valid TOTP code → the same. `messages/en.json` and `messages/es.json` have no `auth.signInSuccess`.
+- **FRONT-25** (issue #82): another application is already listening on port 3000 when the e2e run starts.
+  - Before the fix (both `webServer` entries left `reuseExistingServer: !process.env.CI`): Playwright adopts that server. 50 tests fail and 16 pass, with `/map` landing on the other application's login page.
+  - After the fix (`reuseExistingServer: false` on both entries): the run stops before any test with Playwright's "already used" error naming `http://localhost:3000`. Setting `E2E_PORT=3100` moves the app server off the occupied port and the suite runs: 66 passed, 0 failed.
 
 ## Data model
 
