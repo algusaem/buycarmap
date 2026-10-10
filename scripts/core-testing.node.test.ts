@@ -54,6 +54,16 @@ describe("TEST-1: docker-compose.yml defines the local Postgres", () => {
   });
 });
 
+// --- TEST-16: the Compose project name --------------------------------------
+
+describe("TEST-16: docker-compose.yml fixes the Compose project name", () => {
+  it("TEST-16: declares a top-level name: buycarmap", () => {
+    const compose = read("docker-compose.yml");
+
+    expect(compose).toMatch(/^name:\s*buycarmap\s*$/m);
+  });
+});
+
 // --- TEST-4: .env.example and the README ------------------------------------
 
 describe("TEST-4: .env.example points at the Compose database", () => {

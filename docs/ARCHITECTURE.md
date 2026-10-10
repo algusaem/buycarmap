@@ -1237,7 +1237,10 @@ hand:
 
 `docker-compose.yml` runs one `postgres:17-alpine` service, published on `localhost:5433` (not
 5432, so it never collides with a Postgres already running there), with a named volume so branch
-databases survive a restart.
+databases survive a restart. Its Compose project name is fixed to `buycarmap`, so the main
+checkout and every git worktree resolve to the same project instead of Compose naming each
+checkout's project after its directory — one container, one port, one volume shared by all of them
+(TEST-16).
 
 ```bash
 pnpm db:up            # start it — Docker Desktop must be running
