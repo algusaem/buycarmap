@@ -501,6 +501,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `components/Nav*.tsx` | [docs/specs/navbar.md](docs/specs/navbar.md) |
 | `app/page.tsx` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/layout.tsx` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `app/fonts/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/palette/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/typography/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/privacy/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |

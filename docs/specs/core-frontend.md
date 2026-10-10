@@ -90,6 +90,10 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
 - [x] FRONT-19 · e2e — `e2e/a11y.spec.ts` no longer disables `color-contrast`, and the main flows (`/`, `/map`, `/login`, `/register`, `/favorites`, `/alerts`, `/account`) pass axe with no serious or critical violation in both themes. Any token or colour that changes to get there is approved by the owner first (`RULES.md` §1, §17).
 - [x] FRONT-20 · e2e — Every surface whose look changed, through FRONT-14, FRONT-18 or FRONT-19, has Playwright screenshots on mobile and desktop, and the owner confirms them before the commit (`RULES.md` §22 item 5).
 
+### Fonts
+
+- [x] FRONT-26 · unit — The app's two fonts are served from files committed in the repository under `app/fonts/` and loaded with `next/font/local`, not `next/font/google`: no build step downloads a font. The CSS variables stay `--font-sans` (Plus Jakarta Sans, weights 300–800, latin subset) and `--font-mono` (JetBrains Mono, weights 400–500, latin subset), unchanged from today, and each family's OFL licence ships alongside its files. A test reading `app/layout.tsx` fails if it imports `next/font/google`, or if either family's font files or `OFL.txt` are missing from `app/fonts/`.
+
 ### Docs
 
 - [x] FRONT-21 · unit — The docs record the new data flow:
@@ -119,6 +123,7 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
 - **FRONT-14**: the search action rejects → the results list shows the error state and a "Retry" button, and no toast appears. Retry re-runs the same round.
 - **FRONT-23**: `/login` in the dark theme, submit a wrong password → the error toast's computed `background-color` equals the computed value of `var(--card)` in that theme, not `rgb(255, 255, 255)` (measured before the fix on sonner 2.0.7 and 2.0.8). The same check in the light theme → `var(--card)` of the light theme. Border and text match `var(--border)` and `var(--foreground)` the same way.
 - **FRONT-24**: valid credentials, no two-factor → `toast.success` is not called and `window.location.href` is set to the redirect target; valid credentials then a valid TOTP code → the same. `messages/en.json` and `messages/es.json` have no `auth.signInSuccess`.
+- **FRONT-26**: `next build` while `fonts.googleapis.com` is unreachable, with `app/layout.tsx` still loading `Plus_Jakarta_Sans` and `JetBrains_Mono` via `next/font/google` → Turbopack aborts: "Module not found: Can't resolve '@vercel/turbopack-next/internal/font/google/font'" / "next/font/google queries have exactly one entry". Seen three times on 2026-10-09 (issue #86): PR #85's Check job `next build`, PR #76's E2E web server (passed only on re-run), and a local `pnpm build` in a worktree for PR #77. Correct result: the build completes and the pages render with Plus Jakarta Sans and JetBrains Mono, because both load from files committed in the repository with no network call.
 
 ## Data model
 
