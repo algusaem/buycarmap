@@ -27,8 +27,7 @@ import {
 //   payload (e2e/fixtures/network.ts's mockListingSources).
 // - "empty" mirrors screenshots.spec.ts's old all-sources-empty override.
 // e2e/global-setup.ts resets the scenario to "default" once the server is up,
-// so a reused process (`reuseExistingServer`) never starts a run with a
-// scenario a previous run left set.
+// so every run starts from "default".
 //
 // Single process shared by every Playwright worker (same as the `pnpm dev`
 // webServer entry), so only screenshots.spec.ts — the one file that ever asks

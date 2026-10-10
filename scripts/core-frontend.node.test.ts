@@ -71,6 +71,18 @@ describe("FRONT-22: no e2e file routes the deleted search proxies", () => {
   });
 });
 
+describe("FRONT-25: no webServer entry reuses an existing server", () => {
+  it("FRONT-25: reuseExistingServer is false on both webServer entries, and E2E_PORT/E2E_UPSTREAM_PORT still move the ports", () => {
+    const content = readFileSync(join(ROOT, "playwright.config.ts"), "utf-8");
+    const matches = [...content.matchAll(/reuseExistingServer:\s*([^,\n]+)/g)];
+
+    expect(matches.length).toBe(2);
+    expect(matches.every(([, value]) => value.trim() === "false")).toBe(true);
+    expect(content).toContain("process.env.E2E_PORT");
+    expect(content).toContain("process.env.E2E_UPSTREAM_PORT");
+  });
+});
+
 describe("FRONT-7: Nominatim keeps calling the browser directly", () => {
   it("FRONT-7: lib/geo/nominatim.ts still calls nominatim.openstreetmap.org", () => {
     const content = readFileSync(join(ROOT, "lib/geo/nominatim.ts"), "utf-8");
