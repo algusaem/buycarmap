@@ -29,6 +29,7 @@ Added on 2026-10-05, outside phase 7 (TEST-15): **a missing visual baseline coul
 - [x] TEST-2 · node — `pnpm db:branch` now creates a database for the current git branch inside the Compose Postgres, instead of a Neon branch. The name is `buycarmap_` plus the sanitized branch name. The script runs `prisma migrate deploy` on it and writes its `DATABASE_URL` into the worktree's `.env`, leaving every other line untouched. It is idempotent: an existing database is reused. `pnpm db:branch:rm` drops the current branch's database. Neither ever connects to a non-local host.
 - [x] TEST-3 · node — `scripts/require-branch-db.mjs` and its hook keep refusing database commands from a worktree whose `.env` has no `DATABASE_URL`. They now also refuse when that URL points at a host that is not `localhost` or `127.0.0.1`. This stops a worktree from touching Neon, and so production.
 - [x] TEST-4 · unit — `.env.example` points `DATABASE_URL` at the Compose database. The Neon API variables used only by the old `db:branch` are removed from `.env.example` and from `lib/env.ts` if they are declared there. The README's setup and worktree sections describe Docker Desktop, `pnpm db:up` and `pnpm db:branch`.
+- [x] TEST-16 · unit — `docker-compose.yml` fixes the Compose project name to `buycarmap`, so every checkout of the repository — the main one and every git worktree — starts, reaches and stops the same single Postgres container and volume; `pnpm db:branch` from a worktree reaches it.
 
 ### Integration tests
 
@@ -91,6 +92,9 @@ Added on 2026-10-05, outside phase 7 (TEST-15): **a missing visual baseline coul
   - `pnpm test:visual --update-snapshots` → 2 passed, and `login-visual-linux.png` and `map-visual-linux.png` are written to `e2e/visual.spec.ts-snapshots/`.
   - `pnpm test:visual --update-snapshots=none` → 2 skipped, with the same reason: it is not updating snapshots.
   - On Windows, where both baselines exist, a plain run compares against them. `--update-snapshots` overwrites any baseline that differs instead of failing, so its output goes to the owner for review like a new baseline.
+- **TEST-16**, issue #80: the main checkout's Postgres is running; from a worktree at `.claude/worktrees/<name>`, `pnpm db:up` fails with `Bind for 0.0.0.0:5433 failed: port is already allocated`, and `pnpm db:branch` fails with `service "postgres" is not running` even though Postgres answers on `localhost:5433`. The failure it fixes: with no top-level `name:` in `docker-compose.yml`, Compose names each checkout's project after its directory, so the worktree gets its own project, container and port instead of reaching the main checkout's.
+  - After the fix, `pnpm db:up` from the worktree reports the existing `buycarmap` container already running.
+  - `pnpm db:branch` from the worktree reaches that container and creates or reuses `buycarmap_<branch>` inside it, the same as from the main checkout.
 
 ## Data model
 
