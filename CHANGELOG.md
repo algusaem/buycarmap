@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.3.1...buycarmap-v0.3.2) (2026-10-10)
+
+
+### Bug Fixes
+
+* **search:** drop a next page that arrives after a newer search ([#91](https://github.com/algusaem/buycarmap/issues/91)) ([669a7d2](https://github.com/algusaem/buycarmap/commit/669a7d277871c3cdf4aa486f588811be7d5e63b6))
+* **search:** search within 50 km when coordinates come without a radius ([#92](https://github.com/algusaem/buycarmap/issues/92)) ([afbba08](https://github.com/algusaem/buycarmap/commit/afbba08d605d996e2e3155d913f1bb423d947965))
+
 ## [0.3.1](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.3.0...buycarmap-v0.3.1) (2026-10-09)
 
 
