@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
-import { makeWallapopResponse } from "@/test/fixtures/wallapop";
+import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
 import { makeCochesNetResponse } from "@/test/fixtures/cochesnet";
 import { makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
 import { makeCriteria } from "@/test/fixtures/alerts";
@@ -90,6 +90,56 @@ describe("searchListings", () => {
       expect(result.error.code).toBe("invalidInput");
     }
     expect(calls).toEqual([]);
+  });
+
+  it("MAP-27: a search with coordinates but no distanceInKm is bounded to 50 km of them", async () => {
+    let wallapopQuery = new URLSearchParams();
+    server.use(
+      http.get(WALLAPOP, ({ request }) => {
+        wallapopQuery = new URL(request.url).searchParams;
+        return HttpResponse.json(
+          makeWallapopResponse([
+            // ~29.6 km from Madrid (40.4168, -3.7038) — inside the 50 km default.
+            makeWallapopItem({
+              id: "wp-alcala",
+              location: {
+                latitude: 40.4818,
+                longitude: -3.3643,
+                postal_code: "28801",
+                city: "Alcalá de Henares",
+                region: "Madrid",
+                country_code: "ES",
+              },
+            }),
+            // ~66.9 km from Madrid — outside the 50 km default.
+            makeWallapopItem({
+              id: "wp-toledo",
+              location: {
+                latitude: 39.8628,
+                longitude: -4.0273,
+                postal_code: "45001",
+                city: "Toledo",
+                region: "Castilla-La Mancha",
+                country_code: "ES",
+              },
+            }),
+          ]),
+        );
+      }),
+      http.post(COCHESNET, () => HttpResponse.json(makeCochesNetResponse([]))),
+      http.get(MILANUNCIOS, () => HttpResponse.json(makeMilanunciosResponse([]))),
+    );
+
+    const result = await searchListings(
+      { latitude: 40.4168, longitude: -3.7038 },
+      EMPTY_SEARCH_CURSORS,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.listings.map((listing) => listing.id)).toEqual(["wallapop-wp-alcala"]);
+    }
+    expect(wallapopQuery.get("distance_in_km")).toBe("50");
   });
 });
 

@@ -48,4 +48,40 @@ describe("searchSchema", () => {
   it("rejects an unknown timeFilter value", () => {
     expect(searchSchema.safeParse({ timeFilter: "lastYear" }).success).toBe(false);
   });
+
+  it("MAP-27: defaults distanceInKm to 50 km when coordinates are given but no radius", () => {
+    const result = searchSchema.safeParse({ latitude: 40.4168, longitude: -3.7038 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.distanceInKm).toBe(50);
+    }
+  });
+
+  it("MAP-27: keeps an explicit distanceInKm when coordinates are given", () => {
+    const result = searchSchema.safeParse({
+      latitude: 40.4168,
+      longitude: -3.7038,
+      distanceInKm: 10,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.distanceInKm).toBe(10);
+    }
+  });
+
+  it("MAP-27: adds no distanceInKm when no coordinates are given", () => {
+    const result = searchSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.distanceInKm).toBeUndefined();
+    }
+  });
+
+  it("MAP-27: adds no distanceInKm when only latitude is given", () => {
+    const result = searchSchema.safeParse({ latitude: 40.4168 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.distanceInKm).toBeUndefined();
+    }
+  });
 });

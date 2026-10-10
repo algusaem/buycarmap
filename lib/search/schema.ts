@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const searchSchema = z.object({
+// MAP-27 (docs/specs/map-and-search.md): the radius lib/hooks/useSearchFilters.ts's
+// filter panel defaults to, and the one `searchSchema` falls back to below
+// when coordinates are given but no radius is.
+export const DEFAULT_RADIUS_KM = 50;
+
+const baseSearchSchema = z.object({
   keywords: z.string().optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
@@ -20,4 +25,21 @@ export const searchSchema = z.object({
   timeFilter: z.enum(["today", "lastWeek", "lastMonth"]).optional(),
 });
 
-export type SearchInput = z.infer<typeof searchSchema>;
+export type SearchInput = z.infer<typeof baseSearchSchema>;
+
+// MAP-27: a search that carries coordinates but no `distanceInKm` is searched
+// within DEFAULT_RADIUS_KM of them instead of unbounded, so the radius
+// post-filter (lib/geo/radius.ts) and every source's query (e.g. Wallapop's
+// `distance_in_km`, server/search/service.ts) respect it as if the caller had
+// sent it. A search with no coordinates still gets no radius (MAP-13
+// unchanged). `searchSchema` is where the interactive search
+// (server/search/actions.ts) and the stored alert criteria
+// (server/alerts/schema.ts's `parseStoredCriteria`,
+// server/alerts/actions.ts's `createAlert`) alike parse their input, so both
+// get the default from this one change.
+export const searchSchema = baseSearchSchema.transform((data): SearchInput => {
+  if (data.latitude != null && data.longitude != null && data.distanceInKm === undefined) {
+    return { ...data, distanceInKm: DEFAULT_RADIUS_KM };
+  }
+  return data;
+});
