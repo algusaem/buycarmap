@@ -55,6 +55,7 @@ MAP-24 was amended in and implemented test-first on 2026-10-09.
 - [x] MAP-24 · unit — Within one search, a Wallapop `next_page` cursor that was already requested — the same cursor handed back again (c1 → c1) or an earlier one coming round again (c1 → c2 → c1) — is treated as Wallapop being exhausted: that round reports no next Wallapop cursor and `hasMore.Wallapop` false, the page that carried the repeat keeps its listings, and the other sources keep paging, so neither the first search nor the sentinel loops forever
 - [x] MAP-25 · unit — The map fits its viewport to the results when a search's first results arrive, and only then: appending the next page, or toggling a favourite, leaves the viewport where the user left it. A search whose first results are empty leaves the viewport alone.
 - [x] MAP-26 · unit — A next page that arrives after a newer search has committed its results is discarded: the newer search's list is not extended with it, and its next page continues the newer search, not the older one (issue #74).
+- [x] MAP-27 · unit — A search that carries coordinates but no `distanceInKm` is searched within 50 km of them — the radius the filter panel defaults to — so the radius post-filter (MAP-16) and every source's query respect it as if the caller had sent it; because `searchSchema` is where the interactive search (`server/search/actions.ts`) and the stored alert criteria (`server/alerts/schema.ts`'s `parseStoredCriteria`, `server/alerts/actions.ts`'s `createAlert`) alike parse their input, both get the default from one change. A search with no coordinates still sends no radius (MAP-13 unchanged) (issue #75; see also alerts.md ALERT-43/ALERT-44 and its open question 7).
 
 ## Worked examples
 
@@ -78,6 +79,7 @@ MAP-24 was amended in and implemented test-first on 2026-10-09.
   - The held A round then resolves with `[a2]` and next cursors `{ wallapop: "a-page-3", wallapopRequested: ["a-page-2"], cochesNet: 2, milanuncios: 2 }`.
   - Wrong result today: the list becomes `[b1, a2]` and `cursorsRef.current` is overwritten with A's cursors above, so B's next page is requested with keywords "ibiza" but A's cursors — continuing search A's pagination, not search B's.
   - Correct result: the list stays `[b1]`; the discarded round leaves `cursorsRef.current` at B's cursors `{ wallapop: "b-page-2", wallapopRequested: [], cochesNet: 1, milanuncios: 1 }`, so B's next page is requested with keywords "ibiza" and those cursors.
+- **MAP-27** — Centre Madrid (40.4168, −3.7038), no `distanceInKm`; wallapop-wp-alcala at Alcalá de Henares (40.4818, −3.3643, ~29.6 km from Madrid) and wallapop-wp-toledo at Toledo (39.8628, −4.0273, ~66.9 km from Madrid) → wrong today: both wallapop-wp-alcala and wallapop-wp-toledo reach the results, and the Wallapop request carries no `distance_in_km`; correct: exactly wallapop-wp-alcala — Toledo excluded — and the Wallapop request carries `distance_in_km=50`. The same search with no coordinates at all → no radius is applied: no listing is dropped by distance, and the Wallapop request keeps the nationwide `distance_in_km=1000` it already sends without a location (MAP-13 unchanged).
 
 ## Data model
 

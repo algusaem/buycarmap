@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { useQueryStates } from "nuqs";
-import type { SearchInput } from "@/lib/search/schema";
+import { DEFAULT_RADIUS_KM, type SearchInput } from "@/lib/search/schema";
 import type { SelectedLocation } from "@/interfaces/location";
 import { initUserGeolocation, waitForGeolocation } from "@/lib/geo/user-location";
 import {
@@ -29,7 +29,7 @@ const INITIAL_FILTERS: FilterValues = {
   maxHorsePower: undefined,
   timeFilter: "",
   selectedLocation: undefined,
-  distanceInKm: 50,
+  distanceInKm: DEFAULT_RADIUS_KM,
 };
 
 function toParams(keywords: string, f: FilterValues): SearchInput {

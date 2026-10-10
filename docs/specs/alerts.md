@@ -824,15 +824,16 @@ All settled. Kept as a record of what was decided and what would reopen it.
    Reopen if that wiring proves impossible and narrow-radius alerts are found
    to miss most of their matches.
 7. ~~Criteria with coordinates but no radius.~~ **Settled 2026-10-09: split out
-   to issue #75.** Raised with [map-and-search.md](map-and-search.md) open
-   question 5: such criteria reach Wallapop with no `distance_in_km`, and
-   `filterByRadius` filters nothing without a radius, so ALERT-43 does not
-   bound them. The UI cannot produce them — the filter state always pairs a
-   chosen location with a radius, 50 km by default — but `searchSchema`
-   accepts them, from a direct Server Action call as much as from an alert.
-   The hole is shared with the interactive search, so it belongs in
-   `searchSchema` or the map-and-search spec, as its own change, tracked at
-   https://github.com/algusaem/buycarmap/issues/75.
+   to issue #75, resolved by MAP-27.** `searchSchema` (`lib/search/schema.ts`)
+   now defaults `distanceInKm` to 50 km whenever coordinates are given and no
+   radius is, so Wallapop always receives a `distance_in_km` and
+   `filterByRadius` always has one to enforce. `parseStoredCriteria` re-parses
+   through the same schema on every poll, so a stored criteria set without a
+   radius gets the default too, with no migration. One asymmetry remains:
+   criteria stored before this change with coordinates but no radius hash
+   differently from the same criteria created after it, so two equivalent
+   `AlertCriteria` rows could coexist — not migrated, since the UI never
+   produces that shape.
 8. ~~Do criteria sets already orphaned in production need a one-off cleanup?~~
    **Settled 2026-10-09: no migration or script.** Accounts deleted before
    ALERT-45 may have left criteria sets with no alert. The soft-delete purge
