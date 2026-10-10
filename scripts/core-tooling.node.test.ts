@@ -1,4 +1,14 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -185,5 +195,47 @@ describe("verification contract and repository tooling", () => {
 
     expect(sources.length).toBeGreaterThan(1);
     expect(skipping).toEqual([]);
+  });
+
+  // TOOLING-13 runs the installed Biome binary as a child process (as
+  // scripts/todo-check.cli.node.test.ts does for TOOLING-12) over a fixture
+  // checkout that carries a copy of the repo's own biome.json files.includes,
+  // nested under a `.claude/worktrees/<name>` segment — the path shape that
+  // makes `!!**/.claude` ignore the whole checkout instead of only its own
+  // `.claude` directory.
+  it("TOOLING-13: biome check processes the checkout from a worktree path and still excludes .claude", () => {
+    const filesIncludes = (JSON.parse(read("biome.json")) as { files: { includes: string[] } })
+      .files.includes;
+    const includes = filesIncludes.map((pattern) => `"${pattern}"`).join(", ");
+
+    const base = mkdtempSync(join(tmpdir(), "core-tooling-biome-"));
+    const checkout = join(base, ".claude", "worktrees", "fixture-wt", "checkout");
+    mkdirSync(join(checkout, "src"), { recursive: true });
+    mkdirSync(join(checkout, ".claude"), { recursive: true });
+    writeFileSync(join(checkout, "biome.json"), `{\n\t"files": { "includes": [${includes}] }\n}\n`);
+    writeFileSync(join(checkout, "src", "a.ts"), "export const a = 1;\n");
+    writeFileSync(join(checkout, ".claude", "x.json"), "{}\n");
+
+    // The pnpm-installed shim needs the Windows wrapper and a shell to run;
+    // elsewhere the POSIX shim script runs directly.
+    const isWindows = process.platform === "win32";
+    const BIOME = join(ROOT, "node_modules/.bin", isWindows ? "biome.CMD" : "biome");
+    const runBiome = (args: string[]) =>
+      spawnSync(BIOME, args, { cwd: checkout, encoding: "utf8", shell: isWindows });
+
+    try {
+      // The .ts file (and the fixture's own biome.json) must be checked.
+      const result = runBiome(["check", "--error-on-warnings", "."]);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("Checked 2 files");
+
+      // .claude/x.json, inside the checkout itself, must stay excluded.
+      const direct = runBiome(["check", "--error-on-warnings", ".claude/x.json"]);
+      expect(direct.status).toBe(1);
+      expect(direct.stderr).toContain("These paths were provided but ignored");
+      expect(direct.stderr).toContain(".claude/x.json");
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
   });
 });

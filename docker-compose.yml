@@ -20,6 +20,13 @@
 # (`test/fakes/ratelimit.ts`). Production and preview use the values from the
 # Upstash console (console.upstash.com), set in Vercel, never here.
 
+# Fixed rather than left to default to the checkout directory's name, so the
+# main checkout and every git worktree resolve to the same Compose project —
+# one container, one port, one volume (`buycarmap_buycarmap-postgres`, the
+# name the main checkout already had) instead of each worktree starting its
+# own and fighting over 5433 (TEST-16).
+name: buycarmap
+
 services:
   postgres:
     image: postgres:17-alpine
