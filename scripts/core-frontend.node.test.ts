@@ -222,6 +222,45 @@ describe("FRONT-19: the a11y gate no longer disables color-contrast", () => {
   });
 });
 
+describe("FRONT-26: fonts are self-hosted files loaded with next/font/local", () => {
+  it("FRONT-26: app/layout.tsx imports next/font/local, not next/font/google, and keeps --font-sans/--font-mono", () => {
+    const content = readFileSync(join(ROOT, "app/layout.tsx"), "utf-8");
+
+    expect(content).not.toContain("next/font/google");
+    expect(content).toContain("next/font/local");
+    expect(content).toContain("--font-sans");
+    expect(content).toContain("--font-mono");
+  });
+
+  it("FRONT-26: both font families ship their woff2 file and OFL licence under app/fonts/", () => {
+    const files = [
+      "app/fonts/plus-jakarta-sans/plus-jakarta-sans-latin-wght-normal.woff2",
+      "app/fonts/plus-jakarta-sans/OFL.txt",
+      "app/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2",
+      "app/fonts/jetbrains-mono/OFL.txt",
+    ];
+
+    for (const file of files) {
+      expect(existsSync(join(ROOT, file)), `${file} is missing`).toBe(true);
+    }
+  });
+
+  it("FRONT-26: each woff2 file is non-empty and starts with the wOF2 magic bytes", () => {
+    const woff2Files = [
+      "app/fonts/plus-jakarta-sans/plus-jakarta-sans-latin-wght-normal.woff2",
+      "app/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2",
+    ];
+
+    for (const file of woff2Files) {
+      const buffer = readFileSync(join(ROOT, file));
+      expect(buffer.length, `${file} is empty`).toBeGreaterThan(0);
+      expect(buffer.subarray(0, 4).toString("ascii"), `${file} does not start with wOF2`).toBe(
+        "wOF2",
+      );
+    }
+  });
+});
+
 describe("FRONT-21: docs reflect the new flow", () => {
   it("FRONT-21: ADR 0016 exists (search action, deleted proxies, Nominatim, cookie locale)", () => {
     const adrFiles = readdirSync(join(ROOT, "docs/decisions")).filter((f) => f.startsWith("0016-"));

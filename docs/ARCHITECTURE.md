@@ -750,7 +750,9 @@ and success. Destructive for errors, sparingly.
 
 #### Typography
 
-Two fonts, loaded via `next/font/google` in `app/layout.tsx` and exposed as CSS
+Two fonts, self-hosted as files committed under `app/fonts/` and loaded with
+`next/font/local` in `app/layout.tsx` (FRONT-26, `docs/specs/core-frontend.md`) —
+not `next/font/google`, so no build step downloads a font — exposed as CSS
 variables:
 
 - **Plus Jakarta Sans** (`--font-sans`) — all UI text
