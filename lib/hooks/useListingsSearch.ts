@@ -224,30 +224,38 @@ export function useListingsSearch() {
     if (isLoadingMoreRef.current || !params) return;
     if (!hasMore) return;
 
+    const version = searchVersionRef.current;
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
 
     try {
-      let cursors = cursorsRef.current;
-      let collected: CarListing[] = [];
-      let more = true;
-
       // MAP-19: appending nothing would strand the scroll. The list does not
       // grow, so the sentinel neither unmounts nor leaves the viewport, and
       // IntersectionObserver reports crossings rather than states — it will
       // not fire again. A filtered-away page has to be retried from here.
-      do {
-        const round = await runRound(params, cursors);
-        cursors = round.cursors;
-        more = round.more;
-        collected = round.listings;
-      } while (collected.length === 0 && more);
+      // Reuses the same version-guarded "fetch until a round yields a
+      // listing or the sources run out" loop `search` uses, rather than a
+      // second copy of it.
+      const initial = await runRound(params, cursorsRef.current);
+      // MAP-26: a newer search may have committed its own results while this
+      // round was in flight. Applying it now would extend that search's list
+      // with this one's listings and overwrite its cursors, silently merging
+      // the two searches' pagination.
+      if (searchVersionRef.current !== version) return;
 
-      cursorsRef.current = cursors;
-      if (collected.length > 0) {
-        setListings((prev) => [...prev, ...collected]);
+      const paginationResult = await runPaginationUntilResults(
+        params,
+        initial,
+        version,
+        searchVersionRef,
+      );
+      if (paginationResult.aborted) return;
+
+      cursorsRef.current = paginationResult.cursors;
+      if (paginationResult.collected.length > 0) {
+        setListings((prev) => [...prev, ...paginationResult.collected]);
       }
-      setHasMore(more);
+      setHasMore(paginationResult.more);
     } catch {
       // A failed read is never a toast (FRONT-15); the sentinel stays mounted
       // so scrolling back into view retries on its own.

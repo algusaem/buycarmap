@@ -874,6 +874,85 @@ describe("useListingsSearch pagination guards", () => {
   });
 });
 
+describe("useListingsSearch stale next page (MAP-26)", () => {
+  it("MAP-26: discards a next page that resolves after a newer search has committed", async () => {
+    const wallapopRequests: { keywords: string | null; nextPage: string | null }[] = [];
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    server.use(
+      http.get(WALLAPOP, async ({ request }) => {
+        const url = new URL(request.url);
+        const keywords = url.searchParams.get("keywords");
+        const nextPage = url.searchParams.get("next_page");
+        wallapopRequests.push({ keywords, nextPage });
+
+        if (keywords === "golf" && nextPage === null) {
+          return HttpResponse.json(
+            makeWallapopResponse([makeWallapopItem({ id: "a1" })], "a-page-2"),
+          );
+        }
+        if (keywords === "golf" && nextPage === "a-page-2") {
+          // Held until search B has committed its own results below.
+          await gate;
+          return HttpResponse.json(
+            makeWallapopResponse([makeWallapopItem({ id: "a2" })], "a-page-3"),
+          );
+        }
+        if (keywords === "ibiza" && nextPage === null) {
+          return HttpResponse.json(
+            makeWallapopResponse([makeWallapopItem({ id: "b1" })], "b-page-2"),
+          );
+        }
+        return HttpResponse.json(makeWallapopResponse([], null));
+      }),
+      http.post(COCHESNET, () => HttpResponse.json(makeCochesNetResponse([], 1))),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([], 1))),
+      ),
+    );
+
+    const { result } = renderHook(() => useListingsSearch());
+
+    // Search A ("golf") commits its first page.
+    await act(async () => {
+      await result.current.search({ keywords: "golf" });
+    });
+    expect(result.current.listings.map((l) => l.id)).toEqual(["wallapop-a1"]);
+    act(() => result.current.sentinelRef(document.createElement("div")));
+
+    // Scrolling starts A's next-page round; it is held by the gate before it resolves.
+    act(() => {
+      triggerIntersection();
+    });
+    await waitFor(() => expect(wallapopRequests).toHaveLength(2));
+
+    // While that round is held, search B ("ibiza") commits its own results.
+    await act(async () => {
+      await result.current.search({ keywords: "ibiza" });
+    });
+    expect(result.current.listings.map((l) => l.id)).toEqual(["wallapop-b1"]);
+
+    // Release the held A round: it resolves with a2, after B has already committed.
+    act(() => {
+      release();
+    });
+    await waitFor(() => expect(result.current.isLoadingMore).toBe(false));
+
+    // The discarded round must not extend or clobber B's list.
+    expect(result.current.listings.map((l) => l.id)).toEqual(["wallapop-b1"]);
+
+    // B's next page keeps B's keywords and cursor, not A's.
+    act(() => {
+      triggerIntersection();
+    });
+    await waitFor(() => expect(wallapopRequests).toHaveLength(4));
+    expect(wallapopRequests[3]).toEqual({ keywords: "ibiza", nextPage: "b-page-2" });
+  });
+});
+
 describe("useListingsSearch server action fan-out", () => {
   it("FRONT-3: one search round makes exactly one searchListings call, not three fetches", async () => {
     vi.mocked(searchListings).mockClear();
