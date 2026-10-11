@@ -317,32 +317,32 @@
     },
     "privacy": {
       "title": "Privacy Policy",
-      "updated": "7 July 2026",
+      "updated": "11 October 2026",
       "intro": "This policy explains what data BuyCarMap collects, why, and what you can do about it. We aim to collect as little as possible.",
       "sections": [
         {
           "heading": "Information we collect",
-          "body": "If you create an account, we store your email address, an optional display name, and a securely hashed password — never the password itself. When you are signed in, we save your search queries so you can revisit them. We also process basic technical data needed to serve the app."
+          "body": "If you create an account, we store your email address, an optional display name, and a securely hashed password — never the password itself. If you sign in with Google or GitHub, we store the identifier of that account, the sign-in tokens it issues and the address of your profile picture. If you turn on two-factor authentication, we store its secret in encrypted form. We also store the listings you save as favourites, the alerts you create with their search criteria (including any location you chose), your language so emails reach you in it, and, for each signed-in session, the IP address and browser it came from, so you can see and end your sessions from your account page. We do not keep a history of your searches. To protect the service from abuse, we process your IP address and, when you sign in or ask for a password reset, your email address."
         },
         {
           "heading": "How we use your data",
-          "body": "We use your data to provide the service: to authenticate you, keep you signed in, save your searches, and improve how BuyCarMap works. We do not sell your personal data."
+          "body": "We use your data to provide the service: to authenticate you, keep you signed in, keep your favourites and alerts, send you account and alert emails, protect the service from abuse, and improve how BuyCarMap works. We do not sell your personal data."
         },
         {
           "heading": "Location",
-          "body": "To centre the map on you, we may ask your browser for your location. It is only used to order results and is never stored on our servers unless you explicitly save a location as part of a search. You can decline, and we fall back to a default region."
+          "body": "To centre the map on you, we may ask your browser for your location. It is used to centre the map and to search near you, so our server sends its coordinates to Wallapop with your search. It is never stored on our servers unless you save it as part of an alert. You can decline, and we fall back to the centre of Spain."
         },
         {
           "heading": "Cookies",
-          "body": "We use a small number of cookies for essential functions only: keeping you signed in, and remembering your language and theme preferences. We do not use advertising cookies."
+          "body": "We use only the cookies the app needs to work: one that keeps you signed in; while you sign in, a short-lived one for the two-factor step (10 minutes) or for signing in with Google or GitHub (5 minutes); and two that remember your language and your time zone for one year. Your theme choice is kept in your browser's local storage, not in a cookie. We do not use advertising or analytics cookies."
         },
         {
           "heading": "Third-party services",
-          "body": "To show listings and maps we contact external providers, including Wallapop, coches.net and Milanuncios (listings), OpenStreetMap / Nominatim (geocoding), CARTO (map tiles), and Neon (database hosting). Their handling of any data is governed by their own privacy policies."
+          "body": "We rely on these external providers, and each receives only what it needs: Neon (database hosting) stores everything we keep; Vercel (hosting) receives every request, including your IP address; Resend (email delivery) receives your email address and the content of the emails we send you; Google and GitHub (sign-in) receive your sign-in request, only if you choose to sign in with them; Have I Been Pwned (leaked-password check) receives the first five characters of a one-way hash of a new password, never the password itself; Upstash (abuse protection) receives your IP address and a one-way hash of your email address, kept for at most one hour; Sentry (error reports) receives technical details of errors, without cookies, your IP address or your account details; OpenStreetMap / Nominatim (place search) receives the place you type, straight from your browser; CARTO (map tiles) receives tile requests straight from your browser, which show the area you are viewing; Wallapop (listings) receives your search filters and the coordinates of the search: the location you chose, your browser's position, or the centre of Spain; coches.net and Milanuncios (listings) receive your search filters. Our server sends the requests to Wallapop, coches.net and Milanuncios, so they see its address, not yours. Their handling of any data is governed by their own privacy policies."
         },
         {
           "heading": "Data retention",
-          "body": "We keep account and search data for as long as your account is active. When you delete your account, the associated data is removed."
+          "body": "We keep your account data, favourites and alerts for as long as your account is active. A favourite or alert you remove is erased 30 days later. When you delete your account, its data is removed at once, except the search criteria of an alert that another user's alert also uses: those are kept, no longer linked to you, until no alert uses them. Unconfirmed sign-ups, password-reset and confirmation links, and abuse-protection records are deleted after they expire."
         },
         {
           "heading": "Your rights",

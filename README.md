@@ -6,8 +6,11 @@ mileage, horsepower, fuel, transmission and recency; browse the results as a car
 list and a map that stay in sync.
 
 Live sources are **Wallapop**, **coches.net** and **Milanuncios** — none of them
-offer a public API, so each is reached through a proxy route and normalised into
-one shared listing shape. If a source is down, the others still render.
+offer a public API, so each is wired into the server-side search
+(`server/search/service.ts`, ADR 0016) and normalised into one shared listing
+shape. If a source is down, the others still render. Milanuncios answers 405 to
+requests from Vercel, so production gets no Milanuncios listings
+([#52](https://github.com/algusaem/buycarmap/issues/52)); the code stays.
 
 ![The map view: listings from three sources beside a map of Spain](docs/images/map.png)
 
