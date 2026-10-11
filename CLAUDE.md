@@ -228,8 +228,11 @@ reasonable-looking change, because breaking one is silent:
 
 ## Current state
 
-Live sources: **Wallapop**, **coches.net**, **Milanuncios** — all proxied and
-merged into one result set. Auth is complete: register, login, password reset,
+Live sources: **Wallapop**, **coches.net**, **Milanuncios** — all wired into the
+server-side search (`server/search/service.ts`, ADR 0016) and merged into one
+result set. Milanuncios answers 405 to requests from Vercel, so production gets
+no Milanuncios listings ([#52](https://github.com/algusaem/buycarmap/issues/52));
+the code stays. Auth is complete: register, login, password reset,
 account management, two-factor, optional OAuth. **Favorites are built** — model,
 server actions, `/favorites`, and reconciliation into search results.
 
