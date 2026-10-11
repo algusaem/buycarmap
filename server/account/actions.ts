@@ -13,10 +13,15 @@ import { renderEmail } from "@/emails/render";
 import { optionalString, requiredString } from "@/lib/form-data";
 import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
-import { asAccountId, asSessionId, asUserId } from "@/lib/ids";
+import { asAccountId, asUserId, sessionIdSchema } from "@/lib/ids";
 import { can } from "@/lib/auth/permissions";
 import { RATE_LIMITS, consumeRateLimit } from "@/server/rate-limit/service";
-import { changePasswordServerSchema, updateProfileServerSchema } from "./schema";
+import {
+  changePasswordServerSchema,
+  deleteAccountSchema,
+  unlinkAccountSchema,
+  updateProfileServerSchema,
+} from "./schema";
 import {
   deleteLinkedAccount,
   deleteOtherSessions,
@@ -205,11 +210,15 @@ export async function unlinkAccount(formData: FormData): Promise<AccountResult> 
     return { success: false, error: AUTH_ERROR.unauthorized };
   }
 
-  const provider = formData.get("provider");
+  const parsed = unlinkAccountSchema.safeParse({
+    provider: requiredString(formData.get("provider")),
+  });
 
-  if (typeof provider !== "string" || provider.length === 0) {
+  if (!parsed.success) {
     return { success: false, error: AUTH_ERROR.generic };
   }
+
+  const { provider } = parsed.data;
 
   // BLOCKER fix (security review): "credential" is Better Auth's own
   // sign-in plumbing (BAUTH-14's dual-write of a password into an `accounts`
@@ -305,7 +314,13 @@ export async function revokeMySession(sessionId: string): Promise<AccountResult>
     return { success: false, error: AUTH_ERROR.unauthorized };
   }
 
-  const id = asSessionId(sessionId);
+  const parsed = sessionIdSchema.safeParse(sessionId);
+
+  if (!parsed.success) {
+    return { success: false, error: AUTH_ERROR.unauthorized };
+  }
+
+  const id = parsed.data;
   const ownerId = await findSessionOwner(id);
 
   if (!ownerId || !can(user, "delete", { type: "session", userId: ownerId })) {
@@ -351,13 +366,15 @@ export async function deleteAccount(formData: FormData): Promise<AccountResult> 
   // and cascades to every related row. OAuth-only accounts have no password to
   // check, so the typed-email confirmation on the form is the only guard there.
   if (record.password) {
-    const password = formData.get("password");
+    const parsed = deleteAccountSchema.safeParse({
+      password: requiredString(formData.get("password")),
+    });
 
-    if (typeof password !== "string" || password.length === 0) {
+    if (!parsed.success) {
       return { success: false, error: AUTH_ERROR.passwordRequired };
     }
 
-    if (!(await verifyPassword(password, record.password))) {
+    if (!(await verifyPassword(parsed.data.password, record.password))) {
       return { success: false, error: AUTH_ERROR.currentPasswordIncorrect };
     }
   }

@@ -18,15 +18,18 @@ import { z } from "zod";
 export const userIdSchema = z.uuid().brand<"UserId">();
 export const alertIdSchema = z.uuid().brand<"AlertId">();
 
-// These four never arrive as client input — every AlertCriteriaId,
-// AlertPollJobId, AccountId and SessionId in this app is read back from
-// Prisma/Better Auth or cast with the `as*Id` helpers below — so the schema
-// itself is private, kept only to derive its branded type the same way the
-// two above do.
+// These three never arrive as client input — every AlertCriteriaId,
+// AlertPollJobId and AccountId in this app is read back from Prisma/Better
+// Auth or cast with the `as*Id` helpers below — so each schema itself is
+// private, kept only to derive its branded type the same way the two above
+// do. SessionId does cross a client boundary (PLAT-27,
+// docs/specs/core-platform.md): server/account/actions.ts's revokeMySession
+// parses an incoming session id with it, so it is exported alongside UserId
+// and AlertId's schemas instead.
 const alertCriteriaIdSchema = z.uuid().brand<"AlertCriteriaId">();
 const alertPollJobIdSchema = z.uuid().brand<"AlertPollJobId">();
 const accountIdSchema = z.uuid().brand<"AccountId">();
-const sessionIdSchema = z.uuid().brand<"SessionId">();
+export const sessionIdSchema = z.uuid().brand<"SessionId">();
 
 // Derived from the schemas above (`z.infer`), not hand-rolled, so the type a
 // function declares and the type `.parse`/`.safeParse` actually produces are

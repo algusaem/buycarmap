@@ -280,11 +280,15 @@ export async function regenerateRecoveryCodes(formData: FormData): Promise<Codes
     return { success: false, error: AUTH_ERROR.rateLimited };
   }
 
-  const password = requiredString(formData.get("currentPassword"));
+  const parsed = twoFactorPasswordSchema.safeParse({
+    password: requiredString(formData.get("currentPassword")),
+  });
 
-  if (!password) {
+  if (!parsed.success) {
     return { success: false, error: AUTH_ERROR.passwordRequired };
   }
+
+  const { password } = parsed.data;
 
   if (!(await isTwoFactorEnabled(asUserId(user.id)))) {
     return { success: false, error: AUTH_ERROR.totpNotEnabled };

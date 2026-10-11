@@ -9,7 +9,7 @@ import { logger } from "@/lib/logger";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { forgotPasswordSchema } from "@/server/auth/schema";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/server/rate-limit/service";
-import { registerSchema } from "./schema";
+import { registerSchema, verifyRegistrationSchema } from "./schema";
 import {
   createUserFromPendingRegistration,
   deletePendingRegistrations,
@@ -117,11 +117,15 @@ export async function verifyRegistration(formData: FormData): Promise<VerifyRegi
     return { success: false, error: AUTH_ERROR.rateLimited };
   }
 
-  const token = formData.get("token");
+  const parsed = verifyRegistrationSchema.safeParse({
+    token: requiredString(formData.get("token")),
+  });
 
-  if (typeof token !== "string" || token.length === 0) {
+  if (!parsed.success) {
     return { success: false, error: AUTH_ERROR.tokenInvalid };
   }
+
+  const { token } = parsed.data;
 
   // Looked up by digest: the raw token is never stored.
   const pending = await findPendingRegistration(hashToken(token));

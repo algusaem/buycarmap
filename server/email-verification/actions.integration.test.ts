@@ -209,6 +209,14 @@ describe("confirmEmail", () => {
     });
   });
 
+  it("PLAT-27: refuses with no token field, after the rate-limit budget is consumed (unchanged)", async () => {
+    expect(await confirmEmail(formData({ token: "" }))).toEqual({
+      success: false,
+      error: "tokenInvalid",
+    });
+    expect(consumeRateLimit).toHaveBeenCalled();
+  });
+
   it("rejects an expired token", async () => {
     const user = await createUser({ email: "ada@example.com" });
     await createEmailVerificationToken({

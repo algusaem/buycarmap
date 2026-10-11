@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { AUTH_ERROR } from "@/lib/auth/errors";
-import { confirmPassword, newPassword, passwordsMatch } from "@/server/auth/schema";
+import {
+  confirmPassword,
+  currentPasswordField,
+  newPassword,
+  passwordsMatch,
+} from "@/server/auth/schema";
 
 // DATA-15 (docs/specs/core-data-model.md): the version the form rendered, for
 // optimistic locking. It is never a react-hook-form field — ProfileForm and
@@ -37,3 +42,8 @@ export const updateProfileServerSchema = updateProfileSchema.extend({ version })
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+// PLAT-27 (docs/specs/core-platform.md): unlinkAccount's and deleteAccount's
+// own input shapes.
+export const unlinkAccountSchema = z.object({ provider: z.string().min(1) });
+export const deleteAccountSchema = z.object({ password: currentPasswordField });

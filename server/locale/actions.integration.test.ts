@@ -55,4 +55,18 @@ describe("setLocale", () => {
     const found = await prisma.user.findUnique({ where: { id: user.id } });
     expect(found?.locale).toBe("es");
   });
+
+  it("PLAT-27: refuses a non-string locale (unchanged: isValidLocale already rejected it)", async () => {
+    const user = await createUser({ email: "ada@example.com", locale: "es" });
+    signedInAs(user);
+
+    const result = await setLocale(42 as never);
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidLocale", messageKey: "localeErrors.invalidLocale" },
+    });
+    const found = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(found?.locale).toBe("es");
+  });
 });

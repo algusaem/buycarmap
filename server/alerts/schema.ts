@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { searchSchema, type SearchInput } from "@/lib/search/schema";
 
 // Codes, not sentences — same reasoning as FAVORITE_ERROR and AUTH_ERROR: a
@@ -11,6 +12,9 @@ export const ALERT_ERROR = {
 } as const;
 
 export type AlertErrorCode = (typeof ALERT_ERROR)[keyof typeof ALERT_ERROR];
+
+// PLAT-27 (docs/specs/core-platform.md): createAlert's own label shape.
+export const alertLabelSchema = z.string().trim().min(1);
 
 /**
  * Re-validates criteria read back from the database.

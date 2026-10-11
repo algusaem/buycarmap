@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { createUser } from "@/test/factories/user";
 import { makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
+import type { AppError, Result } from "@/lib/result";
+import type { AlertErrorCode } from "./schema";
 import { arrangeNextTransaction } from "@/test/utils/transaction";
 
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
@@ -162,6 +164,26 @@ describe("createAlert", () => {
     const result = await createAlert(
       { ...makeCriteria(), timeFilter: "lastYear" } as never,
       "Nonsense",
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidCriteria", messageKey: "alertErrors.invalidCriteria" },
+    });
+    expect(await prisma.alert.count()).toBe(0);
+  });
+
+  it("PLAT-27: rejects a non-string label (today a TypeError reaching Prisma unparsed)", async () => {
+    signedInAs(ADA);
+
+    // createAlert's signature declares `label: string`, but PLAT-27 is about
+    // the value a real caller can actually send, which TypeScript cannot
+    // bound. RULES §3 bans `any` and `as unknown as`, so the non-string value
+    // is handed to the real function through Reflect.apply instead of a cast.
+    const result: Result<void, AppError<AlertErrorCode>> = await Reflect.apply(
+      createAlert,
+      undefined,
+      [makeCriteria(), 42],
     );
 
     expect(result).toEqual({

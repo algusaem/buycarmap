@@ -6,7 +6,7 @@ import { searchSchema, type SearchInput } from "@/lib/search/schema";
 import { applyResultFilters } from "@/lib/listings/merge";
 import { withRequestContext } from "@/lib/request-context";
 import { consumeRateLimit, getClientIp } from "@/server/rate-limit/service";
-import { searchCursorsSchema, type SearchCursors } from "./schema";
+import { makeSchema, searchCursorsSchema, type SearchCursors } from "./schema";
 import { fetchModelsForMake, searchRound, type SearchRound } from "./service";
 
 // FRONT-2/FRONT-4 (docs/specs/core-frontend.md): the public Server Actions
@@ -67,7 +67,12 @@ export async function searchListings(
  */
 export async function listCarModels(make: string): Promise<Result<CarModel[], SearchError>> {
   return withRequestContext(async () => {
-    const models = await fetchModelsForMake(make);
+    const parsed = makeSchema.safeParse(make);
+    if (!parsed.success) {
+      return err({ code: SEARCH_ERROR.invalidInput, messageKey: "searchErrors.invalidInput" });
+    }
+
+    const models = await fetchModelsForMake(parsed.data);
     return ok(models);
   });
 }

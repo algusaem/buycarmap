@@ -5,7 +5,7 @@ import { type AppError, err, ok, type Result } from "@/lib/result";
 import { withRequestContext } from "@/lib/request-context";
 import { searchSchema, type SearchInput } from "@/lib/search/schema";
 import { alertIdSchema, asUserId } from "@/lib/ids";
-import { ALERT_ERROR, type AlertErrorCode } from "./schema";
+import { ALERT_ERROR, alertLabelSchema, type AlertErrorCode } from "./schema";
 import { createAlertForUser, deleteAlertForUser, isSpecificEnough } from "./service";
 
 type AlertError = AppError<AlertErrorCode>;
@@ -33,10 +33,11 @@ export async function createAlert(
       return err(alertError(ALERT_ERROR.criteriaTooBroad));
     }
 
-    const trimmedLabel = label.trim();
-    if (!trimmedLabel) {
+    const parsedLabel = alertLabelSchema.safeParse(label);
+    if (!parsedLabel.success) {
       return err(alertError(ALERT_ERROR.invalidCriteria));
     }
+    const trimmedLabel = parsedLabel.data;
 
     const createError = await createAlertForUser(asUserId(user.id), parsed.data, trimmedLabel);
     if (createError) {
