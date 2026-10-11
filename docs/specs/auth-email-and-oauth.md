@@ -50,8 +50,9 @@ be a security incident rather than a bug.
 
 ## Data model
 
-`prisma/migrations/20260801120000_auth_hardening/` — applied in phase 11
-([ADR 0018](../decisions/0018-better-auth.md)). Local runs Docker Compose
+`prisma/migrations/20260801120000_auth_hardening/` — applied like every other
+migration: the Vercel build runs `prisma migrate deploy` (`scripts/migrate-deploy.mjs`,
+ENV-3) on production and preview. Local runs Docker Compose
 Postgres with its own database per git branch
 ([ADR 0014](../decisions/0014-local-database-and-integration-tests.md));
 production is the Neon `main` branch (see
