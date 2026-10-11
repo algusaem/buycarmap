@@ -2,7 +2,7 @@
 
 Key: FRONT
 Status: Implemented
-Last updated: 2026-10-05
+Last updated: 2026-10-11
 
 ---
 
@@ -95,6 +95,10 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
 
 - [x] FRONT-26 · unit — The app's two fonts are served from files committed in the repository under `app/fonts/` and loaded with `next/font/local`, not `next/font/google`: no build step downloads a font. The CSS variables stay `--font-sans` (Plus Jakarta Sans, weights 300–800, latin subset) and `--font-mono` (JetBrains Mono, weights 400–500, latin subset), unchanged from today, and each family's OFL licence ships alongside its files. A test reading `app/layout.tsx` fails if it imports `next/font/google`, or if either family's font files or `OFL.txt` are missing from `app/fonts/`.
 
+### Motion
+
+- [x] FRONT-28 · component — The app root renders every page inside a `MotionConfig` with `reducedMotion="user"` (`components/ThemeProvider.tsx`, the existing client boundary that already wraps every page), so Motion switches off transform and opacity animations for a user whose OS asks for reduced motion (`RULES.md` §17/§19, issue #9).
+
 ### Legal pages
 
 - [x] FRONT-27 · component — The privacy page (`app/privacy/page.tsx`, copy in `legal.privacy` of `messages/en.json` and `messages/es.json`) names every processor in `docs/privacy/processors.md` and what each receives, in both locales, and states only what the app does: it keeps no search history, the criteria of an alert that another user's alert also uses outlive an account's deletion, every cookie the app sets is listed, with the theme named as browser storage rather than a cookie, and the Location section states that the server sends your coordinates to Wallapop with your search. Milanuncios stays named, because the server still sends it the filters on every round (issue #52). Each section stays one plain paragraph, so `components/legal/LegalContent.tsx` does not change (issues #22, #73).
@@ -132,6 +136,7 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
   - Before the fix (both `webServer` entries left `reuseExistingServer: !process.env.CI`): Playwright adopts that server. 50 tests fail and 16 pass, with `/map` landing on the other application's login page.
   - After the fix (`reuseExistingServer: false` on both entries): the run stops before any test with Playwright's "already used" error naming `http://localhost:3000`. Setting `E2E_PORT=3100` moves the app server off the occupied port and the suite runs: 66 passed, 0 failed.
 - **FRONT-26**: `next build` while `fonts.googleapis.com` is unreachable, with `app/layout.tsx` still loading `Plus_Jakarta_Sans` and `JetBrains_Mono` via `next/font/google` → Turbopack aborts: "Module not found: Can't resolve '@vercel/turbopack-next/internal/font/google/font'" / "next/font/google queries have exactly one entry". Seen three times on 2026-10-09 (issue #86): PR #85's Check job `next build`, PR #76's E2E web server (passed only on re-run), and a local `pnpm build` in a worktree for PR #77. Correct result: the build completes and the pages render with Plus Jakarta Sans and JetBrains Mono, because both load from files committed in the repository with no network call.
+- **FRONT-28** (issue #9): `ThemeProvider` renders, wrapping a probe component that reads `useContext(MotionConfigContext)` → the context's `reducedMotion` field is `"user"`.
 - **FRONT-27** (issues #22, #73): the privacy page dated "7 July 2026" lists only Wallapop, coches.net, Milanuncios, Nominatim, CARTO and Neon; says "we save your search queries" and "save your searches", though nothing stores search history; says "When you delete your account, the associated data is removed", though shared alert criteria outlive it; and lists language and theme cookies, though the theme is in local storage and the time-zone cookie is missing. Correct result: `updated` and the six bodies below, word for word; the other sections stay as they are.
   - The cookies the app sets, measured on 2026-10-11: `better-auth.session_token` (the session; `lib/auth/auth.ts`, `server/auth/actions.ts`); `better-auth.two_factor` (the two-factor sign-in step, 10 minutes, Better Auth's `twoFactor` plugin default); `better-auth.state` (OAuth sign-in, 5 minutes, Better Auth's default with database state storage); `locale` (one year, `lib/hooks/useLocaleSwitcher.ts`); `tz` (one year, `lib/geo/TimeZoneCookie.tsx`). Better Auth adds the `__Secure-` prefix to its own cookies over HTTPS. The theme is kept by next-themes in `localStorage` under `theme`, not in a cookie. No `trust_device` cookie is set, because no call passes `trustDevice`, and no `session_data` cookie, because `cookieCache` is off.
   - EN `updated`: "11 October 2026".
