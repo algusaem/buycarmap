@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { prisma } from "@/lib/db/prisma";
 import { createRatelimitFake } from "@/test/fakes/ratelimit";
 import { consumeRateLimit, isRateLimited, resetRateLimit } from "./service";
 
@@ -16,18 +15,15 @@ const RULE = { name: "test-rule", limit: 5, windowMs: 60_000 };
 const fake = createRatelimitFake();
 
 beforeEach(async () => {
-  await prisma.rateLimit.deleteMany();
   // Clears "k" for every rule shape sharing the fake's store, the same way
   // resetting through any real Ratelimit instance clears the same physical
   // Redis key regardless of which rule wrote it.
   await resetRateLimit("k", fake.factory);
 });
 
-// `prisma` is the real client here (unlike the mocked version this replaced),
-// so `vi.spyOn(prisma, "$queryRaw")` below wraps the real method in place
-// rather than swapping in a fresh `vi.fn()` each test. Left unrestored, a
-// later test's `vi.spyOn` call reuses that same spy and inherits its call
-// history from whichever earlier test installed it.
+// `vi.spyOn(limiter, "limit")` below wraps the fake's cached limiter in place.
+// Left unrestored, a later test's `vi.spyOn` call reuses that same spy and
+// inherits its call history from whichever earlier test installed it.
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -62,28 +58,6 @@ describe("consumeRateLimit", () => {
     expect((await consumeRateLimit("k", RULE, fake.factory)).remaining).toBe(3);
   });
 
-  it("never reports a negative wait for an already-expired window", async () => {
-    // Insert an already-expired row directly, rather than waiting for the
-    // window to elapse.
-    await prisma.rateLimit.create({
-      data: { key: "k", count: 99, expiresAt: new Date(Date.now() - 10_000) },
-    });
-
-    expect((await consumeRateLimit("k", RULE)).retryAfterMs).toBe(0);
-  });
-
-  it("fails open when the database is unavailable", async () => {
-    vi.spyOn(prisma, "$queryRaw").mockRejectedValueOnce(new Error("connection lost"));
-
-    // A limiter that hard-fails on a database hiccup turns a transient outage
-    // into a total auth outage.
-    expect(await consumeRateLimit("k", RULE)).toEqual({
-      allowed: true,
-      remaining: RULE.limit,
-      retryAfterMs: 0,
-    });
-  });
-
   it("counts and rolls the window in a single statement", async () => {
     const limiter = fake.limiterFor(RULE);
     const limitSpy = vi.spyOn(limiter, "limit");
@@ -106,53 +80,5 @@ describe("isRateLimited", () => {
     for (let n = 0; n < 5; n++) await consumeRateLimit("k", RULE, fake.factory);
 
     expect(await isRateLimited("k", RULE, fake.factory)).toBe(true);
-  });
-
-  it("is false once the window has expired, however high the count", async () => {
-    await prisma.rateLimit.create({
-      data: { key: "k", count: 500, expiresAt: new Date(Date.now() - 1) },
-    });
-
-    // Otherwise a lockout would never lift.
-    expect(await isRateLimited("k", RULE)).toBe(false);
-  });
-
-  it("does not consume budget", async () => {
-    const spy = vi.spyOn(prisma, "$queryRaw");
-
-    await isRateLimited("k", RULE);
-
-    // A locked-out account must not extend its own lockout just by being
-    // checked.
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
-  });
-});
-
-describe("INT-1 (docs/specs/core-integrations.md): rate limiting moves off Postgres", () => {
-  it("INT-1: consumeRateLimit no longer writes a rate_limits row", async () => {
-    await consumeRateLimit("k", RULE);
-
-    // Today's implementation still upserts into Postgres; the adapter in
-    // lib/platform/rate-limit.ts is meant to replace that entirely.
-    expect(await prisma.rateLimit.count()).toBe(0);
-  });
-});
-
-describe("resetRateLimit", () => {
-  it("clears an existing counter", async () => {
-    await consumeRateLimit("k", RULE);
-
-    await resetRateLimit("k");
-
-    expect(await prisma.rateLimit.findUnique({ where: { key: "k" } })).toBeNull();
-  });
-
-  it("swallows a database failure", async () => {
-    vi.spyOn(prisma.rateLimit, "deleteMany").mockRejectedValueOnce(new Error("connection lost"));
-
-    // Best effort: a stale counter expires on its own, and throwing here would
-    // fail an otherwise successful sign-in.
-    await expect(resetRateLimit("k")).resolves.toBeUndefined();
   });
 });

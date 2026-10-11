@@ -61,9 +61,7 @@ As measured through the Neon API on 2026-09-28:
    `Account` rows. That makes sessions and credentials that were revoked after
    the timestamp valid again. For each user whose credential password,
    two-factor state, `email` or `Account` rows differ between the old head
-   and the restored branch, re-apply the old head's values, including that
-   user's `TwoFactorRecoveryCode` rows — a code used or regenerated after the
-   timestamp would otherwise come back usable. Delete every unexpired
+   and the restored branch, re-apply the old head's values. Delete every unexpired
    `PasswordResetToken` and `EmailVerificationToken` row on the restored
    branch; a link consumed after the timestamp would otherwise be redeemable
    again, and the user can simply request a new one. Then revoke every

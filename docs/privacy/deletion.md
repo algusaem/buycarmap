@@ -20,8 +20,8 @@ server action in `server/account/actions.ts` (its database work in
 
 Every relation owned by the user is `onDelete: Cascade`, so the same delete
 removes their `Account` (OAuth links), `Session`, `Favorite`, `Alert` (and each
-alert's `AlertMatch` rows), `SearchHistory`, `PasswordResetToken`,
-`EmailVerificationToken`, `TwoFactorRecoveryCode` and `TwoFactor` (Better
+alert's `AlertMatch` rows), `PasswordResetToken`,
+`EmailVerificationToken` and `TwoFactor` (Better
 Auth's own `twoFactor` plugin table, phase 11, [0018](../decisions/0018-better-auth.md))
 rows. The cascade is enforced by Postgres, not by application code
 ([Cascades](../ARCHITECTURE.md#cascades)) — verified directly against
@@ -41,9 +41,6 @@ rows. The cascade is enforced by Postgres, not by application code
 - **`PendingRegistration` rows** for the same address are not linked to the
   `User`. Until it expires; the expired row is deleted at the next
   opportunistic prune (2% of calls), so there is no fixed upper bound.
-- **`RateLimit` rows** whose key embeds the user's email or IP are not linked
-  either. Until it expires; the expired row is deleted at the next
-  opportunistic prune (1% of calls), so there is no fixed upper bound.
 
 Unsubscribing from an alert is not a deletion: it sets `Alert.active` to false
 and keeps the row until the account is deleted.

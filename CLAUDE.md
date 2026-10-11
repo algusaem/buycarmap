@@ -161,7 +161,7 @@ files are explanation. The root `README.md` carries getting started, the docs in
 | How the pieces fit, the search fan-out, the write path, the directory map | `docs/ARCHITECTURE.md` |
 | The map components, design system, palette, theming, animation, i18n | `docs/ARCHITECTURE.md` › Frontend |
 | What each upstream actually does, and how it breaks | `docs/specs/data-sources.md` › Contracts |
-| The seventeen Prisma models and the migration rules | `docs/ARCHITECTURE.md` › Data model |
+| The fifteen Prisma models and the migration rules | `docs/ARCHITECTURE.md` › Data model |
 | Test levels, MSW conventions, the environment traps | `docs/ARCHITECTURE.md` › Testing |
 | Deploy, env vars, Neon branches, CI, runbooks | `docs/ARCHITECTURE.md` › Environments and operations |
 | Restoring the production database | `docs/operations/backups.md` |
@@ -228,8 +228,11 @@ reasonable-looking change, because breaking one is silent:
 
 ## Current state
 
-Live sources: **Wallapop**, **coches.net**, **Milanuncios** — all proxied and
-merged into one result set. Auth is complete: register, login, password reset,
+Live sources: **Wallapop**, **coches.net**, **Milanuncios** — all wired into the
+server-side search (`server/search/service.ts`, ADR 0016) and merged into one
+result set. Milanuncios answers 405 to requests from Vercel, so production gets
+no Milanuncios listings ([#52](https://github.com/algusaem/buycarmap/issues/52));
+the code stays. Auth is complete: register, login, password reset,
 account management, two-factor, optional OAuth. **Favorites are built** — model,
 server actions, `/favorites`, and reconciliation into search results.
 

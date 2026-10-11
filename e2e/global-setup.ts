@@ -1,7 +1,5 @@
 import type { FullConfig } from "@playwright/test";
 
-import { resetRateLimits } from "./fixtures/db";
-
 // `next dev` compiles each route on its first request, which for this app takes
 // seconds. Without warming, that cost lands inside whichever test happens to
 // visit a route first — and with several workers hitting different cold routes
@@ -75,13 +73,6 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
 
   await waitForServer(baseURL);
   await resetUpstreamScenario();
-
-  // Only meaningful when the DB-gated flows run; there is no real database
-  // otherwise. See resetRateLimits for why this is necessary.
-  if (process.env.E2E_DB) {
-    const cleared = await resetRateLimits();
-    console.log(`[e2e setup] cleared ${cleared} rate-limit counter(s)`);
-  }
 
   for (const route of ROUTES) {
     try {

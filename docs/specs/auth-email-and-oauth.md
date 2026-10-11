@@ -162,10 +162,11 @@ process, and it **fails open** so an HIBP outage cannot block signups.
 hint only; the server gate is authoritative.
 
 #### Rate limiting
-`server/rate-limit/service.ts`, backed by the `RateLimit` table. Postgres rather than
-memory because Vercel's instances would reset a Map constantly. Counting and
-window rollover happen in one atomic upsert, so concurrent attempts cannot both
-read a stale count. Fails open on database error.
+`server/rate-limit/service.ts`, backed by Upstash Redis
+([ADR 0017](../decisions/0017-upstash-qstash-react-email.md)). Redis rather than
+memory because Vercel's instances would reset a Map constantly. Counting is one
+call to the limiter, so concurrent attempts cannot both read a stale count. Fails
+open when Redis is unreachable.
 
 | Surface | Limit |
 | --- | --- |

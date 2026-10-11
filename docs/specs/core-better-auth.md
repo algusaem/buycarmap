@@ -91,7 +91,7 @@ This is phase 11 of ADR 0007: row 25.
   - gives `accounts.type` a default;
   - inserts one `credential` account per user with a password, with `provider = "credential"`, `provider_account_id = users.id` and `password = users.password` (the existing `accounts` columns, mapped to Better Auth's `providerId`/`accountId` in Prisma, not renamed).
 
-  The old columns and tables (`users.password`, `users.email_verified`, `verification_tokens`, `two_factor_recovery_codes`, the NextAuth-only session columns) stay until a later PR drops them, tracked in an issue. `users.password`, `users.email_verified`, `users.password_changed_at`, `users.two_factor_secret` and `users.two_factor_last_step` are dropped in two steps: BAUTH-19 (step A), then step B, a later PR.
+  The old columns and tables (`users.password`, `users.email_verified`, `verification_tokens`, `two_factor_recovery_codes`, the NextAuth-only session columns) stay until a later PR drops them, tracked in an issue (#62). DATA-19 in [core-data-model.md](core-data-model.md) drops the two tables, `verification_tokens` and `two_factor_recovery_codes`. `users.password`, `users.email_verified`, `users.password_changed_at`, `users.two_factor_secret` and `users.two_factor_last_step` are dropped in two steps: BAUTH-19 (step A), then step B, a later PR.
 - [x] BAUTH-15 · node — Every user is signed out once at cutover, because NextAuth's cookies are not Better Auth's. Signing in again works with the same password. The PR states it.
 - [x] BAUTH-19 · node — Contract, step A: no application code reads or writes `users.password`, `users.email_verified`, `users.password_changed_at`, `users.two_factor_secret` or `users.two_factor_last_step`.
   - Current-password checks, the "has a password" checks and the sign-in methods read the `credential` `accounts` row's `password`. Every flow that sets a password writes only that row; the dual-write to `users.password` ends.
@@ -102,7 +102,7 @@ This is phase 11 of ADR 0007: row 25.
 
 - [x] BAUTH-16 · unit — `lib/auth/permissions.ts` exports `can(user, action, resource)` and `ownedBy(user)`, the only home for authorization logic (`RULES.md` §10).
   - `action` is `"read"`, `"update"` or `"delete"`.
-  - `resource` is `{ type: "user"; id }` or `{ type: "account" | "favorite" | "alert" | "recoveryCode" | "session"; userId }`.
+  - `resource` is `{ type: "user"; id }` or `{ type: "account" | "favorite" | "alert" | "session"; userId }`.
   - `can` allows only when the resource belongs to the user.
   - `ownedBy` returns `{ userId: user.id }` for query filtering.
 - [x] BAUTH-17 · node — Every ownership check in `server/*/actions.ts`, `queries.ts` and `service.ts` goes through `can()` or `ownedBy()`. A test fails on an inline `userId === user.id` comparison outside `lib/auth/permissions.ts`. Each protected action keeps a test proving another user is refused (`RULES.md` §10).
@@ -129,6 +129,7 @@ This is phase 11 of ADR 0007: row 25.
 - **BAUTH-16**:
   - `can(ana, "delete", { type: "favorite", userId: ana.id })` → `true`;
   - `can(ana, "delete", { type: "favorite", userId: bob.id })` → `false`.
+- **BAUTH-14** (migration order): the test that builds the pre-Better-Auth database applies only the migrations whose directory name sorts strictly before `20261004000000_better_auth`, in name order, and then that migration. A migration named after it, such as `20261004000100_two_factor_reset_notice` or DATA-19's drop, is never applied before it.
 - **BAUTH-19**:
   - An OAuth-only user created by Better Auth, with `emailConfirmed = true` and `emailVerified = null`, opens `/account` → the email badge says verified (before: not verified). `requestEmailVerification` → `{ success: false, error: "alreadyVerified" }` (`AUTH_ERROR.alreadyVerified`), and no link is sent (before: a verification link was sent).
   - A credential user changes their password → the `credential` `accounts` row's `password` holds the new hash, `users.password` is untouched, and signing in with the new password succeeds.
@@ -136,7 +137,7 @@ This is phase 11 of ADR 0007: row 25.
 
 ## Data model
 
-See BAUTH-14. Expand only; the contract steps are BAUTH-19 (the fields leave `prisma/schema.prisma`, no migration) and step B, a later PR (one migration drops the five `users` columns).
+See BAUTH-14. Expand only; the contract steps are BAUTH-19 (the fields leave `prisma/schema.prisma`, no migration) and step B, a later PR (one migration drops the five `users` columns). DATA-19 in [core-data-model.md](core-data-model.md) drops the two old tables.
 
 ## Permissions
 
@@ -153,7 +154,7 @@ See BAUTH-14. Expand only; the contract steps are BAUTH-19 (the fields leave `pr
 
 ## Out of scope
 
-- **Dropping the old auth columns and tables**: the five `users` columns are BAUTH-19 and step B, a later PR. The rest is a later issue, including:
+- **Dropping the old auth columns and tables**: DATA-19 in [core-data-model.md](core-data-model.md) drops the tables; the five `users` columns are BAUTH-19 and step B, a later PR. The rest of the columns is a later issue (#62), including:
   - `users.two_factor_enabled_at`, still read by `scripts/notify-2fa-reset.mjs`;
   - the NextAuth-only session columns `accounts.session_state`, `accounts.token_type` and `accounts.expires_at`, because whether Better Auth's adapter writes them is not known yet.
 - **Passkeys, magic links and other Better Auth plugins.**

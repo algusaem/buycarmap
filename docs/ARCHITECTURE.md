@@ -351,7 +351,7 @@ Spanish or English in components.
 
 ## Data model
 
-Seventeen models in [`prisma/schema.prisma`](../prisma/schema.prisma), on Neon
+Fifteen models in [`prisma/schema.prisma`](../prisma/schema.prisma), on Neon
 Postgres, reached through Prisma 7's `@prisma/adapter-pg` driver adapter. Which
 fields hold personal data, and for how long, is in
 [`privacy/data-inventory.md`](privacy/data-inventory.md).
@@ -377,7 +377,7 @@ Every model follows the same conventions, decided in
 - **Every `DateTime` is `@db.Timestamptz(3)`**, not `timestamp` without time zone.
 - **Every model carries six standard columns**: `createdAt`, `updatedAt`, `createdById`,
   `updatedById` (nullable FKs to `User`, null for system writes), `deletedAt` and
-  `version Int @default(1)`. Unused on a given model (`deletedAt` on `RateLimit`, `createdById` on
+  `version Int @default(1)`. Unused on a given model (`createdById` on
   a cron-only row), they still exist, for uniformity.
 - **Soft delete, not hard delete, for `Favorite` and `Alert`.** Deleting either sets `deletedAt`
   instead of removing the row; every read excludes it through `notDeleted` (`lib/db/soft-delete.ts`).
@@ -398,10 +398,8 @@ erDiagram
     User ||--o{ Account : "OAuth identities"
     User ||--o{ Session : "unused (JWT)"
     User ||--o{ Favorite : saves
-    User ||--o{ SearchHistory : searches
     User ||--o{ PasswordResetToken : ""
     User ||--o{ EmailVerificationToken : ""
-    User ||--o{ TwoFactorRecoveryCode : ""
     User ||--o{ Alert : subscribes
     AlertCriteria ||--o{ Alert : "watched by"
     AlertCriteria ||--o{ AlertSeenListing : remembers
@@ -472,32 +470,13 @@ someone proves control of the address, which is what lets the signup form answer
 holds the bcrypt hash, never the plaintext, so confirmation does not have to ask
 for the password again.
 
-#### TwoFactorRecoveryCode
-
-SHA-256, not bcrypt. The codes carry ~73 bits of entropy so there is no
-dictionary to grind, and a unique index makes redemption one indexed lookup
-instead of ten slow comparisons.
-
-They exist because password reset deliberately does **not** bypass 2FA — if it
-did, control of the mailbox would defeat the second factor entirely — so without
-recovery codes a lost phone is a lost account.
-
-#### RateLimit
-
-**Unused since phase 10** ([ADR 0017](decisions/0017-upstash-qstash-react-email.md);
-[`docs/specs/core-integrations.md`](specs/core-integrations.md) INT-6). Counters now
-live in Upstash Redis — see [Rate limiting](#rate-limiting) below. The table and
-model stay until a later migration drops them (expand/contract, `RULES.md` §11) —
-tracked in [issue #59](https://github.com/algusaem/buycarmap/issues/59).
-
 #### Adapter-required models
 
-`Account`, `Session` and `VerificationToken` exist because
+`Account` and `Session` exist because
 `@next-auth/prisma-adapter` requires them.
 
 **`Session` is dead while the strategy is JWT** — nothing writes to it — but the
-adapter's type contract needs the model to exist. `VerificationToken` is likewise
-the adapter's own magic-link table, distinct from our `EmailVerificationToken`.
+adapter's type contract needs the model to exist.
 
 #### The six alert models
 
@@ -516,14 +495,10 @@ same reason `Favorite` does: no source client can fetch a single listing by id.
 cron with no request to resolve a locale from, and the default is `es` — without
 it every English-speaking user would be mailed in Spanish.
 
-#### SearchHistory
-
-`userId`, `query`, `createdAt`. Present but not yet surfaced anywhere.
-
 ### Cascades
 
 Every user-owned model uses `onDelete: Cascade`, so deleting a `User` removes
-their favorites, alerts, tokens, recovery codes, OAuth links and search history.
+their favorites, alerts, tokens, recovery codes and OAuth links.
 Deleting an `AlertCriteria` takes its seen-list and queue row with it, which is
 what makes releasing an unsubscribed criteria set a single delete. What account
 deletion leaves behind is in [`privacy/deletion.md`](privacy/deletion.md).
@@ -1115,8 +1090,9 @@ Two traps found while wiring it up:
 
 - **The suite exhausts its own login rate limit.** Dozens of sign-ins from one
   address against a limit of 20 per IP per 15 minutes, so a second run inside
-  that window failed every test with what looked like broken auth. Global setup
-  now clears the `RateLimit` table when `E2E_DB` is set.
+  that window failed every test with what looked like broken auth. That limit no longer applies in e2e:
+  `playwright.config.ts` blanks the Upstash variables (INT-5), so the limiter
+  allows every request.
 - **`webServer.env` merges with `process.env`**, and `playwright.config.ts` loads
   `.env` at line 1. Registration behaves completely differently depending on
   whether email is configured, so the mode was decided by the developer's `.env`
@@ -1462,8 +1438,7 @@ description `/check-pr` fills in.
 **Upstash Redis**, through `lib/platform/rate-limit.ts` — the only module that
 imports `@upstash/ratelimit` or `@upstash/redis`
 ([ADR 0017](decisions/0017-upstash-qstash-react-email.md); supersedes
-[ADR 0005](decisions/0005-postgres-rate-limiting.md)'s Postgres table, now
-unused — see [RateLimit](#ratelimit) above). `server/rate-limit/service.ts`
+[ADR 0005](decisions/0005-postgres-rate-limiting.md)'s Postgres table). `server/rate-limit/service.ts`
 keeps its own public API (`consumeRateLimit`, `isRateLimited`,
 `resetRateLimit`, `RATE_LIMITS`) and calls the adapter instead of Prisma.
 
@@ -1654,8 +1629,6 @@ either.
 
 Login is limited per IP and per account — see
 [specs/auth-email-and-oauth.md › Rate limiting](specs/auth-email-and-oauth.md#rate-limiting).
-Both are rows in the `RateLimit` table keyed by `key`; deleting the row clears
-the window.
 
 The e2e suite exhausts its own login limit — see
 [The database-backed suite](#the-database-backed-suite).
