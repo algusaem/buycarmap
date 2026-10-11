@@ -195,6 +195,57 @@ describe("checkSpecs", () => {
     expect(checkSpecs(specs, tests).problems).toEqual([]);
   });
 
+  describe("DOCS-11: an undeclared checklist line under Acceptance criteria", () => {
+    // Line 8 is the first body line of `spec(...)`, so the line under test is line 9.
+    const declared = "- [x] FAV-1 · node — x";
+    const tests = [{ path: "a.test.ts", source: 'it("FAV-1: x", () => {})' }];
+    const tail =
+      'Write it as "- [ ] FAV-n · <level> — <statement>", unindented, with a lowercase x when ticked.';
+
+    it.each([
+      ["- [x] FAVS-9 · node — x", "it names FAVS-9, not this spec's key FAV"],
+      ["- [X] FAV-2 · node — x", "its box is [X], not [x]"],
+      ["  - [ ] FAV-2 · node — x", "it is indented"],
+      ["- [ ] a criterion with no id", "it does not start with a FAV-n id"],
+    ])("DOCS-11: %j is reported with its file, line and reason", (line, reason) => {
+      const specs = [
+        { name: "favorites.md", source: spec("FAV", "Approved", `${declared}\n${line}`) },
+      ];
+
+      expect(checkSpecs(specs, tests).problems).toEqual([
+        `favorites.md:9 is a checklist line spec:check does not declare: ${reason}. ${tail}`,
+      ]);
+    });
+
+    it("DOCS-11: the same lines outside Acceptance criteria are not reported", () => {
+      const others = [
+        "- [x] FAVS-9 · node — x",
+        "- [X] FAV-2 · node — x",
+        "  - [ ] FAV-2 · node — x",
+        "- [ ] a criterion with no id",
+      ].join("\n");
+      const specs = [
+        {
+          name: "favorites.md",
+          source: spec("FAV", "Approved", `${declared}\n\n## Edge cases\n\n${others}`),
+        },
+      ];
+
+      expect(checkSpecs(specs, tests).problems).toEqual([]);
+    });
+  });
+
+  it("DOCS-13: a bold Status: **Implemented** spec is enforced as Implemented", () => {
+    const specs = [
+      { name: "favorites.md", source: spec("FAV", "**Implemented**", "- [ ] FAV-1 · node — x") },
+    ];
+    const tests = [{ path: "a.test.ts", source: 'it("FAV-1: x", () => {})' }];
+
+    const problems = checkSpecs(specs, tests).problems;
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("FAV-1 (favorites.md) is unchecked in an Implemented spec");
+  });
+
   it("DOCS-4: a duplicate key across two specs is reported", () => {
     const specs = [
       { name: "a.md", source: spec("FAV", "Approved", "- [x] FAV-1 · unit — x") },
