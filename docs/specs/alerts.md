@@ -374,8 +374,19 @@ by `lib/platform/qstash.ts`'s `verifyQstashSignature` against the
 Returns a summary rather than `204`, because ALERT-31 and ALERT-25 are only
 observable if the run says what it did:
 
-```
-{ claimed, polled, matched, emailed, skippedNoEmail, oldestPendingAgeMs, failures[] }
+```ts
+interface RunSummary {
+  claimed: number;
+  polled: number;
+  matched: number;
+  emailed: number;
+  skippedNoEmail: number;
+  criteriaCount: number;
+  intervalMs: number;
+  oldestPendingAgeMs: number;
+  unhealthySources: string[];
+  failures: string[];
+}
 ```
 
 `app/api/alerts/unsubscribe/route.ts` — `GET` with a token, session-free
