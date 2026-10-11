@@ -9,9 +9,14 @@ import { createAlertStore, makeCriteria } from "@/test/fixtures/alerts";
 
 let store: ReturnType<typeof createAlertStore>;
 
+// `$transaction` hands the callback the same fake: it has no rollback to
+// model, and this file asserts only that a failure inside one rejects.
 vi.mock("@/lib/db/prisma", () => ({
   get prisma() {
-    return store.client;
+    return {
+      ...store.client,
+      $transaction: (fn: (tx: typeof store.client) => Promise<unknown>) => fn(store.client),
+    };
   },
 }));
 

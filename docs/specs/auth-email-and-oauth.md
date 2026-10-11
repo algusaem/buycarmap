@@ -31,6 +31,7 @@ be a security incident rather than a bug.
 - [x] AUTH-13 · node — An email change requires the current password and is confirmed from the new address
 - [x] AUTH-14 · component — The only remaining way to sign in cannot be disconnected
 - [x] AUTH-15 · node — Expired tokens are pruned from every token table
+- [x] AUTH-16 · node — Confirming a registration, or registering without email, creates the user and its credential account together or not at all; a failure between the two leaves neither row, so the link (or a new registration) can be retried and the account then signs in
 
 ## Worked examples
 
@@ -45,6 +46,7 @@ be a security incident rather than a bug.
 - **AUTH-12** — ada@example.com with 2FA enabled and no linked accounts; OAuth signIn via google (providerAccountId g-1) → false; with no existing user → true.
 - **AUTH-13** — user-1 ada@example.com; requestEmailChange("new@example.com", "the-current-password") → the link goes to new@example.com, never ada@example.com; a wrong current password → { success: false, error: "currentPasswordIncorrect" }, no email.
 - **AUTH-14** — providers ["google"], hasPassword false → Disconnect disabled, text "This is your only way to sign in. Set a password before disconnecting it."
+- **AUTH-16** — Pending registration confirmed; `account.create` fails once right after `user.create` → `{ success: false, error: "generic" }`, no `User` row for that email, the pending registration kept; retrying the same link → `{ success: true, email }`, and signing in with the chosen password works. Before this fix, the second click reported success but sign-in failed, because the account had no credential row. `registerWithoutEmail` fails the same way: `account.create` fails right after `user.create` → no `User` row, the address still free; before the fix, re-registering that address returned `emailTaken` with no way to complete it — after the fix it succeeds.
 
 ## Data model
 
@@ -279,6 +281,13 @@ creation and does report `emailTaken`. The alternative would be a deployment
 where nobody can register at all. That path logs a warning on every use and is
 the only place the leak survives — configuring email closes it with no code
 change.
+
+### Token issue flows stay outside a transaction
+
+AUTH-16 makes the user and credential-account writes atomic. The token issue
+flows (`issueResetToken`, `replaceVerificationToken`) and `register`'s
+pending-registration replace are left as they are on purpose: each already
+fails closed, so a crash mid-write strands nothing that a retry cannot repair.
 
 ### Cross-cutting conventions (do not violate)
 
