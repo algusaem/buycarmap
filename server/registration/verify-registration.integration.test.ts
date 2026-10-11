@@ -132,15 +132,18 @@ describe("verifyRegistration account creation", () => {
     const result = await verifyRegistration(formData({ token: RAW_TOKEN }));
 
     expect(result).toEqual({ success: true, email: "ada@example.com" });
-    const [user] = await prisma.user.findMany();
+    const [user] = await prisma.user.findMany({
+      include: { accounts: { where: { provider: "credential" } } },
+    });
     expect(user).toMatchObject({
       email: "ada@example.com",
-      // Reused as-is: the password was hashed at submit time, so
-      // confirmation never has to ask for it again.
-      password: "already-bcrypt-hashed",
       name: "Ada",
+      emailConfirmed: true,
     });
-    expect(user.emailVerified).not.toBeNull();
+    // Reused as-is: the password was hashed at submit time, so confirmation
+    // never has to ask for it again. BAUTH-19: it is stored only on the
+    // "credential" account.
+    expect(user.accounts[0]?.password).toBe("already-bcrypt-hashed");
   });
 
   it("consumes every pending signup for that address", async () => {

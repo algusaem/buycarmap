@@ -412,18 +412,26 @@ erDiagram
 
 #### User
 
-The account. `password` is **nullable** — OAuth-only accounts never set one, so
-credentials login must guard on it (`server/auth/service.ts`).
+The account. Its password is not a `User` field: it is the `password` of the
+user's `credential` `Account` row, which OAuth-only accounts do not have
+(BAUTH-19, [specs/core-better-auth.md](specs/core-better-auth.md)). "Is the
+email verified" is `emailConfirmed`, Better Auth's own flag. The legacy
+`users` columns `password`, `email_verified`, `password_changed_at`,
+`two_factor_secret` and `two_factor_last_step` still exist in the database
+but are no longer in `prisma/schema.prisma`, so no code reads or writes them;
+a later migration drops them.
 
 `image`, not `avatarUrl`: the NextAuth Prisma adapter writes the OAuth profile
 picture to that exact field name, and renaming it breaks linking silently.
 
-Four fields exist purely to make security properties work:
+One field is left over from the pre-cutover TOTP implementation:
 
 | Field | Job |
 | --- | --- |
-| `passwordChangedAt` | Bumped on every password change or reset, so `changePassword`/`resetPassword` know which sessions to keep when revoking "every other" one (AUTH-5). Better Auth's own sessions are server-side rows — revocation deletes them directly; there is no JWT callback re-checking a clock any more (ADR 0004, superseded) |
-| `twoFactorSecret`, `twoFactorEnabledAt`, `twoFactorLastStep` | The pre-cutover TOTP implementation's own columns, frozen since BAUTH-11 (docs/specs/core-better-auth.md) moved enrolment, sign-in and disabling onto Better Auth's `twoFactor` plugin — its own state lives in `users.two_factor_enabled` and the `two_factors` table instead. Kept until a later PR drops them (BAUTH-14) |
+| `twoFactorEnabledAt` | Frozen since BAUTH-11 (docs/specs/core-better-auth.md) moved enrolment, sign-in and disabling onto Better Auth's `twoFactor` plugin — its own state lives in `users.two_factor_enabled` and the `two_factors` table instead. Still read by `scripts/notify-2fa-reset.mjs`; kept until a later PR drops it |
+
+Sessions are server-side rows: revoking one deletes the row, and there is no
+revocation clock (ADR 0004, superseded).
 
 #### Favorite
 
@@ -1654,8 +1662,9 @@ The e2e suite exhausts its own login limit — see
 
 #### Sessions will not clear
 
-`User.passwordChangedAt` is the revocation clock, and a revocation can take up
-to five minutes to take effect. See
+Sessions are rows in Postgres with no cookie cache, so a revocation deletes the
+row and takes effect on the very next request. If a session survives, check
+that its row is actually gone. See
 [specs/auth-email-and-oauth.md › Session hardening and revocation](specs/auth-email-and-oauth.md#session-hardening-and-revocation).
 
 #### Migration drift

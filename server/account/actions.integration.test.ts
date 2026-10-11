@@ -40,6 +40,7 @@ import {
   unlinkAccount,
   updateProfile,
 } from "./actions";
+import { getAccountOverview } from "./queries";
 
 const NEW_PASSWORD = "harbour-lentil-quilt";
 
@@ -60,6 +61,15 @@ function changeRequest(overrides: Record<string, string> = {}): FormData {
     confirmPassword: NEW_PASSWORD,
     ...overrides,
   });
+}
+
+// BAUTH-19: the password lives on the user's "credential" account.
+async function credentialPassword(userId: string): Promise<string | null | undefined> {
+  const credential = await prisma.account.findFirst({
+    where: { userId, provider: "credential" },
+    select: { password: true },
+  });
+  return credential?.password;
 }
 
 async function signedInAsNewUser(overrides: Parameters<typeof createUser>[0] = {}) {
@@ -138,8 +148,7 @@ describe("changePassword", () => {
       success: false,
       error: "currentPasswordIncorrect",
     });
-    const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.password).toBe("old-hash");
+    expect(await credentialPassword(user.id)).toBe("old-hash");
   });
 
   it("requires the current password even with a valid session", async () => {
@@ -185,7 +194,7 @@ describe("changePassword", () => {
     });
   });
 
-  it("AUTH-5: bumps passwordChangedAt and clears sessions on success", async () => {
+  it("AUTH-5: updates the credential account's password and clears sessions on success", async () => {
     const user = await signedInAsNewUser();
     await prisma.session.create({
       data: {
@@ -198,9 +207,7 @@ describe("changePassword", () => {
 
     expect(await changePassword(changeRequest())).toEqual({ success: true });
 
-    const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.password).toBe(`hashed:${NEW_PASSWORD}`);
-    expect(found?.passwordChangedAt.getTime()).toBeGreaterThan(user.passwordChangedAt.getTime());
+    expect(await credentialPassword(user.id)).toBe(`hashed:${NEW_PASSWORD}`);
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
   });
 
@@ -260,7 +267,7 @@ describe("signOutEverywhere", () => {
     });
   });
 
-  it("bumps the revocation clock and clears adapter sessions", async () => {
+  it("deletes every session of the user", async () => {
     const user = await signedInAsNewUser();
     await prisma.session.create({
       data: {
@@ -272,10 +279,7 @@ describe("signOutEverywhere", () => {
 
     expect(await signOutEverywhere()).toEqual({ success: true });
 
-    // `passwordChangedAt` is the "sessions valid from" marker: every JWT
-    // stamped before it is rejected at the next revalidation.
-    const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.passwordChangedAt.getTime()).toBeGreaterThan(user.passwordChangedAt.getTime());
+    // Sessions live in Postgres: deleting the rows is the revocation.
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
   });
 
@@ -284,8 +288,7 @@ describe("signOutEverywhere", () => {
 
     await signOutEverywhere();
 
-    const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.password).toBe("old-hash");
+    expect(await credentialPassword(user.id)).toBe("old-hash");
   });
 });
 
@@ -373,14 +376,15 @@ describe("unlinkAccount", () => {
   });
 
   // Security review BLOCKER (item 1): "credential" is Better Auth's own
-  // sign-in plumbing (BAUTH-14's dual-write), not a provider the user chose
-  // to connect, and must never be removable from this action.
+  // sign-in plumbing (the row holding the password, BAUTH-19), not a
+  // provider the user chose to connect, and must never be removable from
+  // this action.
   it("security review BLOCKER: refuses to unlink the credential row, which survives", async () => {
     const user = await signedInAsNewUser({ password: "hash" });
     const credential = await prisma.account.findFirst({
       where: { userId: user.id, provider: "credential" },
     });
-    if (!credential) throw new Error("expected createUser to dual-write a credential account");
+    if (!credential) throw new Error("expected createUser to write a credential account");
 
     expect(await unlinkAccount(formData({ provider: "credential" }))).toEqual({
       success: false,
@@ -616,5 +620,50 @@ describe("BAUTH-4: revokeMySession", () => {
     const result = await revokeMySession("not-a-uuid");
 
     expect(result).toEqual({ success: false, error: "unauthorized" });
+  });
+});
+
+// BAUTH-19 (docs/specs/core-better-auth.md), worked examples (a) and (c):
+// "is the email verified" reads `emailConfirmed`, and "has a password" reads
+// the credential `accounts` row, never the legacy `users` columns.
+describe("BAUTH-19 worked examples", () => {
+  it("BAUTH-19: an OAuth-only user with emailConfirmed and no legacy emailVerified reads as verified on /account", async () => {
+    // `emailVerified` is left at its default (null), as Better Auth leaves it
+    // for every account it creates.
+    await signedInAsNewUser({ password: null, emailConfirmed: true });
+
+    const record = await getAccountOverview();
+
+    expect(record).toMatchObject({ emailConfirmed: true });
+  });
+
+  it("BAUTH-19: a user with a credential account and no users.password has a password on /account and must give it to delete", async () => {
+    const user = await signedInAsNewUser({ password: null });
+    await prisma.account.create({
+      data: {
+        user: { connect: { id: user.id } },
+        type: "credential",
+        provider: "credential",
+        providerAccountId: user.id,
+        password: "credential-hash",
+      },
+    });
+
+    const record = await getAccountOverview();
+    expect(record.password).not.toBeNull();
+
+    expect(await deleteAccount(formData({}))).toEqual({
+      success: false,
+      error: "passwordRequired",
+    });
+
+    vi.mocked(verifyPassword).mockResolvedValue(false);
+    expect(await deleteAccount(formData({ password: "not-the-password" }))).toEqual({
+      success: false,
+      error: "currentPasswordIncorrect",
+    });
+    expect(verifyPassword).toHaveBeenCalledWith("not-the-password", "credential-hash");
+
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).not.toBeNull();
   });
 });

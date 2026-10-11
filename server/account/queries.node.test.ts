@@ -22,7 +22,7 @@ const RECORD = {
   password: "hashed",
   name: "Ada",
   email: "ada@example.com",
-  emailVerified: null,
+  emailConfirmed: false,
   twoFactorEnabled: false,
   version: 1,
   accounts: [],

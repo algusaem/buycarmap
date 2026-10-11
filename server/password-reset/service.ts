@@ -9,11 +9,21 @@ import { getCurrentLocale } from "@/lib/i18n/current-locale";
 import type { UserId } from "@/lib/ids";
 import { maybePruneExpiredAuthRows } from "@/server/auth/service";
 
+// BAUTH-19 (docs/specs/core-better-auth.md): the password is the "credential"
+// `accounts` row's, never the legacy `users.password` column.
+const CREDENTIAL_PASSWORD = {
+  where: { provider: "credential" },
+  select: { password: true },
+  take: 1,
+} as const;
+
 export async function findResetCandidate(email: string) {
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, password: true },
+    select: { id: true, accounts: CREDENTIAL_PASSWORD },
   });
+  if (!user) return null;
+  return { id: user.id, password: user.accounts[0]?.password ?? null };
 }
 
 // Mints a token and emails the link. Split out so the caller's control flow
@@ -50,10 +60,13 @@ export async function issueResetToken(userId: UserId, email: string): Promise<vo
 }
 
 export async function findPasswordResetToken(tokenHash: string) {
-  return prisma.passwordResetToken.findUnique({
+  const record = await prisma.passwordResetToken.findUnique({
     where: { tokenHash },
-    include: { user: { select: { id: true, email: true, password: true } } },
+    include: { user: { select: { id: true, email: true, accounts: CREDENTIAL_PASSWORD } } },
   });
+  if (!record) return null;
+  const { accounts, ...user } = record.user;
+  return { ...record, user: { ...user, password: accounts[0]?.password ?? null } };
 }
 
 interface RedeemableResetToken {
@@ -73,18 +86,12 @@ export async function completePasswordReset(
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },
-      data: {
-        password: hashedPassword,
-        // Bumping this invalidates every JWT issued before now — the reset is
-        // pointless if whoever prompted it keeps a live session.
-        passwordChangedAt: now,
-        // No signed-in actor during a password reset, so updatedById stays
-        // null (DATA-9) — only the version counter moves.
-        version: { increment: 1 },
-      },
+      // No signed-in actor during a password reset, so updatedById stays
+      // null (DATA-9) — only the version counter moves.
+      data: { version: { increment: 1 } },
     }),
-    // BAUTH-14: dual-write during the expand phase — Better Auth's sign-in
-    // reads the credential account's password, not `User.password`.
+    // BAUTH-19: the credential account is the only place the password lives;
+    // Better Auth's sign-in reads it there.
     prisma.account.updateMany({
       where: { userId: record.userId, provider: "credential" },
       data: { password: hashedPassword },
@@ -98,7 +105,8 @@ export async function completePasswordReset(
       where: { userId: record.userId, usedAt: null },
       data: { usedAt: now },
     }),
-    // Adapter-backed sessions, if OAuth is enabled.
+    // Every session ends: the reset is pointless if whoever prompted it
+    // keeps a live session.
     prisma.session.deleteMany({ where: { userId: record.userId } }),
   ]);
 }

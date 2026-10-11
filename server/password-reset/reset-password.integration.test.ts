@@ -163,16 +163,27 @@ describe("resetPassword password rules", () => {
 });
 
 describe("resetPassword success path", () => {
-  it("stores the new password hashed and bumps passwordChangedAt", async () => {
+  it("stores the new password hashed on the credential account and revokes every session", async () => {
     const { user } = await seedToken();
+    await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-1",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
 
     expect(await resetPassword(validRequest())).toEqual({ success: true });
 
-    // Bumping passwordChangedAt is what revokes JWTs issued before the reset —
-    // without it, whoever prompted the reset keeps their live session.
-    const found = await prisma.user.findUnique({ where: { id: user.id } });
-    expect(found?.password).toBe(`hashed:${NEW_PASSWORD}`);
-    expect(found?.passwordChangedAt.getTime()).toBeGreaterThan(user.passwordChangedAt.getTime());
+    // BAUTH-19: the password lives on the "credential" account.
+    const credential = await prisma.account.findFirst({
+      where: { userId: user.id, provider: "credential" },
+      select: { password: true },
+    });
+    expect(credential?.password).toBe(`hashed:${NEW_PASSWORD}`);
+    // Deleting the session rows is what ends them — without it, whoever
+    // prompted the reset keeps their live session.
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
   });
 
   it("AUTH-11: leaves two-factor enrolment untouched, so a reset cannot bypass it", async () => {

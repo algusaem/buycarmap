@@ -40,7 +40,7 @@ export async function replaceVerificationToken(
 export async function findEmailVerificationState(userId: UserId) {
   return prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, emailVerified: true },
+    select: { email: true, emailConfirmed: true },
   });
 }
 
@@ -79,8 +79,7 @@ export async function redeemEmailVerificationToken(
         data: {
           // Null newEmail means "just confirm what is already here".
           ...(record.newEmail ? { email: record.newEmail } : {}),
-          emailVerified: now,
-          // BAUTH-7: Better Auth reads this boolean, not the DateTime above.
+          // BAUTH-7/BAUTH-19: Better Auth's own "email verified" flag.
           emailConfirmed: true,
         },
       }),

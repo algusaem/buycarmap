@@ -98,3 +98,26 @@ describe("BAUTH-18: docs and configuration record the change", () => {
     expect(row25.trimEnd()).toMatch(/Resolved in phase 11\s*\|$/);
   });
 });
+
+describe("BAUTH-19: the legacy users columns leave the Prisma schema", () => {
+  it("BAUTH-19: the User model names none of the five legacy fields", () => {
+    const schema = read("prisma/schema.prisma");
+    const userModel = schema.match(/^model User \{\n([\s\S]*?)^\}/m)?.[1] ?? "";
+    const fieldNames = userModel
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line !== "" && !line.startsWith("//") && !line.startsWith("@@"))
+      .map((line) => line.split(/\s+/)[0]);
+
+    expect(fieldNames).toContain("emailConfirmed");
+    for (const legacy of [
+      "password",
+      "emailVerified",
+      "passwordChangedAt",
+      "twoFactorSecret",
+      "twoFactorLastStep",
+    ]) {
+      expect(fieldNames).not.toContain(legacy);
+    }
+  });
+});

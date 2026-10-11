@@ -316,6 +316,7 @@ describe("docs tree and spec format", () => {
       ["User", "createdAt"],
       ["TwoFactorRecoveryCode", "codeHash"],
       ["TwoFactorRecoveryCode", "usedAt"],
+      ["Account", "password"],
       ["Account", "providerAccountId"],
       ["Account", "refresh_token"],
       ["Account", "access_token"],

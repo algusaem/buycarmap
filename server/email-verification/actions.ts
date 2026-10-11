@@ -39,8 +39,9 @@ interface EmailVerificationResult {
 /**
  * Sends a link confirming the address already on the account.
  *
- * Accounts created through the no-email fallback have `emailVerified` null and
- * no other way to become verified; this is that way.
+ * Accounts created through the no-email fallback have `emailConfirmed` false
+ * and no other way to become verified; this is that way. BAUTH-19: the check
+ * reads `emailConfirmed`, which Better Auth sets for an OAuth account too.
  */
 export async function requestEmailVerification(): Promise<EmailVerificationResult> {
   const user = await getCurrentUser();
@@ -64,7 +65,7 @@ export async function requestEmailVerification(): Promise<EmailVerificationResul
     return { success: false, error: AUTH_ERROR.unauthorized };
   }
 
-  if (record.emailVerified) {
+  if (record.emailConfirmed) {
     return { success: false, error: AUTH_ERROR.alreadyVerified };
   }
 

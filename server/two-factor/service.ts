@@ -10,11 +10,15 @@ import type { UserId } from "@/lib/ids";
 /**
  * Whether the signed-in account has a password at all. OAuth-only accounts
  * sign in through their provider, which owns its own second factor, so there
- * is no password here for `auth.api.enableTwoFactor` to confirm.
+ * is no password here for `auth.api.enableTwoFactor` to confirm. The
+ * password lives on the "credential" `accounts` row (BAUTH-19).
  */
 export async function hasPassword(userId: UserId): Promise<boolean> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { password: true } });
-  return Boolean(user?.password);
+  const credential = await prisma.account.findFirst({
+    where: { userId, provider: "credential" },
+    select: { password: true },
+  });
+  return Boolean(credential?.password);
 }
 
 /** Whether two-factor is currently on, for the actions that must refuse otherwise. */

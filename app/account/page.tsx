@@ -55,7 +55,7 @@ export default async function AccountPage() {
 
           <EmailForm
             email={record.email}
-            isVerified={Boolean(record.emailVerified)}
+            isVerified={record.emailConfirmed}
             // OAuth-only accounts have no password to prove identity with, and
             // their address belongs to the provider.
             canChange={Boolean(record.password)}

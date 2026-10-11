@@ -142,14 +142,12 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
     return { success: false, error: passwordError };
   }
 
-  const now = new Date();
   // BAUTH-2: this device's own session survives; every other one does not.
   const currentSessionId = await getCurrentSessionId();
 
   const matched = await replacePassword(
     userId,
     await hashPassword(password),
-    now,
     parsed.data.version,
     currentSessionId,
   );
@@ -176,8 +174,7 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
  * cookie cache, so deleting every row for this user (`revokeAllSessions`,
  * server/account/service.ts) ends them on the very next request —
  * `getCurrentUser()` calls `auth.api.getSession()`, which simply finds
- * nothing. `passwordChangedAt` is still bumped alongside the delete, but it
- * is no longer what revocation depends on.
+ * nothing.
  */
 export async function signOutEverywhere(): Promise<AccountResult> {
   const user = await getCurrentUser();
@@ -221,10 +218,9 @@ export async function unlinkAccount(formData: FormData): Promise<AccountResult> 
   const { provider } = parsed.data;
 
   // BLOCKER fix (security review): "credential" is Better Auth's own
-  // sign-in plumbing (BAUTH-14's dual-write of a password into an `accounts`
-  // row), never a provider the user connected from this page. Deleting it
-  // would silently break `auth.api.signInEmail` — which reads this row, not
-  // `User.password` — while this very page kept showing a password as set.
+  // sign-in plumbing (the `accounts` row holding the password, BAUTH-19),
+  // never a provider the user connected from this page. Deleting it would
+  // remove the account's password, the row `auth.api.signInEmail` reads.
   // `lastSignInMethod` is the same code the stranding refusal below already
   // uses, and it fits here too: removing this row removes the only way the
   // account actually signs in.

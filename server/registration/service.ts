@@ -121,7 +121,7 @@ export async function registerWithoutEmail(
     // user without its credential account — the address stays free to retry.
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
-        data: { email, password: hashedPassword, name },
+        data: { email, name },
       });
 
       // BAUTH-7/BAUTH-14: the credential account Better Auth's own sign-in
@@ -178,20 +178,17 @@ export async function createUserFromPendingRegistration(
       const user = await tx.user.create({
         data: {
           email: pending.email,
-          // Already bcrypt-hashed at submit time, so confirmation never has to
-          // ask for the password again.
-          password: pending.password,
           name: pending.name,
           // Redeeming this link *is* the proof of address ownership.
-          emailVerified: new Date(),
           emailConfirmed: true,
         },
       });
       const createdId = asUserId(user.id);
 
-      // BAUTH-7/BAUTH-14: the credential account Better Auth's own sign-in
-      // looks up — `User.password` above is kept only for the old code reading
-      // it directly, not for Better Auth, which never reads it.
+      // BAUTH-7/BAUTH-19: the credential account Better Auth's own sign-in
+      // looks up, and the only place the password is stored. Already
+      // bcrypt-hashed at submit time, so confirmation never has to ask for
+      // the password again.
       await tx.account.create({
         data: {
           userId: createdId,

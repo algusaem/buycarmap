@@ -9,27 +9,43 @@ import { findCriteriaIdsForUser, releaseCriteriaIfUnused } from "@/server/alerts
 // takes that id from the session user's own linked accounts
 // (findSignInMethods), and the delete itself is not scoped by user.
 
+// BAUTH-19 (docs/specs/core-better-auth.md): a user's password is the
+// "credential" `accounts` row's, never the legacy `users.password` column,
+// which the schema no longer names. Null for an OAuth-only account.
+function credentialPassword(accounts: { provider: string; password: string | null }[]) {
+  return accounts.find((account) => account.provider === "credential")?.password ?? null;
+}
+
 /**
  * What the account page renders. `password` is null for OAuth-only accounts,
  * which changes which forms apply; only its presence crosses to the client.
+ * `emailConfirmed` is Better Auth's own "email verified" flag (BAUTH-19).
  */
 export async function findAccountOverview(userId: UserId) {
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      password: true,
       name: true,
       email: true,
-      emailVerified: true,
+      emailConfirmed: true,
       twoFactorEnabled: true,
       version: true,
-      // BAUTH-14 dual-writes a "credential" accounts row for every password
-      // user — it is Better Auth's own sign-in plumbing, never a provider the
-      // user connected, so it must never reach the "connected accounts" list
-      // or its count (security review BLOCKER).
-      accounts: { where: { provider: { not: "credential" } }, select: { provider: true } },
+      accounts: { select: { provider: true, password: true } },
     },
   });
+  if (!user) return null;
+
+  const { accounts, ...overview } = user;
+  return {
+    ...overview,
+    password: credentialPassword(accounts),
+    // The "credential" row is Better Auth's own sign-in plumbing, never a
+    // provider the user connected, so it must never reach the "connected
+    // accounts" list or its count (security review BLOCKER).
+    accounts: accounts
+      .filter((account) => account.provider !== "credential")
+      .map(({ provider }) => ({ provider })),
+  };
 }
 
 /**
@@ -49,22 +65,23 @@ export async function updateUserName(
 }
 
 export async function findPasswordAndEmail(userId: UserId) {
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { password: true, email: true },
+    select: { email: true, accounts: { select: { provider: true, password: true } } },
   });
+  if (!user) return null;
+  return { email: user.email, password: credentialPassword(user.accounts) };
 }
 
 /**
  * Asserts `version` (optimistic locking, DATA-15), bumps it, sets the new
- * hash, bumps the revocation clock and drops adapter sessions — all in one
+ * hash on the credential account and drops the other sessions — all in one
  * transaction, and the sessions are dropped only when the password actually
  * changed, never on a conflict. Returns whether a row matched.
  */
 export async function replacePassword(
   userId: UserId,
   hashedPassword: string,
-  changedAt: Date,
   version: number,
   // BAUTH-2: excluded from the delete below — changing a password from a
   // signed-in session keeps that one session alive and revokes every other
@@ -76,16 +93,11 @@ export async function replacePassword(
   return prisma.$transaction(async (tx) => {
     const { count } = await tx.user.updateMany({
       where: { id: userId, version },
-      data: {
-        password: hashedPassword,
-        passwordChangedAt: changedAt,
-        version: { increment: 1 },
-        updatedById: userId,
-      },
+      data: { version: { increment: 1 }, updatedById: userId },
     });
     if (count === 0) return false;
-    // BAUTH-14: dual-write during the expand phase — Better Auth's sign-in
-    // reads the credential account's password, not `User.password`.
+    // BAUTH-19: the credential account is the only place the password lives;
+    // Better Auth's sign-in reads it there.
     await tx.account.updateMany({
       where: { userId, provider: "credential" },
       data: { password: hashedPassword },
@@ -97,26 +109,21 @@ export async function replacePassword(
   });
 }
 
-/** Bumps the revocation clock and drops adapter sessions, in one transaction. */
+/** Deletes every session of the user: revocation is the row going away. */
 export async function revokeAllSessions(userId: UserId): Promise<void> {
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: userId },
-      data: { passwordChangedAt: new Date(), version: { increment: 1 }, updatedById: userId },
-    }),
-    // Adapter-backed sessions, if OAuth is enabled.
-    prisma.session.deleteMany({ where: { userId } }),
-  ]);
+  await prisma.session.deleteMany({ where: { userId } });
 }
 
 export async function findSignInMethods(userId: UserId) {
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      password: true,
-      accounts: { select: { id: true, provider: true } },
-    },
+    select: { accounts: { select: { id: true, provider: true, password: true } } },
   });
+  if (!user) return null;
+  return {
+    password: credentialPassword(user.accounts),
+    accounts: user.accounts.map(({ id, provider }) => ({ id, provider })),
+  };
 }
 
 export async function deleteLinkedAccount(accountId: AccountId): Promise<void> {
@@ -124,10 +131,12 @@ export async function deleteLinkedAccount(accountId: AccountId): Promise<void> {
 }
 
 export async function findPasswordHash(userId: UserId) {
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { password: true },
+    select: { accounts: { select: { provider: true, password: true } } },
   });
+  if (!user) return null;
+  return { password: credentialPassword(user.accounts) };
 }
 
 /**

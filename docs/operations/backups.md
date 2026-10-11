@@ -53,26 +53,25 @@ As measured through the Neon API on 2026-09-28:
    branch for every alert that is inactive on the old head, and delete the
    alerts that no longer exist there. Otherwise the next cron run emails
    digests to people who unsubscribed.
-7. **Revoke every session.** A restore rolls back `User.password`,
-   `User.passwordChangedAt`, the two-factor fields (`twoFactorSecret`,
-   `twoFactorEnabledAt`, `twoFactorLastStep`), completed email changes and
-   unlinked OAuth `Account` rows. That makes sessions and credentials that were
-   revoked after the timestamp valid again. For each user whose `password`,
-   two-factor fields, `email` or `Account` rows differ between the old head and
-   the restored branch, re-apply the old head's values, including that user's
-   `TwoFactorRecoveryCode` rows — a code used or regenerated after the
+7. **Revoke every session.** A restore rolls back the password on each
+   user's `credential` `Account` row (the only place it is stored since
+   BAUTH-19, [specs/core-better-auth.md](../specs/core-better-auth.md)), the
+   two-factor state (`User.twoFactorEnabled`, `User.twoFactorEnabledAt` and
+   the `TwoFactor` rows), completed email changes and unlinked OAuth
+   `Account` rows. That makes sessions and credentials that were revoked after
+   the timestamp valid again. For each user whose credential password,
+   two-factor state, `email` or `Account` rows differ between the old head
+   and the restored branch, re-apply the old head's values, including that
+   user's `TwoFactorRecoveryCode` rows — a code used or regenerated after the
    timestamp would otherwise come back usable. Delete every unexpired
    `PasswordResetToken` and `EmailVerificationToken` row on the restored
    branch; a link consumed after the timestamp would otherwise be redeemable
-   again, and the user can simply request a new one. Then set
-   `passwordChangedAt` to the current time for every user on the restored
-   branch. **This step is stale since phase 11** (BAUTH-2,
-   [specs/core-better-auth.md](../specs/core-better-auth.md)): sessions are
-   now rows in `sessions` (read by `lib/auth/auth.ts`'s Better Auth
-   instance), not `passwordChangedAt`-gated JWTs, so revoking every session
-   issued before the restore means deleting the restored branch's `sessions`
-   rows for the affected users instead — the exact procedure needs
-   confirming against the live restore flow before the next real restore.
+   again, and the user can simply request a new one. Then revoke every
+   session issued before the restore: sessions are rows in `sessions` (read
+   by `lib/auth/auth.ts`'s Better Auth instance, BAUTH-2), so this means
+   deleting the restored branch's `sessions` rows for the affected users —
+   the exact procedure needs confirming against the live restore flow before
+   the next real restore.
 8. **Put it into service**, one of two ways:
    - **Restore `main` from it**, so production keeps its branch and connection
      string. Neon can restore a branch from another branch or from a point in

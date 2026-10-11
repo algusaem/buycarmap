@@ -91,8 +91,12 @@ This is phase 11 of ADR 0007: row 25.
   - gives `accounts.type` a default;
   - inserts one `credential` account per user with a password, with `provider = "credential"`, `provider_account_id = users.id` and `password = users.password` (the existing `accounts` columns, mapped to Better Auth's `providerId`/`accountId` in Prisma, not renamed).
 
-  The old columns and tables (`users.password`, `users.email_verified`, `verification_tokens`, `two_factor_recovery_codes`, the NextAuth-only session columns) stay until a later PR drops them, tracked in an issue.
+  The old columns and tables (`users.password`, `users.email_verified`, `verification_tokens`, `two_factor_recovery_codes`, the NextAuth-only session columns) stay until a later PR drops them, tracked in an issue. `users.password`, `users.email_verified`, `users.password_changed_at`, `users.two_factor_secret` and `users.two_factor_last_step` are dropped in two steps: BAUTH-19 (step A), then step B, a later PR.
 - [x] BAUTH-15 · node — Every user is signed out once at cutover, because NextAuth's cookies are not Better Auth's. Signing in again works with the same password. The PR states it.
+- [x] BAUTH-19 · node — Contract, step A: no application code reads or writes `users.password`, `users.email_verified`, `users.password_changed_at`, `users.two_factor_secret` or `users.two_factor_last_step`.
+  - Current-password checks, the "has a password" checks and the sign-in methods read the `credential` `accounts` row's `password`. Every flow that sets a password writes only that row; the dual-write to `users.password` ends.
+  - "Is the email verified" reads `users.email_confirmed` (Better Auth's `emailConfirmed`): the `/account` badge and the "already verified" guard of `requestEmailVerification`. Better Auth never writes the legacy `emailVerified` and leaves it null for every account it creates, so reading it showed an OAuth user as unverified.
+  - The five fields are removed from `prisma/schema.prisma` with no migration: the columns stay in the database until step B, a later PR, so the code deployed before this step keeps working against them.
 
 ### Permissions
 
@@ -125,10 +129,14 @@ This is phase 11 of ADR 0007: row 25.
 - **BAUTH-16**:
   - `can(ana, "delete", { type: "favorite", userId: ana.id })` → `true`;
   - `can(ana, "delete", { type: "favorite", userId: bob.id })` → `false`.
+- **BAUTH-19**:
+  - An OAuth-only user created by Better Auth, with `emailConfirmed = true` and `emailVerified = null`, opens `/account` → the email badge says verified (before: not verified). `requestEmailVerification` → `{ success: false, error: "alreadyVerified" }` (`AUTH_ERROR.alreadyVerified`), and no link is sent (before: a verification link was sent).
+  - A credential user changes their password → the `credential` `accounts` row's `password` holds the new hash, `users.password` is untouched, and signing in with the new password succeeds.
+  - A user with `users.password = null` and a `credential` `accounts` row (created after step A) opens `/account` → it shows the forms for an account with a password: change password, two-factor, and a delete form that asks for the password. `deleteAccount` with no password → `{ success: false, error: "passwordRequired" }`, and with a wrong one → `{ success: false, error: "currentPasswordIncorrect" }`; the user is not deleted. Reading `users.password` instead would treat this user as OAuth-only: no password forms, and deletion with no password asked for.
 
 ## Data model
 
-See BAUTH-14. Expand only; the contract steps are a later PR.
+See BAUTH-14. Expand only; the contract steps are BAUTH-19 (the fields leave `prisma/schema.prisma`, no migration) and step B, a later PR (one migration drops the five `users` columns).
 
 ## Permissions
 
@@ -145,7 +153,9 @@ See BAUTH-14. Expand only; the contract steps are a later PR.
 
 ## Out of scope
 
-- **Dropping the old auth columns and tables**: a later PR.
+- **Dropping the old auth columns and tables**: the five `users` columns are BAUTH-19 and step B, a later PR. The rest is a later issue, including:
+  - `users.two_factor_enabled_at`, still read by `scripts/notify-2fa-reset.mjs`;
+  - the NextAuth-only session columns `accounts.session_state`, `accounts.token_type` and `accounts.expires_at`, because whether Better Auth's adapter writes them is not known yet.
 - **Passkeys, magic links and other Better Auth plugins.**
 - **Roles and admin.** None exist.
 

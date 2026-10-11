@@ -31,20 +31,20 @@ enum AlertPollJobStatus {
 model User {
   id       String  @id @default(uuid(7)) @db.Uuid
   email    String  @unique
-  // Nullable: OAuth-only accounts never set a password. Credentials login
-  // must guard on this (see server/auth/service.ts).
-  password String?
+  // BAUTH-19 (docs/specs/core-better-auth.md): `password`, `email_verified`,
+  // `password_changed_at`, `two_factor_secret` and `two_factor_last_step`
+  // still exist as columns of `users` but are no longer named here, so no
+  // code reads or writes them; a later migration drops them. The password
+  // lives on the "credential" `Account` row.
   name     String?
   // Named `image` (not `avatarUrl`) because the NextAuth Prisma adapter writes
   // the OAuth profile picture to this exact field.
   image    String?
 
-  emailVerified  DateTime? @map("email_verified") @db.Timestamptz(3)
   // Better Auth's own boolean `emailVerified` concept (lib/auth/auth.ts maps
-  // it onto this field, not onto the DateTime above, which the pre-Better-Auth
-  // code keeps reading/writing). Backfilled from `email_verified IS NOT NULL`
-  // by the migration that added it (BAUTH-14, docs/specs/core-better-auth.md).
-  emailConfirmed Boolean   @default(false) @map("email_confirmed")
+  // it onto this field). Backfilled from `email_verified IS NOT NULL` by the
+  // migration that added it (BAUTH-14, docs/specs/core-better-auth.md).
+  emailConfirmed Boolean @default(false) @map("email_confirmed")
 
   // Which language to write this account's alert emails in. Null on accounts
   // that predate the column and on anyone who has never touched the language
@@ -55,19 +55,9 @@ model User {
   // so falling back would mail Spanish to every English-speaking user.
   locale String?
 
-  // The pre-cutover TOTP implementation's own secret column, frozen since
-  // BAUTH-11 (docs/specs/core-better-auth.md) moved enrolment and sign-in
-  // onto Better Auth's `twoFactor` plugin, whose own encrypted secret lives
-  // in the `two_factors` table instead. `TWO_FACTOR_ENCRYPTION_KEY`, the key
-  // this column needed, no longer exists. Kept until a later PR drops it.
-  twoFactorSecret    String?   @map("two_factor_secret")
   // Null while enrolment is half-finished — a secret exists but no code has
   // been verified yet, so 2FA is NOT enforced. Only this field gates login.
   twoFactorEnabledAt DateTime? @map("two_factor_enabled_at") @db.Timestamptz(3)
-  // Highest TOTP counter step already accepted. Anything at or below it is
-  // refused, so a code seen over someone's shoulder cannot be replayed inside
-  // its own 30-second window.
-  twoFactorLastStep  Int?      @map("two_factor_last_step")
   // Better Auth's own boolean two-factor flag, read by its `twoFactor`
   // plugin (phase 12). Starts false for every row — including anyone who
   // had `twoFactorEnabledAt` set before the cutover, who the migration that
@@ -78,10 +68,6 @@ model User {
   // not yet notified (including every user who never had it on), so the
   // script is idempotent — a second run finds nothing left to send.
   twoFactorResetNotifiedAt DateTime? @map("two_factor_reset_notified_at") @db.Timestamptz(3)
-  // Bumped on every password change / reset. The JWT callback compares the
-  // token's issue time against this and revokes older sessions, which is how
-  // "sign out everywhere" works under a stateless JWT strategy.
-  passwordChangedAt  DateTime  @default(now()) @map("password_changed_at") @db.Timestamptz(3)
 
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -194,8 +180,8 @@ model Account {
   id_token              String?
   session_state         String?
   // The credential account's bcrypt hash (BAUTH-14). Better Auth's Prisma
-  // adapter writes and reads it on the `provider = "credential"` row;
-  // `users.password` is kept in step by a dual write during the expand phase.
+  // adapter writes and reads it on the `provider = "credential"` row, the
+  // only place a user's password is stored (BAUTH-19).
   password              String?
   accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
   refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)

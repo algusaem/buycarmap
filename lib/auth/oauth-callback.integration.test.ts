@@ -121,7 +121,10 @@ describe("BAUTH-9: the real OAuth callback — a brand-new address", () => {
 
     const user = await prisma.user.findUnique({ where: { email } });
     expect(user).not.toBeNull();
-    expect(user?.password).toBeNull();
+    // BAUTH-19: no password, so no "credential" account.
+    expect(
+      await prisma.account.count({ where: { userId: user?.id, provider: "credential" } }),
+    ).toBe(0);
     // BLOCKER fix (item 1): before it, this hook refused the very account
     // creation above — a brand-new OAuth sign-up never got this far.
     expect(user?.emailConfirmed).toBe(true);
