@@ -10,6 +10,7 @@ import {
   makeMilanunciosHtml,
   makeMilanunciosResponse,
 } from "../fixtures/milanuncios";
+import { makeNominatimResult } from "../fixtures/nominatim";
 
 // Default happy-path handlers. A test that needs a specific shape (error,
 // empty, drift) overrides with `server.use(...)`.
@@ -39,15 +40,7 @@ export const handlers = [
 
   // ---- Nominatim geocoding (consumed by lib/geo/nominatim.ts) ----
   http.get("https://nominatim.openstreetmap.org/search", () =>
-    HttpResponse.json([
-      {
-        place_id: 1,
-        display_name: "Madrid, España",
-        lat: "40.4168",
-        lon: "-3.7038",
-        address: { city: "Madrid", state: "Comunidad de Madrid" },
-      },
-    ]),
+    HttpResponse.json([makeNominatimResult()]),
   ),
 
   // ---- upstream APIs (consumed by server/search/service.ts's server-side fan-out) ----
