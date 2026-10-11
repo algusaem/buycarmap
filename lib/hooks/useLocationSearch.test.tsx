@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
+import { makeNominatimResult } from "@/test/fixtures/nominatim";
+import type { NominatimResult } from "@/lib/geo/nominatim";
 import { useLocationSearch } from "./useLocationSearch";
 
 afterEach(() => vi.useRealTimers());
@@ -27,8 +29,15 @@ function waitForNextMockedResponse(): Promise<void> {
  * once it has resolved the gated request, the only one still pending —
  * rather than on the handler merely starting to unblock, then flushes the
  * microtasks that carry it through the hook's own `await response.json()`.
+ *
+ * `foreverQuery`, when given, never resolves at all — for simulating a
+ * request whose response the test does not care about and will not wait on.
  */
-function holdMadrResponse(fallback: unknown[], gatedQuery = "Madr") {
+function holdNominatimResponse(
+  fallback: NominatimResult[],
+  gatedQuery = "Madr",
+  foreverQuery?: string,
+) {
   let releaseGate: (() => void) | undefined;
   const gate = new Promise<void>((resolve) => {
     releaseGate = resolve;
@@ -37,17 +46,14 @@ function holdMadrResponse(fallback: unknown[], gatedQuery = "Madr") {
   server.use(
     http.get("https://nominatim.openstreetmap.org/search", async ({ request }) => {
       const q = new URL(request.url).searchParams.get("q");
+      if (q === foreverQuery) {
+        return new Promise<Response>(() => {
+          /* never resolves */
+        });
+      }
       if (q === gatedQuery) {
         await gate;
-        return HttpResponse.json([
-          {
-            place_id: 1,
-            display_name: "Madrid, España",
-            lat: "40.4168",
-            lon: "-3.7038",
-            address: { city: "Madrid", state: "Comunidad de Madrid" },
-          },
-        ]);
+        return HttpResponse.json([makeNominatimResult()]);
       }
       return HttpResponse.json(fallback);
     }),
@@ -99,14 +105,14 @@ describe("useLocationSearch", () => {
   it("MAP-20: a late response for an earlier query is discarded", async () => {
     vi.useFakeTimers();
 
-    const release = holdMadrResponse([
-      {
+    const release = holdNominatimResponse([
+      makeNominatimResult({
         place_id: 2,
         display_name: "Madridejos, Castilla-La Mancha",
         lat: "39.4650",
         lon: "-3.5323",
         address: { city: "Madridejos", state: "Castilla-La Mancha" },
-      },
+      }),
     ]);
 
     const { result } = renderHook(() => useLocationSearch());
@@ -148,7 +154,7 @@ describe("useLocationSearch", () => {
   it("MAP-20: a late response is discarded after the query is shortened below two characters", async () => {
     vi.useFakeTimers();
 
-    const release = holdMadrResponse([]);
+    const release = holdNominatimResponse([]);
 
     const { result } = renderHook(() => useLocationSearch());
 
@@ -163,6 +169,34 @@ describe("useLocationSearch", () => {
 
     expect(result.current.results).toEqual([]);
     expect(result.current.isSearching).toBe(false);
+  });
+
+  it("MAP-20: an earlier response arriving while the latest search is still pending is discarded", async () => {
+    vi.useFakeTimers();
+
+    // "Madr" stays controllable so the test can release it once "Madri" is
+    // the latest query; "Madri" never resolves, since this test never needs
+    // it to — it only cares that the hook is still waiting on it.
+    const release = holdNominatimResponse([], "Madr", "Madri");
+
+    const { result } = renderHook(() => useLocationSearch());
+
+    act(() => result.current.setQuery("Madr"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    act(() => result.current.setQuery("Madri"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    await release();
+
+    // "Madr"'s response arrived after "Madri" became the latest query, so it
+    // must not overwrite state, and the hook is still waiting on "Madri".
+    expect(result.current.results).toEqual([]);
+    expect(result.current.isSearching).toBe(true);
   });
 
   it("MAP-22: unmounting before the debounce fires sends no request", async () => {
@@ -255,7 +289,7 @@ describe("useLocationSearch", () => {
   it("MAP-20: clearing while a search is pending discards its late response", async () => {
     vi.useFakeTimers();
 
-    const release = holdMadrResponse([], "Madrid");
+    const release = holdNominatimResponse([], "Madrid");
 
     const { result } = renderHook(() => useLocationSearch());
 
