@@ -560,6 +560,71 @@ describe("draining the queue", () => {
     expect(await pendingJobs()).toHaveLength(15);
     expect(await runningJobs()).toEqual([]);
   });
+
+  /** One subscribed criteria set whose job a worker claimed and never finished. */
+  async function seedRunningJob(lockedMinutesAgo: number, attempts: number) {
+    const criteria = await createAlertCriteria({
+      criteria: makeCriteria(),
+      lastPolledAt: minutesAgo(30),
+    });
+    await createAlert({
+      user: { connect: { id: ADA.id } },
+      criteria: { connect: { id: criteria.id } },
+    });
+    const job = await prisma.alertPollJob.create({
+      data: {
+        criteriaId: criteria.id,
+        status: "running",
+        attempts,
+        lockedAt: minutesAgo(lockedMinutesAgo),
+        enqueuedAt: minutesAgo(30),
+        availableAt: minutesAgo(30),
+      },
+    });
+    return { criteria, job };
+  }
+
+  it("ALERT-48: a lease older than ten minutes is reclaimed as a failed attempt and polled; a newer one is left alone", async () => {
+    const j = await seedRunningJob(11, 0);
+    const k = await seedRunningJob(1, 0);
+    const m = await seedRunningJob(10, 0);
+    const l = await seedRunningJob(11, 2);
+
+    // Read J's row while its poll is in flight: the reclaim and the claim have
+    // both happened, the success transaction has not.
+    const duringPoll: { status?: string; attempts?: number }[] = [];
+    vi.mocked(searchAllSources).mockImplementation(async () => {
+      const row = await prisma.alertPollJob.findUnique({ where: { id: j.job.id } });
+      duringPoll.push({ status: row?.status, attempts: row?.attempts });
+      return { listings: [], failedSources: [], perSourceCounts: {} };
+    });
+
+    await run();
+
+    // J: reclaimed with one lost attempt, claimed, polled once, then deleted.
+    expect(searchAllSources).toHaveBeenCalledTimes(1);
+    expect(duringPoll).toEqual([{ status: "running", attempts: 1 }]);
+    expect(await prisma.alertPollJob.findUnique({ where: { id: j.job.id } })).toBeNull();
+    const c = await prisma.alertCriteria.findUnique({ where: { id: j.criteria.id } });
+    expect(c?.lastPolledAt).toEqual(NOW);
+
+    // K (1 min) and M (exactly 10 min): still held by their worker.
+    for (const held of [k, m]) {
+      const found = await prisma.alertPollJob.findUnique({ where: { id: held.job.id } });
+      expect(found?.status).toBe("running");
+      expect(found?.attempts).toBe(0);
+      expect(found?.lockedAt).toEqual(held.job.lockedAt);
+      const criteria = await prisma.alertCriteria.findUnique({ where: { id: held.criteria.id } });
+      expect(criteria?.lastPolledAt).toEqual(minutesAgo(30));
+    }
+
+    // L: the lost run was its third attempt, so it is parked, not polled.
+    const parked = await prisma.alertPollJob.findUnique({ where: { id: l.job.id } });
+    expect(parked?.status).toBe("failed");
+    expect(parked?.attempts).toBe(3);
+    const lCriteria = await prisma.alertCriteria.findUnique({ where: { id: l.criteria.id } });
+    expect(lCriteria?.lastPolledAt).toEqual(minutesAgo(30));
+  });
 });
 
 describe("discovery", () => {
