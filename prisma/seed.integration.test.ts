@@ -39,11 +39,15 @@ describe("seed", () => {
   it("TEST-11: every seeded user's password verifies against SEED_PASSWORD", async () => {
     await seed(prisma);
 
-    const users = await prisma.user.findMany();
+    // BAUTH-19: the password lives on each user's "credential" account.
+    const users = await prisma.user.findMany({
+      select: { email: true, accounts: { where: { provider: "credential" } } },
+    });
     expect(users).not.toHaveLength(0);
     for (const user of users) {
-      if (!user.password) throw new Error(`expected ${user.email} to have a password set`);
-      expect(await verifyPassword(SEED_PASSWORD, user.password)).toBe(true);
+      const password = user.accounts[0]?.password;
+      if (!password) throw new Error(`expected ${user.email} to have a password set`);
+      expect(await verifyPassword(SEED_PASSWORD, password)).toBe(true);
     }
   });
 

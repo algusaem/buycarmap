@@ -232,12 +232,12 @@ describe("register without email configured (fallback)", () => {
     // `pending: false` tells the form to auto sign-in, since the account is
     // real and there is no confirmation step to wait for.
     expect(result).toEqual({ success: true, pending: false });
-    const [user] = await prisma.user.findMany();
-    expect(user).toMatchObject({
-      email: "ada@example.com",
-      password: `hashed:${STRONG_PASSWORD}`,
-      name: "Ada",
+    const [user] = await prisma.user.findMany({
+      include: { accounts: { where: { provider: "credential" } } },
     });
+    expect(user).toMatchObject({ email: "ada@example.com", name: "Ada" });
+    // BAUTH-19: the hash is stored only on the "credential" account.
+    expect(user.accounts[0]?.password).toBe(`hashed:${STRONG_PASSWORD}`);
   });
 
   it("stores a null name when the field is submitted empty", async () => {

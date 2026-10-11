@@ -31,11 +31,19 @@ const BUILD_SEED = 20260930;
 // rows this factory creates, and most callers override `password` anyway.
 const PASSWORD_HASH = "$2b$12$uKQ1mJNDQvCvb2dYdyxU5u6xFQS03YaZm0alg6X6nMHQXAvIcHCne";
 
+/**
+ * `createUser`'s overrides: the `User` fields, plus `password` — the hash
+ * stored on the user's "credential" account, or null for an OAuth-only user
+ * with no credential account at all.
+ */
+interface UserOverrides extends Partial<Prisma.UserCreateInput> {
+  password?: string | null;
+}
+
 export function buildUser(overrides: Partial<Prisma.UserCreateInput> = {}): Prisma.UserCreateInput {
   faker.seed(BUILD_SEED);
   return {
     email: faker.internet.email({ provider: "example.test" }).toLowerCase(),
-    password: PASSWORD_HASH,
     name: faker.person.fullName(),
     ...overrides,
   };
@@ -43,14 +51,11 @@ export function buildUser(overrides: Partial<Prisma.UserCreateInput> = {}): Pris
 
 let sequence = 0;
 
-// BAUTH-14 (docs/specs/core-better-auth.md): in the real database, every user
-// with a password has a matching `accounts` row with `provider = "credential"`
-// — the migration backfills it once for existing rows, and the app's own
-// flows (registration, password reset, change-password) keep writing it for
-// the rest. `createUser()` bypasses all of that and writes straight to
-// `User`, so without this a factory-created user is invisible to
-// `auth.api.signInEmail`, which looks the credential account up, not
-// `User.password`.
+// BAUTH-19 (docs/specs/core-better-auth.md): a user's password lives only on
+// a matching `accounts` row with `provider = "credential"` — the row the
+// app's own flows (registration, password reset, change-password) write and
+// `auth.api.signInEmail` looks up. `createUser()` bypasses those flows, so it
+// writes the row itself.
 async function upsertCredentialAccount(userId: string, password: string): Promise<void> {
   await prisma.account.upsert({
     where: { provider_providerAccountId: { provider: "credential", providerAccountId: userId } },
@@ -65,7 +70,10 @@ async function upsertCredentialAccount(userId: string, password: string): Promis
   });
 }
 
-export async function createUser(overrides: Partial<Prisma.UserCreateInput> = {}): Promise<User> {
+export async function createUser({
+  password = PASSWORD_HASH,
+  ...overrides
+}: UserOverrides = {}): Promise<User> {
   const data = buildUser(overrides);
   let user: User;
 
@@ -77,8 +85,8 @@ export async function createUser(overrides: Partial<Prisma.UserCreateInput> = {}
     user = await prisma.user.upsert({ where: { email: data.email }, create: data, update: data });
   }
 
-  if (data.password) {
-    await upsertCredentialAccount(user.id, data.password);
+  if (password) {
+    await upsertCredentialAccount(user.id, password);
   }
 
   return user;

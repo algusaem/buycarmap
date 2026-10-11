@@ -314,6 +314,7 @@ describe("docs tree and spec format", () => {
       ["User", "twoFactorLastStep"],
       ["User", "passwordChangedAt"],
       ["User", "createdAt"],
+      ["Account", "password"],
       ["Account", "providerAccountId"],
       ["Account", "refresh_token"],
       ["Account", "access_token"],

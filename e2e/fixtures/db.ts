@@ -37,12 +37,11 @@ export async function seedUser(
   const hash = await bcrypt.hash(password, 12);
   await withClient(async (client) => {
     await client.query(
-      "INSERT INTO users(id, email, password, name, updated_at) VALUES ($1, $2, $3, $4, now())",
-      [id, email, hash, name],
+      "INSERT INTO users(id, email, name, updated_at) VALUES ($1, $2, $3, now())",
+      [id, email, name],
     );
-    // BAUTH-14 (docs/specs/core-better-auth.md): Better Auth's sign-in looks
-    // up the "credential" accounts row, not users.password — the same gap
-    // test/factories/user.ts's createUser() closes for the Vitest suite.
+    // BAUTH-19 (docs/specs/core-better-auth.md): the password lives only on
+    // the "credential" accounts row, the one Better Auth's sign-in looks up.
     await client.query(
       `INSERT INTO accounts(id, user_id, type, provider, provider_account_id, password, updated_at)
        VALUES ($1, $2, 'credential', 'credential', $3, $4, now())`,

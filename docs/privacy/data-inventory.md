@@ -1,7 +1,9 @@
 # Personal data inventory
 
 Every field in [`prisma/schema.prisma`](../../prisma/schema.prisma) that holds
-personal data, why it is held, and how long it is kept. Retention is what the
+personal data, why it is held, and how long it is kept — plus the five `users`
+columns BAUTH-19 took out of the schema, which still hold data until a later
+migration drops them. Retention is what the
 code and the published privacy page define today; where neither defines one, the
 row says so and links the issue.
 
@@ -14,18 +16,19 @@ behind, is in [deletion.md](deletion.md). Who else receives personal data is in
 | Model | Field | Purpose | Retention |
 | --- | --- | --- | --- |
 | `User` | `email` | Sign-in identifier and the address for account and alert emails | Until the account is deleted |
-| `User` | `password` | bcrypt hash for credentials sign-in; null for OAuth-only accounts | Until the account is deleted |
+| `User` | `password` | Legacy bcrypt hash column; the password now lives on the `credential` `Account` row. No longer read or written by the code since BAUTH-19 ([core-better-auth.md](../specs/core-better-auth.md)); the column keeps the values written before it | Until the account is deleted, or until a later migration drops the column |
 | `User` | `name` | Display name | Until the account is deleted |
 | `User` | `image` | Profile picture URL, written by the NextAuth adapter from the OAuth profile | Until the account is deleted |
-| `User` | `emailVerified` | When the address was confirmed | Until the account is deleted |
+| `User` | `emailVerified` | Legacy: when the address was confirmed; `emailConfirmed` replaces it. No longer read or written by the code since BAUTH-19 ([core-better-auth.md](../specs/core-better-auth.md)); the column keeps the values written before it | Until the account is deleted, or until a later migration drops the column |
 | `User` | `locale` | Language of the alert emails, which are sent with no request to resolve it from | Until the account is deleted |
-| `User` | `twoFactorSecret` | TOTP secret, encrypted with `TWO_FACTOR_ENCRYPTION_KEY` | Until the account is deleted |
+| `User` | `twoFactorSecret` | Legacy TOTP secret from before the cutover, encrypted with the former `TWO_FACTOR_ENCRYPTION_KEY`. No longer read or written by the code since BAUTH-19 ([core-better-auth.md](../specs/core-better-auth.md)); the column keeps the values written before it | Until the account is deleted, or until a later migration drops the column |
 | `User` | `twoFactorEnabledAt` | Whether two-factor gates sign-in | Until the account is deleted |
-| `User` | `twoFactorLastStep` | Highest accepted TOTP step, so a code cannot be replayed | Until the account is deleted |
-| `User` | `passwordChangedAt` | Session revocation clock | Until the account is deleted |
+| `User` | `twoFactorLastStep` | Legacy: highest TOTP step accepted before the cutover. No longer read or written by the code since BAUTH-19 ([core-better-auth.md](../specs/core-better-auth.md)); the column keeps the values written before it | Until the account is deleted, or until a later migration drops the column |
+| `User` | `passwordChangedAt` | Legacy session revocation clock; sessions are now revoked by deleting their rows. No longer read or written by the code since BAUTH-19 ([core-better-auth.md](../specs/core-better-auth.md)); the column keeps the values written before it | Until the account is deleted, or until a later migration drops the column |
 | `User` | `createdAt` | When the account was created | Until the account is deleted |
 | `TwoFactor` | `secret` | Better Auth's own TOTP secret for the `twoFactor` plugin (BAUTH-11), encrypted by the plugin — not readable from the database alone | Until two-factor is disabled, re-enrolled, or the account is deleted (cascade) |
 | `TwoFactor` | `backupCodes` | The plugin's own encrypted backup codes, for signing in without the authenticator | Until two-factor is disabled, re-enrolled, or the account is deleted (cascade) |
+| `Account` | `password` | bcrypt hash for credentials sign-in, on the `provider = "credential"` row (BAUTH-19); OAuth-only accounts have no such row | Until the account is deleted (cascade) |
 | `Account` | `providerAccountId` | The user's id at Google or GitHub, linking the OAuth identity | Until the provider is unlinked or the account is deleted (cascade) |
 | `Account` | `refresh_token` | OAuth token stored by the NextAuth adapter | Until the provider is unlinked or the account is deleted (cascade) |
 | `Account` | `access_token` | OAuth token stored by the NextAuth adapter | Until the provider is unlinked or the account is deleted (cascade) |

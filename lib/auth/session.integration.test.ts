@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { createUser } from "@/test/factories/user";
-import { hashPassword } from "@/lib/auth/hash";
+import { hashPassword, verifyPassword } from "@/lib/auth/hash";
 import { auth, signSessionToken } from "./auth";
 import { getCurrentUser } from "./session";
 
@@ -74,5 +74,49 @@ describe("BAUTH-2 worked example: changing the password signs other sessions out
     );
 
     expect(await getCurrentUser()).toBeNull();
+  });
+});
+
+// BAUTH-19 (docs/specs/core-better-auth.md), worked example (b): a password
+// change writes only the credential `accounts` row. `users.password` is no
+// longer a Prisma field, so it is read back with a raw select.
+describe("BAUTH-19 worked example: changing the password writes only the credential account", () => {
+  it("BAUTH-19: the credential account holds the new hash, users.password is untouched, and the new password signs in", async () => {
+    const user = await createUser({ password: await hashPassword("the-old-password") });
+    const readLegacyPassword = async () =>
+      (
+        await prisma.$queryRaw<{ password: string | null }[]>`
+          SELECT password FROM users WHERE id = ${user.id}::uuid`
+      )[0]?.password;
+    const legacyBefore = await readLegacyPassword();
+
+    const session = await auth.api.signInEmail({
+      body: { email: user.email, password: "the-old-password" },
+    });
+    const cookie = await signSessionToken(session.token);
+    cookieStore.get.mockImplementation((name: string) =>
+      name === cookie.name ? { value: cookie.value } : undefined,
+    );
+
+    const { changePassword } = await import("@/server/account/actions");
+    const formData = new FormData();
+    formData.set("currentPassword", "the-old-password");
+    formData.set("password", "harbour-lentil-quilt");
+    formData.set("confirmPassword", "harbour-lentil-quilt");
+    formData.set("version", "1");
+
+    expect(await changePassword(formData)).toEqual({ success: true });
+
+    const credential = await prisma.account.findFirst({
+      where: { userId: user.id, provider: "credential" },
+      select: { password: true },
+    });
+    expect(await verifyPassword("harbour-lentil-quilt", credential?.password ?? "")).toBe(true);
+    expect(await readLegacyPassword()).toBe(legacyBefore);
+
+    const signedIn = await auth.api.signInEmail({
+      body: { email: user.email, password: "harbour-lentil-quilt" },
+    });
+    expect(signedIn.token).toEqual(expect.any(String));
   });
 });

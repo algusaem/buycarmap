@@ -76,14 +76,14 @@ describe("requestEmailVerification", () => {
   });
 
   it("sends a link to the address already on the account", async () => {
-    await signedInAsNewUser({ emailVerified: null });
+    await signedInAsNewUser({ emailConfirmed: false });
 
     expect(await requestEmailVerification()).toEqual({ success: true });
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com" }));
   });
 
   it("refuses when the address is already verified", async () => {
-    await signedInAsNewUser({ emailVerified: new Date() });
+    await signedInAsNewUser({ emailConfirmed: true });
 
     // Nothing to prove, so this would only be a way to send yourself mail.
     expect(await requestEmailVerification()).toEqual({
@@ -93,8 +93,20 @@ describe("requestEmailVerification", () => {
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
+  it("BAUTH-19: an OAuth-only user with emailConfirmed and no legacy emailVerified is already verified, and no link is sent", async () => {
+    // `emailVerified` is left at its default (null), as Better Auth leaves it
+    // for every account it creates.
+    await signedInAsNewUser({ email: "oauth@example.com", password: null, emailConfirmed: true });
+
+    expect(await requestEmailVerification()).toEqual({
+      success: false,
+      error: "alreadyVerified",
+    });
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
   it("retires any earlier outstanding token", async () => {
-    const user = await signedInAsNewUser({ emailVerified: null });
+    const user = await signedInAsNewUser({ emailConfirmed: false });
     const earlier = await createEmailVerificationToken({
       user: { connect: { id: user.id } },
     });
@@ -258,7 +270,7 @@ describe("confirmEmail", () => {
     const found = await prisma.user.findUnique({ where: { id: user.id } });
     // No `email` change: the address is unchanged, only proven.
     expect(found?.email).toBe("ada@example.com");
-    expect(found?.emailVerified).not.toBeNull();
+    expect(found?.emailConfirmed).toBe(true);
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
@@ -274,7 +286,7 @@ describe("confirmEmail", () => {
 
     const found = await prisma.user.findUnique({ where: { id: user.id } });
     expect(found?.email).toBe("new@example.com");
-    expect(found?.emailVerified).not.toBeNull();
+    expect(found?.emailConfirmed).toBe(true);
     // The previous owner has to hear about it to react if it wasn't them.
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com" }));
   });

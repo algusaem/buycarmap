@@ -37,12 +37,12 @@ be a security incident rather than a bug.
 
 - **AUTH-1** — Email configured; register("Ada", ada@example.com, "harbour-lentil-quilt" ×2) → { success: true, pending: true }, no user.create, one pendingRegistration.create; a taken address returns exactly the same result and also sends one email.
 - **AUTH-2** — Pending pending-1 (ada@example.com, hash "already-bcrypt-hashed", name "Ada", token "a-raw-confirmation-token", expires in 1 h); verifyRegistration("a-raw-confirmation-token") → { success: true, email: "ada@example.com" }, user created with that email, that hash, name "Ada" and emailVerified set.
-- **AUTH-5** — user-1, current password "the-old-password"; changePassword → "harbour-lentil-quilt" → { success: true }, password and passwordChangedAt updated, session.deleteMany({ where: { userId: "user-1" } }).
+- **AUTH-5** — user-1, current password "the-old-password"; changePassword → "harbour-lentil-quilt" → { success: true }, the credential account's password updated, session.deleteMany({ where: { userId: "user-1" } }), so every session issued before the change is revoked.
 - **AUTH-6** — ada@example.com, password "wrong" → rate limit consumed on key "login:email:ada@example.com" with limit 8; password "correct" → that key is reset.
 - **AUTH-7** — ada@example.com with 2FA enabled, password "correct", no code → throws "totpRequired".
 - **AUTH-8** — (clock 1_800_000_000_000 ms, current step 60_000_000 (1_800_000_000_000 / 30_000)). twoFactorLastStep = 60_000_000, code for step 60_000_000 → { valid: false, method: null }, nothing updated; twoFactorLastStep = 59_999_999, code for step 60_000_000 → { valid: true, method: "totp" }. The code itself is derived from a random secret, so no literal code exists.
 - **AUTH-10** — Recovery code "ABCDE-FGHJK-MNPQR" → row rc-1 (user-1, usedAt null) → { valid: true, method: "recoveryCode" } and marked used only where usedAt is null; once used → { valid: false, method: null }.
-- **AUTH-11** — Valid reset token "a-raw-reset-token" for user-1, new password "harbour-lentil-quilt" → the user update touches exactly password and passwordChangedAt; no two-factor field.
+- **AUTH-11** — Valid reset token "a-raw-reset-token" for user-1, new password "harbour-lentil-quilt" → the credential account's password is updated and every session of user-1 is revoked; no two-factor field is touched.
 - **AUTH-12** — ada@example.com with 2FA enabled and no linked accounts; OAuth signIn via google (providerAccountId g-1) → false; with no existing user → true.
 - **AUTH-13** — user-1 ada@example.com; requestEmailChange("new@example.com", "the-current-password") → the link goes to new@example.com, never ada@example.com; a wrong current password → { success: false, error: "currentPasswordIncorrect" }, no email.
 - **AUTH-14** — providers ["google"], hasPassword false → Disconnect disabled, text "This is your only way to sign in. Set a password before disconnecting it."
@@ -60,6 +60,12 @@ that exact field), makes `password` nullable for OAuth-only accounts, adds
 table to the adapter's column names, and adds `Account`, `VerificationToken`,
 `PasswordResetToken`, `EmailVerificationToken`, `PendingRegistration` and
 `RateLimit`.
+
+Since BAUTH-19 ([core-better-auth.md](core-better-auth.md)) the code no longer
+reads or writes `User.password`, `emailVerified` or `passwordChangedAt`: the
+password lives on the `credential` `Account` row, "verified" is
+`emailConfirmed`, and sessions are revoked by deleting their rows. The columns
+stay in the database until a later migration drops them.
 
 ## Permissions
 
@@ -175,11 +181,12 @@ open when Redis is unreachable.
 7-day expiry (was NextAuth's 30-day default), `useSecureCookies` derived from
 `APP_URL` so a misconfigured `NEXTAUTH_URL` cannot downgrade cookies.
 
-JWTs cannot be deleted server-side, so `User.passwordChangedAt` acts as a
-revocation clock: the `jwt` callback stamps `pwdAt` at sign-in and re-reads the
-row at most every 5 minutes. If the password changed after the stamp — or the
-account is gone — it throws, and NextAuth's session route clears the cookie.
-**Any flow that changes a password must bump `passwordChangedAt`.**
+Sessions are rows in Postgres with no cookie cache (BAUTH-2,
+[core-better-auth.md](core-better-auth.md)), so revoking one means deleting its
+row, and it ends on the very next request. **Any flow that changes a password
+must delete the user's other sessions** (`changePassword` keeps the current one;
+`resetPassword` and `signOutEverywhere` keep none). There is no revocation clock
+any more.
 
 #### Verify-first registration
 No `User` row until the address is confirmed from the inbox — see Registration enumeration below for why

@@ -69,10 +69,9 @@ function vehicleSnapshot(faker: Faker, listingId: string) {
 }
 
 /**
- * BAUTH-14 (docs/specs/core-better-auth.md): Better Auth's sign-in (and,
- * for `ensureTwoFactorUser` below, `auth.api.enableTwoFactor`) looks up the
- * "credential" `accounts` row, not `users.password` — the same gap
- * test/factories/user.ts's `createUser()` closes for the Vitest suite.
+ * BAUTH-19 (docs/specs/core-better-auth.md): the password lives only on the
+ * "credential" `accounts` row — the one Better Auth's sign-in (and, for
+ * `ensureTwoFactorUser` below, `auth.api.enableTwoFactor`) looks up.
  */
 async function upsertCredentialAccount(
   prisma: PrismaClient,
@@ -104,7 +103,6 @@ async function seedUsers(
       update: {},
       create: {
         email,
-        password: passwordHash,
         name: faker.person.fullName(),
         locale: faker.helpers.arrayElement(["es", "en"]),
       },
