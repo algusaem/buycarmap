@@ -78,17 +78,11 @@ describe("BAUTH-2 worked example: changing the password signs other sessions out
 });
 
 // BAUTH-19 (docs/specs/core-better-auth.md), worked example (b): a password
-// change writes only the credential `accounts` row. `users.password` is no
-// longer a Prisma field, so it is read back with a raw select.
-describe("BAUTH-19 worked example: changing the password writes only the credential account", () => {
-  it("BAUTH-19: the credential account holds the new hash, users.password is untouched, and the new password signs in", async () => {
+// change writes the credential `accounts` row, the only place a password
+// lives since BAUTH-20 dropped `users.password`.
+describe("BAUTH-19 worked example: changing the password writes the credential account", () => {
+  it("BAUTH-19: the credential account holds the new hash, and the new password signs in", async () => {
     const user = await createUser({ password: await hashPassword("the-old-password") });
-    const readLegacyPassword = async () =>
-      (
-        await prisma.$queryRaw<{ password: string | null }[]>`
-          SELECT password FROM users WHERE id = ${user.id}::uuid`
-      )[0]?.password;
-    const legacyBefore = await readLegacyPassword();
 
     const session = await auth.api.signInEmail({
       body: { email: user.email, password: "the-old-password" },
@@ -112,7 +106,6 @@ describe("BAUTH-19 worked example: changing the password writes only the credent
       select: { password: true },
     });
     expect(await verifyPassword("harbour-lentil-quilt", credential?.password ?? "")).toBe(true);
-    expect(await readLegacyPassword()).toBe(legacyBefore);
 
     const signedIn = await auth.api.signInEmail({
       body: { email: user.email, password: "harbour-lentil-quilt" },
