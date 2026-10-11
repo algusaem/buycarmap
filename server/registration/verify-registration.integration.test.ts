@@ -61,6 +61,15 @@ describe("verifyRegistration token handling", () => {
     expect(await prisma.user.count()).toBe(0);
   });
 
+  it("PLAT-27: refuses with no token field, after the rate limit (unchanged)", async () => {
+    expect(await verifyRegistration(formData({ token: "" }))).toEqual({
+      success: false,
+      error: "tokenInvalid",
+    });
+    expect(consumeRateLimit).toHaveBeenCalled();
+    expect(await prisma.user.count()).toBe(0);
+  });
+
   it("rejects a token with no pending signup", async () => {
     expect(await verifyRegistration(formData({ token: RAW_TOKEN }))).toEqual({
       success: false,

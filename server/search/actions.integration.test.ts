@@ -18,8 +18,9 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
 }));
 
 import { consumeRateLimit } from "@/server/rate-limit/service";
+import type { Result } from "@/lib/result";
 import { EMPTY_SEARCH_CURSORS } from "./service";
-import { listCarModels, searchListings } from "./actions";
+import { type CarModel, listCarModels, searchListings, type SearchError } from "./actions";
 
 const WALLAPOP = "https://api.wallapop.com/api/v3/search/section";
 const COCHESNET = "https://web.gw.coches.net/search/listing";
@@ -177,5 +178,28 @@ describe("listCarModels", () => {
       // models survive the merge, hand-derived from the two fixtures above.
       expect(result.value.map((model) => model.label).sort()).toEqual(["Ibiza", "Leon"]);
     }
+  });
+
+  it("PLAT-27: rejects a non-string make (today reaches fetchModelsForMake unparsed)", async () => {
+    // listCarModels's signature declares `make: string`, but PLAT-27 is about
+    // the value a real caller can actually send, which TypeScript cannot
+    // bound. RULES §3 bans `any` and `as unknown as`, so the non-string value
+    // is handed to the real function through Reflect.apply instead of a cast.
+    const result: Result<CarModel[], SearchError> = await Reflect.apply(
+      listCarModels,
+      undefined,
+      [42],
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidInput", messageKey: "searchErrors.invalidInput" },
+    });
+  });
+
+  it("PLAT-27: an empty make is still valid input (unchanged)", async () => {
+    const result = await listCarModels("");
+
+    expect(result).toEqual({ ok: true, value: [] });
   });
 });

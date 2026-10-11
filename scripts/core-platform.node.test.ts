@@ -278,6 +278,32 @@ describe("PLAT-26: docs and .env.example record the new configuration", () => {
   });
 });
 
+describe("PLAT-27: every listed Server Action parses its input with a named Zod schema", () => {
+  it("PLAT-27: each action's source calls safeParse on the schema the spec names", () => {
+    const actionSchemaPairs: Array<{ file: string; schema: string }> = [
+      { file: "server/account/actions.ts", schema: "unlinkAccountSchema" },
+      { file: "server/account/actions.ts", schema: "deleteAccountSchema" },
+      { file: "server/account/actions.ts", schema: "sessionIdSchema" },
+      { file: "server/email-verification/actions.ts", schema: "confirmEmailSchema" },
+      { file: "server/registration/actions.ts", schema: "verifyRegistrationSchema" },
+      { file: "server/auth/actions.ts", schema: "signInSchema" },
+      { file: "server/two-factor/actions.ts", schema: "twoFactorPasswordSchema" },
+      { file: "server/favorites/actions.ts", schema: "favoriteListingSchema.shape.id" },
+      { file: "server/alerts/actions.ts", schema: "alertLabelSchema" },
+      { file: "server/locale/actions.ts", schema: "localeSchema" },
+      { file: "server/search/actions.ts", schema: "makeSchema" },
+    ];
+
+    const offenders = actionSchemaPairs.filter(({ file, schema }) => {
+      const source = read(file);
+      const escaped = schema.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return !new RegExp(`${escaped}\\.safeParse\\(`).test(source);
+    });
+
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("PLAT-8: prisma.config.ts prefers DIRECT_URL over DATABASE_URL", () => {
   async function loadDatasourceUrl(env: Record<string, string | undefined>) {
     vi.resetModules();

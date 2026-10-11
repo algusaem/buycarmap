@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { AUTH_ERROR } from "@/lib/auth/errors";
-import { confirmPassword, email, newPassword, passwordsMatch } from "@/server/auth/schema";
+import {
+  confirmPassword,
+  email,
+  newPassword,
+  passwordsMatch,
+  tokenField,
+} from "@/server/auth/schema";
 
 export const registerSchema = z
   .object({
@@ -12,3 +18,6 @@ export const registerSchema = z
   .refine(passwordsMatch.check, passwordsMatch.options);
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+// PLAT-27 (docs/specs/core-platform.md): verifyRegistration's own input shape.
+export const verifyRegistrationSchema = z.object({ token: tokenField });

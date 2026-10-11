@@ -22,7 +22,7 @@ import { findPasswordAndEmail } from "@/server/account/service";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
 import { asUserId } from "@/lib/ids";
 import { RATE_LIMITS, consumeRateLimit, getClientIp } from "@/server/rate-limit/service";
-import { changeEmailSchema } from "./schema";
+import { changeEmailSchema, confirmEmailSchema } from "./schema";
 import {
   findEmailVerificationState,
   findEmailVerificationToken,
@@ -176,11 +176,15 @@ export async function confirmEmail(formData: FormData): Promise<EmailVerificatio
     return { success: false, error: AUTH_ERROR.rateLimited };
   }
 
-  const token = formData.get("token");
+  const parsed = confirmEmailSchema.safeParse({
+    token: requiredString(formData.get("token")),
+  });
 
-  if (typeof token !== "string" || token.length === 0) {
+  if (!parsed.success) {
     return { success: false, error: AUTH_ERROR.tokenInvalid };
   }
+
+  const { token } = parsed.data;
 
   const record = await findEmailVerificationToken(hashToken(token));
 

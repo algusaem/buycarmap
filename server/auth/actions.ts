@@ -13,6 +13,7 @@ import { loginEmailRateKey } from "@/server/auth/service";
 import { twoFactorCodeSchema } from "@/server/two-factor/schema";
 import { requiredString } from "@/lib/form-data";
 import { AUTH_ERROR, type AuthErrorCode } from "@/lib/auth/errors";
+import { signInSchema } from "./schema";
 
 // BAUTH-3 (docs/specs/core-better-auth.md): the server action LoginForm (and
 // the no-email registration fallback) calls to sign in with email and
@@ -76,12 +77,16 @@ async function setSessionCookie(token: string): Promise<void> {
 }
 
 export async function signIn(formData: FormData): Promise<SignInResult> {
-  const email = requiredString(formData.get("email")).trim().toLowerCase();
-  const password = requiredString(formData.get("password"));
+  const parsed = signInSchema.safeParse({
+    email: requiredString(formData.get("email")),
+    password: requiredString(formData.get("password")),
+  });
 
-  if (!email || !password) {
+  if (!parsed.success) {
     return { success: false, error: AUTH_ERROR.generic };
   }
+
+  const { email, password } = parsed.data;
 
   const emailKey = loginEmailRateKey(email);
 

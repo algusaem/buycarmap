@@ -69,6 +69,10 @@ This is phase 6 of ADR 0007: rows 11–15.
 
 - [x] PLAT-26 · unit — `.env.example` lists `DIRECT_URL`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` and `SKIP_ENV_VALIDATION` with example values. `docs/privacy/processors.md` lists Sentry (EU region), what it receives and that `sendDefaultPii` is off. `docs/ARCHITECTURE.md` describes the env module, the adapters, the migration step, the logger, Sentry, health and the CSP. ADR 0007 marks rows 11–15 resolved.
 
+### Validation
+
+- [x] PLAT-27 · node — Every Server Action parses each of its inputs with a Zod schema from its feature's `schema.ts` before using it. A failed parse returns the error code the action returned for that input before, in the same order relative to authentication and rate limiting, so no input reachable from the UI changes outcome; enumeration resistance on sign-in and the token flows is unchanged (issue #44).
+
 ## Worked examples
 
 - **PLAT-3**, `DATABASE_URL` unset, `pnpm build` → fails before `next build` compiles, and the output names `DATABASE_URL`.
@@ -111,6 +115,18 @@ This is phase 6 of ADR 0007: rows 11–15.
   - database up → `200 {"status":"ok","db":"ok"}`;
   - `$queryRaw` throws → `503 {"status":"error","db":"unreachable"}`.
 - **PLAT-21**, nonce `r4nd0m`, production → `script-src 'self' 'nonce-r4nd0m' 'strict-dynamic'`; two requests → two different nonces.
+- **PLAT-27**:
+  - `unlinkAccount` with no `provider` field → `{ success: false, error: AUTH_ERROR.generic }` (unchanged).
+  - `deleteAccount` with no `password` field, on a password account → `{ success: false, error: AUTH_ERROR.passwordRequired }` (unchanged); an OAuth-only account still skips the check.
+  - `revokeMySession("not-a-uuid")` → `{ success: false, error: AUTH_ERROR.unauthorized }`. Today `asSessionId` only casts the value, so this reaches `findSessionOwner` and Prisma throws an unhandled error instead.
+  - `confirmEmail` with no `token` field → `{ success: false, error: AUTH_ERROR.tokenInvalid }` (unchanged), after the rate-limit budget is already consumed.
+  - `verifyRegistration` with no `token` field → `{ success: false, error: AUTH_ERROR.tokenInvalid }` (unchanged), after the rate-limit budget is already consumed.
+  - `signIn({ email: "  ", password: "x" })` → `{ success: false, error: AUTH_ERROR.generic }` (unchanged), and no IP rate-limit budget is consumed, same as today.
+  - `regenerateRecoveryCodes` with no `currentPassword` field → `{ success: false, error: AUTH_ERROR.passwordRequired }` (unchanged).
+  - `removeFavorite("")` → `{ ok: false, error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" } }`. Today this call falls through to `deleteFavorite` and returns `ok(undefined)` with nothing removed.
+  - `createAlert(validCriteria, 42)` → `{ ok: false, error: { code: "invalidCriteria", messageKey: "alertErrors.invalidCriteria" } }`. Today `label` is used unparsed, and a non-string throws a `TypeError`.
+  - `setLocale(42)` → `{ ok: false, error: { code: "invalidLocale", messageKey: "localeErrors.invalidLocale" } }` (unchanged: `isValidLocale` already rejects a non-string).
+  - `listCarModels(42)` → `{ ok: false, error: { code: "invalidInput", messageKey: "searchErrors.invalidInput" } }`. Today `make` reaches `fetchModelsForMake` unparsed. `listCarModels("")` → `ok([])`, unchanged.
 
 ## Data model
 
@@ -135,7 +151,6 @@ No change. No migration.
 - **The auth features' `Result`** — `account`, `registration`, `password-reset`, `email-verification`, `two-factor` and the `AUTH_ERROR` codes — stay until phase 11 (row 25).
 - **Migrations on previews and a staging database**: phase 12.
 - **`loading.tsx`/`error.tsx` on the routes other than PLAT-14's**: issue #43.
-- **Zod on the remaining action inputs**: issue #44.
 - **Sentry tracing, profiling and session replay.** The free plan's quota goes to errors.
 - **Removing `'unsafe-inline'` from `style-src`.** Leaflet and Motion set inline styles.
 - **Rate-limiting the health routes.** They do no work beyond one `SELECT 1`.

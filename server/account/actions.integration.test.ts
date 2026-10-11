@@ -363,6 +363,15 @@ describe("unlinkAccount", () => {
     expect(await unlinkAccount(formData({ provider: "github" }))).toEqual({ success: true });
   });
 
+  it("PLAT-27: refuses with no provider field (unchanged)", async () => {
+    await signedInAsNewUser({ password: "hash" });
+
+    expect(await unlinkAccount(formData({ provider: "" }))).toEqual({
+      success: false,
+      error: "generic",
+    });
+  });
+
   // Security review BLOCKER (item 1): "credential" is Better Auth's own
   // sign-in plumbing (BAUTH-14's dual-write), not a provider the user chose
   // to connect, and must never be removable from this action.
@@ -392,6 +401,16 @@ describe("deleteAccount", () => {
   });
 
   it("requires a password for a credential account", async () => {
+    const user = await signedInAsNewUser();
+
+    expect(await deleteAccount(formData({ password: "" }))).toEqual({
+      success: false,
+      error: "passwordRequired",
+    });
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).not.toBeNull();
+  });
+
+  it("PLAT-27: refuses with no password field on a credential account (unchanged)", async () => {
     const user = await signedInAsNewUser();
 
     expect(await deleteAccount(formData({ password: "" }))).toEqual({
@@ -589,5 +608,13 @@ describe("BAUTH-4: revokeMySession", () => {
 
     expect(result).toEqual({ success: true });
     expect(await prisma.session.findUnique({ where: { id: mine.id } })).toBeNull();
+  });
+
+  it("PLAT-27: refuses a session id that is not a UUID", async () => {
+    await signedInAsNewUser();
+
+    const result = await revokeMySession("not-a-uuid");
+
+    expect(result).toEqual({ success: false, error: "unauthorized" });
   });
 });

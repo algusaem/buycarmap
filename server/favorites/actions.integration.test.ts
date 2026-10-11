@@ -146,6 +146,19 @@ describe("removeFavorite", () => {
     expect(result).toEqual({ ok: true, value: undefined });
   });
 
+  it("PLAT-27: rejects a blank listing id and leaves the favourite in place", async () => {
+    signedInAs(ADA);
+    await saveFavorite(makeFavoriteInput());
+
+    const result = await removeFavorite("");
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
+    });
+    expect((await forUser(ADA.id)).map((row) => row.listingId)).toEqual(["wallapop-abc123"]);
+  });
+
   it("FAV-5: a caller with no session removes nothing (PLAT-11)", async () => {
     await prisma.favorite.create({
       data: { user: { connect: { id: ADA.id } }, listingId: "wallapop-abc123", ...toSnapshot() },

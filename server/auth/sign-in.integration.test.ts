@@ -122,6 +122,13 @@ describe("BAUTH-3 worked example: the per-account lockout survives rotating IPs"
     });
   });
 
+  it("PLAT-27: a blank email, once trimmed, is refused before the IP budget is touched (unchanged)", async () => {
+    const result = await signIn(formData({ email: "  ", password: "x" }));
+
+    expect(result).toEqual({ success: false, error: "generic" });
+    expect(getClientIp).not.toHaveBeenCalled();
+  });
+
   it("security review fix: 4 failed attempts leave room for the 5th, correct one to succeed", async () => {
     // `hooks.after` in lib/auth/auth.ts already counts a failed
     // /sign-in/email call once against `loginPerEmail`; `signIn`'s own catch

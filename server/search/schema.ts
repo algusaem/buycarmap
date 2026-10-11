@@ -32,3 +32,9 @@ export const EMPTY_SEARCH_CURSORS: SearchCursors = {
   cochesNet: 0,
   milanuncios: 0,
 };
+
+// PLAT-27 (docs/specs/core-platform.md): listCarModels' own input shape. No
+// `.min(1)` — an empty make is valid input today (fetchModelsForMake("")
+// returns [] rather than erroring), so the schema only has to reject a
+// non-string.
+export const makeSchema = z.string();

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AUTH_ERROR } from "@/lib/auth/errors";
-import { email } from "@/server/auth/schema";
+import { email, tokenField } from "@/server/auth/schema";
 
 export const changeEmailSchema = z.object({
   email,
@@ -9,3 +9,6 @@ export const changeEmailSchema = z.object({
 });
 
 export type ChangeEmailInput = z.infer<typeof changeEmailSchema>;
+
+// PLAT-27 (docs/specs/core-platform.md): confirmEmail's own input shape.
+export const confirmEmailSchema = z.object({ token: tokenField });

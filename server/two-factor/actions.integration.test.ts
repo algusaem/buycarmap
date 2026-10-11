@@ -330,6 +330,16 @@ describe("regenerateRecoveryCodes", () => {
     });
   });
 
+  it("PLAT-27: refuses with no currentPassword field (unchanged)", async () => {
+    const user = await signedInAsNewUser({ email: "ada@example.com" });
+    await enrolRealTwoFactor(user.id);
+
+    expect(await regenerateRecoveryCodes(formData({ currentPassword: "" }))).toEqual({
+      success: false,
+      error: "passwordRequired",
+    });
+  });
+
   it("refuses when two-factor is not on", async () => {
     await signedInAsNewUser({ email: "ada@example.com" });
 

@@ -36,13 +36,18 @@ export async function removeFavorite(listingId: string): Promise<Result<void, Fa
     const user = await getCurrentUser();
     if (!user) return err(favoriteError(FAVORITE_ERROR.unauthenticated));
 
+    const parsed = favoriteListingSchema.shape.id.safeParse(listingId);
+    if (!parsed.success) {
+      return err(favoriteError(FAVORITE_ERROR.invalidListing));
+    }
+
     // Scoped by userId, so this cannot reach another account's row. It reports
     // success whether or not anything matched: the caller asked for the
     // listing not to be saved, and it is not saved. Distinguishing "removed"
     // from "was never yours" would confirm that someone else's favorite
     // exists, which is the kind of thing the rest of this codebase avoids
     // leaking.
-    await deleteFavorite(asUserId(user.id), listingId);
+    await deleteFavorite(asUserId(user.id), parsed.data);
     return ok(undefined);
   });
 }

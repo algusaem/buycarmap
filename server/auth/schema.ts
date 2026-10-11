@@ -29,6 +29,26 @@ export const newPassword = z
 
 export const confirmPassword = z.string().min(1, AUTH_ERROR.confirmPasswordRequired);
 
+// PLAT-27 (docs/specs/core-platform.md): shared with every feature that asks
+// for the account's current password to confirm a sensitive change. New uses
+// only — twoFactorPasswordSchema (server/two-factor/schema.ts) already has
+// this exact shape and is left as it is.
+export const currentPasswordField = z.string().min(1, AUTH_ERROR.passwordRequired);
+
+// PLAT-27: shared by every feature that redeems a single-use link token
+// (email verification, email change, signup confirmation).
+export const tokenField = z.string().min(1, AUTH_ERROR.tokenInvalid);
+
+// PLAT-27: signIn's own input shape. Deliberately not loginSchema — that one
+// also validates email format and carries an optional totp field neither of
+// which signIn uses or wants (an invalid-looking address and a wrong
+// password must answer identically, AUTH_ERROR.generic, so the schema never
+// reports a per-field error here).
+export const signInSchema = z.object({
+  email: z.string().trim().toLowerCase().min(1),
+  password: z.string().min(1),
+});
+
 export const passwordsMatch = {
   check: (data: { password: string; confirmPassword: string }) =>
     data.password === data.confirmPassword,
