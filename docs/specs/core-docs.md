@@ -2,7 +2,7 @@
 
 Key: DOCS
 Status: Implemented
-Last updated: 2026-09-28
+Last updated: 2026-10-11
 
 ---
 
@@ -29,6 +29,8 @@ In scope:
 - `/spec`, `/spec-tests`, `/check-docs`, `/check-sources` and `CLAUDE.md` are updated to the new
   paths and format.
 - ADR 0011 records where BuyCarMap keeps more than the core asks for.
+- Added 2026-10-11 (issue #29): `spec:check` and `docs-check` fail on three format slips they
+  used to pass in silence (DOCS-11..13).
 
 ## Acceptance criteria
 
@@ -45,12 +47,32 @@ under test on fixtures.
 - [x] DOCS-8 · unit — `docs/privacy/data-inventory.md` has a table with the columns Model · Field · Purpose · Retention and one row per personal field listed under Contracts. `processors.md` has a table with the columns Processor · Region · Data received · DPA and one row per processor listed under Contracts. `deletion.md` describes erasure through the account deletion action, what survives it, and Neon's restore window of 6 hours.
 - [x] DOCS-9 · unit — `docs/operations/backups.md` gives the Neon point-in-time-restore procedure. It names the project region `aws-eu-central-1` and the 6-hour history window.
 - [x] DOCS-10 · unit — `/spec`, `/spec-tests`, `_template.md` and `CLAUDE.md` describe the checklist format. None of them mentions a criteria table or a "Verified by" column, and every doc path they name exists.
+- [x] DOCS-11 · unit — Under `## Acceptance criteria` of an enforced spec, `spec:check` fails on every checklist line it does not declare: an indented item, an uppercase `[X]` box, an id whose key is not the spec's own `Key:`, or any other `- [ ]`/`- [x]` line that does not start with the spec's `KEY-n`. Each problem names the file, the line number and why.
+- [x] DOCS-12 · unit — `docs-check` fails with `README.md has no Ownership map section.` when the root `README.md` has no ownership heading, instead of reading every table in the file as the map.
+- [x] DOCS-13 · unit — `spec:check` and `docs-check` read a spec's `Status:` line with one shared parser, so `Status: **Implemented**` is `Implemented` to both, and `docs-check` checks its source paths.
 
 ## Worked examples
 
 - **DOCS-2** — `- [ ] FAV-3 · node — x` declares FAV-3; a table row `| FAV-3 | x | node | — |` declares nothing; `- [x] FAV-3 — x` (no level) fails, naming FAV-3; `- [x] FAV-3 · node + e2e — x` declares FAV-3; `- [x] FAV-3 · node + api — x` fails, naming FAV-3.
 - **DOCS-3** — `Status: Implemented` with `- [ ] FAV-3 · node — x` and a test titled `FAV-3: x` fails, naming FAV-3 as unchecked; the same item under `Status: Approved` passes.
 - **DOCS-7** — a `docs/` file linked from nowhere fails, naming it; a map row whose doc does not exist fails.
+- **DOCS-11** — in `favorites.md` (`Key: FAV`, `Status: Approved`) with `- [x] FAV-1 · node — x` on line 8 and a test titled `FAV-1: x`, each of these lines on line 9 fails with exactly one problem:
+  - `- [x] FAVS-9 · node — x` → `favorites.md:9 is a checklist line spec:check does not declare: it names FAVS-9, not this spec's key FAV. Write it as "- [ ] FAV-n · <level> — <statement>", unindented, with a lowercase x when ticked.`
+  - `- [X] FAV-2 · node — x` → the same problem with the reason `its box is [X], not [x]`.
+  - `  - [ ] FAV-2 · node — x` (two leading spaces) → the same problem with the reason `it is indented`.
+  - `- [ ] a criterion with no id` → the same problem with the reason `it does not start with a FAV-n id`.
+  The same four lines under `## Edge cases` instead are not reported.
+- **DOCS-12** — a `README.md` that holds this row under `## Source owners` fails with `README.md has no Ownership map section.`; the same row under `## Ownership map` passes.
+
+  ```md
+  | `lib/**` | [docs/foo.md](docs/foo.md) |
+  ```
+- **DOCS-13** — `Status: Implemented`, `Status: **Implemented**` and `Status: Implemented (2026-10-11)` all read as `Implemented`, and `Status: **Approved**` as `Approved`. A file `docs/specs/x.md` with `Status: **Implemented**` whose text names the missing path below in backticks fails `docs-check` with the problem below; the same file with `Status: **Approved**` passes.
+
+  ```text
+  See `lib/missing.ts`.
+  docs/specs/x.md refers to `lib/missing.ts`, which does not exist. Was it moved or deleted?
+  ```
 
 ## Data model
 
@@ -67,6 +89,9 @@ changes no authorization (see Out of scope: no behaviour change).
 - DOCS-3 — an unchecked criterion in an `Implemented` spec fails.
 - DOCS-4 — a duplicate key, an enforced spec with no criteria, a criterion no test title names, and a test title naming an undeclared id each fail.
 - DOCS-7 — a `docs/` file linked from nowhere, and a map row whose doc does not exist, each fail.
+- DOCS-11 — an indented item, an uppercase `[X]`, a foreign key and an id-less checklist line under `## Acceptance criteria` each fail; the same lines in another section do not.
+- DOCS-12 — a `README.md` with no ownership heading fails, even when it holds rows shaped like map rows.
+- DOCS-13 — a bold `Status: **Implemented**` is enforced by `spec:check` and path-checked by `docs-check`.
 - A dropped criterion: see Decisions › Ids and `spec:check` stay (owner's decision, 2026-09-28).
 - A critical criterion with no exact value in any test: see Decisions › The Worked examples come from the tests, and the owner confirms them.
 

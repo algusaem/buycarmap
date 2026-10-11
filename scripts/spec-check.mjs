@@ -14,6 +14,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { specStatus } from "./spec-status.mjs";
+
 const SPEC_DIR = "docs/specs";
 const ENFORCED_STATUSES = new Set(["Approved", "Implemented"]);
 const TEST_FILE = /\.(test\.tsx?|spec\.ts)$/;
@@ -30,7 +32,11 @@ const SKIP_DIRS = new Set([
 ]);
 
 const KEY_LINE = /^Key:\s*([A-Z][A-Z0-9]{1,7})\s*$/m;
-const STATUS_LINE = /^Status:\s*\**\s*([A-Za-z]+)/m;
+// Anything shaped like a checklist item, however it is indented, bulleted or
+// boxed — the net `undeclaredChecklistLines` catches the slips with.
+const CHECKLIST_LIKE = /^(\s*)[-*+]\s+\[([ xX])\]\s*(.*)$/;
+const LEADING_ID = /^([A-Z][A-Z0-9]{1,7})-\d+\b/;
+const FENCE = /^\s*(```|~~~)/;
 // The single source for both level regexes and the message hint below, so
 // none of the three can ever list the levels differently.
 const LEVELS = ["unit", "node", "component", "contract", "e2e"];
@@ -92,8 +98,68 @@ export function criteriaIdsIn(source) {
 function specHeader(source) {
   return {
     key: source.match(KEY_LINE)?.[1],
-    status: source.match(STATUS_LINE)?.[1],
+    status: specStatus(source),
   };
+}
+
+/**
+ * Why one checklist-shaped line is not a criterion `checklistItemsIn` declares,
+ * or `undefined` when it is one.
+ *
+ * @param {string} line
+ * @param {string} key
+ * @returns {string | undefined}
+ */
+function undeclaredReason(line, key) {
+  const match = line.match(CHECKLIST_LIKE);
+  if (!match) return undefined;
+  if (new RegExp(`^- \\[( |x)\\] ${key}-\\d+`).test(line)) return undefined;
+
+  const [, indent, box, rest] = match;
+  if (indent) return "it is indented";
+  if (box === "X") return "its box is [X], not [x]";
+  const foreignKey = rest.match(LEADING_ID);
+  if (foreignKey && foreignKey[1] !== key) {
+    return `it names ${foreignKey[0]}, not this spec's key ${key}`;
+  }
+  return `it does not start with a ${key}-n id`;
+}
+
+/**
+ * Checklist-shaped lines under `## Acceptance criteria` that declare nothing.
+ *
+ * `checklistItemsIn` only declares the exact `- [ ]`/`- [x] KEY-n` form, so an
+ * indented item, an uppercase `[X]` or a mistyped key used to vanish without a
+ * word — a criterion nobody could see was missing. Each is now a problem naming
+ * the file, the line and why. Fenced examples are skipped.
+ *
+ * @param {SpecCheckSpecInput} spec
+ * @param {string} key
+ * @param {string[]} problems
+ * @returns {void}
+ */
+function undeclaredChecklistLines(spec, key, problems) {
+  let inCriteria = false;
+  let fenced = false;
+  for (const [index, line] of spec.source.split(/\r?\n/).entries()) {
+    if (FENCE.test(line)) {
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced) continue;
+    if (/^##\s/.test(line)) {
+      inCriteria = /^##\s+Acceptance criteria\s*$/.test(line);
+      continue;
+    }
+    if (!inCriteria) continue;
+
+    const reason = undeclaredReason(line, key);
+    if (!reason) continue;
+    problems.push(
+      `${spec.name}:${index + 1} is a checklist line spec:check does not declare: ${reason}. ` +
+        `Write it as "- [ ] ${key}-n · <level> — <statement>", unindented, with a lowercase x when ticked.`,
+    );
+  }
 }
 
 /**
@@ -153,6 +219,8 @@ function parseEnforcedSpec(spec, { key, status }, problems) {
       );
     }
   }
+
+  undeclaredChecklistLines(spec, key, problems);
 
   return { name: spec.name, key, status, declared };
 }

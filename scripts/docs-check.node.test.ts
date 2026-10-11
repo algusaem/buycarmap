@@ -261,6 +261,17 @@ describe("isUnbuiltSpec", () => {
     expect(isUnbuiltSpec("docs/architecture.md", header("Draft"))).toBe(false);
   });
 
+  it.each(["**Implemented**", "Implemented (2026-10-11)"])(
+    "DOCS-13: checks a spec whose Status reads %s, as spec:check enforces it",
+    (status) => {
+      expect(isUnbuiltSpec("docs/specs/alerts.md", header(status))).toBe(false);
+    },
+  );
+
+  it("DOCS-13: skips a bold Status: **Approved** spec", () => {
+    expect(isUnbuiltSpec("docs/specs/alerts.md", header("**Approved**"))).toBe(true);
+  });
+
   it("accepts a Windows path separator, since the walk produces them", () => {
     expect(isUnbuiltSpec("docs\\specs\\alerts.md", header("Draft"))).toBe(true);
   });
@@ -620,4 +631,78 @@ describe("main", () => {
     );
     expect(exit).toHaveBeenCalledWith(1);
   });
+
+  function writeReadmeWithMapUnder(heading: string) {
+    writeFileSync(
+      join(repo, "README.md"),
+      [
+        "# Project",
+        "",
+        `## ${heading}`,
+        "",
+        "| Source | Doc |",
+        "| --- | --- |",
+        "| `lib/**` | [docs/foo.md](docs/foo.md) |",
+        "",
+      ].join("\n"),
+    );
+    execFileSync("git", ["add", "README.md"], { cwd: repo });
+    writeFileSync(join(repo, "docs", "foo.md"), "# Foo\n");
+    addAndTrack("lib/bar.ts", "export {};\n");
+  }
+
+  it("DOCS-12: fails when README.md has no Ownership map section, instead of reading its other tables", async () => {
+    writeReadmeWithMapUnder("Source owners");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error.mock.calls.flat()).toContain("  - README.md has no Ownership map section.");
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("DOCS-12: the same row under an Ownership map heading passes", async () => {
+    writeReadmeWithMapUnder("Ownership map");
+    const log = vi.fn();
+    const error = vi.fn();
+    const exit = vi.fn();
+
+    await main({ cwd: repo, log, error, exit });
+
+    expect(error).not.toHaveBeenCalled();
+    expect(exit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["**Implemented**", true],
+    ["**Approved**", false],
+  ])(
+    "DOCS-13: a spec with Status: %s has its source paths checked: %s",
+    async (status, checked) => {
+      writeReadme();
+      execFileSync("git", ["add", "README.md"], { cwd: repo });
+      writeFileSync(join(repo, "docs", "foo.md"), "# Foo\n");
+      mkdirSync(join(repo, "docs", "specs"), { recursive: true });
+      writeFileSync(
+        join(repo, "docs", "specs", "x.md"),
+        `# X\n\nKey: X\nStatus: ${status}\n\nSee \`lib/missing.ts\`.\n`,
+      );
+      addAndTrack("lib/bar.ts", "export {};\n");
+      const error = vi.fn();
+      const exit = vi.fn();
+
+      await main({ cwd: repo, log: vi.fn(), error, exit });
+
+      expect(
+        error.mock.calls
+          .flat()
+          .includes(
+            "  - docs/specs/x.md refers to `lib/missing.ts`, which does not exist. Was it moved or deleted?",
+          ),
+      ).toBe(checked);
+    },
+  );
 });
