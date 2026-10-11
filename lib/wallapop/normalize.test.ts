@@ -89,6 +89,46 @@ describe("normalizeWallapopItems", () => {
     expect(listing.lng).toBeCloseTo(2.1686, 3);
   });
 
+  it("SRC-3: geocodes Sevilla from the city table when the item has no coordinates", () => {
+    const noCoords = makeWallapopItem({
+      location: {
+        latitude: null,
+        longitude: null,
+        postal_code: "41001",
+        city: "Sevilla",
+        region: "Andalucía",
+        country_code: "ES",
+      },
+    });
+
+    const [listing] = normalizeWallapopItems([noCoords]);
+
+    // Sevilla's entry in lib/geo/cities.ts.
+    expect(listing.lat).toBeCloseTo(37.3891, 3);
+    expect(listing.lng).toBeCloseTo(-5.9845, 3);
+  });
+
+  it("SRC-3: falls back to the shared country centre when neither city nor region resolve (#30)", () => {
+    const unresolvable = makeWallapopItem({
+      location: {
+        latitude: null,
+        longitude: null,
+        postal_code: "00000",
+        city: "Pueblo Inexistente",
+        region: "Región Inexistente",
+        country_code: "ES",
+      },
+    });
+
+    const [listing] = normalizeWallapopItems([unresolvable]);
+
+    // Before #30 this landed on Madrid (40.4168, -3.7038) — the fallback
+    // constant hardcoded in this normalizer — instead of the shared
+    // SPAIN_CENTER (40.0, -3.5) that coches.net and Milanuncios use.
+    expect(listing.lat).toBeCloseTo(40.0, 3);
+    expect(listing.lng).toBeCloseTo(-3.5, 3);
+  });
+
   it("uses the web_slug for the url and falls back to id when absent", () => {
     const [slugged] = normalizeWallapopItems([
       makeWallapopItem({ id: "1", web_slug: "nice-slug" }),

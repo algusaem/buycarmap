@@ -2,7 +2,7 @@
 
 Key: ALERT
 Status: Implemented
-Last updated: 2026-10-09
+Last updated: 2026-10-11
 
 ---
 
@@ -82,10 +82,11 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-47 · node — A poll's matches, seen-list update, `lastPolledAt` and job removal commit together in one transaction opened only after every source has answered; source health is recorded before it, outside the transaction
 - [x] ALERT-48 · node — A poll job left `running` by a worker that died is claimed again once its lease is older than ten minutes: the lost run counts as one failed attempt, and the next drain polls the job as it would a pending one, or marks it failed if that attempt exhausts the retry budget (ALERT-19); a job whose lease is ten minutes old or newer is left to the worker holding it
 - [x] ALERT-49 · node — Two users saving the same new criteria at the same moment both get their alert: the criteria set is stored once, both alerts reference it, and its seen-list is seeded by exactly one seed poll ([#95](https://github.com/algusaem/buycarmap/issues/95))
+- [x] ALERT-50 · component — Switching language from either switcher (the language buttons and the navbar menu) writes the `locale` cookie and calls `setLocale` with the new language, so a signed-in user's stored locale follows the switch (ALERT-33) and a signed-out visitor's stays cookie-only; the switch still happens when `setLocale` fails ([#45](https://github.com/algusaem/buycarmap/issues/45))
 
-Forty-nine criteria: forty-two on the server boundary, four on rendering, one on
+Fifty criteria: forty-two on the server boundary, five on rendering, one on
 the email template, two on real Postgres. Twelve cover the management surface, thirteen
-the queue and cadence, nine discovery, ten delivery, five the UI.
+the queue and cadence, nine discovery, ten delivery, six the UI.
 
 **ALERT-13 and ALERT-14 are the two `e2e` criteria, and they are the ones that
 cannot be faked.** Both are properties of the claim query — its exclusivity and
@@ -115,6 +116,7 @@ than as documentation.
 - **ALERT-47** — A poll of criteria set C returns two new listings; `recordSeen` fails inside the transaction → it rolls back: 0 `AlertMatch` rows from that poll, the seen-set unchanged, `lastPolledAt` unchanged, and the job's catch handler, running outside the transaction, leaves it pending with its backoff rather than deleted. The next poll sees the same two listings as new and produces the same matches exactly once. `recordSourceHealth`, run before the transaction opens, still recorded that run's per-source counts.
 - **ALERT-48** — The clock reads T = 2026-10-11T12:00:00Z when a drain starts; the lease is 10 minutes. Job J (criteria set C) is `running` with `lockedAt` = 11:49:00 (T − 11 min) and `attempts` 0; job K is `running` with `lockedAt` = 11:59:00 (T − 1 min); job M is `running` with `lockedAt` = 11:50:00 (T − 10 min exactly); job L is `running` with `lockedAt` = 11:49:00 and `attempts` 2. The drain → J is claimed with `attempts` 1 and `lockedAt` = T, and polled: the poll succeeds, so J is deleted and C's `lastPolledAt` = T. K and M are not claimed: both stay `running`, `lockedAt` and `attempts` unchanged, and neither is polled. L is not polled: it becomes `failed` with `attempts` 3. The bug this records: before the fix, the claim selected only `pending` jobs and the enqueue upsert left an existing job untouched, so a worker killed between claiming J and deleting it (or rescheduling it in the catch) left J `running` for ever, and C was never polled again ([#94](https://github.com/algusaem/buycarmap/issues/94)).
 - **ALERT-49** — Ada (user-ada) and Grace (user-grace) save criteria C = {brand:"Audi", model:"A3", maxPrice:20000, latitude:40.4168, longitude:-3.7038, distanceInKm:50} (hash h, no `AlertCriteria` row with hash h) at the same moment, as "Ada's search" and "Grace's search"; both saves look h up before either has committed, and both miss; the sources return wallapop-abc123 and cochesnet-99 → both saves return success; exactly 1 `AlertCriteria` row with hash h; 2 `Alert` rows on it, one per user; the seen-list is exactly ["cochesnet-99", "wallapop-abc123"], recorded by one seed poll, run by whichever save created the row; 0 emails. Before this fix, one of the two saves rejected with a unique-constraint error (P2002 on `criteriaHash`) and that user had no alert ([#95](https://github.com/algusaem/buycarmap/issues/95)).
+- **ALERT-50** — Signed-in Ada (user-ada, `users.locale` = "es") switches to English → cookie `locale=en`, `setLocale("en")` called once, and `users.locale` = "en". A signed-out visitor switches to English → cookie `locale=en`, `setLocale("en")` called once and returns `{ ok: true }` without writing anything (ALERT-33's no-op), so no locale is stored. `setLocale` rejects → cookie `locale=en` and the page still refreshes into English, with no toast. The bug this records: before the fix, neither switcher called `setLocale`, so a signed-in user's switch reached only the cookie and alert emails kept whatever locale was backfilled when an alert was created (ALERT-34) ([#45](https://github.com/algusaem/buycarmap/issues/45)).
 
 ## Data model
 
@@ -401,7 +403,9 @@ where the error is a **code**:
 - `deleteAlert(alertId)` — ALERT-4, ALERT-5
 - `deleteAccount(formData)` in `server/account/actions.ts` — ALERT-45, the release of the account's criteria sets
 - `setLocale(locale)` — ALERT-33, in `server/locale/actions.ts`. It no-ops for
-  a signed-out caller, since the cookie already carries the preference for them
+  a signed-out caller, since the cookie already carries the preference for them.
+  `lib/hooks/useLocaleSwitcher.ts` calls it on every switch, signed in or not, and
+  never lets its outcome block or revert the switch (ALERT-50)
 
 Codes in `server/alerts/schema.ts`: `unauthenticated`, `invalidCriteria`,
 `criteriaTooBroad`, `tooManyAlerts`, `unexpected`.

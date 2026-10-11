@@ -25,6 +25,14 @@ export type SearchError = AppError<SearchErrorCode>;
 
 const SEARCH_RATE_LIMIT = { name: "search", limit: 120, windowMs: 60_000 };
 
+// FRONT-28 (docs/specs/core-frontend.md, issue #96): the models list is
+// fetched once per brand change, not once per round, so it sees far less
+// traffic than `searchListings` — a limit at or above `SEARCH_RATE_LIMIT`'s
+// leaves headroom for normal use. Kept equal and on the same window rather
+// than raised further, since there is no measured traffic to size a higher
+// number against and "at or above" is satisfied by matching it.
+const LIST_CAR_MODELS_RATE_LIMIT = { name: "listCarModels", limit: 120, windowMs: 60_000 };
+
 /** A merged model option, the shape `listCarModels` hands back to the client. */
 export interface CarModel {
   id: string;
@@ -63,13 +71,21 @@ export async function searchListings(
 }
 
 /**
- * The merged Wallapop and coches.net models for a make.
+ * The merged Wallapop and coches.net models for a make. Rate-limited per
+ * client IP through `server/rate-limit/service.ts` at 120 calls per minute
+ * (FRONT-28).
  */
 export async function listCarModels(make: string): Promise<Result<CarModel[], SearchError>> {
   return withRequestContext(async () => {
     const parsed = makeSchema.safeParse(make);
     if (!parsed.success) {
       return err({ code: SEARCH_ERROR.invalidInput, messageKey: "searchErrors.invalidInput" });
+    }
+
+    const ip = await getClientIp();
+    const limit = await consumeRateLimit(`listCarModels:${ip}`, LIST_CAR_MODELS_RATE_LIMIT);
+    if (!limit.allowed) {
+      return err({ code: SEARCH_ERROR.rateLimited, messageKey: "searchErrors.rateLimited" });
     }
 
     const models = await fetchModelsForMake(parsed.data);
