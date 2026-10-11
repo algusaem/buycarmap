@@ -78,10 +78,12 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-43 · node — A poll, and the seed poll of a new alert, apply the same post-filter as the map search (MAP-16, MAP-17, MAP-18): when the criteria name a location, a listing outside the radius or pinned at the country-centre fallback, and when they name a model, a listing naming that model in neither its model field nor its title, produces no match, is never emailed, and is not recorded as seen
 - [x] ALERT-44 · node — A poll whose listings are all removed by the post-filter requests no further page from any source, records no match, and still records each source's pre-filter result count for source health (ALERT-20)
 - [x] ALERT-45 · node — Deleting an account deletes, in the same transaction as the user row, every criteria set its alerts referenced — active, inactive or soft-deleted — that no alert references any more, together with its seen-list; a criteria set still referenced by another user's alert, inactive or soft-deleted included, is kept
+- [x] ALERT-46 · node — Creating an alert's criteria record and its alert row commit together or not at all; a failure between them leaves no orphaned criteria row, so the save can be retried and the seed poll still runs
+- [x] ALERT-47 · node — A poll's matches, seen-list update, `lastPolledAt` and job removal commit together in one transaction opened only after every source has answered; source health is recorded before it, outside the transaction
 
-Forty-five criteria: thirty-eight on the server boundary, four on rendering, one on
-the email template, two on real Postgres. Ten cover the management surface, twelve
-the queue and cadence, eight discovery, ten delivery, five the UI.
+Forty-seven criteria: forty on the server boundary, four on rendering, one on
+the email template, two on real Postgres. Eleven cover the management surface, twelve
+the queue and cadence, nine discovery, ten delivery, five the UI.
 
 **ALERT-13 and ALERT-14 are the two `e2e` criteria, and they are the ones that
 cannot be faked.** Both are properties of the claim query — its exclusivity and
@@ -107,6 +109,8 @@ than as documentation.
 - **ALERT-43** — Criteria brand "BMW", model "Serie 3", centre Madrid (40.4168, −3.7038), radius 100 km; empty seen-set; the poll returns wallapop-wp-near (Alcalá de Henares 40.4818, −3.3643, model "Serie 3"), cochesnet-cn-far (Barcelona 41.3874, 2.1686, model "Serie 3"), milanuncios-mn-fallback (pinned at the Spain centre 40.0, −3.5, title "BMW Serie 3 320d") and cochesnet-cn-wrong-model (Getafe 40.3057, −3.7329, model "Serie 5", title "BMW Serie 5 530d") → matches exactly ["wallapop-wp-near"], seen-set exactly ["wallapop-wp-near"]; a second poll returning the same four listings → 0 new matches, seen-set unchanged. The seed poll of a new alert with the same criteria and the same four listings → seen-set exactly ["wallapop-wp-near"], 0 matches.
 - **ALERT-44** — Criteria brand "BMW", centre Madrid (40.4168, −3.7038), radius 100 km; Wallapop returns [], coches.net returns cochesnet-cn-bcn-1 and cochesnet-cn-bcn-2 (both Barcelona 41.3874, 2.1686) with more pages available, Milanuncios returns [] → exactly one request per source, 0 matches, seen-set unchanged, per-source counts { Wallapop: 0, Coches.net: 2, Milanuncios: 0 }, and `SourceHealth` for Coches.net has `consecutiveEmptyRuns` 0 and `lastOkAt` set to the run time.
 - **ALERT-45** — Ada (user-ada) and Grace (user-grace) each have one alert on the same criteria set C = {brand:"Audi", model:"A3", maxPrice:20000, latitude:40.4168, longitude:-3.7038, distanceInKm:50}, and C has 2 seen listings. Ada calls deleteAccount → success: true; Ada's alert is gone, C and its 2 seen rows remain, Grace still has 1 alert on C. Grace then calls deleteAccount → success: true; 0 criteria rows, 0 seen rows. Ada's only alert on C is inactive (active=false) and nobody else watches C; she deletes her account → C and its seen rows are gone. Grace's alert on C was soft-deleted 5 days ago; Ada deletes her account → C stays, until the purge removes Grace's alert (ALERT-42). The bug this records: before the fix, the sole subscriber deleting her account left C — coordinates included — and its seen rows in the database ([#21](https://github.com/algusaem/buycarmap/issues/21)).
+- **ALERT-46** — Ada saves new criteria C (hash h, no existing `AlertCriteria` row) as "Ada's search"; `alert.upsert` fails once right after `alertCriteria.create` → the transaction rolls back, 0 `AlertCriteria` rows with hash h, 0 alerts. Ada retries the same save → one `AlertCriteria` row and one `Alert` row exist, and the seed poll records every currently-matching listing as seen without emailing anything. Before this fix, the failed attempt left an `AlertCriteria` row with no `Alert`; a retry found the criteria already present, skipped the seed, and the first real poll emailed every currently-matching listing (against ALERT-2).
+- **ALERT-47** — A poll of criteria set C returns two new listings; `recordSeen` fails inside the transaction → it rolls back: 0 `AlertMatch` rows from that poll, the seen-set unchanged, `lastPolledAt` unchanged, and the job's catch handler, running outside the transaction, leaves it pending with its backoff rather than deleted. The next poll sees the same two listings as new and produces the same matches exactly once. `recordSourceHealth`, run before the transaction opens, still recorded that run's per-source counts.
 
 ## Data model
 
@@ -775,6 +779,14 @@ Three consequences, decided deliberately:
 
 Matches recorded before this rule existed are not revisited: the filter
 applies at discovery, and the delivery drain sends what discovery recorded.
+
+### Not every multi-write path is made transactional
+
+`deleteAlertForUser`'s second write — releasing a criteria set nobody else
+references — is left as-is: DATA-10/DATA-12 count a soft-deleted alert as
+still referencing its criteria, so in the normal flow that write never has
+anything left to release in the same call (`server/alerts/actions.integration.test.ts:293`),
+and there is nothing to make atomic with it.
 
 ## Open questions
 

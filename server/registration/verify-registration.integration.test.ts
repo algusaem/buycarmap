@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { auth } from "@/lib/auth/auth";
+import { hashPassword } from "@/lib/auth/hash";
 import { hashToken } from "@/lib/auth/tokens";
 import { createPendingRegistration } from "@/test/factories/auth-tokens";
+import { arrangeNextTransaction } from "@/test/utils/transaction";
 
 vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/server/rate-limit/service")>()),
@@ -24,13 +28,20 @@ function formData(fields: Record<string, string>): FormData {
   return fd;
 }
 
-async function seedPending(overrides: { expiresAt?: Date } = {}) {
+async function seedPending(overrides: { expiresAt?: Date; password?: string } = {}) {
   return createPendingRegistration({
     email: "ada@example.com",
-    password: "already-bcrypt-hashed",
+    password: overrides.password ?? "already-bcrypt-hashed",
     name: "Ada",
     tokenHash: hashToken(RAW_TOKEN),
     expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+  });
+}
+
+function uniqueViolation() {
+  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+    code: "P2002",
+    clientVersion: "test",
   });
 }
 
@@ -143,13 +154,9 @@ describe("verifyRegistration account creation", () => {
 
   it("treats an address claimed in the meantime as already done", async () => {
     await seedPending();
-    const { Prisma } = await import("@/app/generated/prisma/client");
-    vi.spyOn(prisma.user, "create").mockRejectedValueOnce(
-      new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
-        code: "P2002",
-        clientVersion: "test",
-      }),
-    );
+    arrangeNextTransaction((tx) => {
+      vi.spyOn(tx.user, "create").mockRejectedValueOnce(uniqueViolation());
+    });
 
     // Whoever holds this mailbox can sign in either way, so surfacing an error
     // would only confuse them.
@@ -162,7 +169,9 @@ describe("verifyRegistration account creation", () => {
 
   it("returns a generic failure on an unexpected DB error, leaving the token", async () => {
     await seedPending();
-    vi.spyOn(prisma.user, "create").mockRejectedValueOnce(new Error("connection lost"));
+    arrangeNextTransaction((tx) => {
+      vi.spyOn(tx.user, "create").mockRejectedValueOnce(new Error("connection lost"));
+    });
 
     expect(await verifyRegistration(formData({ token: RAW_TOKEN }))).toEqual({
       success: false,
@@ -203,5 +212,37 @@ describe("BAUTH-7: confirming a registration creates a credential account and a 
     `;
 
     expect(sessions.length).toBeGreaterThan(0);
+  });
+});
+
+// AUTH-16 (docs/specs/auth-email-and-oauth.md): the user and its credential
+// account commit together or not at all.
+describe("AUTH-16: confirming a registration is all-or-nothing", () => {
+  it("AUTH-16: a failure between the user and its credential account leaves neither, and the same link then works", async () => {
+    await seedPending({ password: await hashPassword("harbour-lentil-quilt") });
+    arrangeNextTransaction((tx) => {
+      vi.spyOn(tx.account, "create").mockRejectedValueOnce(new Error("connection lost"));
+    });
+
+    expect(await verifyRegistration(formData({ token: RAW_TOKEN }))).toEqual({
+      success: false,
+      error: "generic",
+    });
+    expect(await prisma.user.count({ where: { email: "ada@example.com" } })).toBe(0);
+    expect(await prisma.pendingRegistration.count({ where: { email: "ada@example.com" } })).toBe(1);
+
+    expect(await verifyRegistration(formData({ token: RAW_TOKEN }))).toEqual({
+      success: true,
+      email: "ada@example.com",
+    });
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: "ada@example.com" } });
+    expect(await prisma.account.count({ where: { userId: user.id, provider: "credential" } })).toBe(
+      1,
+    );
+
+    const signedIn = await auth.api.signInEmail({
+      body: { email: "ada@example.com", password: "harbour-lentil-quilt" },
+    });
+    expect(signedIn.user.id).toBe(user.id);
   });
 });

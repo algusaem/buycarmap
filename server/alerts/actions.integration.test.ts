@@ -4,6 +4,7 @@ import { createUser } from "@/test/factories/user";
 import { makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
 import type { AppError, Result } from "@/lib/result";
 import type { AlertErrorCode } from "./schema";
+import { arrangeNextTransaction } from "@/test/utils/transaction";
 
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/lib/platform/email", () => ({ sendEmail: vi.fn(async () => true) }));
@@ -19,6 +20,7 @@ import { sendEmail } from "@/lib/platform/email";
 import { getLocale } from "next-intl/server";
 import { searchAllSources } from "@/server/alerts/search";
 import { purgeSoftDeletedRows } from "@/server/retention/service";
+import { hashCriteria, runAlerts } from "@/server/alerts/service";
 import { createAlert, deleteAlert } from "./actions";
 
 const THIRTY_ONE_DAYS_MS = 31 * 24 * 60 * 60 * 1000;
@@ -278,6 +280,40 @@ describe("createAlert", () => {
 
     const found = await prisma.user.findUnique({ where: { id: spanishUser.id } });
     expect(found?.locale).toBe("es");
+  });
+
+  it("ALERT-46: a failure between the criteria row and the alert row leaves neither, and the retry still seeds", async () => {
+    signedInAs(ADA);
+    sourcesReturn(
+      makeMatchListing({ id: "wallapop-abc123" }),
+      makeMatchListing({ id: "cochesnet-99", source: "Coches.net" }),
+    );
+    const criteriaHash = hashCriteria(makeCriteria());
+    arrangeNextTransaction((tx) => {
+      vi.spyOn(tx.alert, "upsert").mockRejectedValueOnce(new Error("connection lost"));
+    });
+
+    await expect(createAlert(makeCriteria(), "Ada's search")).rejects.toThrow("connection lost");
+    expect(await prisma.alertCriteria.count({ where: { criteriaHash } })).toBe(0);
+    expect(await prisma.alert.count()).toBe(0);
+
+    expect(await createAlert(makeCriteria(), "Ada's search")).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    const criteria = await prisma.alertCriteria.findMany({ where: { criteriaHash } });
+    expect(criteria).toHaveLength(1);
+    expect(await alertsFor(ADA.id)).toHaveLength(1);
+    expect((await seenFor(criteria[0].id)).map((row) => row.listingId).sort()).toEqual([
+      "cochesnet-99",
+      "wallapop-abc123",
+    ]);
+
+    // The first real poll finds the same listings already seen.
+    await runAlerts(new Date());
+
+    expect(await prisma.alertMatch.count()).toBe(0);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });
 

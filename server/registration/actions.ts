@@ -136,14 +136,12 @@ export async function verifyRegistration(formData: FormData): Promise<VerifyRegi
     return { success: false, error: AUTH_ERROR.tokenInvalid };
   }
 
+  // Consumes this token and any sibling attempts on the same address.
   const createError = await createUserFromPendingRegistration(pending);
 
   if (createError) {
     return { success: false, error: createError };
   }
-
-  // Consume this token and any sibling attempts on the same address.
-  await deletePendingRegistrations(pending.email);
 
   return { success: true, email: pending.email };
 }

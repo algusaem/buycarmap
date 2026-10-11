@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { hashToken } from "@/lib/auth/tokens";
 import { createUser } from "@/test/factories/user";
+import { arrangeNextTransaction } from "@/test/utils/transaction";
 
 vi.mock("@/lib/auth/hash", () => ({
   hashPassword: vi.fn(async (p: string) => `hashed:${p}`),
@@ -258,13 +260,14 @@ describe("register without email configured (fallback)", () => {
   });
 
   it("maps a unique-constraint race (P2002) to the same taken-address error", async () => {
-    const { Prisma } = await import("@/app/generated/prisma/client");
-    vi.spyOn(prisma.user, "create").mockRejectedValueOnce(
-      new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
-        code: "P2002",
-        clientVersion: "test",
-      }),
-    );
+    arrangeNextTransaction((tx) => {
+      vi.spyOn(tx.user, "create").mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+          code: "P2002",
+          clientVersion: "test",
+        }),
+      );
+    });
 
     expect(await register(formData(valid))).toEqual({
       success: false,
@@ -273,12 +276,29 @@ describe("register without email configured (fallback)", () => {
   });
 
   it("returns a generic failure on an unexpected DB error", async () => {
-    vi.spyOn(prisma.user, "create").mockRejectedValueOnce(new Error("connection lost"));
+    arrangeNextTransaction((tx) => {
+      vi.spyOn(tx.user, "create").mockRejectedValueOnce(new Error("connection lost"));
+    });
 
     // No detail escapes, so internals stay unexposed.
     expect(await register(formData(valid))).toEqual({
       success: false,
       error: "generic",
     });
+  });
+
+  it("AUTH-16: a failure between the user and its credential account leaves neither, and the address can register again", async () => {
+    arrangeNextTransaction((tx) => {
+      vi.spyOn(tx.account, "create").mockRejectedValueOnce(new Error("connection lost"));
+    });
+
+    expect(await register(formData(valid))).toEqual({ success: false, error: "generic" });
+    expect(await prisma.user.count({ where: { email: valid.email } })).toBe(0);
+
+    expect(await register(formData(valid))).toEqual({ success: true, pending: false });
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: valid.email } });
+    expect(await prisma.account.count({ where: { userId: user.id, provider: "credential" } })).toBe(
+      1,
+    );
   });
 });
