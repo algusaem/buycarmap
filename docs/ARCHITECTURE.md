@@ -782,7 +782,7 @@ never `transition: all`. Honour `prefers-reduced-motion`.
 
 The app root sets `MotionConfig reducedMotion="user"` in `components/ThemeProvider.tsx`,
 the client boundary that already wraps every page, so this applies everywhere
-(FRONT-28, [`docs/specs/core-frontend.md`](specs/core-frontend.md)).
+(FRONT-29, [`docs/specs/core-frontend.md`](specs/core-frontend.md)).
 
 `dropdownReveal` (fade with a 4 px vertical offset in and out, `duration.fast`)
 and `crossFade` (fade, `duration.fast`) are the owner-approved presets for
