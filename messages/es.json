@@ -317,32 +317,32 @@
     },
     "privacy": {
       "title": "Política de privacidad",
-      "updated": "7 de julio de 2026",
+      "updated": "11 de octubre de 2026",
       "intro": "Esta política explica qué datos recopila BuyCarMap, por qué y qué puedes hacer al respecto. Intentamos recopilar los mínimos posibles.",
       "sections": [
         {
           "heading": "Información que recopilamos",
-          "body": "Si creas una cuenta, guardamos tu correo electrónico, un nombre opcional y una contraseña cifrada de forma segura, nunca la contraseña en sí. Cuando has iniciado sesión, guardamos tus búsquedas para que puedas volver a ellas. También procesamos datos técnicos básicos necesarios para ofrecer la aplicación."
+          "body": "Si creas una cuenta, guardamos tu correo electrónico, un nombre opcional y una contraseña cifrada de forma segura, nunca la contraseña en sí. Si inicias sesión con Google o GitHub, guardamos el identificador de esa cuenta, los tokens de inicio de sesión que emite y la dirección de tu foto de perfil. Si activas la verificación en dos pasos, guardamos su clave secreta cifrada. También guardamos los anuncios que marcas como favoritos, las alertas que creas con sus criterios de búsqueda (incluida la ubicación que elijas), tu idioma para enviarte los correos en él y, por cada sesión iniciada, la dirección IP y el navegador desde los que se abrió, para que puedas ver y cerrar tus sesiones desde la página de tu cuenta. No guardamos un historial de tus búsquedas. Para proteger el servicio frente a abusos, tratamos tu dirección IP y, cuando inicias sesión o pides restablecer la contraseña, tu correo electrónico."
         },
         {
           "heading": "Cómo usamos tus datos",
-          "body": "Usamos tus datos para prestar el servicio: autenticarte, mantener tu sesión, guardar tus búsquedas y mejorar el funcionamiento de BuyCarMap. No vendemos tus datos personales."
+          "body": "Usamos tus datos para prestar el servicio: autenticarte, mantener tu sesión, conservar tus favoritos y alertas, enviarte los correos de la cuenta y de las alertas, proteger el servicio frente a abusos y mejorar el funcionamiento de BuyCarMap. No vendemos tus datos personales."
         },
         {
           "heading": "Ubicación",
-          "body": "Para centrar el mapa en ti, podemos pedir tu ubicación al navegador. Solo se usa para ordenar los resultados y no se almacena en nuestros servidores salvo que guardes expresamente una ubicación dentro de una búsqueda. Puedes rechazarlo y usaremos una región por defecto."
+          "body": "Para centrar el mapa en ti, podemos pedir a tu navegador tu ubicación. Se usa para centrar el mapa y buscar cerca de ti, así que nuestro servidor envía sus coordenadas a Wallapop junto con tu búsqueda. Nunca se guarda en nuestros servidores salvo que la guardes como parte de una alerta. Puedes no permitirlo y usaremos el centro de España."
         },
         {
           "heading": "Cookies",
-          "body": "Usamos un número reducido de cookies solo para funciones esenciales: mantener tu sesión y recordar tus preferencias de idioma y tema. No usamos cookies publicitarias."
+          "body": "Usamos solo las cookies que la aplicación necesita para funcionar: una que mantiene tu sesión; mientras inicias sesión, otra de corta duración para el paso de verificación en dos pasos (10 minutos) o para entrar con Google o GitHub (5 minutos); y dos que recuerdan tu idioma y tu zona horaria durante un año. El tema que eliges se guarda en el almacenamiento local de tu navegador, no en una cookie. No usamos cookies publicitarias ni de analítica."
         },
         {
           "heading": "Servicios de terceros",
-          "body": "Para mostrar anuncios y mapas contactamos con proveedores externos, como Wallapop, coches.net y Milanuncios (anuncios), OpenStreetMap / Nominatim (geocodificación), CARTO (teselas del mapa) y Neon (alojamiento de la base de datos). El tratamiento que hagan de los datos se rige por sus propias políticas de privacidad."
+          "body": "Nos apoyamos en estos proveedores externos, y cada uno recibe solo lo que necesita: Neon (alojamiento de la base de datos) almacena todo lo que guardamos; Vercel (alojamiento) recibe cada petición, incluida tu dirección IP; Resend (envío de correo) recibe tu correo electrónico y el contenido de los correos que te enviamos; Google y GitHub (inicio de sesión) reciben tu solicitud de acceso, solo si decides entrar con ellos; Have I Been Pwned (comprobación de contraseñas filtradas) recibe los cinco primeros caracteres de un hash irreversible de una contraseña nueva, nunca la contraseña; Upstash (protección frente a abusos) recibe tu dirección IP y un hash irreversible de tu correo electrónico, que se conservan como máximo una hora; Sentry (informes de errores) recibe datos técnicos de los errores, sin cookies, sin tu dirección IP y sin datos de tu cuenta; OpenStreetMap / Nominatim (búsqueda de lugares) recibe el lugar que escribes, directamente desde tu navegador; CARTO (teselas del mapa) recibe las peticiones de teselas directamente desde tu navegador, que revelan la zona que estás viendo; Wallapop (anuncios) recibe tus filtros de búsqueda y las coordenadas de la búsqueda: la ubicación que elegiste, la posición de tu navegador o el centro de España; coches.net y Milanuncios (anuncios) reciben tus filtros de búsqueda. Las peticiones a Wallapop, coches.net y Milanuncios las hace nuestro servidor, así que ven su dirección, no la tuya. El tratamiento que hagan de los datos se rige por sus propias políticas de privacidad."
         },
         {
           "heading": "Conservación de datos",
-          "body": "Conservamos los datos de cuenta y de búsqueda mientras tu cuenta esté activa. Cuando eliminas tu cuenta, los datos asociados se eliminan."
+          "body": "Conservamos los datos de tu cuenta, tus favoritos y tus alertas mientras tu cuenta esté activa. Un favorito o una alerta que eliminas se borra 30 días después. Cuando eliminas tu cuenta, sus datos se borran en ese momento, salvo los criterios de búsqueda de una alerta que también usa la alerta de otro usuario: se conservan, ya sin vínculo contigo, hasta que ninguna alerta los use. Las altas pendientes de confirmar, los enlaces de restablecimiento y de confirmación y los registros de protección frente a abusos se borran después de caducar."
         },
         {
           "heading": "Tus derechos",

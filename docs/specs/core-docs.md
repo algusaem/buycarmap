@@ -87,7 +87,7 @@ this diff.
   - There is no account data export (`RULES.md` §12).
   - `AlertCriteria` rows, which can hold the user's coordinates, survive account deletion.
   - The in-app privacy page (`lib/i18n/locales/*.ts`) does not list Resend, Vercel, Google, GitHub
-    or Have I Been Pwned.
+    or Have I Been Pwned. Moved to FRONT-27 (`docs/specs/core-frontend.md`), against `messages/*.json`.
   - `SearchHistory` is never written.
 - `docs/operations/staging.md` belongs to phase 12. There is no staging environment until then
   (ADR 0007 row 26).

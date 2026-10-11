@@ -27,9 +27,8 @@ official docs or a legal notice for the rest.
 
 Cloudinary, which `STACK.md` §12 lists, is not used by this project.
 
-The upstream marketplaces are reached through this app's proxy routes, so they
+The upstream marketplaces are requested by this app's server (Server Actions), so they
 see the server's address, not the user's.
 
-**The in-app privacy page is incomplete.** It does not list Resend, Vercel,
-Google, GitHub or Have I Been Pwned
-([#22](https://github.com/algusaem/buycarmap/issues/22)).
+**The in-app privacy page's processor list** is specified by FRONT-27
+(`docs/specs/core-frontend.md`), against `messages/en.json` and `messages/es.json`.

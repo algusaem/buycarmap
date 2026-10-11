@@ -18,9 +18,13 @@ Everything downstream — the list, the map, the filters, favorites — assumes 
 listing shape and one filter set. Something has to absorb the difference, and
 absorb it without letting one flaky upstream take the page down with it.
 
+In production, Milanuncios answers 405 to requests from Vercel, so it
+contributes no listings there ([#52](https://github.com/algusaem/buycarmap/issues/52)); the code and its tests stay.
+
 In scope: translating the shared filter set into each source's dialect,
-mapping each source's results back into `CarListing`, the proxy routes that make
-the upstreams reachable at all, and how failures at each boundary behave.
+mapping each source's results back into `CarListing`, the server-side search
+that makes the upstreams reachable at all (ADR 0016), and how failures at each
+boundary behave.
 
 ## Acceptance criteria
 
@@ -532,6 +536,11 @@ That is the right trade-off for a scraper, but it has a cost worth knowing:
 **Milanuncios going quietly empty looks identical to Milanuncios having no
 matches.** The contract test is what distinguishes them.
 
+**In production, this source answers 405 to requests from Vercel**, so it
+contributes no listings there ([#52](https://github.com/algusaem/buycarmap/issues/52)). The code and its tests stay: this
+section's contract is what the local and contract tests exercise, and the bot
+protection above is the likely cause.
+
 ## Decisions and rationale
 
 ### About this spec
@@ -542,14 +551,14 @@ matches.** The contract test is what distinguishes them.
 > found four gaps rather than the dozen Wave A produced, and two of them are
 > defects. See Open questions.
 
-### Everything goes through a proxy route, and that is not optional
+### Everything goes through the server-side search, and that is not optional
 
 The browser cannot call any of these APIs. Wallapop's CloudFront blocks
 cross-origin requests outright, and it returns 403 without the `x-deviceos: 0`
 and `x-appversion: 85000` headers — values discovered by inspection, with no
 documentation behind them. coches.net needs `X-Schibsted-Tenant: coches`.
-Milanuncios has no API at all: the proxy fetches an HTML page and extracts the
-JSON the server embedded in it.
+Milanuncios has no API at all: the server-side search (ADR 0016) fetches an
+HTML page and extracts the JSON the server embedded in it.
 
 Putting these in the browser would also publish the header values to anyone who
 opened devtools, which is the fastest way to get them invalidated.
