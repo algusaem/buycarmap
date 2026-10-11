@@ -91,8 +91,12 @@ export function hashCriteria(criteria: SearchInput): string {
 // --- Subscriptions (the actions in ./actions.ts) -----------------------------
 
 /** Records listings as already seen for a criteria set, so they are never new again. */
-async function recordSeen(criteriaId: AlertCriteriaId, listings: CarListing[]): Promise<void> {
-  await prisma.alertSeenListing.createMany({
+async function recordSeen(
+  criteriaId: AlertCriteriaId,
+  listings: CarListing[],
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> {
+  await db.alertSeenListing.createMany({
     data: listings.map((listing) => ({
       criteriaId,
       listingId: listing.id,
@@ -140,17 +144,6 @@ export async function createAlertForUser(
     return ALERT_ERROR.tooManyAlerts;
   }
 
-  let criteriaRow = await prisma.alertCriteria.findUnique({
-    where: { criteriaHash },
-  });
-  const criteriaIsNew = !criteriaRow;
-  if (!criteriaRow) {
-    criteriaRow = await prisma.alertCriteria.create({
-      data: { criteriaHash, criteria },
-    });
-  }
-  const criteriaId = asAlertCriteriaId(criteriaRow.id);
-
   // An explicit id, because the unsubscribe token is an HMAC over it and the
   // row needs the hash at insert time — and because `unsubscribeSubject`
   // needs it too (docs/decisions/0015-data-model-conventions.md). Generated
@@ -159,29 +152,49 @@ export async function createAlertForUser(
   const alertId = uuidv7();
   const unsubscribeTokenHash = hashUnsubscribeToken(unsubscribeTokenFor(alertId));
 
-  // DATA-11: upsert rather than create-and-catch — a row this user already
-  // has (live or soft-deleted) is matched by the same unique key regardless
-  // of `deletedAt`, so the `update` branch restores a deleted one (clearing
-  // `deletedAt`, bumping `version`) exactly as saving over a soft-deleted
-  // favorite does.
-  await prisma.alert.upsert({
-    where: { userId_criteriaId: { ...ownedBy({ id: userId }), criteriaId } },
-    create: {
-      id: alertId,
-      userId,
-      criteriaId,
-      label,
-      active: true,
-      unsubscribeTokenHash,
-      unsubscribeSubject: alertId,
-      createdById: userId,
-    },
-    update: { deletedAt: null, version: { increment: 1 }, updatedById: userId },
+  // ALERT-46: the criteria row and the alert row commit together. A criteria
+  // row left behind by a failed save would make the retry treat it as
+  // existing and skip the seed, so the first real poll would email every
+  // listing already there.
+  const { criteriaId, criteriaIsNew } = await prisma.$transaction(async (tx) => {
+    let criteriaRow = await tx.alertCriteria.findUnique({
+      where: { criteriaHash },
+    });
+    const isNew = !criteriaRow;
+    if (!criteriaRow) {
+      criteriaRow = await tx.alertCriteria.create({
+        data: { criteriaHash, criteria },
+      });
+    }
+    const id = asAlertCriteriaId(criteriaRow.id);
+
+    // DATA-11: upsert rather than create-and-catch — a row this user already
+    // has (live or soft-deleted) is matched by the same unique key regardless
+    // of `deletedAt`, so the `update` branch restores a deleted one (clearing
+    // `deletedAt`, bumping `version`) exactly as saving over a soft-deleted
+    // favorite does.
+    await tx.alert.upsert({
+      where: { userId_criteriaId: { ...ownedBy({ id: userId }), criteriaId: id } },
+      create: {
+        id: alertId,
+        userId,
+        criteriaId: id,
+        label,
+        active: true,
+        unsubscribeTokenHash,
+        unsubscribeSubject: alertId,
+        createdById: userId,
+      },
+      update: { deletedAt: null, version: { increment: 1 }, updatedById: userId },
+    });
+
+    return { criteriaId: id, criteriaIsNew: isNew };
   });
 
   // Only when the criteria set is new: an existing one already has a
   // seen-list, and re-seeding would spend three upstream requests to learn
-  // what is already recorded.
+  // what is already recorded. After the commit, never inside it: the seed is
+  // network I/O.
   if (criteriaIsNew) {
     await seedSeenListings(criteriaId, criteria);
   }
@@ -482,31 +495,44 @@ async function pollOne(jobId: AlertPollJobId, now: Date, summary: RunSummary): P
 
   try {
     const result = await searchAllSources(criteria);
+    // Outside the transaction below: a run's source health is true whether or
+    // not recording its matches succeeds.
     await recordSourceHealth(result.perSourceCounts, now);
-
-    const seen = await prisma.alertSeenListing.findMany({
-      where: { criteriaId },
-    });
-    const seenIds = new Set(seen.map((row) => row.listingId));
 
     // A source that failed contributes nothing. If it were treated as polled,
     // listings that appeared there during the outage would never be new again.
     const usable = result.listings.filter(
       (listing) => !result.failedSources.includes(listing.source),
     );
-    const fresh = usable.filter((listing) => !seenIds.has(listing.id));
 
-    if (fresh.length > 0) {
-      await createMatches(criteriaId, fresh, summary);
-      await recordSeen(criteriaId, fresh);
-    }
+    // ALERT-47: opened only once every source has answered, so no network I/O
+    // runs inside it. Matches, the seen-list, `lastPolledAt` and the job's
+    // removal commit together; a failure rolls all four back and the catch
+    // below reschedules the job, so the next poll finds the same listings new.
+    const matched = await prisma.$transaction(async (tx) => {
+      const seen = await tx.alertSeenListing.findMany({
+        where: { criteriaId },
+      });
+      const seenIds = new Set(seen.map((row) => row.listingId));
+      const fresh = usable.filter((listing) => !seenIds.has(listing.id));
 
-    await prisma.alertCriteria.update({
-      where: { id: criteriaId },
-      data: { lastPolledAt: now },
+      let created = 0;
+      if (fresh.length > 0) {
+        created = await createMatches(criteriaId, fresh, tx);
+        await recordSeen(criteriaId, fresh, tx);
+      }
+
+      await tx.alertCriteria.update({
+        where: { id: criteriaId },
+        data: { lastPolledAt: now },
+      });
+      // Success removes the row; the next enqueue recreates it.
+      await tx.alertPollJob.delete({ where: { id: jobId } });
+      return created;
     });
-    // Success removes the row; the next enqueue recreates it.
-    await prisma.alertPollJob.delete({ where: { id: jobId } });
+
+    // Counted after the commit, so a rolled-back poll reports no matches.
+    summary.matched += matched;
     summary.polled += 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -533,17 +559,20 @@ async function pollOne(jobId: AlertPollJobId, now: Date, summary: RunSummary): P
   }
 }
 
-/** Fans one poll out to every active subscriber, in the database. */
+/**
+ * Fans one poll out to every active subscriber, in the database. Returns how
+ * many matches were created.
+ */
 async function createMatches(
   criteriaId: AlertCriteriaId,
   listings: CarListing[],
-  summary: RunSummary,
-): Promise<void> {
+  db: Prisma.TransactionClient = prisma,
+): Promise<number> {
   // Soft-deleted subscribers (DATA-10) are not notified.
-  const subscribers = await prisma.alert.findMany({
+  const subscribers = await db.alert.findMany({
     where: { criteriaId, active: true, ...notDeleted },
   });
-  if (subscribers.length === 0) return;
+  if (subscribers.length === 0) return 0;
 
   const rows = subscribers.flatMap((alert) =>
     listings.map(({ id, ...snapshot }) => ({
@@ -554,11 +583,11 @@ async function createMatches(
     })),
   );
 
-  const { count } = await prisma.alertMatch.createMany({
+  const { count } = await db.alertMatch.createMany({
     data: rows,
     skipDuplicates: true,
   });
-  summary.matched += count;
+  return count;
 }
 
 /**

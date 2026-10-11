@@ -39,8 +39,11 @@ export async function findUserByEmail(email: string) {
 }
 
 /** Removes every pending signup for an address. */
-export async function deletePendingRegistrations(email: string): Promise<void> {
-  await prisma.pendingRegistration.deleteMany({ where: { email } });
+export async function deletePendingRegistrations(
+  email: string,
+  db: Prisma.TransactionClient = prisma,
+): Promise<void> {
+  await db.pendingRegistration.deleteMany({ where: { email } });
 }
 
 // Tells the owner of the address that someone tried to sign up with it.
@@ -114,21 +117,25 @@ export async function registerWithoutEmail(
   }
 
   try {
-    const user = await prisma.user.create({
-      data: { email, password: hashedPassword, name },
-    });
+    // AUTH-16: one transaction, so a failure between the two writes leaves no
+    // user without its credential account — the address stays free to retry.
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: { email, password: hashedPassword, name },
+      });
 
-    // BAUTH-7/BAUTH-14: the credential account Better Auth's own sign-in
-    // looks up — the caller (RegisterForm.tsx) signs in immediately after a
-    // success with `authClient.signIn.email`, which needs this row to exist.
-    await prisma.account.create({
-      data: {
-        userId: user.id,
-        provider: "credential",
-        providerAccountId: user.id,
-        type: "credential",
-        password: hashedPassword,
-      },
+      // BAUTH-7/BAUTH-14: the credential account Better Auth's own sign-in
+      // looks up — the caller (RegisterForm.tsx) signs in immediately after a
+      // success with `authClient.signIn.email`, which needs this row to exist.
+      await tx.account.create({
+        data: {
+          userId: user.id,
+          provider: "credential",
+          providerAccountId: user.id,
+          type: "credential",
+          password: hashedPassword,
+        },
+      });
     });
   } catch (error) {
     // The check above is not atomic: the DB's unique index is the real guard.
@@ -154,9 +161,9 @@ interface ConfirmedRegistration {
 }
 
 /**
- * Creates the credential account a confirmed signup describes. Returns the
- * error code to report, or null — including when the address already has an
- * account.
+ * Creates the credential account a confirmed signup describes and consumes
+ * every pending signup for the address. Returns the error code to report, or
+ * null — including when the address already has an account.
  */
 export async function createUserFromPendingRegistration(
   pending: ConfirmedRegistration,
@@ -164,31 +171,41 @@ export async function createUserFromPendingRegistration(
   let userId: UserId;
 
   try {
-    const user = await prisma.user.create({
-      data: {
-        email: pending.email,
-        // Already bcrypt-hashed at submit time, so confirmation never has to
-        // ask for the password again.
-        password: pending.password,
-        name: pending.name,
-        // Redeeming this link *is* the proof of address ownership.
-        emailVerified: new Date(),
-        emailConfirmed: true,
-      },
-    });
-    userId = asUserId(user.id);
+    // AUTH-16: the user, its credential account and the consumed signup
+    // commit together. A failure part-way leaves no user without a
+    // credential row, and the pending signup survives so the link still works.
+    userId = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: pending.email,
+          // Already bcrypt-hashed at submit time, so confirmation never has to
+          // ask for the password again.
+          password: pending.password,
+          name: pending.name,
+          // Redeeming this link *is* the proof of address ownership.
+          emailVerified: new Date(),
+          emailConfirmed: true,
+        },
+      });
+      const createdId = asUserId(user.id);
 
-    // BAUTH-7/BAUTH-14: the credential account Better Auth's own sign-in
-    // looks up — `User.password` above is kept only for the old code reading
-    // it directly, not for Better Auth, which never reads it.
-    await prisma.account.create({
-      data: {
-        userId,
-        provider: "credential",
-        providerAccountId: userId,
-        type: "credential",
-        password: pending.password,
-      },
+      // BAUTH-7/BAUTH-14: the credential account Better Auth's own sign-in
+      // looks up — `User.password` above is kept only for the old code reading
+      // it directly, not for Better Auth, which never reads it.
+      await tx.account.create({
+        data: {
+          userId: createdId,
+          provider: "credential",
+          providerAccountId: createdId,
+          type: "credential",
+          password: pending.password,
+        },
+      });
+
+      // Consume this token and any sibling attempts on the same address.
+      await deletePendingRegistrations(pending.email, tx);
+
+      return createdId;
     });
   } catch (error) {
     // The address was claimed between submit and confirmation — either by a
@@ -202,12 +219,15 @@ export async function createUserFromPendingRegistration(
       return AUTH_ERROR.generic;
     }
 
+    // The duplicate rolled the transaction back, consumed signups included.
+    await deletePendingRegistrations(pending.email);
     return null;
   }
 
   // BAUTH-7: confirming the link signs the new user in, the same as any
-  // other fresh sign-in. The session row itself always gets created; only
-  // setting its cookie needs a real request — `cookies()` throws outside one
+  // other fresh sign-in, once the account above has committed. The session
+  // row itself always gets created; only setting its cookie needs a real
+  // request — `cookies()` throws outside one
   // (a script, or a test calling this action directly rather than through an
   // actual request), the same reason server/auth/service.ts's
   // `maybePruneExpiredAuthRows` falls back around `after()`.

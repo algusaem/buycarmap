@@ -139,7 +139,7 @@ A mocked Prisma client cannot fail on a wrong query, a constraint or a cascade. 
 
 ### Truncation per test instead of a rolled-back transaction per test
 
-`STACK.md` §16 asks for a transaction per test, rolled back. The server code opens its own interactive `$transaction`s (7 today), and Prisma does not nest interactive transactions, so a test-wide transaction would either break those calls or stop testing them. Each worker has its own database and truncates it before each test: the same isolation and order-independence, at the cost of a truncate. ADR 0014 records the deviation.
+`STACK.md` §16 asks for a transaction per test, rolled back. The server code opens its own interactive `$transaction`s (6 today), and Prisma does not nest interactive transactions, so a test-wide transaction would either break those calls or stop testing them. Each worker has its own database and truncates it before each test: the same isolation and order-independence, at the cost of a truncate. ADR 0014 records the deviation.
 
 ### Three Vitest projects instead of two
 

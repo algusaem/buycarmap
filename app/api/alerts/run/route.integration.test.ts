@@ -5,6 +5,7 @@ import { createAlert } from "@/test/factories/alert";
 import { createAlertCriteria } from "@/test/factories/alert-criteria";
 import { createUser } from "@/test/factories/user";
 import { makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
+import { arrangeNextTransaction } from "@/test/utils/transaction";
 import type { RunSummary } from "@/interfaces/alert";
 
 // server/alerts/service.ts's drainQueue claims jobs with a raw SQL query that
@@ -797,6 +798,59 @@ describe("discovery", () => {
 
     const milanuncios = await prisma.sourceHealth.findUnique({ where: { source: "Milanuncios" } });
     expect(milanuncios?.consecutiveEmptyRuns).toBe(0);
+  });
+
+  it("ALERT-47: a failure recording the seen-list rolls the whole poll back, and the next poll matches the same listings exactly once", async () => {
+    const { criteria, alert, job } = await seedSubscribedCriteria({ lastPolledMinutesAgo: 60 });
+    await prisma.alertSeenListing.create({
+      data: { criteriaId: criteria.id, listingId: "wallapop-old1", source: "Wallapop" },
+    });
+    sourcesReturn(
+      makeMatchListing({ id: "wallapop-old1" }),
+      makeMatchListing({ id: "wallapop-new1" }),
+      makeMatchListing({ id: "cochesnet-new2", source: "Coches.net" }),
+    );
+    arrangeNextTransaction((tx) => {
+      vi.spyOn(tx.alertSeenListing, "createMany").mockRejectedValueOnce(
+        new Error("connection lost"),
+      );
+    });
+
+    await run();
+
+    expect(await matchesFor(alert.id)).toEqual([]);
+    expect((await seenFor(criteria.id)).map((row) => row.listingId)).toEqual(["wallapop-old1"]);
+    const polled = await prisma.alertCriteria.findUniqueOrThrow({ where: { id: criteria.id } });
+    expect(polled.lastPolledAt).toEqual(minutesAgo(60));
+    const retried = await prisma.alertPollJob.findUnique({ where: { id: job.id } });
+    expect(retried).toMatchObject({ status: "pending", attempts: 1, lockedAt: null });
+    expect(retried?.availableAt).toEqual(new Date(NOW.getTime() + 5 * 60_000));
+    // Recorded before the transaction opened, so the rollback does not undo it.
+    const wallapop = await prisma.sourceHealth.findUnique({ where: { source: "Wallapop" } });
+    expect(wallapop).toMatchObject({ consecutiveEmptyRuns: 0, lastOkAt: NOW });
+    const cochesnet = await prisma.sourceHealth.findUnique({ where: { source: "Coches.net" } });
+    expect(cochesnet).toMatchObject({ consecutiveEmptyRuns: 0, lastOkAt: NOW });
+
+    // The backoff elapses. SQL's own now() drives the claim, so the job is
+    // moved back rather than the clock forward.
+    await prisma.alertPollJob.update({
+      where: { id: job.id },
+      data: { availableAt: minutesAgo(1) },
+    });
+
+    await run();
+
+    const matches = await matchesFor(alert.id);
+    expect(matches.map((match) => match.listingId).sort()).toEqual([
+      "cochesnet-new2",
+      "wallapop-new1",
+    ]);
+    expect((await seenFor(criteria.id)).map((row) => row.listingId).sort()).toEqual([
+      "cochesnet-new2",
+      "wallapop-new1",
+      "wallapop-old1",
+    ]);
+    expect(await prisma.alertPollJob.findUnique({ where: { id: job.id } })).toBeNull();
   });
 });
 
