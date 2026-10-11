@@ -23,6 +23,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { trackedFiles as gitTrackedFiles } from "./git-files.mjs";
+import { specStatus } from "./spec-status.mjs";
 
 const DOC_DIR = "docs";
 // The documentation index: every doc under docs/ must be reachable from it, and
@@ -203,37 +204,39 @@ export function globToRegExp(glob) {
 }
 
 /**
+ * The lines of the index's section under a heading containing "ownership", or
+ * `null` when there is no such heading. Narrowing to it keeps an unrelated
+ * table elsewhere in the index from being mistaken for the map; there is no
+ * fallback to the whole file, which would read every table in it as the map.
+ *
+ * @param {string} markdown
+ * @returns {string[] | null}
+ */
+function ownershipSection(markdown) {
+  const lines = stripFences(markdown).split("\n");
+  const start = lines.findIndex((line) => /^#{1,6}\s+.*ownership/i.test(line));
+  if (start === -1) return null;
+
+  const level = lines[start].match(/^#+/)?.[0].length ?? 1;
+  const after = lines.slice(start + 1);
+  const end = after.findIndex((line) => new RegExp(`^#{1,${level}}\\s`).test(line));
+  return end === -1 ? after : after.slice(0, end);
+}
+
+/**
  * Reads the ownership table from the index, the root README.md.
  *
  * Rows look like `| \`lib/wallapop/**\` | [docs/specs/data-sources.md](…) |`, under
- * a heading whose slug contains "ownership".
+ * a heading whose slug contains "ownership". No such heading reads as no rows;
+ * `checkOwnershipMap` reports that case on its own.
  *
  * @param {string} markdown
  * @returns {OwnershipEntry[]}
  */
 export function parseOwnership(markdown) {
-  const lines = stripFences(markdown).split("\n");
-
-  // Narrow to the section under the "Ownership…" heading, so an unrelated table
-  // elsewhere in the index cannot be mistaken for the map.
-  const start = lines.findIndex((line) => /^#{1,6}\s+.*ownership/i.test(line));
-  const scope =
-    start === -1
-      ? lines
-      : lines.slice(start + 1).slice(
-          0,
-          (() => {
-            const level = lines[start].match(/^#+/)[0].length;
-            const end = lines
-              .slice(start + 1)
-              .findIndex((line) => new RegExp(`^#{1,${level}}\\s`).test(line));
-            return end === -1 ? undefined : end;
-          })(),
-        );
-
   /** @type {OwnershipEntry[]} */
   const entries = [];
-  for (const line of scope) {
+  for (const line of ownershipSection(markdown) ?? []) {
     const match = line.match(/^\|\s*`([^`]+)`\s*\|\s*(.+?)\s*\|/);
     if (!match) continue;
     const doc = match[2].match(/\]\(([^)\s]+)\)/)?.[1] ?? match[2].replace(/`/g, "");
@@ -278,7 +281,9 @@ export const isGap = (doc) => /^(—|-{1,2}|tbd|none)$/i.test(doc.trim());
  */
 export function isUnbuiltSpec(file, text) {
   if (!posix(file).startsWith("docs/specs/")) return false;
-  return !/^Status:\s*Implemented\s*$/im.test(text);
+  // The same parser spec-check enforces with, so `Status: **Implemented**` is
+  // Implemented to both.
+  return specStatus(text) !== "Implemented";
 }
 
 /**
@@ -670,6 +675,11 @@ function reportUnclaimedFiles(tracked, patterns, problems) {
 async function checkOwnershipMap(cwd, sources, problems, gaps) {
   const index = sources.get(INDEX);
   if (!index) return;
+
+  if (ownershipSection(index) === null) {
+    problems.push(`${INDEX} has no Ownership map section.`);
+    return;
+  }
 
   const ownership = parseOwnership(index);
   if (ownership.length === 0) {

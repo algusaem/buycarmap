@@ -821,7 +821,9 @@ the request's locale and messages. Client components call `useTranslations()`
 replaces the old `I18nProvider.setLocale`: it writes the one-year `locale`
 cookie directly (next-intl has no client API of its own for changing it) and
 `router.refresh()`es inside a transition, so switching language does not
-blank the page.
+blank the page. It also calls the `setLocale` Server Action so a signed-in
+user's stored locale, the one alert emails use, follows the switch
+([alerts.md](specs/alerts.md) ALERT-50).
 
 **All user-facing text must use next-intl message keys** (`t("namespace.key")`).
 No hardcoded English or Spanish in components. New keys go in both

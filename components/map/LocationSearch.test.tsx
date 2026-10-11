@@ -327,6 +327,24 @@ describe("LocationSearch suggestions accessibility", () => {
     });
   });
 
+  it("MAP-20: after clicking outside, the fading options are not a listbox and a click selects nothing", async () => {
+    await withAnimations(async () => {
+      const { props } = renderLocationSearch();
+
+      await userEvent.type(queryBox(), "Madrid");
+      const option = await madridOption();
+
+      fireEvent.mouseDown(document.body);
+
+      expect(screen.queryByRole("listbox")).toBeNull();
+      // `option` still points at the fading node: same element, mid-exit.
+      expect(option).toBeInTheDocument();
+      fireEvent.mouseDown(option);
+
+      expect(props.onLocationChange).not.toHaveBeenCalled();
+    });
+  });
+
   it("MAP-20: after Escape, the fading options are not a listbox and a click selects nothing", async () => {
     await withAnimations(async () => {
       const { props } = renderLocationSearch();
