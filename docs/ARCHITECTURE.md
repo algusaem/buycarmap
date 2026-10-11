@@ -413,11 +413,7 @@ erDiagram
 The account. Its password is not a `User` field: it is the `password` of the
 user's `credential` `Account` row, which OAuth-only accounts do not have
 (BAUTH-19, [specs/core-better-auth.md](specs/core-better-auth.md)). "Is the
-email verified" is `emailConfirmed`, Better Auth's own flag. The legacy
-`users` columns `password`, `email_verified`, `password_changed_at`,
-`two_factor_secret` and `two_factor_last_step` still exist in the database
-but are no longer in `prisma/schema.prisma`, so no code reads or writes them;
-a later migration drops them.
+email verified" is `emailConfirmed`, Better Auth's own flag.
 
 `image`, not `avatarUrl`: the NextAuth Prisma adapter writes the OAuth profile
 picture to that exact field name, and renaming it breaks linking silently.

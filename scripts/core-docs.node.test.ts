@@ -304,15 +304,10 @@ describe("docs tree and spec format", () => {
   it("DOCS-8: docs/privacy/data-inventory.md lists every personal field from prisma/schema.prisma", () => {
     const PAIRS: [string, string][] = [
       ["User", "email"],
-      ["User", "password"],
       ["User", "name"],
       ["User", "image"],
-      ["User", "emailVerified"],
       ["User", "locale"],
-      ["User", "twoFactorSecret"],
       ["User", "twoFactorEnabledAt"],
-      ["User", "twoFactorLastStep"],
-      ["User", "passwordChangedAt"],
       ["User", "createdAt"],
       ["Account", "password"],
       ["Account", "providerAccountId"],

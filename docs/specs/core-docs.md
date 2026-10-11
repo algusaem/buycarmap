@@ -109,11 +109,7 @@ this diff.
   SRC-14.
 
 **Personal fields for DOCS-8,** from `prisma/schema.prisma`:
-- `User`: `email`, `password`, `name`, `image`, `emailVerified`, `locale`, `twoFactorSecret`,
-  `twoFactorEnabledAt`, `twoFactorLastStep`, `passwordChangedAt`, `createdAt`. `password`,
-  `emailVerified`, `twoFactorSecret`, `twoFactorLastStep` and `passwordChangedAt` left
-  `prisma/schema.prisma` in BAUTH-19, but their columns hold data until a later migration drops
-  them, so they stay on this list.
+- `User`: `email`, `name`, `image`, `locale`, `twoFactorEnabledAt`, `createdAt`.
 - `Account`: `password`, `providerAccountId`, `refresh_token`, `access_token`, `id_token`.
 - `Session`: `sessionToken`.
 - `PasswordResetToken`: `tokenHash`.
