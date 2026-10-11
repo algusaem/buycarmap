@@ -35,6 +35,10 @@ export const RATE_LIMITS = {
   // Guessing a 256-bit token is hopeless, but this caps the noise.
   resetRedeemPerIp: { name: "resetRedeemPerIp", limit: 15, windowMs: 60 * 60 * 1000 },
   changePasswordPerUser: { name: "changePasswordPerUser", limit: 10, windowMs: 60 * 60 * 1000 },
+  // EXPORT-12 (docs/specs/account-data-export.md): an export assembles
+  // everything stored about a person, so a stolen session cannot scrape it
+  // repeatedly. Five leaves room for a retry after a failed save.
+  exportDataPerUser: { name: "exportDataPerUser", limit: 5, windowMs: 60 * 60 * 1000 },
   // Re-sending a signup link is another way to put mail in someone's inbox,
   // so it needs the same per-address ceiling as a reset request.
   resendConfirmationPerEmail: {

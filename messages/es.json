@@ -190,6 +190,11 @@
       "signingOutOthers": "Cerrando sesión…",
       "signedOutOthers": "Se ha cerrado la sesión en todos los demás dispositivos."
     },
+    "export": {
+      "title": "Tus datos",
+      "description": "Descarga en un archivo JSON una copia de todo lo que BuyCarMap guarda sobre ti: tu perfil, tus formas de iniciar sesión, tus sesiones, tus coches guardados y tus alertas.",
+      "submit": "Descargar mis datos"
+    },
     "providers": {
       "title": "Cuentas conectadas",
       "description": "Servicios con los que puedes iniciar sesión.",

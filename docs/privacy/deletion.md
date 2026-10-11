@@ -55,10 +55,12 @@ that already prune expired auth rows, hard-deletes a soft-deleted `Favorite` or 
 after `deletedAt`. Account deletion is unaffected by any of this: it still erases every row the
 account owns at once, soft-deleted or not, exactly as described above.
 
-## No export
+## Export
 
-There is no way for a person to export their data
-([#20](https://github.com/algusaem/buycarmap/issues/20)).
+A signed-in person downloads a copy of their own data as one JSON file from
+"Download my data" on `/account` (`exportMyData`, `server/account/actions.ts`).
+What it holds and leaves out, its authorization and its rate limit are
+specified in [account-data-export.md](../specs/account-data-export.md).
 
 ## Backups
 

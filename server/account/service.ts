@@ -1,4 +1,7 @@
+import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { notDeleted } from "@/lib/db/soft-delete";
+import { ownedBy, type PermissionUser } from "@/lib/auth/permissions";
 import type { AccountId, SessionId, UserId } from "@/lib/ids";
 import { findCriteriaIdsForUser, releaseCriteriaIfUnused } from "@/server/alerts/service";
 
@@ -190,4 +193,167 @@ export async function deleteOtherSessions(
   await prisma.session.deleteMany({
     where: { userId, ...(keepSessionId ? { id: { not: keepSessionId } } : {}) },
   });
+}
+
+// EXPORT-5/EXPORT-7: the listing snapshot a favorite and an alert match both
+// store, in the order the export writes it.
+const SNAPSHOT_SELECT = {
+  listingId: true,
+  source: true,
+  title: true,
+  subtitle: true,
+  image: true,
+  brand: true,
+  model: true,
+  location: true,
+  fuel: true,
+  url: true,
+  price: true,
+  mileage: true,
+  year: true,
+  lat: true,
+  lng: true,
+  createdAt: true,
+} as const;
+
+type ListingSnapshot = Prisma.FavoriteGetPayload<{ select: typeof SNAPSHOT_SELECT }>;
+
+// Rebuilt key by key rather than passed through: Prisma returns fields in the
+// model's order, and the export's key order is part of its contract.
+function toSnapshot(row: ListingSnapshot) {
+  return {
+    listingId: row.listingId,
+    source: row.source,
+    title: row.title,
+    subtitle: row.subtitle,
+    image: row.image,
+    brand: row.brand,
+    model: row.model,
+    location: row.location,
+    fuel: row.fuel,
+    url: row.url,
+    price: row.price,
+    mileage: row.mileage,
+    year: row.year,
+    lat: row.lat,
+    lng: row.lng,
+    createdAt: row.createdAt,
+  };
+}
+
+/**
+ * EXPORT-1..10, EXPORT-19 (docs/specs/account-data-export.md): everything
+ * BuyCarMap's database holds about `user`, minus secrets and internal keys.
+ * Every read is scoped to `user` in the query (`ownedBy`); alert matches are
+ * reached only through the user's own alerts. Soft-deleted rows are left out.
+ * Lists are oldest first. `now` decides whether an email change is still
+ * pending and is the export's own `exportedAt`.
+ */
+export async function findMyDataExport(user: PermissionUser, now: Date) {
+  const owned = ownedBy(user);
+
+  const [profile, accounts, sessions, favorites, alerts, emailChange] = await Promise.all([
+    prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: {
+        email: true,
+        name: true,
+        image: true,
+        locale: true,
+        emailConfirmed: true,
+        twoFactorEnabled: true,
+        twoFactorEnabledAt: true,
+        createdAt: true,
+      },
+    }),
+    prisma.account.findMany({
+      where: owned,
+      select: { provider: true, password: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.session.findMany({
+      where: owned,
+      select: { createdAt: true, expires: true, ipAddress: true, userAgent: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.favorite.findMany({
+      where: { ...owned, ...notDeleted },
+      select: SNAPSHOT_SELECT,
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.alert.findMany({
+      where: { ...owned, ...notDeleted },
+      select: {
+        label: true,
+        active: true,
+        createdAt: true,
+        criteria: { select: { criteria: true } },
+        matches: {
+          where: notDeleted,
+          select: { ...SNAPSHOT_SELECT, notifiedAt: true },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    // EXPORT-19: only the newest change still in progress; never its hash.
+    prisma.emailVerificationToken.findFirst({
+      where: {
+        ...owned,
+        newEmail: { not: null },
+        usedAt: null,
+        expiresAt: { gt: now },
+        deletedAt: null,
+      },
+      select: { newEmail: true, expiresAt: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const alertMatches = alerts
+    .flatMap((alert) =>
+      alert.matches.map(({ notifiedAt, ...snapshot }) => ({
+        alertLabel: alert.label,
+        ...toSnapshot(snapshot),
+        notifiedAt,
+      })),
+    )
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+  return {
+    exportedAt: now,
+    profile: {
+      email: profile.email,
+      name: profile.name,
+      image: profile.image,
+      locale: profile.locale,
+      emailConfirmed: profile.emailConfirmed,
+      twoFactorEnabled: profile.twoFactorEnabled,
+      twoFactorEnabledAt: profile.twoFactorEnabledAt,
+      createdAt: profile.createdAt,
+    },
+    pendingEmailChange: emailChange
+      ? { newEmail: emailChange.newEmail, expiresAt: emailChange.expiresAt }
+      : null,
+    signInMethods: {
+      password: credentialPassword(accounts) !== null,
+      providers: accounts
+        .filter((account) => account.provider !== "credential")
+        .map((account) => ({ provider: account.provider, linkedAt: account.createdAt })),
+    },
+    sessions: sessions.map((session) => ({
+      createdAt: session.createdAt,
+      expiresAt: session.expires,
+      ipAddress: session.ipAddress,
+      userAgent: session.userAgent,
+    })),
+    favorites: favorites.map(toSnapshot),
+    alerts: alerts.map((alert) => ({
+      label: alert.label,
+      criteria: alert.criteria.criteria,
+      active: alert.active,
+      createdAt: alert.createdAt,
+    })),
+    alertMatches,
+  };
 }
