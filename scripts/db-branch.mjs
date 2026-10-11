@@ -32,6 +32,10 @@ const POSTGRES_NAME_LIMIT = 63;
 // slashes (`claude/foo`) and the occasional oddity. Kept for its own test and
 // for anything still comparing branch names loosely; database names use
 // `databaseName` below instead, whose alphabet Postgres actually accepts.
+/**
+ * @param {string} name
+ * @returns {string}
+ */
 export const sanitize = (name) => name.replace(/[^a-zA-Z0-9._/-]/g, "-");
 
 // TEST-2 (docs/specs/core-testing.md): the Postgres database name for the
@@ -39,6 +43,10 @@ export const sanitize = (name) => name.replace(/[^a-zA-Z0-9._/-]/g, "-");
 // runs of "_" collapse, and names over Postgres' 63-byte limit are cut to 54
 // characters plus "_" and the first 8 hex characters of the branch name's
 // SHA-1 — short enough to always fit, and still traceable back to the branch.
+/**
+ * @param {string} branch
+ * @returns {string}
+ */
 export function databaseName(branch) {
   const sanitized = branch
     .toLowerCase()
@@ -55,6 +63,10 @@ export function databaseName(branch) {
 // TEST-2/TEST-3: refuses to proceed against a non-local database host, naming
 // it in the thrown message. This is what stops `pnpm db:branch` and
 // `pnpm db:branch:rm` from ever reaching Neon, and so production.
+/**
+ * @param {string} url
+ * @returns {void}
+ */
 export function assertLocalUrl(url) {
   const { hostname } = new URL(url);
   if (hostname !== "localhost" && hostname !== "127.0.0.1") {
@@ -77,6 +89,8 @@ function fail(error, exit, message) {
  * Parses a .env file into a plain object. dotenv is not available here (see the
  * dependency-free note above), and the format we need is a small subset:
  * KEY=value, optionally single- or double-quoted.
+ * @param {string} contents
+ * @returns {Record<string, string>}
  */
 export function parseEnv(contents) {
   const out = {};
@@ -91,6 +105,10 @@ export function parseEnv(contents) {
 /**
  * Rewrites DATABASE_URL in place, preserving every other line and any comments.
  * Appends if the key is absent.
+ * @param {string} contents
+ * @param {string} key
+ * @param {string} value
+ * @returns {string}
  */
 export function setEnvValue(contents, key, value) {
   const line = `${key}="${value}"`;
@@ -210,6 +228,20 @@ function writeDatabaseEnv(deps, databaseUrl, mainEnvRaw, localEnvPath) {
 // every branch (compose not running, database exists vs. is created, the
 // --delete path, the .env write) with fakes instead of a real Docker/Postgres
 // and a real worktree.
+/**
+ * @param {{
+ *   argv?: string[],
+ *   exec?: (cmd: string, args: string[], options?: Record<string, unknown>) => string,
+ *   fileExists?: (path: string) => boolean,
+ *   readFile?: (path: string, encoding: string) => string,
+ *   writeFile?: (path: string, data: string, encoding: string) => void,
+ *   env?: Record<string, string | undefined>,
+ *   log?: (message: string) => void,
+ *   error?: (message: string) => void,
+ *   exit?: (code: number) => void,
+ * }} [options]
+ * @returns {Promise<void>}
+ */
 export async function main({
   argv = process.argv.slice(2),
   exec = execFileSync,

@@ -1,35 +1,21 @@
+// db-branch.mjs is a plain .mjs dev script, deliberately dependency-free (see
+// its own file), and now carries JSDoc types on every export this test reads
+// — without them TS infers `{}` for parseEnv's return and every property read
+// fails. Typing the import itself this way, instead of casting the values
+// read from it, is narrower than adding a separate .d.ts for one dev script.
 import { describe, expect, it, vi } from "vitest";
-
-// A plain .mjs dev script, deliberately dependency-free and untyped, so TS
-// infers `{}` for parseEnv's return and every property read fails. Declaring
-// the surface here is narrower than adding a .d.ts for one dev script.
 import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
-import * as dbBranch from "./db-branch.mjs";
+import {
+  assertLocalUrl,
+  databaseName,
+  main,
+  parseEnv,
+  sanitize,
+  setEnvValue,
+} from "./db-branch.mjs";
 
 type Exec = (cmd: string, args: string[], options?: Record<string, unknown>) => string;
-
-interface MainOptions {
-  argv?: string[];
-  exec?: Exec;
-  fileExists?: (path: string) => boolean;
-  readFile?: (path: string, encoding: string) => string;
-  writeFile?: (path: string, data: string, encoding: string) => void;
-  env?: Record<string, string | undefined>;
-  log?: (message: string) => void;
-  error?: (message: string) => void;
-  exit?: (code: number) => void;
-}
-
-const { parseEnv, sanitize, setEnvValue, databaseName, assertLocalUrl, main } =
-  dbBranch as unknown as {
-    parseEnv: (contents: string) => Record<string, string>;
-    sanitize: (name: string) => string;
-    setEnvValue: (contents: string, key: string, value: string) => string;
-    databaseName: (branch: string) => string;
-    assertLocalUrl: (url: string) => void;
-    main: (options?: MainOptions) => Promise<void>;
-  };
 
 const MAIN_ROOT = resolve("/repo");
 const WORKTREE_ROOT = resolve("/worktree");

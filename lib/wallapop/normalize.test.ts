@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { WallapopItem } from "@/interfaces/wallapop";
 import { normalizeWallapopItems } from "./normalize";
 import { makeWallapopItem } from "@/test/fixtures/wallapop";
 
@@ -45,18 +46,18 @@ describe("normalizeWallapopItems", () => {
 
   it("falls back through the image url chain: big → medium → empty", () => {
     // `??` only falls back on nullish values, so a *missing* big (not an empty
-    // string) is what drops the mapping to medium.
+    // string) is what drops the mapping to medium. Wallapop can omit `big` on
+    // the wire even though the TS type marks it required, so the raw payload
+    // is typed as `unknown` at this parser's input boundary (RULES §7)
+    // rather than cast past the field's declared type.
+    const rawUrls: unknown = { small: "s.jpg", medium: "m.jpg", big: undefined };
     const medium = makeWallapopItem({
       id: "m",
       images: [
         {
           id: "i",
           average_color: "#000",
-          urls: {
-            small: "s.jpg",
-            medium: "m.jpg",
-            big: undefined as unknown as string,
-          },
+          urls: rawUrls as WallapopItem["images"][number]["urls"],
         },
       ],
     });
@@ -69,15 +70,22 @@ describe("normalizeWallapopItems", () => {
   });
 
   it("SRC-3: geocodes the city when the item has no coordinates", () => {
+    // Wallapop can omit coordinates on the wire even though the TS type
+    // marks latitude/longitude required ("Missing coordinates fall back to
+    // getCityCoordinates(city)", docs/specs/data-sources.md) — that is
+    // exactly the case this test drives, so the raw payload is typed as
+    // `unknown` at this parser's input boundary (RULES §7) rather than cast
+    // past the field's declared type.
+    const rawLocation: unknown = {
+      latitude: null,
+      longitude: null,
+      postal_code: "08001",
+      city: "Barcelona",
+      region: "Cataluña",
+      country_code: "ES",
+    };
     const noCoords = makeWallapopItem({
-      location: {
-        latitude: null as unknown as number,
-        longitude: null as unknown as number,
-        postal_code: "08001",
-        city: "Barcelona",
-        region: "Cataluña",
-        country_code: "ES",
-      },
+      location: rawLocation as WallapopItem["location"],
     });
 
     const [listing] = normalizeWallapopItems([noCoords]);
@@ -92,7 +100,9 @@ describe("normalizeWallapopItems", () => {
       makeWallapopItem({ id: "1", web_slug: "nice-slug" }),
     ]);
     const [unslugged] = normalizeWallapopItems([
-      makeWallapopItem({ id: "42", web_slug: undefined as unknown as string }),
+      // `web_slug` is a top-level field of `Partial<WallapopItem>`, which
+      // already allows `undefined` — no cast needed here.
+      makeWallapopItem({ id: "42", web_slug: undefined }),
     ]);
 
     expect(slugged.url).toBe("https://es.wallapop.com/item/nice-slug");

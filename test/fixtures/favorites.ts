@@ -70,7 +70,9 @@ export function createFavoriteStore(seed: FavoriteRow[] = []) {
   const client = {
     create: vi.fn(async ({ data }: { data: FavoriteRow | (CarListing & { userId: string }) }) => {
       const userId = (data as { userId: string }).userId;
-      const listing = data as unknown as CarListing;
+      // Both members of the `data` union already carry every CarListing
+      // field (FavoriteRow extends CarListing), so no cast is needed here.
+      const listing: CarListing = data;
       const listingId = (data as { listingId?: string }).listingId ?? listing.id;
       if (indexOf(userId, listingId) !== -1) throw uniqueViolation();
       const row = toRow(userId, { ...listing, id: listingId });
