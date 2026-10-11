@@ -360,6 +360,12 @@ const SLICE_SIZE = 25;
 /** Returns before the platform's invocation timeout, leaving the rest queued. */
 const WORKER_BUDGET_MS = 45_000;
 const MAX_ATTEMPTS = 3;
+/**
+ * ALERT-48: a `running` job whose lease is older than this was left by a worker
+ * that died, and is reclaimed. Longer than the route's `maxDuration`, so a live
+ * run can never hold a job past it.
+ */
+const LEASE_TIMEOUT_MS = 10 * 60_000;
 /** Deliberately longer than the interval: a failing upstream is polled less. */
 const BACKOFF_MINUTES = [5, 15, 45];
 const EMPTY_RUNS_BEFORE_UNHEALTHY = 3;
@@ -440,6 +446,8 @@ async function enqueueDueCriteria(now: Date, summary: RunSummary): Promise<void>
 }
 
 async function drainQueue(now: Date, summary: RunSummary): Promise<void> {
+  await reclaimStaleLeases(now);
+
   // Raw SQL because Prisma cannot express SKIP LOCKED, and SKIP LOCKED is the
   // whole point: plain FOR UPDATE would make a second worker queue behind the
   // first, which is a slower version of one worker.
@@ -469,6 +477,31 @@ async function drainQueue(now: Date, summary: RunSummary): Promise<void> {
     }
     await pollOne(asAlertPollJobId(id), now, summary);
   }
+}
+
+/**
+ * ALERT-48: hands back every job whose worker died holding it. The lost run
+ * counts as a failed attempt, so a job that kills its worker every time is
+ * parked after the third loss (ALERT-19) instead of being reclaimed for ever.
+ * `availableAt` is kept, so the claim that follows can take a reclaimed job at
+ * once. The two filters are disjoint on `attempts`, so no row is counted twice.
+ */
+async function reclaimStaleLeases(now: Date): Promise<void> {
+  const stale = {
+    status: "running",
+    // Strictly older: a lease exactly at the timeout still belongs to its worker.
+    lockedAt: { lt: new Date(now.getTime() - LEASE_TIMEOUT_MS) },
+  } satisfies Prisma.AlertPollJobWhereInput;
+  const released = { attempts: { increment: 1 }, lockedAt: null, lastError: "lease expired" };
+
+  await prisma.alertPollJob.updateMany({
+    where: { ...stale, attempts: { gte: MAX_ATTEMPTS - 1 } },
+    data: { ...released, status: "failed" },
+  });
+  await prisma.alertPollJob.updateMany({
+    where: { ...stale, attempts: { lt: MAX_ATTEMPTS - 1 } },
+    data: { ...released, status: "pending" },
+  });
 }
 
 /** Puts unprocessed claims back so the next run picks them up immediately. */

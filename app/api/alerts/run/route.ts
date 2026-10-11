@@ -16,6 +16,9 @@ import { runAlerts } from "@/server/alerts/service";
 // lives in server/alerts/service.ts; see docs/specs/alerts.md › Decisions and
 // rationale.
 
+// Seconds. Below ALERT-48's ten-minute lease, so a live run never holds a job past it.
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest) {
   return withRequestContext(async () => {
     if (!(await verifyQstashSignature(request))) {

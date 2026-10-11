@@ -80,9 +80,10 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-45 · node — Deleting an account deletes, in the same transaction as the user row, every criteria set its alerts referenced — active, inactive or soft-deleted — that no alert references any more, together with its seen-list; a criteria set still referenced by another user's alert, inactive or soft-deleted included, is kept
 - [x] ALERT-46 · node — Creating an alert's criteria record and its alert row commit together or not at all; a failure between them leaves no orphaned criteria row, so the save can be retried and the seed poll still runs
 - [x] ALERT-47 · node — A poll's matches, seen-list update, `lastPolledAt` and job removal commit together in one transaction opened only after every source has answered; source health is recorded before it, outside the transaction
+- [x] ALERT-48 · node — A poll job left `running` by a worker that died is claimed again once its lease is older than ten minutes: the lost run counts as one failed attempt, and the next drain polls the job as it would a pending one, or marks it failed if that attempt exhausts the retry budget (ALERT-19); a job whose lease is ten minutes old or newer is left to the worker holding it
 
-Forty-seven criteria: forty on the server boundary, four on rendering, one on
-the email template, two on real Postgres. Eleven cover the management surface, twelve
+Forty-eight criteria: forty-one on the server boundary, four on rendering, one on
+the email template, two on real Postgres. Eleven cover the management surface, thirteen
 the queue and cadence, nine discovery, ten delivery, five the UI.
 
 **ALERT-13 and ALERT-14 are the two `e2e` criteria, and they are the ones that
@@ -111,6 +112,7 @@ than as documentation.
 - **ALERT-45** — Ada (user-ada) and Grace (user-grace) each have one alert on the same criteria set C = {brand:"Audi", model:"A3", maxPrice:20000, latitude:40.4168, longitude:-3.7038, distanceInKm:50}, and C has 2 seen listings. Ada calls deleteAccount → success: true; Ada's alert is gone, C and its 2 seen rows remain, Grace still has 1 alert on C. Grace then calls deleteAccount → success: true; 0 criteria rows, 0 seen rows. Ada's only alert on C is inactive (active=false) and nobody else watches C; she deletes her account → C and its seen rows are gone. Grace's alert on C was soft-deleted 5 days ago; Ada deletes her account → C stays, until the purge removes Grace's alert (ALERT-42). The bug this records: before the fix, the sole subscriber deleting her account left C — coordinates included — and its seen rows in the database ([#21](https://github.com/algusaem/buycarmap/issues/21)).
 - **ALERT-46** — Ada saves new criteria C (hash h, no existing `AlertCriteria` row) as "Ada's search"; `alert.upsert` fails once right after `alertCriteria.create` → the transaction rolls back, 0 `AlertCriteria` rows with hash h, 0 alerts. Ada retries the same save → one `AlertCriteria` row and one `Alert` row exist, and the seed poll records every currently-matching listing as seen without emailing anything. Before this fix, the failed attempt left an `AlertCriteria` row with no `Alert`; a retry found the criteria already present, skipped the seed, and the first real poll emailed every currently-matching listing (against ALERT-2).
 - **ALERT-47** — A poll of criteria set C returns two new listings; `recordSeen` fails inside the transaction → it rolls back: 0 `AlertMatch` rows from that poll, the seen-set unchanged, `lastPolledAt` unchanged, and the job's catch handler, running outside the transaction, leaves it pending with its backoff rather than deleted. The next poll sees the same two listings as new and produces the same matches exactly once. `recordSourceHealth`, run before the transaction opens, still recorded that run's per-source counts.
+- **ALERT-48** — The clock reads T = 2026-10-11T12:00:00Z when a drain starts; the lease is 10 minutes. Job J (criteria set C) is `running` with `lockedAt` = 11:49:00 (T − 11 min) and `attempts` 0; job K is `running` with `lockedAt` = 11:59:00 (T − 1 min); job M is `running` with `lockedAt` = 11:50:00 (T − 10 min exactly); job L is `running` with `lockedAt` = 11:49:00 and `attempts` 2. The drain → J is claimed with `attempts` 1 and `lockedAt` = T, and polled: the poll succeeds, so J is deleted and C's `lastPolledAt` = T. K and M are not claimed: both stay `running`, `lockedAt` and `attempts` unchanged, and neither is polled. L is not polled: it becomes `failed` with `attempts` 3. The bug this records: before the fix, the claim selected only `pending` jobs and the enqueue upsert left an existing job untouched, so a worker killed between claiming J and deleting it (or rescheduling it in the catch) left J `running` for ever, and C was never polled again ([#94](https://github.com/algusaem/buycarmap/issues/94)).
 
 ## Data model
 
@@ -193,7 +195,7 @@ appended, which is what makes ALERT-11 a unique constraint instead of a check.
 | `status` | `String` | `pending` · `running` · `failed` |
 | `attempts` | `Int @default(0)` | ALERT-18, ALERT-19 |
 | `availableAt` | `DateTime @default(now())` | Backoff: a retried job is not claimable until this passes |
-| `lockedAt` | `DateTime?` | Lease timestamp; a stale lease is reclaimable so a killed worker does not strand a job |
+| `lockedAt` | `DateTime?` | Lease timestamp; a lease older than the lease timeout is reclaimable so a killed worker does not strand a job (ALERT-48) |
 | `lastError` | `String?` | |
 | `enqueuedAt` | `DateTime @default(now())` | Claim order for ALERT-14 |
 
@@ -262,7 +264,7 @@ Routing). Signed-out visitors cannot have alerts (see Out of scope).
 - A new listing ranked beyond the first page — see Decisions › "New" cannot mean "published recently", so it means "not seen before".
 - A source that returns zero ads on a parse failure — see Decisions › A silently empty source is the dangerous failure.
 - A source flapping, then recovering — see Decisions › Partial upstream failure must not poison the seen-set.
-- A killed worker holding a job — see Data model › Schema (`AlertPollJob.lockedAt`).
+- ALERT-48 — a worker killed while holding a job, leaving it `running`.
 
 ## Out of scope
 
@@ -331,16 +333,30 @@ touching the interactive search path — they no longer share a client.
 The one piece of raw SQL, because Prisma cannot express `SKIP LOCKED`:
 
 ```sql
-SELECT id FROM "AlertPollJob"
-WHERE status = 'pending' AND "availableAt" <= now()
-ORDER BY "enqueuedAt" ASC
-LIMIT $1
-FOR UPDATE SKIP LOCKED
+UPDATE alert_poll_jobs SET status = 'running', locked_at = now()
+WHERE id IN (
+  SELECT id FROM alert_poll_jobs
+  WHERE status = 'pending' AND available_at <= now()
+  ORDER BY enqueued_at ASC
+  LIMIT $1
+  FOR UPDATE SKIP LOCKED
+)
+RETURNING id
 ```
 
 `SKIP LOCKED` rather than plain `FOR UPDATE` is the whole point: plain locking
 makes concurrent workers queue behind each other, which is a slower version of
 one worker. Skipping means worker two takes the next job instead of waiting.
+
+ALERT-48 makes a second kind of row claimable: a `running` job whose
+`lockedAt` is older than the lease timeout (Constants). The claim above is
+unchanged; the reclaim is two Prisma `updateMany` calls run at the start of
+each drain, before it (open question 10). Stale jobs with retries left go back
+to `pending` with `attempts` incremented and `availableAt` kept, so the same
+drain's claim takes them; stale jobs whose lost run exhausts the retry budget
+become `failed` (ALERT-19). The cutoff is computed from the run's clock, the
+same `now` that stamps `lastPolledAt` and the backoff; the claim itself still
+compares against the database's `now()`.
 
 ### Route handlers
 
@@ -399,6 +415,7 @@ ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
 | Effective interval | `max(base, criteria × 3 ÷ ceiling)` | Uniform across every criteria set |
 | Worker slice | 25 criteria sets | Bounded so ALERT-12 holds inside the Vercel invocation timeout |
 | Worker time budget | 45 s | Returns before the platform kills it, leaving the remainder queued |
+| Lease timeout | 10 min | A `running` job whose `lockedAt` is older than this is reclaimed (ALERT-48). Strictly longer than a live worker can hold a job — see Decisions › A stale lease is reclaimed, and counts as a failed attempt |
 | Retry budget | 3 attempts | Then `failed` (ALERT-19) |
 | Backoff | 5 / 15 / 45 min | Deliberately longer than the poll interval — a failing upstream should be polled less, not more |
 | Alerts per user | 20 | A proxy for the real constraint — total distinct criteria sets |
@@ -462,6 +479,13 @@ what stops a match count linking nowhere.
 > alert released one. A criteria set can hold the coordinates the user chose, so
 > erasing the account did not erase it. The criterion releases them with the
 > account. See "An unused criteria set is deleted, seen-list and all" below.
+
+> **Amended 2026-10-11: ALERT-48 ([#94](https://github.com/algusaem/buycarmap/issues/94)).**
+> The schema promised that a stale lease is reclaimable, but no code reclaimed
+> one: the claim selected only `pending` jobs and the enqueue upsert never
+> touched an existing job, so a worker killed while holding a job left it
+> `running` for ever and its criteria set was never polled again. See "A stale
+> lease is reclaimed, and counts as a failed attempt" below.
 
 ### "New" cannot mean "published recently", so it means "not seen before"
 
@@ -788,6 +812,36 @@ still referencing its criteria, so in the normal flow that write never has
 anything left to release in the same call (`server/alerts/actions.integration.test.ts:293`),
 and there is nothing to make atomic with it.
 
+### A stale lease is reclaimed, and counts as a failed attempt
+
+A worker can die while holding a job — the platform kills the invocation, the
+instance is recycled, a deploy lands mid-run — anywhere between the claim and
+the transaction that deletes the job (ALERT-47) or the catch that reschedules
+it. Nothing else ever moves a `running` row, so without a reclaim the criteria
+set is silently never polled again (ALERT-48).
+
+**Ten minutes is strictly longer than a live worker can hold a job.** A job is
+`running` from the claim until its poll ends. The worker stops starting polls
+once its time budget (45 s, Constants) has passed, so the last poll starts
+before 45 s; one poll fans out to the three sources in parallel, each request
+bounded by a 15 s timeout, and coches.net makes at most two in sequence (model
+resolution, then the search) — 30 s. That is about 75 s plus the database
+writes, which carry no timeout of their own. The hard ceiling is the platform's
+invocation limit: past it the worker is dead, which is exactly the case to
+reclaim. Ten minutes leaves a wide margin over 75 s, is two schedule periods, and
+matches the ten-minute freshness target, so a reclaimed job is polled within
+one more lap. It is safe only while the invocation limit is below ten minutes,
+which the route guarantees by setting `maxDuration = 300` (five minutes; open
+question 9).
+
+**The lost run is a failed attempt.** A run that never finished is
+indistinguishable, from the queue, from one that failed, and counting it is
+what keeps a criteria set that kills its worker every time — a poll that hangs
+until the invocation limit — from being reclaimed for ever: after the third
+loss it is `failed` and stops (ALERT-19). No extra backoff is applied on
+reclaim: the lease is already longer than the first backoff step (5 min).
+Counting it was settled by open question 11.
+
 ## Open questions
 
 All settled. Kept as a record of what was decided and what would reopen it.
@@ -854,3 +908,24 @@ All settled. Kept as a record of what was decided and what would reopen it.
    running that purge those rows go at its next opportunistic run. Reopen by a
    read-only count of `alert_criteria` rows with no `alerts` row in production,
    if they must be confirmed gone (`RULES.md` §1, raw SQL).
+9. ~~Is the run's invocation limit below ten minutes?~~ **Settled 2026-10-11:
+   the route sets it.** `app/api/alerts/run/route.ts` exports
+   `maxDuration = 300` (seconds), so the platform kills a run after five
+   minutes, before ALERT-48's ten-minute lease could expire under a live
+   worker. It no longer depends on the Vercel project's default, which this
+   repository does not record. Reopen if the lease or `maxDuration` changes:
+   the lease must stay longer than `maxDuration`.
+10. ~~Does the reclaim extend the raw-SQL claim, or run as a Prisma write before
+    it?~~ **Settled 2026-10-11: a Prisma write before it; the raw SQL is
+    unchanged.** At the start of each drain, two `updateMany` calls on
+    `running` jobs with a stale `lockedAt` — disjoint on `attempts` — put the
+    ones with retries left back to `pending` and park the rest as `failed`,
+    both with `attempts` incremented. It costs two queries per run and needs no
+    change to the one piece of raw SQL (`RULES.md` §1). Reopen if two
+    concurrent drains reclaiming the same stale row ever matter: each
+    `updateMany` is one statement, so a row is counted once.
+11. ~~Does a killed run count as a failed attempt?~~ **Settled 2026-10-11: yes.**
+    See "A stale lease is reclaimed, and counts as a failed attempt". The
+    alternative — reclaim without counting — never parks a criteria set that
+    kills its worker every time, so it would be reclaimed and lost every ten
+    minutes for ever.
