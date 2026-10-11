@@ -9,8 +9,13 @@ export function useThemeTransition() {
     (event: React.MouseEvent<HTMLButtonElement>) => {
       const newTheme = resolvedTheme === "dark" ? "light" : "dark";
 
-      // Skip animation if View Transitions not supported or already animating
-      if (!document.startViewTransition || isAnimating.current) {
+      // Skip animation if View Transitions not supported, already animating,
+      // or the user asked the OS for reduced motion (issue #9).
+      if (
+        !document.startViewTransition ||
+        isAnimating.current ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
         setTheme(newTheme);
         return;
       }
