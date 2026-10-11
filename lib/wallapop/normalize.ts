@@ -11,15 +11,16 @@ export function normalizeWallapopItems(items: WallapopItem[]): CarListing[] {
   return items
     .filter((item) => !item.reserved?.flag)
     .map((item): CarListing | null => {
-      const hasCoords = item.location?.latitude != null && item.location?.longitude != null;
+      const latitude = item.location?.latitude;
+      const longitude = item.location?.longitude;
       const city = item.location?.city ?? "";
 
       let lat: number;
       let lng: number;
 
-      if (hasCoords) {
-        lat = item.location.latitude;
-        lng = item.location.longitude;
+      if (latitude != null && longitude != null) {
+        lat = latitude;
+        lng = longitude;
       } else {
         const coords = getCityCoordinates(city, FALLBACK_LAT, FALLBACK_LNG);
         lat = coords.lat;

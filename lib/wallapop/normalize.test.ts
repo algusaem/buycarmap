@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { WallapopItem } from "@/interfaces/wallapop";
 import { normalizeWallapopItems } from "./normalize";
 import { makeWallapopItem } from "@/test/fixtures/wallapop";
 
@@ -47,17 +46,15 @@ describe("normalizeWallapopItems", () => {
   it("falls back through the image url chain: big → medium → empty", () => {
     // `??` only falls back on nullish values, so a *missing* big (not an empty
     // string) is what drops the mapping to medium. Wallapop can omit `big` on
-    // the wire even though the TS type marks it required, so the raw payload
-    // is typed as `unknown` at this parser's input boundary (RULES §7)
-    // rather than cast past the field's declared type.
-    const rawUrls: unknown = { small: "s.jpg", medium: "m.jpg", big: undefined };
+    // the wire — the type marks it optional, so this is a plain literal of
+    // the real shape, not a cast.
     const medium = makeWallapopItem({
       id: "m",
       images: [
         {
           id: "i",
           average_color: "#000",
-          urls: rawUrls as WallapopItem["images"][number]["urls"],
+          urls: { small: "s.jpg", medium: "m.jpg" },
         },
       ],
     });
@@ -70,22 +67,19 @@ describe("normalizeWallapopItems", () => {
   });
 
   it("SRC-3: geocodes the city when the item has no coordinates", () => {
-    // Wallapop can omit coordinates on the wire even though the TS type
-    // marks latitude/longitude required ("Missing coordinates fall back to
-    // getCityCoordinates(city)", docs/specs/data-sources.md) — that is
-    // exactly the case this test drives, so the raw payload is typed as
-    // `unknown` at this parser's input boundary (RULES §7) rather than cast
-    // past the field's declared type.
-    const rawLocation: unknown = {
-      latitude: null,
-      longitude: null,
-      postal_code: "08001",
-      city: "Barcelona",
-      region: "Cataluña",
-      country_code: "ES",
-    };
+    // Wallapop can send `null` coordinates on the wire ("Missing coordinates
+    // fall back to getCityCoordinates(city)", docs/specs/data-sources.md) —
+    // the type marks latitude/longitude nullable, so this is a plain literal
+    // of the real shape, not a cast.
     const noCoords = makeWallapopItem({
-      location: rawLocation as WallapopItem["location"],
+      location: {
+        latitude: null,
+        longitude: null,
+        postal_code: "08001",
+        city: "Barcelona",
+        region: "Cataluña",
+        country_code: "ES",
+      },
     });
 
     const [listing] = normalizeWallapopItems([noCoords]);

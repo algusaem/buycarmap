@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { CochesNetItem } from "@/interfaces/cochesnet";
 import { normalizeCochesNetItems } from "./normalize";
 import { makeCochesNetItem } from "@/test/fixtures/cochesnet";
 
@@ -56,21 +55,19 @@ describe("normalizeCochesNetItems", () => {
   });
 
   it("uses the province name for location when the city is absent", () => {
-    // coches.net can omit `cityLiteral` on the wire even though the TS type
-    // marks it required — that is exactly the case this test drives, so the
-    // raw payload is typed as `unknown` at this parser's input boundary
-    // (RULES §7) rather than cast past the field's declared type.
-    const rawLocation: unknown = {
-      provinceIds: [41],
-      regionId: 1,
-      regionLiteral: "Andalucía",
-      mainProvince: "Sevilla",
-      mainProvinceId: 41,
-      cityId: 0,
-      cityLiteral: undefined,
-    };
+    // coches.net can omit `cityLiteral` on the wire — the type marks it
+    // optional, so this is a plain literal of the real shape, not a cast.
     const [listing] = normalizeCochesNetItems([
-      makeCochesNetItem({ location: rawLocation as CochesNetItem["location"] }),
+      makeCochesNetItem({
+        location: {
+          provinceIds: [41],
+          regionId: 1,
+          regionLiteral: "Andalucía",
+          mainProvince: "Sevilla",
+          mainProvinceId: 41,
+          cityId: 0,
+        },
+      }),
     ]);
 
     expect(listing.location).toBe("Sevilla");
