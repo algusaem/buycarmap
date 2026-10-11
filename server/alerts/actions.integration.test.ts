@@ -315,6 +315,44 @@ describe("createAlert", () => {
     expect(await prisma.alertMatch.count()).toBe(0);
     expect(sendEmail).not.toHaveBeenCalled();
   });
+
+  it("ALERT-49: two saves of the same new criteria that both miss the lookup both get their alert, on one criteria row seeded once", async () => {
+    sourcesReturn(
+      makeMatchListing({ id: "wallapop-abc123" }),
+      makeMatchListing({ id: "cochesnet-99", source: "Coches.net" }),
+    );
+    const criteriaHash = hashCriteria(makeCriteria());
+
+    signedInAs(ADA);
+    expect(await createAlert(makeCriteria(), "Ada's search")).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect(searchAllSources).toHaveBeenCalledTimes(1);
+
+    // Grace's lookup ran before Ada's commit: it misses, so her insert hits
+    // the unique index on `criteriaHash` for real.
+    signedInAs(GRACE);
+    arrangeNextTransaction((tx) => {
+      vi.spyOn(tx.alertCriteria, "findUnique").mockResolvedValueOnce(null);
+    });
+    expect(await createAlert(makeCriteria(), "Grace's search")).toEqual({
+      ok: true,
+      value: undefined,
+    });
+
+    const criteria = await prisma.alertCriteria.findMany({ where: { criteriaHash } });
+    expect(criteria).toHaveLength(1);
+    const alerts = await prisma.alert.findMany({ where: { criteriaId: criteria[0].id } });
+    expect(alerts.map((alert) => alert.userId).sort()).toEqual([ADA.id, GRACE.id].sort());
+    expect((await seenFor(criteria[0].id)).map((row) => row.listingId).sort()).toEqual([
+      "cochesnet-99",
+      "wallapop-abc123",
+    ]);
+    // One seed poll: the save that created the row ran it; Grace's did not.
+    expect(searchAllSources).toHaveBeenCalledTimes(1);
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
 });
 
 describe("deleteAlert", () => {

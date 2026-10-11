@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { Prisma } from "@/app/generated/prisma/client";
+import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { appUrl, isEmailConfigured } from "@/lib/app-config";
 import { createElement } from "react";
@@ -156,40 +156,57 @@ export async function createAlertForUser(
   // row left behind by a failed save would make the retry treat it as
   // existing and skip the seed, so the first real poll would email every
   // listing already there.
-  const { criteriaId, criteriaIsNew } = await prisma.$transaction(async (tx) => {
-    let criteriaRow = await tx.alertCriteria.findUnique({
-      where: { criteriaHash },
-    });
-    const isNew = !criteriaRow;
-    if (!criteriaRow) {
-      criteriaRow = await tx.alertCriteria.create({
-        data: { criteriaHash, criteria },
+  const saveCriteriaAndAlert = () =>
+    prisma.$transaction(async (tx) => {
+      let criteriaRow = await tx.alertCriteria.findUnique({
+        where: { criteriaHash },
       });
-    }
-    const id = asAlertCriteriaId(criteriaRow.id);
+      const isNew = !criteriaRow;
+      if (!criteriaRow) {
+        criteriaRow = await tx.alertCriteria.create({
+          data: { criteriaHash, criteria },
+        });
+      }
+      const id = asAlertCriteriaId(criteriaRow.id);
 
-    // DATA-11: upsert rather than create-and-catch — a row this user already
-    // has (live or soft-deleted) is matched by the same unique key regardless
-    // of `deletedAt`, so the `update` branch restores a deleted one (clearing
-    // `deletedAt`, bumping `version`) exactly as saving over a soft-deleted
-    // favorite does.
-    await tx.alert.upsert({
-      where: { userId_criteriaId: { ...ownedBy({ id: userId }), criteriaId: id } },
-      create: {
-        id: alertId,
-        userId,
-        criteriaId: id,
-        label,
-        active: true,
-        unsubscribeTokenHash,
-        unsubscribeSubject: alertId,
-        createdById: userId,
-      },
-      update: { deletedAt: null, version: { increment: 1 }, updatedById: userId },
+      // DATA-11: upsert rather than create-and-catch — a row this user already
+      // has (live or soft-deleted) is matched by the same unique key regardless
+      // of `deletedAt`, so the `update` branch restores a deleted one (clearing
+      // `deletedAt`, bumping `version`) exactly as saving over a soft-deleted
+      // favorite does.
+      await tx.alert.upsert({
+        where: { userId_criteriaId: { ...ownedBy({ id: userId }), criteriaId: id } },
+        create: {
+          id: alertId,
+          userId,
+          criteriaId: id,
+          label,
+          active: true,
+          unsubscribeTokenHash,
+          unsubscribeSubject: alertId,
+          createdById: userId,
+        },
+        update: { deletedAt: null, version: { increment: 1 }, updatedById: userId },
+      });
+
+      return { criteriaId: id, criteriaIsNew: isNew };
     });
 
-    return { criteriaId: id, criteriaIsNew: isNew };
-  });
+  // ALERT-49: two saves of the same new criteria can both miss the lookup;
+  // the second insert then fails on the unique `criteriaHash`. Postgres
+  // aborts the transaction on that failed insert, so it cannot be caught
+  // inside it: run the whole save once more, which finds the committed row
+  // as existing and leaves the seed to the save that created it.
+  let saved: Awaited<ReturnType<typeof saveCriteriaAndAlert>>;
+  try {
+    saved = await saveCriteriaAndAlert();
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) {
+      throw error;
+    }
+    saved = await saveCriteriaAndAlert();
+  }
+  const { criteriaId, criteriaIsNew } = saved;
 
   // Only when the criteria set is new: an existing one already has a
   // seen-list, and re-seeding would spend three upstream requests to learn
