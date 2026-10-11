@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>UI Kit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&amp;family=Rethink+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F4F2F0}a:hover{color:#C6FF3D}
+.display{text-box:trim-both cap alphabetic;text-wrap:balance}
+</style>
+</helmet>
+<div style="width: 1970px; box-sizing: border-box; padding: 64px 80px 96px; background: #0F0F10; font-family: 'Rethink Sans', system-ui, sans-serif; color: #F4F2F0; display: flex; flex-direction: column; gap: 72px">
+
+  <header style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #232326; padding-bottom: 32px">
+    <div style="display: flex; flex-direction: column; gap: 14px"><span style="font-family: Unbounded, sans-serif; font-size: 20px; font-weight: 900">BUYCAR<span style="color: #C6FF3D">MAP</span></span><h1 class="display" style="margin: 0; font-family: Unbounded, sans-serif; font-size: 64px; font-weight: 900; line-height: 0.9; text-transform: uppercase">UI Kit</h1></div>
+    <span style="font-size: 15px; color: #A3A0A6">Todo lo que se reutiliza. Copia de aquí, no redibujes.</span>
+  </header>
+
+  <section style="display: flex; flex-direction: column; gap: 24px">
+    <h2 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; text-transform: uppercase">Colores</h2>
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 16px">
+      <sc-for list="{{colors}}" as="c" hint-placeholder-count="14">
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <span style="height: 96px; border-radius: 16px; background: {{c.hex}}; border: 1px solid #2A2A2E"></span>
+          <strong style="font-size: 14px">{{c.name}}</strong>
+          <span style="font-size: 13px; color: #A3A0A6">{{c.hex}} · {{c.use}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 24px">
+    <h2 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; text-transform: uppercase">Tipografía</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 48px">
+      <div style="display: flex; flex-direction: column; gap: 28px">
+        <span style="font-size: 13px; color: #A3A0A6">Unbounded · siempre en mayúsculas</span>
+        <h3 class="display" style="margin: 0; font-family: Unbounded, sans-serif; font-size: 72px; font-weight: 900; line-height: 1.04; letter-spacing: -0.01em; text-transform: uppercase"><span style="display: block; font-size: 0.56em; line-height: 1.1; letter-spacing: 0; margin-bottom: 0.22em">¿En busca de coche?</span><span style="display: block; color: #C6FF3D">Mira el mapa</span></h3>
+        <span style="font-size: 13px; color: #A3A0A6">Titular · 72 / 1,04 / 900 / -0,01 em · pregunta a 0,56 · 30 px hasta el subtítulo</span>
+        <span style="font-family: Unbounded, sans-serif; font-size: 40px; font-weight: 900; line-height: 0.9; letter-spacing: -0.015em; text-transform: uppercase">Guardados</span>
+        <span style="font-size: 13px; color: #A3A0A6">Título de página · 40 / 0,9 / 900 · sin contador</span>
+        <div style="display: flex; gap: 40px; align-items: baseline"><span style="font-family: Unbounded, sans-serif; font-size: 30px; font-weight: 800; text-transform: uppercase"><span style="color: #C6FF3D">312</span> coches</span><span style="font-family: Unbounded, sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #C6FF3D">14.500 €</span></div>
+        <span style="font-size: 13px; color: #A3A0A6">Contador · 30 / 800 — Precio · 22 / 800 / -0,02 em, siempre lime</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 22px">
+        <span style="font-size: 13px; color: #A3A0A6">Rethink Sans · todo lo demás</span>
+        <p style="margin: 0; font-size: 19px; line-height: 1.5; color: #A3A0A6; max-width: 560px">Una web, toda la segunda mano, sin cincuenta pestañas.</p>
+        <span style="font-size: 13px; color: #A3A0A6">Subtítulo · 19 / 1,5 / 400 · máx. 560 px</span>
+        <strong style="font-size: 16px; font-weight: 700">Audi A3 2.0 TDI</strong>
+        <span style="font-size: 13px; color: #A3A0A6">Nombre del coche · 16 / 700</span>
+        <span style="font-size: 14px; color: #A3A0A6">2018 · 95.000 km · Diésel</span>
+        <span style="font-size: 13px; color: #A3A0A6">Metadatos · 14 / 400 · separados por «·»</span>
+        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Dónde</span>
+        <span style="font-size: 13px; color: #A3A0A6">Etiqueta de campo · 11 / 700 / 0,08 em</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 24px">
+    <h2 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; text-transform: uppercase">Botones</h2>
+    <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap">
+      <button type="button" style="all: unset; cursor: pointer; height: 54px; padding: 0 24px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Buscar</button>
+      <a href="#" style="height: 42px; padding: 0 16px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; display: flex; align-items: center; font-size: 14px; font-weight: 800; text-decoration: none">Ver anuncio ↗</a>
+      <button type="button" style="all: unset; cursor: pointer; height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid #2A2A2E; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg>Filtros <span style="background: #7C4DFF; color: #F4F2F0; border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 800">3</span></button>
+      <a href="#" style="font-size: 15px; font-weight: 700; text-decoration: none; padding: 10px 16px">Crear alerta</a>
+      <button type="button" aria-label="Guardar" style="all: unset; cursor: pointer; width: 42px; height: 42px; border-radius: 999px; border: 1px solid #2A2A2E; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4F2F0" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+      <button type="button" aria-label="Quitar de guardados" style="all: unset; cursor: pointer; width: 42px; height: 42px; border-radius: 999px; background: #7C4DFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#0F0F10" stroke="#0F0F10" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+      <button type="submit" style="all: unset; cursor: pointer; width: 360px; text-align: center; height: 56px; line-height: 56px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 800; text-transform: uppercase">Ver coches</button>
+    </div>
+    <span style="font-size: 13px; color: #A3A0A6">Principal (uno por vista) · enlace a portal · secundario con contador · fantasma · icono · icono guardado · principal a ancho completo</span>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 24px">
+    <h2 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; text-transform: uppercase">Buscador y chips</h2>
+    <form style="display: flex; align-items: center; align-self: flex-start; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 6px 6px 6px 8px">
+      <button type="button" style="all: unset; cursor: pointer; padding: 6px 22px; display: flex; flex-direction: column; border-right: 1px solid #2A2A2E"><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Dónde</span><span style="font-size: 15px; font-weight: 600">Madrid · 50 km</span></button>
+      <button type="button" style="all: unset; cursor: pointer; padding: 6px 22px; display: flex; flex-direction: column; border-right: 1px solid #2A2A2E"><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Coche</span><span style="font-size: 15px; font-weight: 600; color: #A3A0A6">Marca o modelo…</span></button>
+      <button type="button" style="all: unset; cursor: pointer; padding: 6px 22px; display: flex; flex-direction: column"><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Precio</span><span style="font-size: 15px; font-weight: 600">Hasta 20.000 €</span></button>
+      <button type="submit" aria-label="Buscar" style="all: unset; cursor: pointer; width: 46px; height: 46px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    </form>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+      <span style="padding: 9px 16px; border-radius: 999px; background: #7C4DFF; color: #F4F2F0; font-size: 14px; font-weight: 800">Todos</span>
+      <span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-size: 14px; font-weight: 600">Diésel</span>
+      <span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-size: 14px; font-weight: 600">Automático</span>
+      <span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-size: 14px; font-weight: 600">Menos de 100.000 km</span>
+      <div style="display: flex; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 4px; margin-left: 24px"><span style="padding: 7px 18px; border-radius: 999px; background: #F4F2F0; color: #0F0F10; font-size: 14px; font-weight: 800">Todos</span><span style="padding: 7px 18px; font-size: 14px; font-weight: 600">Manual</span><span style="padding: 7px 18px; font-size: 14px; font-weight: 600">Automático</span></div>
+    </div>
+    <span style="font-size: 13px; color: #A3A0A6">Buscador píldora · chip activo e inactivos · selector segmentado (filtros)</span>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 24px">
+    <h2 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; text-transform: uppercase">Mapa</h2>
+    <div style="display: flex; gap: 32px; align-items: flex-start">
+      <div style="width: 760px; height: 300px; border-radius: 22px; background: #141416; border: 1px solid #232326; position: relative; overflow: hidden">
+        <svg width="760" height="300" viewBox="0 0 760 300" style="position: absolute; inset: 0" aria-hidden="true"><path d="M-10 220 C 160 190 320 250 480 210 S 700 170 770 190 L 770 310 L -10 310 Z" fill="#111A22"/><path d="M-10 80 C 200 110 400 50 770 100" stroke="#232327" stroke-width="12" fill="none"/><path d="M260 -10 C 290 100 320 200 300 310" stroke="#2B2B30" stroke-width="10" fill="none"/><path d="M560 -10 L 610 310" stroke="#1E1E22" stroke-width="6" fill="none"/><circle cx="610" cy="200" r="120" fill="#C6FF3D" fill-opacity="0.1" stroke="#C6FF3D" stroke-opacity="0.8" stroke-width="2"/><circle cx="610" cy="200" r="6" fill="#F4F2F0" stroke="#0F0F10" stroke-width="3"/></svg>
+        <span style="position: absolute; top: 50px; left: 80px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 7px 13px; font-size: 14px; font-weight: 700">14.500 €</span>
+        <span style="position: absolute; top: 130px; left: 330px; background: #C6FF3D; color: #0F0F10; border-radius: 999px; padding: 7px 13px; font-size: 14px; font-weight: 800; box-shadow: 0 0 0 7px rgba(198,255,61,0.2)">16.500 €</span>
+        <span style="position: absolute; top: 40px; left: 470px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 7px 13px; font-size: 14px; font-weight: 800">3 coches · desde 9.500 €</span>
+      </div>
+      <article style="width: 340px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 24px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 24px 50px rgba(0,0,0,0.55)">
+        <div style="height: 150px; border-radius: 16px; background: #29302C; position: relative"><span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700">Milanuncios</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline"><strong style="font-size: 16px">SEAT León 1.5 TSI FR</strong><span style="font-size: 13px; color: #A3A0A6">Sevilla</span></div>
+        <span style="font-size: 14px; color: #A3A0A6">2020 · 64.000 km · Gasolina</span>
+        <div style="display: flex; align-items: center; gap: 8px"><strong style="font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; color: #C6FF3D; flex: 1">16.500 €</strong><a href="#" style="height: 42px; padding: 0 16px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; display: flex; align-items: center; font-size: 14px; font-weight: 800; text-decoration: none">Ver anuncio ↗</a></div>
+      </article>
+    </div>
+    <span style="font-size: 13px; color: #A3A0A6">Mapa oscuro mínimo · pin normal, activo (lime + halo) y de grupo · zona de alerta (borde lime 2px al 80%, relleno lime al 10%, punto de centro) · vista previa al pulsar un pin</span>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 24px">
+    <h2 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; text-transform: uppercase">Tarjetas de coche</h2>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; max-width: 1200px">
+      <sc-for list="{{cards}}" as="car" hint-placeholder-count="4">
+        <article style="display: flex; flex-direction: column; gap: 12px">
+          <div style="{{car.photo}}">
+            <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.8); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700">{{car.source}}</span>
+            <span style="{{car.heart}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="{{car.fill}}" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px"><div style="display: flex; justify-content: space-between"><strong style="font-size: 16px">{{car.title}}</strong><span style="font-size: 14px; color: #A3A0A6">{{car.city}}</span></div><span style="font-size: 14px; color: #A3A0A6">{{car.meta}}</span><span style="font-family: Unbounded, sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #C6FF3D; margin-top: 6px">{{car.price}}</span></div>
+          <span style="font-size: 13px; color: #A3A0A6">{{car.state}}</span>
+        </article>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display: flex; flex-direction: column; gap: 24px">
+    <h2 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; text-transform: uppercase">Navegación y formularios</h2>
+    <div style="display: flex; gap: 48px; align-items: flex-start; flex-wrap: wrap">
+      <div style="display: flex; flex-direction: column; gap: 16px; width: 390px">
+        <nav style="height: 62px; border-radius: 999px; background: #18181B; border: 1px solid #2A2A2E; display: flex; align-items: center; justify-content: space-around; font-size: 13px; font-weight: 700"><span>Mapa</span><span style="background: #7C4DFF; color: #F4F2F0; border-radius: 999px; padding: 10px 16px">Guardados</span><span>Alertas</span></nav>
+        <span style="font-size: 13px; color: #A3A0A6">Barra inferior en móvil</span>
+        <div style="height: 200px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 26px; padding: 10px 20px; display: flex; flex-direction: column; gap: 12px"><span style="align-self: center; width: 40px; height: 5px; border-radius: 999px; background: #3A3A40"></span><strong style="align-self: center; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 800; text-transform: uppercase"><span style="color: #C6FF3D">312</span> coches</strong><span style="height: 110px; border-radius: 22px; background: #2A2B30"></span></div>
+        <span style="font-size: 13px; color: #A3A0A6">Hoja inferior sobre el mapa</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 18px; width: 440px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 28px; padding: 32px">
+        <label style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 13px; font-weight: 700">Email</span><input type="email" placeholder="tu@email.com" style="height: 52px; border-radius: 16px; border: 1px solid #2A2A2E; background: #0F0F10; color: #F4F2F0; padding: 0 16px; font: inherit; font-size: 16px; outline: 0"></label>
+        <label style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 13px; font-weight: 700">Contraseña</span><input type="password" placeholder="Tu contraseña" style="height: 52px; border-radius: 16px; border: 1px solid #C6FF3D; background: #0F0F10; color: #F4F2F0; padding: 0 16px; font: inherit; font-size: 16px; outline: 0"></label>
+        <span style="font-size: 13px; color: #A3A0A6">Campo normal y con foco (borde lime)</span>
+        <span style="display: flex; justify-content: space-between; align-items: center"><span style="font-family: Unbounded, sans-serif; font-size: 20px; font-weight: 900">BUYCAR<span style="color: #C6FF3D">MAP</span></span><span style="font-size: 13px; color: #A3A0A6">Logo · solo tipografía</span></span>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1970,"height":3600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colors = [
+      ['Fondo', '#0F0F10', 'toda la app'], ['Superficie', '#18181B', 'buscador, chips, hojas'], ['Borde', '#2A2A2E', 'bordes de 1px'], ['Divisor', '#232326', 'cabeceras'],
+      ['Texto', '#F4F2F0', 'principal'], ['Texto suave', '#A3A0A6', 'secundario'], ['Lime', '#C6FF3D', 'precios, activo, CTA'], ['Violeta', '#7C4DFF', 'guardado, estados, chips'],
+      ['Sobre lime', '#0F0F10', 'texto en lime'], ['Suelo mapa', '#141416', 'mapa'], ['Calle', '#232327', 'mapa'], ['Vía principal', '#2B2B30', 'mapa'],
+      ['Agua', '#111A22', 'mapa'], ['Foto vacía', '#2A2B30', 'sin imagen'], ['Asa', '#3A3A40', 'hoja inferior']
+    ].map(([name, hex, use]) => ({ name, hex, use }));
+    const photo = (active) => 'position: relative; aspect-ratio: 20 / 19; border-radius: 22px; background: #2A2B30;' + (active ? ' box-shadow: 0 0 0 2px #C6FF3D;' : '');
+    const heart = (saved) => 'position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 999px; display: flex; align-items: center; justify-content: center; ' + (saved ? 'background: #7C4DFF; color: #F4F2F0;' : 'background: rgba(15,15,16,0.8); color: #F4F2F0;');
+    const cards = [
+      { title: 'Audi A3 2.0 TDI', city: 'Madrid', meta: '2018 · 95.000 km · Diésel', price: '14.500 €', source: 'Wallapop', state: 'Normal', photo: photo(false), heart: heart(false), fill: 'none' },
+      { title: 'BMW Serie 3 320d', city: 'Barcelona', meta: '2019 · 120.000 km · Diésel', price: '18.900 €', source: 'coches.net', state: 'Guardado', photo: photo(false), heart: heart(true), fill: '#F4F2F0' },
+      { title: 'SEAT León 1.5 TSI', city: 'Sevilla', meta: '2020 · 64.000 km · Gasolina', price: '16.500 €', source: 'Milanuncios', state: 'Activo (su pin está abierto)', photo: photo(true), heart: heart(false), fill: 'none' },
+      { title: 'Renault Clio TCe 90', city: 'Zaragoza', meta: '2019 · 71.000 km · Gasolina', price: '9.400 €', source: 'Wallapop', state: 'Sin foto', photo: photo(false), heart: heart(false), fill: 'none' }
+    ];
+    return { colors, cards };
+  }
+}
+</script>
+</body>
+</html>

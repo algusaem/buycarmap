@@ -1,0 +1,25 @@
+{
+  "v": 3,
+  "assetGroups": {},
+  "blobs": {},
+  "createdOnFiles": {
+    "at": "2026-10-11T19:40:00Z",
+    "v": 1
+  },
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "groups": [],
+  "lastChange": {
+    "at": "2026-10-11T19:40:00Z",
+    "by": "Alex",
+    "note": "Primera versión, sacada del lienzo de diseño (ronda 3, variante A).",
+    "via": "Claude Code"
+  },
+  "layout": "files",
+  "libraries": [],
+  "namespace": "BuyCarMap",
+  "sections": {},
+  "title": "BuyCarMap 2.0"
+}

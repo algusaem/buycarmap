@@ -1,0 +1,32 @@
+<!-- @dsCard group="Móvil" height=380 subtitle="Hoja inferior sobre el mapa" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>BottomSheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800&amp;family=Rethink+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--map-ground);color:var(--text);font-family:var(--font-sans)}
+.stage{position:relative;width:390px;height:380px;margin:0 auto;overflow:hidden;background:var(--map-ground)}
+.sheet{position:absolute;left:0;right:0;bottom:0;height:300px;background:var(--surface);border-top:1px solid var(--line);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;padding:10px var(--space-5) 0;display:flex;flex-direction:column;gap:var(--space-3)}
+.handle{all:unset;cursor:pointer;align-self:center;padding:6px 20px}
+.handle span{display:block;width:40px;height:5px;border-radius:var(--radius-pill);background:#3A3A40}
+.n{align-self:center;font-family:var(--font-display);font-size:15px;font-weight:800;text-transform:uppercase}
+.n b{color:var(--lime)}
+.photo{height:170px;border-radius:var(--radius-card);background:var(--photo-placeholder)}
+.t{font-size:16px;font-weight:700}
+.m{font-size:14px;color:var(--text-muted)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <section class="sheet" aria-label="Resultados">
+    <button class="handle" type="button" aria-expanded="false" aria-label="Mostrar lista"><span></span></button>
+    <strong class="n"><b>312</b> coches</strong>
+    <div class="photo"></div>
+    <span class="t">SEAT León 1.5 TSI FR</span>
+    <span class="m">2020 · 64.000 km · Gasolina</span>
+  </section>
+</div>
+</body>
+</html>

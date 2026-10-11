@@ -259,6 +259,7 @@ disagreeing, so the boundary is worth knowing before you write in any of them.
 | This README | Getting started, this index, the ownership map, the contributing loop | `pnpm docs:check` + `/check-all` |
 | `docs/privacy/` | Which personal data is held, for how long, who receives it, and how it is erased | `/check-all` |
 | `docs/operations/` | Procedures to run against production | `/check-all` |
+| [`docs/design/`](docs/design/README.md) | What the redesigned app looks like: screens, UI kit, tokens and component guidelines | `pnpm docs:check` |
 | [Decisions](#decisions) in `docs/decisions/` | Choices no single spec owns, and what each one beat | `/check-all` |
 | [`CLAUDE.md`](CLAUDE.md), [`RULES.md`](RULES.md) and [`STACK.md`](STACK.md) | Rules an agent must follow | `/check-all` |
 | Code comments | Why *this line* is strange | Review |
@@ -276,6 +277,7 @@ copy wins.
 | [docs/privacy/processors.md](docs/privacy/processors.md) | Every external service that receives personal data, and what it receives |
 | [docs/privacy/deletion.md](docs/privacy/deletion.md) | How an account is erased, what survives it, and the restore window |
 | [docs/operations/backups.md](docs/operations/backups.md) | Restoring the production database from Neon's point-in-time history |
+| [docs/design/README.md](docs/design/README.md) | The approved redesign: screens, UI kit and design system, with links to the artifacts they are edited in |
 | [Specs](#specs) | What the software does, feature by feature |
 | [Decisions](#decisions) | ADRs for choices no single spec owns |
 

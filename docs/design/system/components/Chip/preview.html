@@ -1,0 +1,27 @@
+<!-- @dsCard group="Filtros" height=88 subtitle="Chips rápidos: activo e inactivo" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Chip</title>
+<link href="https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font-family:var(--font-sans)}
+.row{display:flex;gap:var(--space-2);flex-wrap:wrap}
+.chip{all:unset;cursor:pointer;padding:9px var(--space-4);border-radius:var(--radius-pill);font-size:14px;font-weight:600;border:1px solid var(--line);color:var(--text)}
+.chip[aria-pressed="true"]{background:var(--violet);color:var(--on-violet);border-color:var(--violet);font-weight:800}
+.count{background:var(--violet);color:var(--on-violet);border-radius:var(--radius-pill);padding:1px 8px;font-size:12px;font-weight:800;margin-left:6px}
+.chip:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="row">
+  <button class="chip" type="button" aria-pressed="true">Todos</button>
+  <button class="chip" type="button" aria-pressed="false">Diésel</button>
+  <button class="chip" type="button" aria-pressed="false">Híbrido</button>
+  <button class="chip" type="button" aria-pressed="false">Automático</button>
+  <button class="chip" type="button" aria-pressed="false">Menos de 100.000 km</button>
+  <button class="chip" type="button" aria-pressed="false">Filtros<span class="count">3</span></button>
+</div>
+</body>
+</html>

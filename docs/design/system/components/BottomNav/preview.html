@@ -1,0 +1,23 @@
+<!-- @dsCard group="Móvil" height=110 subtitle="Barra de navegación inferior" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>BottomNav</title>
+<link href="https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font-family:var(--font-sans)}
+nav{max-width:358px;margin:0 auto;height:62px;border-radius:var(--radius-pill);background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-around}
+a{color:var(--text);text-decoration:none;font-size:13px;font-weight:700;padding:10px 16px;border-radius:var(--radius-pill)}
+a[aria-current="page"]{background:var(--violet);color:var(--on-violet)}
+a:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+</style>
+</head>
+<body>
+<nav aria-label="Principal">
+  <a href="#">Mapa</a>
+  <a href="#" aria-current="page">Guardados</a>
+  <a href="#">Alertas</a>
+</nav>
+</body>
+</html>

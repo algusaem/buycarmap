@@ -391,6 +391,22 @@ Any change here needs approval first (`RULES.md` §1).
 - **Do not relax account linking.** A provider is auto-linked only when both emails are
   verified, and never to an account with two-factor on (`lib/auth/linking.ts`, BAUTH-9).
 
+## Design first
+
+The design in `docs/design/` (the BuyCarMap 2.0 canvas and design system, see its `README.md`) is
+the visual source of truth, and it leads: **a visual change is designed before it is specified or
+coded.**
+
+- Any change to what the user sees (a screen, a layout, a colour, type, on-screen copy, a
+  component or its states) first goes into the design canvas, and into the design system and
+  the UI Kit when it touches them.
+- Show the owner the updated design and stop. The owner accepts or rejects it; only an accepted
+  design moves on to its spec (`RULES.md` §4) and code.
+- Re-export the changed files into `docs/design/` in the same change, so the repo and the
+  artifacts never differ.
+- Code that disagrees with the design is a bug. If the code turns out to need something different,
+  amend the design first and get it accepted again.
+
 ## UI specifics
 
 - **Theming**: next-themes, `attribute="class"`, dark default, `.light` for light. Theme-aware

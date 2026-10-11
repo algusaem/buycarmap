@@ -1,0 +1,101 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "R3-alertas.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Alertas",
+      "w": 1970,
+      "x": 2050,
+      "y": 1120
+    },
+    "R3-favoritos.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Favoritos",
+      "w": 1970,
+      "x": 0,
+      "y": 1120
+    },
+    "R3-landing.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Landing",
+      "w": 1970,
+      "x": 0,
+      "y": 0
+    },
+    "R3-login.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Entrar",
+      "w": 1970,
+      "x": 0,
+      "y": 2240
+    },
+    "R3-mapa-detalle.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · coche abierto + filtros (móvil)",
+      "w": 1970,
+      "x": 2050,
+      "y": 0
+    },
+    "UIKit.dc.html": {
+      "h": 3600,
+      "page": "kit",
+      "title": "UI Kit",
+      "w": 1970,
+      "x": 0,
+      "y": 0
+    },
+    "R2Base.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa (base que reutiliza la pantalla del coche abierto)",
+      "w": 1970,
+      "x": 2050,
+      "y": 2240
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-11T18:30:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "title3": {
+      "kind": "title1",
+      "maxW": 3900,
+      "page": "r3",
+      "text": "Final product",
+      "w": 240,
+      "x": 0,
+      "y": -320
+    }
+  },
+  "order": [
+    "R3-landing.dc.html",
+    "R3-mapa-detalle.dc.html",
+    "R3-favoritos.dc.html",
+    "R3-alertas.dc.html",
+    "R3-login.dc.html",
+    "R2Base.dc.html",
+    "UIKit.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "r3",
+      "name": "Ronda 3 · Variante A en toda la app"
+    },
+    {
+      "id": "kit",
+      "name": "UI Kit"
+    }
+  ],
+  "title": "BuyCarMap 2.0"
+}
