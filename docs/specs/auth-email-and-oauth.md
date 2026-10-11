@@ -50,9 +50,13 @@ be a security incident rather than a bug.
 
 ## Data model
 
-`prisma/migrations/20260801120000_auth_hardening/` — **not yet applied.** Local
-and production share one Neon database (see the `neon-db-setup` memory), so
-review it before running `prisma migrate deploy`.
+`prisma/migrations/20260801120000_auth_hardening/` — applied like every other
+migration: the Vercel build runs `prisma migrate deploy` (`scripts/migrate-deploy.mjs`,
+ENV-3) on production and preview. Local runs Docker Compose
+Postgres with its own database per git branch
+([ADR 0014](../decisions/0014-local-database-and-integration-tests.md));
+production is the Neon `main` branch (see
+[ARCHITECTURE.md › Environments and operations](../ARCHITECTURE.md#environments-and-operations)).
 
 It renames `User.avatarUrl` to `image` (the adapter writes the OAuth picture to
 that exact field), makes `password` nullable for OAuth-only accounts, adds
