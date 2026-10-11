@@ -36,6 +36,13 @@ vi.mock("./LanguageSwitcher", () => ({
   LanguageSwitcher: () => <button type="button">EN</button>,
 }));
 
+// ALERT-50: the account menu's language choice goes through the same switcher
+// hook, which now also asks the server to store the choice on the account.
+vi.mock("@/server/locale/actions", () => ({
+  setLocale: vi.fn(async () => ({ ok: true, value: undefined })),
+}));
+
+import { setLocale } from "@/server/locale/actions";
 import { Navbar } from "./Navbar";
 
 const SIGNED_IN = {
@@ -244,6 +251,20 @@ describe("Navbar session states", () => {
     // The cookie is what getLocale() reads on the next server render, so it is
     // the whole mechanism by which the choice outlives the page.
     expect(document.cookie).toContain("locale=es");
+  });
+
+  it("ALERT-50: choosing a language from the account menu also asks the server to store it", async () => {
+    const user = userEvent.setup();
+    vi.mocked(setLocale).mockClear();
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<Navbar />);
+
+    const menu = await openAccountMenu(user);
+    await user.click(menu.getByRole("menuitemradio", { name: "Español" }));
+
+    expect(document.cookie).toContain("locale=es");
+    expect(setLocale).toHaveBeenCalledTimes(1);
+    expect(setLocale).toHaveBeenCalledWith("es");
   });
 
   it("NAV-15: identifies a user with no display name by their email address", () => {

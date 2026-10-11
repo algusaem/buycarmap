@@ -6,7 +6,7 @@ import { makeCochesNetResponse } from "@/test/fixtures/cochesnet";
 import { makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
 import { makeCriteria } from "@/test/fixtures/alerts";
 
-// FRONT-2/FRONT-4 (docs/specs/core-frontend.md). Mocked the same way
+// FRONT-2/FRONT-4/FRONT-28 (docs/specs/core-frontend.md). Mocked the same way
 // server/password-reset/forgot-password.integration.test.ts mocks rate
 // limiting on an action: the IP and the limiter's verdict are stubbed so the
 // test does not need 121 real requests against Postgres to prove the
@@ -178,6 +178,33 @@ describe("listCarModels", () => {
       // models survive the merge, hand-derived from the two fixtures above.
       expect(result.value.map((model) => model.label).sort()).toEqual(["Ibiza", "Leon"]);
     }
+  });
+
+  it("FRONT-28: the 121st call from one IP within a minute is rejected before any upstream request", async () => {
+    vi.mocked(consumeRateLimit).mockResolvedValue({
+      allowed: false,
+      remaining: 0,
+      retryAfterMs: 60_000,
+    });
+    const calls: string[] = [];
+    server.use(
+      http.get(WALLAPOP_MODELS, ({ request }) => {
+        calls.push(request.url);
+        return HttpResponse.json({ type: "model", id: "model", title: "Model", options: [] });
+      }),
+      http.get(COCHESNET_MODELS, ({ request }) => {
+        calls.push(request.url);
+        return HttpResponse.json({ items: [] });
+      }),
+    );
+
+    const result = await listCarModels("Seat");
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "rateLimited", messageKey: "searchErrors.rateLimited" },
+    });
+    expect(calls).toEqual([]);
   });
 
   it("PLAT-27: rejects a non-string make (today reaches fetchModelsForMake unparsed)", async () => {
