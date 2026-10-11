@@ -161,7 +161,7 @@ files are explanation. The root `README.md` carries getting started, the docs in
 | How the pieces fit, the search fan-out, the write path, the directory map | `docs/ARCHITECTURE.md` |
 | The map components, design system, palette, theming, animation, i18n | `docs/ARCHITECTURE.md` › Frontend |
 | What each upstream actually does, and how it breaks | `docs/specs/data-sources.md` › Contracts |
-| The seventeen Prisma models and the migration rules | `docs/ARCHITECTURE.md` › Data model |
+| The fifteen Prisma models and the migration rules | `docs/ARCHITECTURE.md` › Data model |
 | Test levels, MSW conventions, the environment traps | `docs/ARCHITECTURE.md` › Testing |
 | Deploy, env vars, Neon branches, CI, runbooks | `docs/ARCHITECTURE.md` › Environments and operations |
 | Restoring the production database | `docs/operations/backups.md` |

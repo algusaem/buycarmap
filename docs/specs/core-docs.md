@@ -111,24 +111,22 @@ this diff.
 **Personal fields for DOCS-8,** from `prisma/schema.prisma`:
 - `User`: `email`, `password`, `name`, `image`, `emailVerified`, `locale`, `twoFactorSecret`,
   `twoFactorEnabledAt`, `twoFactorLastStep`, `passwordChangedAt`, `createdAt`.
-- `TwoFactorRecoveryCode`: `codeHash`, `usedAt`.
 - `Account`: `providerAccountId`, `refresh_token`, `access_token`, `id_token`.
 - `Session`: `sessionToken`.
-- `VerificationToken`: `identifier`, `token`.
 - `PasswordResetToken`: `tokenHash`.
 - `PendingRegistration`: `email`, `password`, `name`, `tokenHash`.
 - `EmailVerificationToken`: `tokenHash`, `newEmail`.
-- `RateLimit`: `key`, which embeds IPs and emails.
 - `Favorite`: `userId`, plus the listing snapshot.
 - `AlertCriteria`: `criteria`, which may hold coordinates.
 - `Alert`: `label`, `unsubscribeTokenHash`.
 - `AlertMatch`: the listing snapshot.
-- `SearchHistory`: `query`.
+
+`TwoFactorRecoveryCode`, `VerificationToken`, `RateLimit` and `SearchHistory` left this list when
+DATA-19 ([core-data-model.md](core-data-model.md)) dropped their tables.
 
 Retention is recorded as the code and the published privacy page define it today:
 - The account's data lives while the account does, and is removed on deletion by cascade.
 - Tokens are kept until they expire and are pruned.
-- `RateLimit` rows are kept for their window.
 
 Where the code defines no retention (`AlertCriteria` after account deletion), the inventory says so
 and links the issue.

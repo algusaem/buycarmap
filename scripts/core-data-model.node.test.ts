@@ -82,24 +82,18 @@ describe("DATA-1: every id is a UUIDv7 and every foreign key is @db.Uuid", () =>
     expect(violations).toEqual([]);
   });
 
-  it("DATA-1: RateLimit.key and SourceHealth.source are @unique", () => {
-    const rateLimitKey = modelBody(schema, "RateLimit")
-      .split("\n")
-      .find((line) => /^ {2}key\s/.test(line));
+  it("DATA-1: SourceHealth.source is @unique", () => {
     const sourceHealthSource = modelBody(schema, "SourceHealth")
       .split("\n")
       .find((line) => /^ {2}source\s/.test(line));
 
-    expect(rateLimitKey).toMatch(/@unique/);
     expect(sourceHealthSource).toMatch(/@unique/);
   });
 
-  it("DATA-1: RateLimit, SourceHealth and VerificationToken each gain a UUID id field", () => {
-    for (const name of ["RateLimit", "SourceHealth", "VerificationToken"]) {
-      const body = modelBody(schema, name);
-      const idLine = body.split("\n").find((line) => / @id(\s|$)/.test(line));
-      expect(idLine, `${name} has no @id field`).toBeDefined();
-    }
+  it("DATA-1: SourceHealth gains a UUID id field", () => {
+    const body = modelBody(schema, "SourceHealth");
+    const idLine = body.split("\n").find((line) => / @id(\s|$)/.test(line));
+    expect(idLine, "SourceHealth has no @id field").toBeDefined();
   });
 
   it("DATA-1 (worked example): a cuid()-defaulted id is named in the failure", () => {
@@ -133,10 +127,10 @@ describe("DATA-5: snake_case table and column mapping", () => {
     expect(violations).toEqual([]);
   });
 
-  it("DATA-5 (worked examples): AlertPollJob -> alert_poll_jobs, TwoFactorRecoveryCode -> two_factor_recovery_codes, createdAt -> created_at", () => {
+  it("DATA-5 (worked examples): AlertPollJob -> alert_poll_jobs, EmailVerificationToken -> email_verification_tokens, createdAt -> created_at", () => {
     expect(modelBody(schema, "AlertPollJob")).toContain('@@map("alert_poll_jobs")');
-    expect(modelBody(schema, "TwoFactorRecoveryCode")).toContain(
-      '@@map("two_factor_recovery_codes")',
+    expect(modelBody(schema, "EmailVerificationToken")).toContain(
+      '@@map("email_verification_tokens")',
     );
     // createdAt -> created_at: at least one field line maps it exactly this way.
     expect(schema).toMatch(/createdAt\s+DateTime[^\n]*@map\("created_at"\)/);
@@ -252,6 +246,15 @@ describe("DATA-18: docs record the migration's decisions", () => {
 
   it("DATA-18: docs/privacy/data-inventory.md mentions the 30-day retention", () => {
     expect(read("docs/privacy/data-inventory.md")).toContain("30 days");
+  });
+});
+
+describe("DATA-19: the unused models are dropped", () => {
+  it("DATA-19: schema.prisma has no RateLimit, VerificationToken, TwoFactorRecoveryCode or SearchHistory model", () => {
+    const dropped = ["RateLimit", "VerificationToken", "TwoFactorRecoveryCode", "SearchHistory"];
+    const present = dropped.filter((name) => MODELS.includes(name));
+
+    expect(present).toEqual([]);
   });
 });
 

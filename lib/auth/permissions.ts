@@ -12,7 +12,7 @@ export type PermissionAction = "read" | "update" | "delete";
 export type PermissionResource =
   | { type: "user"; id: string }
   | {
-      type: "account" | "favorite" | "alert" | "recoveryCode" | "session";
+      type: "account" | "favorite" | "alert" | "session";
       userId: string;
     };
 

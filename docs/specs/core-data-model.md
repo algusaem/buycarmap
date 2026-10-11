@@ -29,8 +29,8 @@ This is phase 8 of ADR 0007: row 18.
 ### Ids
 
 - [x] DATA-1 · unit — Every model's primary key is `id String @id @default(uuid(7)) @db.Uuid`, and every foreign key to it is `@db.Uuid`.
-  - `RateLimit` and `SourceHealth` gain such an `id`. Their natural keys (`key`, `source`) become `@unique`.
-  - `VerificationToken` gains an `id`. Its `[identifier, token]` stays `@@unique`.
+  - `SourceHealth` gains such an `id`. Its natural key (`source`) becomes `@unique`.
+  - `RateLimit` (natural key `key`) and `VerificationToken` (`[identifier, token]`) gained one too, until DATA-19 dropped both models.
   - A test reads `prisma/schema.prisma` and fails on any `cuid()` or any `@id` that is not a UUID.
 - [x] DATA-2 · node — The migration converts every existing id to a UUIDv7 and rewrites every foreign key to match.
   - Every row survives, and so does every relation: a user's favorites, alerts and matches still belong to that user.
@@ -79,6 +79,10 @@ This is phase 8 of ADR 0007: row 18.
 
 - [x] DATA-18 · unit — `docs/ARCHITECTURE.md` › Data model describes ids, naming, the standard columns, soft delete and purge, optimistic locking and the cascade rule. `docs/privacy/data-inventory.md` and `docs/privacy/deletion.md` record the 30-day soft-delete retention and that account deletion still erases at once. ADR 0015 records the decisions below. ADR 0007 marks row 18 `Resolved in phase 8`.
 
+### Dropping the unused tables
+
+- [x] DATA-19 · node — The schema has no RateLimit, VerificationToken, TwoFactorRecoveryCode or SearchHistory model and the database has no rate_limits, verification_tokens, two_factor_recovery_codes or search_histories table: one migration drops them, after the code stopped using them (issues #59, #23, #62)
+
 ## Worked examples
 
 - **DATA-1**: `model Favorite { id String @id @default(cuid()) … }` → the test fails, naming `Favorite`.
@@ -93,10 +97,16 @@ This is phase 8 of ADR 0007: row 18.
 - **DATA-15**: user U at `version 3`, name "Ana".
   - Page 1 saves "Ana María", sending `version 3` → saved, `version 4`.
   - Page 2 then saves "Anita", sending `version 3` → `{ success: false, error: "conflict" }`. The name stays "Ana María" at `version 4`.
+- **DATA-19**: a database migrated up to the migration before the drop, holding user U, a favorite F and an alert A of U, and one row in each of `rate_limits`, `verification_tokens`, `two_factor_recovery_codes` (for U) and `search_histories` (for U). The migrations are applied in name order. After the drop:
+  - `rate_limits`, `verification_tokens`, `two_factor_recovery_codes` and `search_histories` no longer exist;
+  - every other application table still exists, with the same row counts as before (`_prisma_migrations` aside);
+  - U's `users` row is unchanged, and F and A still belong to U.
 
 ## Data model
 
 All 17 models change: ids, names, types, standard columns. There is one hand-written migration. It is **not compatible with the previous code**: the table renames and the id type change break the old code for the seconds between `migrate deploy` and the new code going live. The owner accepted this on 2026-10-01, and the migration does it in one step rather than expand/contract. No column is dropped without its data moving first.
+
+DATA-19 adds one later migration that drops four whole tables and removes their models in the same PR. It is compatible with the previous code because the deployed code never reads or writes those tables. The owner approved the destructive drop on 2026-10-11 (`RULES.md` §1, §11).
 
 ## Permissions
 

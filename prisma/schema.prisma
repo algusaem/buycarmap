@@ -60,19 +60,19 @@ model User {
   // onto Better Auth's `twoFactor` plugin, whose own encrypted secret lives
   // in the `two_factors` table instead. `TWO_FACTOR_ENCRYPTION_KEY`, the key
   // this column needed, no longer exists. Kept until a later PR drops it.
-  twoFactorSecret    String?   @map("two_factor_secret")
+  twoFactorSecret          String?   @map("two_factor_secret")
   // Null while enrolment is half-finished — a secret exists but no code has
   // been verified yet, so 2FA is NOT enforced. Only this field gates login.
-  twoFactorEnabledAt DateTime? @map("two_factor_enabled_at") @db.Timestamptz(3)
+  twoFactorEnabledAt       DateTime? @map("two_factor_enabled_at") @db.Timestamptz(3)
   // Highest TOTP counter step already accepted. Anything at or below it is
   // refused, so a code seen over someone's shoulder cannot be replayed inside
   // its own 30-second window.
-  twoFactorLastStep  Int?      @map("two_factor_last_step")
+  twoFactorLastStep        Int?      @map("two_factor_last_step")
   // Better Auth's own boolean two-factor flag, read by its `twoFactor`
   // plugin (phase 12). Starts false for every row — including anyone who
   // had `twoFactorEnabledAt` set before the cutover, who the migration that
   // added this column (BAUTH-13/14) switches off, not just leaves alone.
-  twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorEnabled         Boolean   @default(false) @map("two_factor_enabled")
   // BAUTH-13: set once scripts/notify-2fa-reset.mjs has emailed this user
   // about the cutover switching their old two-factor off. Null for anyone
   // not yet notified (including every user who never had it on), so the
@@ -81,7 +81,7 @@ model User {
   // Bumped on every password change / reset. The JWT callback compares the
   // token's issue time against this and revokes older sessions, which is how
   // "sign out everywhere" works under a stateless JWT strategy.
-  passwordChangedAt  DateTime  @default(now()) @map("password_changed_at") @db.Timestamptz(3)
+  passwordChangedAt        DateTime  @default(now()) @map("password_changed_at") @db.Timestamptz(3)
 
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -95,10 +95,8 @@ model User {
   sessions               Session[]
   favorites              Favorite[]
   alerts                 Alert[]
-  searchHistories        SearchHistory[]
   passwordResetTokens    PasswordResetToken[]
   emailVerificationToken EmailVerificationToken[]
-  twoFactorRecoveryCodes TwoFactorRecoveryCode[]
 
   // Self-relation: who created/updated this user row (null for sign-up, which
   // has no actor yet).
@@ -107,8 +105,6 @@ model User {
   usersCreated User[] @relation("UserCreatedBy")
   usersUpdated User[] @relation("UserUpdatedBy")
 
-  twoFactorRecoveryCodesCreated  TwoFactorRecoveryCode[]  @relation("TwoFactorRecoveryCodeCreatedBy")
-  twoFactorRecoveryCodesUpdated  TwoFactorRecoveryCode[]  @relation("TwoFactorRecoveryCodeUpdatedBy")
   twoFactors                     TwoFactor[]
   twoFactorsCreated              TwoFactor[]              @relation("TwoFactorCreatedBy")
   twoFactorsUpdated              TwoFactor[]              @relation("TwoFactorUpdatedBy")
@@ -118,16 +114,12 @@ model User {
   accountsUpdated                Account[]                @relation("AccountUpdatedBy")
   sessionsCreated                Session[]                @relation("SessionCreatedBy")
   sessionsUpdated                Session[]                @relation("SessionUpdatedBy")
-  verificationTokensCreated      VerificationToken[]      @relation("VerificationTokenCreatedBy")
-  verificationTokensUpdated      VerificationToken[]      @relation("VerificationTokenUpdatedBy")
   passwordResetTokensCreated     PasswordResetToken[]     @relation("PasswordResetTokenCreatedBy")
   passwordResetTokensUpdated     PasswordResetToken[]     @relation("PasswordResetTokenUpdatedBy")
   pendingRegistrationsCreated    PendingRegistration[]    @relation("PendingRegistrationCreatedBy")
   pendingRegistrationsUpdated    PendingRegistration[]    @relation("PendingRegistrationUpdatedBy")
   emailVerificationTokensCreated EmailVerificationToken[] @relation("EmailVerificationTokenCreatedBy")
   emailVerificationTokensUpdated EmailVerificationToken[] @relation("EmailVerificationTokenUpdatedBy")
-  rateLimitsCreated              RateLimit[]              @relation("RateLimitCreatedBy")
-  rateLimitsUpdated              RateLimit[]              @relation("RateLimitUpdatedBy")
   favoritesCreated               Favorite[]               @relation("FavoriteCreatedBy")
   favoritesUpdated               Favorite[]               @relation("FavoriteUpdatedBy")
   alertCriteriaCreated           AlertCriteria[]          @relation("AlertCriteriaCreatedBy")
@@ -142,39 +134,8 @@ model User {
   alertPollJobsUpdated           AlertPollJob[]           @relation("AlertPollJobUpdatedBy")
   sourceHealthsCreated           SourceHealth[]           @relation("SourceHealthCreatedBy")
   sourceHealthsUpdated           SourceHealth[]           @relation("SourceHealthUpdatedBy")
-  searchHistoriesCreated         SearchHistory[]          @relation("SearchHistoryCreatedBy")
-  searchHistoriesUpdated         SearchHistory[]          @relation("SearchHistoryUpdatedBy")
 
   @@map("users")
-}
-
-// The way back in when the authenticator is lost. Password reset deliberately
-// does not bypass 2FA — if it did, control of the mailbox would defeat the
-// second factor entirely — so without these a lost phone means a lost account.
-//
-// Stored as a plain SHA-256 digest rather than bcrypt: the codes carry ~73 bits
-// of entropy, so there is no dictionary to grind, and a unique index makes
-// redemption a single indexed lookup instead of ten slow comparisons.
-model TwoFactorRecoveryCode {
-  id       String    @id @default(uuid(7)) @db.Uuid
-  userId   String    @map("user_id") @db.Uuid
-  codeHash String    @unique @map("code_hash")
-  usedAt   DateTime? @map("used_at") @db.Timestamptz(3)
-
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdById String?   @map("created_by_id") @db.Uuid
-  updatedById String?   @map("updated_by_id") @db.Uuid
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(3)
-  version     Int       @default(1)
-
-  // A recovery code is meaningless without the account it unlocks.
-  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdBy User? @relation("TwoFactorRecoveryCodeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy User? @relation("TwoFactorRecoveryCodeUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@map("two_factor_recovery_codes")
 }
 
 // Required by @next-auth/prisma-adapter to link OAuth identities to a User.
@@ -248,32 +209,9 @@ model Session {
   @@map("sessions")
 }
 
-// Required by @next-auth/prisma-adapter (email/magic-link flows). Distinct from
-// EmailVerificationToken below, which backs our own hashed-token verification.
-model VerificationToken {
-  id         String   @id @default(uuid(7)) @db.Uuid
-  identifier String
-  token      String   @unique
-  expires    DateTime @db.Timestamptz(3)
-
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdById String?   @map("created_by_id") @db.Uuid
-  updatedById String?   @map("updated_by_id") @db.Uuid
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(3)
-  version     Int       @default(1)
-
-  createdBy User? @relation("VerificationTokenCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy User? @relation("VerificationTokenUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
-}
-
 // Better Auth's own single-use token table (BAUTH-14). Distinct from
-// VerificationToken above (NextAuth's, unused while a credentials-only
-// adapter runs) and from EmailVerificationToken (ours, backs our own
-// verify-first registration flow) — none of the three are merged.
+// EmailVerificationToken (ours, backs our own verify-first registration
+// flow) — the two are not merged.
 model Verification {
   id         String   @id @default(uuid(7)) @db.Uuid
   identifier String
@@ -296,10 +234,10 @@ model Verification {
 // Better Auth's `twoFactor` plugin table (created now, BAUTH-14; wired up by
 // the plugin itself in phase 12, docs/specs/core-better-auth.md BAUTH-11).
 model TwoFactor {
-  id          String @id @default(uuid(7)) @db.Uuid
-  userId      String @map("user_id") @db.Uuid
-  secret      String
-  backupCodes String @map("backup_codes")
+  id                      String    @id @default(uuid(7)) @db.Uuid
+  userId                  String    @map("user_id") @db.Uuid
+  secret                  String
+  backupCodes             String    @map("backup_codes")
   // The plugin's own TOTP enrolment flag (BAUTH-11) and its built-in
   // failed-attempt lockout — columns the part 1 migration left out. Added
   // now because the plugin's enable/verify endpoints write them on every
@@ -411,29 +349,6 @@ model EmailVerificationToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("email_verification_tokens")
-}
-
-// Fixed-window counters for the auth rate limiter. Lives in Postgres rather
-// than memory because Vercel runs each request on a possibly-cold instance,
-// so an in-process Map would reset constantly and limit nothing.
-model RateLimit {
-  id        String   @id @default(uuid(7)) @db.Uuid
-  key       String   @unique
-  count     Int      @default(0)
-  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
-
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdById String?   @map("created_by_id") @db.Uuid
-  updatedById String?   @map("updated_by_id") @db.Uuid
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(3)
-  version     Int       @default(1)
-
-  createdBy User? @relation("RateLimitCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy User? @relation("RateLimitUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-
-  @@index([expiresAt])
-  @@map("rate_limits")
 }
 
 // A listing someone saved, stored as a full snapshot rather than a reference.
@@ -743,26 +658,4 @@ model SourceHealth {
   updatedBy User? @relation("SourceHealthUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@map("source_healths")
-}
-
-model SearchHistory {
-  id     String @id @default(uuid(7)) @db.Uuid
-  userId String @map("user_id") @db.Uuid
-  query  String
-
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdById String?   @map("created_by_id") @db.Uuid
-  updatedById String?   @map("updated_by_id") @db.Uuid
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(3)
-  version     Int       @default(1)
-
-  // A past search is meaningless without the user who searched it.
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdBy User? @relation("SearchHistoryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy User? @relation("SearchHistoryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@map("search_histories")
 }
