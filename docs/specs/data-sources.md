@@ -2,7 +2,7 @@
 
 Key: SRC
 Status: Implemented
-Last updated: 2026-09-28
+Last updated: 2026-10-11
 
 ---
 
@@ -47,6 +47,11 @@ boundary behave.
 
 ## Worked examples
 
+- **SRC-3** — Wallapop item, no coordinates, city "Pueblo Inexistente" and
+  region "Región Inexistente" (both unresolvable) → (40.0, −3.5), the shared
+  `SPAIN_CENTER` constant, not (40.4168, −3.7038) [Madrid — the bug fixed by
+  #30]. Wallapop item, no coordinates, city "Sevilla" → (37.3891, −5.9845),
+  Sevilla's entry in `lib/geo/cities.ts`.
 - **SRC-12** — Upstream connection fails; GET /api/wallapop/search?keywords=golf → 502 with the body `{ error: "Wallapop request failed" }`, never a thrown 500.
 - **SRC-14** — /api/cochesnet/models returns [{ id: 4321, label: "Serie 3" }]; resolveCochesNetModelId(103, "Serie 3") twice → 1 upstream call; make 104 with a first 503 then success → first call undefined, second 4321, 2 calls in total.
 
@@ -224,7 +229,14 @@ meta.next_page
 - **Reserved items are dropped** (`reserved.flag`).
 - Car data comes from `type_attributes`, not from the title.
 - Image prefers `urls.big`, falls back to `urls.medium`, then empty string.
-- Missing coordinates fall back to `getCityCoordinates(city)`, then to Madrid.
+- **Missing coordinates fall back by city, then region, then the country
+  centre** (SRC-3) — the same chain and the same `SPAIN_CENTER` constant
+  (`lib/geo/cities.ts`) coches.net and Milanuncios fall back to. `city` and
+  `location.region` are tried with `getCityCoordinates`; unlike the other two,
+  Wallapop carries no INE province id, only the autonomous-community name in
+  `location.region`, so there is no province-capital centroid table step here.
+  Before [#30](https://github.com/algusaem/buycarmap/issues/30), an
+  unresolvable location landed on Madrid instead.
 - `id` becomes `wallapop-<id>`; `url` becomes
   `https://es.wallapop.com/item/<web_slug>`.
 
