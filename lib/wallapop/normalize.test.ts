@@ -45,18 +45,16 @@ describe("normalizeWallapopItems", () => {
 
   it("falls back through the image url chain: big → medium → empty", () => {
     // `??` only falls back on nullish values, so a *missing* big (not an empty
-    // string) is what drops the mapping to medium.
+    // string) is what drops the mapping to medium. Wallapop can omit `big` on
+    // the wire — the type marks it optional, so this is a plain literal of
+    // the real shape, not a cast.
     const medium = makeWallapopItem({
       id: "m",
       images: [
         {
           id: "i",
           average_color: "#000",
-          urls: {
-            small: "s.jpg",
-            medium: "m.jpg",
-            big: undefined as unknown as string,
-          },
+          urls: { small: "s.jpg", medium: "m.jpg" },
         },
       ],
     });
@@ -69,10 +67,14 @@ describe("normalizeWallapopItems", () => {
   });
 
   it("SRC-3: geocodes the city when the item has no coordinates", () => {
+    // Wallapop can send `null` coordinates on the wire ("Missing coordinates
+    // fall back to getCityCoordinates(city)", docs/specs/data-sources.md) —
+    // the type marks latitude/longitude nullable, so this is a plain literal
+    // of the real shape, not a cast.
     const noCoords = makeWallapopItem({
       location: {
-        latitude: null as unknown as number,
-        longitude: null as unknown as number,
+        latitude: null,
+        longitude: null,
         postal_code: "08001",
         city: "Barcelona",
         region: "Cataluña",
@@ -90,8 +92,8 @@ describe("normalizeWallapopItems", () => {
   it("SRC-3: geocodes Sevilla from the city table when the item has no coordinates", () => {
     const noCoords = makeWallapopItem({
       location: {
-        latitude: null as unknown as number,
-        longitude: null as unknown as number,
+        latitude: null,
+        longitude: null,
         postal_code: "41001",
         city: "Sevilla",
         region: "Andalucía",
@@ -109,8 +111,8 @@ describe("normalizeWallapopItems", () => {
   it("SRC-3: falls back to the shared country centre when neither city nor region resolve (#30)", () => {
     const unresolvable = makeWallapopItem({
       location: {
-        latitude: null as unknown as number,
-        longitude: null as unknown as number,
+        latitude: null,
+        longitude: null,
         postal_code: "00000",
         city: "Pueblo Inexistente",
         region: "Región Inexistente",
@@ -132,7 +134,9 @@ describe("normalizeWallapopItems", () => {
       makeWallapopItem({ id: "1", web_slug: "nice-slug" }),
     ]);
     const [unslugged] = normalizeWallapopItems([
-      makeWallapopItem({ id: "42", web_slug: undefined as unknown as string }),
+      // `web_slug` is a top-level field of `Partial<WallapopItem>`, which
+      // already allows `undefined` — no cast needed here.
+      makeWallapopItem({ id: "42", web_slug: undefined }),
     ]);
 
     expect(slugged.url).toBe("https://es.wallapop.com/item/nice-slug");

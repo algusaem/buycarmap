@@ -1,7 +1,7 @@
 interface WallapopImageUrls {
   small: string;
   medium: string;
-  big: string;
+  big?: string;
 }
 
 interface WallapopItemImage {
@@ -11,8 +11,8 @@ interface WallapopItemImage {
 }
 
 interface WallapopItemLocation {
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   postal_code: string;
   city: string;
   region: string;
