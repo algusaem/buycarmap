@@ -69,18 +69,6 @@ export async function cleanupE2eUsers(): Promise<number> {
 }
 
 /**
- * Clears the rate-limit counters.
- *
- * The auth suite signs in many times from one address, which exhausts the
- * per-IP login budget partway through a run and fails later tests for a reason
- * that has nothing to do with what they assert. The limiter has its own
- * dedicated tests; here it is environmental noise.
- */
-export async function clearRateLimits(): Promise<void> {
-  await withClient((client) => client.query("DELETE FROM rate_limits"));
-}
-
-/**
  * How many favorites the account currently has, read straight from Postgres.
  *
  * The UI's optimistic toggle flips before the server answers and rolls back
@@ -210,21 +198,4 @@ export async function claimConcurrently(
     await a.end();
     await b.end();
   }
-}
-
-/**
- * Clears the auth rate limiter.
- *
- * The suite signs in dozens of times from one address, and the login limit is
- * 20 per IP per 15 minutes. Running `pnpm test:e2e:db` twice inside that window
- * therefore exhausts it, and every subsequent sign-in is refused -- which
- * presents as "login is broken" rather than "you are rate limited", and cost an
- * investigation. Starting each run from a clean limiter is test setup, not a
- * weakening of the limit itself.
- */
-export async function resetRateLimits(): Promise<number> {
-  return withClient(async (client) => {
-    const result = await client.query("DELETE FROM rate_limits");
-    return result.rowCount ?? 0;
-  });
 }

@@ -125,8 +125,10 @@ Out of scope, deliberately:
   spec treats the sources as three functions that return listings or fail.
 - **Geocoding.** `lib/geo/*` and Nominatim belong with Wave D.
 - **Favorites.** The heart on a listing card is [favorites.md](favorites.md).
-- **Search history and saved searches.** A `SearchHistory` model exists in the
-  schema and nothing writes to it. Out of scope until someone specifies it.
+- **Search history and saved searches.** The never-written `SearchHistory` model
+  and its `search_histories` table were dropped (DATA-19 in
+  [core-data-model.md](core-data-model.md), issue #23). Building search history
+  needs its own spec.
 
 ## Contracts
 

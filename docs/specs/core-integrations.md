@@ -37,7 +37,7 @@ This is phase 10 of ADR 0007: rows 22, 23 and 24.
 - [x] INT-4 · node — When Redis is unreachable, `consume` fails open: it allows the request and logs a `warn` with the rule name, never the key. This matches today's Postgres behaviour.
 - [x] INT-5 · node — Local development, e2e and the integration tests do not need Upstash. Without the `UPSTASH_*` variables, rate limiting is disabled with one warning; production and preview builds fail without them. The service's rate-limit tests inject an in-memory sliding-window fake, because `@upstash/ratelimit`'s scripts use an Upstash-only Redis flag that a local Redis rejects.
 - [x] INT-6 · unit — No code reads or writes the `RateLimit` table any more.
-  - The model and the table stay until a later PR drops them (expand/contract, `RULES.md` §11). The ADR names that follow-up, and an issue tracks it.
+  - The model and the table stay until a later PR drops them (expand/contract, `RULES.md` §11). The ADR names that follow-up, and an issue tracks it (#59). DATA-19 in [core-data-model.md](core-data-model.md) drops them.
   - The opportunistic prune of `RateLimit` rows is removed.
 
 ### Background work
@@ -85,7 +85,7 @@ This is phase 10 of ADR 0007: rows 22, 23 and 24.
 
 ## Data model
 
-No schema change. The `RateLimit` table becomes unused, and a later PR drops it.
+No schema change. The `RateLimit` table becomes unused, and a later PR drops it: DATA-19 in [core-data-model.md](core-data-model.md).
 
 ## Permissions
 
@@ -100,7 +100,7 @@ No schema change. The `RateLimit` table becomes unused, and a later PR drops it.
 
 ## Out of scope
 
-- **Dropping the `RateLimit` table**: a later PR, to keep the migration compatible.
+- **Dropping the `RateLimit` table**: a later PR, to keep the migration compatible. DATA-19 in [core-data-model.md](core-data-model.md) drops it.
 - **Better Auth's own rate limiting**: phase 11. It will reuse the same Redis.
 - **Moving other periodic work to QStash.** Nothing else is scheduled today.
 

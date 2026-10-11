@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { clearRateLimits, e2eEmail, seedUser } from "./fixtures/db";
+import { e2eEmail, seedUser } from "./fixtures/db";
 import { deriveCodeForStep, stepForTime } from "../test/two-factor-totp";
 
 // The integration the unit tests cannot reach: enrol through the real UI, then
@@ -127,9 +127,6 @@ test.describe("two-factor authentication (real database)", () => {
     // The recovery-codes panel copies to the clipboard before it can be
     // dismissed; headless Chromium needs this granted explicitly.
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    // Each test signs in several times; without this the per-IP budget runs
-    // out partway through the run and later tests fail for the wrong reason.
-    await clearRateLimits();
   });
 
   dbTest("enrols, then requires a code on the next sign-in", async ({ page }) => {

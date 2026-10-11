@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -30,7 +30,7 @@ const MIGRATION_EXISTS = existsSync(NEW_MIGRATION_PATH);
 
 function oldMigrationSqlFiles(): string[] {
   return readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && entry.name !== NEW_MIGRATION_DIR)
+    .filter((entry) => entry.isDirectory() && entry.name < NEW_MIGRATION_DIR)
     .map((entry) => entry.name)
     .sort()
     .map((name) => join(MIGRATIONS_DIR, name, "migration.sql"));
@@ -103,6 +103,20 @@ afterAll(async () => {
 });
 
 describe("BAUTH-14: the Better Auth migration is expand-only", () => {
+  it("BAUTH-14 (migration order): only migrations sorting strictly before 20261004000000_better_auth are applied first, in name order", () => {
+    const appliedFirst = oldMigrationSqlFiles().map((file) => basename(dirname(file)));
+
+    expect(appliedFirst).toEqual([
+      "20260111154043",
+      "20260801120000_auth_hardening",
+      "20260801140000_email_change_and_verification",
+      "20260801160000_two_factor_auth",
+      "20260802120000_favorites",
+      "20260803215053_add_car_alerts",
+      "20261001000000_core_data_model",
+    ]);
+  });
+
   it("BAUTH-14 worked example: one credential account row per user with a password", async () => {
     expect(MIGRATION_EXISTS, `expected ${NEW_MIGRATION_PATH} to exist`).toBe(true);
 
