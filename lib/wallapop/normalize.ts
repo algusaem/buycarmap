@@ -24,9 +24,10 @@ function resolveWallapopCoords(city: string, region: string): { lat: number; lng
 // the city/region/country-centre chain above. Pulled out of the map callback
 // below to keep its complexity down.
 function resolveListingCoords(location: WallapopItem["location"]): { lat: number; lng: number } {
-  const hasCoords = location?.latitude != null && location?.longitude != null;
-  if (hasCoords) {
-    return { lat: location.latitude, lng: location.longitude };
+  const latitude = location?.latitude;
+  const longitude = location?.longitude;
+  if (latitude != null && longitude != null) {
+    return { lat: latitude, lng: longitude };
   }
   return resolveWallapopCoords(location?.city ?? "", location?.region ?? "");
 }

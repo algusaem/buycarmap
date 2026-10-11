@@ -81,5 +81,13 @@ Element.prototype.releasePointerCapture = vi.fn();
 
 // axe's colour-contrast rule reaches for a canvas jsdom doesn't implement.
 // Stub getContext so the (skipped-anyway) contrast check stops warning.
-HTMLCanvasElement.prototype.getContext =
-  vi.fn() as unknown as typeof HTMLCanvasElement.prototype.getContext;
+// `defineProperty`, not `vi.spyOn`, so a test file's `vi.restoreAllMocks()`
+// cannot undo this global stub and bring the warning back. `getContext`'s
+// overloaded return type (CanvasRenderingContext2D | ImageBitmapRenderingContext
+// | WebGLRenderingContext | ...) has no single honest stand-in, so this relies
+// on `PropertyDescriptor.value` being `any` in lib.dom.d.ts itself, not on a
+// cast written here.
+Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+  configurable: true,
+  value: vi.fn(),
+});

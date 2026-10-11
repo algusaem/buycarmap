@@ -10,7 +10,7 @@ export interface CochesNetLocation {
   mainProvince: string;
   mainProvinceId: number;
   cityId: number;
-  cityLiteral: string;
+  cityLiteral?: string;
 }
 
 interface CochesNetPrice {

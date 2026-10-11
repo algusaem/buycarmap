@@ -55,6 +55,8 @@ describe("normalizeCochesNetItems", () => {
   });
 
   it("uses the province name for location when the city is absent", () => {
+    // coches.net can omit `cityLiteral` on the wire — the type marks it
+    // optional, so this is a plain literal of the real shape, not a cast.
     const [listing] = normalizeCochesNetItems([
       makeCochesNetItem({
         location: {
@@ -64,7 +66,6 @@ describe("normalizeCochesNetItems", () => {
           mainProvince: "Sevilla",
           mainProvinceId: 41,
           cityId: 0,
-          cityLiteral: undefined as unknown as string,
         },
       }),
     ]);
