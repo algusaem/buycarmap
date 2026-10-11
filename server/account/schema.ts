@@ -47,3 +47,7 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 // own input shapes.
 export const unlinkAccountSchema = z.object({ provider: z.string().min(1) });
 export const deleteAccountSchema = z.object({ password: currentPasswordField });
+
+// EXPORT-14 (docs/specs/account-data-export.md): the one field of an export
+// the browser reads back, to name the downloaded file after its UTC date.
+export const dataExportEnvelopeSchema = z.object({ exportedAt: z.iso.datetime() });

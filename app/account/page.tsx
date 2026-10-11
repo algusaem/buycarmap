@@ -7,6 +7,7 @@ import { EmailForm } from "@/components/account/EmailForm";
 import { ChangePasswordForm } from "@/components/account/ChangePasswordForm";
 import { ConnectedAccounts } from "@/components/account/ConnectedAccounts";
 import { SessionsCard } from "@/components/account/SessionsCard";
+import { DataExportCard } from "@/components/account/DataExportCard";
 import { TwoFactorCard } from "@/components/account/TwoFactorCard";
 import { DeleteAccountForm } from "@/components/account/DeleteAccountForm";
 import { getAccountOverview } from "@/server/account/queries";
@@ -72,6 +73,8 @@ export default async function AccountPage() {
           <ConnectedAccounts providers={providers} hasPassword={Boolean(record.password)} />
 
           <SessionsCard />
+
+          <DataExportCard />
 
           <DeleteAccountForm hasPassword={Boolean(record.password)} />
         </div>

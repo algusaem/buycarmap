@@ -190,6 +190,11 @@
       "signingOutOthers": "Signing out…",
       "signedOutOthers": "Signed out of every other session."
     },
+    "export": {
+      "title": "Your data",
+      "description": "Download a copy of everything BuyCarMap stores about you as a JSON file: your profile, sign-in methods, sessions, saved cars and alerts.",
+      "submit": "Download my data"
+    },
     "providers": {
       "title": "Connected accounts",
       "description": "Services you can use to sign in.",

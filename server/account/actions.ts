@@ -1,6 +1,8 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import { getCurrentSessionId, getCurrentUser } from "@/lib/auth/session";
+import { logger } from "@/lib/logger";
 import { hashPassword, verifyPassword } from "@/lib/auth/hash";
 import { validateNewPassword } from "@/lib/auth/password-policy";
 import { createElement } from "react";
@@ -27,6 +29,7 @@ import {
   deleteOtherSessions,
   deleteSession,
   deleteUser,
+  findMyDataExport,
   findMySessions,
   findPasswordAndEmail,
   findPasswordHash,
@@ -383,4 +386,42 @@ export async function deleteAccount(formData: FormData): Promise<AccountResult> 
   }
 
   return { success: true };
+}
+
+export interface ExportResult extends AccountResult {
+  // The export, JSON.stringify'd; present only when `success` is true.
+  data?: string;
+}
+
+/**
+ * EXPORT-1..13, EXPORT-19 (docs/specs/account-data-export.md): a copy of
+ * everything BuyCarMap stores about the signed-in user, as one JSON string the
+ * browser saves as a file. Takes no argument, so there is no identifier for a
+ * caller to tamper with: every read is scoped to the session's own user.
+ */
+export async function exportMyData(): Promise<ExportResult> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return { success: false, error: AUTH_ERROR.unauthorized };
+  }
+
+  const budget = await consumeRateLimit(
+    `export-data:user:${user.id}`,
+    RATE_LIMITS.exportDataPerUser,
+  );
+
+  if (!budget.allowed) {
+    return { success: false, error: AUTH_ERROR.rateLimited };
+  }
+
+  try {
+    const data = await findMyDataExport(user, new Date());
+    return { success: true, data: JSON.stringify(data) };
+  } catch (error) {
+    // Names no personal data and never the export itself.
+    logger.error({ err: error }, "Failed to build a data export");
+    Sentry.captureException(error);
+    return { success: false, error: AUTH_ERROR.generic };
+  }
 }

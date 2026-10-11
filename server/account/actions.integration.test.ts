@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { createUser } from "@/test/factories/user";
 import { createAlertCriteria } from "@/test/factories/alert-criteria";
@@ -27,13 +27,28 @@ vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
 }));
 vi.mock("@/lib/platform/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("next-intl/server", () => ({ getLocale: vi.fn(async () => "en") }));
+// EXPORT-11..13 (docs/specs/account-data-export.md): the export's database
+// read is wrapped, still calling the real query, so a test can prove it was
+// never reached (no session, budget spent) or make it fail (a database error).
+vi.mock("./service", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./service")>();
+  return { ...actual, findMyDataExport: vi.fn(actual.findMyDataExport) };
+});
 
 import { getCurrentUser } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/hash";
 import { consumeRateLimit } from "@/server/rate-limit/service";
+import { findMyDataExport } from "./service";
+import { createFavorite } from "@/test/factories/favorite";
+import { createAlertMatch } from "@/test/factories/alert-match";
+import {
+  createEmailVerificationToken,
+  createPasswordResetToken,
+} from "@/test/factories/auth-tokens";
 import {
   changePassword,
   deleteAccount,
+  exportMyData,
   listMySessions,
   revokeMySession,
   signOutEverywhere,
@@ -665,5 +680,501 @@ describe("BAUTH-19 worked examples", () => {
     expect(verifyPassword).toHaveBeenCalledWith("not-the-password", "credential-hash");
 
     expect(await prisma.user.findUnique({ where: { id: user.id } })).not.toBeNull();
+  });
+});
+
+// EXPORT-1..13, EXPORT-19 (docs/specs/account-data-export.md): the worked
+// example's Ada (the caller) and Bob (another user), with the clock at
+// 2026-10-11T09:30:00.000Z. Every expected value below is copied from the
+// spec's worked examples, not computed the way the service computes it.
+const EXPORT_NOW = new Date("2026-10-11T09:30:00.000Z");
+
+const ADA_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0";
+
+const SNAPSHOT_KEYS = [
+  "listingId",
+  "source",
+  "title",
+  "subtitle",
+  "image",
+  "brand",
+  "model",
+  "location",
+  "fuel",
+  "url",
+  "price",
+  "mileage",
+  "year",
+  "lat",
+  "lng",
+  "createdAt",
+];
+
+async function seedAda() {
+  const ada = await createUser({
+    email: "ada@example.test",
+    name: "Ada Lovelace",
+    image: null,
+    locale: "en",
+    emailConfirmed: true,
+    twoFactorEnabled: true,
+    twoFactorEnabledAt: new Date("2026-09-03T10:00:00.000Z"),
+    createdAt: new Date("2026-09-01T10:00:00.000Z"),
+    password: "hashed:ada-secret",
+  });
+  const owner = { connect: { id: ada.id } };
+
+  await prisma.account.create({
+    data: {
+      userId: ada.id,
+      type: "oauth",
+      provider: "google",
+      providerAccountId: "google-ada-123",
+      access_token: "ada-access-token",
+      refresh_token: "ada-refresh-token",
+      id_token: "ada-id-token",
+      createdAt: new Date("2026-09-02T10:00:00.000Z"),
+    },
+  });
+  await prisma.twoFactor.create({
+    data: { userId: ada.id, secret: "ada-totp-secret", backupCodes: "ada-backup-codes" },
+  });
+  await prisma.session.create({
+    data: {
+      userId: ada.id,
+      sessionToken: "ada-session-token",
+      expires: new Date("2026-11-10T00:00:00.000Z"),
+      ipAddress: "203.0.113.7",
+      userAgent: ADA_USER_AGENT,
+      createdAt: new Date("2026-10-10T00:00:00.000Z"),
+    },
+  });
+  await createPasswordResetToken({ user: owner, tokenHash: "ada-reset-hash" });
+  await createEmailVerificationToken({ user: owner, tokenHash: "ada-verify-hash" });
+  await createEmailVerificationToken({
+    user: owner,
+    tokenHash: "ada-change-hash",
+    newEmail: "ada.new@example.test",
+    expiresAt: new Date("2026-10-11T10:30:00.000Z"),
+    createdAt: new Date("2026-10-11T09:00:00.000Z"),
+  });
+  await createEmailVerificationToken({
+    user: owner,
+    tokenHash: "ada-older-change-hash",
+    newEmail: "ada.older@example.test",
+    expiresAt: new Date("2026-10-11T10:00:00.000Z"),
+    createdAt: new Date("2026-10-11T08:00:00.000Z"),
+  });
+  await createEmailVerificationToken({
+    user: owner,
+    tokenHash: "ada-expired-change-hash",
+    newEmail: "ada.expired@example.test",
+    expiresAt: new Date("2026-10-11T09:00:00.000Z"),
+    createdAt: new Date("2026-10-11T09:20:00.000Z"),
+  });
+  await createEmailVerificationToken({
+    user: owner,
+    tokenHash: "ada-used-change-hash",
+    newEmail: "ada.used@example.test",
+    expiresAt: new Date("2026-10-11T11:00:00.000Z"),
+    createdAt: new Date("2026-10-11T09:10:00.000Z"),
+    usedAt: new Date("2026-10-11T09:15:00.000Z"),
+  });
+
+  // Created newest first, so "oldest first" is proven by the query's order,
+  // not by insertion order.
+  await createFavorite({
+    user: owner,
+    listingId: "wallapop-ada-gone",
+    createdAt: new Date("2026-09-04T10:00:00.000Z"),
+    deletedAt: new Date("2026-09-07T10:00:00.000Z"),
+  });
+  await createFavorite({
+    user: owner,
+    listingId: "cochesnet-ada-2",
+    createdAt: new Date("2026-09-06T10:00:00.000Z"),
+  });
+  await createFavorite({
+    user: owner,
+    listingId: "wallapop-ada-1",
+    createdAt: new Date("2026-09-05T10:00:00.000Z"),
+  });
+
+  const removedAlert = await createAlert({
+    user: owner,
+    criteria: { connect: { id: (await createAlertCriteria()).id } },
+    label: "Ada removed alert",
+    createdAt: new Date("2026-09-12T10:00:00.000Z"),
+    deletedAt: new Date("2026-09-12T10:00:00.000Z"),
+  });
+  await createAlert({
+    user: owner,
+    criteria: { connect: { id: (await createAlertCriteria()).id } },
+    label: "Ada paused alert",
+    active: false,
+    createdAt: new Date("2026-09-11T10:00:00.000Z"),
+  });
+  const golfAlert = await createAlert({
+    user: owner,
+    criteria: {
+      connect: {
+        id: (
+          await createAlertCriteria({
+            criteria: { brand: "volkswagen", model: "golf", maxPrice: 15000 },
+          })
+        ).id,
+      },
+    },
+    label: "Ada Golf alert",
+    active: true,
+    unsubscribeTokenHash: "ada-unsub-hash",
+    unsubscribeSubject: "ada-unsub-subject",
+    createdAt: new Date("2026-09-10T10:00:00.000Z"),
+  });
+
+  await createAlertMatch({
+    alert: { connect: { id: golfAlert.id } },
+    listingId: "cochesnet-ada-match",
+    notifiedAt: new Date("2026-10-09T08:00:00.000Z"),
+  });
+  await createAlertMatch({
+    alert: { connect: { id: removedAlert.id } },
+    listingId: "wallapop-ada-removed-match",
+  });
+
+  return ada;
+}
+
+async function seedBob() {
+  const bob = await createUser({ email: "bob@example.test" });
+  const owner = { connect: { id: bob.id } };
+
+  await prisma.session.create({
+    data: {
+      userId: bob.id,
+      sessionToken: "bob-session-token",
+      expires: new Date("2026-11-10T00:00:00.000Z"),
+      ipAddress: "198.51.100.4",
+    },
+  });
+  await createFavorite({ user: owner, listingId: "wallapop-bob-1" });
+  const bobAlert = await createAlert({
+    user: owner,
+    criteria: { connect: { id: (await createAlertCriteria()).id } },
+    label: "Bob alert",
+  });
+  await createAlertMatch({
+    alert: { connect: { id: bobAlert.id } },
+    listingId: "wallapop-bob-match",
+  });
+  await createEmailVerificationToken({
+    user: owner,
+    newEmail: "bob.new@example.test",
+    expiresAt: new Date("2026-10-11T11:30:00.000Z"),
+    createdAt: new Date("2026-10-11T09:25:00.000Z"),
+  });
+
+  return bob;
+}
+
+/** Seeds both users and signs in as Ada. */
+async function signedInAsAda() {
+  const ada = await seedAda();
+  await seedBob();
+  vi.mocked(getCurrentUser).mockResolvedValue({ id: ada.id, email: ada.email });
+  return ada;
+}
+
+/** Calls the action and returns both the raw JSON string and its parse. */
+async function exportAsCaller() {
+  const result = await exportMyData();
+  expect(result.success).toBe(true);
+  expect(typeof result.data).toBe("string");
+  const json = result.data ?? "";
+  return { json, data: JSON.parse(json) };
+}
+
+describe("exportMyData", () => {
+  beforeEach(() => {
+    // Only Date is faked: Prisma and the pg driver keep their real timers.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(EXPORT_NOW);
+    vi.mocked(findMyDataExport).mockClear();
+    vi.mocked(consumeRateLimit).mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("EXPORT-1: returns a JSON string with exactly the top-level keys and the export time", async () => {
+    await signedInAsAda();
+
+    const { data } = await exportAsCaller();
+
+    expect(Object.keys(data)).toEqual([
+      "exportedAt",
+      "profile",
+      "pendingEmailChange",
+      "signInMethods",
+      "sessions",
+      "favorites",
+      "alerts",
+      "alertMatches",
+    ]);
+    expect(data.exportedAt).toBe("2026-10-11T09:30:00.000Z");
+  });
+
+  it("EXPORT-2: the profile holds exactly the caller's fields, with null for an empty one", async () => {
+    await signedInAsAda();
+
+    const { data } = await exportAsCaller();
+
+    expect(Object.keys(data.profile)).toEqual([
+      "email",
+      "name",
+      "image",
+      "locale",
+      "emailConfirmed",
+      "twoFactorEnabled",
+      "twoFactorEnabledAt",
+      "createdAt",
+    ]);
+    expect(data.profile).toEqual({
+      email: "ada@example.test",
+      name: "Ada Lovelace",
+      image: null,
+      locale: "en",
+      emailConfirmed: true,
+      twoFactorEnabled: true,
+      twoFactorEnabledAt: "2026-09-03T10:00:00.000Z",
+      createdAt: "2026-09-01T10:00:00.000Z",
+    });
+  });
+
+  it("EXPORT-3: reports the password as a flag and lists linked providers, never the credential row", async () => {
+    await signedInAsAda();
+
+    const { data } = await exportAsCaller();
+
+    expect(data.signInMethods).toEqual({
+      password: true,
+      providers: [{ provider: "google", linkedAt: "2026-09-02T10:00:00.000Z" }],
+    });
+  });
+
+  it("EXPORT-4: lists every session as exactly createdAt, expiresAt, ipAddress and userAgent", async () => {
+    await signedInAsAda();
+
+    const { data } = await exportAsCaller();
+
+    expect(data.sessions).toEqual([
+      {
+        createdAt: "2026-10-10T00:00:00.000Z",
+        expiresAt: "2026-11-10T00:00:00.000Z",
+        ipAddress: "203.0.113.7",
+        userAgent: ADA_USER_AGENT,
+      },
+    ]);
+    expect(Object.keys(data.sessions[0])).toEqual([
+      "createdAt",
+      "expiresAt",
+      "ipAddress",
+      "userAgent",
+    ]);
+  });
+
+  it("EXPORT-5: lists live favorites with their snapshot, oldest first, and leaves soft-deleted ones out", async () => {
+    await signedInAsAda();
+
+    const { data } = await exportAsCaller();
+
+    expect(data.favorites.map((f: { listingId: string }) => f.listingId)).toEqual([
+      "wallapop-ada-1",
+      "cochesnet-ada-2",
+    ]);
+    for (const favorite of data.favorites) {
+      expect(Object.keys(favorite)).toEqual(SNAPSHOT_KEYS);
+    }
+    expect(data.favorites[0].createdAt).toBe("2026-09-05T10:00:00.000Z");
+    expect(data.favorites[1].createdAt).toBe("2026-09-06T10:00:00.000Z");
+  });
+
+  it("EXPORT-6: lists alerts with their stored criteria, oldest first, keeping inactive and dropping soft-deleted ones", async () => {
+    await signedInAsAda();
+
+    const { data } = await exportAsCaller();
+
+    expect(data.alerts.map((a: { label: string }) => a.label)).toEqual([
+      "Ada Golf alert",
+      "Ada paused alert",
+    ]);
+    expect(data.alerts[0]).toEqual({
+      label: "Ada Golf alert",
+      criteria: { brand: "volkswagen", model: "golf", maxPrice: 15000 },
+      active: true,
+      createdAt: "2026-09-10T10:00:00.000Z",
+    });
+    expect(Object.keys(data.alerts[0])).toEqual(["label", "criteria", "active", "createdAt"]);
+    expect(data.alerts[1].active).toBe(false);
+  });
+
+  it("EXPORT-7: lists the matches of exported alerts with their alert's label, and none of a soft-deleted alert", async () => {
+    await signedInAsAda();
+
+    const { data } = await exportAsCaller();
+
+    expect(data.alertMatches.map((m: { listingId: string }) => m.listingId)).toEqual([
+      "cochesnet-ada-match",
+    ]);
+    expect(data.alertMatches[0].alertLabel).toBe("Ada Golf alert");
+    expect(data.alertMatches[0].notifiedAt).toBe("2026-10-09T08:00:00.000Z");
+    expect(Object.keys(data.alertMatches[0])).toEqual([
+      "alertLabel",
+      ...SNAPSHOT_KEYS,
+      "notifiedAt",
+    ]);
+  });
+
+  it("EXPORT-8: no secret value appears anywhere in the export", async () => {
+    await signedInAsAda();
+
+    const { json } = await exportAsCaller();
+
+    for (const secret of [
+      "hashed:ada-secret",
+      "google-ada-123",
+      "ada-access-token",
+      "ada-refresh-token",
+      "ada-id-token",
+      "ada-session-token",
+      "ada-totp-secret",
+      "ada-backup-codes",
+      "ada-unsub-hash",
+      "ada-unsub-subject",
+      "ada-reset-hash",
+      "ada-verify-hash",
+      "ada-change-hash",
+    ]) {
+      expect(json).not.toContain(secret);
+    }
+  });
+
+  it("EXPORT-9: no row of another user, and no soft-deleted row, appears in the caller's export", async () => {
+    await signedInAsAda();
+
+    const { json } = await exportAsCaller();
+
+    for (const foreign of [
+      "bob@example.test",
+      "198.51.100.4",
+      "wallapop-bob-1",
+      "Bob alert",
+      "wallapop-bob-match",
+      "bob.new@example.test",
+      "wallapop-ada-gone",
+      "Ada removed alert",
+      "wallapop-ada-removed-match",
+    ]) {
+      expect(json).not.toContain(foreign);
+    }
+  });
+
+  it("EXPORT-10: a caller with nothing saved still gets every key, with empty arrays", async () => {
+    const grace = await createUser({ email: "grace@example.test", password: null });
+    await prisma.account.create({
+      data: {
+        userId: grace.id,
+        type: "oauth",
+        provider: "github",
+        providerAccountId: "github-grace-1",
+        createdAt: new Date("2026-09-20T10:00:00.000Z"),
+      },
+    });
+    await seedBob();
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: grace.id, email: grace.email });
+
+    const { data } = await exportAsCaller();
+
+    expect(data.signInMethods).toEqual({
+      password: false,
+      providers: [{ provider: "github", linkedAt: "2026-09-20T10:00:00.000Z" }],
+    });
+    expect(data.favorites).toEqual([]);
+    expect(data.alerts).toEqual([]);
+    expect(data.alertMatches).toEqual([]);
+    expect(data.pendingEmailChange).toBeNull();
+
+    const credentialOnly = await createUser({ email: "linus@example.test" });
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      id: credentialOnly.id,
+      email: credentialOnly.email,
+    });
+
+    const second = await exportAsCaller();
+    expect(second.data.signInMethods).toEqual({ password: true, providers: [] });
+  });
+
+  it("EXPORT-11: refuses a caller with no session without reading data or spending budget", async () => {
+    await seedAda();
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+    expect(await exportMyData()).toEqual({ success: false, error: "unauthorized" });
+    expect(consumeRateLimit).not.toHaveBeenCalled();
+    expect(findMyDataExport).not.toHaveBeenCalled();
+  });
+
+  it("EXPORT-12: refuses a caller whose per-user budget is spent, keyed on their user id", async () => {
+    const ada = await signedInAsAda();
+    vi.mocked(consumeRateLimit).mockResolvedValue({
+      allowed: false,
+      remaining: 0,
+      retryAfterMs: 60_000,
+    });
+
+    expect(await exportMyData()).toEqual({ success: false, error: "rateLimited" });
+    expect(consumeRateLimit).toHaveBeenCalledWith(`export-data:user:${ada.id}`, {
+      name: "exportDataPerUser",
+      limit: 5,
+      windowMs: 3_600_000,
+    });
+    expect(findMyDataExport).not.toHaveBeenCalled();
+  });
+
+  it("EXPORT-13: a failed database read returns generic and no partial export", async () => {
+    await signedInAsAda();
+    vi.mocked(findMyDataExport).mockRejectedValueOnce(new Error("connection terminated"));
+
+    const result = await exportMyData();
+
+    expect(result).toEqual({ success: false, error: "generic" });
+    expect(result).not.toHaveProperty("data");
+  });
+
+  it("EXPORT-19: exports only the newest unused, unexpired pending email change, or null", async () => {
+    const ada = await signedInAsAda();
+
+    const { json, data } = await exportAsCaller();
+
+    expect(data.pendingEmailChange).toEqual({
+      newEmail: "ada.new@example.test",
+      expiresAt: "2026-10-11T10:30:00.000Z",
+    });
+    for (const other of [
+      "ada.older@example.test",
+      "ada.expired@example.test",
+      "ada.used@example.test",
+      "ada-change-hash",
+    ]) {
+      expect(json).not.toContain(other);
+    }
+
+    // With the two live changes gone, only the expired and used rows remain.
+    await prisma.emailVerificationToken.deleteMany({
+      where: { userId: ada.id, tokenHash: { in: ["ada-change-hash", "ada-older-change-hash"] } },
+    });
+
+    const after = await exportAsCaller();
+    expect(after.data.pendingEmailChange).toBeNull();
   });
 });
