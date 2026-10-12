@@ -8,15 +8,15 @@
       "title": "Alertas",
       "w": 1970,
       "x": 2050,
-      "y": 1120
+      "y": 6360
     },
     "R3-favoritos.dc.html": {
       "h": 900,
       "page": "r3",
       "title": "Favoritos",
       "w": 1970,
-      "x": 0,
-      "y": 1120
+      "x": 2050,
+      "y": 5300
     },
     "R3-landing.dc.html": {
       "h": 900,
@@ -31,8 +31,8 @@
       "page": "r3",
       "title": "Entrar",
       "w": 1970,
-      "x": 0,
-      "y": 2240
+      "x": 2050,
+      "y": 0
     },
     "R3-mapa-detalle.dc.html": {
       "h": 900,
@@ -40,10 +40,10 @@
       "title": "Mapa · coche abierto + filtros (móvil)",
       "w": 1970,
       "x": 2050,
-      "y": 0
+      "y": 3180
     },
     "UIKit.dc.html": {
-      "h": 3600,
+      "h": 4600,
       "page": "kit",
       "title": "UI Kit",
       "w": 1970,
@@ -55,8 +55,104 @@
       "page": "r3",
       "title": "Mapa (base que reutiliza la pantalla del coche abierto)",
       "w": 1970,
+      "x": 0,
+      "y": 3180
+    },
+    "F0-registro.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Registro",
+      "w": 1970,
+      "x": 0,
+      "y": 1060
+    },
+    "F0-contrasena.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Recuperar contraseña · y «mira tu correo» (móvil)",
+      "w": 1970,
+      "x": 0,
+      "y": 2120
+    },
+    "F0-nueva-contrasena.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Nueva contraseña · y enlace caducado (móvil)",
+      "w": 1970,
       "x": 2050,
-      "y": 2240
+      "y": 2120
+    },
+    "F0-confirmar.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Confirmar cuenta · y cuenta lista (móvil)",
+      "w": 1970,
+      "x": 2050,
+      "y": 1060
+    },
+    "F0-legal.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Privacidad y términos",
+      "w": 1970,
+      "x": 0,
+      "y": 8480
+    },
+    "F0-cuenta.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Cuenta",
+      "w": 1970,
+      "x": 2050,
+      "y": 7420
+    },
+    "F0-estado-cargando.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · cargando",
+      "w": 1970,
+      "x": 0,
+      "y": 4240
+    },
+    "F0-estado-sin-resultados.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · sin resultados",
+      "w": 1970,
+      "x": 2050,
+      "y": 4240
+    },
+    "F0-estado-error-busqueda.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · error de búsqueda",
+      "w": 1970,
+      "x": 0,
+      "y": 5300
+    },
+    "F0-estado-guardados-vacio.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Guardados · vacío",
+      "w": 1970,
+      "x": 0,
+      "y": 6360
+    },
+    "F0-estado-alertas-vacio.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Alertas · vacío",
+      "w": 1970,
+      "x": 0,
+      "y": 7420
+    },
+    "F0-estado-error-pagina.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Cualquier página · error al cargar",
+      "w": 1970,
+      "x": 2050,
+      "y": 8480
     }
   },
   "createdOnFiles": {
@@ -67,30 +163,32 @@
   "launch": {
     "view": "canvas"
   },
-  "notes": {
-    "title3": {
-      "kind": "title1",
-      "maxW": 3900,
-      "page": "r3",
-      "text": "Final product",
-      "w": 240,
-      "x": 0,
-      "y": -320
-    }
-  },
+  "notes": {},
   "order": [
     "R3-landing.dc.html",
-    "R3-mapa-detalle.dc.html",
-    "R3-favoritos.dc.html",
-    "R3-alertas.dc.html",
     "R3-login.dc.html",
+    "F0-registro.dc.html",
+    "F0-confirmar.dc.html",
+    "F0-contrasena.dc.html",
+    "F0-nueva-contrasena.dc.html",
     "R2Base.dc.html",
+    "R3-mapa-detalle.dc.html",
+    "F0-estado-cargando.dc.html",
+    "F0-estado-sin-resultados.dc.html",
+    "F0-estado-error-busqueda.dc.html",
+    "R3-favoritos.dc.html",
+    "F0-estado-guardados-vacio.dc.html",
+    "R3-alertas.dc.html",
+    "F0-estado-alertas-vacio.dc.html",
+    "F0-cuenta.dc.html",
+    "F0-legal.dc.html",
+    "F0-estado-error-pagina.dc.html",
     "UIKit.dc.html"
   ],
   "pages": [
     {
       "id": "r3",
-      "name": "Ronda 3 · Variante A en toda la app"
+      "name": "Pantallas"
     },
     {
       "id": "kit",

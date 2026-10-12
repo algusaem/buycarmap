@@ -1,6 +1,6 @@
 # BuyCarMap 2.0
 
-Todos los coches de segunda mano de Wallapop, coches.net y Milanuncios en un solo mapa. El sistema es negro, macarra y limpio: mucho negro, una sola tinta de acento (lime) y titulares en mayúsculas que hablan como un colega.
+Todos los coches de segunda mano de Wallapop, coches.net y Milanuncios en un solo mapa. El sistema es negro, macarra y limpio: mucho negro, dos tintas complementarias (lime y violeta) y titulares en mayúsculas que hablan como un colega.
 
 ## Voz
 
@@ -14,7 +14,7 @@ Hablamos como alguien del barrio que sabe de coches, no como un banco. Frases co
 
 Reglas:
 - Los titulares son **pregunta y remate**. La pregunta plantea, el remate golpea. Sin punto final en el remate.
-- Botones y controles dicen lo que pasa, sin rollo: «Buscar», «Guardar», «Ver anuncio ↗», «Crear alerta».
+- Botones y controles dicen lo que pasa, sin rollo: «Buscar», «Guardar», «Ver anuncio», «Crear alerta».
 - Nunca «Bienvenido a…», «Descubre…», «La mejor forma de…», ni cifras inventadas («50K+», «100 %»).
 - Nombres de las fuentes tal cual: Wallapop, coches.net, Milanuncios.
 - Precios en formato español: `14.500 €`. Kilómetros: `95.000 km`. Metadatos separados por « · ».
@@ -25,6 +25,7 @@ Una noche con una sola luz. `bg` y `surface` hacen el 95 % de la pantalla; `lime
 
 - **`lime` solo para**: precios, el «MAP» del logo, el remate del titular, el botón principal (uno por vista), el pin activo y su tarjeta. Encima, siempre `on-lime`.
 - **`violet`**, el complementario del lime, para lo que es tuyo y los estados: corazón guardado, chip activo, número de filtros, avatar de la cuenta y la sección actual de la barra inferior. Encima, siempre `on-violet`. Regla rápida: lime = lo que haces o miras ahora; violeta = lo tuyo.
+- **`danger`** (`#FF5C5C`) solo para lo que no tiene vuelta atrás (Eliminar cuenta) y para el hover de deshacer («Quitar filtros»).
 - **Nunca** lime en texto corrido, en bordes decorativos ni en fondos grandes.
 - Texto en `text` (blanco roto) y `text-muted`; nunca blanco puro ni negro puro dentro de la app.
 - Bordes de 1px en `line`; divisores en `line-soft`. Sin sombras salvo `shadow-float` (lo que flota sobre el mapa) y `shadow-pin-active`.
@@ -52,7 +53,12 @@ Reglas de los titulares grandes, que se han ajustado a ojo:
 - **Lista y mapa van sincronizados en toda pantalla con mapa** (Mapa, Guardados, Alertas): al pulsar un pin se activa, se abre la vista previa encima del mapa (no una página nueva) y su tarjeta de la lista se marca con el contorno lime. Pasar el ratón o el foco por una tarjeta activa su pin.
 - **Guardados y Alertas en escritorio**: nunca sin mapa. Lista de 830px a la izquierda y mapa a la derecha, con el título de página (40px, sin contador). En Guardados, un pin por coche guardado. En Alertas, la alerta elegida se abre con sus criterios y sus últimas coincidencias; las demás se pliegan a una línea de resumen.
 - **Zona de alerta** en el mapa: círculo con borde `lime` de 2px al 80% y relleno `lime` al 10%, más un punto de centro en `text`. Sin discontinuo: tiene que leerse como zona, no gritar.
-- **Títulos de página sin contador**: «GUARDADOS», «ALERTAS». El único contador es el de resultados del mapa («312 COCHES»).
+- **Títulos de página sin contador**: «GUARDADOS», «ALERTAS». Tampoco hay contador de resultados en el mapa hasta que exista un total real (issue abierto).
+
+- **Cuenta**: sin mapa. Título «CUENTA», una línea («Tus datos, tus reglas.») y una rejilla de 3 columnas de AccountCard, la primera la tuya. Eliminar cuenta, abajo, en `danger`.
+- **Pantallas de acceso** (registro, recuperar y nueva contraseña, confirmar cuenta): la misma estructura que Entrar, titular a la izquierda y formulario a la derecha; el registro con la ilustración, el resto sin ella. En móvil, titular arriba y la acción abajo del todo.
+- **Vacíos, errores y carga**: dentro de la pantalla real, con EmptyState. Nunca un icono decorativo encima del titular.
+- **Legales**: página de lectura de 720px con índice a la izquierda y el pie.
 
 ## Ilustraciones y flechas
 
@@ -71,6 +77,6 @@ Lucide, trazo 2px (2,4–2,6 en botones pequeños sobre lime), esquinas redondas
 
 ## Accesibilidad
 
-- `text-muted` sobre `bg` 7,6:1; `on-lime` sobre `lime` más de 15:1; `on-violet` sobre `violet` 4,8:1.
+- `text-muted` sobre `bg` 7,6:1; `on-lime` sobre `lime` más de 15:1; `on-violet` sobre `violet` 4,6:1.
 - Lo activo no se marca solo con color: el chip activo cambia de relleno y peso; el pin activo, de relleno, tamaño y halo.
 - Controles de 44px mínimo en móvil; campos a 16px.

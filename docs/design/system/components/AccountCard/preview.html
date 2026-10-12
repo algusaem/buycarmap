@@ -1,0 +1,16 @@
+<!-- @dsCard group="Cuenta" height=260 subtitle="Tarjeta de cuenta: normal, activa y peligro" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AccountCard</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans);padding:24px;display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.c{width:340px;box-sizing:border-box;min-height:196px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);padding:24px;display:flex;flex-direction:column;gap:12px}.h{display:flex;justify-content:space-between;align-items:center}.t{font-family:var(--font-display);font-size:16px;font-weight:800;text-transform:uppercase;margin:0}.b{font-size:12px;font-weight:800;border-radius:var(--radius-pill);padding:5px 10px;border:1px solid var(--line);color:var(--text-muted)}.b.on{background:var(--violet);color:var(--on-violet);border-color:var(--violet)}p{margin:0;font-size:14px;line-height:1.5;color:var(--text-muted)}.a{margin-top:auto;align-self:flex-start;display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:var(--radius-pill);border:1px solid var(--line);color:var(--text);font-weight:700;font-size:14px;text-decoration:none}.d{border-color:color-mix(in srgb,var(--danger) 35%,transparent)}.d .t,.d .a{color:var(--danger)}.d .a{border-color:color-mix(in srgb,var(--danger) 60%,transparent)}
+</style>
+</head>
+<body>
+<article class="c"><div class="h"><h3 class="t">Correo</h3><span class="b on">Verificado</span></div><p>alba@email.com. Con él entras y te llegan las alertas.</p><a class="a" href="#">Cambiar correo</a></article><article class="c"><div class="h"><h3 class="t">Dos pasos</h3><span class="b">Desactivada</span></div><p>Un código del móvil además de la contraseña.</p><a class="a" href="#">Activar</a></article><article class="c d"><div class="h"><h3 class="t">Eliminar cuenta</h3></div><p>Borra tu cuenta, tus guardados y tus alertas para siempre.</p><a class="a" href="#">Eliminar mi cuenta</a></article>
+</body>
+</html>

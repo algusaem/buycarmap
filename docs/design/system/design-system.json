@@ -12,10 +12,10 @@
   },
   "groups": [],
   "lastChange": {
-    "at": "2026-10-11T19:40:00Z",
+    "at": "2026-10-12T07:16:00Z",
     "by": "Alex",
-    "note": "Primera versión, sacada del lienzo de diseño (ronda 3, variante A).",
-    "via": "Claude Code"
+    "note": "on-violet pasa a #FAF9F8.",
+    "via": "Claude"
   },
   "layout": "files",
   "libraries": [],
