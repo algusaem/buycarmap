@@ -147,6 +147,23 @@ describe("BAUTH-9: the real OAuth callback — a brand-new address", () => {
     });
     expect(accountsForUser).toBe(1);
   });
+
+  it("BAUTH-21: a provider sign-in leaves the NextAuth-only accounts columns null", async () => {
+    const email = "no-legacy-columns@example.test";
+    server.use(...githubHandlers({ email, verified: true, login: "no-legacy-columns" }));
+
+    const first = await runGithubCallback("first-code", await startGithubSignIn());
+
+    expect(first.status).toBe(302);
+    expect(hasSessionCookie(first)).toBe(true);
+
+    // The MSW token response carries token_type "bearer"; Better Auth must not persist it.
+    const rows = await prisma.$queryRaw<
+      { expires_at: number | null; token_type: string | null; session_state: string | null }[]
+    >`SELECT expires_at, token_type, session_state FROM accounts WHERE provider = 'github'`;
+
+    expect(rows).toEqual([{ expires_at: null, token_type: null, session_state: null }]);
+  });
 });
 
 describe("BAUTH-9 (amended 2026-10-04, security review round 2): the real OAuth callback — a brand-new address with an unverified email", () => {

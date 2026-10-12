@@ -2,7 +2,7 @@
 
 Key: DOCS
 Status: Implemented
-Last updated: 2026-10-11
+Last updated: 2026-10-12
 
 ---
 
@@ -134,7 +134,7 @@ this diff.
   SRC-14.
 
 **Personal fields for DOCS-8,** from `prisma/schema.prisma`:
-- `User`: `email`, `name`, `image`, `locale`, `twoFactorEnabledAt`, `createdAt`.
+- `User`: `email`, `name`, `image`, `locale`, `createdAt`. (`twoFactorEnabledAt` left with BAUTH-21 in [core-better-auth.md](core-better-auth.md).)
 - `Account`: `password`, `providerAccountId`, `refresh_token`, `access_token`, `id_token`.
 - `Session`: `sessionToken`.
 - `PasswordResetToken`: `tokenHash`.

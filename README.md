@@ -372,7 +372,7 @@ solo project is ceremony.
 | [core-tooling.md](docs/specs/core-tooling.md) | TOOLING | Implemented | Migration phase 3: the verification contract and repository tooling |
 | [core-docs.md](docs/specs/core-docs.md) | DOCS | Implemented | Migration phase 4: the core spec format and docs tree |
 | [core-layout.md](docs/specs/core-layout.md) | LAYOUT | Implemented | Migration phase 5: the server layer and the dependency rules |
-| [core-better-auth.md](docs/specs/core-better-auth.md) | BAUTH | In progress | Migration phase 11: Better Auth, server-side sessions, the permissions layer |
+| [core-better-auth.md](docs/specs/core-better-auth.md) | BAUTH | Implemented | Migration phase 11: Better Auth, server-side sessions, the permissions layer |
 | [core-environments.md](docs/specs/core-environments.md) | ENV | Approved | Migration phase 12: environments, regions and processor DPAs |
 
 ### Decisions

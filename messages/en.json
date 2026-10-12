@@ -552,13 +552,6 @@
       "intro": "The email address on your BuyCarMap account was changed to a different one. You are receiving this at your previous address so you know it happened.",
       "action": "If this wasn't you, someone may have access to your account. Reset your password immediately and contact us."
     },
-    "twoFactorReset": {
-      "subject": "Turn two-factor authentication back on",
-      "heading": "Turn two-factor authentication back on",
-      "intro": "BuyCarMap moved to a new sign-in system, and your old two-factor authentication was switched off during the move. Set it up again from your account page.",
-      "button": "Go to my account",
-      "action": "If you did not have two-factor authentication on, you can ignore this email."
-    },
     "footer": "BuyCarMap — second-hand cars on a map"
   }
 }
