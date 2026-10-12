@@ -10,5 +10,5 @@ Cada bloque de la cuenta es una tarjeta con la misma estructura, para que en la 
 - «Eliminar cuenta» lleva el título y el botón en `danger`, el borde de la tarjeta en `danger` al 35 % y el del botón al 60 %, ocupa dos columnas y siempre pide confirmación.
 - **Móvil**: una columna, 12px de hueco, relleno 18px y sin alto mínimo; título 14px, avatar 48px con la inicial a 18px y el nombre a 18px.
 - Estar en Cuenta lo marca el avatar de la cabecera con su aro (`shadow-current` en escritorio, `shadow-current-sm` en móvil) y `aria-current="page"`.
-- «Cerrar sesión» es un secundario (10px 16px) en la cabecera de la página, a la derecha del título.
+- «Cerrar sesión» es un secundario (10px 16px) en la cabecera de la página, a la derecha del título. En móvil va al final del contenido, tras la última tarjeta y por encima de la barra inferior: secundario de 44px a todo el ancho de la columna, borde `line`, píldora, 14px peso 700 en `text`.
 - Escritorio: rejilla de 3 columnas, 20px de hueco. La cuenta no lleva mapa.

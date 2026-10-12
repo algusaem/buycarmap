@@ -12,7 +12,7 @@ Píldoras `radius-pill`. El principal va en `lime` con texto `on-lime`, para lo 
 - **Secundario**: borde 1px `line`, texto `text`, peso 700. 48px a 15px con padding 0 20px («Volver al mapa» en un error de página); 44px a 14px con padding 0 18px (botones de AccountCard); 10px 16px a 14px («Cerrar sesión»).
   - Con icono: «Filtros», 10px 16px a 14px, icono de ajustes de tres mandos de 16px, 8px de hueco y la insignia `violet` con el número.
 - **Fantasma**: solo texto, peso 700, en `text`.
-  - Navegación de cabecera: 15px, padding 10px 16px («Crear alerta», «Entrar», «Mapa»).
+  - Navegación de cabecera: 15px, padding 10px 16px («Entrar», «Mapa»).
   - Deshacer sin drama: «Quitar filtros», 48px a 15px con padding 0 14px. Al pasar el ratón o con foco, el texto pasa a `danger`.
 - **Peligro**: 44px, padding 0 18px, 14px peso 700, borde `danger` al 60 % y texto `danger`. Solo para lo que no tiene vuelta atrás («Eliminar mi cuenta»), siempre con confirmación.
 - **De icono**: 42px redondo con borde `line` y `aria-label` obligatorio (Guardar, Favoritos). Guardado: relleno `violet` sin borde y el corazón relleno en `on-violet`. 40px para cerrar un panel (FilterSheet), con la `x` de 14px.

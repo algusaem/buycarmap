@@ -53,7 +53,7 @@ Reglas de los titulares grandes, que se han ajustado a ojo:
 
 ## Estructura de pantalla
 
-- **Mapa en escritorio**: cabecera de 80px (logo, buscador píldora «Dónde · Coche · Precio», Crear alerta, favoritos, cuenta); fila de chips rápidos + «Filtros»; rejilla de tres columnas a la izquierda y mapa a la derecha con pines de precio.
+- **Mapa en escritorio**: cabecera de 80px (logo, buscador píldora «Dónde · Coche · Precio» con «Crear alerta» justo al lado, y a la derecha idioma ES · EN, Favoritos, Alertas y el avatar); fila de chips rápidos + «Filtros»; rejilla de tres columnas a la izquierda y mapa a la derecha con pines de precio.
 - **Mapa en móvil**: mapa a pantalla completa, buscador píldora flotando arriba con chips, y la hoja inferior con el contador y las tarjetas.
 - **Mapa**: oscuro y mínimo (`map-ground`, `map-road`, `map-road-major`, `map-water`), casi sin etiquetas. Los pines son píldoras con el precio; el activo pasa a lime con halo.
 - **Lista y mapa van sincronizados en toda pantalla con mapa** (Mapa, Guardados, Alertas): al pulsar un pin se activa, se abre la vista previa encima del mapa (no una página nueva) y su tarjeta de la lista se marca con el contorno lime. Pasar el ratón o el foco por una tarjeta activa su pin.
