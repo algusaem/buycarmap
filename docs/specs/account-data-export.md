@@ -1,7 +1,7 @@
 # Account data export
 
 Key: EXPORT
-Status: Approved
+Status: Implemented
 Last updated: 2026-10-12
 
 ---
@@ -29,7 +29,7 @@ authorization, its rate limit and its failure paths.
 ## Acceptance criteria
 
 - [x] EXPORT-1 · node — For a signed-in caller, `exportMyData()` succeeds and returns a JSON string whose top-level keys are exactly `exportedAt`, `profile`, `pendingEmailChange`, `signInMethods`, `sessions`, `favorites`, `alerts` and `alertMatches`, with `exportedAt` the ISO 8601 UTC time the export was built
-- [ ] EXPORT-2 · node — `profile` holds exactly the caller's `email`, `name`, `image`, `locale`, `emailConfirmed`, `twoFactorEnabled` and `createdAt`; a field with no value is present as `null`, never omitted
+- [x] EXPORT-2 · node — `profile` holds exactly the caller's `email`, `name`, `image`, `locale`, `emailConfirmed`, `twoFactorEnabled` and `createdAt`; a field with no value is present as `null`, never omitted
 - [x] EXPORT-3 · node — `signInMethods.password` is `true` exactly when the caller has a credential password, and `signInMethods.providers` lists each linked OAuth provider as `{ provider, linkedAt }`; the credential row never appears as a provider
 - [x] EXPORT-4 · node — `sessions` lists every one of the caller's sessions as exactly `{ createdAt, expiresAt, ipAddress, userAgent }`
 - [x] EXPORT-5 · node — `favorites` lists each of the caller's saved listings with its stored snapshot fields and `createdAt`, oldest first; a soft-deleted favorite is not exported

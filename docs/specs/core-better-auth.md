@@ -1,7 +1,7 @@
 # Better Auth and the permissions layer (migration phase 11)
 
 Key: BAUTH
-Status: Approved
+Status: Implemented
 Last updated: 2026-10-12
 
 ---
@@ -98,7 +98,7 @@ This is phase 11 of ADR 0007: row 25.
   - "Is the email verified" reads `users.email_confirmed` (Better Auth's `emailConfirmed`): the `/account` badge and the "already verified" guard of `requestEmailVerification`. Better Auth never writes the legacy `emailVerified` and leaves it null for every account it creates, so reading it showed an OAuth user as unverified.
   - The five fields are removed from `prisma/schema.prisma` with no migration: the columns stay in the database until BAUTH-20, so the code deployed before this step keeps working against them.
 - [x] BAUTH-20 · node — Contract, step B: one migration drops users.password, users.email_verified, users.password_changed_at, users.two_factor_secret and users.two_factor_last_step. It shipped only after BAUTH-19 was deployed to production, and after a read-only count in production confirmed that every user with a non-null users.password had a credential accounts row with the same hash (0 users without one, 2026-10-11).
-- [ ] BAUTH-21 · node — Contract, step A for the remaining legacy columns ([#103](https://github.com/algusaem/buycarmap/issues/103)): no application code reads or writes `users.two_factor_enabled_at`, `users.two_factor_reset_notified_at`, `accounts.expires_at`, `accounts.token_type` or `accounts.session_state`.
+- [x] BAUTH-21 · node — Contract, step A for the remaining legacy columns ([#103](https://github.com/algusaem/buycarmap/issues/103)): no application code reads or writes `users.two_factor_enabled_at`, `users.two_factor_reset_notified_at`, `accounts.expires_at`, `accounts.token_type` or `accounts.session_state`.
   - The BAUTH-13 re-enrolment notice is retired: the owner confirmed on 2026-10-12 that `pnpm auth:notify-2fa-reset` ran in production and has nobody left to notify. `scripts/notify-2fa-reset.mjs`, the `auth:notify-2fa-reset` script in `package.json`, `server/two-factor/reenrol.ts` and its test, `emails/TwoFactorResetEmail.tsx` and the `transactionalEmail.twoFactorReset` keys in `messages/en.json` and `messages/es.json` are deleted.
   - The data export stops carrying `twoFactorEnabledAt` (EXPORT-2 in [account-data-export.md](account-data-export.md)); the account service no longer selects it.
   - `accounts.expires_at`, `token_type` and `session_state` were NextAuth's. Better Auth 1.7.7's account table (`@better-auth/core`, `dist/db/get-tables.mjs`) has no field for any of them and `lib/auth/auth.ts` maps none onto them, so its adapter never writes them; `tokenType` exists only in an API response, never in a stored row.
