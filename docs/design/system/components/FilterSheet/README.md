@@ -7,6 +7,7 @@ El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chi
 - **Cabecera** de 70px, padding lateral 20px y divisor `line-soft`: a la izquierda cerrar (botón de icono de 40px con borde `line` y la `x` de 14px), en medio «FILTROS» en Unbounded 16 peso 800, a la derecha «Borrar» (botón de texto de 14px peso 700, subrayado).
 - **Cuerpo**: el mismo que en escritorio. Ocupa el alto que queda entre la cabecera y el pie y se desliza por dentro (scroll vertical con barra fina); el panel no crece más que la pantalla.
 - **Pie**: padding 14px 20px 28px con divisor `line-soft` arriba, y «VER COCHES»: principal de 56px a todo el ancho con `button-display`.
+- Lo elegido no se aplica al momento: la búsqueda y la fila de filtros activos cambian al pulsar «Ver coches», como en la hoja «BUSCAR» de [SearchPopover](../SearchPopover/README.md). Cerrar el panel descarta lo elegido; «Borrar» vacía el panel, que tampoco se aplica hasta «Ver coches».
 - Se cierra con su botón de cerrar o con «Ver coches».
 
 ## Escritorio: desplegable
@@ -15,6 +16,7 @@ El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chi
 - **Cabecera** de 70px, padding lateral 20px y divisor `line-soft`: «FILTROS» (Unbounded 16 peso 800) a la izquierda y «Borrar» a la derecha. Sin botón de cerrar.
 - **Cuerpo**: se desliza por dentro (scroll vertical con barra fina) cuando no cabe; la cabecera y el pie quedan fijos.
 - **Pie**: el mismo que en móvil, con «VER COCHES» de 56px.
+- Lo elegido se aplica al momento: la búsqueda y la fila de filtros activos cambian en cuanto se elige, y «Ver coches» solo cierra.
 - Se cierra con «Ver coches», al pulsar fuera de la tarjeta o con Escape.
 
 ## Cuerpo (móvil y escritorio)
