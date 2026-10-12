@@ -2,7 +2,8 @@
   "common": {
     "search": "Buscar",
     "popular": "Populares:",
-    "or": "o"
+    "or": "o",
+    "close": "Cerrar"
   },
   "hero": {
     "title": "Tu próximo coche",
@@ -339,7 +340,7 @@
         },
         {
           "heading": "Cookies",
-          "body": "Usamos solo las cookies que la aplicación necesita para funcionar: una que mantiene tu sesión; mientras inicias sesión, otra de corta duración para el paso de verificación en dos pasos (10 minutos) o para entrar con Google o GitHub (5 minutos); y dos que recuerdan tu idioma y tu zona horaria durante un año. El tema que eliges se guarda en el almacenamiento local de tu navegador, no en una cookie. No usamos cookies publicitarias ni de analítica."
+          "body": "Usamos solo las cookies que la aplicación necesita para funcionar: una que mantiene tu sesión; mientras inicias sesión, otra de corta duración para el paso de verificación en dos pasos (10 minutos) o para entrar con Google o GitHub (5 minutos); y dos que recuerdan tu idioma y tu zona horaria durante un año. No usamos cookies publicitarias ni de analítica."
         },
         {
           "heading": "Servicios de terceros",
@@ -418,9 +419,10 @@
   "localeErrors": {
     "invalidLocale": "Ese idioma no está disponible."
   },
-  "theme": {
-    "dark": "Oscuro",
-    "light": "Claro"
+  "footer": {
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "illustrations": "Ilustraciones de {storyset}"
   },
   "password": {
     "show": "Mostrar contraseña",

@@ -20,7 +20,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         <Input
           ref={ref}
           type={showPassword ? "text" : "password"}
-          className={`pr-10 ${className}`}
+          className={`pr-14 ${className}`}
           {...props}
         />
         <Button

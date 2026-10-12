@@ -1,12 +1,26 @@
 import { test, expect, type Page, type Response } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
+import { e2eEmail, seedUser } from "./fixtures/db";
 
-// PLAT-21 (e2e half) and PLAT-23 (docs/specs/core-platform.md): the CSP moves
-// from a static header in next.config.ts to a per-request nonce in proxy.ts,
-// and the pages that depend on an inline bootstrap script (next-themes) keep
-// working under it with no CSP violation reported to the console.
+// PLAT-21 (e2e half) and PLAT-23 (docs/specs/core-platform.md, amended
+// 2026-10-12, LOOK — redesign-foundation.md): the CSP moves from a static
+// header in next.config.ts to a per-request nonce in proxy.ts. The nonce no
+// longer feeds a theme bootstrap script — next-themes is gone — and the map,
+// login and favorites pages keep working under it with no CSP violation
+// reported to the console.
 
-const THEME_TOGGLE = /dark|light|oscuro|claro/i;
+const dbTest = process.env.E2E_DB ? test : test.skip;
+// Duplicated from e2e/a11y.spec.ts/favorites.spec.ts rather than shared, per
+// their own convention.
+const PASSWORD = "harbour-lentil-quilt-97";
+
+async function signIn(page: Page, email: string) {
+  await page.goto("/login");
+  await page.getByLabel(/email|correo/i).fill(email);
+  await page.locator('input[type="password"]').fill(PASSWORD);
+  await page.getByRole("button", { name: /sign in|entrar/i }).click();
+  await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
+}
 
 function scriptSrcDirective(response: Response): string | undefined {
   const csp = response.headers()["content-security-policy"] ?? "";
@@ -52,15 +66,18 @@ for (const path of ["/", "/login", "/map"]) {
   });
 }
 
-test("PLAT-23: the theme toggle still flips the html class under the nonce-based CSP", async ({
-  page,
-}) => {
-  await page.goto("/");
+dbTest(
+  "PLAT-23: signing in and visiting /favorites reports no Content-Security-Policy violation in the console (amended 2026-10-12, LOOK — redesign-foundation.md)",
+  async ({ page }) => {
+    const email = e2eEmail("plat23-fav");
+    await seedUser(email, PASSWORD);
 
-  const html = page.locator("html");
-  await expect(html).not.toHaveClass(/light/);
+    const violations = await cspViolationMessages(page);
 
-  await page.getByRole("button", { name: THEME_TOGGLE }).click();
+    await signIn(page, email);
+    await page.goto("/favorites");
+    await page.waitForLoadState("networkidle");
 
-  await expect(html).toHaveClass(/light/);
-});
+    expect(violations).toEqual([]);
+  },
+);

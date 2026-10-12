@@ -36,11 +36,6 @@ vi.mock("react-leaflet", () => ({
   useMap: () => ({ fitBounds }),
 }));
 
-const resolvedTheme = vi.fn(() => "dark");
-vi.mock("next-themes", () => ({
-  useTheme: () => ({ resolvedTheme: resolvedTheme() }),
-}));
-
 const cartoApiKey = vi.fn<() => string | undefined>(() => undefined);
 vi.mock("@/lib/env", () => ({
   env: {
@@ -51,7 +46,6 @@ vi.mock("@/lib/env", () => ({
 }));
 
 const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-const LIGHT_TILES = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
 function makeListing(overrides: Partial<CarListing> = {}): CarListing {
   return {
@@ -77,7 +71,6 @@ function makeListing(overrides: Partial<CarListing> = {}): CarListing {
 beforeEach(() => {
   fitBounds.mockClear();
   latLngBounds.mockClear();
-  resolvedTheme.mockReturnValue("dark");
   cartoApiKey.mockReturnValue(undefined);
 });
 
@@ -171,37 +164,21 @@ describe("ListingsMap viewport generation (MAP-25)", () => {
 });
 
 describe("ListingsMap tiles", () => {
-  it("uses the dark basemap by default", () => {
+  it("renders the dark basemap", () => {
     renderWithI18n(<ListingsMap listings={[]} />);
 
     expect(screen.getByTestId("tiles")).toHaveAttribute("data-url", DARK_TILES);
   });
-
-  it("switches to the light basemap when the theme resolves light", () => {
-    resolvedTheme.mockReturnValue("light");
-
-    renderWithI18n(<ListingsMap listings={[]} />);
-
-    expect(screen.getByTestId("tiles")).toHaveAttribute("data-url", LIGHT_TILES);
-  });
 });
 
 describe("ListingsMap tiles key", () => {
-  it("MAP-23: carries the CARTO key as ?key= on both the dark and light tile URLs", () => {
+  it("MAP-23: carries the CARTO key as ?key= on the dark tile URL (amended 2026-10-12, LOOK — redesign-foundation.md)", () => {
     cartoApiKey.mockReturnValue("cb1_test");
 
-    const { unmount } = renderWithI18n(<ListingsMap listings={[]} />);
-    expect(screen.getByTestId("tiles")).toHaveAttribute(
-      "data-url",
-      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_test",
-    );
-    unmount();
-
-    resolvedTheme.mockReturnValue("light");
     renderWithI18n(<ListingsMap listings={[]} />);
     expect(screen.getByTestId("tiles")).toHaveAttribute(
       "data-url",
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_test",
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_test",
     );
   });
 

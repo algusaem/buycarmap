@@ -96,11 +96,12 @@ and `/alerts` are guarded server-side.
 
 Out of scope, deliberately:
 
-- **What the theme and language controls do.** `ThemeSwitcher` and
-  `LanguageSwitcher` are specified by [cross-cutting.md](cross-cutting.md)
-  (CORE-5, CORE-10). This spec relocates them; it does not change their
-  behaviour, and their existing tests render them directly, so those criteria
-  are unaffected.
+- **What the language control does.** `LanguageSwitcher` is specified by
+  [cross-cutting.md](cross-cutting.md) (CORE-5). This spec relocates it; it
+  does not change its behaviour, and its existing tests render it directly, so
+  that criterion is unaffected. The theme control this bullet also covered is
+  gone since 2026-10-12, with CORE-10 withdrawn
+  ([redesign-foundation.md](redesign-foundation.md), LOOK-5).
 - **Authorisation.** `/favorites` and `/alerts` are guarded server-side. This
   spec decides which links are *offered*, which is a different question — see
   Decisions and rationale.
@@ -265,24 +266,16 @@ alternative is hand-writing a focus trap, Escape handling, restoration of focus,
 code that NAV-4 and NAV-12 would then be testing for the first time in this
 codebase. Two dependencies is the cheaper side of that trade by a wide margin.
 
-### The theme toggle stays in the bar; language does not
+### Language moves into the dropdown
 
-Only language moves into the desktop dropdown. Theme is the control people
-actually reach for, and it carries a deliberate View Transitions animation —
-burying a thing built to be enjoyed behind a menu is a poor trade for a tidier
-row. Language is the opposite: set once, then never touched again for the life
-of the account.
+Only language moves into the desktop dropdown: it is set once, then never
+touched again for the life of the account. On a phone it lives in the menu
+(NAV-14).
 
-The theme control drops its `Dark` / `Light` text label **in the desktop bar
-only**, where it sits beside an icon already saying the same thing. Inside the
-menu it keeps the label: on a phone both controls move there (NAV-14), and a
-panel has room a 56px bar does not.
-
-That split is why `ThemeSwitcher` gains a `showLabel` prop rather than losing
-the label outright. Losing it outright would also break CORE-10's second test in
-[cross-cutting.md](cross-cutting.md), which asserts the button's text content —
-and that criterion is about switching the theme, so breaking it over a layout
-decision made here would be this spec damaging another one for no reason.
+This decision first kept a theme toggle in the bar beside it. Since 2026-10-12
+there is no theme to switch — the BuyCarMap 2.0 design is dark only — so the
+toggle, its `showLabel` prop and CORE-10 are gone
+([redesign-foundation.md](redesign-foundation.md), LOOK-5).
 
 ### Registration is one tap on a phone, not two
 
@@ -311,7 +304,8 @@ None. Three were raised while drafting and all three are settled; each is
 recorded in Decisions and rationale rather than left here, because the reasoning is what a reader
 needs later, not the fact that it was once undecided:
 
-- Theme stays in the desktop bar, language moves into the dropdown.
+- Language moves into the dropdown (the theme toggle once kept beside it is
+  gone, LOOK-5).
 - A sign-up button stays in the bar on mobile; sign in lives in the menu.
 - NAV-9 is kept, with its cost acknowledged — it remains the weakest criterion
   in this spec, and the reason it survives is that the visual suite has already

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
@@ -9,23 +9,14 @@ import { GoogleSignInButton } from "./GoogleSignInButton";
 // app-router context this component never provides.
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
-// The button picks Google's light or dark palette from the resolved theme.
-const useTheme = vi.fn();
-vi.mock("next-themes", () => ({ useTheme: () => useTheme() }));
-
 const button = () => screen.getByRole("button");
-
-beforeEach(() => {
-  useTheme.mockReturnValue({ resolvedTheme: "dark" });
-});
 
 describe("GoogleSignInButton branding", () => {
   // Every expected value below is transcribed from Google's published branding
   // guidelines (developers.google.com/identity/branding-guidelines). Drifting
   // from them is a terms breach, not a cosmetic regression, so they are
   // asserted literally rather than against the app's own tokens.
-  it("uses Google's dark palette on the dark theme", () => {
-    useTheme.mockReturnValue({ resolvedTheme: "dark" });
+  it("uses Google's dark palette, the app's only theme", () => {
     renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />);
 
     expect(button()).toHaveStyle({
@@ -33,27 +24,6 @@ describe("GoogleSignInButton branding", () => {
       border: "1px solid #8E918F",
       color: "#E3E3E3",
     });
-  });
-
-  it("uses Google's light palette on the light theme", () => {
-    useTheme.mockReturnValue({ resolvedTheme: "light" });
-    renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />);
-
-    expect(button()).toHaveStyle({
-      backgroundColor: "#FFFFFF",
-      border: "1px solid #747775",
-      color: "#1F1F1F",
-    });
-  });
-
-  it("falls back to the dark palette before the theme resolves", () => {
-    // next-themes reports undefined until it has read the stored preference,
-    // and useMounted holds the first render back regardless. Dark is the app's
-    // default, so defaulting there keeps the common case flash-free.
-    useTheme.mockReturnValue({ resolvedTheme: undefined });
-    renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />);
-
-    expect(button()).toHaveStyle({ backgroundColor: "#131314" });
   });
 
   it("uses one of Google's three permitted call-to-action strings", () => {

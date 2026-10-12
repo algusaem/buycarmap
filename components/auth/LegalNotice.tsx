@@ -9,7 +9,7 @@ export function LegalNotice() {
   const t = useTranslations();
 
   return (
-    <motion.p className="text-center text-xs text-muted-foreground/60" {...fadeIn(0.3)}>
+    <motion.p className="text-center text-xs text-muted-foreground" {...fadeIn(0.3)}>
       {t("auth.legalNotice")}{" "}
       <Link href="/terms" className="underline hover:text-muted-foreground">
         {t("auth.terms")}

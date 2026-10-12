@@ -2,7 +2,8 @@
   "common": {
     "search": "Search",
     "popular": "Popular:",
-    "or": "or"
+    "or": "or",
+    "close": "Close"
   },
   "hero": {
     "title": "Find your next car",
@@ -339,7 +340,7 @@
         },
         {
           "heading": "Cookies",
-          "body": "We use only the cookies the app needs to work: one that keeps you signed in; while you sign in, a short-lived one for the two-factor step (10 minutes) or for signing in with Google or GitHub (5 minutes); and two that remember your language and your time zone for one year. Your theme choice is kept in your browser's local storage, not in a cookie. We do not use advertising or analytics cookies."
+          "body": "We use only the cookies the app needs to work: one that keeps you signed in; while you sign in, a short-lived one for the two-factor step (10 minutes) or for signing in with Google or GitHub (5 minutes); and two that remember your language and your time zone for one year. We do not use advertising or analytics cookies."
         },
         {
           "heading": "Third-party services",
@@ -418,9 +419,10 @@
   "localeErrors": {
     "invalidLocale": "That language is not supported."
   },
-  "theme": {
-    "dark": "Dark",
-    "light": "Light"
+  "footer": {
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "illustrations": "Illustrations by {storyset}"
   },
   "password": {
     "show": "Show password",

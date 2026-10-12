@@ -77,7 +77,7 @@ file is a rule; the explanations live in `docs/`.
 Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prisma 7
 with the **`@prisma/adapter-pg`** driver adapter · Better Auth (Postgres sessions) ·
 React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
-`components/ui/*` · Motion · Sonner · next-themes · Leaflet + react-leaflet ·
+`components/ui/*` · Motion · Sonner · Leaflet + react-leaflet ·
 Lucide React and React Icons · next-intl (i18n) · nuqs (URL state) · date-fns
 and `@date-fns/tz` (formatting).
 
@@ -414,14 +414,12 @@ coded.**
 
 ## UI specifics
 
-- **Theming**: next-themes, `attribute="class"`, dark default, `.light` for light. Theme-aware
-  styles use the CSS variables (`var(--…)`) the theme defines. Components
-  using `useTheme` wait for `mounted` (`lib/hooks/useMounted.ts`) to stay hydration-safe. Theme
-  switching uses the View Transitions API via `lib/hooks/useThemeTransition.ts` — use it rather
-  than calling `setTheme` directly in the toggle.
+- **Theming**: one dark theme, no toggle (`class="dark"` static on `<html>`; next-themes removed,
+  LOOK). Theme-aware styles use the CSS variables from `app/globals.css`, which mirror
+  `docs/design/system/tokens.json`.
 - **Forms**: `zodResolver`, inline field errors, and `isSubmitting` for the loading state.
 - **Toasts**: the Sonner `Toaster` (`components/Toaster.tsx`) is in the root layout and takes the
-  next-themes theme; style it via `classNames` with Tailwind's important modifier (Sonner's
+  dark theme as a constant; style it via `classNames` with Tailwind's important modifier (Sonner's
   unlayered styles beat `@layer utilities` otherwise), not inline styles (FRONT-23).
 - **Icons**: never raw SVGs. Lucide React for UI icons, React Icons for brand icons. Size with
   Tailwind (`h-4 w-4`).

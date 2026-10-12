@@ -8,15 +8,17 @@ Last updated: 2026-09-28
 
 ## Problem
 
-Three things run underneath every page and are noticed only when wrong: what
-language the interface is in, where on the map a car without coordinates
-belongs, and whether the page is readable at night. Each has a fallback chain
+Two things run underneath every page and are noticed only when wrong: what
+language the interface is in, and where on the map a car without coordinates
+belongs. (A third, whether the page is readable at night, was a theme switch
+until the dark-only redesign of 2026-10-12.) Each has a fallback chain
 several steps deep, each chain has a step that is hard to reach on purpose, and
 between them they had almost no tests.
 
 In scope: locale resolution and switching; the static city and province
-lookups that place listings without coordinates; browser geolocation; theme
-switching.
+lookups that place listings without coordinates; browser geolocation. Theme
+switching was in scope until 2026-10-12, when the dark-only BuyCarMap 2.0 design
+removed it (`docs/specs/redesign-foundation.md`, LOOK-5).
 
 ## Acceptance criteria
 
@@ -41,7 +43,7 @@ None: this feature adds or changes no table or column.
 
 ## Permissions
 
-None: locale, geography and theme carry no authorization check and store no
+None: locale and geography carry no authorization check and store no
 user data here; the language cookie is user-writable input, which CORE-4 treats
 as untrusted.
 
@@ -68,9 +70,8 @@ Out of scope, deliberately:
   and `separator` are styling wrappers with no branches worth asserting;
   `range-input`, `toggle-chip` and `select` have behaviour and are already
   tested.
-- **`useThemeTransition`.** It drives the View Transitions API, which jsdom does
-  not implement. Asserting the fallback path would test the stub, not the
-  feature. Playwright is where this belongs, if anywhere.
+- **Theme transitions.** There are none: the app has one dark theme, and the
+  hook that animated a theme change is removed (Open questions 1).
 
 ## Contracts
 

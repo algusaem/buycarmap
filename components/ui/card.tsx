@@ -2,12 +2,15 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+// The AccountCard look (docs/design/system/components/AccountCard/README.md):
+// surface, 1px line border, radius-card, 24px padding (py-6 here, px-6 on each
+// slot), no shadow.
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "flex flex-col gap-6 rounded-card border border-line bg-surface py-6 text-text",
         className,
       )}
       {...props}
@@ -42,7 +45,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-sm text-text-muted", className)}
       {...props}
     />
   );

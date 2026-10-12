@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { useTranslations } from "next-intl";
@@ -51,15 +50,9 @@ export function NavMenu({ open, onOpenChange, children }: NavMenuProps) {
         {/* A div, not a second <nav>: an unlabelled duplicate landmark is an
             axe violation, and the dialog already scopes these links. */}
         <div className="mt-10 flex flex-col gap-1">{children}</div>
-        {/* The child selectors align these with the links above rather than
-            leaving them centred: ThemeSwitcher renders a Button, which centres
-            its content by default, and next to a column of left-aligned links
-            that reads as a mistake. */}
-        <div className="mt-auto flex flex-col gap-1 border-t border-border/50 pt-4 [&>button]:w-full [&>button]:justify-start [&>button]:px-3">
-          {/* Both keep their labels here: a panel has the room a 56px bar does
-              not, and this is the only surface where the language switcher is
-              a plain inline control rather than a menu. */}
-          <ThemeSwitcher />
+        <div className="mt-auto flex flex-col gap-1 border-t border-border/50 pt-4">
+          {/* This is the only surface where the language switcher is a plain
+              inline control rather than a menu. */}
           <div className="px-3">
             <LanguageSwitcher />
           </div>

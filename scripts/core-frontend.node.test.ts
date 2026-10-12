@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -34,6 +34,48 @@ function walk(dir: string, exts: string[]): string[] {
 function rel(files: string[]): string[] {
   return files.map((file) => relative(ROOT, file).replace(/\\/g, "/")).sort();
 }
+
+function gitLsFiles(...pathspecs: string[]): string[] {
+  const output = execFileSync("git", ["ls-files", "--", ...pathspecs], {
+    cwd: ROOT,
+    encoding: "utf8",
+  }).trim();
+  return output === "" ? [] : output.split("\n");
+}
+
+// docs/specs/cross-cutting.md: CORE-10, withdrawn by LOOK-5
+// (docs/specs/redesign-foundation.md) — there is no theme to switch, so there
+// is nothing left to toggle or to assert survives a re-render. Imitates the
+// AUTH-8/BAUTH-12 convention in scripts/core-better-auth.node.test.ts,
+// including titling these checks under the new governing id (LOOK-5) rather
+// than the withdrawn one, which would make them match their own
+// dangling-reference search below.
+describe("LOOK-5: there is no theme to switch (CORE-10 withdrawn)", () => {
+  it("LOOK-5: the cross-cutting spec's CORE-10 line says Withdrawn", () => {
+    const spec = readFileSync(join(ROOT, "docs/specs/cross-cutting.md"), "utf-8");
+    const core10Line = spec.split("\n").find((line) => line.includes("CORE-10")) ?? "";
+
+    expect(core10Line).toContain("Withdrawn");
+  });
+
+  // Built from parts so this file does not match its own search.
+  const WITHDRAWN_TITLE = ['"CORE', "-10:"].join("");
+
+  it("LOOK-5: no test title names the withdrawn theme-toggle criterion any more", () => {
+    // `git ls-files` lists the index, which still names a file this change
+    // deletes from the working tree but has not staged — `existsSync` keeps
+    // that from reading a file that is already gone.
+    const testFiles = gitLsFiles("*.test.ts", "*.test.tsx").filter((path) =>
+      existsSync(join(ROOT, path)),
+    );
+
+    const stillReferencing = testFiles.filter((path) =>
+      readFileSync(join(ROOT, path), "utf-8").includes(WITHDRAWN_TITLE),
+    );
+
+    expect(stillReferencing).toEqual([]);
+  });
+});
 
 describe("FRONT-5: the proxy routes and their browser-bound fetchers are removed", () => {
   it("FRONT-5: the five proxy route directories no longer exist", () => {
@@ -223,21 +265,21 @@ describe("FRONT-19: the a11y gate no longer disables color-contrast", () => {
 });
 
 describe("FRONT-26: fonts are self-hosted files loaded with next/font/local", () => {
-  it("FRONT-26: app/layout.tsx imports next/font/local, not next/font/google, and keeps --font-sans/--font-mono", () => {
+  it("FRONT-26: app/layout.tsx imports next/font/local, not next/font/google, and keeps --font-sans/--font-display (amended 2026-10-12, LOOK — redesign-foundation.md)", () => {
     const content = readFileSync(join(ROOT, "app/layout.tsx"), "utf-8");
 
     expect(content).not.toContain("next/font/google");
     expect(content).toContain("next/font/local");
     expect(content).toContain("--font-sans");
-    expect(content).toContain("--font-mono");
+    expect(content).toContain("--font-display");
   });
 
-  it("FRONT-26: both font families ship their woff2 file and OFL licence under app/fonts/", () => {
+  it("FRONT-26: both font families ship their woff2 file and OFL licence under app/fonts/ (amended 2026-10-12, LOOK — redesign-foundation.md)", () => {
     const files = [
-      "app/fonts/plus-jakarta-sans/plus-jakarta-sans-latin-wght-normal.woff2",
-      "app/fonts/plus-jakarta-sans/OFL.txt",
-      "app/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2",
-      "app/fonts/jetbrains-mono/OFL.txt",
+      "app/fonts/rethink-sans/rethink-sans-latin-wght-normal.woff2",
+      "app/fonts/rethink-sans/OFL.txt",
+      "app/fonts/unbounded/unbounded-latin-wght-normal.woff2",
+      "app/fonts/unbounded/OFL.txt",
     ];
 
     for (const file of files) {
@@ -245,10 +287,10 @@ describe("FRONT-26: fonts are self-hosted files loaded with next/font/local", ()
     }
   });
 
-  it("FRONT-26: each woff2 file is non-empty and starts with the wOF2 magic bytes", () => {
+  it("FRONT-26: each woff2 file is non-empty and starts with the wOF2 magic bytes (amended 2026-10-12, LOOK — redesign-foundation.md)", () => {
     const woff2Files = [
-      "app/fonts/plus-jakarta-sans/plus-jakarta-sans-latin-wght-normal.woff2",
-      "app/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2",
+      "app/fonts/rethink-sans/rethink-sans-latin-wght-normal.woff2",
+      "app/fonts/unbounded/unbounded-latin-wght-normal.woff2",
     ];
 
     for (const file of woff2Files) {

@@ -16,19 +16,23 @@ function SelectTrigger({
 }: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
   return (
     <SelectPrimitive.Trigger
+      // The design's field trigger (docs/design/system/components/Select/
+      // README.md): 52px, radius-field, bg fill, line border (lime with focus
+      // or open), 16px text, chevron 12px from the value (LOOK-13). Focus keeps
+      // the global lime outline (LOOK-11).
       className={cn(
-        "flex h-10 w-full items-center justify-between rounded-md border border-border/50 bg-card/50 px-3 py-2 text-sm text-foreground shadow-xs outline-none transition-[color,box-shadow]",
-        "placeholder:text-muted-foreground",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        "flex h-13 w-full cursor-pointer items-center justify-between gap-3 rounded-field border border-line bg-bg pr-3.5 pl-4 font-sans text-base text-text",
+        "data-[placeholder]:text-text-muted",
+        "focus:border-lime data-[state=open]:border-lime",
         "disabled:pointer-events-none disabled:opacity-50",
-        "[&>span]:line-clamp-1",
+        "[&>span]:min-w-0 [&>span]:truncate",
         className,
       )}
       {...props}
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <ChevronDown aria-hidden="true" strokeWidth={2.4} className="size-4.5 shrink-0" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );

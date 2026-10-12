@@ -1,7 +1,7 @@
 # Redesign F1 — visual foundation
 
 Key: LOOK
-Status: Approved
+Status: Implemented
 Last updated: 2026-10-12
 
 ---
@@ -29,67 +29,69 @@ the design system, and the internal style-guide pages. No screen changes its str
 
 ## Acceptance criteria
 
-- [ ] LOOK-1 · node — `app/globals.css` defines the design tokens with exactly the values of
+- [x] LOOK-1 · node — `app/globals.css` defines the design tokens with exactly the values of
   `docs/design/system/tokens.json` (colour, radius, shadow) as CSS variables on `:root`, and contains
   no `.light` block and no OKLCH value.
-- [ ] LOOK-2 · node — The utility tokens the existing components use (`background`, `foreground`,
+- [x] LOOK-2 · node — The utility tokens the existing components use (`background`, `foreground`,
   `card`, `popover`, `border`, `input`, `muted`, `muted-foreground`, `primary`, `primary-foreground`,
   `secondary`, `accent`, `destructive`, `ring`) resolve to the design tokens listed in the worked
   example, so every existing class takes the new palette without a component edit.
-- [ ] LOOK-3 · e2e — Every page renders in the dark theme: the `html` element carries the `dark`
+- [x] LOOK-3 · e2e — Every page renders in the dark theme: the `html` element carries the `dark`
   class and a computed `color-scheme` of `dark`, the `body` background computes to `rgb(15, 15, 16)`,
   and `<meta name="theme-color">` is `#0F0F10`. Checked on `/`, `/login` and `/map`.
-- [ ] LOOK-4 · e2e — A stored `theme=light` from an earlier version is ignored: with that value in
+- [x] LOOK-4 · e2e — A stored `theme=light` from an earlier version is ignored: with that value in
   `localStorage` before load, `/` still renders as LOOK-3 describes.
-- [ ] LOOK-5 · component — No theme control is rendered anywhere: the navbar on desktop and its phone
+- [x] LOOK-5 · component — No theme control is rendered anywhere: the navbar on desktop and its phone
   menu contain no button whose name matches the old theme labels ("Dark", "Light", "Oscuro",
   "Claro").
-- [ ] LOOK-6 · node — The root layout loads Rethink Sans as `--font-sans` and Unbounded as
+- [x] LOOK-6 · node — The root layout loads Rethink Sans as `--font-sans` and Unbounded as
   `--font-display` through `next/font/local` from committed `woff2` files, each family folder under
   `app/fonts/` ships its `OFL.txt`, no file imports `next/font/google`, and the Plus Jakarta Sans and
   JetBrains Mono files are gone.
-- [ ] LOOK-7 · e2e — The fonts are the ones in use: on `/` the computed `font-family` of `body`
-  starts with Rethink Sans, and `document.fonts.check('900 16px Unbounded')` is true after load.
-- [ ] LOOK-8 · node — Classes still using `font-mono` (in components outside this phase) resolve to
+- [x] LOOK-7 · e2e — The fonts are the ones in use: on `/` the first family in `body`'s computed `font-family` is the
+  Rethink Sans face that `next/font/local` registers (it names the face after its loader, e.g.
+  `rethinkSans`) and that face is loaded, and the registered Unbounded face loads when requested.
+- [x] LOOK-8 · node — Classes still using `font-mono` (in components outside this phase) resolve to
   the sans family, so no text falls back to the browser's monospace before its phase restyles it.
-- [ ] LOOK-9 · e2e — On the style guide (`/palette`), each button variant computes to the design:
+- [x] LOOK-9 · e2e — On the style guide (`/palette`), each button variant computes to the design:
   primary is `lime` with `on-lime` text, secondary has a 1px `line` border, ghost has no border or
   fill, danger has `danger` text and a `danger` border at 60 %, all pill-shaped (`border-radius` ≥
   height / 2), at the heights the design uses (56 full-width display, 54, 52, 48, 44 and 42px); the
   icon button is 42px square and round; no button wraps its label onto a second line. Every button
   drawn under 44px (the 42px buttons and the 40px close button) has a hit area of at least 44 × 44px
   at phone width (RULES §19), without changing its drawn size.
-- [ ] LOOK-10 · e2e — The ghost button marked as an undo action ("Quitar filtros") turns its text to
+- [x] LOOK-10 · e2e — The ghost button marked as an undo action ("Quitar filtros") turns its text to
   `danger` on hover and on keyboard focus, and back to `text` when neither applies.
-- [ ] LOOK-11 · e2e — Keyboard focus is visible on every primitive: a focused button, chip, input and
+- [x] LOOK-11 · e2e — Keyboard focus is visible on every primitive: a focused button, chip, input and
   select trigger shows a 2px `lime` outline offset by 3px.
-- [ ] LOOK-12 · e2e — A pressed toggle chip differs from an unpressed one in fill (`violet` with
+- [x] LOOK-12 · e2e — A pressed toggle chip differs from an unpressed one in fill (`violet` with
   `on-violet` text) and in weight (800 against 600), not in colour alone.
-- [ ] LOOK-13 · e2e — Inputs and the select trigger are at least 52px tall with a 16px font size
+- [x] LOOK-13 · e2e — Inputs and the select trigger are at least 52px tall with a 16px font size
   (no iOS zoom), a `line` border at rest and a `lime` border when focused.
-- [ ] LOOK-14 · e2e — A toast renders on `surface` with a `line` border, `radius-card`,
+- [x] LOOK-14 · e2e — A toast renders on `surface` with a `line` border, `radius-card`,
   `shadow-float` and `text` colour; its optional action is `lime` text and its close button has an
   accessible name (amends FRONT-23 to the single theme).
-- [ ] LOOK-15 · component — The source badge looks the same for all three sources: Wallapop,
+- [x] LOOK-15 · component — The source badge looks the same for all three sources: Wallapop,
   coches.net and Milanuncios render with an identical class list, and the source name is the badge's
   text.
-- [ ] LOOK-16 · component — The footer shows «Privacidad» linking to `/privacy`, «Términos» linking
+- [x] LOOK-16 · component — The footer shows «Privacidad» linking to `/privacy`, «Términos» linking
   to `/terms` and «Ilustraciones de Storyset» whose «Storyset» links to `https://storyset.com` in a
   new tab with `rel="noopener noreferrer"`; in English it reads "Privacy", "Terms" and "Illustrations
   by Storyset".
-- [ ] LOOK-17 · e2e — The footer is present on `/`, `/login`, `/register`, `/privacy` and `/terms`,
-  and absent on `/map`, `/favorites` and `/alerts`.
-- [ ] LOOK-18 · e2e — axe reports no violation, colour contrast included, on the FRONT-19 flows in
+- [x] LOOK-17 · e2e — At desktop width the footer is present on `/`, `/login`, `/register`,
+  `/privacy` and `/terms`, and absent on `/map`, `/favorites` and `/alerts`; at phone width there is no
+  footer (the design draws none on mobile).
+- [x] LOOK-18 · e2e — axe reports no violation, colour contrast included, on the FRONT-19 flows in
   the single dark theme (amends FRONT-19).
-- [ ] LOOK-19 · node — `DESIGN.md` follows the canonical section order (Overview, Colors, Typography,
+- [x] LOOK-19 · node — `DESIGN.md` follows the canonical section order (Overview, Colors, Typography,
   Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts, plus Email), its frontmatter colours
   equal the colour tokens of `tokens.json`, it names Unbounded and Rethink Sans, it says nothing of a
   light theme, its Email section still names react-email (INT-15), and `.impeccable/design.json`
   exists and parses as JSON.
-- [ ] LOOK-20 · node — The style-guide pages show the current system: `/palette` lists every colour
+- [x] LOOK-20 · node — The style-guide pages show the current system: `/palette` lists every colour
   token of `app/globals.css` with its value, and neither `/palette` nor `/typography` mentions
   "Cartographic Modern", Plus Jakarta Sans or JetBrains Mono.
-- [ ] LOOK-21 · component — The select has one style, always with checkboxes: every option renders a
+- [x] LOOK-21 · component — The select has one style, always with checkboxes: every option renders a
   checkbox whose checked state follows `aria-selected`, a chosen option is weight 700 with a `violet`
   box, several options can be chosen at once, and the trigger lists the chosen values separated by
   commas (truncated with «…» when they do not fit), with no counter.
@@ -176,7 +178,7 @@ New i18n keys, both locales (`messages/es.json`, `messages/en.json`, `lib/i18n/t
 
 Font files: `app/fonts/rethink-sans/rethink-sans-latin-wght-normal.woff2`,
 `app/fonts/rethink-sans/OFL.txt`, `app/fonts/unbounded/unbounded-latin-wght-normal.woff2`,
-`app/fonts/unbounded/OFL.txt` (latin and latin-ext subsets, variable weight axis).
+`app/fonts/unbounded/OFL.txt` (latin subset — U+0000-00FF, which covers Spanish — variable weight axis).
 
 **Criteria in other specs this phase changes** (each amended in the same PR, statement kept and
 marked):

@@ -3,13 +3,17 @@ import AxeBuilder from "@axe-core/playwright";
 import { mockListingSources } from "./fixtures/network";
 import { e2eEmail, seedUser } from "./fixtures/db";
 
-// FRONT-19 (docs/specs/core-frontend.md): the contrast rule is no longer
-// disabled, and every main flow passes axe with no serious/critical
-// violation in both themes. Any token or colour change needed to get there
-// is an owner approval this spec does not itself make (RULES.md §1, §17) —
-// this file only states the bar; fixing today's known contrast failures
-// (docs/ARCHITECTURE.md › Testing › Known findings, unfixed) is separate
-// work.
+// FRONT-19 (docs/specs/core-frontend.md, amended 2026-10-12, LOOK —
+// redesign-foundation.md): the contrast rule is no longer disabled, and
+// every main flow passes axe with no serious/critical violation in the
+// app's single dark theme (there is no other theme to check any more).
+// LOOK-18 (docs/specs/redesign-foundation.md) is the same bar, named
+// explicitly because it is the criterion that amends FRONT-19: axe,
+// colour contrast included, on these same flows. Any token or colour
+// that changes to get there is an owner approval this spec does not
+// itself make (RULES.md §1, §17) — this file only states the bar; fixing
+// today's known contrast failures (docs/ARCHITECTURE.md › Testing › Known
+// findings, unfixed) is separate work.
 
 const dbTest = process.env.E2E_DB ? test : test.skip;
 // Clears all three password layers (length, strength, breach corpus) —
@@ -24,15 +28,6 @@ async function signIn(page: Page, email: string) {
   await page.locator('input[type="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: /sign in|entrar/i }).click();
   await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
-}
-
-async function setTheme(page: Page, theme: "light" | "dark") {
-  // next-themes persists to localStorage under the default key "theme"
-  // (components/ThemeProvider.tsx passes no storageKey override) — set it
-  // before the app boots so there is no flash of the other theme to race.
-  await page.addInitScript((value) => {
-    window.localStorage.setItem("theme", value);
-  }, theme);
 }
 
 async function seriousViolations(page: Page) {
@@ -62,67 +57,61 @@ function expectNoSeriousViolations(violations: Awaited<ReturnType<typeof serious
   expect(violations, violations.map((v) => `${v.id}: ${v.help}`).join("\n")).toEqual([]);
 }
 
-const THEMES = ["light", "dark"] as const;
-
-for (const theme of THEMES) {
-  for (const path of ["/", "/login", "/register"]) {
-    test(`FRONT-19: no serious accessibility violations on ${path} (${theme})`, async ({
-      page,
-    }) => {
-      await setTheme(page, theme);
-      await page.goto(path);
-      expectNoSeriousViolations(await seriousViolations(page));
-    });
-  }
-
-  test(`FRONT-19: no serious accessibility violations on /map (${theme})`, async ({ page }) => {
-    await setTheme(page, theme);
+/** The flow helper both FRONT-19 and LOOK-18 reuse: load the page, settle, run axe. */
+async function checkPage(page: Page, path: string) {
+  if (path === "/map") {
     await mockListingSources(page);
-    await page.goto("/map");
+    await page.goto(path);
     await page.getByText("Audi A3 2.0 TDI").waitFor();
-    expectNoSeriousViolations(await seriousViolations(page));
+  } else {
+    await page.goto(path);
+  }
+  expectNoSeriousViolations(await seriousViolations(page));
+}
+
+/** The signed-in flow helper FRONT-19 and LOOK-18 reuse for the guarded pages. */
+async function checkSignedInPage(page: Page, path: string, tag: string) {
+  const email = e2eEmail(tag);
+  await seedUser(email, PASSWORD);
+  await signIn(page, email);
+
+  await page.goto(path);
+  expectNoSeriousViolations(await seriousViolations(page));
+}
+
+const MAIN_PATHS = ["/", "/login", "/register", "/map"];
+
+for (const path of MAIN_PATHS) {
+  test(`FRONT-19: no serious accessibility violations on ${path}`, async ({ page }) => {
+    await checkPage(page, path);
   });
 
-  // /favorites, /alerts and /account need a signed-in session, which this
-  // suite only has against a real database (E2E_DB) — the same gate
-  // e2e/favorites.spec.ts uses for its round trips. Skipped, not silently
-  // dropped, when E2E_DB is unset (as in plain `pnpm test:e2e`/CI).
-  dbTest(
-    `FRONT-19: no serious accessibility violations on /favorites (${theme})`,
-    async ({ page }) => {
-      const email = e2eEmail("a11y-fav");
-      await seedUser(email, PASSWORD);
-      await setTheme(page, theme);
-      await signIn(page, email);
+  test(`LOOK-18: no serious accessibility violations on ${path}, colour contrast included, in the single dark theme`, async ({
+    page,
+  }) => {
+    await checkPage(page, path);
+  });
+}
 
-      await page.goto("/favorites");
-      expectNoSeriousViolations(await seriousViolations(page));
-    },
-  );
+// /favorites, /alerts and /account need a signed-in session, which this
+// suite only has against a real database (E2E_DB) — the same gate
+// e2e/favorites.spec.ts uses for its round trips. Skipped, not silently
+// dropped, when E2E_DB is unset (as in plain `pnpm test:e2e`/CI).
+const AUTH_PATHS: Array<{ path: string; tag: string }> = [
+  { path: "/favorites", tag: "a11y-fav" },
+  { path: "/alerts", tag: "a11y-alerts" },
+  { path: "/account", tag: "a11y-account" },
+];
 
-  dbTest(
-    `FRONT-19: no serious accessibility violations on /alerts (${theme})`,
-    async ({ page }) => {
-      const email = e2eEmail("a11y-alerts");
-      await seedUser(email, PASSWORD);
-      await setTheme(page, theme);
-      await signIn(page, email);
-
-      await page.goto("/alerts");
-      expectNoSeriousViolations(await seriousViolations(page));
-    },
-  );
+for (const { path, tag } of AUTH_PATHS) {
+  dbTest(`FRONT-19: no serious accessibility violations on ${path}`, async ({ page }) => {
+    await checkSignedInPage(page, path, tag);
+  });
 
   dbTest(
-    `FRONT-19: no serious accessibility violations on /account (${theme})`,
+    `LOOK-18: no serious accessibility violations on ${path}, colour contrast included, in the single dark theme`,
     async ({ page }) => {
-      const email = e2eEmail("a11y-account");
-      await seedUser(email, PASSWORD);
-      await setTheme(page, theme);
-      await signIn(page, email);
-
-      await page.goto("/account");
-      expectNoSeriousViolations(await seriousViolations(page));
+      await checkSignedInPage(page, path, `${tag}-look18`);
     },
   );
 }

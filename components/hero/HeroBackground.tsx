@@ -97,8 +97,7 @@ export function HeroBackground() {
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "radial-gradient(ellipse 70% 60% at 50% 45%, transparent 0%, var(--background) 100%)",
+          background: "radial-gradient(ellipse 70% 60% at 50% 45%, transparent 0%, var(--bg) 100%)",
         }}
       />
 

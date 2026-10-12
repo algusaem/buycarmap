@@ -7,7 +7,6 @@ import { authClient } from "@/lib/auth/auth-client";
 import { BellRing, Heart, LogOut, User } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { NavMenu, NavMenuLink, currentPage } from "./NavMenu";
-import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -112,7 +111,6 @@ function SignedOutControls({ menuOpen, onMenuOpenChange, pathname }: ControlsPro
   return (
     <>
       <div className="hidden items-center gap-4 lg:flex">
-        <ThemeSwitcher showLabel={false} />
         <LanguageSwitcher />
         <Button asChild variant="ghost" size="sm">
           <Link href="/login">{t("nav.signIn")}</Link>
@@ -162,8 +160,6 @@ function SignedInControls({
   return (
     <>
       <div className="hidden items-center gap-2 lg:flex">
-        <ThemeSwitcher showLabel={false} />
-
         {/* Kept in the bar rather than folded into the dropdown: these are the
             destinations a signed-in user came for, and burying a frequent one
             to tidy a row trades against them to buy nothing. */}

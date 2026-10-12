@@ -2,7 +2,6 @@
 
 import L, { type LeafletEvent } from "leaflet";
 import { MapContainer, TileLayer, ZoomControl, Marker, Popup, useMap } from "react-leaflet";
-import { useTheme } from "next-themes";
 import { useMounted } from "@/lib/hooks/useMounted";
 import type { CarListing } from "@/interfaces/listing";
 import { useEffect, useMemo, useRef } from "react";
@@ -10,10 +9,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/format";
 import { env } from "@/lib/env";
 
-const TILE_URLS = {
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-  light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-};
+const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 
 function withCartoKey(url: string): string {
   const key = env.NEXT_PUBLIC_CARTO_API_KEY;
@@ -27,10 +23,10 @@ function createCarIcon() {
     html: `<div style="
       width: 12px;
       height: 12px;
-      background: var(--primary);
-      border: 2px solid var(--foreground);
+      background: var(--lime);
+      border: 2px solid var(--text);
       border-radius: 50%;
-      box-shadow: 0 0 6px color-mix(in oklch, var(--primary), transparent 50%);
+      box-shadow: 0 0 6px color-mix(in srgb, var(--lime), transparent 50%);
     "></div>`,
     iconSize: [12, 12],
     iconAnchor: [6, 6],
@@ -68,7 +64,6 @@ interface ListingsMapProps {
 }
 
 export function ListingsMap({ listings = [], resultsGeneration }: ListingsMapProps) {
-  const { resolvedTheme } = useTheme();
   const locale = useLocale();
   const t = useTranslations();
   const mounted = useMounted();
@@ -78,9 +73,7 @@ export function ListingsMap({ listings = [], resultsGeneration }: ListingsMapPro
     return createCarIcon();
   }, [mounted]);
 
-  const tileUrl = withCartoKey(
-    mounted && resolvedTheme === "light" ? TILE_URLS.light : TILE_URLS.dark,
-  );
+  const tileUrl = withCartoKey(TILE_URL);
 
   return (
     <div className="h-full w-full">
@@ -91,7 +84,6 @@ export function ListingsMap({ listings = [], resultsGeneration }: ListingsMapPro
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          key={tileUrl}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url={tileUrl}
         />

@@ -1,0 +1,399 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-12T00:00:00.000Z",
+  "title": "Design System: BuyCarMap",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Night",
+        "canonical": "#0F0F10"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#18181B"
+      },
+      "surface-strong": {
+        "role": "neutral",
+        "displayName": "Surface Strong",
+        "canonical": "#1E1E22"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#2A2A2E"
+      },
+      "line-soft": {
+        "role": "neutral",
+        "displayName": "Soft Line",
+        "canonical": "#232326"
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Text",
+        "canonical": "#F4F2F0"
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Muted Text",
+        "canonical": "#A3A0A6"
+      },
+      "text-legal": {
+        "role": "neutral",
+        "displayName": "Legal Text",
+        "canonical": "#D6D3D8"
+      },
+      "lime": {
+        "role": "primary",
+        "displayName": "Lime",
+        "canonical": "#C6FF3D"
+      },
+      "on-lime": {
+        "role": "primary",
+        "displayName": "On Lime",
+        "canonical": "#0F0F10"
+      },
+      "violet": {
+        "role": "secondary",
+        "displayName": "Violet",
+        "canonical": "#7C4DFF"
+      },
+      "on-violet": {
+        "role": "secondary",
+        "displayName": "On Violet",
+        "canonical": "#FAF9F8"
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger",
+        "canonical": "#FF5C5C"
+      },
+      "lime-glow": {
+        "role": "primary",
+        "displayName": "Lime Glow",
+        "canonical": "rgba(198, 255, 61, 0.2)"
+      },
+      "map-ground": {
+        "role": "neutral",
+        "displayName": "Map Ground",
+        "canonical": "#141416"
+      },
+      "map-road": {
+        "role": "neutral",
+        "displayName": "Map Road",
+        "canonical": "#232327"
+      },
+      "map-road-major": {
+        "role": "neutral",
+        "displayName": "Map Major Road",
+        "canonical": "#2B2B30"
+      },
+      "map-road-minor": {
+        "role": "neutral",
+        "displayName": "Map Minor Road",
+        "canonical": "#1C1C20"
+      },
+      "map-water": {
+        "role": "neutral",
+        "displayName": "Map Water",
+        "canonical": "#111A22"
+      },
+      "photo-placeholder": {
+        "role": "neutral",
+        "displayName": "Photo Placeholder",
+        "canonical": "#2A2B30"
+      },
+      "photo-tint-1": {
+        "role": "neutral",
+        "displayName": "Photo Tint 1",
+        "canonical": "#2A2D33"
+      },
+      "photo-tint-2": {
+        "role": "neutral",
+        "displayName": "Photo Tint 2",
+        "canonical": "#302C2A"
+      },
+      "photo-tint-3": {
+        "role": "neutral",
+        "displayName": "Photo Tint 3",
+        "canonical": "#29302C"
+      },
+      "photo-tint-4": {
+        "role": "neutral",
+        "displayName": "Photo Tint 4",
+        "canonical": "#2D2A33"
+      },
+      "photo-tint-5": {
+        "role": "neutral",
+        "displayName": "Photo Tint 5",
+        "canonical": "#2A2F33"
+      },
+      "photo-tint-6": {
+        "role": "neutral",
+        "displayName": "Photo Tint 6",
+        "canonical": "#322E2A"
+      },
+      "photo-tint-7": {
+        "role": "neutral",
+        "displayName": "Photo Tint 7",
+        "canonical": "#2B2E34"
+      },
+      "photo-tint-8": {
+        "role": "neutral",
+        "displayName": "Photo Tint 8",
+        "canonical": "#2E2B30"
+      },
+      "photo-icon": {
+        "role": "neutral",
+        "displayName": "Photo Icon",
+        "canonical": "rgba(244, 242, 240, 0.2)"
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Scrim",
+        "canonical": "rgba(15, 15, 16, 0.85)"
+      },
+      "handle": {
+        "role": "neutral",
+        "displayName": "Sheet Handle",
+        "canonical": "#3A3A40"
+      },
+      "google-bg": {
+        "role": "neutral",
+        "displayName": "Google Background",
+        "canonical": "#131314"
+      },
+      "google-line": {
+        "role": "neutral",
+        "displayName": "Google Border",
+        "canonical": "#8E918F"
+      },
+      "google-text": {
+        "role": "neutral",
+        "displayName": "Google Text",
+        "canonical": "#E3E3E3"
+      },
+      "google-badge": {
+        "role": "neutral",
+        "displayName": "Google Badge",
+        "canonical": "#FFFFFF"
+      }
+    },
+    "typographyMeta": {
+      "fontFamilies": {
+        "display": "Unbounded, \"Arial Black\", system-ui, sans-serif",
+        "sans": "\"Rethink Sans\", system-ui, -apple-system, \"Segoe UI\", sans-serif"
+      },
+      "hero": {
+        "displayName": "Hero",
+        "purpose": "Headline punchline on the landing and sign in, uppercase, in lime."
+      },
+      "hero-mobile": {
+        "displayName": "Hero (phone)",
+        "purpose": "Headline punchline on a phone."
+      },
+      "page-title": {
+        "displayName": "Page Title",
+        "purpose": "One-line page titles (Guardados, Alertas, Cuenta), no counter."
+      },
+      "price": {
+        "displayName": "Price",
+        "purpose": "Every price, always lime, Spanish format."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "BUYCAR in text, MAP in lime."
+      },
+      "button-display": {
+        "displayName": "Button Display",
+        "purpose": "The 56px full-width primary button."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Subtitle under a headline, text-muted, 560px at most."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text and fields (16px, no iOS zoom)."
+      },
+      "card-title": {
+        "displayName": "Card Title",
+        "purpose": "A car's name on cards."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, chips and navigation links."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Car metadata separated by « · », text-muted."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Source badge and small badges."
+      },
+      "overline": {
+        "displayName": "Overline",
+        "purpose": "Search pill segment labels, uppercase, text-muted."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-float",
+        "value": "0 24px 50px rgba(0, 0, 0, 0.55)",
+        "purpose": "What floats over content: the map preview, the toast and an open select list."
+      },
+      {
+        "name": "shadow-pin-active",
+        "value": "0 0 0 7px rgba(198, 255, 61, 0.2)",
+        "purpose": "Halo of the active price pin; no other pin has a shadow."
+      },
+      {
+        "name": "shadow-current",
+        "value": "0 0 0 3px #0F0F10, 0 0 0 5px #F4F2F0",
+        "purpose": "Ring around the header avatar while on Cuenta (desktop)."
+      },
+      {
+        "name": "shadow-current-sm",
+        "value": "0 0 0 2px #0F0F10, 0 0 0 4px #F4F2F0",
+        "purpose": "Ring around the header avatar while on Cuenta (phone)."
+      }
+    ],
+    "focus": {
+      "value": "outline: 2px solid var(--lime); outline-offset: 3px;",
+      "purpose": "Visible keyboard focus on every primitive."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "What the screen is for: one per task, a lime pill with on-lime text.",
+      "html": "<button class=\"ds-btn-primary\">Buscar</button>",
+      "css": ".ds-btn-primary { height: 48px; padding: 0 22px; border: none; border-radius: var(--radius-pill); background: var(--lime); color: var(--on-lime); font-family: \"Rethink Sans\", system-ui, sans-serif; font-size: 15px; font-weight: 800; white-space: nowrap; cursor: pointer; } .ds-btn-primary:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A quieter action: 1px line border, text colour.",
+      "html": "<button class=\"ds-btn-secondary\">Volver al mapa</button>",
+      "css": ".ds-btn-secondary { height: 44px; padding: 0 18px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: transparent; color: var(--text); font-family: \"Rethink Sans\", system-ui, sans-serif; font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; } .ds-btn-secondary:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }"
+    },
+    {
+      "name": "Undo Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Undo without drama: text only, turns danger on hover and focus.",
+      "html": "<button class=\"ds-btn-ghost\">Quitar filtros</button>",
+      "css": ".ds-btn-ghost { height: 48px; padding: 0 14px; border: none; border-radius: var(--radius-pill); background: transparent; color: var(--text); font-family: \"Rethink Sans\", system-ui, sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: color 0.15s; } .ds-btn-ghost:hover, .ds-btn-ghost:focus-visible { color: var(--danger); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }"
+    },
+    {
+      "name": "Toggle Chip",
+      "kind": "chip",
+      "refersTo": "chip-pressed",
+      "description": "Quick filter: pressed is a violet fill at weight 800, unpressed a line border at 600.",
+      "html": "<button class=\"ds-chip\" aria-pressed=\"true\">Todos</button><button class=\"ds-chip\" aria-pressed=\"false\">Diésel</button>",
+      "css": ".ds-chip { padding: 9px 16px; margin-right: 8px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: transparent; color: var(--text); font-family: \"Rethink Sans\", system-ui, sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; } .ds-chip[aria-pressed=\"true\"] { border-color: var(--violet); background: var(--violet); color: var(--on-violet); font-weight: 800; } .ds-chip:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A 52px field on bg with a line border that turns lime on focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"Ciudad o código postal…\" />",
+      "css": ".ds-input { height: 52px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--radius-field); background: var(--bg); color: var(--text); font-family: \"Rethink Sans\", system-ui, sans-serif; font-size: 16px; } .ds-input::placeholder { color: var(--text-muted); } .ds-input:focus-visible { border-color: var(--lime); outline: 2px solid var(--lime); outline-offset: 3px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Account blocks and sign-in forms: surface, line border, radius-card.",
+      "html": "<div class=\"ds-card\"><strong class=\"ds-card-title\">Seguridad</strong><p class=\"ds-card-body\">Verificación en dos pasos desactivada.</p></div>",
+      "css": ".ds-card { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface); color: var(--text); font-family: \"Rethink Sans\", system-ui, sans-serif; } .ds-card-title { font-family: Unbounded, \"Arial Black\", system-ui, sans-serif; font-size: 16px; text-transform: uppercase; } .ds-card-body { margin: 8px 0 0; color: var(--text-muted); font-size: 14px; line-height: 1.5; }"
+    },
+    {
+      "name": "Source Badge",
+      "kind": "custom",
+      "refersTo": "source-badge",
+      "description": "The listing's source over its photo, identical for every marketplace.",
+      "html": "<span class=\"ds-source-badge\">Wallapop</span>",
+      "css": ".ds-source-badge { display: inline-block; padding: 4px 8px; border-radius: var(--radius-pill); background: var(--scrim); color: var(--text); font-family: \"Rethink Sans\", system-ui, sans-serif; font-size: 12px; font-weight: 700; line-height: 1.3; }"
+    },
+    {
+      "name": "Price Pin",
+      "kind": "custom",
+      "description": "Each car on the map; the active one turns lime with its halo.",
+      "html": "<button class=\"ds-pin\">14.500 €</button><button class=\"ds-pin ds-pin-active\">9.500 €</button>",
+      "css": ".ds-pin { padding: 7px 13px; margin-right: 16px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface); color: var(--text); font-family: \"Rethink Sans\", system-ui, sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; } .ds-pin-active { border-color: var(--lime); background: var(--lime); color: var(--on-lime); font-weight: 800; box-shadow: var(--shadow-pin-active); } .ds-pin:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "One light in the night",
+    "overview": "BuyCarMap 2.0 is black, cheeky and clean: almost everything on screen is near-black `bg` and `surface`, two complementary inks carry every meaning (lime for what you are doing or looking at now, violet for what is yours), and the headlines shout in uppercase like a mate who knows cars. The visual source of truth is [`docs/design/`](docs/design/README.md) — the screens and the UI Kit in `docs/design/canvas/`, the brand book and tokens in [`docs/design/system/`](docs/design/system/README.md) — viewed in the Claude Design project [BuyCarMap 2.0](https://claude.ai/design/p/838f9ee3-0bcc-4990-8c5a-5a685806db48). This file summarises that system for whoever builds a screen; where the two disagree, the design wins and this file is corrected.\n\nThere is one theme, dark, and no theme choice anywhere. The tokens in the frontmatter are exactly `docs/design/system/tokens.json`, and `app/globals.css` defines them under the same names (`--bg`, `--surface`, `--lime`, `--radius-pill`, `--shadow-float`…). The map is dark and minimal, controls are pills, and depth comes from tone and 1px lines rather than shadows.",
+    "keyCharacteristics": [
+      "Dark only: `bg` and `surface` make up about 95 % of any screen.",
+      "Two accents with fixed jobs — lime is \"now\", violet is \"yours\" — plus `danger` for the irreversible.",
+      "Unbounded in uppercase for display, Rethink Sans for everything else.",
+      "Everything you press is a pill (`radius-pill`).",
+      "Flat by default: three shadow roles, each for one job."
+    ],
+    "rules": [
+      {
+        "name": "The Lime-Is-Now Rule",
+        "body": "Lime marks only what you are doing or looking at now. Never running text, never decorative borders, never large backgrounds.",
+        "section": "colors"
+      },
+      {
+        "name": "The Violet-Is-Yours Rule",
+        "body": "Violet marks what belongs to the user and selected states. Quick test: lime = what you do or see now; violet = yours.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Brand-Colours Rule",
+        "body": "Wallapop, coches.net and Milanuncios get no colour of their own: the source is a dark badge with its name as text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tall-Caps Rule",
+        "body": "Multi-line Unbounded headlines never go below line-height 1.04 (1.06 on a phone) and never below -0.01em: the accents of Á, Í, Ó collide otherwise. A single line may use 0.9. Break lines with sense — never one word alone on a line (`text-wrap: balance`).",
+        "section": "typography"
+      },
+      {
+        "name": "The Figures-Line-Up Rule",
+        "body": "Prices are Unbounded; figures compared down a column use `font-variant-numeric: tabular-nums` in Rethink Sans. Any leftover `font-mono` class resolves to the sans family.",
+        "section": "typography"
+      },
+      {
+        "name": "The Only-What-Floats Rule",
+        "body": "A shadow means the piece floats above the page or is the active pin. Nothing at rest carries one.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Email-Is-Its-Own-World Rule",
+        "body": "Nothing under `emails/` references an app token or Tailwind class. Every value there is a literal, chosen to read correctly in a mail client that has none of the app's CSS.",
+        "section": "email"
+      }
+    ],
+    "dos": [
+      "**Do** keep `bg` and `surface` as the bulk of every screen, and use `text` and `text-muted` for text.",
+      "**Do** use lime only for what is happening now, with `on-lime` on top, and violet only for what is yours, with `on-violet` on top.",
+      "**Do** mark state with more than colour: a pressed chip changes fill and weight; the active pin changes fill, size and halo.",
+      "**Do** set display type in Unbounded uppercase and everything else in Rethink Sans.",
+      "**Do** make every pressable thing a pill and keep a 44px minimum target on a phone.",
+      "**Do** use Lucide icons at 2px stroke in the colour of the surrounding text.",
+      "**Do** format prices, mileage and dates through `lib/format.ts` (FRONT-11): `14.500 €`, `95.000 km`."
+    ],
+    "donts": [
+      "**Don't** put lime on running text, decorative borders or large backgrounds.",
+      "**Don't** use pure white or pure black inside the app.",
+      "**Don't** colour a source by its marketplace brand.",
+      "**Don't** add a shadow outside the three roles in Elevation & Depth.",
+      "**Don't** add a theme switch: the product has one dark theme.",
+      "**Don't** put an icon above an empty-state headline, or use emoji.",
+      "**Don't** write «Bienvenido a…», «Descubre…» or invented figures; the voice rules are in `docs/design/system/README.md`."
+    ]
+  }
+}

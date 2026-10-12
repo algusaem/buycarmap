@@ -44,8 +44,7 @@ function skipWithoutBaseline(name: string) {
  * guessing:
  *
  * 1. The navbar renders an animated placeholder while `useSession()` loads and
- *    only then swaps in the real links (the theme and language switchers
- *    likewise wait on `useMounted`). Screenshots caught whichever half had
+ *    only then swaps in the real links. Screenshots caught whichever half had
  *    landed — the map diff was confined to the top-right corner.
  * 2. `next/font` loads Plus Jakarta Sans asynchronously. Until it arrives, text
  *    renders in the fallback face, and the glyph shapes differ. This only

@@ -1,17 +1,11 @@
 import { cn } from "@/lib/utils";
 
-interface SourceStyle {
-  label: string;
-  className: string;
-}
-
-// Each source gets its brand colour so the origin is recognisable at a glance.
-// Wallapop = turquoise, coches.net = orange-red, Milanuncios = green. Falls
-// back to a neutral chip.
-const SOURCE_STYLES: Record<string, SourceStyle> = {
-  Wallapop: { label: "Wallapop", className: "bg-source-wallapop text-white" },
-  "Coches.net": { label: "coches.net", className: "bg-source-cochesnet text-white" },
-  Milanuncios: { label: "Milanuncios", className: "bg-source-milanuncios text-white" },
+// Each source's display name, as the design writes it. An unknown source
+// falls back to its raw name.
+const SOURCE_LABELS: Record<string, string> = {
+  Wallapop: "Wallapop",
+  "Coches.net": "coches.net",
+  Milanuncios: "Milanuncios",
 };
 
 interface SourceBadgeProps {
@@ -19,22 +13,19 @@ interface SourceBadgeProps {
   className?: string;
 }
 
+// One neutral badge for every source (LOOK-15): a dark scrim chip with the
+// source's name in `text`, never a brand colour
+// (docs/design/system/README.md › Color; ListingCard/README.md; `caption`
+// type style, 12px weight 700).
 export function SourceBadge({ source, className }: SourceBadgeProps) {
-  const style = SOURCE_STYLES[source] ?? {
-    label: source,
-    className: "bg-background/80 text-foreground",
-  };
-
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold leading-none shadow-sm backdrop-blur-sm",
-        style.className,
+        "inline-flex items-center rounded-pill bg-scrim px-2.5 py-1.25 font-sans text-xs font-bold leading-tight text-text",
         className,
       )}
     >
-      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-white/90" />
-      {style.label}
+      {SOURCE_LABELS[source] ?? source}
     </span>
   );
 }

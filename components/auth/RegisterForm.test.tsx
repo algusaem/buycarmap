@@ -20,8 +20,6 @@ const signInEmail = vi.fn().mockResolvedValue({ data: { user: {} }, error: null 
 vi.mock("@/lib/auth/auth-client", () => ({
   authClient: { signIn: { email: (...args: unknown[]) => signInEmail(...args) } },
 }));
-// GoogleSignInButton resolves Google's palette from the theme.
-vi.mock("next-themes", () => ({ useTheme: () => ({ resolvedTheme: "dark" }) }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const registerUser = vi.fn();
 vi.mock("@/server/registration/actions", () => ({

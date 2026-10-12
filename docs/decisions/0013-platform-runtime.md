@@ -2,6 +2,10 @@
 
 Status: Accepted · Date: 2026-09-30 · Resolves ADR 0007 rows 11–15
 
+Superseded in part by [docs/specs/redesign-foundation.md](../specs/redesign-foundation.md),
+2026-10-12: with next-themes removed, the nonce no longer reaches a `<ThemeProvider>` or feeds a
+theme script (PLAT-23 amended). The per-request CSP nonce itself stands.
+
 ## Context
 
 [ADR 0007](0007-adopt-core-rules.md) rows 11–15 list five phase-6 deviations from `RULES.md` and

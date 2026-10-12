@@ -38,7 +38,7 @@ class MockResizeObserver {
 }
 vi.stubGlobal("ResizeObserver", MockResizeObserver);
 
-// matchMedia — next-themes and motion's prefers-reduced-motion checks.
+// matchMedia — motion's prefers-reduced-motion checks.
 vi.stubGlobal(
   "matchMedia",
   vi.fn((query: string) => ({

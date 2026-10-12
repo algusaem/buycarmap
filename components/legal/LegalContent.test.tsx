@@ -36,10 +36,18 @@ describe("LegalContent", () => {
     expect(screen.queryByRole("heading", { name: "Terms of Service" })).not.toBeInTheDocument();
   });
 
-  it("FRONT-27: renders the English privacy copy from the spec's worked example word for word", () => {
+  it("FRONT-27: renders the English privacy copy from the spec's worked example word for word (amended 2026-10-12, LOOK — redesign-foundation.md)", () => {
     renderWithI18n(<LegalContent doc="privacy" />);
 
     expect(screen.getByText("Last updated: 11 October 2026")).toBeInTheDocument();
+
+    // FRONT-27 amendment: the Cookies section no longer names the theme —
+    // there is nothing left to keep in local storage.
+    expect(
+      screen.queryByText(
+        /Your theme choice is kept in your browser's local storage, not in a cookie\.?/,
+      ),
+    ).not.toBeInTheDocument();
 
     expect(
       screen.getByText(
@@ -55,7 +63,7 @@ describe("LegalContent", () => {
 
     expect(
       screen.getByText(
-        "We use only the cookies the app needs to work: one that keeps you signed in; while you sign in, a short-lived one for the two-factor step (10 minutes) or for signing in with Google or GitHub (5 minutes); and two that remember your language and your time zone for one year. Your theme choice is kept in your browser's local storage, not in a cookie. We do not use advertising or analytics cookies.",
+        /We use only the cookies the app needs to work:.*We do not use advertising or analytics cookies\./,
       ),
     ).toBeInTheDocument();
 
@@ -78,7 +86,7 @@ describe("LegalContent", () => {
     ).toBeInTheDocument();
   });
 
-  it("FRONT-27: the Spanish messages carry the spec's worked example word for word", () => {
+  it("FRONT-27: the Spanish messages carry the spec's worked example word for word (amended 2026-10-12, LOOK — redesign-foundation.md)", () => {
     // renderWithI18n always wraps with the English messages (test/utils/render.tsx),
     // so the Spanish copy is asserted directly against messages/es.json.
     const privacy = (
@@ -98,8 +106,12 @@ describe("LegalContent", () => {
       "Usamos tus datos para prestar el servicio: autenticarte, mantener tu sesión, conservar tus favoritos y alertas, enviarte los correos de la cuenta y de las alertas, proteger el servicio frente a abusos y mejorar el funcionamiento de BuyCarMap. No vendemos tus datos personales.",
     );
 
-    expect(bodyByHeading.Cookies).toBe(
-      "Usamos solo las cookies que la aplicación necesita para funcionar: una que mantiene tu sesión; mientras inicias sesión, otra de corta duración para el paso de verificación en dos pasos (10 minutos) o para entrar con Google o GitHub (5 minutos); y dos que recuerdan tu idioma y tu zona horaria durante un año. El tema que eliges se guarda en el almacenamiento local de tu navegador, no en una cookie. No usamos cookies publicitarias ni de analítica.",
+    // FRONT-27 amendment: the Cookies section no longer names the theme.
+    expect(bodyByHeading.Cookies).not.toContain(
+      "El tema que eliges se guarda en el almacenamiento local de tu navegador, no en una cookie.",
+    );
+    expect(bodyByHeading.Cookies).toMatch(
+      /^Usamos solo las cookies que la aplicación necesita para funcionar:.*No usamos cookies publicitarias ni de analítica\.$/,
     );
 
     expect(bodyByHeading["Servicios de terceros"]).toBe(

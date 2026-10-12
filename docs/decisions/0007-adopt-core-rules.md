@@ -2,6 +2,10 @@
 
 Status: Accepted · Date: 2026-09-27
 
+Superseded in part by [docs/specs/redesign-foundation.md](../specs/redesign-foundation.md),
+2026-10-12: the app has one dark theme, so `next-themes` (approved below for theme switching)
+leaves the dependencies. Everything else here stands.
+
 ## Context
 
 BuyCarMap was built before the shared core (`algusaem-claude`: `RULES.md`, `STACK.md`, the

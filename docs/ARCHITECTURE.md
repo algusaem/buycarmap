@@ -644,8 +644,9 @@ depend on.
 The map feature's structure, the design system, internationalisation and
 theming. Search *behaviour* — the fan-out, debounce and pagination — is
 [Path 1](#path-1--a-search) above and specified in
-[`specs/map-and-search.md`](specs/map-and-search.md); locale, geography and theme
-behaviour in [`specs/cross-cutting.md`](specs/cross-cutting.md).
+[`specs/map-and-search.md`](specs/map-and-search.md); locale and geography
+behaviour in [`specs/cross-cutting.md`](specs/cross-cutting.md); the look in
+[`specs/redesign-foundation.md`](specs/redesign-foundation.md).
 
 ### The map feature
 
@@ -668,8 +669,8 @@ MapView
 ```
 
 **`ListingsMap` is loaded via `next/dynamic` with `ssr: false`.** Leaflet needs
-the DOM and will not survive server rendering. It switches CARTO tiles by theme,
-drops amber `divIcon` markers, and fits bounds via a `FitBounds` child using
+the DOM and will not survive server rendering. It loads the dark CARTO tiles,
+drops `divIcon` markers, and fits bounds via a `FitBounds` child using
 `useMap()` — on a new search's first results only, not on every listings change
 (see `docs/specs/map-and-search.md` › Decisions › The map fits on a new search,
 not on a new page (MAP-25)).
@@ -687,8 +688,14 @@ sync.
 ### UI primitives
 
 `components/ui/` wraps Radix primitives: `button`, `card`, `input`, `label`,
-`select`, `separator`, plus two with real behaviour of their own —
-`range-input` and `toggle-chip`.
+`select`, `separator`, plus three with real behaviour of their own —
+`range-input`, `toggle-chip` and `checkbox-select`.
+
+**`checkbox-select` is the design's select** (LOOK-21): one style, every option
+with a checkbox, several values at once, the trigger listing the chosen values
+separated by commas. The Radix `select` only takes the new trigger look
+(LOOK-13) and lives until F3 replaces its uses (the radius picker and the
+search filters) and deletes it (`docs/design/roadmap.md`).
 
 Composition uses `class-variance-authority` with `clsx` and `tailwind-merge`; the
 `cn` helper is in `lib/utils.ts`.
@@ -699,73 +706,71 @@ Composition uses `class-variance-authority` with `clsx` and `tailwind-merge`; th
 icons. Size with Tailwind (`h-4 w-4`). Icon-only buttons need a descriptive
 `aria-label`.
 
-### Design system — Cartographic Modern
+### Design system — BuyCarMap 2.0
 
-Dark-first, inspired by night maps: warm amber on deep ink. Defined in
-[`app/globals.css`](../app/globals.css), where `:root` is the **dark** theme and
-`.light` is warm paper. Live references at `/palette` and `/typography`.
+The visual source of truth is [`docs/design/`](design/README.md); [`DESIGN.md`](../DESIGN.md)
+summarises it for whoever builds a screen, and
+[`specs/redesign-foundation.md`](specs/redesign-foundation.md) (LOOK) specifies how the app takes
+it. Live references at `/palette` and `/typography`; `/palette` also renders every primitive and is
+the e2e harness for their looks (LOOK-9 to LOOK-14), because jsdom does not compute styles from
+`globals.css`.
 
-| Token | OKLCH (dark) | Hex | Used for |
-| --- | --- | --- | --- |
-| `--background` | `oklch(0.16 0.015 250)` | #0F1419 | Deep ink — app background |
-| `--card` | `oklch(0.20 0.015 250)` | #1C2128 | Elevated surfaces |
-| `--popover` | `oklch(0.22 0.015 250)` | #262D36 | Panels, dropdowns |
-| `--primary` | `oklch(0.75 0.14 75)` | #E8A849 | Amber — CTAs, highlights, markers |
-| `--accent` | `oklch(0.62 0.12 160)` | #3B9B6D | Eucalyptus — success, available |
-| `--destructive` | `oklch(0.58 0.18 25)` | #D94F4F | Muted red — alerts, price drops |
-| `--border` | `oklch(0.28 0.01 250)` | #30363D | Structure, dividers |
-| `--foreground` | `oklch(0.92 0.01 250)` | #E6EDF3 | Primary text (cream) |
-| `--muted-foreground` | `oklch(0.62 0.01 250)` | #8B949E | Secondary text, metadata |
+**The tokens in [`app/globals.css`](../app/globals.css) mirror
+[`docs/design/system/tokens.json`](design/system/tokens.json)** — every colour, radius and shadow,
+with the same name and value, as CSS variables on `:root` (`--bg`, `--surface`, `--lime`,
+`--radius-pill`, `--shadow-float`…; LOOK-1). There is no OKLCH value and no second theme block. A
+token changes in the design first (`CLAUDE.md` › Design first), then in both files.
 
-Semantic aliases also exist: `--success`, `--warning`, `--info`, and
-`--chart-1..5`.
+**The shadcn utility names are aliases** (LOOK-2), so the classes existing components use
+(`bg-card`, `text-muted-foreground`, `border-border`…) take the new palette without an edit; the
+design tokens are also exposed under their own names for new code.
 
-The light theme is **not** a mechanical inversion — `--primary` darkens to
-`oklch(0.65 0.16 75)` for contrast on paper. Adding a token means adding both.
+| Utility token | Resolves to |
+| --- | --- |
+| `background` | `bg` |
+| `foreground` | `text` |
+| `card`, `popover`, `muted`, `secondary`, `accent` | `surface` |
+| `border`, `input` | `line` |
+| `muted-foreground` | `text-muted` |
+| `primary` / `primary-foreground` | `lime` / `on-lime` |
+| `destructive` | `danger` |
+| `ring` | `lime` |
 
-**Semantic usage.** Primary (amber) for CTAs, selected states, active markers and
-favorited highlights. Accent (eucalyptus) for available badges, price decreases
-and success. Destructive for errors, sparingly.
+`accent` maps to `surface`, not `violet`, because it paints hover backgrounds today. The jobs of the
+two accents — lime for what you are doing now, violet for what is yours — are in `DESIGN.md` ›
+Colors.
 
 #### Typography
 
-Two fonts, self-hosted as files committed under `app/fonts/` and loaded with
-`next/font/local` in `app/layout.tsx` (FRONT-26, `docs/specs/core-frontend.md`) —
-not `next/font/google`, so no build step downloads a font — exposed as CSS
-variables:
+Two families, self-hosted as variable `woff2` files committed with their `OFL.txt` licences and
+loaded with `next/font/local` in `app/layout.tsx` (FRONT-26, LOOK-6) — not `next/font/google`, so no
+build step downloads a font — exposed as CSS variables:
 
-- **Plus Jakarta Sans** (`--font-sans`) — all UI text
-- **JetBrains Mono** (`--font-mono`) — prices, mileage, ids, any compared number
+- **Rethink Sans** (`--font-sans`, `app/fonts/rethink-sans/`) — all text
+- **Unbounded** (`--font-display`, `app/fonts/unbounded/`) — display type, always uppercase:
+  wordmark, headlines, counts and prices
 
-```jsx
-<h1 className="text-5xl font-extrabold tracking-tight">BuyCarMap</h1>
-<span className="font-mono text-xl text-primary">€14,500</span>
-<span className="text-sm text-muted-foreground">45,230 km</span>
-```
-
-Use `font-variant-numeric: tabular-nums` for numbers that are compared down a
-column.
+Each declaration carries a fallback stack (`system-ui, -apple-system, "Segoe UI", sans-serif` for
+sans; `"Arial Black", system-ui, sans-serif` for display, as in `tokens.json`), so text stays
+readable if a file fails to load. There is no monospace face: `font-mono` is aliased to the sans
+family (LOOK-8), so the classes still using it render in Rethink Sans until their phase rewrites
+them. Use `font-variant-numeric: tabular-nums` for numbers that are compared down a column.
 
 ### Theming
 
-`next-themes` with `attribute="class"`, dark by default, `.light` for light.
+**One dark theme, no toggle.** `<html>` carries a static `class="dark"` with
+`color-scheme: dark`, and `<meta name="theme-color">` is `#0F0F10` (LOOK-3). next-themes is removed,
+and with it the stored preference: nothing reads or writes a theme in `localStorage`, so a
+`theme=light` left by an earlier version is ignored (LOOK-4). The `dark` class stays because the
+`dark:` variants in `button.tsx` and `input.tsx` key off it until those primitives are rewritten.
 
-**Any component calling `useTheme` must wait for `mounted`**
-(`lib/hooks/useMounted.ts`) or it will hydrate mismatched. Use CSS variables
-(`var(--…)`) for theme-aware styles rather than branching in JS.
+Use the CSS variables (`var(--…)`) for colour rather than branching in JS. The Toaster, the map
+tiles and the Google button read the theme as a constant.
 
-**The theme toggle goes through `lib/hooks/useThemeTransition.ts`**, not
-`setTheme` directly. It drives the View Transitions API — an expanding-circle
-`clip-path` from the click point. jsdom does not implement View Transitions, so
-this is Playwright territory if anywhere.
-
-Map tiles switch with `useTheme().resolvedTheme`:
-
-- Dark — `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`
-- Light — `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png`
-
-Both carry `?key=` with `NEXT_PUBLIC_CARTO_API_KEY` when it is set; without it CARTO serves an
-"API KEY REQUIRED" watermark tile instead of the map (MAP-23, [`docs/specs/map-and-search.md`](specs/map-and-search.md)).
+Map tiles are the dark CARTO style only,
+`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`. It carries `?key=` with
+`NEXT_PUBLIC_CARTO_API_KEY` when it is set; without it CARTO serves an "API KEY REQUIRED" watermark
+tile instead of the map (MAP-23, [`docs/specs/map-and-search.md`](specs/map-and-search.md)).
 
 ### Animation
 
@@ -780,8 +785,8 @@ than CSS animations for React components.
 Animate only `transform` and `opacity`. Never animate layout properties, and
 never `transition: all`. Honour `prefers-reduced-motion`.
 
-The app root sets `MotionConfig reducedMotion="user"` in `components/ThemeProvider.tsx`,
-the client boundary that already wraps every page, so this applies everywhere
+The app root sets `MotionConfig reducedMotion="user"` in `components/MotionProvider.tsx`,
+the client boundary that wraps every page, so this applies everywhere
 (FRONT-29, [`docs/specs/core-frontend.md`](specs/core-frontend.md)).
 
 `dropdownReveal` (fade with a 4 px vertical offset in and out, `duration.fast`)
@@ -1021,6 +1026,12 @@ it for real only in Playwright.
 `webServer` entry reuses an existing server (FRONT-25), so set it when another
 app already listens on 3000.
 
+**Primitive looks are measured on `/palette`** (`e2e/foundation.spec.ts`, LOOK-9 to
+LOOK-14). jsdom does not compute styles from `app/globals.css`, so a button's height,
+a chip's pressed fill or a focus outline can only be proven in a browser; the style
+guide renders every primitive and token in one stable page instead of hunting for each
+variant across screens that later phases rebuild.
+
 **Search is mocked by a local upstream server, not `page.route()`**
 (FRONT-22, `docs/specs/core-frontend.md`). Search runs through a Server
 Action (`server/search/service.ts`), so the request that used to be stubbed
@@ -1130,6 +1141,11 @@ has reviewed the image. The skip rule is a pure function tested without a
 browser in `e2e/visual-baseline.spec.ts`, which runs in the `chromium` project
 and so in CI, where the visual tests themselves skip until Linux baselines are
 committed.
+
+**The login and map baselines were regenerated for BuyCarMap 2.0** (owner-approved,
+`docs/specs/redesign-foundation.md` › Decisions › Visual baselines and docs move with the
+look): a baseline of the old look would only prove the old look. A later phase that
+changes a screen regenerates its baseline the same way, after the owner reviews it.
 
 **Screenshots must wait for the page to settle** (`waitForPageToSettle` in
 `e2e/visual.spec.ts`). The navbar swaps a placeholder for real links when
@@ -1289,10 +1305,10 @@ for every route.
 **`Content-Security-Policy` is built per request in [`proxy.ts`](../proxy.ts)**,
 not `next.config.ts`. `script-src` carries a fresh base64 **nonce** of at
 least 128 bits on every response — `'self' 'nonce-<n>' 'strict-dynamic'`, plus
-`'unsafe-eval'` in development — with no `'unsafe-inline'`. The nonce also
-reaches `app/layout.tsx`'s `<ThemeProvider>` (via the `x-nonce` request
-header proxy.ts sets), so next-themes' inline bootstrap script still runs
-under it. The high-value directives are otherwise unchanged: `frame-ancestors`,
+`'unsafe-eval'` in development — with no `'unsafe-inline'`. The nonce no
+longer feeds a theme script: next-themes and its inline bootstrap script are
+gone with the single dark theme, and the CSP keeps working for the map, login
+and favorites (PLAT-23, amended by LOOK). The high-value directives are otherwise unchanged: `frame-ancestors`,
 `object-src`, `base-uri` and `form-action` are what block clickjacking, plugin
 injection and form exfiltration.
 

@@ -37,10 +37,10 @@ export function CardGridSkeleton({
       {label && <span className="sr-only">{label}</span>}
       {Array.from({ length: count }, (_, index) => `placeholder-${index}`).map((key) => (
         <div key={key} aria-hidden="true" className="flex flex-col gap-3">
-          <Skeleton className="aspect-video w-full" />
+          <Skeleton className="aspect-video w-full rounded-card" />
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-1/4 rounded-skeleton bg-surface-strong" />
         </div>
       ))}
     </div>

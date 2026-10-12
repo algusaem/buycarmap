@@ -22,7 +22,7 @@ the phase's spec.
 
 | Phase | Spec | State | What it builds |
 | --- | --- | --- | --- |
-| F1 Foundation | [redesign-foundation.md](../specs/redesign-foundation.md) (LOOK) | Spec approved 2026-10-12; failing tests written; implementation next | Tokens, dark only, fonts, shared primitives, source badge, footer, `DESIGN.md` |
+| F1 Foundation | [redesign-foundation.md](../specs/redesign-foundation.md) (LOOK) | Implemented 2026-10-12 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | Tokens, dark only, fonts, shared primitives, source badge, footer, `DESIGN.md` |
 | F2 Navigation | — | Not started | Desktop headers, phone headers, bottom nav |
 | F3 Map and search | — | Not started | The map screen and its states |
 | F4 Landing and sign in | — | Not started | `/` landing and `/login` |

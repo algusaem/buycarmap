@@ -1,27 +1,38 @@
-import type { Metadata } from "next";
-import { headers } from "next/headers";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { TimeZoneCookie } from "@/lib/geo/TimeZoneCookie";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { MotionProvider } from "@/components/MotionProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Navbar } from "@/components/Navbar";
 import { Toaster } from "@/components/Toaster";
 import "./globals.css";
 
-const plusJakarta = localFont({
-  src: "./fonts/plus-jakarta-sans/plus-jakarta-sans-latin-wght-normal.woff2",
+// Each family carries the fallback stack of docs/design/system/tokens.json in
+// case the file fails to load.
+const rethinkSans = localFont({
+  src: "./fonts/rethink-sans/rethink-sans-latin-wght-normal.woff2",
   variable: "--font-sans",
-  weight: "300 800",
+  weight: "400 800",
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
 });
 
-const jetbrainsMono = localFont({
-  src: "./fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2",
-  variable: "--font-mono",
-  weight: "400 500",
+const unbounded = localFont({
+  src: "./fonts/unbounded/unbounded-latin-wght-normal.woff2",
+  variable: "--font-display",
+  weight: "200 900",
+  display: "swap",
+  fallback: ["Arial Black", "system-ui", "sans-serif"],
 });
+
+// The app has a single dark theme (LOOK-3, docs/specs/redesign-foundation.md).
+export const viewport: Viewport = {
+  themeColor: "#0F0F10",
+  colorScheme: "dark",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
@@ -37,24 +48,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
-  // Passed to next-themes so its inline bootstrap script (which sets the
-  // theme class before paint) carries the per-request nonce the CSP in
-  // proxy.ts requires (PLAT-23, docs/specs/core-platform.md).
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body
-        className={`${plusJakarta.variable} ${jetbrainsMono.variable} flex h-screen flex-col overflow-hidden font-sans antialiased`}
-      >
+    <html lang={locale} className={`dark ${rethinkSans.variable} ${unbounded.variable}`}>
+      <body className="flex h-screen flex-col overflow-hidden font-sans antialiased">
         <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-            nonce={nonce}
-          >
+          <MotionProvider>
             <NextIntlClientProvider locale={locale} messages={messages}>
               <NuqsAdapter>
                 <TimeZoneCookie />
@@ -63,7 +62,7 @@ export default async function RootLayout({
                 <Toaster />
               </NuqsAdapter>
             </NextIntlClientProvider>
-          </ThemeProvider>
+          </MotionProvider>
         </AuthProvider>
       </body>
     </html>

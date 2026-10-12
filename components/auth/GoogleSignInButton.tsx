@@ -2,9 +2,7 @@
 
 import { FcGoogle } from "react-icons/fc";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
-import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
-import { useMounted } from "@/lib/hooks/useMounted";
 
 interface GoogleSignInButtonProps {
   isPending: boolean;
@@ -15,9 +13,9 @@ interface GoogleSignInButtonProps {
 // Google publishes mandatory branding rules for this button
 // (developers.google.com/identity/branding-guidelines), and they override the
 // app's own design tokens — this is the one place in the codebase where raw hex
-// values are correct rather than a smell:
+// values are correct rather than a smell. The app has one dark theme, so the
+// button always takes Google's dark variant:
 //
-//   light  fill #FFFFFF, 1px stroke #747775, text #1F1F1F
 //   dark   fill #131314, 1px stroke #8E918F, text #E3E3E3
 //   padding 12px before the logo, 10px after it, 12px after the text
 //
@@ -27,19 +25,10 @@ interface GoogleSignInButtonProps {
 // One deviation, stated plainly: the spec asks for Google Sans Medium. Pulling
 // in an entire extra font for a single button is not worth the payload, so this
 // inherits the app's font. Everything else follows the spec.
-const PALETTE = {
-  light: { fill: "#FFFFFF", stroke: "#747775", text: "#1F1F1F" },
-  dark: { fill: "#131314", stroke: "#8E918F", text: "#E3E3E3" },
-} as const;
+const GOOGLE_DARK = { fill: "#131314", stroke: "#8E918F", text: "#E3E3E3" } as const;
 
 export function GoogleSignInButton({ isPending, disabled, onClick }: GoogleSignInButtonProps) {
   const t = useTranslations();
-  const { resolvedTheme } = useTheme();
-  // Without this the server renders one palette and the client another,
-  // producing a hydration mismatch — same guard ListingsMap uses.
-  const mounted = useMounted();
-
-  const colors = mounted && resolvedTheme === "light" ? PALETTE.light : PALETTE.dark;
 
   return (
     <button
@@ -47,9 +36,9 @@ export function GoogleSignInButton({ isPending, disabled, onClick }: GoogleSignI
       disabled={disabled}
       onClick={onClick}
       style={{
-        backgroundColor: colors.fill,
-        border: `1px solid ${colors.stroke}`,
-        color: colors.text,
+        backgroundColor: GOOGLE_DARK.fill,
+        border: `1px solid ${GOOGLE_DARK.stroke}`,
+        color: GOOGLE_DARK.text,
       }}
       // Everything here that is not a colour is copied from `buttonVariants` so
       // this sits beside the GitHub button without looking foreign: same

@@ -9,8 +9,9 @@ const MOBILE = { width: 375, height: 812 };
 const DESKTOP = { width: 1280, height: 800 };
 
 const SIGN_UP = /sign up|registrarse/i;
+const SIGN_IN = /sign in|entrar/i;
 const MENU = /^(menu|menú)$/i;
-const THEME = /dark|light|oscuro|claro/i;
+const CLOSE_MENU = /^(close menu|cerrar menú)$/i;
 
 /** The navbar's control cluster, which carries `aria-hidden` until the session resolves. */
 function controlCluster(page: Page) {
@@ -61,7 +62,7 @@ test("NAV-2: every navbar control on a phone is at least 44 by 44 pixels", async
   // contents have to be there before it runs. Without this the suite failed
   // under parallel load — two workers contending for one dev server was enough
   // to measure an empty panel.
-  await expect(menu.getByRole("button", { name: THEME })).toBeVisible();
+  await expect(menu.getByRole("button", { name: CLOSE_MENU })).toBeVisible();
   // The Sheet slides in with a transform animation, and a bounding box read mid-
   // animation can come out a sub-pixel short (43.99998px measured), so wait for it to finish.
   await menu.evaluate((element) =>
@@ -171,21 +172,25 @@ test("NAV-9: the bar does not shift when the session resolves", async ({ page })
 test("NAV-13: the menu trigger and the full control row swap at the breakpoint", async ({
   page,
 }) => {
+  // Signed out, so the desktop row's sign-in link is the control that proves
+  // the swap — the theme toggle this test used to key on is gone (LOOK-5,
+  // docs/specs/redesign-foundation.md), but the breakpoint it exercises is
+  // unaffected by that change.
   await page.setViewportSize(MOBILE);
   await page.goto("/");
   await waitForSessionToResolve(page);
 
   const nav = page.getByRole("navigation");
 
-  // On a phone the row collapses: theme moves into the menu, so the only way
-  // to reach it is the trigger.
+  // On a phone the row collapses: sign in moves into the menu, so the only
+  // way to reach it is the trigger.
   await expect(nav.getByRole("button", { name: MENU })).toBeVisible();
-  await expect(nav.getByRole("button", { name: THEME })).toBeHidden();
+  await expect(nav.getByRole("link", { name: SIGN_IN })).toBeHidden();
 
   await page.setViewportSize(DESKTOP);
 
-  // On desktop the trigger has nothing to collapse and the theme toggle stays
-  // one click away, animation and all.
-  await expect(nav.getByRole("button", { name: THEME })).toBeVisible();
+  // On desktop the trigger has nothing to collapse and sign in stays a
+  // top-level link.
+  await expect(nav.getByRole("link", { name: SIGN_IN })).toBeVisible();
   await expect(nav.getByRole("button", { name: MENU })).toBeHidden();
 });

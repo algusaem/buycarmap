@@ -26,12 +26,9 @@ vi.mock("@/lib/auth/auth-client", () => ({
   },
 }));
 
-// Stubbed as findable controls rather than as null. These components own their
-// own state and are specified by cross-cutting.md (CORE-5, CORE-10); what NAV-14
-// asserts is *where the navbar puts them*, which needs them to be queryable.
-vi.mock("./ThemeSwitcher", () => ({
-  ThemeSwitcher: () => <button type="button">Dark</button>,
-}));
+// Stubbed as a findable control rather than as null. The switcher owns its own
+// state and is specified by cross-cutting.md (CORE-5, CORE-10); what NAV-14
+// asserts is *where the navbar puts it*, which needs it to be queryable.
 vi.mock("./LanguageSwitcher", () => ({
   LanguageSwitcher: () => <button type="button">EN</button>,
 }));
@@ -123,15 +120,34 @@ describe("Navbar destinations", () => {
     expect(menu.queryByRole("link", { name: /alerts/i })).not.toBeInTheDocument();
   });
 
-  it("NAV-14: puts the theme and language controls inside the menu", async () => {
+  it("NAV-14: puts the language control inside the menu, with no theme control (amended 2026-10-12, LOOK — redesign-foundation.md)", async () => {
     const user = userEvent.setup();
     useSession.mockReturnValue(SIGNED_OUT);
     renderWithI18n(<Navbar />);
 
     const menu = await openMenu(user);
 
-    expect(menu.getByRole("button", { name: "Dark" })).toBeInTheDocument();
     expect(menu.getByRole("button", { name: "EN" })).toBeInTheDocument();
+    expect(menu.queryByRole("button", { name: "Dark" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Navbar theme control", () => {
+  it("LOOK-5: renders no theme control, on desktop or in the phone menu", async () => {
+    const user = userEvent.setup();
+    useSession.mockReturnValue(SIGNED_OUT);
+    renderWithI18n(<Navbar />);
+
+    const THEME_LABEL = /^(dark|light|oscuro|claro)$/i;
+    expect(screen.queryByRole("button", { name: THEME_LABEL })).not.toBeInTheDocument();
+
+    const menu = await openMenu(user);
+    expect(menu.queryByRole("button", { name: THEME_LABEL })).not.toBeInTheDocument();
+
+    const themeAriaLabelled = Array.from(document.body.querySelectorAll("[aria-label]")).filter(
+      (element) => /tema|theme/i.test(element.getAttribute("aria-label") ?? ""),
+    );
+    expect(themeAriaLabelled).toEqual([]);
   });
 });
 

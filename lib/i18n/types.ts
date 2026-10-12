@@ -15,6 +15,7 @@ export interface Translations {
     search: string;
     popular: string;
     or: string;
+    close: string;
   };
   hero: {
     title: string;
@@ -346,9 +347,10 @@ export interface Translations {
   localeErrors: {
     invalidLocale: string;
   };
-  theme: {
-    dark: string;
-    light: string;
+  footer: {
+    privacy: string;
+    terms: string;
+    illustrations: string;
   };
   password: {
     show: string;

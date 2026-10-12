@@ -19,14 +19,8 @@ vi.mock("@/lib/auth/auth-client", () => ({
   authClient: { signIn: { social: (...args: unknown[]) => signInSocial(...args) } },
 }));
 
-// GoogleSignInButton reads the resolved theme to pick Google's palette; the
-// palette itself is covered in GoogleSignInButton.test.tsx.
-const useTheme = vi.fn();
-vi.mock("next-themes", () => ({ useTheme: () => useTheme() }));
-
 beforeEach(() => {
   signInSocial.mockReset();
-  useTheme.mockReturnValue({ resolvedTheme: "dark" });
 });
 
 describe("OAuthButtons visibility", () => {
