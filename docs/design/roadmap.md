@@ -15,6 +15,10 @@ Each phase:
   regenerated, its screenshots (mobile and desktop) are approved by the owner, the docs it touches are
   updated, and its row below says `Done` with the pull request.
 
+**Branch and merge (owner decision, 2026-10-12).** Every phase is built on the same branch,
+`claude/app-structural-redesign-c4a34d`, committed there as it goes. Nothing reaches `master` until the
+whole plan (F1–F7) is done and the screens match the design; the merge is one pull request at the end.
+
 A design change found during a phase goes to the design first (`CLAUDE.md` › Design first), then to
 the phase's spec.
 
