@@ -17,7 +17,6 @@ behind, is in [deletion.md](deletion.md). Who else receives personal data is in
 | `User` | `name` | Display name | Until the account is deleted |
 | `User` | `image` | Profile picture URL, written by the NextAuth adapter from the OAuth profile | Until the account is deleted |
 | `User` | `locale` | Language of the alert emails, which are sent with no request to resolve it from | Until the account is deleted |
-| `User` | `twoFactorEnabledAt` | Whether two-factor gates sign-in | Until the account is deleted |
 | `User` | `createdAt` | When the account was created | Until the account is deleted |
 | `TwoFactor` | `secret` | Better Auth's own TOTP secret for the `twoFactor` plugin (BAUTH-11), encrypted by the plugin — not readable from the database alone | Until two-factor is disabled, re-enrolled, or the account is deleted (cascade) |
 | `TwoFactor` | `backupCodes` | The plugin's own encrypted backup codes, for signing in without the authenticator | Until two-factor is disabled, re-enrolled, or the account is deleted (cascade) |

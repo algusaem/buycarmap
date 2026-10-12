@@ -56,7 +56,7 @@ As measured through the Neon API on 2026-09-28:
 7. **Revoke every session.** A restore rolls back the password on each
    user's `credential` `Account` row (the only place it is stored since
    BAUTH-19, [specs/core-better-auth.md](../specs/core-better-auth.md)), the
-   two-factor state (`User.twoFactorEnabled`, `User.twoFactorEnabledAt` and
+   two-factor state (`User.twoFactorEnabled` and
    the `TwoFactor` rows), completed email changes and unlinked OAuth
    `Account` rows. That makes sessions and credentials that were revoked after
    the timestamp valid again. For each user whose credential password,
