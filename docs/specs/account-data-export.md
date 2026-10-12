@@ -1,7 +1,7 @@
 # Account data export
 
 Key: EXPORT
-Status: Draft
+Status: Approved
 Last updated: 2026-10-12
 
 ---
