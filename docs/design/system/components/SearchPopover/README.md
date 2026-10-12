@@ -22,7 +22,8 @@ El selector de cada segmento del buscador (ver [SearchPill](../SearchPill/README
 
 Un solo campo que busca mientras escribes, «Marca o modelo…».
 
-- **Escribiendo** («Toy»): los resultados agrupados en «Marcas» («Toyota») y «Modelos» («Toyota Corolla», «Toyota Yaris», «Toyota C-HR»).- **Con una marca elegida**: arriba, la marca como chip `violet` de 36px que se quita con su `x` (botón de 44px, «Quitar Toyota»); debajo, el campo pasa a «Modelo de Toyota…» y lista solo sus modelos, sin repetir la marca («Corolla», «Yaris», «C-HR»).
+- **Escribiendo** («Toy»): los resultados agrupados en «Marcas» («Toyota») y «Modelos» («Toyota Corolla», «Toyota Yaris», «Toyota C-HR»).
+- **Con una marca elegida**: arriba, la marca como chip `violet` de 36px que se quita con su `x` (botón de 44px, «Quitar Toyota»); debajo, el campo pasa a «Modelo de Toyota…» y lista solo sus modelos, sin repetir la marca («Corolla», «Yaris», «C-HR»).
 - **Reabierto** con un modelo elegido: el modelo lleva el check `violet` a la derecha.
 - La píldora muestra lo elegido: «Cualquier marca», «Toyota», «Toyota Corolla».
 - Al pie, «Cualquier marca».
@@ -39,6 +40,7 @@ Un solo campo que busca mientras escribes, «Marca o modelo…».
 - **Cabecera** de 70px, padding lateral 20px y divisor `line-soft`: a la izquierda cerrar (botón de icono de 40px con borde `line` y la `x` de 14px), en medio «BUSCAR» en Unbounded 16 peso 800, a la derecha «Borrar» (botón de texto de 14px peso 700, subrayado).
 - **Cuerpo**: padding 22px 20px y 26px entre secciones, cada una con su `section-label`: «Dónde» (el campo y los chips de radio, de 44px de alto, que se reparten el ancho), «Coche» (el mismo campo que en escritorio, con el chip de la marca cuando la hay) y «Precio» (el rango y las cajas).
 - **Pie**: padding 14px 20px 28px con divisor `line-soft` arriba, y «VER COCHES»: principal de 56px a todo el ancho con `button-display`.
+- A diferencia del desplegable, lo elegido en la hoja no se aplica al momento: la búsqueda y el resumen de la fila cambian al pulsar «Ver coches». Cerrar la hoja descarta lo elegido y la deja como estaba; «Borrar» vacía los campos de la hoja, que tampoco se aplica hasta «Ver coches».
 - Se cierra con su botón de cerrar o con «Ver coches».
 
 ## Teclado y lectores de pantalla
