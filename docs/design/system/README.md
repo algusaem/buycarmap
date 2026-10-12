@@ -25,6 +25,7 @@ Una noche con una sola luz. `bg` y `surface` hacen el 95 % de la pantalla; `lime
 
 - **`lime` solo para**: precios, el «MAP» del logo, el remate del titular, el botón principal (uno por vista), el pin activo y su tarjeta. Encima, siempre `on-lime`.
 - **`violet`**, el complementario del lime, para lo que es tuyo y los estados: corazón guardado, chip activo, número de filtros, avatar de la cuenta y la sección actual de la barra inferior. Encima, siempre `on-violet`. Regla rápida: lime = lo que haces o miras ahora; violeta = lo tuyo.
+- **`surface-strong`** (`#1E1E22`), un escalón sobre `surface`: la opción bajo el ratón en un selector y la barra del precio en el esqueleto de carga.
 - **`danger`** (`#FF5C5C`) solo para lo que no tiene vuelta atrás (Eliminar cuenta) y para el hover de deshacer («Quitar filtros»).
 - **Nunca** lime en texto corrido, en bordes decorativos ni en fondos grandes.
 - Texto en `text` (blanco roto) y `text-muted`; nunca blanco puro ni negro puro dentro de la app.

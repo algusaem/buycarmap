@@ -1,0 +1,16 @@
+<!-- @dsCard group="Avisos" height=220 subtitle="Aviso: bien, con deshacer, y error" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Toast</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans);padding:24px;display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.t{width:380px;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);padding:14px 14px 14px 18px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-float)}.t span{flex:1;font-size:15px;font-weight:600;line-height:1.4}.ok{color:var(--lime);flex-shrink:0}.ko{color:var(--danger);flex-shrink:0}.a{color:var(--lime);font-size:14px;font-weight:700;text-decoration:none;padding:8px 12px;border-radius:var(--radius-pill)}.x{all:unset;cursor:pointer;width:32px;height:32px;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;color:var(--text-muted)}.col{display:flex;flex-direction:column;gap:14px}
+</style>
+</head>
+<body>
+<div class="col"><div class="t" role="status"><svg class="ok" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg><span>Guardado en tus coches.</span><a class="a" href="#">Deshacer</a><button class="x" type="button" aria-label="Cerrar"><svg class="" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div><div class="t" role="status"><svg class="ko" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><span>No se ha podido guardar. Prueba otra vez.</span><button class="x" type="button" aria-label="Cerrar"><svg class="" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div></div>
+</body>
+</html>
