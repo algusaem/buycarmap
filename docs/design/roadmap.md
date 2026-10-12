@@ -27,7 +27,7 @@ the phase's spec.
 | Phase | Spec | State | What it builds |
 | --- | --- | --- | --- |
 | F1 Foundation | [redesign-foundation.md](../specs/redesign-foundation.md) (LOOK) | Implemented 2026-10-12 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | Tokens, dark only, fonts, shared primitives, source badge, footer, `DESIGN.md` |
-| F2 Navigation | — | Not started | Desktop headers, phone headers, bottom nav |
+| F2 Navigation | [redesign-navigation.md](../specs/redesign-navigation.md) (HEAD) | Spec approved 2026-10-12; tests next | Desktop headers, phone headers, bottom nav |
 | F3 Map and search | — | Not started | The map screen and its states |
 | F4 Landing and sign in | — | Not started | `/` landing and `/login` |
 | F5 Saved cars | — | Not started | `/favorites` |
@@ -59,7 +59,8 @@ error de búsqueda (`R2Base`, `R3-mapa-detalle`, `F0-estado-cargando`, `F0-estad
 PricePin, MapPreview, ListingCard, BottomSheet, StatusPill, MapZoom, EmptyState. Governs:
 `map-and-search.md` (MAP), and the save heart on cards from `favorites.md` (FAV). F3 also replaces
 every use of the Radix select (`components/ui/select.tsx`: radius, filters) with the design's
-controls and the F1 checkbox select, then deletes it. The map tile style
+controls and the F1 checkbox select, then deletes it. F3 also builds «Crear alerta» (save the current
+search as an alert, next to the search pill), which no screen offers today (owner decision, 2026-10-12). The map tile style
 stays the dark CARTO one; the exact minimal style is issue #118.
 
 **F4 Landing and sign in.** Design: `R3-landing`, `R3-login`. Pieces: Headline, the illustrations and
