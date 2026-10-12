@@ -1,8 +1,8 @@
 # Better Auth and the permissions layer (migration phase 11)
 
 Key: BAUTH
-Status: Implemented
-Last updated: 2026-10-04
+Status: Draft
+Last updated: 2026-10-12
 
 ---
 
@@ -81,7 +81,7 @@ This is phase 11 of ADR 0007: row 25.
   - backup codes work once (AUTH-10);
   - enrolment, confirmation, disabling and regenerating codes keep today's UI flow and copy.
 - [x] BAUTH-12 · node — AUTH-8, "a TOTP code cannot be reused inside its own window", is withdrawn: the plugin has no replay store. The owner accepted the loss on 2026-10-04. The auth spec marks AUTH-8 withdrawn, with the date and the reason, and its test is deleted.
-- [x] BAUTH-13 · node — Users who had two-factor on before the cutover have it switched off by the migration and receive one email, in their locale, asking them to enrol again. The rehearsal on a production copy reports how many users that is.
+- [x] BAUTH-13 · node — Users who had two-factor on before the cutover have it switched off by the migration and receive one email, in their locale, asking them to enrol again. The rehearsal on a production copy reports how many users that is. The email half is retired by BAUTH-21 once it has done its job; the migration half keeps its test.
 
 ### Data
 
@@ -98,6 +98,12 @@ This is phase 11 of ADR 0007: row 25.
   - "Is the email verified" reads `users.email_confirmed` (Better Auth's `emailConfirmed`): the `/account` badge and the "already verified" guard of `requestEmailVerification`. Better Auth never writes the legacy `emailVerified` and leaves it null for every account it creates, so reading it showed an OAuth user as unverified.
   - The five fields are removed from `prisma/schema.prisma` with no migration: the columns stay in the database until BAUTH-20, so the code deployed before this step keeps working against them.
 - [x] BAUTH-20 · node — Contract, step B: one migration drops users.password, users.email_verified, users.password_changed_at, users.two_factor_secret and users.two_factor_last_step. It shipped only after BAUTH-19 was deployed to production, and after a read-only count in production confirmed that every user with a non-null users.password had a credential accounts row with the same hash (0 users without one, 2026-10-11).
+- [ ] BAUTH-21 · node — Contract, step A for the remaining legacy columns ([#103](https://github.com/algusaem/buycarmap/issues/103)): no application code reads or writes `users.two_factor_enabled_at`, `users.two_factor_reset_notified_at`, `accounts.expires_at`, `accounts.token_type` or `accounts.session_state`.
+  - The BAUTH-13 re-enrolment notice is retired: the owner confirmed on 2026-10-12 that `pnpm auth:notify-2fa-reset` ran in production and has nobody left to notify. `scripts/notify-2fa-reset.mjs`, the `auth:notify-2fa-reset` script in `package.json`, `server/two-factor/reenrol.ts` and its test, `emails/TwoFactorResetEmail.tsx` and the `transactionalEmail.twoFactorReset` keys in `messages/en.json` and `messages/es.json` are deleted.
+  - The data export stops carrying `twoFactorEnabledAt` (EXPORT-2 in [account-data-export.md](account-data-export.md)); the account service no longer selects it.
+  - `accounts.expires_at`, `token_type` and `session_state` were NextAuth's. Better Auth 1.7.7's account table (`@better-auth/core`, `dist/db/get-tables.mjs`) has no field for any of them and `lib/auth/auth.ts` maps none onto them, so its adapter never writes them; `tokenType` exists only in an API response, never in a stored row.
+  - The five fields are removed from `prisma/schema.prisma` with no migration: the columns stay in the database until BAUTH-22, so the code deployed before this step keeps working against them.
+- [ ] BAUTH-22 · node — Contract, step B: one migration drops `users.two_factor_enabled_at`, `users.two_factor_reset_notified_at`, `accounts.expires_at`, `accounts.token_type` and `accounts.session_state`. It ships only after BAUTH-21 is deployed to production, and after a read-only count in production confirms that no user has `two_factor_enabled_at` set, `two_factor_reset_notified_at` null and no `two_factors` row — the users the notice would still have mailed. The count and its date are recorded here when it ships.
 
 ### Permissions
 
@@ -136,10 +142,12 @@ This is phase 11 of ADR 0007: row 25.
   - A credential user changes their password → the `credential` `accounts` row's `password` holds the new hash, and signing in with the new password succeeds.
   - A user with `users.password = null` and a `credential` `accounts` row (created after step A) opens `/account` → it shows the forms for an account with a password: change password, two-factor, and a delete form that asks for the password. `deleteAccount` with no password → `{ success: false, error: "passwordRequired" }`, and with a wrong one → `{ success: false, error: "currentPasswordIncorrect" }`; the user is not deleted. Reading `users.password` instead would treat this user as OAuth-only: no password forms, and deletion with no password asked for.
 - **BAUTH-20**: a database migrated, in name order, up to just before the drop, holding user U with all five legacy columns set (including `password` = H and `email_verified` set) and U's `credential` `accounts` row with `password` = H. After the drop, the five columns no longer exist on `users`, U's other columns are unchanged, U's `credential` account still holds H, and every other table keeps its row count.
+- **BAUTH-21**: Ada (`twoFactorEnabled = true`) exports her data → `profile` has no `twoFactorEnabledAt` key (before: `"twoFactorEnabledAt": "2026-09-03T10:00:00.000Z"`). A Google sign-in creates an `accounts` row and the three NextAuth columns stay null on it, as they already do today.
+- **BAUTH-22**: a database migrated, in name order, up to just before the drop, holding user U with `two_factor_enabled_at` and `two_factor_reset_notified_at` set and an OAuth `accounts` row A with `expires_at = 1800000000`, `token_type = "bearer"` and `session_state = "s"`. After the drop, those five columns no longer exist, U's and A's other columns are unchanged, and every table keeps its row count.
 
 ## Data model
 
-See BAUTH-14. Expand only; the contract steps are BAUTH-19 (the fields leave `prisma/schema.prisma`, no migration) and BAUTH-20 (one migration drops the five `users` columns). DATA-19 in [core-data-model.md](core-data-model.md) drops the two old tables.
+See BAUTH-14. Expand only; the contract steps are BAUTH-19 (the fields leave `prisma/schema.prisma`, no migration) and BAUTH-20 (one migration drops the five `users` columns). DATA-19 in [core-data-model.md](core-data-model.md) drops the two old tables. The remaining legacy columns follow the same two steps: BAUTH-21, then BAUTH-22.
 
 ## Permissions
 
@@ -156,9 +164,6 @@ See BAUTH-14. Expand only; the contract steps are BAUTH-19 (the fields leave `pr
 
 ## Out of scope
 
-- **Dropping the old auth columns and tables**: DATA-19 in [core-data-model.md](core-data-model.md) drops the tables; the five `users` columns are dropped by BAUTH-20, after BAUTH-19. The rest of the columns is a later issue (#62), including:
-  - `users.two_factor_enabled_at`, still read by `scripts/notify-2fa-reset.mjs`;
-  - the NextAuth-only session columns `accounts.session_state`, `accounts.token_type` and `accounts.expires_at`, because whether Better Auth's adapter writes them is not known yet.
 - **Passkeys, magic links and other Better Auth plugins.**
 - **Roles and admin.** None exist.
 

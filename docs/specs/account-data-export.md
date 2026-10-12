@@ -1,8 +1,8 @@
 # Account data export
 
 Key: EXPORT
-Status: Implemented
-Last updated: 2026-10-11
+Status: Draft
+Last updated: 2026-10-12
 
 ---
 
@@ -29,7 +29,7 @@ authorization, its rate limit and its failure paths.
 ## Acceptance criteria
 
 - [x] EXPORT-1 · node — For a signed-in caller, `exportMyData()` succeeds and returns a JSON string whose top-level keys are exactly `exportedAt`, `profile`, `pendingEmailChange`, `signInMethods`, `sessions`, `favorites`, `alerts` and `alertMatches`, with `exportedAt` the ISO 8601 UTC time the export was built
-- [x] EXPORT-2 · node — `profile` holds exactly the caller's `email`, `name`, `image`, `locale`, `emailConfirmed`, `twoFactorEnabled`, `twoFactorEnabledAt` and `createdAt`; a field with no value is present as `null`, never omitted
+- [ ] EXPORT-2 · node — `profile` holds exactly the caller's `email`, `name`, `image`, `locale`, `emailConfirmed`, `twoFactorEnabled` and `createdAt`; a field with no value is present as `null`, never omitted
 - [x] EXPORT-3 · node — `signInMethods.password` is `true` exactly when the caller has a credential password, and `signInMethods.providers` lists each linked OAuth provider as `{ provider, linkedAt }`; the credential row never appears as a provider
 - [x] EXPORT-4 · node — `sessions` lists every one of the caller's sessions as exactly `{ createdAt, expiresAt, ipAddress, userAgent }`
 - [x] EXPORT-5 · node — `favorites` lists each of the caller's saved listings with its stored snapshot fields and `createdAt`, oldest first; a soft-deleted favorite is not exported
@@ -67,8 +67,7 @@ exported JSON proves absence.
 
 **Ada** (the caller): `email` `ada@example.test`, `name` `Ada Lovelace`,
 `image` `null`, `locale` `en`, `emailConfirmed` `true`, `twoFactorEnabled`
-`true`, `twoFactorEnabledAt` `2026-09-03T10:00:00.000Z`, `createdAt`
-`2026-09-01T10:00:00.000Z`.
+`true`, `createdAt` `2026-09-01T10:00:00.000Z`.
 
 - Credential account: `password` `hashed:ada-secret`.
 - Google account: `provider` `google`, `providerAccountId` `google-ada-123`,
@@ -117,7 +116,7 @@ Results, with the clock at `2026-10-11T09:30:00.000Z`:
   keys are `["exportedAt","profile","pendingEmailChange","signInMethods","sessions","favorites","alerts","alertMatches"]`
   and `exportedAt` is `"2026-10-11T09:30:00.000Z"`.
 - **EXPORT-2** — `profile` =
-  `{ "email": "ada@example.test", "name": "Ada Lovelace", "image": null, "locale": "en", "emailConfirmed": true, "twoFactorEnabled": true, "twoFactorEnabledAt": "2026-09-03T10:00:00.000Z", "createdAt": "2026-09-01T10:00:00.000Z" }`.
+  `{ "email": "ada@example.test", "name": "Ada Lovelace", "image": null, "locale": "en", "emailConfirmed": true, "twoFactorEnabled": true, "createdAt": "2026-09-01T10:00:00.000Z" }`.
 - **EXPORT-3** — `signInMethods` =
   `{ "password": true, "providers": [{ "provider": "google", "linkedAt": "2026-09-02T10:00:00.000Z" }] }`.
 - **EXPORT-4** — `sessions` =
@@ -179,7 +178,7 @@ reads `TwoFactor`, `PasswordResetToken`, `PendingRegistration`, `Verification`,
 
 | Export key | Source | Fields |
 | --- | --- | --- |
-| `profile` | `User` | `email`, `name`, `image`, `locale`, `emailConfirmed`, `twoFactorEnabled`, `twoFactorEnabledAt`, `createdAt` |
+| `profile` | `User` | `email`, `name`, `image`, `locale`, `emailConfirmed`, `twoFactorEnabled`, `createdAt` |
 | `pendingEmailChange` | The newest `EmailVerificationToken` with a `newEmail`, `usedAt` null, `expiresAt` later than the export time and `deletedAt` null; `null` when there is none | `newEmail`, `expiresAt` |
 | `signInMethods.password` | `Account` where `provider = "credential"` | `true` when its `password` is not null; the hash itself never |
 | `signInMethods.providers[]` | `Account` where `provider != "credential"` | `provider`, and `createdAt` as `linkedAt` |
@@ -194,7 +193,7 @@ reads `TwoFactor`, `PasswordResetToken`, `PendingRegistration`, `Verification`,
 | --- | --- |
 | `Account.password`, `PendingRegistration.password` | Password hashes: secrets |
 | `Account.providerAccountId` | The identity link a provider sign-in resolves through; treated as a credential identifier, not shown |
-| `Account.access_token`, `refresh_token`, `id_token` (and their `expires_at`, `token_type`, `scope`, `session_state`, `accessTokenExpiresAt`, `refreshTokenExpiresAt`) | OAuth tokens and their metadata: secrets |
+| `Account.access_token`, `refresh_token`, `id_token` (and their `scope`, `accessTokenExpiresAt`, `refreshTokenExpiresAt`) | OAuth tokens and their metadata: secrets |
 | `Session.sessionToken` | A live bearer credential |
 | `TwoFactor.secret`, `TwoFactor.backupCodes` | Second-factor secrets |
 | `Alert.unsubscribeTokenHash`, `Alert.unsubscribeSubject` | Unsubscribe-link machinery |
@@ -331,8 +330,7 @@ tell the user what is linked.
 
 The right of access covers every personal field
 `docs/privacy/data-inventory.md` lists for the caller, so the export also
-carries `User.twoFactorEnabledAt`, even though `twoFactorEnabled` is the live
-flag the account page shows, and the address an account is moving to while an
+carries the address an account is moving to while an
 email change is pending (`pendingEmailChange`), never the token hash that
 confirms it. Only the newest unused, unexpired change is still in progress: an
 older one is superseded, and an expired or used one changes nothing any more.

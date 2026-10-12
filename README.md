@@ -366,13 +366,13 @@ solo project is ceremony.
 | [auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) | AUTH | Implemented | Auth, email, OAuth, 2FA |
 | [alerts.md](docs/specs/alerts.md) | ALERT | Implemented | Saved criteria, background polling, match emails |
 | [navbar.md](docs/specs/navbar.md) | NAV | Implemented | Navigation bar, mobile menu, account menu |
-| [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Implemented | Downloading a copy of one's own data from `/account` |
+| [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Draft | Downloading a copy of one's own data from `/account` |
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
 | [core-mastermind.md](docs/specs/core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
 | [core-tooling.md](docs/specs/core-tooling.md) | TOOLING | Implemented | Migration phase 3: the verification contract and repository tooling |
 | [core-docs.md](docs/specs/core-docs.md) | DOCS | Implemented | Migration phase 4: the core spec format and docs tree |
 | [core-layout.md](docs/specs/core-layout.md) | LAYOUT | Implemented | Migration phase 5: the server layer and the dependency rules |
-| [core-better-auth.md](docs/specs/core-better-auth.md) | BAUTH | In progress | Migration phase 11: Better Auth, server-side sessions, the permissions layer |
+| [core-better-auth.md](docs/specs/core-better-auth.md) | BAUTH | Draft | Migration phase 11: Better Auth, server-side sessions, the permissions layer |
 | [core-environments.md](docs/specs/core-environments.md) | ENV | Approved | Migration phase 12: environments, regions and processor DPAs |
 
 ### Decisions
