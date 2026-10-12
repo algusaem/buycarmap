@@ -25,5 +25,5 @@ El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chi
 - **Cambio**: un control segmentado `surface` con borde `line`, `radius-pill` y 4px de relleno; las opciones se reparten el ancho (flex 1, padding 10px, 14px peso 600) y la elegida va invertida, relleno `text` con texto `bg` y peso 800.
 - **Kilómetros y año**: dos campos `surface` con borde `line`, `radius-field`, padding 12px 14px y 15px, sin chevron.
 - **Publicado**: chips del panel, uno activo: «Cualquier momento», «Últimas 24 h», «Última semana», «Último mes».
-- **Marca y modelo**: dos selectores (Select) de 52px, uno junto al otro.
+- **Marca y modelo**: un solo campo de 52px que busca mientras escribes, «Marca o modelo…», el mismo que Coche en [SearchPopover](../SearchPopover/README.md): fondo `bg`, borde `line`, `radius-field` y la lupa de 18px en `text-muted`.
 - Los mandos del rango son sliders con su valor en texto («20.000 €»); el segmentado es un grupo de radios.

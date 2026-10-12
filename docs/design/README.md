@@ -41,6 +41,9 @@ beside its phone screen (390 × 844):
 - `F3-mapa-filtros.dc.html`, `F3-mapa-crear-alerta.dc.html`, `F3-crear-alerta-estados.dc.html` — the
   map with the filters open (the desktop dropdown and the phone sheet), with «Crear alerta» open, and
   creating an alert from a search that is too broad and once it is created.
+- `F3-buscador-donde.dc.html`, `F3-buscador-coche.dc.html`, `F3-buscador-precio.dc.html` — the map
+  with each search pill segment open (Dónde, Coche, Precio) on desktop; on the phone, the map with
+  the search row and the «Buscar» sheet it opens.
 - `F0-estado-cargando.dc.html`, `F0-estado-sin-resultados.dc.html`,
   `F0-estado-error-busqueda.dc.html` — the map loading, with no results and with a failed search.
 - `R3-favoritos.dc.html`, `F0-estado-guardados-vacio.dc.html` — saved cars, full and empty.
@@ -49,9 +52,10 @@ beside its phone screen (390 × 844):
   `F0-estado-error-pagina.dc.html` — any page that failed to load.
 
 Page "UI Kit": `UIKit.dc.html`, every reusable piece in its states (colours, type, buttons,
-search pill and the filter row, the filters panel, the «Crear alerta» popover and sheet, map pins,
-alert zone and preview, car cards, navigation, form fields, loading and empty states, account
-cards, the password meter and the footer).
+search pill and the filter row, the search pill popovers and the phone «Buscar» sheet, the
+filters panel, the «Crear alerta» popover and sheet, map pins, alert zone and preview, car cards,
+navigation, form fields, loading and empty states, account cards, the password meter and the
+footer).
 
 The listings, prices and photos in the screens are made-up examples.
 
@@ -69,6 +73,7 @@ screen structure, icons and accessibility. `system/tokens.json` holds every toke
 - [Button](system/components/Button/README.md)
 - [Chip](system/components/Chip/README.md)
 - [SearchPill](system/components/SearchPill/README.md)
+- [SearchPopover](system/components/SearchPopover/README.md)
 - [Headline](system/components/Headline/README.md)
 - [ListingCard](system/components/ListingCard/README.md)
 - [PricePin](system/components/PricePin/README.md)
