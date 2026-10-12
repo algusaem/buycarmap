@@ -29,7 +29,7 @@ switching.
 - [x] CORE-7 · unit — A city we do not know falls back to the coordinates the caller supplied, never to a wrong city
 - [x] CORE-8 · unit — The browser is asked for the user's position at most once per session, however many searches run
 - [x] CORE-9 · unit — A denied or unavailable position resolves rather than leaving callers waiting
-- [x] CORE-10 · component — Switching the theme changes it, and the choice survives a re-render
+- [x] CORE-10 · component — Withdrawn 2026-10-12 (docs/specs/redesign-foundation.md, LOOK-5): there is no theme to switch — the approved BuyCarMap 2.0 design is dark only, and next-themes, the toggle and this criterion's test go with it. `spec:check` only requires that some test title still *mentions* the id (`checkDeclaredCriteria`) and that the id stays declared here so a test mentioning it is not flagged as a dangling reference (`checkDanglingReferences`) — `scripts/core-frontend.node.test.ts`'s own LOOK-5 tests, which check that this line says "Withdrawn" and that no test *claims* CORE-10 any more, satisfy the first without re-adding a behavioural test for the second.
 
 ## Worked examples
 
@@ -90,9 +90,6 @@ Out of scope, deliberately:
   locations from a radius search: the three have to agree on the point or that
   exclusion silently stops working. The behaviour itself is MAP-17's, in
   [map-and-search.md](map-and-search.md).
-- **Theme** is `next-themes` with `attribute="class"`, dark default, `.light`
-  for light. Anything reading `useTheme` must wait for `useMounted` or it
-  renders server markup that disagrees with the client.
 
 ## Decisions and rationale
 
@@ -146,13 +143,10 @@ a user driving to see a car trusts the pin.
 
 ## Open questions
 
-1. ~~`useThemeTransition` is untested and will stay that way~~ **Closed.**
-   `e2e/theme.spec.ts` runs the real hook in a browser: it toggles, asserts the
-   `.light` class, and checks the choice survives a reload. The component test
-   still stubs the hook, because jsdom implements no View Transitions API.
-   Original note: until there is a
-   reason to drive it in Playwright. It is a progressive enhancement over
-   `setTheme`, so its failure mode is a theme change without the animation.
+1. ~~`useThemeTransition` is untested and will stay that way~~ **Closed, then moot.**
+   The theme toggle and `useThemeTransition` are removed with CORE-10's withdrawal
+   (2026-10-12, LOOK — redesign-foundation.md): the app is dark only, so there is no
+   theme change to animate and the browser test that drove the hook is gone.
 2. **Decided: no fallback counter.** The city list is unversioned and
    hand-maintained, and nothing detects a town missing from it. Adding a "how
    often did we fall back?" metric is a monitoring question, and this project

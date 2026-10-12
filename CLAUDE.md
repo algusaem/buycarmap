@@ -264,6 +264,10 @@ After a spec is approved, invoke `/spec-tests` — do not implement straight fro
 Each phase of the migration onto the core has its own spec in `docs/specs/` (`core-*.md`), approved
 before the phase starts.
 
+**The BuyCarMap 2.0 redesign follows `docs/design/roadmap.md`.** Read it before any redesign
+work: it lists the phases F1–F7, their order, what each covers and its state. When a phase changes
+state, update its row in the same change; a new phase starts by drafting its spec, not by coding.
+
 Specs follow the core section order — Problem, Acceptance criteria, Worked examples, Data model,
 Permissions, Edge cases, Out of scope — optionally followed by Contracts, Decisions and rationale
 and Open questions, in that order. The `Key:` and `Status:` lines stay. Criteria carry append-only

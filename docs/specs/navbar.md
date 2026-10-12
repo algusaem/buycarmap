@@ -62,7 +62,7 @@ offered links to guarded pages (NAV-10).
 - [x] NAV-11 · component — Every navbar control, the menu trigger included, has an accessible name in the user's language
 - [x] NAV-12 · component — The menu opens from the keyboard alone and moves focus into itself when it does
 - [x] NAV-13 · e2e — A phone viewport is not offered the full control row, and a desktop viewport is not offered the menu trigger
-- [x] NAV-14 · component — The theme and language controls are reachable from the menu on a phone
+- [x] NAV-14 · component — The language control is reachable from the menu on a phone; there is no theme control (amended 2026-10-12, LOOK — redesign-foundation.md)
 - [x] NAV-15 · component — A signed-in user with no display name is identified by their email address
 - [x] NAV-16 · component — A session ending while the menu is open stops the menu offering signed-in destinations
 - [x] NAV-17 · e2e — A signed-out visitor is offered registration without having to open the menu first

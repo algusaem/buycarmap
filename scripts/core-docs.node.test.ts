@@ -285,6 +285,7 @@ describe("docs tree and spec format", () => {
       /^docs\/privacy\/(data-inventory|processors|deletion)\.md$/,
       /^docs\/operations\/backups\.md$/,
       /^docs\/images\/[^/]+$/,
+      /^docs\/design\/.+$/,
     ];
 
     function walk(dir: string, out: string[] = []): string[] {

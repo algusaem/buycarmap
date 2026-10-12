@@ -278,6 +278,7 @@ copy wins.
 | [docs/privacy/deletion.md](docs/privacy/deletion.md) | How an account is erased, what survives it, and the restore window |
 | [docs/operations/backups.md](docs/operations/backups.md) | Restoring the production database from Neon's point-in-time history |
 | [docs/design/README.md](docs/design/README.md) | The approved redesign: screens, UI kit and design system, with links to the artifacts they are edited in |
+| [docs/design/roadmap.md](docs/design/roadmap.md) | The redesign's build plan: phases F1–F7, their order and state — read before any redesign work |
 | [Specs](#specs) | What the software does, feature by feature |
 | [Decisions](#decisions) | ADRs for choices no single spec owns |
 
@@ -368,6 +369,7 @@ solo project is ceremony.
 | [auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) | AUTH | Implemented | Auth, email, OAuth, 2FA |
 | [alerts.md](docs/specs/alerts.md) | ALERT | Implemented | Saved criteria, background polling, match emails |
 | [navbar.md](docs/specs/navbar.md) | NAV | Implemented | Navigation bar, mobile menu, account menu |
+| [redesign-foundation.md](docs/specs/redesign-foundation.md) | LOOK | Approved | BuyCarMap 2.0 F1: tokens, dark only, fonts, primitives, footer, DESIGN.md |
 | [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Implemented | Downloading a copy of one's own data from `/account` |
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
 | [core-mastermind.md](docs/specs/core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |

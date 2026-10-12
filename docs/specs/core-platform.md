@@ -61,7 +61,7 @@ This is phase 6 of ADR 0007: rows 11–15.
 
 - [x] PLAT-21 · unit + e2e — `proxy.ts` sends the `Content-Security-Policy` header on every page response, with a fresh base64 nonce of at least 128 bits per request. `script-src` is `'self' 'nonce-<nonce>' 'strict-dynamic'`, plus `'unsafe-eval'` in development only; it has no `'unsafe-inline'`. Every other directive keeps its current value, including `style-src 'self' 'unsafe-inline'`.
 - [x] PLAT-22 · unit — The proxy matcher replaces today's list of six gated paths and covers every page and API route and skips `_next/static`, `_next/image`, `favicon.ico`, the `/monitoring` tunnel and static files. The auth redirects keep applying only to the paths they apply to today.
-- [x] PLAT-23 · e2e — The root layout passes the nonce to `ThemeProvider` (next-themes' inline script), and the pages load with no CSP violation in the console. The map, the theme toggle, login and the favorites page keep working.
+- [x] PLAT-23 · e2e — The nonce no longer feeds a theme bootstrap script — there is none, next-themes is gone — and the pages load with no CSP violation in the console. The map, login and the favorites page keep working. (amended 2026-10-12, LOOK — redesign-foundation.md)
 - [x] PLAT-24 · unit — `next.config.ts` no longer sends a `Content-Security-Policy` header. It keeps the others, including `Strict-Transport-Security`, unchanged.
 - [x] PLAT-25 · unit — ADR 0013 records that per-request nonces make every page dynamic, and what that costs: the static pages of the current build become dynamic, with no full-route cache and one proxy run per request.
 
