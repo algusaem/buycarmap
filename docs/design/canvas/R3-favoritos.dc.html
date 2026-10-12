@@ -9,7 +9,7 @@
 <x-dc>
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&amp;family=Rethink+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&amp;family=Rethink+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
 a{color:#F4F2F0}a:hover{color:#C6FF3D}
@@ -107,7 +107,7 @@ class Component extends DCLogic {
       { title: 'Renault Clio TCe 90', city: 'Zaragoza', year: '2019', km: '71.000 km', price: '9.400 €', source: 'Wallapop', tint: '#2B2E34' },
       { title: 'Kia Ceed 1.6 CRDi', city: 'Toledo', year: '2020', km: '81.000 km', price: '15.200 €', source: 'Wallapop', tint: '#2E2B30' }
     ];
-    const pin = (x, y, on) => 'position: absolute; left: ' + x + 'px; top: ' + y + 'px; padding: 7px 13px; border-radius: 999px; font-size: 14px; ' + (on ? 'font-weight: 800; background: #C6FF3D; color: #0F0F10; box-shadow: 0 0 0 7px rgba(198,255,61,0.2);' : 'font-weight: 700; background: #18181B; color: #F4F2F0; border: 1px solid #2A2A2E;');
+    const pin = (x, y, on) => 'position: absolute; left: ' + x + 'px; top: ' + y + 'px; padding: 7px 13px; white-space: nowrap; border-radius: 999px; font-size: 14px; ' + (on ? 'font-weight: 800; background: #C6FF3D; color: #0F0F10; box-shadow: 0 0 0 7px rgba(198,255,61,0.2);' : 'font-weight: 700; background: #18181B; color: #F4F2F0; border: 1px solid #2A2A2E;');
     const pins = [['18.900 €', 440, 110, false], ['16.500 €', 210, 170, true], ['19.750 €', 420, 560, false], ['14.500 €', 50, 330, false], ['21.500 €', 420, 300, false], ['11.900 €', 90, 620, false], ['9.400 €', 400, 50, false], ['15.200 €', 300, 640, false]].map(([label, x, y, on]) => ({ label, style: pin(x, y, on) }));
     const desk = cars.slice(0, 6).map((c, i) => ({ ...c, ring: i === 1 ? ' box-shadow: 0 0 0 2px #C6FF3D;' : '' }));
     return { desk, mobile: cars.slice(0, 5), pins };

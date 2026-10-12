@@ -8,7 +8,7 @@
       "title": "Alertas",
       "w": 1970,
       "x": 2050,
-      "y": 6360
+      "y": 8480
     },
     "R3-favoritos.dc.html": {
       "h": 900,
@@ -16,7 +16,7 @@
       "title": "Favoritos",
       "w": 1970,
       "x": 2050,
-      "y": 5300
+      "y": 7420
     },
     "R3-landing.dc.html": {
       "h": 900,
@@ -43,7 +43,7 @@
       "y": 3180
     },
     "UIKit.dc.html": {
-      "h": 11677,
+      "h": 12777,
       "page": "kit",
       "title": "UI Kit",
       "w": 1970,
@@ -96,7 +96,7 @@
       "title": "Privacidad y términos",
       "w": 1970,
       "x": 0,
-      "y": 8480
+      "y": 10600
     },
     "F0-cuenta.dc.html": {
       "h": 900,
@@ -104,7 +104,7 @@
       "title": "Cuenta",
       "w": 1970,
       "x": 2050,
-      "y": 7420
+      "y": 9540
     },
     "F0-estado-cargando.dc.html": {
       "h": 900,
@@ -112,7 +112,7 @@
       "title": "Mapa · cargando",
       "w": 1970,
       "x": 0,
-      "y": 4240
+      "y": 6360
     },
     "F0-estado-sin-resultados.dc.html": {
       "h": 900,
@@ -120,7 +120,7 @@
       "title": "Mapa · sin resultados",
       "w": 1970,
       "x": 2050,
-      "y": 4240
+      "y": 6360
     },
     "F0-estado-error-busqueda.dc.html": {
       "h": 900,
@@ -128,7 +128,7 @@
       "title": "Mapa · error de búsqueda",
       "w": 1970,
       "x": 0,
-      "y": 5300
+      "y": 7420
     },
     "F0-estado-guardados-vacio.dc.html": {
       "h": 900,
@@ -136,7 +136,7 @@
       "title": "Guardados · vacío",
       "w": 1970,
       "x": 0,
-      "y": 6360
+      "y": 8480
     },
     "F0-estado-alertas-vacio.dc.html": {
       "h": 900,
@@ -144,7 +144,7 @@
       "title": "Alertas · vacío",
       "w": 1970,
       "x": 0,
-      "y": 7420
+      "y": 9540
     },
     "F0-estado-error-pagina.dc.html": {
       "h": 900,
@@ -152,7 +152,31 @@
       "title": "Cualquier página · error al cargar",
       "w": 1970,
       "x": 2050,
-      "y": 8480
+      "y": 10600
+    },
+    "F3-mapa-filtros.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · filtros abiertos",
+      "w": 1970,
+      "x": 0,
+      "y": 4240
+    },
+    "F3-mapa-crear-alerta.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · crear alerta",
+      "w": 1970,
+      "x": 2050,
+      "y": 4240
+    },
+    "F3-crear-alerta-estados.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Crear alerta · demasiado amplia y creada",
+      "w": 1970,
+      "x": 0,
+      "y": 5300
     }
   },
   "createdOnFiles": {
@@ -173,6 +197,9 @@
     "F0-nueva-contrasena.dc.html",
     "R2Base.dc.html",
     "R3-mapa-detalle.dc.html",
+    "F3-mapa-filtros.dc.html",
+    "F3-mapa-crear-alerta.dc.html",
+    "F3-crear-alerta-estados.dc.html",
     "F0-estado-cargando.dc.html",
     "F0-estado-sin-resultados.dc.html",
     "F0-estado-error-busqueda.dc.html",

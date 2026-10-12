@@ -1,4 +1,4 @@
-<!-- @dsCard group="Filtros" height=760 subtitle="Panel de filtros en móvil: precio, combustible, cambio, km y año" -->
+<!-- @dsCard group="Filtros" height=892 subtitle="Panel de filtros: pantalla completa en móvil y desplegable bajo Filtros en escritorio" -->
 <!doctype html>
 <html lang="es">
 <head>
@@ -6,8 +6,18 @@
 <title>FilterSheet</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;padding:var(--space-6) 0;background:var(--bg);color:var(--text);font-family:var(--font-sans)}
-.dlg{width:390px;margin:0 auto;background:var(--bg);display:flex;flex-direction:column}
+body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;gap:var(--space-6);align-items:flex-start}
+.dlg{width:390px;height:844px;flex-shrink:0;background:var(--bg);display:flex;flex-direction:column}
+.desk{display:flex;flex-direction:column;gap:var(--space-2);align-items:flex-start}
+.filters{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--line);border-radius:var(--radius-pill);font-size:14px;font-weight:700;white-space:nowrap}
+.count{background:var(--violet);color:var(--on-violet);border-radius:var(--radius-pill);padding:1px 8px;font-size:12px;font-weight:800}
+.drop{width:460px;max-height:640px;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--shadow-float);overflow:hidden;display:flex;flex-direction:column}
+.dlg .head,.drop .head{flex-shrink:0}
+.dlg .body,.drop .body{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--handle) transparent}
+.dlg .foot,.drop .foot{flex-shrink:0}
+.drop .field{color:var(--text-muted)}
+.sel{all:unset;cursor:pointer;flex:1;min-width:0;height:52px;box-sizing:border-box;border-radius:var(--radius-field);border:1px solid var(--line);background:var(--bg);padding:0 14px 0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:16px;color:var(--text-muted)}
+.sel span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .head{height:70px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-5);border-bottom:1px solid var(--line-soft)}
 .close{all:unset;cursor:pointer;box-sizing:border-box;width:40px;height:40px;border-radius:var(--radius-pill);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text)}
 .title{font-family:var(--font-display);font-size:16px;font-weight:800;text-transform:uppercase}
@@ -23,7 +33,7 @@ body{margin:0;padding:var(--space-6) 0;background:var(--bg);color:var(--text);fo
 .box span{font-size:11px;color:var(--text-muted)}
 .box strong{font-size:16px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{all:unset;cursor:pointer;padding:10px 16px;border-radius:var(--radius-pill);font-size:14px;font-weight:600;border:1px solid var(--line);color:var(--text)}
+.chip{all:unset;cursor:pointer;padding:10px 16px;border-radius:var(--radius-pill);font-size:14px;font-weight:600;border:1px solid var(--line);color:var(--text);white-space:nowrap}
 .chip[aria-pressed="true"]{background:var(--violet);color:var(--on-violet);border:0;font-weight:800}
 .seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-pill);padding:4px}
 .seg button{all:unset;cursor:pointer;flex:1;text-align:center;padding:10px;border-radius:var(--radius-pill);font-size:14px;font-weight:600}
@@ -31,7 +41,7 @@ body{margin:0;padding:var(--space-6) 0;background:var(--bg);color:var(--text);fo
 .field{all:unset;cursor:pointer;flex:1;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-field);padding:12px 14px;font-size:15px}
 .foot{padding:14px var(--space-5) 28px;border-top:1px solid var(--line-soft)}
 .go{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:100%;height:56px;box-sizing:border-box;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime);font-family:var(--font-display);font-size:15px;font-weight:800;text-transform:uppercase}
-.close:focus-visible,.clear:focus-visible,.knob:focus-visible,.chip:focus-visible,.seg button:focus-visible,.field:focus-visible,.go:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.close:focus-visible,.clear:focus-visible,.knob:focus-visible,.chip:focus-visible,.seg button:focus-visible,.field:focus-visible,.go:focus-visible,.filters:focus-visible,.sel:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
 </style>
 </head>
 <body>
@@ -59,8 +69,53 @@ body{margin:0;padding:var(--space-6) 0;background:var(--bg);color:var(--text);fo
       <span class="lbl">Kilómetros y año</span>
       <div class="pair"><button class="field" type="button">Hasta 100.000 km</button><button class="field" type="button">Desde 2017</button></div>
     </div>
+    <div class="sec">
+      <span class="lbl">Publicado</span>
+      <div class="chips"><button class="chip" type="button" aria-pressed="true">Cualquier momento</button><button class="chip" type="button" aria-pressed="false">Últimas 24 h</button><button class="chip" type="button" aria-pressed="false">Última semana</button><button class="chip" type="button" aria-pressed="false">Último mes</button></div>
+    </div>
+    <div class="sec">
+      <span class="lbl">Marca y modelo</span>
+      <div class="pair"><button class="sel" type="button" aria-label="Marca"><span>Cualquier marca</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="m6 9 6 6 6-6"/></svg></button><button class="sel" type="button" aria-label="Modelo"><span>Cualquier modelo</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="m6 9 6 6 6-6"/></svg></button></div>
+    </div>
   </div>
   <div class="foot"><button class="go" type="button">Ver coches</button></div>
+</div>
+<div class="desk">
+  <button class="filters" type="button" aria-haspopup="dialog" aria-expanded="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Filtros <span class="count">4</span></button>
+  <div class="drop" role="dialog" aria-label="Filtros">
+    <div class="head">
+      <strong class="title">Filtros</strong>
+      <button class="clear" type="button">Borrar</button>
+    </div>
+    <div class="body">
+      <div class="sec">
+        <span class="lbl">Precio</span>
+        <div class="range"><span class="fill" style="left:0"></span><button class="knob" type="button" role="slider" aria-label="Precio mínimo" aria-valuetext="0 €" style="left:0%"></button><button class="knob" type="button" role="slider" aria-label="Precio máximo" aria-valuetext="20.000 €" style="left:66%"></button></div>
+        <div class="pair"><span class="box"><span>Mínimo</span><strong>0 €</strong></span><span class="box"><span>Máximo</span><strong>20.000 €</strong></span></div>
+      </div>
+      <div class="sec">
+        <span class="lbl">Combustible</span>
+        <div class="chips"><button class="chip" type="button" aria-pressed="false">Gasolina</button><button class="chip" type="button" aria-pressed="true">Diésel</button><button class="chip" type="button" aria-pressed="false">Híbrido</button><button class="chip" type="button" aria-pressed="false">Eléctrico</button><button class="chip" type="button" aria-pressed="false">GLP</button></div>
+      </div>
+      <div class="sec">
+        <span class="lbl" id="cambio-d">Cambio</span>
+        <div class="seg" role="radiogroup" aria-labelledby="cambio-d"><button type="button" role="radio" aria-checked="false">Todos</button><button type="button" role="radio" aria-checked="false">Manual</button><button type="button" role="radio" aria-checked="true">Automático</button></div>
+      </div>
+      <div class="sec">
+        <span class="lbl">Kilómetros y año</span>
+        <div class="pair"><button class="field" type="button">Hasta …</button><button class="field" type="button">Desde …</button></div>
+      </div>
+      <div class="sec">
+        <span class="lbl">Publicado</span>
+        <div class="chips"><button class="chip" type="button" aria-pressed="false">Cualquier momento</button><button class="chip" type="button" aria-pressed="true">Últimas 24 h</button><button class="chip" type="button" aria-pressed="false">Última semana</button><button class="chip" type="button" aria-pressed="false">Último mes</button></div>
+      </div>
+      <div class="sec">
+        <span class="lbl">Marca y modelo</span>
+        <div class="pair"><button class="sel" type="button" aria-label="Marca"><span>Cualquier marca</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="m6 9 6 6 6-6"/></svg></button><button class="sel" type="button" aria-label="Modelo"><span>Cualquier modelo</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="m6 9 6 6 6-6"/></svg></button></div>
+      </div>
+    </div>
+    <div class="foot"><button class="go" type="button">Ver coches</button></div>
+  </div>
 </div>
 </body>
 </html>

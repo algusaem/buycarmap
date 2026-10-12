@@ -167,7 +167,7 @@ marked):
 - ALERT-50 (`alerts.md`) — "either switcher (the language buttons and the navbar menu)" becomes "the
   header's language control" (HEAD-10).
 - The e2e helpers that find today's navbar by its DOM (`e2e/auth.spec.ts`, `e2e/two-factor.spec.ts`,
-  `e2e/favorites.spec.ts`, `e2e/visual.spec.ts`, `e2e/navbar.spec.ts`) move to the new headers; the
+  `e2e/favorites.spec.ts`, `e2e/visual.spec.ts`, and the old navbar e2e spec, now `e2e/navigation.spec.ts`) move to the new headers; the
   visual baselines are regenerated.
 
 ## Decisions and rationale

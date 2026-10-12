@@ -1,4 +1,4 @@
-<!-- @dsCard group="Filtros" height=300 subtitle="Chips: fila rápida con Filtros, móvil sobre el mapa, panel de filtros y orden" -->
+<!-- @dsCard group="Filtros" height=360 subtitle="Chips: fila de filtros con Filtros y los activos, sin filtros, móvil sobre el mapa, panel de filtros y orden" -->
 <!doctype html>
 <html lang="es">
 <head>
@@ -9,36 +9,38 @@
 body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;flex-direction:column;gap:var(--space-6)}
 .row{display:flex;gap:var(--space-2);align-items:center}
 .wrap{flex-wrap:wrap}
-.spacer{flex:1}
 .chip{all:unset;cursor:pointer;padding:9px 16px;border-radius:var(--radius-pill);font-size:14px;font-weight:600;border:1px solid var(--line);color:var(--text);white-space:nowrap}
 .chip[aria-pressed="true"]{background:var(--violet);color:var(--on-violet);border:0;font-weight:800}
-.filters{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--line);border-radius:var(--radius-pill);font-size:14px;font-weight:700}
+.filters{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--line);border-radius:var(--radius-pill);font-size:14px;font-weight:700;white-space:nowrap}
 .count{background:var(--violet);color:var(--on-violet);border-radius:var(--radius-pill);padding:1px 8px;font-size:12px;font-weight:800}
+.active{display:inline-flex;align-items:center;height:36px;box-sizing:border-box;padding-left:16px;border-radius:var(--radius-pill);background:var(--violet);color:var(--on-violet);font-size:14px;font-weight:800;white-space:nowrap}
+.remove{all:unset;cursor:pointer;box-sizing:border-box;width:44px;height:44px;margin:-4px 0 -4px -4px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-pill);color:var(--on-violet)}
 .map{width:390px;box-sizing:border-box;padding:16px;background:var(--map-ground);overflow:hidden}
-.map .chip{padding:8px 14px;font-size:13px;background:var(--surface)}
-.map .chip[aria-pressed="true"]{background:var(--violet)}
+.map .row{overflow:hidden;padding:4px 0;margin:-4px 0}
+.map .filters{background:var(--surface);flex-shrink:0}
+.map .active{flex-shrink:0}
 .sheet{width:350px}
 .sheet .chip{padding:10px 16px}
-.chip:focus-visible,.filters:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.chip:focus-visible,.filters:focus-visible,.remove:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
 </style>
 </head>
 <body>
-<div class="row" style="max-width:960px">
-  <button class="chip" type="button" aria-pressed="true">Todos</button>
-  <button class="chip" type="button" aria-pressed="false">Diésel</button>
-  <button class="chip" type="button" aria-pressed="false">Gasolina</button>
-  <button class="chip" type="button" aria-pressed="false">Híbrido</button>
-  <button class="chip" type="button" aria-pressed="false">Automático</button>
-  <button class="chip" type="button" aria-pressed="false">Menos de 100.000 km</button>
-  <span class="spacer"></span>
-  <button class="filters" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Filtros <span class="count">3</span></button>
+<div class="row">
+  <button class="filters" type="button" aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Filtros <span class="count">4</span></button>
+  <span class="active">Diésel<button class="remove" type="button" aria-label="Quitar Diésel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+  <span class="active">Hasta 20.000 €<button class="remove" type="button" aria-label="Quitar Hasta 20.000 €"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+  <span class="active">Automático<button class="remove" type="button" aria-label="Quitar Automático"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+  <span class="active">Últimas 24 h<button class="remove" type="button" aria-label="Quitar Últimas 24 h"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+</div>
+<div class="row">
+  <button class="filters" type="button" aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Filtros</button>
 </div>
 <div class="row wrap" style="gap:var(--space-6);align-items:flex-start">
   <div class="map"><div class="row">
-    <button class="chip" type="button" aria-pressed="true">Todos</button>
-    <button class="chip" type="button" aria-pressed="false">Diésel</button>
-    <button class="chip" type="button" aria-pressed="false">Automático</button>
-    <button class="chip" type="button" aria-pressed="false">Híbrido</button>
+    <button class="filters" type="button" aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Filtros <span class="count">4</span></button>
+    <span class="active">Diésel<button class="remove" type="button" aria-label="Quitar Diésel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+    <span class="active">Hasta 20.000 €<button class="remove" type="button" aria-label="Quitar Hasta 20.000 €"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+    <span class="active">Automático<button class="remove" type="button" aria-label="Quitar Automático"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
   </div></div>
   <div class="row wrap sheet">
     <button class="chip" type="button" aria-pressed="true">Gasolina</button>
