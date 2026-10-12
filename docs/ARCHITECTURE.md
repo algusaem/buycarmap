@@ -335,6 +335,7 @@ Spanish or English in components.
 | `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/auth.ts` — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
 | `components/map/` | The search + map feature |
+| `components/nav/` | The headers, the phone bottom nav and the language control |
 | `components/ui/` | Radix-wrapped primitives |
 | `lib/hooks/` | Every request lifecycle |
 | `lib/wallapop/`, `lib/cochesnet/`, `lib/milanuncios/` | One module per source: client, normalize, taxonomy |
@@ -641,7 +642,7 @@ depend on.
 
 ## Frontend
 
-The map feature's structure, the design system, internationalisation and
+The map feature's structure, the navigation, the design system, internationalisation and
 theming. Search *behaviour* — the fan-out, debounce and pagination — is
 [Path 1](#path-1--a-search) above and specified in
 [`specs/map-and-search.md`](specs/map-and-search.md); locale and geography
@@ -705,6 +706,39 @@ Composition uses `class-variance-authority` with `clsx` and `tailwind-merge`; th
 **Icons are never raw SVG.** Lucide React for UI icons, React Icons for brand
 icons. Size with Tailwind (`h-4 w-4`). Icon-only buttons need a descriptive
 `aria-label`.
+
+### Navigation
+
+Specified by [`specs/redesign-navigation.md`](specs/redesign-navigation.md) (HEAD), whose worked
+example table is the whole contract of what each page offers; the look is
+[HeaderNav](design/system/components/HeaderNav/README.md) and
+[BottomNav](design/system/components/BottomNav/README.md). The pieces live in `components/nav/`.
+
+- **One header per kind of page, chosen by route** in
+  [`components/nav/SiteHeader.tsx`](../components/nav/SiteHeader.tsx): the map header (`/map`), the
+  pages header (`/favorites`, `/alerts`, `/alerts/[id]`, `/account`, and the signed-in landing), the
+  landing header (`/` signed out), and the sign-in/legal header (the sign-in, account-recovery and
+  legal pages, and every page with no drawn header). Each header's content is fixed rather than one
+  bar growing conditionals per page.
+- **Desktop and phone regions switch at `lg` in CSS**, not through a media-query hook, which would
+  flash on hydration because the server cannot know the viewport. jsdom has no layout engine, so
+  what each viewport shows is proved in e2e.
+- **No menu and no dropdown** (HEAD-14). Every destination has a home in a header, the bottom nav or
+  the account page.
+- **The language control sits in every header**:
+  [`components/nav/LanguageControl.tsx`](../components/nav/LanguageControl.tsx), a group of one
+  button per locale (HEAD-10; switching writes the `locale` cookie and calls `setLocale`, see
+  [Internationalisation](#internationalisation)).
+  The phone map has no header, so it has none.
+- **The bottom nav** ([`components/nav/BottomNav.tsx`](../components/nav/BottomNav.tsx)) shows on the
+  signed-in pages at phone width only. It floats above the page, offset from the bottom by the
+  safe-area inset as well as its own gap; the root layout's viewport opts into the safe area with
+  `viewport-fit=cover` (HEAD-17).
+- **Sign-out lives on `/account`**,
+  [`components/account/SignOutButton.tsx`](../components/account/SignOutButton.tsx) (HEAD-13), not in
+  any header.
+- **Hiding a link is not authorisation.** The headers read the browser session to decide what to
+  offer; `proxy.ts` and `getCurrentUser()` decide who sees a page.
 
 ### Design system — BuyCarMap 2.0
 
@@ -1116,7 +1150,7 @@ paints its cards from the server, so they are clickable well before
 `useSession()` resolves — and a favorite click while the session is loading is
 deliberately ignored (FAV-18). Clicking too early is therefore a silent no-op,
 which surfaced as `FAV-3` failing two runs in three. `waitForSession()` waits for
-the navbar to swap in the signed-in controls, the same hydration signal
+the header to swap in the signed-in controls, the same hydration signal
 `waitForPageToSettle` uses. `/map` hides this window because its cards only exist
 after the source fetches resolve.
 
@@ -1148,7 +1182,7 @@ look): a baseline of the old look would only prove the old look. A later phase t
 changes a screen regenerates its baseline the same way, after the owner reviews it.
 
 **Screenshots must wait for the page to settle** (`waitForPageToSettle` in
-`e2e/visual.spec.ts`). The navbar swaps a placeholder for real links when
+`e2e/visual.spec.ts`). The header swaps a placeholder for real links when
 `useSession()` resolves, and `next/font` loads asynchronously. Both raced the
 camera and made these tests look inherently flaky. They are not.
 

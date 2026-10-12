@@ -368,8 +368,8 @@ solo project is ceremony.
 | [cross-cutting.md](docs/specs/cross-cutting.md) | CORE | Implemented | Language, geography, theme |
 | [auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) | AUTH | Implemented | Auth, email, OAuth, 2FA |
 | [alerts.md](docs/specs/alerts.md) | ALERT | Implemented | Saved criteria, background polling, match emails |
-| [navbar.md](docs/specs/navbar.md) | NAV | Implemented | Navigation bar, mobile menu, account menu |
-| [redesign-navigation.md](docs/specs/redesign-navigation.md) | HEAD | Approved | BuyCarMap 2.0 F2: headers, phone headers, bottom nav, language control |
+| [navbar.md](docs/specs/navbar.md) | NAV | Implemented | The pre-2.0 navigation bar; replaced by redesign-navigation.md (HEAD), kept criteria still hold |
+| [redesign-navigation.md](docs/specs/redesign-navigation.md) | HEAD | Implemented | BuyCarMap 2.0 F2: headers, phone headers, bottom nav, language control |
 | [redesign-foundation.md](docs/specs/redesign-foundation.md) | LOOK | Implemented | BuyCarMap 2.0 F1: tokens, dark only, fonts, primitives, footer, DESIGN.md |
 | [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Implemented | Downloading a copy of one's own data from `/account` |
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
@@ -507,7 +507,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/verify-email/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `app/confirm-email/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `components/AuthProvider.tsx` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
-| `components/Nav*.tsx` | [docs/specs/navbar.md](docs/specs/navbar.md) |
+| `components/nav/**` | [docs/specs/redesign-navigation.md](docs/specs/redesign-navigation.md) |
 | `app/page.tsx` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/layout.tsx` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/fonts/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |

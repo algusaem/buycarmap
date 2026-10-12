@@ -6,7 +6,8 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { TimeZoneCookie } from "@/lib/geo/TimeZoneCookie";
 import { MotionProvider } from "@/components/MotionProvider";
 import { AuthProvider } from "@/components/AuthProvider";
-import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/nav/BottomNav";
+import { SiteHeader } from "@/components/nav/SiteHeader";
 import { Toaster } from "@/components/Toaster";
 import "./globals.css";
 
@@ -32,6 +33,10 @@ const unbounded = localFont({
 export const viewport: Viewport = {
   themeColor: "#0F0F10",
   colorScheme: "dark",
+  // HEAD-17 (docs/specs/redesign-navigation.md): the page reaches under the
+  // phone's home indicator, so env(safe-area-inset-bottom) is non-zero and
+  // the bottom nav can clear it.
+  viewportFit: "cover",
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -57,8 +62,9 @@ export default async function RootLayout({
             <NextIntlClientProvider locale={locale} messages={messages}>
               <NuqsAdapter>
                 <TimeZoneCookie />
-                <Navbar />
+                <SiteHeader />
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+                <BottomNav />
                 <Toaster />
               </NuqsAdapter>
             </NextIntlClientProvider>

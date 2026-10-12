@@ -419,10 +419,22 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 ### Navigation
 - **Header:** the wordmark left, navigation right; 80px on desktop, 64px on a phone; the current page
   is an inverted pill (`text` fill, `bg` text) with `aria-current="page"`, links turn `lime` on hover.
+  One header per kind of page: the map (the search group in the centre; on the right the language,
+  heart and bell icon links and the avatar, or «Entrar» signed out), the pages — Guardados, Alertas,
+  Cuenta and the signed-in landing (Mapa · Guardados · Alertas and the avatar), the signed-out
+  landing («Entrar», «Crear cuenta») and the sign-in and legal pages («Volver al mapa»). The phone map
+  has no header.
   [HeaderNav](docs/design/system/components/HeaderNav/README.md),
   [Wordmark](docs/design/system/components/Wordmark/README.md).
+- **Avatar:** a 42px `violet` circle (36px on a phone) with the user's initial in Unbounded, linking
+  to Cuenta; on Cuenta it is the current item, marked by the `shadow-current` ring.
+- **Language «ES · EN»:** in every header, a group of two 44 × 44 buttons in 13px Rethink Sans, the
+  active one `text` weight 800 and pressed, the other `text-muted` weight 600; no accent, fill or
+  border. [HeaderNav](docs/design/system/components/HeaderNav/README.md).
 - **Bottom nav:** on a phone, a floating 62px `surface` pill with Mapa · Guardados · Alertas; the
-  current section is filled `violet`. [BottomNav](docs/design/system/components/BottomNav/README.md).
+  current section is filled `violet`. It floats 16px from the sides and 24px from the bottom, clear of
+  the safe area, and appears only signed in, on Guardados, Alertas and Cuenta — never on the map or at
+  desktop width. [BottomNav](docs/design/system/components/BottomNav/README.md).
 - **Footer:** one discreet 12px `text-muted` line — «Privacidad · Términos · Ilustraciones de
   Storyset» — on the landing, sign-in, register and legal pages only; never on the map screens, saved
   cars, alerts or account. The Storyset credit is required by its licence.
@@ -480,6 +492,8 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 - **Don't** colour a source by its marketplace brand.
 - **Don't** add a shadow outside the three roles in Elevation & Depth.
 - **Don't** add a theme switch: the product has one dark theme.
+- **Don't** add a navigation menu sheet, a hamburger or an account dropdown: every destination has a
+  place in a header, the bottom nav or the account page.
 - **Don't** put an icon above an empty-state headline, or use emoji.
 - **Don't** write «Bienvenido a…», «Descubre…» or invented figures; the voice rules are in
   `docs/design/system/README.md`.

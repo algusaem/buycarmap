@@ -42,7 +42,7 @@ signed-out and failure behaviours of the control.
 - [x] FAV-14 · component — With nothing saved, the favorites page shows an empty state offering a way back to search
 - [x] FAV-15 · node — Visiting the favorites page without a session redirects to sign-in, carrying the intended path
 - [x] FAV-16 · component + e2e — A listing the user has already saved appears saved in search results, not just on the favorites page
-- [x] FAV-17 · component — A signed-in user can reach their saved cars from anywhere in the app
+- [x] FAV-17 · component — A signed-in user can reach their saved cars from every header and from the bottom nav (amended 2026-10-12, HEAD — redesign-navigation.md)
 - [x] FAV-18 · component — A click while the session is still resolving never navigates the user away, and never reports the listing as saved
 
 Seventeen criteria: eight on the server boundary, eight on rendering and

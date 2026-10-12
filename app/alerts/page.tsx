@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { BOTTOM_NAV_CLEARANCE } from "@/components/nav/bottom-nav-clearance";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -15,24 +17,30 @@ export default async function AlertsPage() {
   const t = await getTranslations();
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8">
-      <div className="mb-8 flex items-center gap-3">
-        <Link
-          href="/map"
-          aria-label={t("map.backToHome")}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-card hover:text-foreground"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("alerts.title")}</h1>
-          {/* Cadence is approximate — GitHub's scheduler drifts under load — so
-              the copy says "every few minutes" rather than promising five. */}
-          <p className="text-sm text-muted-foreground">{t("alerts.subtitle")}</p>
+    // `overflow-y-auto` is required, not cosmetic: the root layout pins the
+    // body to h-screen with overflow-hidden so the map never scrolls the page,
+    // which leaves this route unable to scroll at all otherwise (HEAD-19).
+    // Same pattern as app/account/page.tsx.
+    <div className="flex flex-1 flex-col overflow-y-auto bg-background">
+      <div className={cn("mx-auto w-full max-w-4xl px-4 pt-8 lg:pb-8", BOTTOM_NAV_CLEARANCE)}>
+        <div className="mb-8 flex items-center gap-3">
+          <Link
+            href="/map"
+            aria-label={t("map.backToHome")}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-card hover:text-foreground"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{t("alerts.title")}</h1>
+            {/* Cadence is approximate — GitHub's scheduler drifts under load — so
+                the copy says "every few minutes" rather than promising five. */}
+            <p className="text-sm text-muted-foreground">{t("alerts.subtitle")}</p>
+          </div>
         </div>
-      </div>
 
-      <AlertsList alerts={alerts} />
+        <AlertsList alerts={alerts} />
+      </div>
     </div>
   );
 }

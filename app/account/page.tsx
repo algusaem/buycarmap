@@ -10,6 +10,9 @@ import { SessionsCard } from "@/components/account/SessionsCard";
 import { DataExportCard } from "@/components/account/DataExportCard";
 import { TwoFactorCard } from "@/components/account/TwoFactorCard";
 import { DeleteAccountForm } from "@/components/account/DeleteAccountForm";
+import { SignOutButton } from "@/components/account/SignOutButton";
+import { BOTTOM_NAV_CLEARANCE } from "@/components/nav/bottom-nav-clearance";
+import { cn } from "@/lib/utils";
 import { getAccountOverview } from "@/server/account/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -37,7 +40,9 @@ export default async function AccountPage() {
     // which leaves every long route unable to scroll at all. Same pattern as
     // components/legal/LegalContent.tsx.
     <div className="flex flex-1 flex-col overflow-y-auto bg-background">
-      <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-12">
+      <div
+        className={cn("mx-auto w-full max-w-2xl px-4 pt-8 sm:pt-12 lg:pb-12", BOTTOM_NAV_CLEARANCE)}
+      >
         <Link
           href="/map"
           className="-ml-1 mb-6 inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
@@ -46,9 +51,16 @@ export default async function AccountPage() {
           {t("account.backToMap")}
         </Link>
 
-        <header className="mb-8 space-y-1">
-          <h1 className="text-3xl font-extrabold tracking-tight">{t("account.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("account.description")}</p>
+        {/* HEAD-13: «Cerrar sesión» is one control drawn in two places
+            (AccountCard README): beside the title from lg, at the end of the
+            content below it. CSS shows exactly one per width, and the other is
+            display:none, so it is out of the accessibility tree as well. */}
+        <header className="mb-8 flex items-end justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-extrabold tracking-tight">{t("account.title")}</h1>
+            <p className="text-sm text-muted-foreground">{t("account.description")}</p>
+          </div>
+          <SignOutButton className="hidden lg:inline-flex" />
         </header>
 
         <div className="space-y-6">
@@ -78,6 +90,8 @@ export default async function AccountPage() {
 
           <DeleteAccountForm hasPassword={Boolean(record.password)} />
         </div>
+
+        <SignOutButton className="mt-6 w-full lg:hidden" />
       </div>
     </div>
   );

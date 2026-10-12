@@ -1,7 +1,7 @@
 # Redesign F2 — navigation
 
 Key: HEAD
-Status: Approved
+Status: Implemented
 Last updated: 2026-10-12
 
 ---
@@ -28,52 +28,55 @@ layout (F3–F7).
 
 ## Acceptance criteria
 
-- [ ] HEAD-1 · component — At desktop width, signed in, `/map` shows the map header: the wordmark
+- [x] HEAD-1 · component — At desktop width, signed in, `/map` shows the map header: the wordmark
   linking to `/`, then on the right the language control, a «Guardados» icon link to `/favorites`, an
   «Alertas» icon link to `/alerts` and the avatar linking to `/account`, and no section links.
-- [ ] HEAD-2 · component — At desktop width, signed out, `/map` shows the wordmark, the language
+- [x] HEAD-2 · component — At desktop width, signed out, `/map` shows the wordmark, the language
   control and «Entrar» linking to `/login`, and no link to saved cars, alerts or the account.
-- [ ] HEAD-3 · component — At desktop width, signed in, `/favorites`, `/alerts`, `/alerts/[id]` and
+- [x] HEAD-3 · component — At desktop width, signed in, `/favorites`, `/alerts`, `/alerts/[id]` and
   `/account` show the pages header: the wordmark, the language control, «Mapa» (`/map`), «Guardados»
   (`/favorites`), «Alertas» (`/alerts`) and the avatar (`/account`).
-- [ ] HEAD-4 · component — In the pages header exactly one destination is marked current
+- [x] HEAD-4 · component — In the pages header exactly one destination is marked current
   (`aria-current="page"`): «Guardados» on `/favorites`, «Alertas» on `/alerts` and on `/alerts/[id]`,
   and the avatar on `/account`, where no section link is current.
-- [ ] HEAD-5 · component — The landing `/` shows, signed out, the language control, «Entrar»
+- [x] HEAD-5 · component — The landing `/` shows, signed out, the language control, «Entrar»
   (`/login`) and «Crear cuenta» (`/register`); signed in, the pages header with no destination marked
   current.
-- [ ] HEAD-6 · component — The sign-in, account-recovery and legal pages (`/login`, `/register`,
+- [x] HEAD-6 · component — The sign-in, account-recovery and legal pages (`/login`, `/register`,
   `/forgot-password`, `/reset-password`, `/verify-email`, `/confirm-email`, `/privacy`, `/terms`) show
   the wordmark, the language control and «Volver al mapa» linking to `/map`, signed in or not.
-- [ ] HEAD-7 · component — At phone width each header shows the wordmark, the language control and
+- [x] HEAD-7 · component — At phone width each header shows the wordmark, the language control and
   one item on the right: the avatar on the signed-in pages and on the signed-in landing, «Entrar» on
   the signed-out landing, «Mapa» on the sign-in and account-recovery pages, and «Volver» on the legal
   pages; `/map` at phone width shows no app header.
-- [ ] HEAD-8 · component — At phone width, signed in, `/favorites`, `/alerts`, `/alerts/[id]` and
+- [x] HEAD-8 · component — At phone width, signed in, `/favorites`, `/alerts`, `/alerts/[id]` and
   `/account` show the bottom nav with «Mapa», «Guardados» and «Alertas» links, the current section
   marked as in HEAD-4 and none marked on `/account`; it is absent at desktop width, when signed out,
   and on every other page.
-- [ ] HEAD-9 · component — The avatar shows the upper-case first letter of the user's name, or of
+- [x] HEAD-9 · component — The avatar shows the upper-case first letter of the user's name, or of
   their email when they have no name, and its accessible name is «Cuenta» ("Account" in English).
-- [ ] HEAD-10 · component — The language control is a group named «Idioma» with one button per
+- [x] HEAD-10 · component — The language control is a group named «Idioma» with one button per
   locale; the active locale's button is pressed and the other is not; choosing the other locale writes
   the `locale` cookie and calls `setLocale` with it (amends ALERT-50 and keeps CORE-5).
-- [ ] HEAD-11 · component — While the session is resolving, no header offers signed-in or signed-out
+- [x] HEAD-11 · component — While the session is resolving, no header offers signed-in or signed-out
   destinations, and the header keeps the size it will have once the session resolves.
-- [ ] HEAD-12 · component — A session that ends while a signed-in header is on screen switches it to
+- [x] HEAD-12 · component — A session that ends while a signed-in header is on screen switches it to
   the signed-out header of the same page, without a reload.
-- [ ] HEAD-13 · component — The account page offers «Cerrar sesión»; using it ends the session and
+- [x] HEAD-13 · component — The account page offers «Cerrar sesión»; using it ends the session and
   returns the user to `/`.
-- [ ] HEAD-14 · component — No page renders a navigation menu sheet, a hamburger trigger or an
+- [x] HEAD-14 · component — No page renders a navigation menu sheet, a hamburger trigger or an
   account dropdown.
-- [ ] HEAD-15 · e2e — Every header control and every bottom-nav link at phone width has a hit area of
+- [x] HEAD-15 · e2e — Every header control and every bottom-nav link at phone width has a hit area of
   at least 44 × 44px (keeps NAV-2).
-- [ ] HEAD-16 · e2e — At 1024 and at 1440px wide, no header scrolls horizontally on `/`, `/map` and
+- [x] HEAD-16 · e2e — At 1024 and at 1440px wide, no header scrolls horizontally on `/`, `/map` and
   `/login`.
-- [ ] HEAD-17 · component — The bottom nav is offset from the bottom by the safe-area inset as well as
+- [x] HEAD-17 · component — The bottom nav is offset from the bottom by the safe-area inset as well as
   its 24px, and the root layout's viewport opts into the safe area (`viewport-fit=cover`).
-- [ ] HEAD-18 · e2e — Signed in at phone width, the last control of `/account` («Cerrar sesión») can
+- [x] HEAD-18 · e2e — Signed in at phone width, the last control of `/account` («Cerrar sesión») can
   be scrolled fully clear of the bottom nav and is clickable.
+- [x] HEAD-19 · e2e — Signed in at phone width, `/favorites` and `/alerts` scroll when their content is
+  taller than the screen, and their last element can be scrolled fully clear of the bottom nav (bug
+  fix, found 2026-10-12).
 
 ## Worked examples
 
@@ -93,6 +96,12 @@ layout (F3–F7).
 
 **HEAD-9** — name «Ada Lovelace» → «A»; no name, email `beatriz@example.com` → «B»; name «álvaro» →
 «Á».
+
+**HEAD-19 (bug fix)** — signed in at 390 × 844 on `/favorites`, with content 3,546px tall: today the
+page's container reports scrollHeight 3,546 against clientHeight 780 with `overflow-y: hidden`,
+`window.scrollBy(0, 600)` and the mouse wheel leave the content where it was, and everything below
+the screen is unreachable (the same on `/alerts`, 3,566px). Correct result: scrolling 600px moves the
+content up 600px, and at the end of the scroll the last element sits entirely above the bottom nav.
 
 **HEAD-10** — locale `es`: «ES» pressed, «EN» not; press «EN» → cookie `locale=en`, `setLocale("en")`
 called once.
@@ -137,7 +146,7 @@ i18n keys, both locales (`messages/es.json`, `messages/en.json`, `lib/i18n/types
 
 - New: `nav.map` («Mapa» / "Map"), `nav.saved` («Guardados» / "Saved"), `nav.alerts` («Alertas» /
   "Alerts"), `nav.backToMap` («Volver al mapa» / "Back to map"), `nav.back` («Volver» / "Back"),
-  `nav.language` («Idioma» / "Language"), `nav.createAccount` («Crear cuenta» / "Create account"),
+  `nav.language` («Idioma» / "Language"), `nav.main` («Principal» / "Main", the name of the header and bottom-nav landmarks), `nav.createAccount` («Crear cuenta» / "Create account"),
   `nav.localeEs` («Español» / "Spanish") and `nav.localeEn` («Inglés» / "English") as the language
   buttons' accessible names (their visible text stays «ES» / «EN»).
 - Kept: `nav.signIn`, `nav.signOut`, `nav.account`.

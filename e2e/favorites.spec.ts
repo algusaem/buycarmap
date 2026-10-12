@@ -14,7 +14,7 @@ const FAVORITE = /add to favorites|guardar en favoritos/i;
 const UNFAVORITE = /remove from favorites|quitar de favoritos/i;
 const AUDI = "Audi A3 2.0 TDI";
 // messages/en.json nav.favorites: "Saved cars"; messages/es.json: "Coches guardados".
-const SAVED_CARS = /saved cars|coches guardados/i;
+const SAVED_CARS = /^(saved|guardados)$/i;
 
 // Deliberately duplicated from auth.spec.ts rather than shared: five lines of
 // page-object glue, and coupling two spec files together to save them would
@@ -36,8 +36,8 @@ function audiCard(page: Page) {
  *
  * A click while the session is still loading is deliberately ignored (FAV-18),
  * so clicking too early is silently a no-op and the poll below times out. The
- * navbar swapping in the signed-in controls is the same hydration signal
- * `waitForPageToSettle` uses in visual.spec.ts.
+ * header swapping its skeletons for the signed-in «Guardados» link is the
+ * hydration signal (HEAD-11).
  *
  * This matters on `/favorites` and not on `/map`: the favorites page is
  * server-rendered, so the card is clickable on first paint, well before the
@@ -45,7 +45,9 @@ function audiCard(page: Page) {
  * fetches resolve, which hides the window.
  */
 async function waitForSession(page: Page) {
-  await expect(page.getByRole("navigation").getByRole("link", { name: SAVED_CARS })).toBeVisible({
+  await expect(
+    page.getByTestId("header-desktop").getByRole("link", { name: SAVED_CARS }),
+  ).toBeVisible({
     timeout: 15_000,
   });
 }

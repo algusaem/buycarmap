@@ -482,12 +482,18 @@
   },
   "nav": {
     "signIn": "Sign in",
-    "signUp": "Sign up",
     "signOut": "Sign out",
     "account": "Account",
-    "favorites": "Saved cars",
-    "menu": "Menu",
-    "closeMenu": "Close menu"
+    "map": "Map",
+    "saved": "Saved",
+    "alerts": "Alerts",
+    "backToMap": "Back to map",
+    "back": "Back",
+    "language": "Language",
+    "main": "Main",
+    "createAccount": "Create account",
+    "localeEs": "Spanish",
+    "localeEn": "English"
   },
   "meta": {
     "title": "Buy Car Map",

@@ -410,12 +410,18 @@ export interface Translations {
   };
   nav: {
     signIn: string;
-    signUp: string;
     signOut: string;
     account: string;
-    favorites: string;
-    menu: string;
-    closeMenu: string;
+    map: string;
+    saved: string;
+    alerts: string;
+    backToMap: string;
+    back: string;
+    language: string;
+    main: string;
+    createAccount: string;
+    localeEs: string;
+    localeEn: string;
   };
   meta: {
     title: string;
