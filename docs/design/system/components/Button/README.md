@@ -1,12 +1,22 @@
 # Button
 
-Píldoras de 44px: el principal en `lime` con texto `on-lime`, uno por vista, para lo que la pantalla viene a hacer (Buscar, Ver anuncio, Entrar, Ver coches).
+Píldoras `radius-pill`. El principal va en `lime` con texto `on-lime`, para lo que la pantalla viene a hacer (Buscar, Ver anuncio, Entrar, Ver coches). Uno por tarea: como mucho dos por vista cuando son tareas distintas (landing: «Crear cuenta» y «Buscar»; Alertas: «Nueva alerta» y «Ver anuncio»).
 
-- **Principal**: `lime` / `on-lime`, peso 800. Si lleva icono, a la izquierda.
-- **Secundario**: borde 1px `line`, texto `text`. Para Filtros, Guardar, Eliminar.
-- **Fantasma**: solo texto, para la navegación de cabecera (Crear alerta, Entrar) y para deshacer sin drama: «Quitar filtros». Al pasar el ratón o con foco, el texto pasa a `danger`.
-- **Peligro**: como el secundario, con borde `danger` al 60 % y texto `danger`. Solo para lo que no tiene vuelta atrás («Eliminar mi cuenta»), siempre con confirmación.
-- **De icono**: 42px redondo con borde `line` y `aria-label` obligatorio.
-- El enlace a un portal externo lleva a la derecha el icono `arrow-up-right` de Lucide (nunca el carácter «↗») y abre en pestaña nueva.
+- **Principal**: `lime` / `on-lime`, peso 800. Si lleva icono, a la izquierda; el de un portal externo, a la derecha.
+  - 56px a ancho completo, estilo `button-display` (Unbounded en mayúsculas), al final de un formulario o de los filtros: «ENTRAR», «VER COCHES».
+  - 54px, «Buscar» del buscador de la landing: padding 0 24px, lupa de 17px y 7px de hueco (las proporciones de «Ver anuncio»), 16px.
+  - 52px a ancho completo, «Buscar» de la landing móvil, 16px, sin icono.
+  - 48px, acciones de un EmptyState: padding 0 22px, 15px.
+  - 42px, «Ver anuncio» de la vista previa: padding 0 16px, 14px.
+  - Pequeño, por padding: 11px 20px a 15px («Crear cuenta» en la cabecera de la landing) y 10px 16px a 14px («Nueva alerta»).
+- **Secundario**: borde 1px `line`, texto `text`, peso 700. 48px a 15px con padding 0 20px («Volver al mapa» en un error de página); 44px a 14px con padding 0 18px (botones de AccountCard); 10px 16px a 14px («Cerrar sesión»).
+  - Con icono: «Filtros», 10px 16px a 14px, icono de ajustes de tres mandos de 16px, 8px de hueco y la insignia `violet` con el número.
+- **Fantasma**: solo texto, peso 700, en `text`.
+  - Navegación de cabecera: 15px, padding 10px 16px («Crear alerta», «Entrar», «Mapa»).
+  - Deshacer sin drama: «Quitar filtros», 48px a 15px con padding 0 14px. Al pasar el ratón o con foco, el texto pasa a `danger`.
+- **Peligro**: 44px, padding 0 18px, 14px peso 700, borde `danger` al 60 % y texto `danger`. Solo para lo que no tiene vuelta atrás («Eliminar mi cuenta»), siempre con confirmación.
+- **De icono**: 42px redondo con borde `line` y `aria-label` obligatorio (Guardar, Favoritos). Guardado: relleno `violet` sin borde y el corazón relleno en `on-violet`. 40px para cerrar un panel (FilterSheet), con la `x` de 14px.
+- **De texto**: «Borrar» del panel de filtros, 14px peso 700 subrayado.
+- **Enlaces de texto**: en `text`; al pasar el ratón, `lime`. «Créala» y «Entra», al pie de los formularios de acceso, ya van en `lime` peso 700 porque son la siguiente acción.
+- El enlace a un portal externo lleva a la derecha el icono `arrow-up-right` de Lucide (15px, a 6px del texto; nunca el carácter «↗») y abre en pestaña nueva.
 - Foco visible: contorno 2px `lime` separado 3px.
-- A ancho completo al final de un formulario se usa el estilo `button-display` (Unbounded en mayúsculas): «VER COCHES», «ENTRAR».

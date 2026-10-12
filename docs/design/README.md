@@ -6,17 +6,22 @@ will be written against.
 
 ## Where it lives
 
-The design is edited in two claude.ai artifacts. The copies in this folder are snapshots of them, so
-the design survives without the artifacts and travels with the code.
+**This folder is the source of truth**, and the design is viewed in the Claude Design project
+[BuyCarMap 2.0](https://claude.ai/design/p/838f9ee3-0bcc-4990-8c5a-5a685806db48), which is published
+from it (its id is pinned in `.design-sync/config.json`):
 
-| | Edited in | Snapshot here |
+| | Source here | In the project |
 | --- | --- | --- |
-| Screens and UI kit | [Design canvas](https://claude.ai/artifact/9TxaFxZY17u59e2L1DEZjf) | `docs/design/canvas/` |
-| Design system | [Design system](https://claude.ai/artifact/Rzes1CqbkBtFkVBjG2nihj) | `docs/design/system/` |
+| Screens and UI kit | `docs/design/canvas/` | groups "Pantallas" and "UI Kit", one card per artboard in journey order |
+| Design system | `docs/design/system/` | tokens, README and one card per component |
 
-**The artifacts are the source of truth while the design is still moving.** After a change there,
-re-export the files here in the same pull request that depends on them; never edit the snapshot by
-hand.
+A design change is made here, shown to the owner, and republished to the project in the same pull
+request, so the two never differ.
+
+The first version lived in two claude.ai artifacts, a canvas
+(`https://claude.ai/artifact/9TxaFxZY17u59e2L1DEZjf`) and a design system
+(`https://claude.ai/artifact/Rzes1CqbkBtFkVBjG2nihj`). They are frozen at commit `944a770`: an
+artifact created from an artifact type cannot be published to from a coding session.
 
 A Figma copy exists too ([BuyCarMap — Rediseño](https://www.figma.com/design/j0j8TrycVYlM50otNVJNdU)),
 with the first screens and a component library. It is well behind the canvas — it predates the
@@ -72,6 +77,15 @@ screen structure, icons and accessibility. `system/tokens.json` holds every toke
 - [AccountCard](system/components/AccountCard/README.md)
 - [PasswordField](system/components/PasswordField/README.md)
 - [Footer](system/components/Footer/README.md)
+- [Toast](system/components/Toast/README.md)
+- [Select](system/components/Select/README.md)
+- [StatusPill](system/components/StatusPill/README.md)
+- [HeaderNav](system/components/HeaderNav/README.md)
+- [AlertCard](system/components/AlertCard/README.md)
+- [GoogleButton](system/components/GoogleButton/README.md)
+- [MapZoom](system/components/MapZoom/README.md)
+- [FilterSheet](system/components/FilterSheet/README.md)
+- [Cover](system/components/Cover/README.md)
 
 ## Relation to `DESIGN.md`
 

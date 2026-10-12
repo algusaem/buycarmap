@@ -1,4 +1,4 @@
-<!-- @dsCard group="Mapa" height=220 subtitle="Pines con precio sobre el mapa oscuro" -->
+<!-- @dsCard group="Mapa" height=420 subtitle="Pines con precio: escritorio y móvil" -->
 <!doctype html>
 <html lang="es">
 <head>
@@ -6,25 +6,34 @@
 <title>PricePin</title>
 <link href="https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;flex-direction:column;gap:var(--space-5)}
 .map{position:relative;height:220px;background:var(--map-ground);overflow:hidden}
+.map.sm{width:390px;height:180px}
 .map svg{position:absolute;inset:0}
 .road{stroke:var(--map-road);fill:none}
 .major{stroke:var(--map-road-major);fill:none}
+.minor{stroke:var(--map-road-minor);fill:none}
 .water{fill:var(--map-water)}
 .pin{all:unset;cursor:pointer;position:absolute;padding:7px 13px;border-radius:var(--radius-pill);font-size:14px;font-weight:700;background:var(--surface);border:1px solid var(--line);color:var(--text)}
-.pin.on{background:var(--lime);color:var(--on-lime);border-color:var(--lime);font-weight:800;box-shadow:var(--shadow-pin-active)}
+.pin.on{background:var(--lime);color:var(--on-lime);border:0;font-weight:800;box-shadow:var(--shadow-pin-active)}
 .pin.group{font-weight:800}
+.sm .pin{padding:6px 11px;font-size:13px}
 .pin:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
 </style>
 </head>
 <body>
 <div class="map" role="img" aria-label="Mapa con cuatro pines de precio">
-  <svg width="100%" height="220" viewBox="0 0 960 220" preserveAspectRatio="none" aria-hidden="true"><path class="water" d="M-10 170 C 200 140 400 200 600 160 S 900 120 970 140 L 970 230 L -10 230 Z"/><path class="road" stroke-width="12" d="M-10 60 C 250 90 500 30 970 80"/><path class="major" stroke-width="10" d="M300 -10 C 330 80 360 150 340 230"/><path class="road" stroke-width="6" d="M640 -10 L 700 230"/></svg>
+  <svg width="100%" height="220" viewBox="0 0 960 220" preserveAspectRatio="none" aria-hidden="true"><path class="water" d="M-10 170 C 200 140 400 200 600 160 S 900 120 970 140 L 970 230 L -10 230 Z"/><path class="road" stroke-width="12" d="M-10 60 C 250 90 500 30 970 80"/><path class="major" stroke-width="10" d="M300 -10 C 330 80 360 150 340 230"/><path class="minor" stroke-width="3" d="M-10 120 L 970 140"/><path class="minor" stroke-width="3" d="M640 -10 L 700 230"/></svg>
   <button class="pin" type="button" style="left:120px;top:40px">14.500 €</button>
   <button class="pin on" type="button" style="left:380px;top:90px">16.500 €</button>
   <button class="pin" type="button" style="left:560px;top:30px">9.400 €</button>
   <button class="pin group" type="button" style="left:740px;top:110px">3 coches · desde 9.500 €</button>
+</div>
+<div class="map sm" role="img" aria-label="Mapa móvil con tres pines de precio">
+  <svg width="390" height="180" viewBox="0 0 390 180" aria-hidden="true"><path class="water" d="M-20 140 C 80 120 160 160 260 140 S 360 110 420 120 L 420 200 L -20 200 Z"/><path class="major" stroke-width="9" d="M60 -10 C 90 60 150 100 170 190"/><path class="road" stroke-width="9" d="M-10 60 C 120 80 240 40 400 70"/></svg>
+  <button class="pin" type="button" style="left:36px;top:30px">14.500 €</button>
+  <button class="pin on" type="button" style="left:186px;top:90px">16.500 €</button>
+  <button class="pin" type="button" style="left:262px;top:20px">9.400 €</button>
 </div>
 </body>
 </html>

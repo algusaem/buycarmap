@@ -1,0 +1,78 @@
+<!-- @dsCard group="Navegación" height=640 subtitle="Cabeceras: mapa, páginas, Cuenta, landing y móvil, con el avatar y su aro" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>HeaderNav</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6) 0;background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;flex-direction:column;gap:var(--space-6)}
+header{height:80px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-8);border-bottom:1px solid var(--line-soft)}
+header.open{padding:0 var(--space-12);border-bottom:0}
+.w{font-family:var(--font-display);font-size:20px;font-weight:900;color:var(--text);text-decoration:none}
+.w span{color:var(--lime)}
+nav{display:flex;align-items:center}
+.map-nav{gap:10px}
+.pages{gap:6px;font-size:15px;font-weight:700}
+a{color:var(--text)}
+a:hover{color:var(--lime)}
+.link{text-decoration:none;padding:10px 16px;font-size:15px;font-weight:700;border-radius:var(--radius-pill)}
+.link[aria-current="page"],.link[aria-current="page"]:hover{background:var(--text);color:var(--bg)}
+.primary{text-decoration:none;padding:11px 20px;font-size:15px;font-weight:800;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime)}
+.primary:hover{color:var(--on-lime)}
+.icon{all:unset;cursor:pointer;box-sizing:border-box;width:42px;height:42px;border:1px solid var(--line);border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;color:var(--text)}
+.av{width:42px;height:42px;border-radius:var(--radius-pill);background:var(--violet);color:var(--on-violet);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:15px;font-weight:800;text-decoration:none}
+.av:hover{color:var(--on-violet)}
+.pages .av{margin-left:8px}
+.av[aria-current="page"]{box-shadow:var(--shadow-current)}
+.phones{display:flex;gap:var(--space-6);padding:0 var(--space-8);flex-wrap:wrap}
+.m{width:390px;height:64px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-5);border-bottom:1px solid var(--line-soft)}
+.m.open{border-bottom:0}
+.m .w{font-size:16px}
+.m .av{width:36px;height:36px;font-size:13px}
+.m .av[aria-current="page"]{box-shadow:var(--shadow-current-sm)}
+.m .txt{font-size:14px;font-weight:700;text-decoration:none}
+.link:focus-visible,.primary:focus-visible,.icon:focus-visible,.av:focus-visible,.w:focus-visible,.txt:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+</style>
+</head>
+<body>
+<header>
+  <a class="w" href="#">BUYCAR<span>MAP</span></a>
+  <nav class="map-nav" aria-label="Principal">
+    <a class="link" href="#">Crear alerta</a>
+    <button class="icon" type="button" aria-label="Favoritos"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+    <a class="av" href="#" aria-label="Cuenta">A</a>
+  </nav>
+</header>
+<header>
+  <a class="w" href="#">BUYCAR<span>MAP</span></a>
+  <nav class="pages" aria-label="Principal">
+    <a class="link" href="#">Mapa</a>
+    <a class="link" href="#" aria-current="page">Guardados</a>
+    <a class="link" href="#">Alertas</a>
+    <a class="av" href="#" aria-label="Cuenta">A</a>
+  </nav>
+</header>
+<header>
+  <a class="w" href="#">BUYCAR<span>MAP</span></a>
+  <nav class="pages" aria-label="Principal">
+    <a class="link" href="#">Mapa</a>
+    <a class="link" href="#">Guardados</a>
+    <a class="link" href="#">Alertas</a>
+    <a class="av" href="#" aria-current="page" aria-label="Cuenta">A</a>
+  </nav>
+</header>
+<header class="open">
+  <a class="w" href="#">BUYCAR<span>MAP</span></a>
+  <nav class="map-nav" aria-label="Principal">
+    <a class="link" href="#">Entrar</a>
+    <a class="primary" href="#">Crear cuenta</a>
+  </nav>
+</header>
+<div class="phones">
+  <div class="m"><a class="w" href="#">BUYCAR<span>MAP</span></a><a class="av" href="#" aria-label="Cuenta">A</a></div>
+  <div class="m"><a class="w" href="#">BUYCAR<span>MAP</span></a><a class="av" href="#" aria-current="page" aria-label="Cuenta">A</a></div>
+  <div class="m open"><a class="w" href="#">BUYCAR<span>MAP</span></a><a class="txt" href="#">Entrar</a></div>
+</div>
+</body>
+</html>

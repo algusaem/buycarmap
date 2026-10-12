@@ -1,4 +1,4 @@
-<!-- @dsCard group="Mapa" height=360 subtitle="Vista previa al pulsar un pin" -->
+<!-- @dsCard group="Mapa" height=380 subtitle="Vista previa al pulsar un pin: sin guardar y guardada" -->
 <!doctype html>
 <html lang="es">
 <head>
@@ -6,26 +6,37 @@
 <title>MapPreview</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800&amp;family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;padding:var(--space-6);background:var(--map-ground);color:var(--text);font-family:var(--font-sans)}
-.card{width:340px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:var(--space-3);display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow-float)}
-.photo{position:relative;height:170px;border-radius:var(--radius-field);background:var(--photo-placeholder)}
-.x{all:unset;cursor:pointer;position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:var(--radius-pill);background:var(--scrim);display:flex;align-items:center;justify-content:center}
+body{margin:0;padding:var(--space-6);background:var(--map-ground);color:var(--text);font-family:var(--font-sans);display:flex;gap:var(--space-6);flex-wrap:wrap;align-items:flex-start}
+.card{width:340px;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-preview);padding:var(--space-3);display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow-float)}
+.photo{position:relative;height:170px;border-radius:var(--radius-field)}
+.t3{background:var(--photo-tint-3)}.t5{background:var(--photo-tint-5)}
+.x{all:unset;cursor:pointer;position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:var(--radius-pill);background:var(--scrim);color:var(--text);display:flex;align-items:center;justify-content:center}
 .src{position:absolute;top:12px;left:12px;background:var(--scrim);border-radius:var(--radius-pill);padding:5px 10px;font-size:12px;font-weight:700}
 .top{display:flex;justify-content:space-between;align-items:baseline}
 .t{font-size:16px;font-weight:700}
-.m{font-size:14px;color:var(--text-muted)}
+.c{font-size:13px;color:var(--text-muted)}
+.m{font-size:14px;color:var(--text-muted);margin-top:-6px}
 .row{display:flex;align-items:center;gap:8px}
-.p{flex:1;font-family:var(--font-display);font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--lime)}
-.icon{all:unset;cursor:pointer;width:42px;height:42px;border-radius:var(--radius-pill);border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
-.go{height:42px;padding:0 var(--space-4);border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime);display:flex;align-items:center;font-size:14px;font-weight:800;text-decoration:none}
+.p{flex:1;font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--lime);white-space:nowrap}
+.icon{all:unset;cursor:pointer;box-sizing:border-box;width:42px;height:42px;border-radius:var(--radius-pill);border:1px solid var(--line);color:var(--text);display:flex;align-items:center;justify-content:center}
+.icon[aria-pressed="true"]{background:var(--violet);border:0;color:var(--on-violet)}
+.go{height:42px;padding:0 16px;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime);display:flex;align-items:center;font-size:14px;font-weight:800;text-decoration:none;white-space:nowrap}
+.go svg{margin-left:6px;flex-shrink:0}
+.x:focus-visible,.icon:focus-visible,.go:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
 </style>
 </head>
 <body>
 <article class="card" aria-label="Vista previa del coche">
-  <div class="photo"><span class="src">Milanuncios</span><button class="x" type="button" aria-label="Cerrar vista previa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-  <div class="top"><span class="t">SEAT León 1.5 TSI FR</span><span class="m">Sevilla</span></div>
+  <div class="photo t3"><span class="src">Milanuncios</span><button class="x" type="button" aria-label="Cerrar vista previa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="top"><span class="t">SEAT León 1.5 TSI FR</span><span class="c">Sevilla</span></div>
   <span class="m">2020 · 64.000 km · Gasolina</span>
-  <div class="row"><span class="p">16.500 €</span><button class="icon" type="button" aria-label="Guardar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button><a class="go" href="#">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left: 6px; flex-shrink: 0"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></div>
+  <div class="row"><span class="p">16.500 €</span><button class="icon" type="button" aria-pressed="false" aria-label="Guardar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button><a class="go" href="#">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></div>
+</article>
+<article class="card" aria-label="Vista previa del coche guardado">
+  <div class="photo t5"><span class="src">coches.net</span><button class="x" type="button" aria-label="Cerrar vista previa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="top"><span class="t">Toyota Corolla 125H</span><span class="c">Majadahonda</span></div>
+  <span class="m">2020 · 61.000 km · Híbrido</span>
+  <div class="row"><span class="p">16.200 €</span><button class="icon" type="button" aria-pressed="true" aria-label="Quitar de guardados"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button><a class="go" href="#">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></div>
 </article>
 </body>
 </html>

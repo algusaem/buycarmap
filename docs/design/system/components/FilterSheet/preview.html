@@ -1,0 +1,66 @@
+<!-- @dsCard group="Filtros" height=760 subtitle="Panel de filtros en móvil: precio, combustible, cambio, km y año" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>FilterSheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6) 0;background:var(--bg);color:var(--text);font-family:var(--font-sans)}
+.dlg{width:390px;margin:0 auto;background:var(--bg);display:flex;flex-direction:column}
+.head{height:70px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-5);border-bottom:1px solid var(--line-soft)}
+.close{all:unset;cursor:pointer;box-sizing:border-box;width:40px;height:40px;border-radius:var(--radius-pill);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text)}
+.title{font-family:var(--font-display);font-size:16px;font-weight:800;text-transform:uppercase}
+.clear{all:unset;cursor:pointer;font-size:14px;font-weight:700;text-decoration:underline}
+.body{padding:22px var(--space-5);display:flex;flex-direction:column;gap:26px}
+.sec{display:flex;flex-direction:column;gap:12px}
+.lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
+.range{position:relative;height:4px;background:var(--line);border-radius:var(--radius-pill);margin:10px 8px}
+.range .fill{position:absolute;left:8%;right:34%;top:0;bottom:0;background:var(--lime);border-radius:var(--radius-pill)}
+.range .knob{all:unset;cursor:pointer;position:absolute;top:-10px;width:24px;height:24px;margin-left:-12px;border-radius:var(--radius-pill);background:var(--lime)}
+.pair{display:flex;gap:10px}
+.box{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-field);padding:10px 14px;display:flex;flex-direction:column}
+.box span{font-size:11px;color:var(--text-muted)}
+.box strong{font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{all:unset;cursor:pointer;padding:10px 16px;border-radius:var(--radius-pill);font-size:14px;font-weight:600;border:1px solid var(--line);color:var(--text)}
+.chip[aria-pressed="true"]{background:var(--violet);color:var(--on-violet);border:0;font-weight:800}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-pill);padding:4px}
+.seg button{all:unset;cursor:pointer;flex:1;text-align:center;padding:10px;border-radius:var(--radius-pill);font-size:14px;font-weight:600}
+.seg button[aria-checked="true"]{background:var(--text);color:var(--bg);font-weight:800}
+.field{all:unset;cursor:pointer;flex:1;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-field);padding:12px 14px;font-size:15px}
+.foot{padding:14px var(--space-5) 28px;border-top:1px solid var(--line-soft)}
+.go{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:100%;height:56px;box-sizing:border-box;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime);font-family:var(--font-display);font-size:15px;font-weight:800;text-transform:uppercase}
+.close:focus-visible,.clear:focus-visible,.knob:focus-visible,.chip:focus-visible,.seg button:focus-visible,.field:focus-visible,.go:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="dlg" role="dialog" aria-label="Filtros">
+  <div class="head">
+    <button class="close" type="button" aria-label="Cerrar filtros"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <strong class="title">Filtros</strong>
+    <button class="clear" type="button">Borrar</button>
+  </div>
+  <div class="body">
+    <div class="sec">
+      <span class="lbl">Precio</span>
+      <div class="range"><span class="fill"></span><button class="knob" type="button" role="slider" aria-label="Precio mínimo" aria-valuetext="3.000 €" style="left:8%"></button><button class="knob" type="button" role="slider" aria-label="Precio máximo" aria-valuetext="20.000 €" style="left:66%"></button></div>
+      <div class="pair"><span class="box"><span>Mínimo</span><strong>3.000 €</strong></span><span class="box"><span>Máximo</span><strong>20.000 €</strong></span></div>
+    </div>
+    <div class="sec">
+      <span class="lbl">Combustible</span>
+      <div class="chips"><button class="chip" type="button" aria-pressed="true">Gasolina</button><button class="chip" type="button" aria-pressed="true">Diésel</button><button class="chip" type="button" aria-pressed="false">Híbrido</button><button class="chip" type="button" aria-pressed="false">Eléctrico</button><button class="chip" type="button" aria-pressed="false">GLP</button></div>
+    </div>
+    <div class="sec">
+      <span class="lbl" id="cambio">Cambio</span>
+      <div class="seg" role="radiogroup" aria-labelledby="cambio"><button type="button" role="radio" aria-checked="true">Todos</button><button type="button" role="radio" aria-checked="false">Manual</button><button type="button" role="radio" aria-checked="false">Automático</button></div>
+    </div>
+    <div class="sec">
+      <span class="lbl">Kilómetros y año</span>
+      <div class="pair"><button class="field" type="button">Hasta 100.000 km</button><button class="field" type="button">Desde 2017</button></div>
+    </div>
+  </div>
+  <div class="foot"><button class="go" type="button">Ver coches</button></div>
+</div>
+</body>
+</html>

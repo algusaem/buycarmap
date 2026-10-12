@@ -402,8 +402,9 @@ coded.**
   the UI Kit when it touches them.
 - Show the owner the updated design and stop. The owner accepts or rejects it; only an accepted
   design moves on to its spec (`RULES.md` §4) and code.
-- Re-export the changed files into `docs/design/` in the same change, so the repo and the
-  artifacts never differ.
+- Republish the changed files from `docs/design/` to the Claude Design project in the same change
+  (`DesignSync`, project pinned in `.design-sync/config.json`), so the repo and the project never
+  differ.
 - Code that disagrees with the design is a bug. If the code turns out to need something different,
   amend the design first and get it accepted again.
 

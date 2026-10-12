@@ -18,7 +18,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);overflo
 .pin{fill:var(--surface);stroke:var(--line);stroke-width:1}
 .pin.on{fill:var(--lime);stroke:none}
 .halo{fill:var(--lime-glow)}
-.words{position:absolute;left:var(--space-8);bottom:var(--space-8);max-width:440px}
+.words{position:absolute;left:var(--space-8);bottom:var(--space-8);max-width:560px}
 .name{margin:0;font-family:var(--font-display);font-size:64px;font-weight:900;line-height:.95;letter-spacing:-.01em;color:var(--text)}
 .tag{margin:var(--space-2) 0 0 2px;font-size:14px;line-height:20px;color:var(--text-muted)}
 </style>
@@ -30,7 +30,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);overflo
   blocks      lime 224 wide (the one light, largest) · map-ground 448 wide holding the map · map-water 128 · surface 160 bleeding off the right — a full-width top band 112 tall
   arrangement one strip of unequal bands, flush, like the split screen: accent, map, water, panel
   pattern     price pins, from "the pins are pills with the price; the active one turns lime with a halo": six radius-pill pills at a space-12 pitch over the map band, one lime with its halo
-  scales      pill 64×24 (rx 12 = half its height, radius-pill); pitch space-12 (48) plus gaps of space-6; band height space-12 + space-16
+  scales      pill 64×24 (rx 12 = half its height, radius-pill); pitch space-12 (48) plus gaps of space-6; band height 112 (space-12 + 64)
 -->
 <rect class="lime" x="0" y="0" width="224" height="112"/>
 <rect class="ground" x="224" y="0" width="448" height="112"/>
