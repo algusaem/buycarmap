@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Alerta</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&amp;family=Rethink+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F4F2F0}a:hover{color:#C6FF3D}
+</style>
+</helmet>
+<div style="width: 1970px; height: 900px; box-sizing: border-box; padding: 0 50px 0 40px; display: flex; gap: 50px; align-items: center; background: #000000; font-family: 'Rethink Sans', system-ui, sans-serif; color: #F4F2F0">
+
+  <div style="width: 1440px; height: 900px; background: #0F0F10; display: flex; flex-direction: column; overflow: hidden">
+    <header style="height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid #232326">
+      <a href="#" style="font-family: Unbounded, sans-serif; font-size: 20px; font-weight: 900; text-decoration: none">BUYCAR<span style="color: #C6FF3D">MAP</span></a>
+      <nav style="display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700">
+        <div role="group" aria-label="Idioma" style="display: flex; align-items: center; font-family: 'Rethink Sans', system-ui, sans-serif; font-size: 13px; font-weight: 600"><button type="button" aria-pressed="true" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #F4F2F0">ES</button><span aria-hidden="true" style="color: #A3A0A6">·</span><button type="button" aria-pressed="false" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #A3A0A6">EN</button></div>
+        <a href="#" style="text-decoration: none; padding: 10px 16px">Mapa</a>
+        <a href="#" style="text-decoration: none; padding: 10px 16px">Guardados</a>
+        <a href="#" aria-current="page" style="text-decoration: none; padding: 10px 16px; border-radius: 999px; background: #F4F2F0; color: #0F0F10">Alertas</a>
+        <span style="width: 42px; height: 42px; margin-left: 8px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 800">A</span>
+      </nav>
+    </header>
+    <div style="flex: 1; display: flex; min-height: 0">
+      <section style="width: 830px; flex-shrink: 0; padding: 30px 32px; display: flex; flex-direction: column; gap: 20px; overflow: hidden">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end"><h1 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 40px; font-weight: 900; line-height: 0.9; letter-spacing: -0.015em; text-transform: uppercase">Alertas</h1><a href="#" style="text-decoration: none; font-size: 14px; font-weight: 800; padding: 10px 16px; border-radius: 999px; background: #C6FF3D; color: #0F0F10">Nueva alerta</a></div>
+        <p style="margin: 0; font-size: 15px; color: #A3A0A6">El que no corre vuela, guárdalo y nosotros te avisamos.</p>
+        <sc-for list="{{alerts}}" as="a" hint-placeholder-count="3">
+          <article style="{{a.style}}">
+            <div style="display: flex; justify-content: space-between; align-items: center"><strong style="font-family: Unbounded, sans-serif; font-size: 17px; font-weight: 800; text-transform: uppercase">{{a.name}}</strong><span style="{{a.badge}}">{{a.matches}}</span></div>
+            <sc-if value="{{a.off}}" hint-placeholder-val="{{ false }}"><span style="font-size: 14px; color: #A3A0A6">{{a.summary}}</span></sc-if>
+            <sc-if value="{{a.on}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-wrap: wrap; gap: 6px">
+                <sc-for list="{{a.criteria}}" as="c" hint-placeholder-count="3"><span style="font-size: 13px; font-weight: 600; border: 1px solid #2A2A2E; border-radius: 999px; padding: 6px 11px">{{c}}</span></sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{a.on}}" hint-placeholder-val="{{ true }}">
+              <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+                <sc-for list="{{matches}}" as="m" hint-placeholder-count="4">
+                  <article style="display: flex; flex-direction: column; gap: 4px">
+                    <span style="height: 110px; border-radius: 16px; background: {{m.tint}};{{m.ring}}"></span>
+                    <span style="font-size: 12px; font-weight: 700; color: #A3A0A6; margin-top: 4px">{{m.source}}</span>
+                    <strong style="font-size: 15px">{{m.title}}</strong>
+                    <span style="font-size: 13px; color: #A3A0A6">{{m.year}} · {{m.km}}</span>
+                    <span style="font-family: Unbounded, sans-serif; font-size: 18px; font-weight: 800; color: #C6FF3D; margin-top: 2px">{{m.price}}</span>
+                  </article>
+                </sc-for>
+              </div>
+            </sc-if>
+            <div style="display: flex; justify-content: space-between; font-size: 13px; color: #A3A0A6"><span>Creada {{a.created}}</span><sc-if value="{{a.on}}" hint-placeholder-val="{{ true }}"><button type="button" style="all: unset; cursor: pointer; font-weight: 700; color: #F4F2F0">{{a.action}}</button></sc-if></div>
+          </article>
+        </sc-for>
+      </section>
+      <section aria-label="Mapa de la alerta" style="flex: 1; position: relative; background: #141416; overflow: hidden; border-left: 1px solid #232326">
+        <svg width="610" height="820" viewBox="0 0 610 820" style="position: absolute; inset: 0" aria-hidden="true">
+          <path d="M-20 520 C 120 480 180 560 320 520 S 520 430 660 470 L 660 840 L -20 840 Z" fill="#111A22"/>
+          <path d="M-10 120 C 140 160 260 90 400 150 S 560 250 640 220" stroke="#232327" stroke-width="12" fill="none"/>
+          <path d="M80 -10 C 120 160 210 260 230 420 S 260 640 300 840" stroke="#2B2B30" stroke-width="10" fill="none"/>
+          <path d="M-10 330 C 160 320 330 360 640 320" stroke="#232327" stroke-width="7" fill="none"/>
+          <circle cx="305" cy="300" r="200" fill="#C6FF3D" fill-opacity="0.1" stroke="#C6FF3D" stroke-opacity="0.8" stroke-width="2"/>
+          <circle cx="305" cy="300" r="7" fill="#F4F2F0" stroke="#0F0F10" stroke-width="3"/>
+        </svg>
+        <span style="position: absolute; top: 18px; left: 18px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 10px 16px; font-size: 14px; font-weight: 700">Corolla híbrido · <span style="color: #C6FF3D">Madrid · 50 km</span></span>
+        <sc-for list="{{pins}}" as="p" hint-placeholder-count="4"><span style="{{p.style}}">{{p.label}}</span></sc-for>
+        <article aria-label="Vista previa del coche" style="position: absolute; left: 160px; top: 425px; width: 340px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 24px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 24px 50px rgba(0,0,0,0.55)">
+          <div style="height: 170px; border-radius: 16px; background: #2A2F33; position: relative">
+            <button type="button" aria-label="Cerrar vista previa" style="all: unset; cursor: pointer; position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 999px; background: rgba(15,15,16,0.85); display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F4F2F0" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700">coches.net</span>
+            
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline"><strong style="font-size: 16px">Toyota Corolla 125H</strong><span style="font-size: 13px; color: #A3A0A6">Majadahonda</span></div>
+          <span style="font-size: 14px; color: #A3A0A6; margin-top: -6px">2020 · 61.000 km · Híbrido</span>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <strong style="font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; color: #C6FF3D; flex: 1; white-space: nowrap">16.200 €</strong>
+            <button type="button" aria-label="Guardar" style="all: unset; cursor: pointer; width: 42px; height: 42px; border-radius: 999px; border: 1px solid #2A2A2E; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4F2F0" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+            <a href="#" style="height: 42px; padding: 0 16px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; display: flex; align-items: center; font-size: 14px; font-weight: 800; text-decoration: none; white-space: nowrap">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left: 6px; flex-shrink: 0"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
+          </div>
+        </article>
+      </section>
+    </div>
+  </div>
+
+  <div style="width: 390px; height: 844px; border-radius: 44px; background: #0F0F10; overflow: hidden; position: relative; box-shadow: 0 0 0 10px #232326, 0 30px 60px rgba(0,0,0,0.6); display: flex; flex-direction: column; flex-shrink: 0">
+    <div style="height: 64px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #232326"><div style="display: flex; align-items: center; gap: 12px"><a href="#" aria-label="Volver" style="box-sizing: border-box; width: 40px; height: 40px; border-radius: 999px; border: 1px solid #2A2A2E; display: flex; align-items: center; justify-content: center; color: #F4F2F0; text-decoration: none; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><span style="font-family: Unbounded, sans-serif; font-size: 16px; font-weight: 900">BUYCAR<span style="color: #C6FF3D">MAP</span></span></div><div style="display: flex; align-items: center"><div role="group" aria-label="Idioma" style="display: flex; align-items: center; font-family: 'Rethink Sans', system-ui, sans-serif; font-size: 13px; font-weight: 600"><button type="button" aria-pressed="true" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #F4F2F0">ES</button><span aria-hidden="true" style="color: #A3A0A6">·</span><button type="button" aria-pressed="false" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #A3A0A6">EN</button></div></div></div>
+    <div style="flex: 1; min-height: 0; overflow: hidden">
+    <div style="padding: 22px 20px 121px; display: flex; flex-direction: column; gap: 14px">
+      <h1 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 34px; font-weight: 900; line-height: 1.06; letter-spacing: 0; text-transform: uppercase; text-wrap: balance">Corolla híbrido</h1>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="font-size: 13px; font-weight: 600; border-radius: 999px; padding: 6px 11px; border: 1px solid #2A2A2E; color: #F4F2F0; white-space: nowrap">Toyota Corolla</span><span style="font-size: 13px; font-weight: 600; border-radius: 999px; padding: 6px 11px; border: 1px solid #2A2A2E; color: #F4F2F0; white-space: nowrap">Híbrido</span><span style="font-size: 13px; font-weight: 600; border-radius: 999px; padding: 6px 11px; border: 1px solid #2A2A2E; color: #F4F2F0; white-space: nowrap">Hasta 18.000 €</span><span style="font-size: 13px; font-weight: 600; border-radius: 999px; padding: 6px 11px; border: 1px solid #2A2A2E; color: #F4F2F0; white-space: nowrap">Madrid · 50 km</span></div>
+      <span style="font-size: 13px; color: #A3A0A6">Creada el 2 de octubre</span>
+      <section aria-label="Zona de la alerta" style="width: 350px; box-sizing: border-box; height: 180px; flex-shrink: 0; border-radius: 22px; border: 1px solid #2A2A2E; background: #141416; position: relative; overflow: hidden">
+        <svg width="350" height="180" viewBox="0 0 350 180" style="position: absolute; inset: 0" aria-hidden="true">
+          <path d="M-10 128 C 70 118 104 138 184 128 S 298 106 360 116 L 360 190 L -10 190 Z" fill="#111A22"/>
+          <path d="M-6 30 C 80 40 150 22 230 37 S 322 62 360 54" stroke="#232327" stroke-width="6" fill="none"/>
+          <path d="M46 -4 C 69 40 120 64 132 104 S 150 160 172 190" stroke="#2B2B30" stroke-width="5" fill="none"/>
+          <path d="M-6 82 C 92 80 190 90 360 80" stroke="#232327" stroke-width="4" fill="none"/>
+          <path d="M250 -4 C 246 50 270 110 262 190" stroke="#1C1C20" stroke-width="3" fill="none"/>
+          <circle cx="215" cy="96" r="64" fill="#C6FF3D" fill-opacity="0.1" stroke="#C6FF3D" stroke-opacity="0.8" stroke-width="2"/>
+          <circle cx="215" cy="96" r="7" fill="#F4F2F0" stroke="#0F0F10" stroke-width="3"/>
+        </svg>
+        <span style="position: absolute; top: 18px; left: 18px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 10px 16px; font-size: 14px; font-weight: 700; color: #C6FF3D; white-space: nowrap">Madrid · 50 km</span>
+      </section>
+      <h2 style="margin: 10px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #A3A0A6">4 coincidencias</h2>
+        <button type="button" aria-haspopup="dialog" style="all: unset; cursor: pointer; display: flex; gap: 14px; align-items: center; color: #F4F2F0">
+          <span style="width: 110px; height: 86px; border-radius: 18px; background: #2A2F33; flex-shrink: 0"></span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">Toyota Corolla 125H</strong><span style="font-size: 13px; color: #A3A0A6">2020 · 61.000 km</span><span style="font-family: Unbounded, sans-serif; font-size: 18px; font-weight: 800; color: #C6FF3D; margin-top: 4px">16.200 €</span></span>
+        </button>
+        <button type="button" aria-haspopup="dialog" style="all: unset; cursor: pointer; display: flex; gap: 14px; align-items: center; color: #F4F2F0">
+          <span style="width: 110px; height: 86px; border-radius: 18px; background: #2A2D33; flex-shrink: 0"></span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">Toyota Corolla 125H TS</strong><span style="font-size: 13px; color: #A3A0A6">2021 · 52.000 km</span><span style="font-family: Unbounded, sans-serif; font-size: 18px; font-weight: 800; color: #C6FF3D; margin-top: 4px">17.900 €</span></span>
+        </button>
+        <button type="button" aria-haspopup="dialog" style="all: unset; cursor: pointer; display: flex; gap: 14px; align-items: center; color: #F4F2F0">
+          <span style="width: 110px; height: 86px; border-radius: 18px; background: #29302C; flex-shrink: 0"></span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">Toyota Corolla 125H</strong><span style="font-size: 13px; color: #A3A0A6">2019 · 96.000 km</span><span style="font-family: Unbounded, sans-serif; font-size: 18px; font-weight: 800; color: #C6FF3D; margin-top: 4px">15.300 €</span></span>
+        </button>
+        <button type="button" aria-haspopup="dialog" style="all: unset; cursor: pointer; display: flex; gap: 14px; align-items: center; color: #F4F2F0">
+          <span style="width: 110px; height: 86px; border-radius: 18px; background: #302C2A; flex-shrink: 0"></span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">Toyota Corolla 125H</strong><span style="font-size: 13px; color: #A3A0A6">2020 · 74.000 km</span><span style="font-family: Unbounded, sans-serif; font-size: 18px; font-weight: 800; color: #C6FF3D; margin-top: 4px">16.900 €</span></span>
+        </button>
+      <button type="button" aria-haspopup="dialog" style="all: unset; cursor: pointer; box-sizing: border-box; margin-top: 10px; height: 44px; width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid rgba(255,92,92,0.6); color: #FF5C5C; font-size: 14px; font-weight: 700">Eliminar alerta</button>
+    </div>
+    </div>
+    <nav aria-label="Principal" style="position: absolute; left: 0; right: 0; bottom: 0; height: 99px; box-sizing: border-box; padding-bottom: 34px; background: #18181B; border-top: 1px solid #2A2A2E; display: flex"><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Mapa</span></a><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Guardados</span></a><a href="#" aria-current="page" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #7C4DFF"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg><span style="font-size: 11px; font-weight: 800; line-height: 13px; white-space: nowrap">Alertas</span></a><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><span aria-hidden="true" style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 999px; border: 1.5px solid #A3A0A6; background: transparent; color: #A3A0A6; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 11px; font-weight: 800; line-height: 1">A</span><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Cuenta</span></a></nav>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1970,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const badge = (hot) => 'font-size: 13px; font-weight: 800; border-radius: 999px; padding: 6px 11px; ' + (hot ? 'background: #C6FF3D; color: #0F0F10;' : 'border: 1px solid #2A2A2E; color: #A3A0A6;');
+    const alerts = [
+      { name: 'Corolla híbrido', matches: '4 coincidencias', hot: false, on: true, created: 'el 2 de octubre', criteria: ['Toyota Corolla', 'Híbrido', 'Hasta 18.000 €', 'Madrid · 50 km'] },
+      { name: 'Golf TDI', matches: 'Sin coincidencias', hot: false, created: 'el 28 de septiembre', criteria: ['Volkswagen Golf', 'Diésel', 'Menos de 120.000 km', 'Valencia · 30 km'] },
+      { name: 'Clio barato', matches: '1 coincidencia', hot: false, created: 'el 21 de septiembre', criteria: ['Renault Clio', 'Hasta 9.000 €', 'Zaragoza · 50 km'] }
+    ].map((a) => ({ ...a, badge: badge(a.hot), summary: a.criteria.join(' · '), action: 'Eliminar', on: !!a.on, off: !a.on,
+      style: 'background: #18181B; border-radius: 22px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; ' + (a.on ? 'border: 1px solid #C6FF3D;' : 'border: 1px solid #2A2A2E;') }));
+    const matches = [
+      { title: 'Toyota Corolla 125H', year: '2020', km: '61.000 km', city: 'Majadahonda', price: '16.200 €', source: 'coches.net', found: 'Hoy', tint: '#2A2F33' },
+      { title: 'Toyota Corolla 125H TS', year: '2021', km: '52.000 km', city: 'Madrid', price: '17.900 €', source: 'Wallapop', found: 'Hoy', tint: '#2A2D33' },
+      { title: 'Toyota Corolla 125H', year: '2019', km: '96.000 km', city: 'Alcalá', price: '15.300 €', source: 'Milanuncios', found: 'Ayer', tint: '#29302C' },
+      { title: 'Toyota Corolla 125H', year: '2020', km: '74.000 km', city: 'Getafe', price: '16.900 €', source: 'coches.net', found: 'Ayer', tint: '#302C2A' }
+    ];
+    const pin = (x, y, on) => 'position: absolute; left: ' + x + 'px; top: ' + y + 'px; padding: 7px 13px; white-space: nowrap; border-radius: 999px; font-size: 14px; ' + (on ? 'font-weight: 800; background: #C6FF3D; color: #0F0F10; box-shadow: 0 0 0 7px rgba(198,255,61,0.2);' : 'font-weight: 700; background: #18181B; color: #F4F2F0; border: 1px solid #2A2A2E;');
+    const pins = [['16.200 €', 250, 375, true], ['17.900 €', 330, 200, false], ['15.300 €', 420, 300, false], ['16.900 €', 160, 260, false]].map(([label, x, y, on]) => ({ label, style: pin(x, y, on) }));
+    return { alerts, matches: matches.map((m, i) => ({ ...m, ring: i === 0 ? ' box-shadow: 0 0 0 2px #C6FF3D;' : '' })), pins };
+  }
+}
+</script>
+</body>
+</html>

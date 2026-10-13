@@ -1,4 +1,4 @@
-<!-- @dsCard group="Coches" height=1160 subtitle="Mapa (normal, guardado, activo), Guardados, fila compacta de móvil y tarjetas pequeñas" -->
+<!-- @dsCard group="Coches" height=1192 subtitle="Mapa (normal, guardado, activo), Guardados, fila compacta de móvil (también de coincidencia) y tarjetas pequeñas" -->
 <!doctype html>
 <html lang="es">
 <head>
@@ -28,6 +28,7 @@ body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font
 .out svg{flex-shrink:0}
 .small{display:flex;gap:var(--space-6);flex-wrap:wrap;align-items:flex-start}
 .compact{width:350px;display:flex;flex-direction:column;gap:18px}
+button.crow{all:unset;cursor:pointer}
 .crow{display:flex;gap:14px;align-items:center;color:var(--text);text-decoration:none}
 .thumb{width:110px;height:86px;border-radius:var(--radius-thumb);flex-shrink:0}
 .cl{flex:1;display:flex;flex-direction:column;gap:2px}
@@ -68,6 +69,7 @@ body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font
     <a class="crow" href="#"><span class="thumb t2"></span><span class="cl"><strong>BMW Serie 3 320d</strong><span>2019 · 120.000 km · Barcelona</span><span class="cp">18.900 €</span></span></a>
     <a class="crow" href="#"><span class="thumb t3"></span><span class="cl"><strong>SEAT León 1.5 TSI</strong><span>2020 · 64.000 km · Sevilla</span><span class="cp">16.500 €</span></span></a>
     <a class="crow" href="#"><span class="thumb t5"></span><span class="cl"><strong>Toyota Corolla 125H</strong><span>2021 · 48.000 km · Madrid</span><span class="cp">19.750 €</span></span></a>
+    <button class="crow" type="button" aria-haspopup="dialog"><span class="thumb t5"></span><span class="cl"><strong>Toyota Corolla 125H</strong><span>2020 · 61.000 km</span><span class="cp">16.200 €</span></span></button>
   </div>
   <div style="display:flex;flex-direction:column;gap:var(--space-6)">
     <article class="landing"><span class="lph t6"></span><div class="ll"><span class="s">Wallapop · Zaragoza</span><strong>Renault Clio TCe 90</strong><span class="mm">2019 · 71.000 km</span><strong class="lp">9.400 €</strong></div></article>

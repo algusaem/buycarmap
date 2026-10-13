@@ -1,11 +1,13 @@
 # BottomNav
 
-En móvil, una píldora flotante abajo con Mapa · Guardados · Alertas; la sección actual va en `violet` con `aria-current="page"`.
+En móvil, la barra de pestañas de abajo, a todo el ancho: Mapa · Guardados · Alertas · Cuenta. La pestaña actual va en `violet` con `aria-current="page"`.
 
-- 62px de alto, `surface`, borde `line`; texto 13px peso 700.
-- Solo la sección actual lleva relleno (`violet`, padding 10px 16px); las demás son texto sin caja.
-- En Cuenta no hay sección actual en la barra: lo marca el aro del avatar de la cabecera (`shadow-current-sm`).
-- Flota a 16px de los bordes y 24px del fondo, respetando la zona segura del teléfono.
-- Va en Guardados, Alertas y Cuenta. En el mapa móvil no hay barra: manda la hoja inferior.
-- Solo con sesión iniciada; sin sesión, la cabecera ofrece «Entrar».
-- En escritorio no existe: esas tres van en la cabecera (HeaderNav).
+- Pegada abajo, a todo el ancho: `surface` y borde superior de 1px `line`. Pestañas de 64px y, debajo, la zona segura del teléfono (34px en los diseños): 99px en total.
+- Cuatro pestañas iguales, cada una un enlace: «Mapa» (icono `map` de Lucide), «Guardados» (`heart`), «Alertas» (`bell`) y «Cuenta» (un círculo de 22px con la inicial). Icono de 22px con trazo 2 y, 4px debajo, el texto a 11px: peso 800 en la actual y 600 en las demás.
+- La actual: icono y texto en `violet`, texto en peso 800, con `aria-current="page"`. Las demás, en `text-muted` y peso 600. El peso marca la actual además del color, para que no dependa solo del color.
+- «Cuenta» sin marcar: círculo de 22px transparente, con borde de 1,5px `text-muted` y la inicial (Unbounded 11 peso 800) en `text-muted`. Marcada: círculo relleno `violet` con la inicial en `on-violet`, y el texto en `violet`. Es la única marca de Cuenta en móvil: la cabecera ya no lleva avatar.
+- Sin sesión, dos pestañas: «Mapa» y «Entrar» (icono `log-in`). Solo se ve en el mapa, porque las demás páginas piden sesión.
+- Va en el mapa móvil, debajo de la hoja inferior, y en Guardados, Alertas, Cuenta y la página de una alerta. No va en la landing, Entrar, las pantallas de acceso ni las legales.
+- En el mapa se esconde cuando la hoja inferior está completa y vuelve al bajarla. En las páginas se esconde al desplazar hacia abajo y vuelve al desplazar hacia arriba.
+- Las hojas modales (la del coche, la de confirmar, Crear alerta, Buscar) y los filtros a pantalla completa van por encima: la barra queda debajo de la pantalla oscurecida.
+- En escritorio no existe: esas secciones van en la cabecera (HeaderNav).

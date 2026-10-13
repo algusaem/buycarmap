@@ -10,3 +10,4 @@ La ficha rápida que se abre encima del mapa al pulsar un pin, en Mapa, Guardado
 - Se cierra con su botón, con Escape o pulsando fuera, y el foco vuelve al pin.
 - Si el pin agrupa varios coches, la vista previa los lista en orden, con scroll.
 - En escritorio, abrirla marca y desplaza hasta su tarjeta en la lista.
+- **Móvil**: no flota sobre el mapa. Su contenido va en la hoja del coche (BottomSheet › Hojas modales), que abre un pin del mapa, una fila de Guardados o una coincidencia de una alerta.

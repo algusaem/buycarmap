@@ -46,16 +46,19 @@ beside its phone screen (390 × 844):
   the search row and the «Buscar» sheet it opens.
 - `F0-estado-cargando.dc.html`, `F0-estado-sin-resultados.dc.html`,
   `F0-estado-error-busqueda.dc.html` — the map loading, with no results and with a failed search.
-- `R3-favoritos.dc.html`, `F0-estado-guardados-vacio.dc.html` — saved cars, full and empty.
-- `R3-alertas.dc.html`, `F0-estado-alertas-vacio.dc.html` — alerts, full and empty.
+- `R3-favoritos.dc.html`, `F5-guardados-coche.dc.html`, `F0-estado-guardados-vacio.dc.html` — saved cars, with
+  a car open (the preview on desktop, the car sheet on the phone), and empty.
+- `R3-alertas.dc.html`, `F6-alerta.dc.html`, `F6-alerta-estados.dc.html`, `F0-estado-alertas-vacio.dc.html` —
+  alerts; an alert's page on the phone; that page scrolled to the end, a match open, the delete
+  confirmation and an alert with no matches (phones only); and no alerts.
 - `F0-cuenta.dc.html` — account. `F0-legal.dc.html` — privacy and terms.
   `F0-estado-error-pagina.dc.html` — any page that failed to load.
 
 Page "UI Kit": `UIKit.dc.html`, every reusable piece in its states (colours, type, buttons,
 search pill and the filter row, the search pill popovers and the phone «Buscar» sheet, the
 filters panel, the «Crear alerta» popover and sheet, map pins, alert zone and preview, car cards,
-navigation, form fields, loading and empty states, account cards, the password meter and the
-footer).
+navigation and the phone tab bar, the phone car and confirm sheets, the phone alert page, form
+fields, loading and empty states, account cards, the password meter and the footer).
 
 The listings, prices and photos in the screens are made-up examples.
 

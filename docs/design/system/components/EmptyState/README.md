@@ -9,5 +9,6 @@ Lo que se ve cuando una lista no tiene nada o una carga falla. Va dentro de la p
   - Secundaria con borde `line` para salir («Volver al mapa», padding 0 20px) en el error de página.
 - Textos: «¿NADA POR AQUÍ? AMPLÍA EL RADIO», «¿SE HA CAÍDO ALGO? PRUEBA OTRA VEZ», «¿AÚN NADA? GUARDA ALGUNO», «¿SIN ALERTAS? CREA UNA», «¿SE HA ROTO ALGO? NO ES CULPA TUYA».
 - Sobre el mapa, una StatusPill que explica el vacío («Ningún coche en 50 km»).
-- **Cargando** no es un EmptyState: se dibujan tarjetas vacías con la forma de ListingCard (foto y barras en `surface`, la barra del precio en `surface-strong`; barras de texto `radius-skeleton-sm`, la del precio `radius-skeleton`) y, en escritorio, «Buscando coches…» como StatusPill con `role="status"` sobre el mapa.
+- **Cargando** no es un EmptyState: se dibujan tarjetas vacías con la forma de ListingCard (foto y barras en `surface`, la barra del precio en `surface-strong`; dentro de la hoja inferior del móvil, que ya es `surface`, la foto y las barras van en `surface-strong`; barras de texto `radius-skeleton-sm`, la del precio `radius-skeleton`) y, en escritorio, «Buscando coches…» como StatusPill con `role="status"` sobre el mapa.
 - En móvil va dentro de la hoja inferior o de la lista, debajo del título.
+- **Pequeño**, dentro de una sección de una página: sin titular ni acciones, el título de la sección (`section-label`) y una línea de 15px con interlineado 1,5 en `text-muted`. Lo usa la página de una alerta sin coincidencias: «SIN COINCIDENCIAS» y «Te avisaremos en cuanto salga un coche que encaje.»

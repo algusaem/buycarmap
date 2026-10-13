@@ -7,8 +7,8 @@
       "page": "r3",
       "title": "Alertas",
       "w": 1970,
-      "x": 2050,
-      "y": 9540
+      "x": 0,
+      "y": 10600
     },
     "R3-favoritos.dc.html": {
       "h": 900,
@@ -43,7 +43,7 @@
       "y": 3180
     },
     "UIKit.dc.html": {
-      "h": 14822,
+      "h": 17047,
       "page": "kit",
       "title": "UI Kit",
       "w": 1970,
@@ -95,16 +95,16 @@
       "page": "r3",
       "title": "Privacidad y términos",
       "w": 1970,
-      "x": 0,
-      "y": 11660
+      "x": 2050,
+      "y": 12720
     },
     "F0-cuenta.dc.html": {
       "h": 900,
       "page": "r3",
       "title": "Cuenta",
       "w": 1970,
-      "x": 2050,
-      "y": 10600
+      "x": 0,
+      "y": 12720
     },
     "F0-estado-cargando.dc.html": {
       "h": 900,
@@ -135,7 +135,7 @@
       "page": "r3",
       "title": "Guardados · vacío",
       "w": 1970,
-      "x": 0,
+      "x": 2050,
       "y": 9540
     },
     "F0-estado-alertas-vacio.dc.html": {
@@ -143,16 +143,16 @@
       "page": "r3",
       "title": "Alertas · vacío",
       "w": 1970,
-      "x": 0,
-      "y": 10600
+      "x": 2050,
+      "y": 11660
     },
     "F0-estado-error-pagina.dc.html": {
       "h": 900,
       "page": "r3",
       "title": "Cualquier página · error al cargar",
       "w": 1970,
-      "x": 2050,
-      "y": 11660
+      "x": 0,
+      "y": 13780
     },
     "F3-mapa-filtros.dc.html": {
       "h": 900,
@@ -201,6 +201,30 @@
       "w": 1970,
       "x": 2050,
       "y": 6360
+    },
+    "F5-guardados-coche.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Guardados · coche abierto (móvil)",
+      "w": 1970,
+      "x": 0,
+      "y": 9540
+    },
+    "F6-alerta.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Alerta (móvil)",
+      "w": 1970,
+      "x": 2050,
+      "y": 10600
+    },
+    "F6-alerta-estados.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Alerta · al final, coche, eliminar y sin coincidencias (móvil)",
+      "w": 1970,
+      "x": 0,
+      "y": 11660
     }
   },
   "createdOnFiles": {
@@ -231,8 +255,11 @@
     "F0-estado-sin-resultados.dc.html",
     "F0-estado-error-busqueda.dc.html",
     "R3-favoritos.dc.html",
+    "F5-guardados-coche.dc.html",
     "F0-estado-guardados-vacio.dc.html",
     "R3-alertas.dc.html",
+    "F6-alerta.dc.html",
+    "F6-alerta-estados.dc.html",
     "F0-estado-alertas-vacio.dc.html",
     "F0-cuenta.dc.html",
     "F0-legal.dc.html",
