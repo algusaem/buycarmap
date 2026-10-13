@@ -2,7 +2,7 @@
 
 Key: NAV
 Status: Implemented
-Last updated: 2026-10-12
+Last updated: 2026-10-13
 
 The BuyCarMap 2.0 redesign replaced this bar on 2026-10-12: the headers, the phone bottom nav and
 the language control are specified by [redesign-navigation.md](redesign-navigation.md) (HEAD). The
@@ -117,8 +117,9 @@ Out of scope, deliberately:
 - **The page content below the bar.** This spec changed no route, layout height or scroll
   behaviour; the old bar was a 56px flex item in a `h-screen` shell. The BuyCarMap 2.0 header heights
   are in [`DESIGN.md`](../../DESIGN.md) › Components › Navigation.
-- **Search.** The search field lives in `ListingsHeader`, not the navbar, and
-  stays there until F3 (redesign-navigation.md › Out of scope).
+- **Search.** The search field lived in `ListingsHeader`, not the navbar. From F3 it is the map
+  header's search pill and the phone's floating search, specified by
+  [redesign-map.md](redesign-map.md).
 
 ## Contracts
 

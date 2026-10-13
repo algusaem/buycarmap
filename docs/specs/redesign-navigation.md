@@ -2,7 +2,7 @@
 
 Key: HEAD
 Status: Implemented
-Last updated: 2026-10-12
+Last updated: 2026-10-13
 
 ---
 
@@ -30,9 +30,13 @@ layout (F3–F7).
 
 - [x] HEAD-1 · component — At desktop width, signed in, `/map` shows the map header: the wordmark
   linking to `/`, then on the right the language control, a «Guardados» icon link to `/favorites`, an
-  «Alertas» icon link to `/alerts` and the avatar linking to `/account`, and no section links.
+  «Alertas» icon link to `/alerts` and the avatar linking to `/account`, and no section links. — the
+  header's centre gains the search pill and «Crear alerta» (MAPUI-1, MAPUI-39)
+  (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] HEAD-2 · component — At desktop width, signed out, `/map` shows the wordmark, the language
-  control and «Entrar» linking to `/login`, and no link to saved cars, alerts or the account.
+  control and «Entrar» linking to `/login`, and no link to saved cars, alerts or the account. — the
+  header's centre gains the search pill and «Crear alerta» (MAPUI-1, MAPUI-39, MAPUI-46)
+  (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] HEAD-3 · component — At desktop width, signed in, `/favorites`, `/alerts`, `/alerts/[id]` and
   `/account` show the pages header: the wordmark, the language control, «Mapa» (`/map`), «Guardados»
   (`/favorites`), «Alertas» (`/alerts`) and the avatar (`/account`).
@@ -48,11 +52,15 @@ layout (F3–F7).
 - [x] HEAD-7 · component — At phone width each header shows the wordmark, the language control and
   one item on the right: the avatar on the signed-in pages and on the signed-in landing, «Entrar» on
   the signed-out landing, «Mapa» on the sign-in and account-recovery pages, and «Volver» on the legal
-  pages; `/map` at phone width shows no app header.
+  pages; `/map` at phone width shows no app header. — `/favorites`, `/alerts`, `/alerts/[id]` and
+  `/account` show no avatar, because «Cuenta» is in the tab bar (MAPUI-54)
+  (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] HEAD-8 · component — At phone width, signed in, `/favorites`, `/alerts`, `/alerts/[id]` and
   `/account` show the bottom nav with «Mapa», «Guardados» and «Alertas» links, the current section
   marked as in HEAD-4 and none marked on `/account`; it is absent at desktop width, when signed out,
-  and on every other page.
+  and on every other page. — the bottom nav becomes the full-width tab bar: signed in it adds
+  «Cuenta» and also shows on the map, and signed out the map shows it with «Mapa» and «Entrar»
+  (MAPUI-52) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] HEAD-9 · component — The avatar shows the upper-case first letter of the user's name, or of
   their email when they have no name, and its accessible name is «Cuenta» ("Account" in English).
 - [x] HEAD-10 · component — The language control is a group named «Idioma» with one button per
@@ -69,9 +77,12 @@ layout (F3–F7).
 - [x] HEAD-15 · e2e — Every header control and every bottom-nav link at phone width has a hit area of
   at least 44 × 44px (keeps NAV-2).
 - [x] HEAD-16 · e2e — At 1024 and at 1440px wide, no header scrolls horizontally on `/`, `/map` and
-  `/login`.
+  `/login`. — on `/map` this holds with the search pill and «Crear alerta» in the header (MAPUI-1)
+  (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] HEAD-17 · component — The bottom nav is offset from the bottom by the safe-area inset as well as
-  its 24px, and the root layout's viewport opts into the safe area (`viewport-fit=cover`).
+  its 24px, and the root layout's viewport opts into the safe area (`viewport-fit=cover`). — the
+  24px float becomes a full-width tab bar padded by the safe-area inset (MAPUI-52)
+  (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] HEAD-18 · e2e — Signed in at phone width, the last control of `/account` («Cerrar sesión») can
   be scrolled fully clear of the bottom nav and is clickable.
 - [x] HEAD-19 · e2e — Signed in at phone width, `/favorites` and `/alerts` scroll when their content is

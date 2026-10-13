@@ -2,7 +2,7 @@
 
 Key: LOOK
 Status: Implemented
-Last updated: 2026-10-12
+Last updated: 2026-10-13
 
 ---
 
@@ -63,11 +63,15 @@ the design system, and the internal style-guide pages. No screen changes its str
 - [x] LOOK-10 · e2e — The ghost button marked as an undo action ("Quitar filtros") turns its text to
   `danger` on hover and on keyboard focus, and back to `text` when neither applies.
 - [x] LOOK-11 · e2e — Keyboard focus is visible on every primitive: a focused button, chip, input and
-  select trigger shows a 2px `lime` outline offset by 3px.
+  select trigger shows a 2px `lime` outline offset by 3px. — the select trigger is the checkbox
+  select's trigger on `/palette`, the Radix select trigger being deleted (MAPUI-48)
+  (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] LOOK-12 · e2e — A pressed toggle chip differs from an unpressed one in fill (`violet` with
   `on-violet` text) and in weight (800 against 600), not in colour alone.
 - [x] LOOK-13 · e2e — Inputs and the select trigger are at least 52px tall with a 16px font size
-  (no iOS zoom), a `line` border at rest and a `lime` border when focused.
+  (no iOS zoom), a `line` border at rest and a `lime` border when focused. — the select trigger is
+  the checkbox select's trigger on `/palette`, the Radix select trigger being deleted (MAPUI-48)
+  (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] LOOK-14 · e2e — A toast renders on `surface` with a `line` border, `radius-card`,
   `shadow-float` and `text` colour; its optional action is `lime` text and its close button has an
   accessible name (amends FRONT-23 to the single theme).

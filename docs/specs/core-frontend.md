@@ -2,7 +2,7 @@
 
 Key: FRONT
 Status: Implemented
-Last updated: 2026-10-11
+Last updated: 2026-10-13
 
 ---
 
@@ -68,12 +68,12 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
 
 ### URL state
 
-- [x] FRONT-13 · e2e — The search filters, location and radius live in the URL through nuqs parsers in `lib/search/url-state.ts`. A filtered search deep-links, a reload restores it, and Back and Forward restore the previous filters and their results. The existing search e2e tests pass unchanged.
+- [x] FRONT-13 · e2e — The search filters, location and radius live in the URL through nuqs parsers in `lib/search/url-state.ts`. A filtered search deep-links, a reload restores it, and Back and Forward restore the previous filters and their results. The existing search e2e tests pass unchanged. — the search is set through the pill and the filters panel: the worked-example URL still parses, criteria the UI no longer offers still reach the search with no control for them (MAPUI-18), and the search e2e moves to the pill (MAPUI-49) (amended 2026-10-13, MAPUI — redesign-map.md)
 
 ### Feedback channels
 
-- [x] FRONT-14 · component — Every list has four states: loading (a skeleton that mirrors the cards), empty (written copy with the primary action), error (inline, with a Retry button that re-runs the read) and populated. The lists are the map's results list, `/favorites`, `/alerts` and `/alerts/[id]` matches.
-- [x] FRONT-15 · unit — A failed **read** is never a toast. A test fails on `toast.error` inside `lib/hooks/` or in a component's data-loading path. `toast.error` stays only for the failure of an action the user just clicked that has no form to put the error in: saving or removing a favorite, deleting an alert. Validation errors stay inline.
+- [x] FRONT-14 · component — Every list has four states: loading (a skeleton that mirrors the cards), empty (written copy with the primary action), error (inline, with a Retry button that re-runs the read) and populated. The lists are the map's results list, `/favorites`, `/alerts` and `/alerts/[id]` matches. — on the map, loading adds the «Buscando coches…» status pill (MAPUI-30), empty is «¿Nada por aquí?» with «Ampliar a … km» and «Quitar filtros» (MAPUI-31), and error is «¿Se ha caído algo?» with «Reintentar» (MAPUI-32) (amended 2026-10-13, MAPUI — redesign-map.md)
+- [x] FRONT-15 · unit — A failed **read** is never a toast. A test fails on `toast.error` inside `lib/hooks/` or in a component's data-loading path. `toast.error` stays only for the failure of an action the user just clicked that has no form to put the error in: saving or removing a favorite, deleting an alert. Validation errors stay inline. — creating an alert from the map reports its outcome as a toast, «Alerta creada» or «Ya tenías esta alerta» (MAPUI-42, MAPUI-43); its failures stay inline in the dialog (MAPUI-45) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] FRONT-23 · e2e — A toast takes its colours from the design tokens: background `surface`, border `line`, text `text`, in the app's single dark theme (LOOK-14, `docs/specs/redesign-foundation.md`). The token classes carry Tailwind's important modifier because Sonner's unlayered styles otherwise beat Tailwind 4's `@layer utilities`. Any change to the toast's look is approved by the owner with screenshots on mobile and desktop (`RULES.md` §1, §17). (amended 2026-10-12, LOOK — redesign-foundation.md)
 - [x] FRONT-24 · component — Signing in shows no success toast. `LoginForm` (password, and password plus two-factor code) navigates with a full page load, which tears the toast down before it paints; the redirect and the signed-in navbar are the confirmation. The `auth.signInSuccess` message key is removed from both locales (owner's decision, 2026-10-05).
 

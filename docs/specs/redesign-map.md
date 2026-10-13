@@ -182,8 +182,10 @@ States
   - «Ampliar a <next radius> km», which applies the next radius;
   - «Quitar filtros».
 
-  At 200 km or with no place there is no widen button, and the line and the map's status pill name no
-  radius. The status pill reads «Ningún coche en 50 km» (amends MAP-15 and FRONT-14; keeps MAP-19).
+  At 200 km or with no place there is no widen button: the headline reads «¿Nada por aquí?» over
+  «Quita algún filtro», «Quitar filtros» is the primary action, and neither the line nor the map's
+  status pill names a radius. The status pill reads «Ningún coche en 50 km» (amends MAP-15 and
+  FRONT-14; keeps MAP-19).
 - [ ] MAPUI-32 · component — A failed search shows:
   - «¿Se ha caído algo?» over «Prueba otra vez»;
   - the line «No hemos podido traer los anuncios. Suele ser cosa de un momento.»;
@@ -342,7 +344,7 @@ They give two pins:
 | 40 listed, load-more running | «MÁS DE 40 COCHES» (unchanged until the page lands) |
 
 **Empty state widening (MAPUI-31).** 10 → «Ampliar a 25 km», 25 → «Ampliar a 50 km», 50 → «Ampliar a
-100 km», 100 → «Ampliar a 200 km», 200 → no button. With no place: «Ningún coche con estos filtros»
+100 km», 100 → «Ampliar a 200 km», 200 → no button. At 200 km or with no place: the headline «¿Nada por aquí?» over «Quita algún filtro», «Quitar filtros» as the primary action, «Ningún coche con estos filtros»
 on the map, and the line «Con estos filtros no hay coches. Prueba a quitar algún filtro.»
 
 **Alert name and summary (MAPUI-40).**

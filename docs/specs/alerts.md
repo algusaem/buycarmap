@@ -2,7 +2,7 @@
 
 Key: ALERT
 Status: Implemented
-Last updated: 2026-10-11
+Last updated: 2026-10-13
 
 ---
 
@@ -39,7 +39,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-4 · node — A caller with no session cannot create, list or delete an alert, and nothing is written
 - [x] ALERT-5 · node — A user cannot delete or deactivate an alert belonging to a different user
 - [x] ALERT-6 · node — Criteria that fail `searchSchema` are rejected with an error code and nothing is written
-- [x] ALERT-7 · node — Saving criteria the user has already saved reports success and leaves exactly one alert
+- [x] ALERT-7 · node — Saving criteria the user has already saved reports success and leaves exactly one alert — and reports that it already existed (MAPUI-43) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] ALERT-8 · node — Creating an alert beyond the per-user cap is rejected with a distinct error code, and the existing alerts are untouched
 - [x] ALERT-9 · node — A request to the run endpoint without the shared secret is refused, and enqueues and processes nothing
 - [x] ALERT-10 · node — A run enqueues every active criteria set last polled longer ago than the poll interval, and skips those polled more recently

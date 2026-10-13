@@ -22,7 +22,7 @@ El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chi
 ## Cuerpo (móvil y escritorio)
 
 - Padding 22px 20px, 26px entre secciones y 12px dentro de cada una. Cada sección empieza con su `section-label` (12px peso 700, mayúsculas, `text-muted`).
-- **Precio**: un rango con la pista de 4px en `line`, el tramo elegido y los dos mandos de 24px en `lime`; debajo, dos cajas `surface` con borde `line`, `radius-field` y padding 10px 14px: «Mínimo» / «Máximo» a 11px `text-muted` y el valor a 16px.
+- **Precio**: un rango de 0 a 30.000 € en pasos de 500 €, con la pista de 4px en `line`, el tramo elegido y los dos mandos de 24px en `lime`; el mando derecho al final quiere decir sin máximo. Debajo, dos cajas `surface` con borde `line`, `radius-field` y padding 10px 14px: «Mínimo» / «Máximo» a 11px `text-muted` y el valor a 16px. Las cajas aceptan cualquier cantidad: por encima de 30.000 € el mando se queda al final y la caja guarda la cantidad exacta.
 - **Combustible**: chips del panel (padding 10px 16px), en varias líneas, varios activos a la vez.
 - **Cambio**: un control segmentado `surface` con borde `line`, `radius-pill` y 4px de relleno; las opciones se reparten el ancho (flex 1, padding 10px, 14px peso 600) y la elegida va invertida, relleno `text` con texto `bg` y peso 800.
 - **Kilómetros y año**: dos campos `surface` con borde `line`, `radius-field`, padding 12px 14px y 15px, sin chevron.

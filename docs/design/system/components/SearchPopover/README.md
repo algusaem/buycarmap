@@ -15,7 +15,7 @@ El selector de cada segmento del buscador (ver [SearchPill](../SearchPill/README
 ## Dónde
 
 - El campo «Ciudad o código postal» busca mientras escribes; cada sitio es una opción, con su provincia o comunidad en una segunda línea a 13px `text-muted` cuando la tiene («Madrid» · «Comunidad de Madrid»).
-- Debajo, un divisor `line-soft` a todo el ancho de la tarjeta y la sección «Radio»: chips de 10, 25, 50, 100 y 200 km que se reparten el ancho (un grupo de radios); el elegido en `violet` con `on-violet` y peso 800, los demás con borde `line` y peso 600.
+- Debajo, un divisor `line-soft` a todo el ancho de la tarjeta y la sección «Radio»: chips de 10, 25, 50, 100 y 200 km que se reparten el ancho (un grupo de radios); el elegido en `violet` con `on-violet` y peso 800, los demás con borde `line` y peso 600. Sin sitio elegido, el grupo está desactivado (`aria-disabled="true"`, al 40 %, como «Crear alerta» desactivado) y se activa al elegir un sitio.
 - Al pie, «Toda España».
 
 ## Coche
@@ -23,6 +23,7 @@ El selector de cada segmento del buscador (ver [SearchPill](../SearchPill/README
 Un solo campo que busca mientras escribes, «Marca o modelo…».
 
 - **Escribiendo** («Toy»): los resultados agrupados en «Marcas» («Toyota») y «Modelos» («Toyota Corolla», «Toyota Yaris», «Toyota C-HR»).
+- **Elegir una marca** la aplica, quita el modelo y deja el desplegable abierto en el paso de modelos. **Elegir un modelo**, de cualquiera de las dos listas, aplica la marca y el modelo y cierra el desplegable.
 - **Con una marca elegida**: arriba, la marca como chip `violet` de 36px que se quita con su `x` (botón de 44px, «Quitar Toyota»); debajo, el campo pasa a «Modelo de Toyota…» y lista solo sus modelos, sin repetir la marca («Corolla», «Yaris», «C-HR»).
 - **Reabierto** con un modelo elegido: el modelo lleva el check `violet` a la derecha.
 - La píldora muestra lo elegido: «Cualquier marca», «Toyota», «Toyota Corolla».
@@ -30,7 +31,7 @@ Un solo campo que busca mientras escribes, «Marca o modelo…».
 
 ## Precio
 
-- El rango de [FilterSheet](../FilterSheet/README.md): pista de 4px en `line`, el tramo elegido y los dos mandos de 24px en `lime` (sliders con su valor en texto, «20.000 €»), y debajo las cajas «Mínimo» / «Máximo» (`surface`, borde `line`, `radius-field`, padding 10px 14px; etiqueta a 11px `text-muted` y valor a 16px).
+- El rango de [FilterSheet](../FilterSheet/README.md), de 0 a 30.000 € en pasos de 500 €; el mando derecho al final quiere decir sin máximo. Pista de 4px en `line`, el tramo elegido y los dos mandos de 24px en `lime` (sliders con su valor en texto, «20.000 €»), y debajo las cajas «Mínimo» / «Máximo» (`surface`, borde `line`, `radius-field`, padding 10px 14px; etiqueta a 11px `text-muted` y valor a 16px), que aceptan cualquier cantidad: por encima de 30.000 € el mando se queda al final y la caja guarda la cantidad exacta.
 - Atajos: chips «Hasta 5.000 €», «Hasta 10.000 €», «Hasta 20.000 €» y «Hasta 30.000 €» (un grupo de radios, padding 10px 16px), en varias líneas; el activo en `violet`.
 - Al pie, «Cualquier precio».
 
