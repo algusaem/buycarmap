@@ -28,7 +28,7 @@ the phase's spec.
 | --- | --- | --- | --- |
 | F1 Foundation | [redesign-foundation.md](../specs/redesign-foundation.md) (LOOK) | Implemented 2026-10-12 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | Tokens, dark only, fonts, shared primitives, source badge, footer, `DESIGN.md` |
 | F2 Navigation | [redesign-navigation.md](../specs/redesign-navigation.md) (HEAD) | Implemented 2026-10-12 on `claude/app-structural-redesign-c4a34d`; not merged yet | Desktop headers, phone headers, bottom nav |
-| F3 Map and search | — | Not started | The map screen and its states |
+| F3 Map and search | [redesign-map.md](../specs/redesign-map.md) (MAPUI) | Spec approved 2026-10-13 | The map screen and its states |
 | F4 Landing and sign in | — | Not started | `/` landing and `/login` |
 | F5 Saved cars | — | Not started | `/favorites` |
 | F6 Alerts | — | Not started | `/alerts` and `/alerts/[id]` |
@@ -68,11 +68,11 @@ arrows, the landing search pill and map, GoogleButton, the form panel (`radius-p
 `auth-email-and-oauth.md` (AUTH) for the sign-in form, `cross-cutting.md` (CORE) where it covers the
 landing.
 
-**F5 Saved cars.** Design: `R3-favoritos`, `F0-estado-guardados-vacio`. Pieces: the Guardados
+**F5 Saved cars.** Design: `R3-favoritos`, `F5-guardados-coche`, `F0-estado-guardados-vacio`. Pieces: the phone car sheet (tap a row), the Guardados
 ListingCard with «Ver anuncio», the sort chips, the compact phone row, the saved map with StatusPill.
 Governs: `favorites.md` (FAV).
 
-**F6 Alerts.** Design: `R3-alertas`, `F0-estado-alertas-vacio`. Pieces: AlertCard (open and folded),
+**F6 Alerts.** Design: `R3-alertas`, `F6-alerta`, `F6-alerta-estados`, `F0-estado-alertas-vacio`. Pieces: the phone alert page (zone map, matches, delete with confirmation, no matches), AlertCard (open and folded),
 AlertZone, the match cards. Governs: `alerts.md` (ALERT). Showing which matches are new is issue #122.
 
 **F7 Remaining pages.** Design: `F0-registro`, `F0-confirmar`, `F0-contrasena`,

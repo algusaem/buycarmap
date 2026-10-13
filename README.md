@@ -370,6 +370,7 @@ solo project is ceremony.
 | [alerts.md](docs/specs/alerts.md) | ALERT | Implemented | Saved criteria, background polling, match emails |
 | [navbar.md](docs/specs/navbar.md) | NAV | Implemented | The pre-2.0 navigation bar; replaced by redesign-navigation.md (HEAD), kept criteria still hold |
 | [redesign-navigation.md](docs/specs/redesign-navigation.md) | HEAD | Implemented | BuyCarMap 2.0 F2: headers, phone headers, bottom nav, language control |
+| [redesign-map.md](docs/specs/redesign-map.md) | MAPUI | Approved | BuyCarMap 2.0 F3: search pill, filters, price pins, phone sheets, car card, «Crear alerta» |
 | [redesign-foundation.md](docs/specs/redesign-foundation.md) | LOOK | Implemented | BuyCarMap 2.0 F1: tokens, dark only, fonts, primitives, footer, DESIGN.md |
 | [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Implemented | Downloading a copy of one's own data from `/account` |
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
