@@ -8,13 +8,6 @@ import { Button } from "@/components/ui/button";
 import { CheckboxSelect } from "@/components/ui/checkbox-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 
 // Internal style guide for the BuyCarMap 2.0 system (docs/design/system/).
@@ -160,7 +153,7 @@ export default function PalettePage() {
         </Section>
 
         <Section title="Campos">
-          <div className="grid w-full gap-6 md:grid-cols-3">
+          <div className="grid w-full gap-6 md:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="palette-email" className="text-[13px] font-bold text-text">
                 Email
@@ -174,26 +167,8 @@ export default function PalettePage() {
                 placeholder="tu@correo.com…"
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <span id="palette-brand-label" className="text-[13px] font-bold text-text">
-                Marca
-              </span>
-              <Select defaultValue="toyota">
-                <SelectTrigger
-                  id="palette-brand-trigger"
-                  data-testid="field-select-trigger"
-                  aria-labelledby="palette-brand-label palette-brand-trigger"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="toyota">Toyota</SelectItem>
-                  <SelectItem value="seat">Seat</SelectItem>
-                  <SelectItem value="audi">Audi</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <CheckboxSelect
+              data-testid="field-checkbox-select-trigger"
               label="Combustible"
               options={FUEL_OPTIONS}
               value={fuel}

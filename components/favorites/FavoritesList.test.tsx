@@ -10,6 +10,7 @@ import { FavoritesList } from "./FavoritesList";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/favorites",
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/server/favorites/actions", () => ({
@@ -108,5 +109,17 @@ describe("FavoritesList", () => {
 
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
     expect(screen.getByRole("link")).toHaveAttribute("href", "/map");
+  });
+
+  it("MAPUI-38: renders the redesigned car card — one link per card, the heart outside it", () => {
+    renderWithI18n(<FavoritesList favorites={[saved[0]]} />);
+
+    const article = screen.getByRole("article");
+    const linksInArticle = screen.getAllByRole("link").filter((link) => article.contains(link));
+    expect(linksInArticle).toHaveLength(1);
+
+    const heart = screen.getByRole("button", { name: /Save|Remove from saved/ });
+    expect(heart).toBeInTheDocument();
+    expect(linksInArticle[0]).not.toContainElement(heart);
   });
 });

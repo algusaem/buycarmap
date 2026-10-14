@@ -3,12 +3,13 @@
 En móvil, los resultados viven en una hoja `surface` que sube sobre el mapa, apoyada en la barra inferior (BottomNav), con tres posiciones: asomada, media y completa. Las mismas piezas hacen las hojas modales: la del coche y la de confirmar.
 
 - Asomada enseña solo el título; media (520px de alto), la primera tarjeta; completa, la lista. Asomada y media quedan encima de la barra; completa sube hasta arriba y la barra se esconde hasta que la hoja baja.
-- El título es el número de coches: «MÁS DE 40 COCHES» mientras quedan páginas por traer, «24 COCHES» cuando las fuentes se acaban y «1 COCHE» si solo hay uno. Sin número todavía: «BUSCANDO COCHES…» mientras carga, «NINGÚN COCHE» sin resultados y «COCHES» si la búsqueda falla. Una sola línea, sin el sitio debajo.
+- El título es el número de coches: «MÁS DE 40 COCHES» mientras quedan páginas por traer, «24 COCHES» cuando las fuentes se acaban y «1 COCHE» si solo hay uno; con uno y más por traer, «MÁS DE 1 COCHE». Sin número todavía: «BUSCANDO COCHES…» mientras carga, «NINGÚN COCHE» sin resultados y «COCHES» si la búsqueda falla. Una sola línea, sin el sitio debajo.
 - Esquinas superiores `radius-sheet` (las de abajo, rectas), borde superior `line`, relleno 10px 20px 0 y 14px entre bloques.
-- El asa: 40×5px en `handle`, centrada. Es un botón: pulsarlo alterna entre completa y asomada; `aria-expanded` solo es verdadero en completa.
+- En completa, con la barra inferior escondida, el final de la lista lleva un padding inferior de 24px más el margen seguro inferior (`space-sheet-full-bottom`), para que la última tarjeta y el indicador de carga de la página siguiente queden por encima de la barra de inicio del iPhone.
+- El asa: 40×5px en `handle`, centrada. Es un botón: pulsarlo alterna entre completa y asomada; `aria-expanded` solo es verdadero en completa. Su nombre para lectores de pantalla es «Lista de resultados».
 - Título en Unbounded 15px peso 800, en mayúsculas y centrado.
 - La tarjeta: foto de 250px `radius-card` con el icono de coche (70px) en `photo-icon` y la insignia de fuente sobre `scrim`; nombre y ciudad; metadatos subidos 10px; precio Unbounded 22px en `lime`, sin espacio entre letras.
-- Arrastrar es un atajo, nunca la única forma (se puede todo con el asa y el teclado).
+- Arrastrar es un atajo, nunca la única forma (se puede todo con el asa y el teclado). **Aún no está hecho**: arrastrar la hoja falta y está pendiente en la issue [#126](https://github.com/algusaem/buycarmap/issues/126). Hoy la hoja se mueve con el asa y con el teclado.
 
 ## Hojas modales
 

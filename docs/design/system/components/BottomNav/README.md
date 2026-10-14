@@ -8,6 +8,6 @@ En móvil, la barra de pestañas de abajo, a todo el ancho: Mapa · Guardados ·
 - «Cuenta» sin marcar: círculo de 22px transparente, con borde de 1,5px `text-muted` y la inicial (Unbounded 11 peso 800) en `text-muted`. Marcada: círculo relleno `violet` con la inicial en `on-violet`, y el texto en `violet`. Es la única marca de Cuenta en móvil: la cabecera ya no lleva avatar.
 - Sin sesión, dos pestañas: «Mapa» y «Entrar» (icono `log-in`). Solo se ve en el mapa, porque las demás páginas piden sesión.
 - Va en el mapa móvil, debajo de la hoja inferior, y en Guardados, Alertas, Cuenta y la página de una alerta. No va en la landing, Entrar, las pantallas de acceso ni las legales.
-- En el mapa se esconde cuando la hoja inferior está completa y vuelve al bajarla. En las páginas se esconde al desplazar hacia abajo y vuelve al desplazar hacia arriba.
+- En el mapa se esconde solo cuando la hoja inferior está completa y vuelve al bajarla; desplazar el mapa o la lista de la hoja no la esconde. En las páginas se esconde al desplazar hacia abajo y vuelve al desplazar hacia arriba.
 - Las hojas modales (la del coche, la de confirmar, Crear alerta, Buscar) y los filtros a pantalla completa van por encima: la barra queda debajo de la pantalla oscurecida.
 - En escritorio no existe: esas secciones van en la cabecera (HeaderNav).

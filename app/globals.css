@@ -77,6 +77,11 @@
   --shadow-current: var(--shadow-current);
   --shadow-current-sm: var(--shadow-current-sm);
 
+  /* The desktop filters dropdown's maximum height (tokens.json ›
+     space-filters-max): 640px or the room Radix measures under «Filtros».
+     Inline, so the Radix variable resolves on the dropdown itself. */
+  --spacing-filters-max: min(40rem, var(--radix-popover-content-available-height));
+
   /* Rethink Sans for text, Unbounded for display; font-mono resolves to the
      sans family until each out-of-phase component is restyled (LOOK-8). */
   --font-sans: var(--font-sans);
@@ -97,6 +102,137 @@
   --color-source-wallapop: #008573;
   --color-source-cochesnet: #db3500;
   --color-source-milanuncios: #3c8400;
+}
+
+/* The type scale of docs/design/system/tokens.json › type, values unchanged
+   (docs/specs/redesign-map.md › Contracts › Type scale): `text-<style>` sets
+   the size, and the line height and letter spacing where the style has them. */
+@theme {
+  --text-hero: 72px;
+  --text-hero--line-height: 1.04;
+  --text-hero--letter-spacing: -0.01em;
+  --text-hero-setup: 40px;
+  --text-hero-setup--line-height: 1.1;
+  --text-hero-setup--letter-spacing: 0;
+  --text-hero-mobile: 34px;
+  --text-hero-mobile--line-height: 1.06;
+  --text-hero-mobile--letter-spacing: -0.01em;
+  --text-empty-title: 48px;
+  --text-empty-title--line-height: 1.04;
+  --text-empty-title--letter-spacing: -0.01em;
+  --text-page-title: 40px;
+  --text-page-title--line-height: 0.9;
+  --text-page-title--letter-spacing: -0.015em;
+  --text-page-title-mobile: 34px;
+  --text-page-title-mobile--line-height: 1;
+  --text-page-title-mobile--letter-spacing: 0;
+  --text-form-title: 26px;
+  --text-form-title--line-height: normal;
+  --text-form-title--letter-spacing: 0;
+  --text-legal-h1: 48px;
+  --text-legal-h1--line-height: 0.95;
+  --text-legal-h1--letter-spacing: 0;
+  --text-legal-h2: 20px;
+  --text-legal-h2--line-height: normal;
+  --text-legal-h2--letter-spacing: 0;
+  --text-count: 30px;
+  --text-count--line-height: 1;
+  --text-count--letter-spacing: -0.02em;
+  --text-price: 22px;
+  --text-price--line-height: 1;
+  --text-price--letter-spacing: 0;
+  --text-wordmark: 20px;
+  --text-wordmark--line-height: 1;
+  --text-wordmark--letter-spacing: 0;
+  --text-button-display: 15px;
+  --text-button-display--line-height: 1;
+  --text-button-display--letter-spacing: 0;
+  --text-lead: 19px;
+  --text-lead--line-height: 1.5;
+  --text-lead-mobile: 16px;
+  --text-lead-mobile--line-height: 1.5;
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+  --text-body-15: 15px;
+  --text-body-15--line-height: 1.5;
+  --text-legal-body: 17px;
+  --text-legal-body--line-height: 1.65;
+  --text-card-title: 16px;
+  --text-card-title--line-height: 1.25;
+  --text-label: 14px;
+  --text-label--line-height: 1.3;
+  --text-field-label: 13px;
+  --text-field-label--line-height: normal;
+  --text-meta: 14px;
+  --text-meta--line-height: 1.4;
+  --text-small: 13px;
+  --text-small--line-height: normal;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.3;
+  --text-overline: 11px;
+  --text-overline--line-height: 1.2;
+  --text-overline--letter-spacing: 0.08em;
+  --text-section-label: 12px;
+  --text-section-label--line-height: normal;
+  --text-section-label--letter-spacing: 0.08em;
+
+  /* The phone sizes the styles' usage notes give (`count` in the results
+     sheet, `empty-title` on a phone), and the question over a headline's
+     punchline at 0.56 of its size (`hero-setup`). */
+  --text-count-mobile: 15px;
+  --text-count-mobile--line-height: 1;
+  --text-empty-title-mobile: 28px;
+  --text-empty-title-mobile--line-height: 1.06;
+  --text-empty-title-mobile--letter-spacing: -0.01em;
+  --text-headline-setup: 0.56em;
+  --text-headline-setup--line-height: 1.1;
+  --text-headline-setup--letter-spacing: 0;
+
+  /* Sizes the component guides give with no style of their own: the 11px
+     labels over the price, mileage and year boxes (FilterSheet), the tab
+     labels and the account initial (BottomNav), the 13px phone price pin
+     (PricePin), the 15px sheet titles (BottomSheet) and EmptyState's 17px
+     desktop line. They set only the size. */
+  --text-box-label: 11px;
+  --text-tab-label: 11px;
+  --text-pin: 13px;
+  --text-sheet-title: 15px;
+  --text-empty-line: 17px;
+  --text-empty-line--line-height: 1.5;
+
+  /* The phone tab bar: the padding a page gives its scroll container to clear
+     it (64px tabs, 24px of air and the safe area, HEAD-18), and the bottom
+     padding of a sheet that rises over it. */
+  --spacing-tab-clearance: calc(88px + env(safe-area-inset-bottom));
+  --spacing-sheet-bottom: calc(2.125rem + env(safe-area-inset-bottom));
+
+  /* The phone map's measures with the safe area (tokens.json › spacing): the
+     floating search's insets (MAPUI-20), the results sheet's full-top padding,
+     its offset over the tab bar and its middle height (MAPUI-23), the sheets'
+     footer padding and a headline's question-to-punchline gap. `sheet-middle` is 520px or the room
+     between the tab bar (4rem) and the floating search (8.875rem). */
+  --spacing-float-top: calc(1.25rem + env(safe-area-inset-top));
+  --spacing-float-left: calc(1rem + env(safe-area-inset-left));
+  --spacing-float-right: calc(1rem + env(safe-area-inset-right));
+  --spacing-sheet-full-top: calc(0.625rem + env(safe-area-inset-top));
+  --spacing-sheet-above-tabs: calc(4rem + env(safe-area-inset-bottom));
+  --spacing-sheet-middle: min(
+    32.5rem,
+    calc(100% - 4rem - env(safe-area-inset-bottom) - 8.875rem - env(safe-area-inset-top))
+  );
+  --spacing-sheet-footer: calc(1.75rem + env(safe-area-inset-bottom));
+  --spacing-sheet-full-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  --spacing-headline-gap: 0.22em;
+
+  /* The bare safe-area insets: the tab bar's bottom padding (MAPUI-52,
+     HEAD-17), the phone filters panel's top padding, and the tallest a
+     bottom sheet may grow, under the top inset. */
+  --spacing-safe-top: env(safe-area-inset-top);
+  --spacing-safe-bottom: env(safe-area-inset-bottom);
+  --spacing-sheet-max: calc(100dvh - env(safe-area-inset-top));
+
+  /* The 1.5px stroke (tokens.json › border): the unmarked «Cuenta» ring. */
+  --border-width-thin: 1.5px;
 }
 
 /* BuyCarMap 2.0 design tokens, verbatim from docs/design/system/tokens.json
@@ -229,38 +365,4 @@
 
 .leaflet-container .leaflet-control-attribution a:hover {
   color: var(--lime);
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom {
-  border: none;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2);
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom a {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--text-muted);
-  width: 36px;
-  height: 36px;
-  line-height: 36px;
-  font-size: 18px;
-  font-weight: 400;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom a:first-child {
-  border-radius: 8px 8px 0 0;
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom a:last-child {
-  border-radius: 0 0 8px 8px;
-  border-top: none;
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom a:hover {
-  background: var(--surface-strong);
-  color: var(--text);
 }

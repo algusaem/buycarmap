@@ -5,6 +5,9 @@ import { z } from "zod";
 // when coordinates are given but no radius is.
 export const DEFAULT_RADIUS_KM = 50;
 
+/** The `timeFilter` values, in the order the filters panel offers them (MAPUI-17). */
+export const TIME_FILTERS = ["today", "lastWeek", "lastMonth"] as const;
+
 const baseSearchSchema = z.object({
   keywords: z.string().optional(),
   latitude: z.number().min(-90).max(90).optional(),
@@ -14,15 +17,15 @@ const baseSearchSchema = z.object({
   maxPrice: z.number().positive().optional(),
   brand: z.string().optional(),
   model: z.string().optional(),
-  minYear: z.number().int().min(1900).optional(),
+  minYear: z.number().int().optional(),
   maxYear: z.number().int().optional(),
   minKm: z.number().nonnegative().optional(),
-  maxKm: z.number().positive().optional(),
+  maxKm: z.number().int().nonnegative().optional(),
   minHorsePower: z.number().nonnegative().optional(),
   maxHorsePower: z.number().positive().optional(),
   engine: z.array(z.string()).optional(),
   gearbox: z.array(z.string()).optional(),
-  timeFilter: z.enum(["today", "lastWeek", "lastMonth"]).optional(),
+  timeFilter: z.enum(TIME_FILTERS).optional(),
 });
 
 export type SearchInput = z.infer<typeof baseSearchSchema>;

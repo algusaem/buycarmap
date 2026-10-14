@@ -953,6 +953,76 @@ describe("useListingsSearch stale next page (MAP-26)", () => {
   });
 });
 
+describe("useListingsSearch retry (MAPUI-32)", () => {
+  // Renamed: a failed round is never cached (runSearchRounds's catch branch
+  // never calls setCached), so this alone never exercised retry's own
+  // deleteCached — nothing was cached to evict. It still covers retry
+  // re-running the search once the sources recover.
+  it("MAPUI-32: Reintentar re-runs the search after a failure, with fresh results once the sources recover", async () => {
+    server.use(
+      http.get(WALLAPOP, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.post(COCHESNET, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.get(MILANUNCIOS, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({ keywords: "retry-case" });
+    });
+    expect(result.current.error).toBe(true);
+    const callsAfterFailure = vi.mocked(searchListings).mock.calls.length;
+
+    server.use(
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([makeWallapopItem()]))),
+      http.post(COCHESNET, () => HttpResponse.json(makeCochesNetResponse([]))),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([]))),
+      ),
+    );
+
+    await act(async () => {
+      result.current.retry();
+    });
+
+    expect(vi.mocked(searchListings).mock.calls.length).toBeGreaterThan(callsAfterFailure);
+    expect(result.current.error).toBe(false);
+    expect(result.current.listings).toHaveLength(1);
+  });
+
+  // This is the case that actually needs retry's own eviction: all three
+  // sources answer OK but empty (not a failure, so MapView shows this as
+  // MAPUI-32's failed state only because the search has no place and no
+  // filter to narrow it — docs/specs/redesign-map.md, "No place" edge
+  // cases), and `runSearchRounds` caches that empty result like any other
+  // successful one. Without retry's `deleteCached`, the second `search` call
+  // below would read that same cache entry and never call `searchListings`
+  // again at all.
+  it("MAPUI-32: Reintentar re-searches rather than replaying a cached empty result", async () => {
+    server.use(
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([]))),
+      http.post(COCHESNET, () => HttpResponse.json(makeCochesNetResponse([]))),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([]))),
+      ),
+    );
+    vi.mocked(searchListings).mockClear();
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({});
+    });
+    expect(result.current.error).toBe(false);
+    expect(result.current.listings).toHaveLength(0);
+    const callsAfterFirstSearch = vi.mocked(searchListings).mock.calls.length;
+
+    await act(async () => {
+      result.current.retry();
+    });
+
+    expect(vi.mocked(searchListings).mock.calls.length).toBeGreaterThan(callsAfterFirstSearch);
+  });
+});
+
 describe("useListingsSearch server action fan-out", () => {
   it("FRONT-3: one search round makes exactly one searchListings call, not three fetches", async () => {
     vi.mocked(searchListings).mockClear();
@@ -1017,5 +1087,114 @@ describe("useListingsSearch results generation (MAP-25)", () => {
       await result.current.search({ keywords: "generation-cache" });
     });
     expect(result.current.resultsGeneration).toBe(2);
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-33): the results heading reads «BUSCANDO
+// COCHES…» only while the current search's first page is loading, so a search
+// that supersedes an in-flight round must leave `isLoading` as it finds it for
+// itself, not as the superseded round left it.
+describe("useListingsSearch loading state (MAPUI-33)", () => {
+  /** Delays only the "loading-slow" search, so it is still in flight when the next one starts. */
+  function slowFor(keyword: string) {
+    server.use(
+      http.get(WALLAPOP, async ({ request }) => {
+        if (new URL(request.url).searchParams.get("keywords") === keyword) await delay(80);
+        return HttpResponse.json(makeWallapopResponse([makeWallapopItem()], "page-2"));
+      }),
+    );
+  }
+
+  it("MAPUI-33: a cache hit that supersedes an in-flight round leaves the hook not loading", async () => {
+    slowFor("loading-slow");
+    const { result } = renderHook(() => useListingsSearch());
+    await act(async () => {
+      await result.current.search({ keywords: "loading-cached" });
+    });
+    const cached = result.current.listings;
+
+    act(() => {
+      result.current.search({ keywords: "loading-slow" }); // not awaited
+    });
+    expect(result.current.isLoading).toBe(true);
+
+    await act(async () => {
+      await result.current.search({ keywords: "loading-cached" });
+    });
+    expect(result.current.isLoading).toBe(false);
+
+    // The superseded round lands later and is discarded without touching the state.
+    await act(async () => {
+      await delay(120);
+    });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.listings).toEqual(cached);
+  });
+
+  it("MAPUI-33: an invalid search that supersedes an in-flight round leaves the hook not loading", async () => {
+    slowFor("invalid-after-slow");
+    const { result } = renderHook(() => useListingsSearch());
+
+    act(() => {
+      result.current.search({ keywords: "invalid-after-slow" }); // not awaited
+    });
+    expect(result.current.isLoading).toBe(true);
+
+    await act(async () => {
+      await result.current.search({ keywords: "invalid-after-slow", latitude: 999 });
+    });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBe(true);
+
+    await act(async () => {
+      await delay(120);
+    });
+    expect(result.current.isLoading).toBe(false);
+  });
+});
+
+// MAP-19 with Back (MAPUI-33's «MÁS DE N COCHES»): a search served from the
+// cache must come back with the pagination it had, or the heading loses its
+// «MÁS DE» and the scroll never asks for the next page.
+describe("useListingsSearch cache keeps pagination (MAP-19)", () => {
+  it("MAP-19: Back to a cached search with more pages restores hasMore and its cursors, so the scroll keeps loading", async () => {
+    const wallapopPages: string[] = [];
+    server.use(
+      http.get(WALLAPOP, ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get("keywords") === "back-more") {
+          wallapopPages.push(url.searchParams.get("next_page") ?? "first");
+        }
+        return HttpResponse.json(makeWallapopResponse([makeWallapopItem()], "page-2"));
+      }),
+    );
+    const { result } = renderHook(() => useListingsSearch());
+
+    await act(async () => {
+      await result.current.search({ keywords: "back-more" });
+    });
+    expect(result.current.hasMore).toBe(true);
+    const firstPage = result.current.listings;
+
+    await act(async () => {
+      await result.current.search({ keywords: "back-other" });
+    });
+    // Back: the same search again, served from the cache.
+    await act(async () => {
+      await result.current.search({ keywords: "back-more" });
+    });
+
+    expect(result.current.listings).toEqual(firstPage);
+    expect(result.current.hasMore).toBe(true);
+    expect(wallapopPages).toEqual(["first"]);
+
+    act(() => result.current.sentinelRef(document.createElement("div")));
+    await act(async () => {
+      triggerIntersection();
+    });
+
+    await waitFor(() => expect(result.current.listings).toHaveLength(firstPage.length * 2));
+    // The next page continues from the cached search's own cursor, not from page one.
+    expect(wallapopPages).toEqual(["first", "page-2"]);
   });
 });

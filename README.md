@@ -1,9 +1,10 @@
 # BuyCarMap
 
 Second-hand car listings from several Spanish marketplaces, merged into one
-search and plotted on a map. Filter by location, price, make, model, year,
-mileage, horsepower, fuel, transmission and recency; browse the results as a card
-list and a map that stay in sync.
+search and plotted on a map. Filter by location, price, make/model, fuel,
+gearbox, maximum mileage, minimum year and recency; browse the results as a card
+list and a map that stay in sync. Horsepower is no longer offered; old links that
+carry it still work.
 
 Live sources are **Wallapop**, **coches.net** and **Milanuncios** — none of them
 offer a public API, so each is wired into the server-side search
@@ -370,7 +371,7 @@ solo project is ceremony.
 | [alerts.md](docs/specs/alerts.md) | ALERT | Implemented | Saved criteria, background polling, match emails |
 | [navbar.md](docs/specs/navbar.md) | NAV | Implemented | The pre-2.0 navigation bar; replaced by redesign-navigation.md (HEAD), kept criteria still hold |
 | [redesign-navigation.md](docs/specs/redesign-navigation.md) | HEAD | Implemented | BuyCarMap 2.0 F2: headers, phone headers, bottom nav, language control |
-| [redesign-map.md](docs/specs/redesign-map.md) | MAPUI | Approved | BuyCarMap 2.0 F3: search pill, filters, price pins, phone sheets, car card, «Crear alerta» |
+| [redesign-map.md](docs/specs/redesign-map.md) | MAPUI | Implemented | BuyCarMap 2.0 F3: search pill, filters, price pins, phone sheets, car card, «Crear alerta» |
 | [redesign-foundation.md](docs/specs/redesign-foundation.md) | LOOK | Implemented | BuyCarMap 2.0 F1: tokens, dark only, fonts, primitives, footer, DESIGN.md |
 | [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Implemented | Downloading a copy of one's own data from `/account` |
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
@@ -414,6 +415,7 @@ name what it beat, it is a fact, and facts belong in the doc for that area.
 | [0011 — Keep criterion ids, spec:check and extra spec sections](docs/decisions/0011-spec-ids-and-sections.md) | The core spec sections plus optional Contracts, Decisions and rationale and Open questions; `KEY-n` checklist items still tied to test titles by `spec:check` |
 | [0012 — Root layout and server layer](docs/decisions/0012-root-layout-and-server-layer.md) | The root layout stays permanently instead of moving into `src/`; the server-layer dependency rules, the `schema.ts` and route-handler exceptions, and the NextAuth exception until phase 11 |
 | [0019 — Environments, regions and the base branch](docs/decisions/0019-environments.md) | No staging; one shared seed-only `preview` Neon branch; the full E2E suite stays local plus a preview smoke; `master` kept permanently |
+| [0020 — Radix popover, dialog and slider for the map and search redesign](docs/decisions/0020-radix-popover-dialog-slider.md) | `@radix-ui/react-popover`, `-dialog` and `-slider` for the F3 popovers, phone sheets and price range; the preview card stays a Leaflet popup |
 
 ## Ownership map
 
@@ -438,6 +440,10 @@ Do not point a gap at a loosely related file to make it look covered.
 | `lib/milanuncios/**` | [docs/specs/data-sources.md](docs/specs/data-sources.md) |
 | `server/search/**` | [docs/specs/core-frontend.md](docs/specs/core-frontend.md) |
 | `components/map/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
+| `components/map/search/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
+| `components/map/filters/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
+| `components/map/phone/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
+| `lib/map/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
 | `components/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
@@ -445,6 +451,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `app/api/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `components/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
+| `components/alerts/CreateAlert*` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `server/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `lib/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `server/rate-limit/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
@@ -492,6 +499,8 @@ Do not point a gap at a loosely related file to make it look covered.
 | `lib/listings/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `lib/search/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/map/page.tsx` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
+| `app/map/loading.tsx` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
+| `app/map/error.tsx` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `app/api/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `app/login/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `lib/ids.ts` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |

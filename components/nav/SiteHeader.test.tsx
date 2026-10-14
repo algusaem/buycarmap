@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
-import { NextIntlClientProvider } from "next-intl";
+import { screen, within } from "@testing-library/react";
 import { renderWithI18n } from "@/test/utils/render";
-import esMessages from "@/messages/es.json";
 
 // docs/specs/redesign-navigation.md (HEAD). SiteHeader replaces Navbar: one
 // <header> holding two always-mounted regions (header-desktop, header-phone),
@@ -246,14 +244,25 @@ describe("SiteHeader — phone region", () => {
     expect(screen.queryByTestId("header-phone")).not.toBeInTheDocument();
   });
 
-  it.each(["/favorites", "/alerts", "/account", "/"])(
-    "HEAD-7: %s signed in shows the avatar as the phone region's right-hand item",
+  it("HEAD-7: / signed in still shows the avatar as the phone region's right-hand item", () => {
+    pathname.mockReturnValue("/");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<SiteHeader />);
+
+    expect(phone().getByRole("link", { name: "Account" })).toHaveAttribute("href", "/account");
+  });
+
+  it.each(["/favorites", "/alerts", "/alerts/abc", "/account"])(
+    "HEAD-7/MAPUI-54: %s signed in shows the wordmark and the language control and no avatar at phone width, because Cuenta is in the tab bar",
     (route) => {
       pathname.mockReturnValue(route);
       useSession.mockReturnValue(SIGNED_IN);
       renderWithI18n(<SiteHeader />);
 
-      expect(phone().getByRole("link", { name: "Account" })).toHaveAttribute("href", "/account");
+      const region = phone();
+      expect(region.getByRole("link", { name: "BuyCarMap" })).toHaveAttribute("href", "/");
+      expect(region.getByRole("group", { name: "Language" })).toBeInTheDocument();
+      expect(region.queryByRole("link", { name: "Account" })).not.toBeInTheDocument();
     },
   );
 
@@ -350,13 +359,7 @@ describe("SiteHeader — avatar initial", () => {
       data: { user: { name: "Ada Lovelace", email: "ada@example.com" } },
       isPending: false,
     });
-    render(<SiteHeader />, {
-      wrapper: ({ children }) => (
-        <NextIntlClientProvider locale="es" messages={esMessages} timeZone="UTC">
-          {children}
-        </NextIntlClientProvider>
-      ),
-    });
+    renderWithI18n(<SiteHeader />, { locale: "es" });
 
     expect(
       within(screen.getByTestId("header-desktop")).getByRole("link", { name: "Cuenta" }),
@@ -529,13 +532,7 @@ describe("SiteHeader — language in the user's language", () => {
       data: { user: { name: "Ada Lovelace", email: "ada@example.com" } },
       isPending: false,
     });
-    render(<SiteHeader />, {
-      wrapper: ({ children }) => (
-        <NextIntlClientProvider locale="es" messages={esMessages} timeZone="UTC">
-          {children}
-        </NextIntlClientProvider>
-      ),
-    });
+    renderWithI18n(<SiteHeader />, { locale: "es" });
 
     const region = within(screen.getByTestId("header-desktop"));
     expect(region.getByRole("group", { name: "Idioma" })).toBeInTheDocument();

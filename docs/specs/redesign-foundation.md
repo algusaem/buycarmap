@@ -227,8 +227,9 @@ the illustrations appear, and the legal links have no home outside the sign-in f
 design restricts the footer to the landing, sign in, register and legal pages, and keeps the map
 screens edge to edge, so LOOK-17 tests both sides.
 
-**The checkbox select is a new primitive.** `components/ui/select.tsx` wraps Radix Select, which picks
-one value; the radius picker and the search filters use it today, and both are F3 screens. LOOK-21
+**The checkbox select is a new primitive.** The Radix select primitive (removed in F3, MAPUI-48) wrapped
+Radix Select, which picks one value; the radius picker and the search filters used it, and both are F3
+screens. LOOK-21
 builds the checkbox select as `components/ui/checkbox-select.tsx` and shows it on `/palette`; the Radix
 select only takes the new trigger look (LOOK-13) until F3 replaces its uses with the design's controls
 and removes it, so no filter changes behaviour before its phase.

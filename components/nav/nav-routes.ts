@@ -15,7 +15,7 @@ function isAlertsRoute(pathname: string) {
 }
 
 /** The signed-in section pages: `/favorites`, `/alerts`, `/alerts/[id]` and `/account`. */
-export function isSectionPage(pathname: string) {
+function isSectionPage(pathname: string) {
   return pathname === "/favorites" || pathname === "/account" || isAlertsRoute(pathname);
 }
 
@@ -44,3 +44,23 @@ export const SECTIONS: readonly { section: Section; href: string; labelKey: stri
   { section: "saved", href: "/favorites", labelKey: "nav.saved" },
   { section: "alerts", href: "/alerts", labelKey: "nav.alerts" },
 ];
+
+/** The phone tab bar's tabs (MAPUI-52): the three sections plus «Cuenta». */
+export type Tab = Section | "account";
+
+/**
+ * The tab marked current (MAPUI-52). Unlike `currentSection`, the map is a
+ * tab of its own and `/account` marks «Cuenta», because on a phone the tab
+ * bar, not the header, says where you are.
+ */
+export function currentTab(pathname: string): Tab | undefined {
+  if (pathname === "/map") return "map";
+  if (pathname === "/account") return "account";
+  return currentSection(pathname);
+}
+
+/** Where the tab bar shows: the map, for everyone, and the signed-in section pages. */
+export function showsTabBar(pathname: string, signedIn: boolean) {
+  if (pathname === "/map") return true;
+  return signedIn && isSectionPage(pathname);
+}

@@ -19,8 +19,8 @@ import { e2eEmail, seedUser } from "./fixtures/db";
 //     (any), btn-undo ("Quitar filtros") 48, btn-danger 44, btn-icon (42x42),
 //     btn-icon-40 (40x40).
 //   Chips: chip-pressed ("Todos"), chip-unpressed ("Diésel").
-//   Fields: field-input (an <input>), field-select-trigger (the Radix select
-//     trigger).
+//   Fields: field-input (an <input>), field-checkbox-select-trigger (the
+//     checkbox select's trigger).
 //   Toast: a button toast-demo that shows a toast "Guardado en tus coches."
 //     with action "Deshacer" and a close button named "Cerrar" ("Close" in English — the
 //     Playwright context negotiates en-US by default).
@@ -291,7 +291,7 @@ test("LOOK-10: the undo ghost button turns danger on hover and on keyboard focus
   expect(await undo.evaluate((el) => getComputedStyle(el).color)).toBe("rgb(255, 92, 92)");
 });
 
-test("LOOK-11: keyboard focus shows a 2px lime outline offset by 3px on every primitive", async ({
+test("LOOK-11/MAPUI-48: keyboard focus shows a 2px lime outline offset by 3px on every primitive, including the checkbox select that replaces the Radix select", async ({
   page,
 }) => {
   await page.goto("/palette");
@@ -300,7 +300,7 @@ test("LOOK-11: keyboard focus shows a 2px lime outline offset by 3px on every pr
     "btn-primary-54",
     "chip-unpressed",
     "field-input",
-    "field-select-trigger",
+    "field-checkbox-select-trigger",
   ]) {
     await tabUntilFocused(page, testId);
     const outline = await page.getByTestId(testId).evaluate((el) => {
@@ -353,12 +353,12 @@ test("LOOK-12: a pressed toggle chip differs from an unpressed one in fill and w
   expect(unpressedStyle.fontWeight).toBe("600");
 });
 
-test("LOOK-13: inputs and the select trigger are at least 52px tall with a 16px font, a line border at rest and a lime border focused", async ({
+test("LOOK-13/MAPUI-48: inputs and the checkbox select trigger are at least 52px tall with a 16px font, a line border at rest and a lime border focused", async ({
   page,
 }) => {
   await page.goto("/palette");
 
-  for (const testId of ["field-input", "field-select-trigger"]) {
+  for (const testId of ["field-input", "field-checkbox-select-trigger"]) {
     const field = page.getByTestId(testId);
     const box = await field.boundingBox();
     expect(box?.height ?? 0, testId).toBeGreaterThanOrEqual(52);

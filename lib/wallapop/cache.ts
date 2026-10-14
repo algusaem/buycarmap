@@ -22,3 +22,7 @@ export function getCached<T>(key: string): T | null {
 export function setCached<T>(key: string, data: T): void {
   cache.set(key, { data, timestamp: Date.now() });
 }
+
+export function deleteCached(key: string): void {
+  cache.delete(key);
+}

@@ -31,7 +31,9 @@ flowchart TB
 Two rules fall out of that picture and explain most of the code:
 
 - **Components never call `fetch`.** Request lifecycles live in `lib/hooks/*`,
-  which call clients in `lib/<source>/*`. A component consumes a hook.
+  which call a feature's Server Actions in `server/<feature>/actions.ts` (the
+  search, favorites, account and locale hooks) or a cross-cutting helper in
+  `lib/<source>/*` or `lib/geo/*`. A component consumes a hook.
 - **Mutations are server actions; route handlers are only for proxying.**
   Anything writing to the database is an action in `server/<feature>/actions.ts`,
   which reaches Prisma only through that feature's `service.ts`
@@ -65,7 +67,7 @@ sequenceDiagram
     end
     X-->>R: source-shaped responses
     R->>R: normalize → interleave → CarListing[]
-    A->>A: applyResultFilters (radius + model)
+    A->>A: applyResultFilters (radius + model + fuel)
     A-->>S: listings, next cursors, failedSources
     S-->>U: cards + map markers
 ```
@@ -78,16 +80,28 @@ browser-bound `searchWallapop`/`searchCochesNet`/`searchMilanuncios` any more.
 
 **Filters.** [`lib/hooks/useSearchFilters.ts`](../lib/hooks/useSearchFilters.ts)
 holds every filter in one `FilterValues` object and exposes a typed setter per
-field. Each setter funnels into `update()`, which patches state and **debounces
-the search by 400 ms** — filters re-search as you touch them, so without the
-debounce a drag on a range slider would fire a dozen fan-outs.
+field. Two paths write it:
 
-Two deliberate asymmetries:
+- `update()` — every desktop popover and filters-panel change — patches state and
+  **debounces the search by 400 ms** (MAP-11), so a drag on the price range fires one
+  fan-out, not a dozen.
+- `apply()` patches and searches at once, with no pause: the phone sheets' «Ver
+  coches», a removed chip and the panel's «Borrar» (MAPUI-13, MAPUI-19, MAPUI-21,
+  MAPUI-22).
 
-- `triggerSearch()` (the search button) searches immediately **and collapses the
-  filter panel**. `update()` does not collapse it — closing the panel out from
-  under someone still adjusting filters would be hostile.
-- `setBrand` also clears `model`. A model id only means anything under its brand.
+Which desktop popover is open is one piece of state in the hook
+(`activePopover`), so at most one is (MAPUI-2). `triggerSearch()` («Buscar»)
+searches immediately and closes both the open popover and the filters dropdown;
+`update()` closes neither — closing them out from under someone still choosing
+would be hostile.
+
+`clearAll()` («Quitar filtros») clears every filter, the criteria the UI no longer
+offers included, and **keeps the place and the radius** (MAPUI-31). `setBrand` also
+clears `model`: a model only means anything under its brand.
+
+The landing's free text arrives as `?q=`. Until F4 the map keeps sending it without
+showing it (MAPUI-18), drops it for good once a control clears it, and never saves
+it in an alert (MAPUI-42).
 
 On mount the hook fires an immediate search using the Spain-centre fallback,
 starts browser geolocation, and re-searches when geolocation resolves — but only
@@ -100,7 +114,8 @@ radius live in the URL through [nuqs](https://nuqs.dev) parsers in
 plus `filtersToUrlState`/`urlStateToFilters` to convert to and from the hook's
 `FilterValues`), so a filtered search deep-links and a reload restores it. The
 URL is only written at the same points the hook already calls `search()` —
-the debounce firing, an explicit `triggerSearch()`, or `clearAll()` — each as
+the debounce firing, an explicit `triggerSearch()`, or `apply()` («Ver coches», a removed
+chip, «Borrar»; `clearAll()` goes through it) — each as
 a pushed history entry, not on every keystroke; a `useEffect` watching the
 nuqs-backed state resyncs and re-searches when the URL changes from outside
 the hook's own writes (Back/Forward, or a hand-edited URL). The root layout
@@ -131,10 +146,12 @@ near the top instead of whichever returned most dominating the first screen.
 radius on its side, and only the structured sources honour the model, so the
 merged list is post-filtered: with a location chosen, listings outside the
 radius — or pinned at the country-centre fallback — are dropped
-(`lib/geo/radius.ts`), and with a model selected, listings naming it neither
-in their model field nor their title are dropped. The behaviour is owned by
-MAP-16..18 in [`specs/map-and-search.md`](specs/map-and-search.md); removing
-the post-filter reverts coches.net and Milanuncios to nationwide results.
+(`lib/geo/radius.ts`), with a model selected, listings naming it neither
+in their model field nor their title are dropped, and with a fuel chosen,
+listings whose fuel is unknown or of another fuel group are dropped. The
+behaviour is owned by MAP-16..18 in [`specs/map-and-search.md`](specs/map-and-search.md)
+and, for the fuel, MAPUI-55 in [`specs/redesign-map.md`](specs/redesign-map.md);
+removing the post-filter reverts coches.net and Milanuncios to nationwide results.
 
 **Out-of-order responses.** Every call to `search()` increments
 `searchVersionRef`, and the result is discarded if the version moved on while it
@@ -223,7 +240,7 @@ mutations.
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant C as CarListingCard
+    participant C as Car card (useFavoriteToggle)
     participant A as saveFavorite action
     participant DB as Postgres
 
@@ -290,7 +307,7 @@ authenticates with a shared secret in constant time. This is the one place the
 because there is no session and no browser to run an action from.
 
 **It applies Path 1's post-filter too.** `server/alerts/search.ts` runs the
-same `applyResultFilters` (radius + model) on what `searchRound` returns,
+same `applyResultFilters` (radius, model and fuel) on what `searchRound` returns,
 after counting each source's raw result for `SourceHealth` — a narrow radius
 filtering a nationwide page to nothing must not read as the source going
 quiet. A filtered-out listing is never recorded as seen and never matches,
@@ -334,8 +351,9 @@ Spanish or English in components.
 | `app/` | Routes, layouts, proxy route handlers |
 | `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/auth.ts` — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
-| `components/map/` | The search + map feature |
-| `components/nav/` | The headers, the phone bottom nav and the language control |
+| `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row and panel), `phone/` (the phone search, sheets and results sheet) |
+| `components/alerts/` | The alerts pages' lists and the create-alert dialog |
+| `components/nav/` | The headers, the phone tab bar and the language control |
 | `components/ui/` | Radix-wrapped primitives |
 | `lib/hooks/` | Every request lifecycle |
 | `lib/wallapop/`, `lib/cochesnet/`, `lib/milanuncios/` | One module per source: client, normalize, taxonomy |
@@ -343,8 +361,9 @@ Spanish or English in components.
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
 | `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database, apart from the LAYOUT-7 exception, `lib/auth/auth.ts` (see [specs/core-layout.md](specs/core-layout.md)) |
-| `lib/listings/` | The pure search-merge logic: interleaving, the radius and model post-filters, the page-state advance |
-| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server |
+| `lib/listings/` | The pure search-merge logic: interleaving, the radius, model and fuel post-filters, the page-state advance |
+| `lib/map/` | Pure map helpers: grouping listings into price pins, the results heading, the results state and the radius to widen to (`results-state.ts`), a card's DOM id (`card-dom-id.ts`) |
+| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server, and the search UI's pure helpers: what the filters panel offers and clears (`panel.ts`), case- and accent-blind comparison (`fold.ts`), the phone summary (`phone-summary.ts`), the radii (`radii.ts`), the type-ahead's matching, the fuel groups, the chips and the alert summary |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Tooling: branch databases, spec, docs and TODO checks — dependency-free except the TODO check, which loads `typescript` |
 
@@ -654,54 +673,93 @@ behaviour in [`specs/cross-cutting.md`](specs/cross-cutting.md); the look in
 Everything lives under `/map` and is orchestrated by
 [`components/map/MapView.tsx`](../components/map/MapView.tsx), which composes two
 hooks — `useListingsSearch()` for results and `useSearchFilters()` for filter
-state — and renders a listings panel beside the map.
+state — and renders the results beside the map on desktop and in a sheet over it on a phone.
+What each piece does is specified in [`specs/redesign-map.md`](specs/redesign-map.md) (MAPUI).
 
 ```
 MapView
-├─ ListingsHeader          keyword input + filters toggle
-│  └─ SearchFilters        motion.div expand/collapse
-│     ├─ LocationSearch    Nominatim autocomplete
-│     ├─ ToggleChip ×n     fuel, transmission
-│     ├─ RangeInput ×4     price, mileage, year, horsepower
-│     └─ Select ×2         brand, model
-├─ CarListingCard ×n       + SourceBadge, favorite toggle
-├─ ListingsMap             dynamic, ssr: false
-└─ MobileMapOverlay        the map, full-screen, on small viewports
+├─ HeaderSearch            portalled into MapHeader's centre (lib/hooks/useMapHeaderSlot.ts)
+│  └─ SearchPill           «Dónde» · «Coche» · «Precio», then «Crear alerta»
+│     ├─ LocationPopover   PlaceField (Nominatim), RadiusChoice, «Toda España»
+│     ├─ CarPopover        CarTypeahead: brands, then models through useCarModels
+│     ├─ PricePopover      PriceRange (Radix Slider and boxes), shortcuts
+│     └─ CreateAlert       the inline card, in the pill's own popover
+├─ FilterRow               «Filtros» and the chips; FilterPanel is its desktop dropdown
+├─ MapResultsArea          the list-and-map column
+│  ├─ PhoneSearchBar       phone only: the summary, the filters button, FilterRow
+│  ├─ ResultsSheet         the list column on desktop, the results sheet on a phone
+│  │  ├─ CarCard ×n        one link, the heart beside it (CarListingCard wraps it)
+│  │  └─ ResultsStatus     placeholders, no results, search error
+│  ├─ ListingsMap          dynamic, ssr: false: price pins, MapPreview, MapZoom
+│  └─ StatusPill           the desktop map's polite live region
+├─ SearchSheet             phone «BUSCAR» (Radix Dialog), applied on «Ver coches»
+├─ FilterPanel (phone)     the full-screen filters (Radix Dialog)
+└─ CreateAlert (sheet)     the phone create-alert bottom sheet (Radix Dialog)
 ```
+
+**Layout switches at `lg` in CSS; behaviour reads a media query.** The phone results sheet
+slices its cards by position, a phone pin moves the sheet instead of opening the preview, and the
+phone map has no zoom control. Those are behaviours, not styles, so
+[`lib/hooks/useIsPhone.ts`](../lib/hooks/useIsPhone.ts) tells `MapView` which applies; the
+server, and jsdom, take the desktop branch.
 
 **`ListingsMap` is loaded via `next/dynamic` with `ssr: false`.** Leaflet needs
 the DOM and will not survive server rendering. It loads the dark CARTO tiles,
-drops `divIcon` markers, and fits bounds via a `FitBounds` child using
-`useMap()` — on a new search's first results only, not on every listings change
-(see `docs/specs/map-and-search.md` › Decisions › The map fits on a new search,
-not on a new page (MAP-25)).
+draws one price pin per point (`lib/map/group-pins.ts` groups the listings that share one), and
+fits bounds via a `FitBounds` child using `useMap()` — on a new search's first results only,
+not on every listings change (see `docs/specs/map-and-search.md` › Decisions › The map fits on a
+new search, not on a new page (MAP-25)). A pin is a `divIcon` whose HTML carries the theme's
+utility classes; its active state is a `data-active` attribute toggled on Leaflet's own element,
+because a new icon would make Leaflet replace the element and lose its focus and listeners. The
+desktop preview is the marker's Leaflet `Popup`, restyled with important utilities because
+`leaflet.css` is unlayered. The map's wrapper is `isolate`, so Leaflet's pane z-indexes stay
+below the header's popovers and the results sheet.
 
-Consequences for tests: mock `react-leaflet` in component tests and render it for
-real only in Playwright — see [Environment gotchas](#environment-gotchas).
+Consequences for tests: most component tests mock `react-leaflet`.
+`components/map/ListingsMap.preview.test.tsx` is the exception — it renders real Leaflet and
+react-leaflet in jsdom for the preview popup's open/close lifecycle, relying on
+`test/utils/animations.ts`'s `withAnimations` to turn real exit animations back on for the cases
+that need the fade still in flight — see [Environment gotchas](#environment-gotchas).
 
-**Filter option constants** live in `components/map/search-filter-options.ts`.
-Labels are resolved through i18n keys, never from the raw constant strings.
+**The brand list** the type-ahead matches is `components/map/search-filter-options.ts`. The
+filter choices and the chip texts come from `lib/search/fuel-groups.ts` and
+`lib/search/filter-chips.ts`, whose labels are i18n keys; what the panel offers and what «Borrar»
+clears is `lib/search/panel.ts`, shared with the chips and the search hook.
 
-**`SearchFiltersProps` is exported** from `SearchFilters.tsx` and threaded
-through `MapView`. Adding a filter means updating both — keep the prop names in
-sync.
+**State lives in hooks.** [`lib/hooks/useMapPageState.ts`](../lib/hooks/useMapPageState.ts) holds
+the map page's own UI state (which phone sheet is open, the results sheet's position, the active
+pin and card, «Crear alerta»); [`lib/hooks/useCarTypeahead.ts`](../lib/hooks/useCarTypeahead.ts)
+the «Coche» type-ahead's query, brand step and choices; `lib/hooks/useOptionNavigation.ts` a
+combobox's keyboard and how its list closes (Escape or a press outside, before the popover or sheet
+around it). [`lib/hooks/createExternalStore.ts`](../lib/hooks/createExternalStore.ts) shares a value
+between parts of the tree with no common parent, such as the root layout's header and tab bar and
+the map page; [`lib/hooks/useCurrentPath.ts`](../lib/hooks/useCurrentPath.ts) gives the path and
+query a signed-out buyer returns to after signing in.
+
+**One heart everywhere.** [`lib/hooks/useFavoriteToggle.ts`](../lib/hooks/useFavoriteToggle.ts)
+owns what pressing a heart does (the session check, the sign-in return with the full path and
+query, the optimistic flip and its rollback); `CarListingCard` (saved cars, alert matches), the
+map's list and its preview card all call it. The sign-in gate itself is
+[`lib/hooks/useSignInGate.ts`](../lib/hooks/useSignInGate.ts) — `requireSession(path)`, which
+returns `true` when signed in, ignores the press while the session is still loading, and otherwise
+redirects to sign in and back to `path` — shared by the heart and «Crear alerta»
+(`useMapPageState`).
 
 ### UI primitives
 
 `components/ui/` wraps Radix primitives: `button`, `card`, `input`, `label`,
-`select`, `separator`, plus three with real behaviour of their own —
-`range-input`, `toggle-chip` and `checkbox-select`.
+`separator`, plus `toggle-chip` and `checkbox-select`, which have behaviour of their own, and
+the shared states `EmptyState` (the question-and-punchline headline, its line and its actions),
+`RouteError` and `CardGridSkeleton`. The popovers and sheets use Radix Popover and Dialog
+directly, and the price range Radix Slider.
 
 **`checkbox-select` is the design's select** (LOOK-21): one style, every option
 with a checkbox, several values at once, the trigger listing the chosen values
-separated by commas. The Radix `select` only takes the new trigger look
-(LOOK-13) and lives until F3 replaces its uses (the radius picker and the
-search filters) and deletes it (`docs/design/roadmap.md`).
+separated by commas. The Radix select is gone: F3 replaced its uses with the design's controls
+(MAPUI-48).
 
 Composition uses `class-variance-authority` with `clsx` and `tailwind-merge`; the
 `cn` helper is in `lib/utils.ts`.
-
-**`RangeInput` is controlled.** A value only accumulates if a parent holds state.
 
 **Icons are never raw SVG.** Lucide React for UI icons, React Icons for brand
 icons. Size with Tailwind (`h-4 w-4`). Icon-only buttons need a descriptive
@@ -723,17 +781,23 @@ example table is the whole contract of what each page offers; the look is
 - **Desktop and phone regions switch at `lg` in CSS**, not through a media-query hook, which would
   flash on hydration because the server cannot know the viewport. jsdom has no layout engine, so
   what each viewport shows is proved in e2e.
-- **No menu and no dropdown** (HEAD-14). Every destination has a home in a header, the bottom nav or
+- **No menu and no dropdown** (HEAD-14). Every destination has a home in a header, the tab bar or
   the account page.
 - **The language control sits in every header**:
   [`components/nav/LanguageControl.tsx`](../components/nav/LanguageControl.tsx), a group of one
   button per locale (HEAD-10; switching writes the `locale` cookie and calls `setLocale`, see
   [Internationalisation](#internationalisation)).
   The phone map has no header, so it has none.
-- **The bottom nav** ([`components/nav/BottomNav.tsx`](../components/nav/BottomNav.tsx)) shows on the
-  signed-in pages at phone width only. It floats above the page, offset from the bottom by the
-  safe-area inset as well as its own gap; the root layout's viewport opts into the safe area with
-  `viewport-fit=cover` (HEAD-17).
+- **The phone tab bar** ([`components/nav/TabBar.tsx`](../components/nav/TabBar.tsx),
+  [`specs/redesign-map.md`](specs/redesign-map.md) MAPUI-52, MAPUI-53) shows at phone width only, on
+  the map (signed in or out) and on the signed-in pages. It runs the full width of the screen,
+  padded at the bottom by the safe-area inset; the root layout's viewport opts into the safe area
+  with `viewport-fit=cover` (HEAD-17). On the map it hides only while the results sheet is full,
+  which `MapView` reports through [`lib/hooks/useResultsSheetFull.ts`](../lib/hooks/useResultsSheetFull.ts);
+  scrolling the map or the sheet never hides it. On the other pages it hides while the page scrolls
+  down ([`lib/hooks/useHideOnScrollDown.ts`](../lib/hooks/useHideOnScrollDown.ts), which captures
+  scroll events from the pages' own scroll containers). Pages keep their last control clear of it with `TAB_BAR_CLEARANCE`
+  (HEAD-18, HEAD-19).
 - **Sign-out lives on `/account`**,
   [`components/account/SignOutButton.tsx`](../components/account/SignOutButton.tsx) (HEAD-13), not in
   any header.
@@ -784,6 +848,16 @@ build step downloads a font — exposed as CSS variables:
 - **Unbounded** (`--font-display`, `app/fonts/unbounded/`) — display type, always uppercase:
   wordmark, headlines, counts and prices
 
+**The type scale is theme tokens too.** `app/globals.css`'s `@theme` exposes `tokens.json` › `type`
+with its values unchanged, as `text-<style>` utilities that set the size, and the line height and
+letter spacing where the style has them (`text-overline`, `text-section-label`, `text-body-15`,
+`text-price`, `text-count`, `text-empty-title`…), plus the phone sizes the styles' notes give
+(`text-count-mobile`, `text-empty-title-mobile`) and the sizes the component guides give with no
+style of their own (`text-box-label`, `text-tab-label`, `text-pin`, `text-sheet-title`,
+`text-empty-line`). The phone tab-bar clearance and the bottom padding of a sheet over it are
+spacing tokens (`pb-tab-clearance`, `pb-sheet-bottom`). `lib/utils.ts`'s `cn` knows these names, so
+`text-body-15` merges as a font size instead of as a colour.
+
 Each declaration carries a fallback stack (`system-ui, -apple-system, "Segoe UI", sans-serif` for
 sans; `"Arial Black", system-ui, sans-serif` for display, as in `tokens.json`), so text stays
 readable if a file fails to load. There is no monospace face: `font-mono` is aliased to the sans
@@ -812,7 +886,7 @@ Motion (`motion/react-client`, with `AnimatePresence` from `motion/react`) rathe
 than CSS animations for React components.
 
 **Reuse the presets in [`lib/animations.ts`](../lib/animations.ts)** —
-`fadeInUp`, `fadeInDown`, `dropdownReveal`, `crossFade`, `fadeIn(delay)`,
+`fadeInUp`, `fadeInDown`, `dropdownReveal`, `sheetSlideUp`, `crossFade`, `fadeIn(delay)`,
 `staggerContainer(delay)`, `buttonTap`
 — instead of re-declaring `initial`/`animate` inline.
 
@@ -882,9 +956,19 @@ request, so there is no `getTranslations()` to call — they use next-intl's
 locale and the same JSON message files.
 
 **Tests.** `test/utils/render.tsx`'s `renderWithI18n` wraps components in
-`NextIntlClientProvider` with `messages/en.json` and locale `en` (plus nuqs's
-testing adapter, for components that read or write URL state — see
-"URL state" below), so component tests query stable English labels.
+`NextIntlClientProvider` with `messages/en.json` and locale `en` by default (plus
+nuqs's testing adapter, for components that read or write URL state — see
+"URL state" below), so component tests query stable English labels. Copy that a spec's worked
+example quotes word for word (in Spanish, the default locale) is asserted with
+`renderWithI18n(ui, { locale: "es" })`.
+
+**Pure helpers take their copy.** The map's pure label builders
+(`lib/search/filter-chips.ts`, `lib/search/alert-summary.ts`,
+`lib/map/group-pins.ts`, `lib/map/results-heading.ts`) take a `copy` argument,
+a `LocaleCopy` from [`lib/i18n/copy.ts`](../lib/i18n/copy.ts) — the translator
+and the locale — which the calling component builds from `useTranslations()` and
+`useLocale()`. The argument is required, with no default, so no caller silently
+renders a fixed locale.
 
 Errors reach the UI as codes and are translated at render — see
 [Patterns that apply everywhere](#patterns-that-apply-everywhere).
@@ -974,7 +1058,8 @@ Two entries in the `node` include list are worth knowing:
 | `test/fixtures/*.ts` | Typed builders — `makeWallapopItem`, `makeCochesNetItem`, … |
 | `test/mocks/intersection-observer.ts` | Controllable IO; `triggerIntersection()` drives infinite scroll |
 | `test/mocks/next-image.tsx` | Stands in for next/image in jsdom tests: `vi.mock("next/image", () => import("@/test/mocks/next-image"))` |
-| `test/utils/render.tsx` | `renderWithI18n(ui)` |
+| `test/utils/render.tsx` | `renderWithI18n(ui)`, or `renderWithI18n(ui, { locale: "es" })` for Spanish copy |
+| `test/utils/copy.ts` | `ES_COPY` and `EN_COPY`: the real messages of one locale, as the `copy` a pure text helper is given in a test |
 
 Override per-test with `server.use(...)`. Handlers reset in `afterEach`.
 
@@ -982,7 +1067,8 @@ Override per-test with `server.use(...)`. Handlers reset in `afterEach`.
 field in every test is how a fixture stops describing anything.
 
 **`renderWithI18n` wraps in `NextIntlClientProvider` with `messages/en.json`,
-locale `en` and timeZone `UTC`** (plus nuqs's `NuqsTestingAdapter`, with
+locale `en` and timeZone `UTC`** by default — `{ locale: "es" }` swaps in
+`messages/es.json` — (plus nuqs's `NuqsTestingAdapter`, with
 `hasMemory` so a component that both reads and writes URL state round-trips
 within one test), so tests can query stable English labels. Unlike the
 removed hand-rolled `I18nProvider`, `useTranslations()` throws with no
@@ -1019,16 +1105,13 @@ keys per test, or fake timers.
 a `setTimeout` it only advances when it detects *jest's* fake clock, which Vitest
 does not expose — so every interaction hangs until the test times out. Either
 drive the hook directly (`renderHook` + `act`), or keep real timers and let
-`findBy*` (1 s default) absorb the 400 ms debounce. `LocationSearch.test.tsx`
+`findBy*` (1 s default) absorb the 400 ms debounce. `LocationPopover.test.tsx`
 does the latter.
 
-**Radix Select needs pointer plumbing jsdom lacks.**
-`hasPointerCapture`/`setPointerCapture`/`releasePointerCapture` are stubbed in
-`test/setup.jsdom.ts`, and the trigger must be clicked with
-`userEvent.setup({ pointerEventsCheck: 0 })`. `SelectValue` renders nothing while
-the content is unmounted, so a closed trigger's accessible name is its label
-alone — query `getByRole("combobox", { name: /Brand/ })`, **never** by the
-selected value.
+**Radix Slider and the card scroll need plumbing jsdom lacks.**
+`hasPointerCapture`/`setPointerCapture`/`releasePointerCapture` (the price range's thumbs
+call them on pointerdown) and `Element.prototype.scrollIntoView` (a pin scrolls its card into
+view) are stubbed in `test/setup.jsdom.ts`. Drive the range with the keyboard in jsdom.
 
 **`useListingsSearch.loadMore` is not public.** It fires only from the sentinel.
 Test it with `sentinelRef(node)` then `triggerIntersection()`.
@@ -1039,19 +1122,22 @@ address" message never renders. Assert "did not submit" for malformed input, and
 use empty/required cases to exercise RHF's own messages. The forms deliberately
 do not set `noValidate`.
 
-**Controlled inputs need a stateful harness.** A value only accumulates in e.g.
-`RangeInput` if a parent holds state. Do not pass a static `value` and expect
-typing to work.
+**Controlled inputs need a stateful harness.** A value only accumulates in a controlled input if
+a parent holds state. Do not pass a static `value` and expect typing to work.
 
 **jsdom lacks** IntersectionObserver, geolocation (defaults to denied, so the
 Spain-centre fallback is what you get), matchMedia and canvas. All are stubbed in
 `test/setup.jsdom.ts`.
 
-Motion runs with instant animations in jsdom (`test/setup.jsdom.ts`); tests assert end states, and
-animations are exercised by E2E.
+Motion runs with instant animations in jsdom by default (`test/setup.jsdom.ts`); most tests assert
+end states, and animations are exercised by E2E. A test that needs an exit still in flight — a
+fading preview card, a closing popover — wraps its own body in `withAnimations`
+(`test/utils/animations.ts`), which turns real animations back on for exactly that call.
 
-**Leaflet cannot run in jsdom.** Mock `react-leaflet` in component tests; render
-it for real only in Playwright.
+**Leaflet runs in jsdom for exactly one test file.** Most component tests mock `react-leaflet`;
+`components/map/ListingsMap.preview.test.tsx` renders the real library instead, for the preview
+popup's open, close and focus lifecycle, which a mock would only repeat rather than prove. jsdom
+lays nothing out, so that file asserts no position or size.
 
 ### End-to-end
 

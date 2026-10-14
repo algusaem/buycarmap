@@ -16,6 +16,8 @@ El selector de cada segmento del buscador (ver [SearchPill](../SearchPill/README
 
 - El campo «Ciudad o código postal» busca mientras escribes; cada sitio es una opción, con su provincia o comunidad en una segunda línea a 13px `text-muted` cuando la tiene («Madrid» · «Comunidad de Madrid»).
 - Debajo, un divisor `line-soft` a todo el ancho de la tarjeta y la sección «Radio»: chips de 10, 25, 50, 100 y 200 km que se reparten el ancho (un grupo de radios); el elegido en `violet` con `on-violet` y peso 800, los demás con borde `line` y peso 600. Sin sitio elegido, el grupo está desactivado (`aria-disabled="true"`, al 40 %, como «Crear alerta» desactivado) y se activa al elegir un sitio.
+- **Sin resultados**: si ningún sitio se llama así, en el lugar de la lista sale «No existe ningún lugar con ese nombre» a 15px en `text-muted`, anunciado como estado.
+- **Buscador de lugares caído**: si la búsqueda de sitios falla (el servicio responde con un error o la petición no llega), en el lugar de la lista sale «El buscador de lugares no responde. Prueba otra vez.», con el mismo estilo y en el mismo sitio que la línea de sin resultados (15px en `text-muted`, anunciado como estado). «No existe ningún lugar con ese nombre» queda solo para cuando de verdad no hay ningún sitio con ese nombre. Igual en el desplegable y en la hoja «BUSCAR», bajo el campo de Dónde.
 - Al pie, «Toda España».
 
 ## Coche
@@ -26,6 +28,7 @@ Un solo campo que busca mientras escribes, «Marca o modelo…».
 - **Elegir una marca** la aplica, quita el modelo y deja el desplegable abierto en el paso de modelos. **Elegir un modelo**, de cualquiera de las dos listas, aplica la marca y el modelo y cierra el desplegable.
 - **Con una marca elegida**: arriba, la marca como chip `violet` de 36px que se quita con su `x` (botón de 44px, «Quitar Toyota»); debajo, el campo pasa a «Modelo de Toyota…» y lista solo sus modelos, sin repetir la marca («Corolla», «Yaris», «C-HR»).
 - **Reabierto** con un modelo elegido: el modelo lleva el check `violet` a la derecha.
+- **Sin resultados**: si ninguna marca empieza por lo escrito, en el lugar de la lista sale «No existe ninguna marca con ese nombre» a 15px en `text-muted`, anunciado como estado, sin los grupos «Marcas» ni «Modelos».
 - La píldora muestra lo elegido: «Cualquier marca», «Toyota», «Toyota Corolla».
 - Al pie, «Cualquier marca».
 

@@ -11,9 +11,12 @@ import { CarListingCard } from "./CarListingCard";
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
 
 const push = vi.fn();
+const pathname = vi.fn(() => "/map");
+const searchParamsString = vi.fn(() => "");
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh: vi.fn() }),
-  usePathname: () => "/map",
+  usePathname: () => pathname(),
+  useSearchParams: () => ({ toString: () => searchParamsString() }),
 }));
 
 const useSession = vi.fn();
@@ -49,8 +52,8 @@ const listing: CarListing = {
   url: "https://es.wallapop.com/item/audi-a3-1",
 };
 
-const ADD = "Add to favorites";
-const REMOVE = "Remove from favorites";
+const ADD = "Save";
+const REMOVE = "Remove from saved";
 const favoriteControl = () => screen.getByRole("button", { name: new RegExp(`${ADD}|${REMOVE}`) });
 
 beforeEach(() => {
@@ -58,6 +61,8 @@ beforeEach(() => {
   vi.mocked(removeFavorite).mockReset();
   vi.mocked(toast.error).mockClear();
   push.mockReset();
+  pathname.mockReturnValue("/map");
+  searchParamsString.mockReturnValue("");
   useSession.mockReturnValue({
     data: { user: { id: "user-ada" } },
     isPending: false,
@@ -154,7 +159,7 @@ describe("CarListingCard favorites", () => {
 
     await userEvent.click(favoriteControl());
 
-    expect(toast.error).toHaveBeenCalledWith("Please sign in to save favorites.");
+    expect(toast.error).toHaveBeenCalledWith("Sign in to save cars.");
   });
 
   it("FAV-11: puts the control back when the save throws", async () => {
@@ -180,13 +185,17 @@ describe("CarListingCard favorites", () => {
     expect(toast.error).toHaveBeenCalledWith("Something went wrong. Please try again.");
   });
 
-  it("FAV-12: sends a signed-out visitor to sign in, and back again afterwards", async () => {
+  it("FAV-12/MAPUI-37: sends a signed-out visitor to sign in with the full current path and query, so the search survives (bug fix)", async () => {
     useSession.mockReturnValue({ data: null, isPending: false });
+    pathname.mockReturnValue("/map");
+    searchParamsString.mockReturnValue("make=Toyota&maxPrice=20000");
     renderWithI18n(<CarListingCard {...listing} />);
 
     await userEvent.click(favoriteControl());
 
-    expect(push).toHaveBeenCalledWith("/login?callbackUrl=%2Fmap");
+    expect(push).toHaveBeenCalledWith(
+      "/login?callbackUrl=%2Fmap%3Fmake%3DToyota%26maxPrice%3D20000",
+    );
     expect(saveFavorite).not.toHaveBeenCalled();
   });
 
@@ -288,5 +297,61 @@ describe("CarListingCard saved-state sync", () => {
     await userEvent.click(favoriteControl());
 
     expect(onFavoriteChange).toHaveBeenLastCalledWith("wallapop-1", false);
+  });
+});
+
+describe("MAPUI-35: CarListingCard — one link, heart outside it", () => {
+  it("MAPUI-35: the card is exactly one link to the listing, and the heart is not inside it", () => {
+    renderWithI18n(<CarListingCard {...listing} />);
+
+    const links = screen.getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", listing.url);
+    expect(links[0]).not.toContainElement(favoriteControl());
+  });
+
+  it("MAPUI-35: shows the source badge and the heart over the photo", () => {
+    renderWithI18n(<CarListingCard {...listing} />);
+
+    expect(screen.getByText("Wallapop")).toBeInTheDocument();
+    expect(favoriteControl()).toBeInTheDocument();
+  });
+
+  it("MAPUI-35: shows the car icon over the tint instead of a photo when there is none", () => {
+    const { container } = renderWithI18n(<CarListingCard {...listing} image="" />);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("svg.lucide-car")).toBeInTheDocument();
+  });
+
+  it("MAPUI-35: shows the photo, and no car icon, when there is one", () => {
+    const { container } = renderWithI18n(<CarListingCard {...listing} />);
+
+    const images = container.querySelectorAll("img");
+    expect(images).toHaveLength(1);
+    expect(images[0]).toHaveAttribute("src", "https://cdn.example.com/car.jpg");
+    expect(container.querySelector("svg.lucide-car")).toBeNull();
+  });
+
+  it("MAPUI-35: shows the name with the city beside it, and año · km · combustible", () => {
+    renderWithI18n(<CarListingCard {...listing} />);
+
+    expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
+    expect(screen.getByText("Madrid")).toBeInTheDocument();
+    expect(screen.getByText("2018 · 95,000 km · Diesel")).toBeInTheDocument();
+  });
+});
+
+describe("MAPUI-36: CarListingCard — the heart's accessible name", () => {
+  it("MAPUI-36: reads Save when not yet saved", () => {
+    renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  });
+
+  it("MAPUI-36: reads Remove from saved once saved", () => {
+    renderWithI18n(<CarListingCard {...listing} isFavorite />);
+
+    expect(screen.getByRole("button", { name: "Remove from saved" })).toBeInTheDocument();
   });
 });

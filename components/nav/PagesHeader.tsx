@@ -27,7 +27,9 @@ interface PagesHeaderProps {
 // HeaderNav README › Páginas, and › Landing con sesión: the language, Mapa ·
 // Guardados · Alertas and, 8px further, the avatar (HEAD-3, HEAD-5, HEAD-7).
 // Signed out (a session that ended on one of these pages, HEAD-12) it offers
-// only «Entrar», like the signed-out map header.
+// only «Entrar», like the signed-out map header. At phone width the section
+// pages show no avatar, because «Cuenta» is in the tab bar (MAPUI-54); the
+// signed-in landing (`open`) keeps it, since the landing has no tab bar.
 export function PagesHeader({ session, current, onAccount, open }: PagesHeaderProps) {
   const t = useTranslations();
 
@@ -66,7 +68,7 @@ export function PagesHeader({ session, current, onAccount, open }: PagesHeaderPr
         <Wordmark size="phone" />
         <MainNav>
           <LanguageControl />
-          {session.status === "signedIn" && (
+          {open && session.status === "signedIn" && (
             <Avatar name={session.name} email={session.email} size="phone" current={onAccount} />
           )}
           {session.status === "pending" && (

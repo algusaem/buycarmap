@@ -63,13 +63,12 @@ as untrusted.
 Out of scope, deliberately:
 
 - **Nominatim geocoding for the location search box.** Already covered by
-  `lib/geo/nominatim.test.ts` and by the `LocationSearch` component tests in
-  Wave A.
+  `lib/geo/nominatim.test.ts` and by the place field's component tests in
+  `components/map/search/LocationPopover.test.tsx`.
 - **Email copy and templates.** Covered in Wave C.
 - **The UI primitives** (`components/ui/*`). `button`, `card`, `input`, `label`
   and `separator` are styling wrappers with no branches worth asserting;
-  `range-input`, `toggle-chip` and `select` have behaviour and are already
-  tested.
+  `toggle-chip` has behaviour and is already tested.
 - **Theme transitions.** There are none: the app has one dark theme, and the
   hook that animated a theme change is removed (Open questions 1).
 

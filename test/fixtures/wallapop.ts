@@ -40,7 +40,9 @@ export function makeWallapopItem(overrides: Partial<WallapopItem> = {}): Wallapo
       year: 2018,
       version: "2.0 TDI",
       km: 95_000,
-      engine: "gasoil",
+      // A fuel Wallapop really sends (docs/specs/data-sources.md › Wallapop ›
+      // Response), not its filter code.
+      engine: "Diesel",
       horsepower: 150,
     },
     ...overrides,

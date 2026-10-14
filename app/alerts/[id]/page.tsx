@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BOTTOM_NAV_CLEARANCE } from "@/components/nav/bottom-nav-clearance";
+import { TAB_BAR_CLEARANCE } from "@/components/nav/tab-bar-clearance";
 import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
 import { AlertMatchesList } from "@/components/alerts/AlertMatchesList";
@@ -27,7 +27,7 @@ export default async function AlertMatchesPage({ params }: PageProps) {
     // which leaves this route unable to scroll at all otherwise (HEAD-19).
     // Same pattern as app/account/page.tsx.
     <div className="flex flex-1 flex-col overflow-y-auto bg-background">
-      <div className={cn("mx-auto w-full max-w-6xl px-4 pt-8 lg:pb-8", BOTTOM_NAV_CLEARANCE)}>
+      <div className={cn("mx-auto w-full max-w-6xl px-4 pt-8 lg:pb-8", TAB_BAR_CLEARANCE)}>
         <AlertMatchesList
           alertLabel={alert.label}
           // Rendered from the stored snapshot, so this page works with every

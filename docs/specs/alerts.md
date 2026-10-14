@@ -39,7 +39,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-4 · node — A caller with no session cannot create, list or delete an alert, and nothing is written
 - [x] ALERT-5 · node — A user cannot delete or deactivate an alert belonging to a different user
 - [x] ALERT-6 · node — Criteria that fail `searchSchema` are rejected with an error code and nothing is written
-- [x] ALERT-7 · node — Saving criteria the user has already saved reports success and leaves exactly one alert — and reports that it already existed (MAPUI-43) (amended 2026-10-13, MAPUI — redesign-map.md)
+- [x] ALERT-7 · node — Saving criteria the user has already saved reports success and leaves exactly one alert — and reports that it already existed (MAPUI-43); an alert with those criteria that was paused from the email or soft-deleted is reactivated with the new name and reported as created, and a live one is reported even at the per-user cap (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] ALERT-8 · node — Creating an alert beyond the per-user cap is rejected with a distinct error code, and the existing alerts are untouched
 - [x] ALERT-9 · node — A request to the run endpoint without the shared secret is refused, and enqueues and processes nothing
 - [x] ALERT-10 · node — A run enqueues every active criteria set last polled longer ago than the poll interval, and skips those polled more recently
@@ -58,7 +58,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-23 · node — A match already notified is not emailed again on any later run
 - [x] ALERT-24 · node — When the send fails, the match stays un-notified and is retried on the next run rather than being lost
 - [x] ALERT-25 · node — With email unconfigured, matches are still recorded and the run reports that nothing was sent, rather than silently succeeding
-- [x] ALERT-26 · node — Following the unsubscribe link in an email deactivates exactly that alert, with no session required
+- [x] ALERT-26 · node — Following the unsubscribe link in an email deactivates exactly that alert, with no session required — saving the same search again from the map reactivates it with the new name (MAPUI-43) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] ALERT-27 · node — An unsubscribe link with an unknown, malformed or already-used token changes nothing and reports the same response as a valid one
 - [x] ALERT-28 · component — The alerts page lists the user's alerts with a readable summary of the criteria and how many matches each has found
 - [x] ALERT-29 · component — With no alerts saved, the page shows an empty state offering a route to create one from a search
@@ -75,7 +75,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-40 · component — An alert that has found nothing shows an empty state explaining it is watching, not a blank list
 - [x] ALERT-41 · node — A criteria set whose subscribers are all inactive is not enqueued, and stops consuming upstream requests
 - [x] ALERT-42 · node — Deleting the last alert that references a criteria set stops it being polled at once (DATA-10); the criteria set and its seen-list are deleted when the last alert referencing it is purged (DATA-12, 30 days after deletion), so a restored alert keeps its seen-list
-- [x] ALERT-43 · node — A poll, and the seed poll of a new alert, apply the same post-filter as the map search (MAP-16, MAP-17, MAP-18): when the criteria name a location, a listing outside the radius or pinned at the country-centre fallback, and when they name a model, a listing naming that model in neither its model field nor its title, produces no match, is never emailed, and is not recorded as seen
+- [x] ALERT-43 · node — A poll, and the seed poll of a new alert, apply the same post-filter as the map search (MAP-16, MAP-17, MAP-18, MAPUI-55), by radius, model and fuel: when the criteria name a location, a listing outside the radius or pinned at the country-centre fallback, when they name a model, a listing naming that model in neither its model field nor its title, and when they name a fuel, a listing whose fuel is unknown or of another fuel group, produces no match, is never emailed, and is not recorded as seen (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] ALERT-44 · node — A poll whose listings are all removed by the post-filter requests no further page from any source, records no match, and still records each source's pre-filter result count for source health (ALERT-20)
 - [x] ALERT-45 · node — Deleting an account deletes, in the same transaction as the user row, every criteria set its alerts referenced — active, inactive or soft-deleted — that no alert references any more, together with its seen-list; a criteria set still referenced by another user's alert, inactive or soft-deleted included, is kept
 - [x] ALERT-46 · node — Creating an alert's criteria record and its alert row commit together or not at all; a failure between them leaves no orphaned criteria row, so the save can be retried and the seed poll still runs
@@ -262,7 +262,7 @@ Routing). Signed-out visitors cannot have alerts (see Out of scope).
 - ALERT-38 — criteria naming no brand, no maximum price and no location.
 - ALERT-40 — an alert that has found nothing.
 - ALERT-41 — a criteria set whose subscribers are all inactive.
-- ALERT-43 — a listing outside the radius, at the country-centre fallback, or not naming the chosen model.
+- ALERT-43 — a listing outside the radius, at the country-centre fallback, not naming the chosen model, or whose fuel is unknown or another than the chosen one.
 - ALERT-44 — a poll whose listings are all removed by the post-filter.
 - ALERT-45 — deleting an account whose criteria set another user still watches, or that only an inactive or soft-deleted alert references.
 - A new listing ranked beyond the first page — see Decisions › "New" cannot mean "published recently", so it means "not seen before".
@@ -323,8 +323,8 @@ never new again. **ALERT-20** needs `perSourceCounts`, because after merging,
 are indistinguishable, which is precisely the silent-death failure that criterion
 exists to catch.
 
-Both fields describe what each source returned, **before** the radius and model
-post-filter of ALERT-43 is applied to the listings. A narrow radius routinely
+Both fields describe what each source returned, **before** the radius, model
+and fuel post-filter of ALERT-43 is applied to the listings. A narrow radius routinely
 filters a nationwide coches.net or Milanuncios page down to nothing; counting
 after the filter would read that as the source being empty and mark it
 unhealthy (ALERT-44).
@@ -788,6 +788,14 @@ listing outside the radius, at the country-centre fallback when a location is
 set, or naming the chosen model in neither its model field nor its title is
 not a match. One filter, shared with the map, so what an alert emails is what
 the saved search would show.
+
+> **Amended 2026-10-13 (MAPUI — [redesign-map.md](redesign-map.md)).** The
+> shared post-filter also checks the fuel (MAPUI-55), so a poll drops by
+> radius, model and fuel: with a fuel criterion, a listing whose fuel is
+> unknown or of another fuel group is not a match (owner decision,
+> 2026-10-13: «es lógico que funcione así»). A criterion holding a fuel value
+> no fuel choice offers, such as `engine=gasoil,cng`, applies no fuel
+> post-filter.
 
 Three consequences, decided deliberately:
 

@@ -1,14 +1,19 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/auth/session";
-import { type AppError, err, ok, type Result } from "@/lib/result";
+import { err, ok, type Result } from "@/lib/result";
 import { withRequestContext } from "@/lib/request-context";
-import { searchSchema, type SearchInput } from "@/lib/search/schema";
+import type { SearchInput } from "@/lib/search/schema";
 import { alertIdSchema, asUserId } from "@/lib/ids";
-import { ALERT_ERROR, alertLabelSchema, type AlertErrorCode } from "./schema";
-import { createAlertForUser, deleteAlertForUser, isSpecificEnough } from "./service";
-
-type AlertError = AppError<AlertErrorCode>;
+import {
+  ALERT_ERROR,
+  type AlertError,
+  type AlertErrorCode,
+  alertCriteriaSchema,
+  alertLabelSchema,
+  type CreateAlertOutcome,
+} from "./schema";
+import { createAlertForUser, deleteAlertForUser } from "./service";
 
 function alertError(code: AlertErrorCode): AlertError {
   return { code, messageKey: `alertErrors.${code}` };
@@ -17,34 +22,34 @@ function alertError(code: AlertErrorCode): AlertError {
 export async function createAlert(
   criteria: SearchInput,
   label: string,
-): Promise<Result<void, AlertError>> {
+): Promise<Result<CreateAlertOutcome, AlertError>> {
   return withRequestContext(async () => {
     const user = await getCurrentUser();
     if (!user) return err(alertError(ALERT_ERROR.unauthenticated));
 
-    const parsed = searchSchema.safeParse(criteria);
-    if (!parsed.success) {
-      return err(alertError(ALERT_ERROR.invalidCriteria));
-    }
-
     // Before the seed poll, not after: a criteria set this broad must cost zero
-    // upstream requests.
-    if (!isSpecificEnough(parsed.data)) {
-      return err(alertError(ALERT_ERROR.criteriaTooBroad));
+    // upstream requests. Too broad is reported only when it is the sole
+    // problem; anything else the schema refuses is invalid criteria.
+    const parsed = alertCriteriaSchema.safeParse(criteria);
+    if (!parsed.success) {
+      const tooBroad = parsed.error.issues.every(
+        (issue) => issue.message === ALERT_ERROR.criteriaTooBroad,
+      );
+      return err(alertError(tooBroad ? ALERT_ERROR.criteriaTooBroad : ALERT_ERROR.invalidCriteria));
     }
 
     const parsedLabel = alertLabelSchema.safeParse(label);
     if (!parsedLabel.success) {
       return err(alertError(ALERT_ERROR.invalidCriteria));
     }
-    const trimmedLabel = parsedLabel.data;
 
-    const createError = await createAlertForUser(asUserId(user.id), parsed.data, trimmedLabel);
-    if (createError) {
-      return err(alertError(createError));
+    const saved = await createAlertForUser(asUserId(user.id), parsed.data, parsedLabel.data);
+    if (!saved.ok) {
+      return err(alertError(saved.error));
     }
 
-    return ok(undefined);
+    // MAPUI-43: `created` is false when the user already had this alert live.
+    return ok(saved.value);
   });
 }
 

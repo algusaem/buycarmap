@@ -12,7 +12,7 @@ interface AvatarProps {
 }
 
 /** HEAD-9: the upper-case first letter of the name, or of the email when there is no name. */
-function initialOf(name: string | null | undefined, email: string) {
+export function initialOf(name: string | null | undefined, email: string) {
   return (name || email).charAt(0).toUpperCase();
 }
 

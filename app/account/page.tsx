@@ -11,7 +11,7 @@ import { DataExportCard } from "@/components/account/DataExportCard";
 import { TwoFactorCard } from "@/components/account/TwoFactorCard";
 import { DeleteAccountForm } from "@/components/account/DeleteAccountForm";
 import { SignOutButton } from "@/components/account/SignOutButton";
-import { BOTTOM_NAV_CLEARANCE } from "@/components/nav/bottom-nav-clearance";
+import { TAB_BAR_CLEARANCE } from "@/components/nav/tab-bar-clearance";
 import { cn } from "@/lib/utils";
 import { getAccountOverview } from "@/server/account/queries";
 
@@ -41,7 +41,7 @@ export default async function AccountPage() {
     // components/legal/LegalContent.tsx.
     <div className="flex flex-1 flex-col overflow-y-auto bg-background">
       <div
-        className={cn("mx-auto w-full max-w-2xl px-4 pt-8 sm:pt-12 lg:pb-12", BOTTOM_NAV_CLEARANCE)}
+        className={cn("mx-auto w-full max-w-2xl px-4 pt-8 sm:pt-12 lg:pb-12", TAB_BAR_CLEARANCE)}
       >
         <Link
           href="/map"

@@ -15,7 +15,7 @@ describe("FavoritesLoading", () => {
 
     // aria-busy, not colour alone, marks the region as loading for assistive
     // tech (RULES.md §19 "redundant status cues"). Not role="status": that
-    // would clash with LocationSearch's own live region on the map's results
+    // would clash with PlaceField's own live region on the map's results
     // list under strict mode (MAP-20).
     expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument();
   });

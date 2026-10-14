@@ -1,8 +1,8 @@
 # Redesign F3 — map and search
 
 Key: MAPUI
-Status: Approved
-Last updated: 2026-10-13
+Status: Implemented
+Last updated: 2026-10-14
 
 ---
 
@@ -42,60 +42,70 @@ In scope:
 
 Search pill and its popovers (desktop)
 
-- [ ] MAPUI-1 · component — At desktop width the map header's centre shows the search pill: segments
+- [x] MAPUI-1 · component — At desktop width the map header's centre shows the search pill: segments
   «Dónde», «Coche» and «Precio», each with its value as in the worked examples, then the «Buscar»
   button. «Crear alerta» follows the pill.
-- [ ] MAPUI-2 · component — Pressing a segment opens its popover and sets that segment's
+- [x] MAPUI-2 · component — Pressing a segment opens its popover and sets that segment's
   `aria-expanded` to true. At most one popover is open. Pressing outside it or Escape closes it;
   Escape returns focus to the segment.
-- [ ] MAPUI-3 · component — In «Dónde», typing two or more characters lists the places Nominatim
+- [x] MAPUI-3 · component — In «Dónde», typing two or more characters lists the places Nominatim
   returns, each with its region on a second line when it has one, and announces «N resultados» in a
   polite status. Choosing one applies that place with the radius in force (50 km by default) (amends
   MAP-20).
-- [ ] MAPUI-4 · component — «Dónde» offers the radii 10, 25, 50, 100 and 200 km as a single-choice
+- [x] MAPUI-4 · component — «Dónde» offers the radii 10, 25, 50, 100 and 200 km as a single-choice
   group. Choosing one applies it. The group is disabled while no place is chosen (keeps MAP-13).
-- [ ] MAPUI-5 · component — «Toda España» clears the place. The search becomes the national one, and
+- [x] MAPUI-5 · component — «Toda España» clears the place. The search becomes the national one, and
   the results heading counts the national results (MAPUI-33).
-- [ ] MAPUI-6 · component — In «Coche», typing lists under «Marcas» every brand whose name, or a word
+- [x] MAPUI-6 · component — In «Coche», typing lists under «Marcas» every brand whose name, or a word
   of it, starts with the text, ignoring case and accents. When one to three brands match, their
   models are listed under «Modelos» as «Marca Modelo», without duplicates. When more than three
   match, only brands are listed.
-- [ ] MAPUI-7 · component — Choosing a brand applies it and clears the model (keeps MAP-12). It also
+- [x] MAPUI-7 · component — Choosing a brand applies it and clears the model (keeps MAP-12). It also
   shows the brand as a removable chip, and turns the field into «Modelo de <marca>…», which lists only
   that brand's models. The popover stays open.
-- [ ] MAPUI-8 · component — Choosing a model, from either list, applies the brand and the model and
+- [x] MAPUI-8 · component — Choosing a model, from either list, applies the brand and the model and
   closes the popover. The segment then reads «Marca Modelo», and on reopening, that model carries the
   chosen mark.
-- [ ] MAPUI-9 · component — Removing the brand chip, or pressing «Cualquier marca», clears the brand
+- [x] MAPUI-9 · component — Removing the brand chip, or pressing «Cualquier marca», clears the brand
   and the model.
-- [ ] MAPUI-10 · component — When loading a brand's models fails, «Coche» still lists the matching
+- [x] MAPUI-10 · component — When loading a brand's models fails, «Coche» still lists the matching
   brands and offers no «Modelos» group, and no error is shown.
-- [ ] MAPUI-11 · component — «Precio» offers:
+- [x] MAPUI-11 · component — «Precio» offers:
   - a two-knob range from 0 to 30.000 € in steps of 500 €, where the right knob at the end means no
     maximum;
   - the «Mínimo» and «Máximo» boxes, which accept any amount;
+  - every amount box (the price boxes here, «Kilómetros, hasta» in the panel) shows its value with the
+    thousands point, «20.000» and «100.000», and reads what is typed with or without it: «100.000» and
+    «100000» are both 100.000 (owner decision, 2026-10-13: «que lo muestre con puntos y lo entienda con
+    o sin»);
   - the shortcuts «Hasta 5.000 €», «Hasta 10.000 €», «Hasta 20.000 €» and «Hasta 30.000 €», which set
     the maximum and clear the minimum;
   - «Cualquier precio», which clears both.
 
   A typed minimum above the maximum is swapped with it when the box loses focus.
-- [ ] MAPUI-12 · component — On desktop nothing asks for confirmation. Every change in a popover or in
+- [x] MAPUI-12 · component — On desktop nothing asks for confirmation. Every change in a popover or in
   the filters panel updates the URL and re-searches after the pause MAP-11 sets, and «Buscar»
   re-searches at once and closes any open popover (keeps MAP-11).
 
 Filters row and panel
 
-- [ ] MAPUI-13 · component — Under the search the filters row shows:
+- [x] MAPUI-13 · component — Under the search the filters row shows:
   - «Filtros», with a badge counting the active chips;
   - one chip per active panel criterion, with the texts of the worked examples.
 
   Removing a chip removes that criterion and re-searches. With no criterion active, the row shows
-  «Filtros» with no badge.
-- [ ] MAPUI-14 · component — The filters panel has exactly the sections Precio, Combustible, Cambio,
-  Kilómetros y año («Hasta … km» and «Desde …» year), Publicado, and Marca y modelo (the «Coche»
+  «Filtros» with no badge. At every width the row stays on one line: when the chips do not fit, they
+  scroll sideways behind «Filtros», which stays fixed at the start (design accepted 2026-10-14).
+  Removing a chip with the keyboard moves focus to the next chip's remove button, the previous one
+  when it was the last, and «Filtros» when none is left.
+- [x] MAPUI-14 · component — The filters panel has exactly the sections Precio, Combustible, Cambio,
+  Kilómetros y año (the maximum mileage and the minimum year, with the visible labels «Kilómetros, hasta»
+  and «Año, desde»), Publicado, and Marca y modelo (the «Coche»
   type-ahead), in that order. It has no horsepower, free text, minimum mileage, maximum year or sort
-  control.
-- [ ] MAPUI-15 · unit — The fuel choices map onto the shared filter values:
+  control. «Kilómetros, hasta» accepts any whole amount from 0 (0 means cars with no mileage) and «Año,
+  desde» any whole year: the panel refuses neither (owner decision, 2026-10-13: «0km es posible… hay
+  coches del 1900 en wallapop, deja de limitar»). (amended 2026-10-13)
+- [x] MAPUI-15 · unit — The fuel choices map onto the shared filter values:
   - «Gasolina» → `gasoline`;
   - «Diésel» → `gasoil`;
   - «Híbrido» → `hybride` and `hybride_plugin` together;
@@ -103,19 +113,21 @@ Filters row and panel
   - «GLP» → `lpg`.
 
   «Híbrido» reads as chosen when either hybrid value is present.
-- [ ] MAPUI-16 · component — «Cambio» is a single choice of «Todos», «Manual» and «Automático».
-  «Todos» means no gearbox criterion, and it is shown unless exactly one of `manual` and `automatic` is
-  set. Choosing replaces the whole gearbox criterion.
-- [ ] MAPUI-17 · component — «Publicado» is a single choice:
+- [x] MAPUI-16 · component — «Cambio» is a single choice of «Todos», «Manual» and «Automático».
+  There are only two kinds of gearbox, so the three choices cover every combination. «Todos» means no
+  gearbox criterion, and it is shown unless exactly one of `manual` and `automatic` is set. Choosing
+  replaces the whole gearbox criterion. A URL carrying both `manual` and `automatic` (old links) means
+  no gearbox criterion: the search sends none. (amended 2026-10-13)
+- [x] MAPUI-17 · component — «Publicado» is a single choice:
   - «Cualquier momento» → no `timeFilter`;
   - «Últimas 24 h» → `today`;
   - «Última semana» → `lastWeek`;
   - «Último mes» → `lastMonth`.
-- [ ] MAPUI-18 · unit — A URL carrying a criterion the UI no longer offers still parses and still
+- [x] MAPUI-18 · unit — A URL carrying a criterion the UI no longer offers still parses and still
   reaches the search, with no control or chip for it. Those criteria are `minKm`, `maxYear`,
   `minHorsePower`, `maxHorsePower`, `gearbox=semiautomatic`, `engine=cng` and the `?q=` text. «Borrar»
   and «Quitar filtros» clear them (amends FRONT-13).
-- [ ] MAPUI-19 · component — On desktop the filters panel is a dropdown under «Filtros» with no close
+- [x] MAPUI-19 · component — On desktop the filters panel is a dropdown under «Filtros» with no close
   button:
   - every choice applies at once;
   - «Ver coches» only closes it, as do pressing outside and Escape;
@@ -123,152 +135,187 @@ Filters row and panel
 
 Phone
 
-- [ ] MAPUI-20 · component — At phone width the map shows, floating over it, two rows:
+- [x] MAPUI-20 · component — At phone width the map shows, floating over it, two rows:
   - the search summary: «Madrid · 50 km» over «Cualquier marca · hasta 20.000 €», or «Toda España»
     with no place;
   - beside it, the violet filters button, then the filters row.
 
   It shows no zoom control and no app header (keeps HEAD-7), and the tab bar of MAPUI-52 runs along
   the bottom.
-- [ ] MAPUI-21 · component — Tapping the summary opens the «BUSCAR» sheet with «Dónde», «Coche» and
+- [x] MAPUI-21 · component — Tapping the summary opens the «BUSCAR» sheet with «Dónde», «Coche» and
   «Precio»:
   - nothing chosen there reaches the URL, the summary or the search until «Ver coches», which applies
     it all and closes the sheet;
   - closing the sheet discards it;
   - «Borrar» empties the sheet's fields, applied only on «Ver coches».
-- [ ] MAPUI-22 · component — The violet button opens the full-screen filters panel, with the same
+- [x] MAPUI-22 · component — The violet button opens the full-screen filters panel, with the same
   sections as MAPUI-14 and the apply, discard and «Borrar» behaviour of MAPUI-21. Removing a chip
   from the filters row applies at once.
-- [ ] MAPUI-23 · component — On a phone the results live in a sheet over the map with three
+- [x] MAPUI-23 · component — On a phone the results live in a sheet over the map with three
   positions:
   - peeked, showing the title only;
   - middle, showing the first card;
-  - full, showing the list.
+  - full, showing the list. At full the end of the list keeps a bottom padding of 24px plus the
+    safe-area inset (`space-sheet-full-bottom`), so the last card clears the home indicator (design
+    accepted 2026-10-14).
 
   The sheet sits on top of the tab bar. Its title is the results heading of MAPUI-33, and under it
-  sits «Crear alerta» (MAPUI-39). The handle is a button that toggles between full and peeked, with
-  `aria-expanded` true only when full.
-- [ ] MAPUI-24 · component — At phone width, tapping a pin moves the results sheet to its middle
+  sits «Crear alerta» (MAPUI-39). The handle is a button named «Lista de resultados» that toggles between full
+  and peeked, with `aria-expanded` true only when full. (amended 2026-10-13)
+- [x] MAPUI-24 · component — At phone width, tapping a pin moves the results sheet to its middle
   position showing that car's card first, or the group's first car for a grouped pin.
 
 Map
 
-- [ ] MAPUI-25 · component — Every listing with coordinates is a pin button showing its price. Listings
+- [x] MAPUI-25 · component — Every listing with coordinates is a pin button showing its price. Listings
   at the same point (coordinates equal to five decimals) share one pin, «N coches · desde <lowest
   price>». The pins account for exactly the listings in the list (amends MAP-15).
-- [ ] MAPUI-26 · unit — The grouping of listings into pins is a pure function that produces the worked
+- [x] MAPUI-26 · unit — The grouping of listings into pins is a pure function that produces the worked
   example's groups, labels and order.
-- [ ] MAPUI-27 · component — At desktop width, activating a pin with a click, Enter or Space does three
+- [x] MAPUI-27 · component — At desktop width, activating a pin with a click, Enter or Space does three
   things:
   - it opens the preview card with the photo, name, city, «año · km · combustible», price,
     «Guardar» and «Ver anuncio» (new tab);
   - it marks the pin active;
   - it outlines that car's card in the list and scrolls it into view.
 
-  A grouped pin's preview lists its cars in order. The preview closes with its button, Escape or a
-  press outside, and focus returns to the pin.
-- [ ] MAPUI-28 · component — Hovering or focusing a card in the list marks its pin active.
-- [ ] MAPUI-29 · component — At desktop width, «Acercar» and «Alejar» change the map zoom by one level,
+  The preview fades in and fades out, however it closes (design accepted 2026-10-14). Opening another
+  pin while a preview is open closes the first and opens the second, which stays open. When the
+  previewed car leaves the results, its preview closes and its pin is no longer active; if the car
+  comes back in a later search, its pin is not active and its card not outlined until it is
+  activated again.
+
+  A grouped pin's preview lists its cars in order. The preview receives focus when it opens (owner
+  approval, 2026-10-13). It closes with its button, Escape
+  pressed on the pin or inside the preview, or a press anywhere outside it, on the map or the page
+  (owner decision, 2026-10-13: «Vale»), and focus returns to the pin. (amended 2026-10-13)
+- [x] MAPUI-28 · component — Hovering or focusing a card in the list marks its pin active.
+- [x] MAPUI-29 · component — At desktop width, «Acercar» and «Alejar» change the map zoom by one level,
   and the map shows no other zoom control.
 
 States
 
-- [ ] MAPUI-30 · component — While the first page is loading, the list shows placeholder cards shaped
+- [x] MAPUI-30 · component — While the first page is loading, the list shows placeholder cards shaped
   like the car card. At desktop width the map also shows «Buscando coches…» in a status pill with
-  `role="status"` (amends FRONT-14).
-- [ ] MAPUI-31 · component — A search with no results shows:
+  `role="status"` (amends FRONT-14). At phone width the loading state is the map screen itself: the
+  floating search and the filters row over the map, and the results sheet in its middle position with
+  the heading «BUSCANDO COCHES…» and one placeholder card (`F0-estado-cargando`; amended 2026-10-14).
+- [x] MAPUI-31 · component — A search with no results shows:
   - «¿Nada por aquí?» over «Amplía el radio»;
   - the line «Con estos filtros no hay coches en 50 km. Prueba más lejos o quita algún filtro.»;
   - «Ampliar a <next radius> km», which applies the next radius;
-  - «Quitar filtros».
+  - «Quitar filtros», which clears every filter, those of MAPUI-18 and the `?q=` text included, and
+    keeps the place and the radius.
 
   At 200 km or with no place there is no widen button: the headline reads «¿Nada por aquí?» over
   «Quita algún filtro», «Quitar filtros» is the primary action, and neither the line nor the map's
   status pill names a radius. The status pill reads «Ningún coche en 50 km» (amends MAP-15 and
-  FRONT-14; keeps MAP-19).
-- [ ] MAPUI-32 · component — A failed search shows:
+  FRONT-14; keeps MAP-19). (amended 2026-10-13)
+
+  With no filter active, only the place and its radius, there is no «Quitar filtros» (owner
+  decision, 2026-10-13: «Vale»):
+  - the headline reads «¿Nada por aquí?» over «Amplía el radio»;
+  - the line reads «No hay coches en <radius> km.»;
+  - the primary action is «Ampliar a <next radius> km»;
+  - at 200 km the line reads «No hay coches en 200 km.» and the primary action is «Toda España»,
+    which clears the place (MAPUI-5);
+  - the status pill reads «Ningún coche en <radius> km». (amended 2026-10-13)
+- [x] MAPUI-32 · component — A failed search shows:
   - «¿Se ha caído algo?» over «Prueba otra vez»;
   - the line «No hemos podido traer los anuncios. Suele ser cosa de un momento.»;
   - «Reintentar», which repeats the search;
   - on the map, «Sin conexión con los anuncios».
 
   It keeps MAP-3 and MAP-7.
-- [ ] MAPUI-33 · unit + component — The results heading is the desktop list's title and the phone
+- [x] MAPUI-33 · unit + component — The results heading is the desktop list's title and the phone
   sheet's title. It reads:
   - «BUSCANDO COCHES…» while the first page loads;
   - «NINGÚN COCHE» when the search found none;
   - «COCHES» when the search failed;
   - «1 COCHE» or «N COCHES» once the sources are exhausted;
-  - «MÁS DE N COCHES» while more pages remain, where N is the number of cars in the list.
+  - «MÁS DE N COCHES» while more pages remain, where N is the number of cars in the list, and «MÁS DE
+    1 COCHE» when that number is one (owner approval, 2026-10-13). (amended 2026-10-13)
 
   It has no «cerca de…» line in any state, since the search already names the place.
-- [ ] MAPUI-34 · component — `/map` has its own `loading.tsx`, which renders the loading state, and its
-  own `error.tsx`. The error file renders the page-error state with an action that retries the route.
+- [x] MAPUI-34 · component — `/map` has its own `loading.tsx`, which renders the loading state, and its
+  own `error.tsx`. The error file renders the page-error state with the line «Error al cargar el mapa. Vuelve a
+  intentarlo más tarde.» and «Reintentar», which retries the route. (amended 2026-10-13)
 
 Car card
 
-- [ ] MAPUI-35 · component — A car card shows:
+- [x] MAPUI-35 · component — A car card shows:
   - the source badge and the heart over the photo, or over the car's tint with the car icon when it
     has no photo;
   - the name, with the city beside it;
-  - «año · km · combustible»;
+  - «año · km · combustible», where the fuel is its group's label (MAPUI-15) and shows only when it
+    is recognised; a car with no fuel, or one that is not recognised, shows «año · km»;
   - the price.
 
   The card is one link to the listing in a new tab, and the heart is a separate button outside that
-  link.
-- [ ] MAPUI-36 · component — The heart's accessible name is «Guardar», or «Quitar de guardados» once
+  link. (amended 2026-10-13)
+- [x] MAPUI-36 · component — The heart's accessible name is «Guardar», or «Quitar de guardados» once
   saved (keeps FAV-9 to FAV-11).
-- [ ] MAPUI-37 · component — A signed-out buyer who presses the heart is sent to `/login` with a
+- [x] MAPUI-37 · component — A signed-out buyer who presses the heart is sent to `/login` with a
   `callbackUrl` of the full current path and query, so the search survives the sign-in (bug fix;
   amends FAV-12).
-- [ ] MAPUI-38 · component — `/favorites` and an alert's matches render this same card (keeps FAV-13
+- [x] MAPUI-38 · component — `/favorites` and an alert's matches render this same card (keeps FAV-13
   and ALERT-39).
 
 Crear alerta
 
-- [ ] MAPUI-39 · component — «Crear alerta» in the desktop header, and the «Crear alerta» button under
-  the phone results sheet's title, open the create-alert dialog. The dialog has the name prefilled,
-  the search summary, «Crear alerta» and «Cancelar».
-- [ ] MAPUI-40 · unit — The prefilled name and the summary are built from the search as in the worked
+- [x] MAPUI-39 · component — «Crear alerta» in the desktop header, and the «Crear alerta» button under
+  the phone results sheet's title, open the create-alert dialog, and opening it closes an open preview
+  card (MAPUI-27). The dialog has the name prefilled, the search summary, «Crear alerta» and
+  «Cancelar». (amended 2026-10-13)
+- [x] MAPUI-40 · unit — The prefilled name and the summary are built from the search as in the worked
   examples. The summary never includes «Publicado».
-- [ ] MAPUI-41 · component — For a search with no brand, no maximum price and no place, the summary
+- [x] MAPUI-41 · component — For a search with no brand, no maximum price and no place, the summary
   reads «Cualquier marca · Cualquier precio». The dialog then shows «Añade una marca, un precio
   máximo o una zona para crear la alerta.» with `role="alert"`, «Crear alerta» is `aria-disabled`, and
   pressing it sends nothing.
-- [ ] MAPUI-42 · component — «Crear alerta» calls `createAlert` with the current criteria, without
-  `timeFilter`, and the trimmed name. On success the dialog closes and the toast «Alerta creada»
-  offers «Ver alertas», which links to `/alerts`.
-- [ ] MAPUI-43 · node + component — Saving criteria the user already has as a live alert succeeds and
-  reports that it already existed. The dialog closes with the toast «Ya tenías esta alerta» and «Ver
-  alertas» (amends ALERT-7).
-- [ ] MAPUI-44 · component — An empty name, once trimmed, shows «Ponle un nombre a la alerta.» under
+- [x] MAPUI-42 · component — «Crear alerta» calls `createAlert` with the current criteria, without
+  `timeFilter` and without the `?q=` text, and the trimmed name. On success the dialog closes and the toast «Alerta creada»
+  offers «Ver alertas», which links to `/alerts`. The server strips both too: criteria sent to
+  `createAlert` with a `timeFilter` or `keywords` are hashed and stored without them, the same as
+  the criteria without them. (amended 2026-10-13)
+- [x] MAPUI-43 · node + component — Saving criteria the user already has as an alert succeeds:
+  - a live alert: nothing is created, even at the 20-alert limit, and the answer is `created: false`.
+    The dialog closes with the toast «Ya tienes esta alerta» and «Ver alertas»;
+  - an alert paused from the email (`active: false`): it is reactivated with the new name;
+  - a soft-deleted alert: it is restored with the new name.
+
+  The last two answer `created: true`, and the dialog closes with the toast «Alerta creada» and «Ver
+  alertas» (amends ALERT-7). (amended 2026-10-13)
+- [x] MAPUI-44 · component — An empty name, once trimmed, shows «Ponle un nombre a la alerta.» under
   the field and sends nothing.
-- [ ] MAPUI-45 · component — A refused create keeps the dialog open and shows that code's message
+- [x] MAPUI-45 · component — A refused create keeps the dialog open and shows that code's message
   inline. The codes are `tooManyAlerts`, `criteriaTooBroad`, `invalidCriteria` and `unauthenticated`,
-  and their messages are the `alertErrors.*` copy.
-- [ ] MAPUI-46 · component — Signed out, «Crear alerta» goes to `/login` with a `callbackUrl` of the
+  and their messages are the `alertErrors.*` copy. A create that fails on the network keeps the
+  dialog open too and shows «No hemos podido crear la alerta. Vuelve a intentarlo.» inline (owner
+  decision, 2026-10-13: «Vale»). (amended 2026-10-13)
+- [x] MAPUI-46 · component — Signed out, «Crear alerta» goes to `/login` with a `callbackUrl` of the
   full current map path and query, and nothing is created after signing in (keeps ALERT-4).
-- [ ] MAPUI-47 · e2e — Signed in, creating an alert from `/map?make=Toyota&maxPrice=20000` adds it to
+- [x] MAPUI-47 · e2e — Signed in, creating an alert from `/map?make=Toyota&maxPrice=20000` adds it to
   `/alerts` (database run; covers ALERT-1 end to end).
 
 Radix select
 
-- [ ] MAPUI-48 · node — No module imports `components/ui/select.tsx` or `@radix-ui/react-select`, the
-  file does not exist, and `package.json` does not list the package.
+- [x] MAPUI-48 · node — No module imports the Radix select primitive file or `@radix-ui/react-select`,
+  the file does not exist, and `package.json` does not list the package. (amended 2026-10-13)
 
 Flows
 
-- [ ] MAPUI-49 · e2e — At desktop width, choosing a place, a brand and a maximum price writes each to
+- [x] MAPUI-49 · e2e — At desktop width, choosing a place, a brand and a maximum price writes each to
   the URL and shows results. Going Back restores the previous criteria (amends FRONT-13).
-- [ ] MAPUI-50 · e2e — At phone width, choosing in the «BUSCAR» sheet and pressing «Ver coches» writes
+- [x] MAPUI-50 · e2e — At phone width, choosing in the «BUSCAR» sheet and pressing «Ver coches» writes
   the criteria to the URL. Choosing and then closing the sheet leaves the URL as it was.
-- [ ] MAPUI-51 · e2e — At phone width every map control has a hit area of at least 44 × 44px: the
+- [x] MAPUI-51 · e2e — At phone width every map control has a hit area of at least 44 × 44px: the
   summary, the filters button, the chips' remove buttons, the sheet handle, the pins and the tabs
   (extends HEAD-15).
 
 Phone tab bar
 
-- [ ] MAPUI-52 · component — At phone width, the map, `/favorites`, `/alerts`, `/alerts/[id]` and
+- [x] MAPUI-52 · component — At phone width, the map, `/favorites`, `/alerts`, `/alerts/[id]` and
   `/account` show a full-width tab bar at the bottom, padded by the safe area:
   - signed in, four tabs: «Mapa», «Guardados», «Alertas» and «Cuenta»;
   - each tab is an icon over its label, and «Cuenta» shows the avatar's initial;
@@ -278,11 +325,32 @@ Phone tab bar
 
   The bar replaces the floating bottom nav, and it is absent at desktop width and on every other page
   (amends HEAD-8 and HEAD-17).
-- [ ] MAPUI-53 · component — The tab bar hides while the map's results sheet is full, and while a
-  page is being scrolled down. It comes back when the sheet leaves full, and on scrolling up.
-- [ ] MAPUI-54 · component — At phone width, the headers of `/favorites`, `/alerts`, `/alerts/[id]`
+- [x] MAPUI-53 · component — On `/map` the tab bar hides only while the results sheet is full, and
+  comes back when the sheet leaves full; scrolling the map or the sheet's list never hides it (owner
+  approval, 2026-10-13). On the other pages of MAPUI-52 it hides while the page is being scrolled
+  down and comes back on scrolling up (bug fix). (amended 2026-10-13)
+- [x] MAPUI-54 · component — At phone width, the headers of `/favorites`, `/alerts`, `/alerts/[id]`
   and `/account` show the wordmark and the language control and no avatar, because «Cuenta» is in
   the tab bar (amends HEAD-7). The alert page's own «Volver» is built with that page in F6.
+
+Fuel filter, type-ahead messages and price format
+
+- [x] MAPUI-55 · unit — With a fuel criterion, `applyResultFilters` (`lib/listings/merge.ts`) keeps
+  only the listings whose fuel is recognised and belongs to a chosen fuel group (MAPUI-15). A listing
+  with no fuel, or a fuel that is not recognised, is dropped. With no fuel criterion every listing
+  stays. Like the radius and model post-filters, it can empty a page, and MAP-19's fetching keeps
+  going.
+- [x] MAPUI-56 · component — In «Coche», text that no brand matches shows «No existe ninguna marca con
+  ese nombre» in place of the list. In «Dónde», two or more characters for which Nominatim returns no
+  place show «No existe ningún lugar con ese nombre». When the place search itself fails (Nominatim
+  answers with an error, or the request does not get through), «Dónde» says that the place search is
+  down: «El buscador de lugares no responde. Prueba otra vez.», never that the place does not exist
+  (owner decision, 2026-10-13: «que quede claro que el buscador ha caído»; design accepted 2026-10-14). Each message is in the polite status, and it shows
+  wherever its field does: the desktop popover, the phone «BUSCAR» sheet and, for «Coche», the
+  filters panel's «Marca y modelo».
+- [x] MAPUI-57 · unit — Every price has one format, with a thousands point, four-digit amounts
+  included: «9.500 €», «14.500 €». The cards, the preview, the pins, the chips and the pill all
+  format through `formatPrice`, and `lib/format.ts` has no second price formatter (amends FRONT-11).
 
 ## Worked examples
 
@@ -310,6 +378,52 @@ row, whose text comes from SearchPill's guide.
 
 So `engine=gasoil&maxPrice=20000&gearbox=automatic&timeFilter=today` gives the badge 4 and the chips
 «Diésel», «Hasta 20.000 €», «Automático» and «Últimas 24 h».
+
+**Gearbox (MAPUI-16).** `gearbox=manual,automatic` reads «Todos», gives no chip and sends no gearbox
+criterion. `gearbox=manual` reads «Manual» and sends `manual`.
+
+**«Quitar filtros» (MAPUI-31).**
+`/map?lat=40.4168&lng=-3.7038&placeId=1&locationName=Madrid&radius=25&engine=gasoil&maxPrice=20000&q=golf`
+gives `/map?lat=40.4168&lng=-3.7038&placeId=1&locationName=Madrid&radius=25`: the place and the radius stay,
+every filter and the text go.
+
+**Fuel (MAPUI-35, MAPUI-55).** Four listings, all 2019 with 71.000 km, with the fuels `gasoil`,
+`gasoline`, none and `vapor` (a token no group recognises):
+- with no fuel criterion, all four are listed. Their meta lines read «2019 · 71.000 km · Diésel»,
+  «2019 · 71.000 km · Gasolina», «2019 · 71.000 km» and «2019 · 71.000 km»;
+- with `engine=gasoil`, only the first is listed;
+- with `engine=hybride,hybride_plugin`, none is listed.
+
+**Fuel vocabulary (MAPUI-35, MAPUI-55).** The fuel strings a live probe of the three sources returned
+on 2026-10-13 (`docs/specs/data-sources.md` › Contracts), and the group each belongs to:
+
+| Source | Fuel string | Group (card label) |
+| --- | --- | --- |
+| Wallapop | «Gasoline» | Gasolina |
+| Wallapop | «Diesel» | Diésel |
+| Wallapop | «Hybrid», «Hybrid Plug-in» | Híbrido |
+| Wallapop | «Electric» | Eléctrico |
+| Wallapop | «LPG» | GLP |
+| Wallapop | «CNG» | none |
+| coches.net | «Gasolina» | Gasolina |
+| coches.net | «Diésel» | Diésel |
+| coches.net | «Híbrido», «Híbrido enchufable» | Híbrido |
+| coches.net | «Eléctrico» | Eléctrico |
+| coches.net | «Gas licuado (GLP)» | GLP |
+| coches.net | «Gas natural (CNG)» | none |
+| Milanuncios | «gasolina» | Gasolina |
+| Milanuncios | «diesel» | Diésel |
+| Milanuncios | «híbrido» | Híbrido |
+| Milanuncios | «eléctrico» | Eléctrico |
+
+A CNG listing shows «año · km» on its card, and a fuel criterion drops it.
+
+**A fuel value no group offers (MAPUI-55; owner decision, 2026-10-13: «okey»).** A criterion holding
+any value no fuel choice offers applies no fuel post-filter at all. `engine=gasoil,cng` keeps both a
+«Gas natural (CNG)» listing and a «Diésel» one; `engine=gasoil` alone keeps only the «Diésel» one.
+
+**Price format (MAPUI-57).** `formatPrice(9500, "es")` → «9.500 €»; `formatPrice(14500, "es")` →
+«14.500 €». A pin of 9.500 € reads «9.500 €», and a group «2 coches · desde 9.500 €».
 
 **Coche type-ahead (MAPUI-6 to MAPUI-8).**
 - Typing «Toy» lists «Toyota» under «Marcas». Under «Modelos» it lists Toyota's models, so with the
@@ -341,11 +455,22 @@ They give two pins:
 | exhausted with 1 car | «1 COCHE» |
 | exhausted with 24 cars | «24 COCHES» |
 | 40 cars listed, more pages left | «MÁS DE 40 COCHES» |
+| 1 car listed, more pages left | «MÁS DE 1 COCHE» |
 | 40 listed, load-more running | «MÁS DE 40 COCHES» (unchanged until the page lands) |
 
 **Empty state widening (MAPUI-31).** 10 → «Ampliar a 25 km», 25 → «Ampliar a 50 km», 50 → «Ampliar a
 100 km», 100 → «Ampliar a 200 km», 200 → no button. At 200 km or with no place: the headline «¿Nada por aquí?» over «Quita algún filtro», «Quitar filtros» as the primary action, «Ningún coche con estos filtros»
 on the map, and the line «Con estos filtros no hay coches. Prueba a quitar algún filtro.»
+
+**Empty state with no filter (MAPUI-31).**
+
+| Search | Line | Primary action | Status pill |
+| --- | --- | --- | --- |
+| Madrid, 50 km, nothing else | «No hay coches en 50 km.» | «Ampliar a 100 km» | «Ningún coche en 50 km» |
+| Madrid, 200 km, nothing else | «No hay coches en 200 km.» | «Toda España» | «Ningún coche en 200 km» |
+
+Neither shows «Quitar filtros». In the strings above the space before «km» (and before «h» in
+«Últimas 24 h») is a non-breaking space, U+00A0.
 
 **Alert name and summary (MAPUI-40).**
 
@@ -368,10 +493,27 @@ and the place with its radius, each only when set.
 
 «Crear alerta» signed out gives the same URL.
 
+**Saving an alert again (MAPUI-43).** The user saves «Toyota · hasta 20.000 €» with the name «Toyota
+barato», and already has an alert with the same criteria hash:
+- live, named «Toyota»: nothing changes, `createAlert` returns `ok({ created: false })` and the toast
+  is «Ya tienes esta alerta»;
+- live, with the user at 20 alerts: the same, `ok({ created: false })`, not `tooManyAlerts`;
+- paused from the email (`active: false`): it becomes active, named «Toyota barato», and the answer is
+  `ok({ created: true })` with the toast «Alerta creada»;
+- soft-deleted: it is restored, active and named «Toyota barato», with `ok({ created: true })` and the
+  toast «Alerta creada».
+
+**The tab bar on the map (MAPUI-53; bug fix).**
+- **Input:** at phone width on `/map`, the results sheet in its middle position, scrolling the sheet's
+  list down, then dragging the map.
+- **Before the fix:** the tab bar hides as on a scrolled page.
+- **Correct result:** the tab bar stays. It hides only when the sheet reaches full, and comes back when
+  it leaves full.
+
 ## Data model
 
 None. Alerts keep their `AlertCriteria.criteria` JSON and `Alert.label`. The create path only learns
-to tell a new alert from an existing one (Contracts). This reads `Alert`, `AlertCriteria` and
+to tell a new alert from an existing one, and to reactivate a paused one (Contracts). This reads `Alert`, `AlertCriteria` and
 `Favorite`, unchanged.
 
 ## Permissions
@@ -400,25 +542,49 @@ to tell a new alert from an existing one (Contracts). This reads `Alert`, `Alert
 - **Criteria the UI no longer offers.**
   - Old links with removed criteria keep working, with no control or chip for them (MAPUI-18). A
     buyer with an empty result clears them with «Quitar filtros».
-  - The old multi-choice gearbox, e.g. `gearbox=manual,automatic`, reads as «Todos» (MAPUI-16).
+  - The old multi-choice gearbox, e.g. `gearbox=manual,automatic`, reads as «Todos» and sends no
+    gearbox criterion (MAPUI-16).
   - `engine=hybride_plugin` alone reads «Híbrido» chosen. Unchoosing it removes both hybrid values
     (MAPUI-15).
 - **No place.**
   - National search, the counted heading, radius disabled (MAPUI-4, MAPUI-5, MAPUI-33).
   - The empty state has no widen button (MAPUI-31). Wallapop still gets the centre of Spain (SRC-8,
     kept).
+  - No place, no filter and no car: the failed-search state of MAPUI-32 shows, «Reintentar»
+    included, with no copy of its own, since a national search with nothing narrowing it comes back
+    empty only when the sources failed (decision, 2026-10-13).
 - **Results.**
   - A filtered page can come back empty while more pages remain. The search keeps fetching (MAP-19,
     kept), and the empty state shows only once the sources are exhausted.
   - A listing without coordinates is in the list but has no pin. Today every source gives every
     listing a point (SRC-3, kept), so this is a guard, not a case the design draws.
+- **Fuel.**
+  - A listing with no fuel, or one no group recognises, shows no fuel on its card and is dropped by a
+    fuel criterion (MAPUI-35, MAPUI-55).
+  - A criterion holding a value no fuel choice offers (MAPUI-18), alone (`engine=cng`) or beside
+    others (`engine=gasoil,cng`), applies no fuel post-filter, so MAPUI-55 drops nothing for it
+    (owner decision, 2026-10-13).
+  - A CNG listing («CNG», «Gas natural (CNG)») is in no group: no fuel on its card, dropped by a fuel
+    criterion (worked example "Fuel vocabulary").
+  - An alert with a fuel criterion drops a listing whose fuel is unknown, as the map does (owner
+    decision, 2026-10-13: «es lógico que funcione así»; ALERT-43).
+- **Type-ahead with no match** (MAPUI-56).
 - **Phone.**
   - A discarded sheet leaves the search, the URL and the summary untouched (MAPUI-21, MAPUI-50).
 - **Crear alerta.**
   - A too-broad search: the button is disabled, and the server refuses anyway (MAPUI-41, ALERT-38).
   - An empty name (MAPUI-44).
-  - Twenty alerts already (MAPUI-45).
-  - Already saved (MAPUI-43).
+  - Twenty alerts already (MAPUI-45), unless the criteria match a live alert (MAPUI-43).
+  - Already saved, paused from the email, or deleted (MAPUI-43).
+  - A soft-deleted alert no longer counts toward the 20, so restoring it at the limit is refused with
+    `tooManyAlerts` (MAPUI-45; owner approval, 2026-10-13). A paused alert still counts, so
+    reactivating it is not checked against the limit (MAPUI-43).
+  - Paused at the limit: a paused alert and 19 others. Saving the paused alert's criteria again
+    answers `created: true`, reactivates that same alert with the new name, and the user still has 20
+    alerts (MAPUI-43).
+  - A direct call to `createAlert` carrying `timeFilter` or `keywords` stores and hashes the criteria
+    without them (MAPUI-42).
+  - A create that fails on the network keeps the dialog open with its message (MAPUI-45).
   - Signed out (MAPUI-46).
   - A session that ends while the dialog is open gets `unauthenticated` inline (MAPUI-45).
 
@@ -436,17 +602,36 @@ to tell a new alert from an existing one (Contracts). This reads `Alert`, `Alert
 - A photo carousel on the card (its own issue).
 - Deduplicating the same car across sources (`docs/specs/data-sources.md`).
 - Showing the place name on `/alerts`. The stored criteria hold coordinates, not a name.
+- Dragging the phone results sheet between its positions. The handle toggles them (MAPUI-23); the
+  drag is tracked in [#126](https://github.com/algusaem/buycarmap/issues/126).
 
 ## Contracts
 
-**`createAlert`** (`server/alerts/actions.ts`) keeps its signature `createAlert(criteria, label)`. Its
-success result becomes `{ ok: true, created: boolean }`:
+**`createAlert`** (`server/alerts/actions.ts`) keeps its signature `createAlert(criteria, label)` and
+returns the shared `Result<{ created: boolean }, AlertError>` (PLAT-11, `lib/result.ts`):
 
-- `created: false` when the caller already had a live alert with the same criteria hash;
-- `created: true` for a new alert, including one restored from a soft-deleted row.
+- `ok({ created: false })` when the caller already had a live alert with the same criteria hash, even
+  at the per-user limit;
+- `ok({ created: true })` for a new alert, for one paused from the email (`active: false`) and
+  reactivated, and for one restored from a soft-deleted row. The last two take the new name.
 
 The error codes are unchanged: `unauthenticated`, `invalidCriteria`, `criteriaTooBroad`,
-`tooManyAlerts`.
+`tooManyAlerts`. The criteria never carry `timeFilter` or the `?q=` text (MAPUI-42).
+
+**Specificity.** `isSpecificEnough` stays in `server/alerts/schema.ts` as the refinement of
+`alertCriteriaSchema`, which the create-alert dialog and `createAlert` both parse with, so they share
+one rule (amends `docs/specs/core-layout.md`, which moved it to `service.ts`).
+
+**The preview card** is the marker's Leaflet popup, not a Radix popover, so it is positioned with the
+map and moves with it. Its content animates with Motion and receives focus on open (MAPUI-27).
+
+**Type scale.** The design system's type scale (`docs/design/system/tokens.json` › `type`) is exposed
+as theme tokens, one per entry there and with its values unchanged (owner approval, 2026-10-13). The
+extra tokens the build added are recorded in `tokens.json` too, so the list of theme type tokens and
+`tokens.json` › `type` match (owner approval, 2026-10-13: «Vale»).
+
+**Surface brief.** `/map`'s Impeccable brief is [`.impeccable/surfaces/map.md`](../../.impeccable/surfaces/map.md)
+(`STACK.md` §17).
 
 **Brand list.** The type-ahead's brands are the existing 35-brand list
 (`components/map/search-filter-options.ts`). Models come from `listCarModels(make)`, one call per
@@ -455,12 +640,15 @@ session, and deduplicated by name ignoring case. The model is stored and sent by
 coches.net resolves through its existing name lookup (SRC-7, kept).
 
 **Location.** `searchLocations` (`lib/geo/nominatim.ts`) stays browser-side (FRONT-7). The second
-line is the display name after its first comma, without a trailing «España».
+line is the display name after its first comma, without a trailing «España». It throws when
+Nominatim answers with an error or the request does not get through, so the search can tell a
+failure from no place: `useLocationSearch` exposes `failed`, and «Dónde» shows the place-search-down
+message (MAPUI-56).
 
 **Dependencies.**
-- Added, approved by the owner on 2026-10-12 and recorded in the dependency ADR:
-  - `@radix-ui/react-popover`, for the desktop popovers, the filters dropdown, «Crear alerta» and the
-    preview card;
+- Added, approved by the owner on 2026-10-12 and recorded in
+  [ADR 0020](../decisions/0020-radix-popover-dialog-slider.md):
+  - `@radix-ui/react-popover`, for the desktop popovers, the filters dropdown and «Crear alerta»;
   - `@radix-ui/react-dialog`, for the phone sheets, with focus trapped and returned;
   - `@radix-ui/react-slider`, for the price range.
 - Removed: `@radix-ui/react-select`.
@@ -469,9 +657,15 @@ line is the display name after its first comma, without a trailing «España».
 - New `search.*`: the segment labels, the placeholders, «Toda España», «Cualquier marca», «Cualquier
   precio», «Radio», «Marcas», «Modelos», «Modelo de {brand}…», «{count} resultados», the price
   shortcuts and the summary formats.
-- New `mapStates.*`: the empty, error and loading copy and the status pills.
-- New `createAlert.*`: the title, «Nombre», the buttons, the too-broad notice, the empty-name error and
-  the two toasts.
+- New `mapStates.*`: the empty copy (with and without filters, «Toda España» included), the error
+  and loading copy and the status pills.
+- New `createAlert.*`: the title, «Nombre», the buttons, the too-broad notice, the empty-name error,
+  the network-failure message and the two toasts, «Alerta creada» and «Ya tienes esta alerta».
+- The grouped preview reuses the pin's group label (`map.pinGroup`); it has no key of its own.
+- Units take a non-breaking space (U+00A0) before them in the new strings: «50 km», «24 h».
+- The map's error-page line, the «Kilómetros, hasta» and «Año, desde» labels, the two no-match
+  messages and the place-search-down message (`search.placeSearchDown`, MAPUI-56) and the handle's
+  «Lista de resultados» are new keys too.
 - `filters.*` keeps the five fuels, «Todos / Manual / Automático» and the four «Publicado» choices,
   and drops the removed ones once unused.
 - `map.addFavorite` / `map.removeFavorite` become «Guardar» / «Quitar de guardados» ("Save" / "Remove
@@ -495,15 +689,20 @@ kept and marked:
   - FRONT-13 (MAPUI-18, MAPUI-49): the worked-example URL still parses.
   - FRONT-14 (MAPUI-30 to MAPUI-32).
   - FRONT-15, whose create-alert outcomes are toasts (MAPUI-42, MAPUI-43); failures stay inline.
+  - FRONT-11 (MAPUI-57): `lib/format.ts`'s formatters are `formatPrice` (with a thousands point,
+    built on `formatAmount`, which the amount boxes also use), `formatMileage` and
+    `formatRelativeTime`; `formatNumber` is removed, and there is no second price formatter.
 - **`favorites.md` (FAV).**
   - Amended:
     - FAV-12, by MAPUI-37;
     - FAV-17, whose note "the phone map gets one in F3" is fulfilled by the tab bar (MAPUI-52).
   - Kept: FAV-9 to FAV-11 and FAV-13 on the new card.
-- **`alerts.md` (ALERT).** ALERT-1 gains its end-to-end test (MAPUI-47), and ALERT-7 is amended by
-  MAPUI-43.
+- **`alerts.md` (ALERT).** ALERT-1 gains its end-to-end test (MAPUI-47). ALERT-7 is amended by
+  MAPUI-43, and ALERT-26 gains the note that saving the same search again reactivates the alert.
 - **`redesign-foundation.md` (LOOK).** LOOK-11 and LOOK-13 move from the deleted select trigger to the
   checkbox select's trigger on `/palette`.
+- **`core-layout.md`.** The decision that moved `isSpecificEnough` to `service.ts` is amended: it stays
+  in `schema.ts` (Specificity, above).
 - **`redesign-navigation.md` (HEAD).**
   - HEAD-1 and HEAD-2 gain the pill and «Crear alerta» in the map header's centre, and HEAD-16 now
     binds with them in place.
@@ -550,14 +749,44 @@ copy and a design for criteria the product no longer offers.
 
 **Hybrids grouped, gearbox single.** A buyer asks for "a hybrid", not for the plug-in distinction that
 two of the three sources fold anyway. The gearbox becomes one choice because coches.net and
-Milanuncios read only the first value, so «Manual + Automático» behaved differently per source.
+Milanuncios read only the first value, so «Manual + Automático» behaved differently per source. There
+are only two kinds, so both together mean any gearbox, and an old link carrying both sends no
+criterion (owner decision, 2026-10-13).
 
 **Alerts do not save «Publicado».** An alert already looks only for cars new since it last ran. A
-saved «Último mes» would make every poll ask Wallapop for a month of listings.
+saved «Último mes» would make every poll ask Wallapop for a month of listings. Nor does it save the
+`?q=` text (owner decision, 2026-10-13): the map no longer shows it (MAPUI-18), so the alert would
+carry a criterion the buyer cannot see.
 
 **Telling "already existed" apart (owner decision: "say so").** The upsert hides it today. The service
-learns it inside the same transaction rather than through a second query outside it, so the answer
-cannot race a parallel create.
+derives `created` inside the same transaction as the write, from the row it finds there, and never
+from a separate query before it. At Postgres' default isolation that narrows the window without
+closing it: what parallel saves cannot break is the unique keys, one criteria row per hash and one
+alert per user and criteria set, so nothing is stored twice. Two parallel saves of the same criteria
+by one user may both answer `created: true`.
+
+**No unsaved-changes warning on «Crear alerta» (owner decision, 2026-10-13: «Me parece bien»).**
+`RULES.md` §19 asks for a warning before navigating away from unsaved changes. The dialog is the
+exception: its only field is a short name, prefilled from the search (MAPUI-40), so leaving it loses
+at most a few typed characters, and a confirmation on every dismissal would cost more than it saves.
+
+**Saving again brings a paused or deleted alert back (owner decision, 2026-10-13).** Saving the same
+search again is the buyer asking for that alert, so a paused one is reactivated and a deleted one
+restored, each with the new name, and both read «Alerta creada». A live one is already there: it reads
+«Ya tienes esta alerta», and the limit does not refuse it, since nothing new is stored.
+
+**Fuel filtered after the merge (owner decision, 2026-10-13).** A buyer who asks for diesel should see
+only diesel, and a listing whose fuel is missing or not recognised cannot be confirmed as diesel, so
+the merge drops it, as it does for the radius and the model. With no fuel criterion nothing is
+dropped, and an unknown fuel is left off the card rather than shown raw. Alerts poll through the same
+post-filter, so an alert with a fuel criterion drops an unknown fuel as well (owner decision,
+2026-10-13: «es lógico que funcione así»). A criterion carrying a value no group offers, such as an
+old link's `engine=gasoil,cng`, cannot be checked here, so it applies no fuel post-filter and the
+sources' own filter stands (owner decision, 2026-10-13: «okey»).
+
+**One price format (owner decision, 2026-10-13).** Spanish number formatting (`Intl.NumberFormat`
+with `es`) leaves four-digit amounts without a separator. Every price takes the thousands point,
+«9.500 €» as well as «14.500 €», in every place it shows.
 
 **Grouping without a library (owner decision).** Grouping exact points is a few lines of pure code
 and covers the real problem: city-level coordinates from coches.net and Milanuncios stacking cars on
@@ -576,7 +805,7 @@ was saving from.
 - the radius group disabled without a place;
 - «Toda España» as the phone summary with no place;
 - the no-place empty-state copy;
-- «Ya tenías esta alerta»;
+- «Ya tienes esta alerta» (confirmed 2026-10-13);
 - «Ponle un nombre a la alerta.»;
 - a model choice closing the popover while a brand choice keeps it open.
 

@@ -21,6 +21,8 @@ export interface CheckboxSelectProps {
   onChange: (value: string[]) => void;
   /** Shown in the trigger while nothing is chosen. The caller owns the copy. */
   placeholder?: string;
+  /** Put on the trigger, for the browser tests that find it (`/palette`, LOOK-11, LOOK-13). */
+  "data-testid"?: string;
 }
 
 /**
@@ -43,6 +45,7 @@ export function CheckboxSelect({
   value,
   onChange,
   placeholder,
+  "data-testid": testId,
 }: CheckboxSelectProps) {
   const [open, setOpen] = useState(false);
   const labelId = useId();
@@ -68,6 +71,7 @@ export function CheckboxSelect({
       </span>
       <DropdownMenuPrimitive.Root open={open} onOpenChange={setOpen}>
         <DropdownMenuPrimitive.Trigger
+          data-testid={testId}
           aria-haspopup="listbox"
           aria-labelledby={`${labelId} ${valueId}`}
           className={cn(

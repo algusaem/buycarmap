@@ -1,4 +1,4 @@
-<!-- @dsCard group="Alertas" height=860 subtitle="Crear alerta: desplegable de escritorio normal, demasiado amplio y sin nombre, los avisos de creada y de ya existía, y el botón y la hoja de móvil" -->
+<!-- @dsCard group="Alertas" height=1236 subtitle="Crear alerta: desplegable de escritorio normal, demasiado amplio, sin nombre y sin red, los avisos de creada y de ya existía, y el botón y la hoja de móvil" -->
 <!doctype html>
 <html lang="es">
 <head>
@@ -55,10 +55,17 @@ input{height:52px;box-sizing:border-box;border-radius:var(--radius-field);border
     <span class="sum">Toyota Corolla · Hasta 20.000 € · Madrid · 50 km</span>
     <div class="acts"><button class="go" type="button">Crear alerta</button><button class="ghost" type="button">Cancelar</button></div>
   </div>
+  <div class="card" role="dialog" aria-label="Crear alerta">
+    <strong class="title">Crear alerta</strong>
+    <label><span>Nombre</span><input type="text" name="alertName" value="Toyota Corolla · Madrid"></label>
+    <span class="sum">Toyota Corolla · Hasta 20.000 € · Madrid · 50 km</span>
+    <p class="err" role="alert"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>No hemos podido crear la alerta. Vuelve a intentarlo.</p>
+    <div class="acts"><button class="go" type="button">Crear alerta</button><button class="ghost" type="button">Cancelar</button></div>
+  </div>
 </div>
 <div class="row">
   <div class="t" role="status"><svg class="ok" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg><span>Alerta creada</span><a class="a" href="#">Ver alertas</a><button class="x" type="button" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
-  <div class="t" role="status"><svg class="ok" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg><span>Ya tenías esta alerta</span><a class="a" href="#">Ver alertas</a><button class="x" type="button" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+  <div class="t" role="status"><svg class="ok" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg><span>Ya tienes esta alerta</span><a class="a" href="#">Ver alertas</a><button class="x" type="button" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
 </div>
 <div class="row">
   <div class="sheet top">

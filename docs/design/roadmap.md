@@ -18,6 +18,7 @@ Each phase:
 **Branch and merge (owner decision, 2026-10-12).** Every phase is built on the same branch,
 `claude/app-structural-redesign-c4a34d`, committed there as it goes. Nothing reaches `master` until the
 whole plan (F1–F7) is done and the screens match the design; the merge is one pull request at the end.
+Before that pull request, the keyboard, screen-reader and iPhone checks in [#127](https://github.com/algusaem/buycarmap/issues/127) run.
 
 A design change found during a phase goes to the design first (`CLAUDE.md` › Design first), then to
 the phase's spec.
@@ -28,7 +29,7 @@ the phase's spec.
 | --- | --- | --- | --- |
 | F1 Foundation | [redesign-foundation.md](../specs/redesign-foundation.md) (LOOK) | Implemented 2026-10-12 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | Tokens, dark only, fonts, shared primitives, source badge, footer, `DESIGN.md` |
 | F2 Navigation | [redesign-navigation.md](../specs/redesign-navigation.md) (HEAD) | Implemented 2026-10-12 on `claude/app-structural-redesign-c4a34d`; not merged yet | Desktop headers, phone headers, bottom nav |
-| F3 Map and search | [redesign-map.md](../specs/redesign-map.md) (MAPUI) | Spec approved 2026-10-13 | The map screen and its states |
+| F3 Map and search | [redesign-map.md](../specs/redesign-map.md) (MAPUI) | Implemented 2026-10-14 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | The map screen and its states |
 | F4 Landing and sign in | — | Not started | `/` landing and `/login` |
 | F5 Saved cars | — | Not started | `/favorites` |
 | F6 Alerts | — | Not started | `/alerts` and `/alerts/[id]` |
@@ -58,7 +59,7 @@ error de búsqueda (`R2Base`, `R3-mapa-detalle`, `F0-estado-cargando`, `F0-estad
 `F0-estado-error-busqueda`). Pieces: SearchPill (desktop and phone), chips and «Filtros», FilterSheet,
 PricePin, MapPreview, ListingCard, BottomSheet, StatusPill, MapZoom, EmptyState. Governs:
 `map-and-search.md` (MAP), and the save heart on cards from `favorites.md` (FAV). F3 also replaces
-every use of the Radix select (`components/ui/select.tsx`: radius, filters) with the design's
+every use of the Radix select primitive (radius, filters) with the design's
 controls and the F1 checkbox select, then deletes it. F3 also builds «Crear alerta» (save the current
 search as an alert, next to the search pill), which no screen offers today (owner decision, 2026-10-12). The map tile style
 stays the dark CARTO one; the exact minimal style is issue #118.

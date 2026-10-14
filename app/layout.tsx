@@ -6,7 +6,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { TimeZoneCookie } from "@/lib/geo/TimeZoneCookie";
 import { MotionProvider } from "@/components/MotionProvider";
 import { AuthProvider } from "@/components/AuthProvider";
-import { BottomNav } from "@/components/nav/BottomNav";
+import { TabBar } from "@/components/nav/TabBar";
 import { SiteHeader } from "@/components/nav/SiteHeader";
 import { Toaster } from "@/components/Toaster";
 import "./globals.css";
@@ -64,7 +64,7 @@ export default async function RootLayout({
                 <TimeZoneCookie />
                 <SiteHeader />
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
-                <BottomNav />
+                <TabBar />
                 <Toaster />
               </NuqsAdapter>
             </NextIntlClientProvider>

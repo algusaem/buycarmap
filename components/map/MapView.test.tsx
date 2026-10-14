@@ -1,21 +1,46 @@
-import { describe, expect, it, vi } from "vitest";
-import { act, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse, delay } from "msw";
+import { NextIntlClientProvider } from "next-intl";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { axe } from "vitest-axe";
 import { server } from "@/test/msw/server";
 import { renderWithI18n } from "@/test/utils/render";
+import esMessages from "@/messages/es.json";
 import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
 import { makeCochesNetResponse } from "@/test/fixtures/cochesnet";
 import { makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
 import { triggerIntersection } from "@/test/mocks/intersection-observer";
 import { makeFavoriteInput } from "@/test/fixtures/favorites";
 import { listFavorites } from "@/server/favorites/actions";
+import { searchListings } from "@/server/search/actions";
+import { setMapHeaderSlot } from "@/lib/hooks/useMapHeaderSlot";
+import { createAlert } from "@/server/alerts/actions";
+import { SiteHeader } from "@/components/nav/SiteHeader";
+import { TabBar } from "@/components/nav/TabBar";
 import { MapView } from "./MapView";
 
+// The tests that quote docs/specs/redesign-map.md's worked examples word for
+// word render in Spanish, the locale the spec writes them in, with
+// `{ locale: "es" }`; renderWithI18n otherwise renders English
+// (test/utils/render.tsx).
+
+const push = vi.fn();
+// What useCurrentPath (lib/hooks/useCurrentPath.ts) reads as the page's query.
+const currentQuery = vi.fn(() => "");
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push, refresh: vi.fn() }),
   usePathname: () => "/map",
+  useSearchParams: () => ({ toString: () => currentQuery() }),
 }));
+vi.mock("@/server/alerts/actions", () => ({ createAlert: vi.fn() }));
+// SiteHeader's language control calls this action; Sentry is what
+// LanguageControl reports a failure to. Neither is what these tests are about.
+vi.mock("@/server/locale/actions", () => ({
+  setLocale: vi.fn(async () => ({ ok: true, value: undefined })),
+}));
+vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 import { toast } from "sonner";
 // CarListingCard reads the session (authClient.useSession(), Better Auth) to
@@ -54,11 +79,42 @@ vi.mock("@/server/search/actions", async () => {
   };
 });
 
-// Leaflet cannot run in jsdom. MapView loads the map through next/dynamic, so
-// the stub stands in for the whole module and reports what it was handed.
+// MapView loads the map through next/dynamic, and these tests are about what
+// MapView hands it, so the stub stands in for the whole module and reports
+// that: the listings, the active car (MAPUI-27, MAPUI-28), whether it is the
+// desktop map (MAPUI-20, MAPUI-29), and one button per listing standing for
+// that car's pin (MAPUI-24, MAPUI-27). ListingsMap's own behaviour is
+// ListingsMap.test.tsx's and ListingsMap.preview.test.tsx's job.
 vi.mock("@/components/map/ListingsMap", () => ({
-  ListingsMap: ({ listings }: { listings: { id: string }[] }) => (
-    <div data-testid="listings-map" data-count={listings.length} />
+  ListingsMap: ({
+    listings,
+    activeId,
+    desktop,
+    onActivate,
+  }: {
+    listings: { id: string }[];
+    activeId?: string;
+    desktop?: boolean;
+    onActivate?: (id: string) => void;
+  }) => (
+    <div
+      data-testid="listings-map"
+      data-count={listings.length}
+      data-active-id={activeId ?? ""}
+      data-desktop={String(desktop)}
+    >
+      {onActivate && listings[0] && (
+        <button type="button" onClick={() => onActivate(listings[0].id)}>
+          tap pin
+        </button>
+      )}
+      {onActivate &&
+        listings.map((listing) => (
+          <button key={listing.id} type="button" onClick={() => onActivate(listing.id)}>
+            {`tap pin ${listing.id}`}
+          </button>
+        ))}
+    </div>
   ),
 }));
 
@@ -77,19 +133,24 @@ const onlyWallapop = [
   http.get(MILANUNCIOS, () => HttpResponse.json(makeMilanunciosResponse([], 0))),
 ];
 
-// Records the keywords of every Wallapop call so a case can assert what the
-// filters actually sent.
-function captureWallapopKeywords(response: () => Response) {
-  const keywords: (string | null)[] = [];
-  server.use(
-    ...onlyWallapop,
-    http.get(WALLAPOP, ({ request }) => {
-      keywords.push(new URL(request.url).searchParams.get("keywords"));
-      return response();
-    }),
-  );
-  return keywords;
-}
+// What a case may change, put back before the next: the session (signed
+// out), a signed-in buyer's favourites (none), the page's query, the router's
+// and createAlert's calls, the phone width and the map header's slot.
+const realMatchMedia = window.matchMedia;
+
+beforeEach(() => {
+  useSession.mockReturnValue({ data: null, isPending: false });
+  vi.mocked(listFavorites).mockReset();
+  vi.mocked(listFavorites).mockResolvedValue({ ok: true, value: [] });
+  currentQuery.mockReturnValue("");
+  push.mockClear();
+  vi.mocked(createAlert).mockClear();
+});
+
+afterEach(() => {
+  window.matchMedia = realMatchMedia;
+  setMapHeaderSlot(null);
+});
 
 describe("MapView results", () => {
   it("renders what the sources return", async () => {
@@ -100,16 +161,100 @@ describe("MapView results", () => {
     expect(screen.getAllByRole("article")).toHaveLength(3);
   });
 
-  it("MAP-15: shows the empty state when no source has anything", async () => {
+  it("MAP-15/MAPUI-31: shows the redesigned empty state when no source has anything, with no place chosen", async () => {
     server.use(
       ...onlyWallapop,
       http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([], null))),
     );
 
-    renderWithI18n(<MapView initialQuery="case-empty" />);
+    renderWithI18n(<MapView initialQuery="case-empty" />, { locale: "es" });
 
-    expect(await screen.findByText("Search for cars to see results")).toBeInTheDocument();
+    expect(await screen.findByText("¿Nada por aquí?")).toBeInTheDocument();
+    expect(screen.getByText("Quita algún filtro")).toBeInTheDocument();
+    // No place chosen: the line and the status pill both name no radius.
+    expect(
+      screen.getByText("Con estos filtros no hay coches. Prueba a quitar algún filtro."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Ningún coche con estos filtros")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Ampliar a/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quitar filtros" })).toBeInTheDocument();
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  });
+
+  it("MAPUI-31: shows the redesigned empty state widened for the next radius, with a place chosen at 50 km", async () => {
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([], null))),
+    );
+
+    // Deep-links a place and leaves `radius` at its 50 km default (FRONT-13's
+    // worked-example URL, lib/search/url-state.ts's `searchParsers`), rather
+    // than driving the «Dónde» popover's PlaceField combobox through a
+    // debounce — the hook reads this through `useQueryStates` on mount, so
+    // the first search already carries the place.
+    render(<MapView initialQuery="case-empty-with-place" />, {
+      wrapper: ({ children }) => (
+        <NextIntlClientProvider locale="es" messages={esMessages} timeZone="UTC">
+          <NuqsTestingAdapter
+            hasMemory
+            searchParams="lat=40.4168&lng=-3.7038&placeId=1&locationName=Madrid"
+          >
+            {children}
+          </NuqsTestingAdapter>
+        </NextIntlClientProvider>
+      ),
+    });
+
+    expect(await screen.findByText("¿Nada por aquí?")).toBeInTheDocument();
+    expect(screen.getByText("Amplía el radio")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Con estos filtros no hay coches en 50 km. Prueba más lejos o quita algún filtro.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ampliar a 100 km" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quitar filtros" })).toBeInTheDocument();
+    expect(screen.getByText("Ningún coche en 50 km")).toBeInTheDocument();
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  });
+
+  it("MAP-15/MAPUI-31: the empty state with a filter has no accessibility violations", async () => {
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([], null))),
+    );
+
+    const { container } = renderWithI18n(<MapView initialQuery="case-empty-axe" />, {
+      locale: "es",
+    });
+    await screen.findByText("¿Nada por aquí?");
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("MAPUI-31: the empty state with no filter, a place at 50 km, has no accessibility violations", async () => {
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([], null))),
+    );
+
+    // Same deep link as MAPUI-31's worked example above: a place with the
+    // 50 km default radius and no `?q=` text.
+    const { container } = render(<MapView />, {
+      wrapper: ({ children }) => (
+        <NextIntlClientProvider locale="es" messages={esMessages} timeZone="UTC">
+          <NuqsTestingAdapter
+            hasMemory
+            searchParams="lat=40.4168&lng=-3.7038&placeId=1&locationName=Madrid"
+          >
+            {children}
+          </NuqsTestingAdapter>
+        </NextIntlClientProvider>
+      ),
+    });
+    await screen.findByText("¿Nada por aquí?");
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it("MAP-15: hands the same listings to the map", async () => {
@@ -125,28 +270,15 @@ describe("MapView results", () => {
 
 describe("MapView searching", () => {
   it("starts from the query the page was opened with", async () => {
-    const keywords = captureWallapopKeywords(() =>
-      HttpResponse.json(makeWallapopResponse([makeWallapopItem()], null)),
-    );
-
     renderWithI18n(<MapView initialQuery="case-initial-query" />);
 
-    await waitFor(() => expect(keywords[0]).toBe("case-initial-query"));
-    expect(screen.getByRole("textbox")).toHaveValue("case-initial-query");
-  });
-
-  it("sends the keywords the user typed", async () => {
-    const keywords = captureWallapopKeywords(() =>
-      HttpResponse.json(makeWallapopResponse([makeWallapopItem()], null)),
+    // MAPUI-18: the `?q=` text still reaches the search, with no control for it.
+    await waitFor(() =>
+      expect(searchListings).toHaveBeenCalledWith(
+        expect.objectContaining({ keywords: "case-initial-query" }),
+        expect.anything(),
+      ),
     );
-    renderWithI18n(<MapView initialQuery="case-typed-query" />);
-    await screen.findByText(WALLAPOP_TITLE);
-
-    await userEvent.clear(screen.getByRole("textbox"));
-    await userEvent.type(screen.getByRole("textbox"), "golf");
-    await userEvent.click(screen.getByRole("button", { name: "Search" }));
-
-    await waitFor(() => expect(keywords.at(-1)).toBe("golf"));
   });
 });
 
@@ -196,21 +328,6 @@ describe("MapView infinite scroll", () => {
   });
 });
 
-describe("MapView mobile map", () => {
-  it("opens the map overlay and closes it again", async () => {
-    renderWithI18n(<MapView initialQuery="case-mobile-map" />);
-    await screen.findByText(WALLAPOP_TITLE);
-
-    expect(screen.getAllByTestId("listings-map")).toHaveLength(1);
-
-    await userEvent.click(screen.getByRole("button", { name: "Explore the map" }));
-    expect(screen.getAllByTestId("listings-map")).toHaveLength(2);
-
-    await userEvent.click(screen.getByRole("button", { name: "Close map" }));
-    expect(screen.getAllByTestId("listings-map")).toHaveLength(1);
-  });
-});
-
 describe("MapView favorites", () => {
   it("FAV-16: shows an already-saved listing as saved in the results", async () => {
     useSession.mockReturnValue({
@@ -229,20 +346,15 @@ describe("MapView favorites", () => {
     // Before this criterion existed, MapView passed no isFavorite at all, so a
     // saved car came back from a search looking unsaved.
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Remove from favorites" })).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: "Remove from saved" })).toBeInTheDocument(),
     );
   });
 
   it("FAV-16: leaves listings unsaved for a signed-out visitor", async () => {
-    useSession.mockReturnValue({ data: null, isPending: false });
-    // Call history accumulates across this file; the assertion below is about
-    // what this render did, not what the previous test did.
-    vi.mocked(listFavorites).mockClear();
-
     renderWithI18n(<MapView initialQuery="case-signed-out" />);
     await screen.findByText(WALLAPOP_TITLE);
 
-    expect(screen.queryByRole("button", { name: "Remove from favorites" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove from saved" })).not.toBeInTheDocument();
     expect(listFavorites).not.toHaveBeenCalled();
   });
 });
@@ -254,7 +366,7 @@ describe("MapView favorites", () => {
 // renders today, and an inline error with a Retry button — the exact
 // FRONT-14 worked example — replacing the toast MAP-3 asserts today.
 describe("MapView result states (FRONT-14)", () => {
-  it("FRONT-14: shows a loading skeleton, not a bare spinner, while the round is in flight", async () => {
+  it("FRONT-14/MAPUI-30: shows a loading skeleton and, at desktop width, a Buscando coches… status pill", async () => {
     server.use(
       ...onlyWallapop,
       http.get(WALLAPOP, async () => {
@@ -262,28 +374,80 @@ describe("MapView result states (FRONT-14)", () => {
         return HttpResponse.json(makeWallapopResponse([makeWallapopItem()]));
       }),
     );
-    const { container } = renderWithI18n(<MapView initialQuery="loading-skeleton-case" />);
+    const { container } = renderWithI18n(<MapView initialQuery="loading-skeleton-case" />, {
+      locale: "es",
+    });
 
     // aria-busy, not colour alone, marks the region as loading for assistive
     // tech while the skeleton mirrors the eventual card grid. Not
-    // role="status": that would clash with LocationSearch's own live region
-    // under strict mode (MAP-20).
+    // role="status": that would clash with PlaceField's own live region
+    // under strict mode (MAP-20) — MAPUI-30's own status pill is a second,
+    // map-side region, not the list's.
     await waitFor(() => {
       expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument();
     });
+    expect(screen.getByRole("status")).toHaveTextContent("Buscando coches…");
 
     await screen.findByText(WALLAPOP_TITLE);
   });
 
-  it("FRONT-14: a rejecting search shows the error state with Retry and never a toast (worked example)", async () => {
+  it("MAPUI-30: below lg the busy region shows one two-bar placeholder, and at lg a grid of three-bar placeholders (F0-estado-cargando.dc.html)", async () => {
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, async () => {
+        await delay(50);
+        return HttpResponse.json(makeWallapopResponse([makeWallapopItem()]));
+      }),
+    );
+    const { container } = renderWithI18n(<MapView initialQuery="loading-skeleton-bars-case" />, {
+      locale: "es",
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument();
+    });
+    const busyRegion = container.querySelector('[aria-busy="true"]') as HTMLElement;
+
+    // jsdom ignores breakpoints, so both placeholders exist in the DOM at
+    // once; `lg:hidden` and `max-lg:hidden` (real CSS, not jsdom) are what
+    // keep only one showing at a given width. `startsWith`/`includes` here
+    // (not a CSS selector) tells the two apart without a false match, since
+    // "max-lg:hidden" also contains the substring "lg:hidden".
+    const children = Array.from(busyRegion.children) as HTMLElement[];
+    const phonePlaceholder = children.find((el) => el.className.startsWith("lg:hidden"));
+    const desktopGrid = children.find((el) => el.className.includes("max-lg:hidden"));
+    expect(phonePlaceholder).not.toBeUndefined();
+    expect(desktopGrid).not.toBeUndefined();
+
+    // Phone (F0-estado-cargando.dc.html): the photo plus two bars.
+    expect(phonePlaceholder?.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(3);
+
+    // Desktop: each placeholder is the photo plus three bars.
+    const firstDesktopCard = desktopGrid?.firstElementChild as HTMLElement;
+    expect(firstDesktopCard.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(4);
+
+    await screen.findByText(WALLAPOP_TITLE);
+  });
+
+  it("FRONT-14/MAPUI-32: a rejecting search shows the redesigned error state with Reintentar and never a toast (worked example)", async () => {
     server.use(
       http.get(WALLAPOP, () => HttpResponse.json({ error: "down" }, { status: 500 })),
       http.post(COCHESNET, () => HttpResponse.json({ error: "down" }, { status: 500 })),
       http.get(MILANUNCIOS, () => HttpResponse.json({ error: "down" }, { status: 500 })),
     );
-    renderWithI18n(<MapView initialQuery="error-state-case" />);
+    renderWithI18n(<MapView initialQuery="error-state-case" />, { locale: "es" });
 
-    const retry = await screen.findByRole("button", { name: /retry/i });
+    // "Reintentar" alone already holds against today's code (errors.retry is
+    // already that word in Spanish) — the heading, the line and the map's
+    // own status pill are what is actually new in MAPUI-32.
+    expect(await screen.findByText("¿Se ha caído algo?")).toBeInTheDocument();
+    expect(screen.getByText("Prueba otra vez")).toBeInTheDocument();
+    expect(
+      screen.getByText("No hemos podido traer los anuncios. Suele ser cosa de un momento."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Sin conexión con los anuncios")).toBeInTheDocument();
+
+    const retry = screen.getByRole("button", { name: "Reintentar" });
     expect(toast.error).not.toHaveBeenCalled();
 
     // Retry re-runs the same round rather than leaving the user stuck.
@@ -293,5 +457,599 @@ describe("MapView result states (FRONT-14)", () => {
     );
     await userEvent.click(retry);
     await screen.findByText(WALLAPOP_TITLE);
+  });
+
+  it("FRONT-14/MAPUI-32: the failed-search state has no accessibility violations", async () => {
+    server.use(
+      http.get(WALLAPOP, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.post(COCHESNET, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.get(MILANUNCIOS, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+    );
+    const { container } = renderWithI18n(<MapView initialQuery="error-state-axe" />, {
+      locale: "es",
+    });
+
+    await screen.findByText("¿Se ha caído algo?");
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-28). Hovering or focusing a card marks
+// its pin active — surfaced here as the `activeId` prop handed to the
+// (mocked) map, since ListingsMap's own rendering of "active" is its own
+// test's job (components/map/ListingsMap.test.tsx).
+describe("MapView — MAPUI-28 card hover and focus activates the pin", () => {
+  it("MAPUI-28: hovering a card sets it as the map's active listing", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-hover-active" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.hover(screen.getByRole("article"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("listings-map")).toHaveAttribute(
+        "data-active-id",
+        "wallapop-abc123",
+      ),
+    );
+  });
+
+  it("MAPUI-28: focusing a card sets it as the map's active listing", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-focus-active" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    screen.getByRole("article").focus();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("listings-map")).toHaveAttribute(
+        "data-active-id",
+        "wallapop-abc123",
+      ),
+    );
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-39). Two floating cards (the pin preview
+// and the create-alert dialog) must never show at once on desktop — opening
+// the header's «Crear alerta» closes an open pin preview. HeaderSearch
+// portals into the map header's centre cell (useMapHeaderSlot), which only
+// components/nav/MapHeader.tsx normally provides, so this test hands it a
+// detached slot directly rather than rendering the whole layout.
+describe("MapView — MAPUI-39 opening Crear alerta closes an open pin preview", () => {
+  it("MAPUI-39: opening Crear alerta closes an open pin preview", async () => {
+    // Only a signed-in buyer gets the dialog; a signed-out one is sent to
+    // sign in instead (MAPUI-46, below).
+    useSession.mockReturnValue({ data: { user: { id: "user-ada" } }, isPending: false });
+    server.use(...onlyWallapop);
+    const headerSlot = document.createElement("div");
+    document.body.appendChild(headerSlot);
+    setMapHeaderSlot(headerSlot);
+
+    try {
+      renderWithI18n(<MapView initialQuery="case-create-alert-closes-preview" />);
+      await screen.findByText(WALLAPOP_TITLE);
+
+      await userEvent.click(screen.getByRole("button", { name: "tap pin" }));
+      expect(screen.getByTestId("listings-map")).toHaveAttribute(
+        "data-active-id",
+        "wallapop-abc123",
+      );
+
+      await userEvent.click(within(headerSlot).getByRole("button", { name: "Create alert" }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("listings-map")).toHaveAttribute("data-active-id", ""),
+      );
+    } finally {
+      headerSlot.remove();
+    }
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-24). useIsPhone (lib/hooks/useIsPhone.ts)
+// reads window.matchMedia, which test/setup.jsdom.ts stubs to always report
+// no match — so without overriding it here, MapView never behaves as the
+// phone layout and this test would prove nothing about MAPUI-24. The sheet's
+// resting position is already "middle" (MAPUI-23), so the test first
+// collapses it to "peeked" via its handle (two clicks: middle -> full ->
+// peeked — the handle only toggles between those two) to start from a
+// position the pin tap actually has to move.
+describe("MapView — MAPUI-24 tapping a pin on the phone", () => {
+  it("MAPUI-24: tapping a pin moves the results sheet to its middle position showing that car's card first", async () => {
+    stubPhoneWidth();
+
+    renderWithI18n(<MapView initialQuery="case-tap-pin" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    const handle = screen.getByRole("button", { name: "Results list" });
+    await userEvent.click(handle);
+    await userEvent.click(handle);
+    expect(screen.getByTestId("results-sheet")).toHaveAttribute("data-position", "peeked");
+
+    await userEvent.click(screen.getByRole("button", { name: "tap pin" }));
+
+    expect(screen.getByTestId("results-sheet")).toHaveAttribute("data-position", "middle");
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-23). The sheet's three positions are
+// "peeked, showing the title only", "middle, showing the first card" and
+// "full". The design board draws the phone sheet at middle with the first
+// card already visible from a fresh /map load — MAPUI-24's pin tap only
+// changes which car is shown first, not the position.
+describe("MapView — MAPUI-23 the results sheet's resting position", () => {
+  it("MAPUI-23: starts at middle, showing the first card, before any pin is tapped", async () => {
+    renderWithI18n(<MapView initialQuery="case-tap-pin" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    expect(screen.getByTestId("results-sheet")).toHaveAttribute("data-position", "middle");
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-33, component half — the unit half,
+// resultsHeading's own string construction, is tested in isolation at
+// lib/map/results-heading.test.ts). In Spanish, as the spec's table reads.
+describe("MapView — MAPUI-33 the results heading", () => {
+  it("MAPUI-33: reads BUSCANDO COCHES… while the first page loads", async () => {
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, async () => {
+        await delay(50);
+        return HttpResponse.json(makeWallapopResponse([makeWallapopItem()]));
+      }),
+    );
+    renderWithI18n(<MapView initialQuery="case-heading-loading" />, { locale: "es" });
+
+    expect(await screen.findByText("BUSCANDO COCHES…")).toBeInTheDocument();
+  });
+
+  it("MAPUI-33: reads the exact count once every source is exhausted", async () => {
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([makeWallapopItem()], null))),
+    );
+    renderWithI18n(<MapView initialQuery="case-heading-exhausted" />, { locale: "es" });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    expect(screen.getByText("1 COCHE")).toBeInTheDocument();
+  });
+
+  it("MAPUI-33: reads NINGÚN COCHE once sources are exhausted with no cars", async () => {
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([], null))),
+    );
+    renderWithI18n(<MapView initialQuery="case-heading-none" />, { locale: "es" });
+
+    expect(await screen.findByText("NINGÚN COCHE")).toBeInTheDocument();
+  });
+});
+
+// --- Phone width, the page's URL, and the cars a case returns. ---
+
+/** Makes useIsPhone (lib/hooks/useIsPhone.ts) report a phone, until the afterEach puts it back. */
+function stubPhoneWidth(): void {
+  window.matchMedia = vi.fn((query: string) => ({
+    matches: query === "(width < 64rem)",
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+}
+
+/** Renders in Spanish with the page opened at `searchParams`, reporting each URL change. */
+function renderAtUrl(ui: React.ReactNode, searchParams: string, onUrlUpdate = vi.fn()) {
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <NextIntlClientProvider locale="es" messages={esMessages} timeZone="UTC">
+        <NuqsTestingAdapter hasMemory searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
+          {children}
+        </NuqsTestingAdapter>
+      </NextIntlClientProvider>
+    ),
+  });
+}
+
+const SEAT_TITLE = "Seat Leon FR";
+
+/** Wallapop alone, exhausted, with the Audi then the Seat. */
+const audiThenSeat = [
+  ...onlyWallapop,
+  http.get(WALLAPOP, () =>
+    HttpResponse.json(
+      makeWallapopResponse(
+        [makeWallapopItem(), makeWallapopItem({ id: "def456", title: SEAT_TITLE })],
+        null,
+      ),
+    ),
+  ),
+];
+
+const nothingFound = [
+  ...onlyWallapop,
+  http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([], null))),
+];
+
+/** The criteria the latest search ran with. */
+function lastSearch() {
+  return vi.mocked(searchListings).mock.lastCall?.[0];
+}
+
+describe("MapView — MAPUI-20 the phone map screen", () => {
+  it("MAPUI-20: at phone width the map has no zoom control and no app header, and the tab bar runs along the bottom", async () => {
+    server.use(...onlyWallapop);
+    stubPhoneWidth();
+
+    renderWithI18n(
+      <>
+        <SiteHeader />
+        <MapView initialQuery="case-phone-screen" />
+        <TabBar />
+      </>,
+      { locale: "es" },
+    );
+    await screen.findByText(WALLAPOP_TITLE);
+
+    expect(screen.getByTestId("listings-map")).toHaveAttribute("data-desktop", "false");
+    expect(screen.queryByRole("button", { name: "Acercar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Alejar" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("header-phone")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Toda España/ })).toBeInTheDocument();
+    expect(screen.getByTestId("bottom-nav")).toHaveAccessibleName("Principal");
+  });
+});
+
+describe("MapView — MAPUI-53 the tab bar and the full sheet", () => {
+  it("MAPUI-53: the tab bar hides while the sheet is full and comes back when it leaves full", async () => {
+    server.use(...onlyWallapop);
+    stubPhoneWidth();
+
+    renderWithI18n(
+      <>
+        <MapView initialQuery="case-tab-bar-full-sheet" />
+        <TabBar />
+      </>,
+      { locale: "es" },
+    );
+    await screen.findByText(WALLAPOP_TITLE);
+    const handle = screen.getByRole("button", { name: "Lista de resultados" });
+    const tabBar = screen.getByTestId("bottom-nav");
+    expect(tabBar).toHaveAttribute("aria-hidden", "false");
+
+    await userEvent.click(handle);
+    expect(screen.getByTestId("results-sheet")).toHaveAttribute("data-position", "full");
+    expect(tabBar).toHaveAttribute("aria-hidden", "true");
+
+    await userEvent.click(handle);
+    expect(screen.getByTestId("results-sheet")).toHaveAttribute("data-position", "peeked");
+    expect(tabBar).toHaveAttribute("aria-hidden", "false");
+  });
+
+  it("MAPUI-53: scrolling the sheet's list, then the map, at the middle position leaves the tab bar visible", async () => {
+    server.use(...onlyWallapop);
+    stubPhoneWidth();
+
+    renderWithI18n(
+      <>
+        <MapView initialQuery="case-tab-bar-middle-scroll" />
+        <TabBar />
+      </>,
+      { locale: "es" },
+    );
+    await screen.findByText(WALLAPOP_TITLE);
+
+    const sheet = screen.getByTestId("results-sheet");
+    expect(sheet).toHaveAttribute("data-position", "middle");
+    const tabBar = screen.getByTestId("bottom-nav");
+    expect(tabBar).toHaveAttribute("aria-hidden", "false");
+
+    // ResultsSheet's body wrapper (the only element carrying
+    // `overscroll-contain`) is the sheet's scrolling list in every position
+    // but middle, where it is `overflow-hidden` rather than scrollable — the
+    // single first card has nothing to scroll. It is still the closest
+    // reachable stand-in for "the sheet's scrolling list element": the
+    // behaviour under test (useHideOnScrollDown's listener, which does not
+    // care whether the element actually overflows) only needs a scroll event
+    // to bubble from inside the sheet to window's capture-phase listener.
+    const scrollingList = sheet.querySelector(".overscroll-contain");
+    if (!scrollingList) throw new Error("ResultsSheet renders no scrolling body element");
+    Object.defineProperty(scrollingList, "scrollTop", { value: 400, writable: true });
+    fireEvent.scroll(scrollingList);
+    expect(tabBar).toHaveAttribute("aria-hidden", "false");
+
+    const mapContainer = screen.getByTestId("listings-map");
+    Object.defineProperty(mapContainer, "scrollTop", { value: 400, writable: true });
+    fireEvent.scroll(mapContainer);
+
+    // On /map, MAPUI-53 (bug fix) ties the bar to the sheet's full position
+    // alone (TabBar.tsx), never to useHideOnScrollDown's scroll tracking —
+    // so neither scroll, however they are read, ever hides it here.
+    expect(tabBar).toHaveAttribute("aria-hidden", "false");
+  });
+});
+
+describe("MapView — MAPUI-27 a pin at desktop width", () => {
+  it("MAPUI-27: activating a pin marks it, outlines that car's card and scrolls the card into view", async () => {
+    server.use(...audiThenSeat);
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView");
+
+    try {
+      renderWithI18n(<MapView initialQuery="case-desktop-pin" />);
+      await screen.findByText(SEAT_TITLE);
+      scrollIntoView.mockClear();
+
+      await userEvent.click(screen.getByRole("button", { name: "tap pin wallapop-def456" }));
+
+      const seatCard = screen.getByText(SEAT_TITLE).closest("article");
+      const audiCard = screen.getByText(WALLAPOP_TITLE).closest("article");
+      expect(screen.getByTestId("listings-map")).toHaveAttribute(
+        "data-active-id",
+        "wallapop-def456",
+      );
+      expect(seatCard).toHaveAttribute("data-active", "true");
+      expect(audiCard).not.toHaveAttribute("data-active");
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView.mock.contexts[0]).toBe(seatCard);
+    } finally {
+      scrollIntoView.mockRestore();
+    }
+  });
+});
+
+describe("MapView — MAPUI-24 the tapped car first", () => {
+  it("MAPUI-24: tapping the second car's pin shows that car as the middle sheet's card", async () => {
+    server.use(...audiThenSeat);
+    stubPhoneWidth();
+
+    renderWithI18n(<MapView initialQuery="case-tap-second-pin" />, { locale: "es" });
+    // The middle sheet shows one card: the first car, until a pin says otherwise.
+    expect(await screen.findByText(WALLAPOP_TITLE)).toBeInTheDocument();
+    expect(screen.queryByText(SEAT_TITLE)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "tap pin wallapop-def456" }));
+
+    const sheet = screen.getByTestId("results-sheet");
+    expect(sheet).toHaveAttribute("data-position", "middle");
+    const cards = within(sheet).getAllByRole("article");
+    expect(cards).toHaveLength(1);
+    expect(within(cards[0]).getByText(SEAT_TITLE)).toBeInTheDocument();
+  });
+});
+
+describe("MapView — MAPUI-46 Crear alerta signed out", () => {
+  it("MAPUI-46: goes to /login with the full current map path and query, opens nothing and creates nothing", async () => {
+    currentQuery.mockReturnValue("make=Toyota&maxPrice=20000");
+    server.use(...onlyWallapop);
+
+    renderWithI18n(<MapView initialQuery="case-alert-signed-out" />, { locale: "es" });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(screen.getByRole("button", { name: "Crear alerta" }));
+
+    expect(push).toHaveBeenCalledWith(
+      "/login?callbackUrl=%2Fmap%3Fmake%3DToyota%26maxPrice%3D20000",
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(createAlert).not.toHaveBeenCalled();
+  });
+
+  it("MAPUI-39: signed in, Crear alerta opens the dialog and sends nobody to sign in", async () => {
+    useSession.mockReturnValue({ data: { user: { id: "user-ada" } }, isPending: false });
+    server.use(...onlyWallapop);
+
+    renderWithI18n(<MapView initialQuery="case-alert-signed-in" />, { locale: "es" });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(screen.getByRole("button", { name: "Crear alerta" }));
+
+    expect(await screen.findByRole("dialog", { name: "CREAR ALERTA" })).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+});
+
+const MADRID = "lat=40.4168&lng=-3.7038&placeId=1&locationName=Madrid";
+
+describe("MapView — MAPUI-31 the empty state's actions", () => {
+  it("MAPUI-31: «Ampliar a 100 km» searches again at 100 km", async () => {
+    server.use(...nothingFound);
+    renderAtUrl(<MapView initialQuery="case-widen" />, MADRID);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ampliar a 100 km" }));
+
+    await waitFor(() => expect(lastSearch()).toMatchObject({ distanceInKm: 100 }));
+  });
+
+  it("MAPUI-31: «Quitar filtros» clears every filter and the ?q= text, and keeps the place and the radius (worked example)", async () => {
+    server.use(...nothingFound);
+    const onUrlUpdate = vi.fn();
+    renderAtUrl(
+      <MapView initialQuery="case-clear-filters" />,
+      `${MADRID}&radius=25&engine=gasoil&maxPrice=20000&q=case-clear-filters`,
+      onUrlUpdate,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Quitar filtros" }));
+
+    await waitFor(() =>
+      expect(Object.fromEntries(onUrlUpdate.mock.lastCall?.[0].searchParams ?? [])).toEqual({
+        lat: "40.4168",
+        lng: "-3.7038",
+        placeId: "1",
+        locationName: "Madrid",
+        radius: "25",
+      }),
+    );
+    await waitFor(() =>
+      expect(lastSearch()).toMatchObject({
+        latitude: 40.4168,
+        longitude: -3.7038,
+        distanceInKm: 25,
+        keywords: "",
+      }),
+    );
+    expect(lastSearch()?.engine).toBeUndefined();
+    expect(lastSearch()?.maxPrice).toBeUndefined();
+  });
+
+  it("MAPUI-31: at 200 km there is no widen button, and neither the line nor the pill names a radius", async () => {
+    server.use(...nothingFound);
+    renderAtUrl(<MapView initialQuery="case-widest" />, `${MADRID}&radius=200`);
+
+    expect(await screen.findByText("Quita algún filtro")).toBeInTheDocument();
+    expect(
+      screen.getByText("Con estos filtros no hay coches. Prueba a quitar algún filtro."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Ningún coche con estos filtros")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Ampliar a/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("MapView — MAPUI-5 the national search's heading", () => {
+  it("MAPUI-5: with no place, exhausted results are counted: «2 COCHES»", async () => {
+    server.use(...audiThenSeat);
+    renderWithI18n(<MapView initialQuery="case-national-count" />, { locale: "es" });
+
+    expect(await screen.findByText("2 COCHES")).toBeInTheDocument();
+  });
+});
+
+describe("MapView — MAPUI-33 the heading while a page is appended", () => {
+  it("MAPUI-33: 40 listed with load-more running still reads «MÁS DE 40 COCHES» (worked example)", async () => {
+    const firstPage = Array.from({ length: 40 }, (_, index) =>
+      makeWallapopItem({ id: `forty-${index}`, title: `Coche ${index}` }),
+    );
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, async ({ request }) => {
+        // The second page never lands: the load-more stays running.
+        if (new URL(request.url).searchParams.get("next_page") !== null) await delay("infinite");
+        return HttpResponse.json(makeWallapopResponse(firstPage, "page-2"));
+      }),
+    );
+    renderWithI18n(<MapView initialQuery="case-forty-load-more" />, { locale: "es" });
+    expect(await screen.findByText("MÁS DE 40 COCHES")).toBeInTheDocument();
+
+    act(() => triggerIntersection());
+
+    expect(await screen.findByText("Cargando…")).toBeInTheDocument();
+    expect(screen.getByText("MÁS DE 40 COCHES")).toBeInTheDocument();
+    expect(screen.queryByText("BUSCANDO COCHES…")).not.toBeInTheDocument();
+  });
+});
+
+describe("MapView — MAPUI-31 the empty state with no filter (worked example)", () => {
+  it("MAPUI-31: Madrid, 50 km, nothing else: «No hay coches en 50 km.», «Ampliar a 100 km» and no «Quitar filtros»", async () => {
+    server.use(...nothingFound);
+    renderAtUrl(<MapView />, `${MADRID}&radius=50`);
+
+    expect(await screen.findByText("No hay coches en 50 km.")).toBeInTheDocument();
+    expect(screen.getByText("¿Nada por aquí?")).toBeInTheDocument();
+    expect(screen.getByText("Amplía el radio")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ampliar a 100 km" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Quitar filtros" })).not.toBeInTheDocument();
+    expect(screen.getByText("Ningún coche en 50 km")).toBeInTheDocument();
+  });
+
+  it("MAPUI-31: Madrid, 200 km, nothing else: «Toda España» clears the place for a national search", async () => {
+    server.use(...nothingFound);
+    const onUrlUpdate = vi.fn();
+    renderAtUrl(<MapView />, `${MADRID}&radius=200`, onUrlUpdate);
+
+    expect(await screen.findByText("No hay coches en 200 km.")).toBeInTheDocument();
+    expect(screen.getByText("Ningún coche en 200 km")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Ampliar a/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Quitar filtros" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Toda España" }));
+
+    await waitFor(() => expect(lastSearch()?.latitude).toBeUndefined());
+    expect(lastSearch()?.longitude).toBeUndefined();
+    const lastUrl = Object.fromEntries(onUrlUpdate.mock.lastCall?.[0].searchParams ?? []);
+    expect(lastUrl).not.toHaveProperty("lat");
+    expect(lastUrl).not.toHaveProperty("locationName");
+  });
+
+  it("MAPUI-31/MAPUI-32: no place, no filter and no car in all of Spain shows the failed-search state", async () => {
+    server.use(...nothingFound);
+    renderWithI18n(<MapView />, { locale: "es" });
+
+    expect(await screen.findByText("¿Se ha caído algo?")).toBeInTheDocument();
+    expect(
+      screen.getByText("No hemos podido traer los anuncios. Suele ser cosa de un momento."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+    expect(screen.getByText("Sin conexión con los anuncios")).toBeInTheDocument();
+    expect(screen.queryByText("¿Nada por aquí?")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The phone «Filtros», which opens the full-screen filters dialog. The
+ * desktop one, also in the DOM, is Radix's popover trigger, which carries
+ * `data-state`; the phone one is a plain button.
+ */
+function phoneFiltersButton(): HTMLElement {
+  const button = screen
+    .getAllByRole("button", { name: /^Filtros/ })
+    .find((candidate) => !candidate.hasAttribute("data-state"));
+  if (!button) throw new Error("The phone «Filtros» did not render.");
+  return button;
+}
+
+describe("MapView — the phone dialogs give the focus back to their opener", () => {
+  it("MAPUI-21: closing the «BUSCAR» sheet focuses the search summary again", async () => {
+    server.use(...onlyWallapop);
+    stubPhoneWidth();
+    renderWithI18n(<MapView initialQuery="case-focus-search-sheet" />, { locale: "es" });
+    await screen.findByText(WALLAPOP_TITLE);
+    const opener = screen.getByRole("button", { name: /Toda España/ });
+
+    await userEvent.click(opener);
+    expect(await screen.findByRole("dialog", { name: "BUSCAR" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
+  });
+
+  it("MAPUI-22: «Filtros» announces its dialog, and closing the dialog focuses «Filtros» again", async () => {
+    server.use(...onlyWallapop);
+    stubPhoneWidth();
+    renderWithI18n(<MapView initialQuery="case-focus-filters" />, { locale: "es" });
+    await screen.findByText(WALLAPOP_TITLE);
+    const opener = phoneFiltersButton();
+    expect(opener).toHaveAttribute("aria-haspopup", "dialog");
+    expect(opener).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.click(opener);
+    expect(await screen.findByRole("dialog", { name: "FILTROS" })).toBeInTheDocument();
+    expect(opener).toHaveAttribute("aria-expanded", "true");
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
+    expect(opener).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("MAPUI-39: closing the «Crear alerta» sheet focuses the sheet's «Crear alerta» again", async () => {
+    useSession.mockReturnValue({ data: { user: { id: "user-ada" } }, isPending: false });
+    server.use(...onlyWallapop);
+    stubPhoneWidth();
+    renderWithI18n(<MapView initialQuery="case-focus-create-alert" />, { locale: "es" });
+    await screen.findByText(WALLAPOP_TITLE);
+    const opener = screen.getByRole("button", { name: "Crear alerta" });
+
+    await userEvent.click(opener);
+    expect(await screen.findByRole("dialog", { name: "CREAR ALERTA" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
   });
 });

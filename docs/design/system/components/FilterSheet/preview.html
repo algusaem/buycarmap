@@ -41,7 +41,7 @@ body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font
 .seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-pill);padding:4px}
 .seg button{all:unset;cursor:pointer;flex:1;text-align:center;padding:10px;border-radius:var(--radius-pill);font-size:14px;font-weight:600}
 .seg button[aria-checked="true"]{background:var(--text);color:var(--bg);font-weight:800}
-.field{all:unset;cursor:pointer;flex:1;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-field);padding:12px 14px;font-size:15px}
+.field{all:unset;cursor:pointer;flex:1;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-field);padding:10px 14px;font-size:16px;display:flex;flex-direction:column}.field .fl{font-size:11px;color:var(--text-muted)}
 .foot{padding:14px var(--space-5) 28px;border-top:1px solid var(--line-soft)}
 .go{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:100%;height:56px;box-sizing:border-box;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime);font-family:var(--font-display);font-size:15px;font-weight:800;text-transform:uppercase}
 .close:focus-visible,.clear:focus-visible,.knob:focus-visible,.chip:focus-visible,.seg button:focus-visible,.field:focus-visible,.go:focus-visible,.filters:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
@@ -70,7 +70,7 @@ body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font
     </div>
     <div class="sec">
       <span class="lbl">Kilómetros y año</span>
-      <div class="pair"><button class="field" type="button">Hasta 100.000 km</button><button class="field" type="button">Desde 2017</button></div>
+      <div class="pair"><button class="field" type="button"><span class="fl">Kilómetros, hasta</span><span>100.000 km</span></button><button class="field" type="button"><span class="fl">Año, desde</span><span>2017</span></button></div>
     </div>
     <div class="sec">
       <span class="lbl">Publicado</span>
@@ -106,7 +106,7 @@ body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font
       </div>
       <div class="sec">
         <span class="lbl">Kilómetros y año</span>
-        <div class="pair"><button class="field" type="button">Hasta …</button><button class="field" type="button">Desde …</button></div>
+        <div class="pair"><button class="field" type="button"><span class="fl">Kilómetros, hasta</span><span>100.000…</span></button><button class="field" type="button"><span class="fl">Año, desde</span><span>2017…</span></button></div>
       </div>
       <div class="sec">
         <span class="lbl">Publicado</span>

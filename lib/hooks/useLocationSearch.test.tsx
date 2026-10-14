@@ -286,6 +286,122 @@ describe("useLocationSearch", () => {
     expect(result.current.isSearching).toBe(false);
   });
 
+  // MAPUI-56: "Dónde" has to tell a down place search apart from Nominatim
+  // legitimately finding nothing, so the hook exposes a `failed` flag the
+  // field reads instead of treating every empty `results` the same way.
+  describe("MAPUI-56: the failed flag", () => {
+    it("MAPUI-56: is true once a search's request fails", async () => {
+      vi.useFakeTimers();
+      server.use(
+        http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.error()),
+      );
+      const { result } = renderHook(() => useLocationSearch());
+
+      act(() => result.current.setQuery("Madrid"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(result.current.failed).toBe(true);
+      expect(result.current.results).toEqual([]);
+      expect(result.current.isSearching).toBe(false);
+    });
+
+    it("MAPUI-56: is false again after a search that succeeds", async () => {
+      vi.useFakeTimers();
+      let fail = true;
+      server.use(
+        http.get("https://nominatim.openstreetmap.org/search", () =>
+          fail ? HttpResponse.error() : HttpResponse.json([]),
+        ),
+      );
+      const { result } = renderHook(() => useLocationSearch());
+
+      act(() => result.current.setQuery("Madrid"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+      expect(result.current.failed).toBe(true);
+
+      fail = false;
+      act(() => result.current.setQuery("Madri"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(result.current.failed).toBe(false);
+    });
+
+    it("MAPUI-56: is false again once the query shortens below two characters", async () => {
+      vi.useFakeTimers();
+      server.use(
+        http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.error()),
+      );
+      const { result } = renderHook(() => useLocationSearch());
+
+      act(() => result.current.setQuery("Madrid"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+      expect(result.current.failed).toBe(true);
+
+      act(() => result.current.setQuery("M"));
+
+      expect(result.current.failed).toBe(false);
+    });
+
+    it("MAPUI-56: an out-of-order failure is discarded, like a late success", async () => {
+      vi.useFakeTimers();
+
+      // "Madr" stays controllable and fails once released; "Madri" never
+      // resolves, since this test only cares that the hook is still waiting
+      // on it when "Madr"'s stale failure arrives.
+      let releaseGate: (() => void) | undefined;
+      const gate = new Promise<void>((resolve) => {
+        releaseGate = resolve;
+      });
+      server.use(
+        http.get("https://nominatim.openstreetmap.org/search", async ({ request }) => {
+          const q = new URL(request.url).searchParams.get("q");
+          if (q === "Madri")
+            return new Promise<Response>(() => {
+              /* never resolves */
+            });
+          await gate;
+          return HttpResponse.error();
+        }),
+      );
+
+      const { result } = renderHook(() => useLocationSearch());
+
+      act(() => result.current.setQuery("Madr"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      act(() => result.current.setQuery("Madri"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      await act(async () => {
+        releaseGate?.();
+        await gate;
+      });
+      // Flushes the rejected fetch through the hook's catch block, without
+      // depending on MSW's "response:mocked" event — HttpResponse.error()
+      // simulates a network failure, not a mocked response.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      // "Madr"'s failure arrived after "Madri" became the latest query, so
+      // it must not flip `failed`, and the hook is still waiting on "Madri".
+      expect(result.current.failed).toBe(false);
+      expect(result.current.isSearching).toBe(true);
+    });
+  });
+
   it("MAP-20: clearing while a search is pending discards its late response", async () => {
     vi.useFakeTimers();
 

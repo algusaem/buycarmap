@@ -20,8 +20,8 @@ function addWallapopRangeParams(params: SearchInput, searchParams: URLSearchPara
   if (params.minPrice) searchParams.set("min_sale_price", String(params.minPrice));
   if (params.maxPrice) searchParams.set("max_sale_price", String(params.maxPrice));
   if (params.minKm) searchParams.set("min_km", String(params.minKm));
-  if (params.maxKm) searchParams.set("max_km", String(params.maxKm));
-  if (params.minYear) searchParams.set("min_year", String(params.minYear));
+  if (params.maxKm != null) searchParams.set("max_km", String(params.maxKm));
+  if (params.minYear != null) searchParams.set("min_year", String(params.minYear));
   if (params.maxYear) searchParams.set("max_year", String(params.maxYear));
   if (params.minHorsePower) searchParams.set("min_horse_power", String(params.minHorsePower));
   if (params.maxHorsePower) searchParams.set("max_horse_power", String(params.maxHorsePower));

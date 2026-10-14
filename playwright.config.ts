@@ -147,7 +147,7 @@ export default defineConfig({
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },
-      testMatch: /(map|auth|navbar)\.spec\.ts/,
+      testMatch: /(map|auth|navigation)\.spec\.ts/,
     },
     // Runs as part of `pnpm test:e2e` like everything else. It used to be
     // excluded as "inherently flaky"; it wasn't — the screenshots were racing

@@ -12,7 +12,7 @@ Private individuals buying a second-hand car for themselves, who want several po
 
 ## Product Purpose
 
-BuyCarMap aggregates second-hand car listings from multiple marketplaces and displays them on an interactive map. Users search and filter by location, price, make/model, year, mileage, horsepower, fuel, transmission, and recency, then browse results as a synchronized card list and map.
+BuyCarMap aggregates second-hand car listings from multiple marketplaces and displays them on an interactive map. Users search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, and recency (horsepower only survives in old links), then browse results as a synchronized card list and map.
 
 For a first-time visitor, success means seeing cars near them within seconds — open the map, set a location, see results — with no sign-up required. Signing up is for keeping cars (saved cars) and being told about new ones (alerts).
 
@@ -28,13 +28,13 @@ The user is deciding on a car purchase and comparing listings, most likely from 
 
 Built today:
 
-- Search and filter by location, price, make/model, year, mileage, horsepower, fuel, transmission, and recency, with a synchronized card list + map.
+- Search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, and recency, with a synchronized card list + map. Horsepower is no longer offered; old links that carry it still work.
 - Listings aggregated from Wallapop, coches.net, and Milanuncios into one result set.
 - Authentication: register, login, password reset, account management, two-factor, optional OAuth.
 - Favorites: save listings, manage them at `/favorites`, reconciled into search results.
 - Car alerts: saved search criteria (deduplicated across users), a queue drained every five minutes, email digests, `/alerts` and `/alerts/[id]`, one-click unsubscribe.
 
-Being redesigned ("BuyCarMap 2.0", approved 2026-10-11, in `docs/design/`): every screen moves to a map-first structure — a list and a map side by side on desktop, a full-screen map with a draggable bottom sheet on the phone, the map also on saved cars and alerts. The redesign drops the light theme and keeps Google as the only OAuth provider. Left out of it, each tracked as its own issue: an exact vector map style, a photo carousel, search-as-I-move-the-map, a total result count, "near me", new-match markers on alerts, and redesigned emails.
+Being redesigned ("BuyCarMap 2.0", approved 2026-10-11, in `docs/design/`): every screen moves to a map-first structure — a list and a map side by side on desktop, a full-screen map with a three-position bottom sheet on the phone (dragging it is tracked in [#126](https://github.com/algusaem/buycarmap/issues/126)), the map also on saved cars and alerts. The redesign drops the light theme and keeps Google as the only OAuth provider. Left out of it, each tracked as its own issue: an exact vector map style, a photo carousel, search-as-I-move-the-map, a total result count, "near me", new-match markers on alerts, and redesigned emails.
 
 Constraints:
 

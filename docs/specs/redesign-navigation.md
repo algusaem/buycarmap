@@ -91,15 +91,18 @@ layout (F3–F7).
 
 ## Worked examples
 
-**Header by route, session and width** (from the approved design; «current» is `aria-current="page"`):
+**Header by route, session and width** (from the approved design; «current» is `aria-current="page"`).
+The phone rows of `/map`, `/favorites`, `/alerts` and `/account` follow F3: the phone headers there
+lose the avatar, and the bottom nav becomes the full-width tab bar, with «Cuenta» in it (MAPUI-52,
+MAPUI-54) (amended 2026-10-13, MAPUI — redesign-map.md):
 
-| Route | Session | Desktop right side | Phone right side | Bottom nav (phone) |
+| Route | Session | Desktop right side | Phone right side | Tab bar (phone) |
 | --- | --- | --- | --- | --- |
-| `/map` | in | Idioma · Guardados (icon) · Alertas (icon) · avatar | no header | none |
-| `/map` | out | Idioma · Entrar | no header | none |
-| `/favorites` | in | Idioma · Mapa · **Guardados** · Alertas · avatar | Idioma · avatar | Mapa · **Guardados** · Alertas |
-| `/alerts`, `/alerts/[id]` | in | Idioma · Mapa · Guardados · **Alertas** · avatar | Idioma · avatar | Mapa · Guardados · **Alertas** |
-| `/account` | in | Idioma · Mapa · Guardados · Alertas · **avatar** (ring) | Idioma · avatar (ring) | Mapa · Guardados · Alertas (none current) |
+| `/map` | in | Idioma · Guardados (icon) · Alertas (icon) · avatar | no header | **Mapa** · Guardados · Alertas · Cuenta |
+| `/map` | out | Idioma · Entrar | no header | **Mapa** · Entrar |
+| `/favorites` | in | Idioma · Mapa · **Guardados** · Alertas · avatar | Idioma | Mapa · **Guardados** · Alertas · Cuenta |
+| `/alerts`, `/alerts/[id]` | in | Idioma · Mapa · Guardados · **Alertas** · avatar | Idioma | Mapa · Guardados · **Alertas** · Cuenta |
+| `/account` | in | Idioma · Mapa · Guardados · Alertas · **avatar** (ring) | Idioma | Mapa · Guardados · Alertas · **Cuenta** |
 | `/` | out | Idioma · Entrar · Crear cuenta | Idioma · Entrar | none |
 | `/` | in | Idioma · Mapa · Guardados · Alertas · avatar (none current) | Idioma · avatar | none |
 | `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/confirm-email` | any | Idioma · Volver al mapa | Idioma · Mapa | none |
@@ -112,7 +115,8 @@ layout (F3–F7).
 page's container reports scrollHeight 3,546 against clientHeight 780 with `overflow-y: hidden`,
 `window.scrollBy(0, 600)` and the mouse wheel leave the content where it was, and everything below
 the screen is unreachable (the same on `/alerts`, 3,566px). Correct result: scrolling 600px moves the
-content up 600px, and at the end of the scroll the last element sits entirely above the bottom nav.
+content up 600px, and at the end of the scroll the last element sits entirely above the tab bar
+(amended 2026-10-13, MAPUI — redesign-map.md).
 
 **HEAD-10** — locale `es`: «ES» pressed, «EN» not; press «EN» → cookie `locale=en`, `setLocale("en")`
 called once.
@@ -135,10 +139,13 @@ NAV-10) — and that a session ending mid-page stops offering them (HEAD-12).
 - A user with no display name (HEAD-9): the initial comes from the email.
 - `/alerts/[id]` marks «Alertas» current even though it is not `/alerts` (HEAD-4) — the alert detail
   belongs to that section.
-- `/account`: the avatar, not a section, is current (HEAD-4, HEAD-8), and «Cerrar sesión» must not
-  hide behind the floating bottom nav (HEAD-18).
+- `/account`: the avatar, not a section, is current in the desktop header (HEAD-4), «Cuenta» is
+  current in the phone tab bar (HEAD-8, MAPUI-52), and «Cerrar sesión» must not hide behind the tab
+  bar (HEAD-18).
 - Narrow desktops (HEAD-16): from 1024px the header must fit without scrolling.
-- Phones with a home indicator (HEAD-17): the bottom nav clears the safe area.
+- Phones with a home indicator (HEAD-17): the tab bar is padded by the safe area.
+- The phone avatar shows only on the signed-in landing until F4; every other phone header with a
+  tab bar drops it (MAPUI-54). (amended 2026-10-13, MAPUI — redesign-map.md)
 - Pages with no drawn header (`/palette`, `/typography`, the error and not-found pages) take the
   sign-in/legal header (HEAD-6's shape).
 

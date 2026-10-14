@@ -7,7 +7,12 @@ La ficha rápida que se abre encima del mapa al pulsar un pin, en Mapa, Guardado
 - Nombre 16px y la ciudad a la derecha en 13px `text-muted`; debajo los metadatos en `meta`, subidos 6px.
 - Fila del precio: precio Unbounded 24px en `lime`, sin espacio entre letras; Guardar (botón de icono de 42px) y «Ver anuncio» (principal de 42px).
 - Guardado: el botón pasa a `violet` sin borde, con el corazón relleno en `on-violet`, y su `aria-label` cambia a «Quitar de guardados».
-- Se cierra con su botón, con Escape o pulsando fuera, y el foco vuelve al pin.
+- Al abrirse, el foco pasa a la vista previa. Se cierra con su botón, con Escape (desde el pin o desde dentro) o pulsando fuera, y el foco vuelve al pin.
+- En escritorio va anclada a su pin y se mueve con el mapa. Abrir «Crear alerta» la cierra.
 - Si el pin agrupa varios coches, la vista previa los lista en orden, con scroll.
 - En escritorio, abrirla marca y desplaza hasta su tarjeta en la lista.
 - **Móvil**: no flota sobre el mapa. Su contenido va en la hoja del coche (BottomSheet › Hojas modales), que abre un pin del mapa, una fila de Guardados o una coincidencia de una alerta.
+
+## Movimiento
+
+- Aparece con un fundido (`crossFade`) y desaparece con el mismo fundido al revés, cerrándose como se cierre: con su botón, con Escape, pulsando fuera o al abrir «Crear alerta».

@@ -241,7 +241,7 @@ A night with a single light: neutrals do the work, lime is the light, violet mar
 
 ### Secondary
 - **Violet** (`violet`): lime's complement — what is yours and states. The saved heart, the pressed
-  chip, the filter count, the account avatar, the current section of the bottom nav, a chosen select
+  chip, the filter count, the account avatar, the current tab of the phone tab bar, a chosen select
   option's box. Content on violet is always `on-violet` (4.6:1).
 
 ### Tertiary
@@ -295,8 +295,10 @@ Frontend › Typography); there is no monospace face.
 - **Page title** (Unbounded 900, 40px desktop / 34px phone, line-height 0.9): one-line page titles
   (Guardados, Alertas, Cuenta), with no counter.
 - **Form and legal titles** (Unbounded 800–900, `form-title` 26px, `legal-h1` 48px, `legal-h2` 20px).
-- **Count and price** (Unbounded 800, 30px and 22px): the results title «COCHES» and every price,
-  always lime, Spanish format (`14.500 €`), no letter-spacing.
+- **Count and price** (Unbounded 800, 30px and 22px): the results title, which counts the cars
+  («MÁS DE 40 COCHES» while more pages remain, «24 COCHES» or «1 COCHE» once the sources run out;
+  «BUSCANDO COCHES…», «NINGÚN COCHE» or «COCHES» with no count, never the place under it), and every
+  price, always lime, Spanish format with a thousands point (`14.500 €`, `9.500 €`), no letter-spacing.
 - **Wordmark** (Unbounded 900, 20px desktop / 16px phone): «BUYCAR» in `text`, «MAP» in `lime`.
 - **Button display** (Unbounded 800, 15px): the 56px full-width primary button.
 - **Lead** (Rethink Sans 400, 19px / 16px phone, line-height 1.5): the subtitle under a headline, in
@@ -327,13 +329,15 @@ sans family.
 Two frames are drawn for every screen: desktop at 1440 × 900 and phone at 390 × 844.
 
 - **Margins.** Content and headers sit 20px (`space-5`) from the phone's sides; anything floating
-  over the phone map (search pill, bottom nav) sits 16px (`space-4`) from the edges. On desktop the
+  over the phone map (the search summary and the filters row) sits 16px (`space-4`) from the
+  edges; the tab bar runs full width along the bottom. On desktop the
   header and content take 32px (`space-8`) side padding, the landing and sign in 48px (`space-12`).
 - **Rhythm.** 4, 8, 12, 16, 20, 24, 32 and 48px (`space-1` to `space-12`); 20px between columns of the
   car grid, 24px for block padding and between groups.
-- **Map screens.** Desktop: an 80px header with the search pill, a row of quick chips plus «Filtros»,
-  a three-column grid on the left and the map on the right. Phone: the map full screen, the search
-  pill floating on top, the results in a bottom sheet. List and map stay in sync on every screen
+- **Map screens.** Desktop: an 80px header with the search pill, the filters row («Filtros» first,
+  then only the active filters as chips), a three-column grid on the left and the map on the right.
+  Phone: the map full screen, the search summary and the filters row floating on top, the results in a
+  bottom sheet over the tab bar. List and map stay in sync on every screen
   with a map (Mapa, Guardados, Alertas).
 - **Pages.** Saved cars and alerts are never without a map on desktop (an 830px list beside it);
   account is a three-column grid of cards with no map; legal pages are a 720px reading column with an
@@ -363,7 +367,7 @@ Nothing at rest carries one.
 ## Shapes
 
 Round and soft. Everything you press is a full pill (`radius-pill`, 999px): buttons, chips, the
-search pill, pins, badges, the bottom nav. Containers step down by size: forms and the landing map
+search pill, pins, badges. Containers step down by size: forms and the landing map
 `radius-panel` (28px), the bottom sheet `radius-sheet` (26px), the map preview `radius-preview`
 (24px), cards and car photos `radius-card` (22px), the phone thumbnail `radius-thumb` (18px), fields
 and small photos `radius-field` (16px), select options `radius-option` (12px), skeleton bars
@@ -391,6 +395,13 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 ### Chips
 - **Style:** a button with `aria-pressed`; unpressed is a 1px `line` border at weight 600, pressed is
   a `violet` fill with `on-violet` text at weight 800 — fill and weight change, not colour alone.
+- **Removable active-filter chip:** in the filters row, one per active filter, a 36px `violet` chip
+  with `on-violet` text at weight 800 and a 14px `x` in a 44 × 44 icon button named «Quitar
+  <filtro>»; removing it removes that filter.
+- **Single-choice radio chip groups:** the radius chips, the price shortcuts and «Cambio» are native
+  radios in a `radiogroup`, drawn as chips (chosen: `violet` fill, `on-violet` text, weight 800;
+  otherwise a `line` border at weight 600) or, for «Cambio», as a segmented `surface` pill whose
+  chosen option is inverted. Every option keeps a 44px-tall hit area.
 - «Filtros» is a secondary button, not a chip. [Chip](docs/design/system/components/Chip/README.md).
 
 ### Cards / Containers
@@ -426,15 +437,21 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   has no header.
   [HeaderNav](docs/design/system/components/HeaderNav/README.md),
   [Wordmark](docs/design/system/components/Wordmark/README.md).
-- **Avatar:** a 42px `violet` circle (36px on a phone) with the user's initial in Unbounded, linking
-  to Cuenta; on Cuenta it is the current item, marked by the `shadow-current` ring.
+- **Avatar:** desktop only, a 42px `violet` circle with the user's initial in Unbounded, linking to
+  Cuenta, in the map and page headers and on the signed-in landing; on Cuenta it is the current item,
+  marked by the `shadow-current` ring. A phone header has no avatar: «Cuenta» is a tab of the tab bar.
+  **Exception until F4:** the signed-in landing has no tab bar yet, so its phone header keeps the
+  avatar (owner decision, 2026-10-13: «Vale»).
 - **Language «ES · EN»:** in every header, a group of two 44 × 44 buttons in 13px Rethink Sans, the
   active one `text` weight 800 and pressed, the other `text-muted` weight 600; no accent, fill or
   border. [HeaderNav](docs/design/system/components/HeaderNav/README.md).
-- **Bottom nav:** on a phone, a floating 62px `surface` pill with Mapa · Guardados · Alertas; the
-  current section is filled `violet`. It floats 16px from the sides and 24px from the bottom, clear of
-  the safe area, and appears only signed in, on Guardados, Alertas and Cuenta — never on the map or at
-  desktop width. [BottomNav](docs/design/system/components/BottomNav/README.md).
+- **Tab bar:** on a phone, a full-width `surface` bar along the bottom with a 1px `line` top border:
+  64px tabs plus the safe area. Signed in, four tabs — Mapa · Guardados · Alertas · Cuenta — each an
+  icon over an 11px label; the current one is `violet` with a bolder label and
+  `aria-current="page"`, and «Cuenta» shows the user's initial. Signed out, on the map, two tabs: Mapa
+  and Entrar. It is on the map, Guardados, Alertas, an alert's page and Cuenta, never at desktop width.
+  On the map it hides only while the results sheet is full; on the pages it hides while scrolling down
+  and comes back on scrolling up. [BottomNav](docs/design/system/components/BottomNav/README.md).
 - **Footer:** one discreet 12px `text-muted` line — «Privacidad · Términos · Ilustraciones de
   Storyset» — on the landing, sign-in, register and legal pages only; never on the map screens, saved
   cars, alerts or account. The Storyset credit is required by its licence.
@@ -484,7 +501,8 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 - **Do** set display type in Unbounded uppercase and everything else in Rethink Sans.
 - **Do** make every pressable thing a pill and keep a 44px minimum target on a phone.
 - **Do** use Lucide icons at 2px stroke in the colour of the surrounding text.
-- **Do** format prices, mileage and dates through `lib/format.ts` (FRONT-11): `14.500 €`, `95.000 km`.
+- **Do** format prices, mileage and dates through `lib/format.ts` (FRONT-11): `14.500 €`, `9.500 €`,
+  `95.000 km`.
 
 ### Don't:
 - **Don't** put lime on running text, decorative borders or large backgrounds.
@@ -493,7 +511,7 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 - **Don't** add a shadow outside the three roles in Elevation & Depth.
 - **Don't** add a theme switch: the product has one dark theme.
 - **Don't** add a navigation menu sheet, a hamburger or an account dropdown: every destination has a
-  place in a header, the bottom nav or the account page.
+  place in a header, the tab bar or the account page.
 - **Don't** put an icon above an empty-state headline, or use emoji.
 - **Don't** write «Bienvenido a…», «Descubre…» or invented figures; the voice rules are in
   `docs/design/system/README.md`.

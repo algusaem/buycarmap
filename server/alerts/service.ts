@@ -26,7 +26,13 @@ import { hashUnsubscribeToken, unsubscribeTokenFor } from "./unsubscribe-token";
 import type { CarListing } from "@/interfaces/listing";
 import type { AlertSummary, RunSummary } from "@/interfaces/alert";
 import type { SearchInput } from "@/lib/search/schema";
-import { ALERT_ERROR, type AlertErrorCode, parseStoredCriteria } from "./schema";
+import { err, ok, type Result } from "@/lib/result";
+import {
+  ALERT_ERROR,
+  type AlertErrorCode,
+  type CreateAlertOutcome,
+  parseStoredCriteria,
+} from "./schema";
 
 // --- Domain rules ------------------------------------------------------------
 
@@ -37,23 +43,6 @@ import { ALERT_ERROR, type AlertErrorCode, parseStoredCriteria } from "./schema"
  * budget that protects search.
  */
 export const MAX_ALERTS_PER_USER = 20;
-
-/**
- * Whether a criteria set is specific enough to be worth watching.
- *
- * Nothing else stops someone saving "every car in Spain": its seed poll is
- * thousands of listings, it matches on nearly every lap, and it is useless as
- * an alert because an alert that fires constantly is noise.
- *
- * A deliberately low bar — any alert a person actually wants clears it without
- * thinking, and only the degenerate case is rejected. Capping matches per run
- * instead would silently drop listings the user asked to be told about, which
- * is the one thing this feature must not do.
- */
-export function isSpecificEnough(criteria: SearchInput): boolean {
-  const hasLocation = criteria.latitude != null && criteria.longitude != null;
-  return Boolean(criteria.brand) || criteria.maxPrice != null || hasLocation;
-}
 
 /**
  * Recursively sorts object keys and drops `undefined`.
@@ -127,22 +116,43 @@ async function seedSeenListings(criteriaId: AlertCriteriaId, criteria: SearchInp
 }
 
 /**
+ * The caller's own alert on a criteria set, as `createAlertForUser` treats it
+ * (MAPUI-43): none, live (active and not deleted), paused from the email
+ * (`active: false`) or soft-deleted.
+ */
+async function existingAlertState(
+  tx: Prisma.TransactionClient,
+  userId: UserId,
+  criteriaId: AlertCriteriaId,
+): Promise<"none" | "live" | "paused" | "deleted"> {
+  const alert = await tx.alert.findFirst({
+    where: { ...ownedBy({ id: userId }), criteriaId },
+    select: { active: true, deletedAt: true },
+  });
+  if (!alert) return "none";
+  if (alert.deletedAt !== null) return "deleted";
+  return alert.active ? "live" : "paused";
+}
+
+/** Whether the user already has as many alerts as one account may (ALERT-8). */
+async function isAtAlertCap(tx: Prisma.TransactionClient, userId: UserId): Promise<boolean> {
+  const count = await tx.alert.count({ where: { ...ownedBy({ id: userId }), ...notDeleted } });
+  return count >= MAX_ALERTS_PER_USER;
+}
+
+/**
  * Subscribes a user to an already validated, specific-enough criteria set.
- * Returns the error code to report, or null when the user now watches it.
+ * Returns the error code to report, or whether the alert is new (MAPUI-43):
+ * `created: false` when the user already had a live alert on these criteria,
+ * `true` for a new one, a paused one reactivated or a soft-deleted one
+ * restored — the last two take the new label.
  */
 export async function createAlertForUser(
   userId: UserId,
   criteria: SearchInput,
   label: string,
-): Promise<AlertErrorCode | null> {
+): Promise<Result<CreateAlertOutcome, AlertErrorCode>> {
   const criteriaHash = hashCriteria(criteria);
-
-  // DATA-10 (docs/specs/core-data-model.md): a soft-deleted alert does not
-  // count against the cap — it is no longer an active subscription.
-  const count = await prisma.alert.count({ where: { ...ownedBy({ id: userId }), ...notDeleted } });
-  if (count >= MAX_ALERTS_PER_USER) {
-    return ALERT_ERROR.tooManyAlerts;
-  }
 
   // An explicit id, because the unsubscribe token is an HMAC over it and the
   // row needs the hash at insert time — and because `unsubscribeSubject`
@@ -156,24 +166,47 @@ export async function createAlertForUser(
   // row left behind by a failed save would make the retry treat it as
   // existing and skip the seed, so the first real poll would email every
   // listing already there.
+  //
+  // MAPUI-43: whether the alert is new is decided here, from the rows this
+  // transaction reads, never from a separate query before it. The transaction
+  // runs at Postgres' default READ COMMITTED, so this narrows the window
+  // rather than closing it: what holds under parallel saves is the unique keys
+  // — one criteria row per hash (ALERT-49 retries on it) and one alert row per
+  // user and criteria set — so no duplicate is ever stored. Two parallel saves
+  // of the same criteria by one user can both answer `created: true`, and the
+  // cap count is not locked against a parallel save of other criteria. Only
+  // the caller's own alert is looked at.
   const saveCriteriaAndAlert = () =>
     prisma.$transaction(async (tx) => {
-      let criteriaRow = await tx.alertCriteria.findUnique({
+      const existingCriteria = await tx.alertCriteria.findUnique({
         where: { criteriaHash },
       });
-      const isNew = !criteriaRow;
-      if (!criteriaRow) {
-        criteriaRow = await tx.alertCriteria.create({
-          data: { criteriaHash, criteria },
-        });
+      const existing = existingCriteria
+        ? await existingAlertState(tx, userId, asAlertCriteriaId(existingCriteria.id))
+        : "none";
+
+      // A live alert on these criteria: nothing is written, and the cap has
+      // nothing to refuse, since no subscription is added.
+      if (existing === "live") return { outcome: "alreadyLive" as const };
+
+      // DATA-10 (docs/specs/core-data-model.md): a soft-deleted alert does not
+      // count against the cap — it is no longer an active subscription — so
+      // restoring one adds a subscription exactly as a new alert does. A
+      // paused alert still counts, so reactivating it adds none.
+      if (existing !== "paused" && (await isAtAlertCap(tx, userId))) {
+        return { outcome: "tooManyAlerts" as const };
       }
+
+      const criteriaRow =
+        existingCriteria ?? (await tx.alertCriteria.create({ data: { criteriaHash, criteria } }));
       const id = asAlertCriteriaId(criteriaRow.id);
 
       // DATA-11: upsert rather than create-and-catch — a row this user already
-      // has (live or soft-deleted) is matched by the same unique key regardless
-      // of `deletedAt`, so the `update` branch restores a deleted one (clearing
-      // `deletedAt`, bumping `version`) exactly as saving over a soft-deleted
-      // favorite does.
+      // has (paused or soft-deleted) is matched by the same unique key
+      // regardless of `deletedAt`, so the `update` branch restores a deleted
+      // one (clearing `deletedAt`, bumping `version`) exactly as saving over a
+      // soft-deleted favorite does, and reactivates a paused one, each with the
+      // new label (MAPUI-43).
       await tx.alert.upsert({
         where: { userId_criteriaId: { ...ownedBy({ id: userId }), criteriaId: id } },
         create: {
@@ -186,10 +219,16 @@ export async function createAlertForUser(
           unsubscribeSubject: alertId,
           createdById: userId,
         },
-        update: { deletedAt: null, version: { increment: 1 }, updatedById: userId },
+        update: {
+          label,
+          active: true,
+          deletedAt: null,
+          version: { increment: 1 },
+          updatedById: userId,
+        },
       });
 
-      return { criteriaId: id, criteriaIsNew: isNew };
+      return { outcome: "saved" as const, criteriaId: id, criteriaIsNew: !existingCriteria };
     });
 
   // ALERT-49: two saves of the same new criteria can both miss the lookup;
@@ -206,19 +245,20 @@ export async function createAlertForUser(
     }
     saved = await saveCriteriaAndAlert();
   }
-  const { criteriaId, criteriaIsNew } = saved;
+  if (saved.outcome === "alreadyLive") return ok({ created: false });
+  if (saved.outcome === "tooManyAlerts") return err(ALERT_ERROR.tooManyAlerts);
 
   // Only when the criteria set is new: an existing one already has a
   // seen-list, and re-seeding would spend three upstream requests to learn
   // what is already recorded. After the commit, never inside it: the seed is
   // network I/O.
-  if (criteriaIsNew) {
-    await seedSeenListings(criteriaId, criteria);
+  if (saved.criteriaIsNew) {
+    await seedSeenListings(saved.criteriaId, criteria);
   }
 
   await backfillLocale(userId);
 
-  return null;
+  return ok({ created: true });
 }
 
 /**

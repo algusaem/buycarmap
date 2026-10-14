@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMileage, formatPrice, parseDeviceLabel } from "./format";
+import { formatAmount, formatMileage, formatPrice, parseDeviceLabel } from "./format";
 
 // FRONT-11 (docs/specs/core-frontend.md) worked examples. Each expected
 // string was independently derived by running the equivalent
@@ -25,6 +25,61 @@ describe("formatPrice", () => {
 
   it("FRONT-11: formats euros for the English locale with the symbol first and a comma thousands separator", () => {
     expect(formatPrice(12500, "en")).toBe("€12,500");
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-57, worked example "Price format"). Spanish
+// `Intl` leaves four-digit amounts ungrouped ("9500 €"); every price takes the
+// thousands point. The space before "€" is U+00A0, as in FRONT-11 above. A
+// range is written as the pill draws it (MAPUI-1, «3.000 – 20.000 €»): the
+// en dash with a space either side, the symbol where the locale puts it.
+describe("formatPrice — one format for every price (MAPUI-57)", () => {
+  it("MAPUI-57: 9500 in Spanish reads 9.500 €, four digits grouped too", () => {
+    expect(formatPrice(9500, "es")).toBe("9.500 €");
+  });
+
+  it("MAPUI-57: 14500 in Spanish reads 14.500 €", () => {
+    expect(formatPrice(14500, "es")).toBe("14.500 €");
+  });
+
+  it("MAPUI-57: English keeps its own grouping for four digits, €9,500", () => {
+    expect(formatPrice(9500, "en")).toBe("€9,500");
+  });
+
+  it("MAPUI-57: a range from 3.000 to 20.000 reads 3.000 – 20.000 € in Spanish and €3,000 – €20,000 in English", () => {
+    expect(formatPrice({ min: 3000, max: 20000 }, "es")).toBe("3.000 – 20.000 €");
+    expect(formatPrice({ min: 3000, max: 20000 }, "en")).toBe("€3,000 – €20,000");
+  });
+
+  it("MAPUI-57: a range whose ends are equal reads as that one price", () => {
+    expect(formatPrice({ min: 9500, max: 9500 }, "es")).toBe("9.500 €");
+  });
+
+  it("MAPUI-57: lib/format.ts has no second price formatter", async () => {
+    const formatters = Object.keys(await import("./format")).sort();
+    expect(formatters).toEqual([
+      "formatAmount",
+      "formatMileage",
+      "formatPrice",
+      "formatRelativeTime",
+      "parseDeviceLabel",
+    ]);
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-11): the amount boxes' own formatter,
+// built from the same options formatPrice uses, minus the currency.
+describe("formatAmount", () => {
+  it("MAPUI-11: 20000 in Spanish reads 20.000, with the thousands point", () => {
+    expect(formatAmount(20000, "es")).toBe("20.000");
+  });
+
+  it("MAPUI-11: 100000 in Spanish reads 100.000", () => {
+    expect(formatAmount(100000, "es")).toBe("100.000");
+  });
+
+  it("MAPUI-11: 100000 in English reads 100,000, with a comma", () => {
+    expect(formatAmount(100000, "en")).toBe("100,000");
   });
 });
 

@@ -43,7 +43,9 @@ const BRAND_TO_MAKE_ID: Record<string, number> = {
   Volvo: 48,
 };
 
-// Wallapop fuel token (FUEL_OPTIONS value) -> coches.net fuelTypeId.
+// Wallapop fuel token (lib/search/fuel-groups.ts's FUEL_GROUPS) -> coches.net fuelTypeId.
+// `cng` is a value the UI no longer offers but old links still carry
+// (docs/specs/redesign-map.md, MAPUI-18), so it stays mapped.
 const FUEL_TOKEN_TO_ID: Record<string, number> = {
   gasoline: 2, // Gasolina
   gasoil: 1, // Diésel
@@ -54,9 +56,11 @@ const FUEL_TOKEN_TO_ID: Record<string, number> = {
   cng: 7, // Gas natural (CNG)
 };
 
-// Wallapop transmission token (TRANSMISSION_OPTIONS value) -> coches.net id.
-// coches.net only distinguishes automatic (1) and manual (2); it has no
-// separate semi-automatic value, so that token maps to automatic.
+// Wallapop transmission token -> coches.net id. The tokens the UI offers are
+// lib/search/panel.ts's OFFERED_GEARBOXES; `semiautomatic` is a value the UI no
+// longer offers but old links still carry (docs/specs/redesign-map.md,
+// MAPUI-18). coches.net only distinguishes automatic (1) and manual (2); it
+// has no separate semi-automatic value, so that token maps to automatic.
 const TRANSMISSION_TOKEN_TO_ID: Record<string, number> = {
   automatic: 1,
   semiautomatic: 1,

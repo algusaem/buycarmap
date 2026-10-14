@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Bell, Heart } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
+import { setMapHeaderSlot } from "@/lib/hooks/useMapHeaderSlot";
 import { Avatar } from "./Avatar";
 import { type HeaderSession, MainNav, TextLink } from "./HeaderParts";
 import { LanguageControl } from "./LanguageControl";
@@ -10,9 +11,11 @@ import { Wordmark } from "./Wordmark";
 
 // HeaderNav README › Mapa (HEAD-1, HEAD-2): a `1fr auto 1fr` grid, the
 // wordmark at the start and only navigation on the right, 10px apart. The
-// centre column is the search group's (the search pill and «Crear alerta»),
-// which is F3; it stays empty here so F3 drops the group into it. There is no
-// phone region: on a phone the map has no app header (HEAD-7).
+// centre column is the search group's (the search pill and «Crear alerta»,
+// docs/specs/redesign-map.md MAPUI-1). The map page owns that state, so the
+// cell is handed to it through `setMapHeaderSlot` and the page portals the
+// group in. There is no phone region: on a phone the map has no app header
+// (HEAD-7).
 export function MapHeader({ session }: { session: HeaderSession }) {
   const t = useTranslations();
 
@@ -22,7 +25,7 @@ export function MapHeader({ session }: { session: HeaderSession }) {
       className="hidden h-20 grid-cols-[1fr_auto_1fr] items-center border-b border-line-soft px-8 lg:grid"
     >
       <Wordmark size="desktop" className="justify-self-start" />
-      <div />
+      <div ref={setMapHeaderSlot} className="flex items-center gap-2.5" />
       <MainNav className="justify-self-end gap-2.5">
         <LanguageControl />
         {session.status === "signedIn" && (

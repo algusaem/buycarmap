@@ -10,6 +10,7 @@ import { AlertMatchesList } from "./AlertMatchesList";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/alerts/alert-1",
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/server/favorites/actions", () => ({
@@ -137,5 +138,17 @@ describe("AlertMatchesList", () => {
 
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
     expect(screen.getByRole("link")).toHaveAttribute("href", "/alerts");
+  });
+
+  it("MAPUI-38: renders the redesigned car card — one link per card, the heart outside it", () => {
+    renderWithI18n(<AlertMatchesList alertLabel="Audi A3 under 20k" matches={[MATCHES[0]]} />);
+
+    const article = screen.getByRole("article");
+    const linksInArticle = screen.getAllByRole("link").filter((link) => article.contains(link));
+    expect(linksInArticle).toHaveLength(1);
+
+    const heart = screen.getByRole("button", { name: /Save|Remove from saved/ });
+    expect(heart).toBeInTheDocument();
+    expect(linksInArticle[0]).not.toContainElement(heart);
   });
 });

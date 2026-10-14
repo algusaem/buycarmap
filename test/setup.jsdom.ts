@@ -66,15 +66,15 @@ Object.defineProperty(navigator, "geolocation", {
   },
 });
 
-// Radix Select calls these on option elements; jsdom has no layout engine.
+// The map page scrolls a pin's card into view (MAPUI-27); jsdom has no layout engine.
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = vi.fn();
 }
 window.scrollTo = vi.fn();
 
 // Pointer capture — jsdom implements no part of the Pointer Events API, and
-// Radix Select's trigger calls these directly on pointerdown. Without them the
-// trigger throws before the listbox ever opens.
+// Radix Slider's thumbs (the price range, MAPUI-11) call these directly on
+// pointerdown. Without them a pointer press on the range throws.
 Element.prototype.hasPointerCapture = vi.fn(() => false);
 Element.prototype.setPointerCapture = vi.fn();
 Element.prototype.releasePointerCapture = vi.fn();

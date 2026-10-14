@@ -59,7 +59,7 @@ MAP-24 was amended in and implemented test-first on 2026-10-09.
 
 ## Worked examples
 
-- **MAP-7** — Locale es, all three sources 500 → the results list's inline error state reads "No se pudieron cargar los anuncios. Inténtalo de nuevo." with a Retry button (FRONT-14); latitude 999 → "Esos filtros de búsqueda no son válidos."
+- **MAP-7** — Locale es, all three sources 500 → the results list's inline error state reads "No hemos podido traer los anuncios. Suele ser cosa de un momento." with a "Reintentar" button (FRONT-14); latitude 999 → "Esos filtros de búsqueda no son válidos." (amended 2026-10-13, MAPUI — redesign-map.md)
 - **MAP-16** — Centre Madrid (40.4168, −3.7038), radius 100 km, each source one near and one far item (far Wallapop in Barcelona 41.3874, 2.1686) → exactly wallapop-wp-near, cochesnet-cn-near, milanuncios-mn-near.
 - **MAP-17** — Madrid, 100 km; coches.net Getafe cn-near plus coches.net and Milanuncios items with unresolvable "Villarriba" / province 99 (pinned at the Spain centre 40.0, −3.5, ~49 km away) → exactly ["cochesnet-cn-near"].
 - **MAP-18** — Brand "BMW", model "Serie 3", no location; coches.net cn-contradicts (model "Serie 5", title "BMW Serie 5 530d") and Milanuncios mn-diluted (title "BMW Serie 5 530d Luxury") among matches → exactly wallapop-wp-match, cochesnet-cn-match, milanuncios-mn-match.
@@ -136,7 +136,8 @@ The contracts are:
 
 - **`SearchInput`** (`lib/search/schema.ts`) — the one filter set all three
   sources translate from. Bounds worth keeping: latitude ±90, longitude ±180,
-  `distanceInKm` positive, `minYear` at least 1900, `timeFilter` one of
+  `distanceInKm` positive, `minYear` any whole year and `maxKm` any whole amount from 0 (owner
+  decision, 2026-10-13, [redesign-map.md](redesign-map.md) MAPUI-14), `timeFilter` one of
   `today` / `lastWeek` / `lastMonth`.
 - **`CarListing`** (`interfaces/listing.ts`) — what every source normalises to
   and what both the list and the map consume.

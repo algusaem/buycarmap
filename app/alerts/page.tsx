@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BOTTOM_NAV_CLEARANCE } from "@/components/nav/bottom-nav-clearance";
+import { TAB_BAR_CLEARANCE } from "@/components/nav/tab-bar-clearance";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -22,7 +22,7 @@ export default async function AlertsPage() {
     // which leaves this route unable to scroll at all otherwise (HEAD-19).
     // Same pattern as app/account/page.tsx.
     <div className="flex flex-1 flex-col overflow-y-auto bg-background">
-      <div className={cn("mx-auto w-full max-w-4xl px-4 pt-8 lg:pb-8", BOTTOM_NAV_CLEARANCE)}>
+      <div className={cn("mx-auto w-full max-w-4xl px-4 pt-8 lg:pb-8", TAB_BAR_CLEARANCE)}>
         <div className="mb-8 flex items-center gap-3">
           <Link
             href="/map"

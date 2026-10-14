@@ -1,3 +1,5 @@
+import type { useTranslations } from "next-intl";
+
 interface LegalSection {
   heading: string;
   body: string;
@@ -287,18 +289,103 @@ export interface Translations {
     privacy: LegalDocument;
   };
   map: {
-    searching: string;
-    emptyState: string;
     loading: string;
     filters: string;
     backToHome: string;
-    closeMap: string;
     addFavorite: string;
     removeFavorite: string;
-    unknownTitle: string;
-    searchFailed: string;
-    loadMoreFailed: string;
-    invalidSearch: string;
+    markerLabel: string;
+    zoomIn: string;
+    zoomOut: string;
+    viewListing: string;
+    preview: string;
+    closePreview: string;
+    pinGroup: string;
+    sheetHandle: string;
+  };
+  // docs/specs/redesign-map.md › Contracts › i18n keys (MAPUI).
+  search: {
+    where: string;
+    car: string;
+    price: string;
+    wherePlaceholder: string;
+    whereLabel: string;
+    places: string;
+    carPlaceholder: string;
+    carLabel: string;
+    carOptions: string;
+    modelOf: string;
+    modelOfLabel: string;
+    priceAny: string;
+    allSpain: string;
+    anyBrand: string;
+    anyPrice: string;
+    radius: string;
+    radiusOption: string;
+    brands: string;
+    models: string;
+    results: string;
+    submit: string;
+    sheetTitle: string;
+    filtersTitle: string;
+    clear: string;
+    clearText: string;
+    showCars: string;
+    close: string;
+    closeFilters: string;
+    remove: string;
+    brandModel: string;
+    placeRadius: string;
+    priceUpTo: string;
+    priceFrom: string;
+    summaryUpTo: string;
+    summaryFrom: string;
+    priceMin: string;
+    priceMax: string;
+    priceMinSlider: string;
+    priceMaxSlider: string;
+    priceCurrency: string;
+    noBrand: string;
+    noPlace: string;
+    placeSearchDown: string;
+  };
+  mapStates: {
+    loading: string;
+    headingLoading: string;
+    headingNone: string;
+    headingError: string;
+    headingCount: string;
+    headingMore: string;
+    emptyTitle: string;
+    emptyWiden: string;
+    emptyRemove: string;
+    emptyLineRadius: string;
+    emptyLine: string;
+    emptyLineNoFilters: string;
+    widenTo: string;
+    widenAllSpain: string;
+    clearFilters: string;
+    statusNoneRadius: string;
+    statusNone: string;
+    errorTitle: string;
+    errorRetry: string;
+    errorLine: string;
+    retry: string;
+    statusError: string;
+    pageErrorLine: string;
+  };
+  createAlert: {
+    open: string;
+    title: string;
+    name: string;
+    submit: string;
+    cancel: string;
+    tooBroad: string;
+    nameRequired: string;
+    networkError: string;
+    created: string;
+    alreadyExisted: string;
+    viewAlerts: string;
   };
   favorites: {
     title: string;
@@ -359,54 +446,35 @@ export interface Translations {
   filters: {
     fuelType: string;
     transmission: string;
-    brand: string;
-    model: string;
-    loadingModels: string;
     price: string;
-    minPrice: string;
-    maxPrice: string;
-    mileage: string;
-    minKm: string;
     maxKm: string;
     year: string;
-    minYear: string;
-    maxYear: string;
-    horsePower: string;
-    minHp: string;
-    maxHp: string;
     listed: string;
-    any: string;
-    clearFilters: string;
-    fuelTypes: {
-      gasoline: string;
-      gasoil: string;
-      electricHybrid: string;
-      hybrid: string;
-      hybridPlugin: string;
-      lpg: string;
-      cng: string;
-    };
     transmissions: {
       manual: string;
       automatic: string;
-      semiautomatic: string;
     };
-    timeFilters: {
+    fuelGroups: {
+      gasoline: string;
+      gasoil: string;
+      hybrid: string;
+      electric: string;
+      lpg: string;
+    };
+    gearboxAll: string;
+    listedChoices: {
+      any: string;
       today: string;
       lastWeek: string;
       lastMonth: string;
     };
-    location: string;
-    locationPlaceholder: string;
-    distance: string;
-    noResults: string;
-    distanceOptions: {
-      km10: string;
-      km25: string;
-      km50: string;
-      km100: string;
-      km200: string;
-    };
+    kmAndYear: string;
+    maxKmPlaceholder: string;
+    maxKmSuffix: string;
+    minYearPlaceholder: string;
+    maxKmChip: string;
+    minYearChip: string;
+    brandAndModel: string;
   };
   nav: {
     signIn: string;
@@ -432,5 +500,10 @@ export interface Translations {
   errors: {
     pageLoadFailed: string;
     retry: string;
+    pageTitle: string;
+    pagePunchline: string;
   };
 }
+
+/** next-intl's translate function, as a component hands it to its own helpers. */
+export type Translate = ReturnType<typeof useTranslations>;

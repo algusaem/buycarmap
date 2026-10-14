@@ -210,6 +210,28 @@ describe("searchAllSources", () => {
     }
   });
 
+  it("ALERT-43: an alert with a fuel criterion drops a listing whose fuel is unknown (MAPUI-55)", async () => {
+    // docs/specs/alerts.md ALERT-43 as amended: polls drop by radius, model
+    // and fuel. Both listings sit at the criteria's own point with its model,
+    // so only the fuel tells them apart.
+    const diesel = makeMatchListing({ id: "wallapop-diesel", fuel: "Diesel" });
+    const unknown = makeMatchListing({ id: "wallapop-unknown", fuel: "" });
+    const spy = vi.spyOn(searchService, "searchRound").mockResolvedValue({
+      listings: [diesel, unknown],
+      cursors: EMPTY_SEARCH_CURSORS,
+      hasMore: { Wallapop: false, "Coches.net": false, Milanuncios: false },
+      failedSources: [],
+    });
+
+    try {
+      const result = await searchAllSources(makeCriteria({ engine: ["gasoil"] }));
+
+      expect(result.listings.map((listing) => listing.id)).toEqual(["wallapop-diesel"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("names a failed source and still returns the survivors' listings", async () => {
     server.use(http.get(WALLAPOP, failWith(503)));
 

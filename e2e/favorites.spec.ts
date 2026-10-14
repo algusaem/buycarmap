@@ -10,8 +10,8 @@ const dbTest = process.env.E2E_DB ? test : test.skip;
 // Clears all three password layers (length, strength, breach corpus).
 const PASSWORD = "harbour-lentil-quilt-97";
 
-const FAVORITE = /add to favorites|guardar en favoritos/i;
-const UNFAVORITE = /remove from favorites|quitar de favoritos/i;
+const FAVORITE = /^save$|^guardar$/i;
+const UNFAVORITE = /remove from saved|quitar de guardados/i;
 const AUDI = "Audi A3 2.0 TDI";
 // messages/en.json nav.favorites: "Saved cars"; messages/es.json: "Coches guardados".
 const SAVED_CARS = /^(saved|guardados)$/i;

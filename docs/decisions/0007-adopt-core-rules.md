@@ -6,6 +6,10 @@ Superseded in part by [docs/specs/redesign-foundation.md](../specs/redesign-foun
 2026-10-12: the app has one dark theme, so `next-themes` (approved below for theme switching)
 leaves the dependencies. Everything else here stands.
 
+Superseded in part by [0020](0020-radix-popover-dialog-slider.md), 2026-10-13: the three Radix
+packages the map and search redesign adds (`@radix-ui/react-popover`, `@radix-ui/react-dialog`,
+`@radix-ui/react-slider`) are recorded there, by name and use.
+
 ## Context
 
 BuyCarMap was built before the shared core (`algusaem-claude`: `RULES.md`, `STACK.md`, the

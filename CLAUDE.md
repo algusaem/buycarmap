@@ -67,7 +67,7 @@ session did not follow this section, whatever its «Lacayos» line says.
 
 ## Project Overview
 
-BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, year, mileage, horsepower, fuel, transmission, and recency, then browse results as a synchronized card list + map.
+BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, and recency (horsepower only survives in old links), then browse results as a synchronized card list + map.
 
 What is and is not built is under **Current state** below. Everything else in this
 file is a rule; the explanations live in `docs/`.
@@ -77,7 +77,8 @@ file is a rule; the explanations live in `docs/`.
 Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prisma 7
 with the **`@prisma/adapter-pg`** driver adapter · Better Auth (Postgres sessions) ·
 React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
-`components/ui/*` · Motion · Sonner · Leaflet + react-leaflet ·
+`components/ui/*`, plus Popover, Dialog and Slider used directly by the map and the create-alert
+dialog (ADR 0020) · Motion · Sonner · Leaflet + react-leaflet ·
 Lucide React and React Icons · next-intl (i18n) · nuqs (URL state) · date-fns
 and `@date-fns/tz` (formatting).
 
@@ -92,8 +93,10 @@ or an installed dependency the ADR approves or accepts until its phase (see its 
   `docs/decisions/0001-no-data-fetching-library.md`, `docs/decisions/0016-server-search-and-next-intl.md`)
   and guard against out-of-order responses with a version ref or `cancelled` flag, as the
   existing hooks do. The search and car-models hooks call the `searchListings` and
-  `listCarModels` Server Actions (`server/search/actions.ts`); every other hook calls a
-  cross-cutting helper in `lib/<source>/*` or `lib/geo/*` — never a raw endpoint.
+  `listCarModels` Server Actions (`server/search/actions.ts`), the favorites hooks call
+  theirs (`server/favorites/actions.ts`), and the account and locale hooks their own feature's
+  actions; every other hook calls a cross-cutting helper in `lib/<source>/*` or `lib/geo/*` —
+  never a raw endpoint.
 
 Full detail: `docs/ARCHITECTURE.md`.
 
@@ -190,12 +193,12 @@ reasonable-looking change, because breaking one is silent:
 - **coches.net and Milanuncios items carry no coordinates.** Their pins are
   city- or province-level approximations. Wallapop's are exact when the listing
   carries coordinates (SRC-3).
-- **The merge post-filters by radius and model** (`applyResultFilters` in
+- **The merge post-filters by radius, model and fuel** (`applyResultFilters` in
   `lib/listings/merge.ts`, applied by `server/search/actions.ts`'s `searchListings` after
   `server/search/service.ts`'s `searchRound` returns). It looks redundant — "upstream already
   filters" — but only Wallapop enforces the radius and Milanuncios matches the
   model as free text. Removing it silently reverts to nationwide results
-  (MAP-16..18). **Because that filter can empty a page**, the first search and
+  (MAP-16..18); the fuel drops a listing whose fuel is unknown or of another group (MAPUI-55). **Because that filter can empty a page**, the first search and
   `loadMore` both keep fetching until a round yields a listing or the sources
   run out — collapsing either loop back to one fetch strands the scroll and
   makes an empty first page permanent (MAP-19). Every round advances each source's
@@ -425,7 +428,7 @@ coded.**
   Tailwind (`h-4 w-4`).
 - **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }
   from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `fadeInDown`,
-  `dropdownReveal`, `crossFade`, `fadeIn(delay)`, `staggerContainer(delay)`, `buttonTap`)
+  `dropdownReveal`, `sheetSlideUp`, `crossFade`, `fadeIn(delay)`, `staggerContainer(delay)`, `buttonTap`)
   instead of re-declaring `initial`/`animate` inline.
 
 <!-- BEGIN:nextjs-agent-rules -->

@@ -1,10 +1,9 @@
 "use client";
 
-import { startTransition } from "react";
-import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { useRouteRetry } from "@/lib/hooks/useRouteRetry";
 
 interface RouteErrorProps {
   reset: () => void;
@@ -23,19 +22,7 @@ interface RouteErrorProps {
  */
 export function RouteError({ reset }: RouteErrorProps) {
   const t = useTranslations();
-  const router = useRouter();
-
-  function retry() {
-    // `reset()` alone re-renders the boundary's children with the same
-    // server data that just failed — a request that failed because the data
-    // itself errored would fail identically again. `router.refresh()` reruns
-    // the server request first, so a transient failure actually gets a fresh
-    // attempt.
-    startTransition(() => {
-      router.refresh();
-      reset();
-    });
-  }
+  const retry = useRouteRetry(reset);
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24 text-center">

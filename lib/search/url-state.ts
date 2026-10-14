@@ -82,6 +82,13 @@ export function filtersToUrlState(filters: UrlFilterValues): UrlSearchState {
   };
 }
 
+/**
+ * The landing's free text (`/map?q=…`), still searched but no longer shown
+ * (MAPUI-18). Not one of `searchParsers`: until F4 the map's caller of
+ * useSearchFilters owns it, and the hook drops it once a control clears it.
+ */
+export const KEYWORDS_PARAM = "q";
+
 const VALID_TIME_FILTERS = new Set(["today", "lastWeek", "lastMonth"]);
 
 /** Merges URL state onto the given defaults — used to seed the hook's initial filters from a deep link. */

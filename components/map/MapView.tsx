@@ -1,23 +1,24 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useCallback, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
-import { ListingsHeader } from "@/components/map/ListingsHeader";
-import { CarListingCard } from "@/components/map/CarListingCard";
-import { ListingsSkeleton } from "@/components/map/ListingsSkeleton";
-import { MobileMapOverlay } from "@/components/map/MobileMapOverlay";
-import { Button } from "@/components/ui/button";
-import { useListingsSearch } from "@/lib/hooks/useListingsSearch";
-import { useSearchFilters } from "@/lib/hooks/useSearchFilters";
+import { useCallback } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { toast } from "sonner";
+import { CreateAlert } from "@/components/alerts/CreateAlert";
+import { FilterPanel } from "@/components/map/filters/FilterPanel";
+import { FilterRow } from "@/components/map/filters/FilterRow";
+import { MapResultsArea } from "@/components/map/MapResultsArea";
+import { SearchSheet } from "@/components/map/phone/SearchSheet";
+import { HeaderSearch } from "@/components/map/search/HeaderSearch";
+import type { CarListing } from "@/interfaces/listing";
 import { useFavorites } from "@/lib/hooks/useFavorites";
-import { useTranslations } from "next-intl";
-import type { SearchFiltersProps } from "@/components/map/SearchFilters";
-
-const ListingsMap = dynamic(
-  () => import("@/components/map/ListingsMap").then((mod) => mod.ListingsMap),
-  { ssr: false },
-);
+import { useFavoriteToggle } from "@/lib/hooks/useFavoriteToggle";
+import { useIsPhone } from "@/lib/hooks/useIsPhone";
+import { useListingsSearch } from "@/lib/hooks/useListingsSearch";
+import { useMapPageState } from "@/lib/hooks/useMapPageState";
+import { useSearchFilters } from "@/lib/hooks/useSearchFilters";
+import { resultsHeading } from "@/lib/map/results-heading";
+import { nextRadius, resultsState } from "@/lib/map/results-state";
+import { phoneSummary } from "@/lib/search/phone-summary";
 
 interface MapViewProps {
   initialQuery?: string;
@@ -25,131 +26,142 @@ interface MapViewProps {
 
 export function MapView({ initialQuery = "" }: MapViewProps) {
   const t = useTranslations();
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [showMap, setShowMap] = useState(false);
-  const {
-    listings,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    error,
-    resultsGeneration,
-    search,
-    retry,
-    sentinelRef,
-  } = useListingsSearch();
+  const locale = useLocale();
+  const results = useListingsSearch();
+  const { listings, isLoading, error, hasMore, search } = results;
   // Results know nothing about what this user saved; without this every card
   // renders unsaved even for a car already in their favorites.
   const { favoriteIds, setFavorite } = useFavorites();
+  const toggleFavorite = useFavoriteToggle();
 
-  const getKeywords = useCallback(() => searchQuery, [searchQuery]);
+  // MAPUI-18: the landing's free text (`?q=`) is still searched until F4, but
+  // no control shows or edits it any more.
+  const getKeywords = useCallback(() => initialQuery, [initialQuery]);
   const filters = useSearchFilters(search, getKeywords);
+  const { input } = filters;
+  const place = filters.selectedLocation ?? null;
 
-  const filterProps = useMemo<SearchFiltersProps>(
-    () => ({
-      engine: filters.engine,
-      gearbox: filters.gearbox,
-      brand: filters.brand,
-      model: filters.model,
-      minPrice: filters.minPrice,
-      maxPrice: filters.maxPrice,
-      minKm: filters.minKm,
-      maxKm: filters.maxKm,
-      minYear: filters.minYear,
-      maxYear: filters.maxYear,
-      minHorsePower: filters.minHorsePower,
-      maxHorsePower: filters.maxHorsePower,
-      timeFilter: filters.timeFilter,
-      selectedLocation: filters.selectedLocation,
-      distanceInKm: filters.distanceInKm,
-      onEngineChange: filters.setEngine,
-      onGearboxChange: filters.setGearbox,
-      onBrandChange: filters.setBrand,
-      onModelChange: filters.setModel,
-      onMinPriceChange: filters.setMinPrice,
-      onMaxPriceChange: filters.setMaxPrice,
-      onMinKmChange: filters.setMinKm,
-      onMaxKmChange: filters.setMaxKm,
-      onMinYearChange: filters.setMinYear,
-      onMaxYearChange: filters.setMaxYear,
-      onMinHorsePowerChange: filters.setMinHorsePower,
-      onMaxHorsePowerChange: filters.setMaxHorsePower,
-      onTimeFilterChange: filters.setTimeFilter,
-      onLocationChange: filters.setLocation,
-      onDistanceChange: filters.setDistanceInKm,
-      onClearAll: filters.clearAll,
-    }),
-    [filters],
+  const isPhone = useIsPhone();
+  const page = useMapPageState(listings, isPhone);
+
+  const closeDesktopFilters = () => filters.setFiltersOpen(false);
+  const summary = phoneSummary(input, place, filters.distanceInKm, { t, locale });
+
+  async function handleToggleFavorite(listing: CarListing, next: boolean) {
+    const failure = await toggleFavorite({
+      listing,
+      next,
+      apply: (saved) => setFavorite(listing.id, saved),
+      callbackPath: page.currentPath,
+    });
+    if (failure) toast.error(failure);
+  }
+
+  // No place and no filter, yet no car in all of Spain: the sources failed
+  // without saying so, so the failed-search state shows (MAPUI-31, MAPUI-32;
+  // spec Edge cases › No place).
+  // The page searches on mount, so until the first search has landed (no
+  // results generation yet, no error) the first page is loading, not empty
+  // (MAPUI-30): the empty state never flashes before the search starts.
+  const firstPagePending = results.resultsGeneration === 0 && !error;
+  const searched = resultsState(isLoading || firstPagePending, error, listings.length);
+  const state = searched === "empty" && !place && !filters.hasFilters ? "error" : searched;
+  const widenTo = place ? nextRadius(filters.distanceInKm) : undefined;
+  const heading = resultsHeading(
+    {
+      status: state === "loading" || state === "error" ? state : "ready",
+      count: listings.length,
+      hasMore,
+    },
+    { t, locale },
   );
 
+  const createAlertProps = {
+    criteria: input,
+    placeName: place?.displayName,
+    onClose: page.closeAlert,
+  };
+
+  // The page's main landmark, as in the route's error state (app/map/error.tsx).
   return (
-    <div className="flex h-0 min-h-0 flex-1 overflow-hidden">
-      {/* Left - Listings Panel */}
-      <div className="flex h-full w-full flex-col border-r border-border/50 lg:w-200">
-        <ListingsHeader
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSearch={filters.triggerSearch}
-          onShowMap={() => setShowMap(true)}
-          isLoading={isLoading}
-          filtersOpen={filters.isOpen}
-          onToggleFilters={filters.toggle}
-          activeFilterCount={filters.activeCount}
-          filterProps={filterProps}
+    <main className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+      {/* Desktop: the search pill and «Crear alerta» in the map header's centre (MAPUI-1, MAPUI-39). */}
+      <HeaderSearch
+        filters={filters}
+        createAlertOpen={page.alertOpen === "popover"}
+        onCreateAlertOpenChange={(open) => (open ? page.openAlert("popover") : page.closeAlert())}
+        createAlert={
+          <CreateAlert {...createAlertProps} inline open={page.alertOpen === "popover"} />
+        }
+      />
+
+      {/* Desktop: the filters row under the header (MAPUI-13, MAPUI-19). */}
+      <div className="hidden h-16.5 min-w-0 shrink-0 items-center border-b border-line-soft px-8 lg:flex">
+        <FilterRow
+          input={input}
+          onRemove={filters.removeChip}
+          onOpenFilters={() => filters.setFiltersOpen(true)}
+          panelOpen={filters.isOpen}
+          onClosePanel={closeDesktopFilters}
+          panel={
+            <FilterPanel
+              mode="desktop"
+              input={input}
+              onChange={filters.updateInput}
+              onClear={filters.clearAll}
+              onCloseDesktop={closeDesktopFilters}
+            />
+          }
         />
-
-        <div className="flex-1 overflow-y-auto p-4">
-          {isLoading ? (
-            <ListingsSkeleton />
-          ) : error ? (
-            <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-              <p className="text-sm text-muted-foreground">{t("map.searchFailed")}</p>
-              <Button onClick={retry}>{t("errors.retry")}</Button>
-            </div>
-          ) : listings.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-muted-foreground">{t("map.emptyState")}</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                {listings.map((listing) => (
-                  <CarListingCard
-                    key={listing.id}
-                    {...listing}
-                    isFavorite={favoriteIds.has(listing.id)}
-                    onFavoriteChange={setFavorite}
-                  />
-                ))}
-              </div>
-              {hasMore && (
-                <div ref={sentinelRef} className="mt-6 flex justify-center py-4">
-                  {isLoadingMore && (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm text-muted-foreground">{t("map.loading")}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </div>
       </div>
 
-      {/* Right - Map */}
-      <div className="hidden p-4 lg:flex lg:flex-1">
-        <div className="h-full w-full overflow-hidden rounded-2xl border border-border/50">
-          <ListingsMap listings={listings} resultsGeneration={resultsGeneration} />
-        </div>
-      </div>
+      <MapResultsArea
+        isPhone={isPhone}
+        page={page}
+        results={results}
+        summary={summary}
+        input={input}
+        onRemoveChip={filters.removeChip}
+        heading={heading}
+        state={state}
+        widenTo={widenTo}
+        distanceInKm={filters.distanceInKm}
+        hasFilters={filters.hasFilters}
+        onWiden={() => filters.applyInput({ distanceInKm: widenTo })}
+        onClearFilters={filters.clearAll}
+        onAllSpain={() => filters.applyInput({}, null)}
+        favoriteIds={favoriteIds}
+        onToggleFavorite={handleToggleFavorite}
+      />
 
-      {/* Mobile map */}
-      {showMap && (
-        <MobileMapOverlay onClose={() => setShowMap(false)}>
-          <ListingsMap listings={listings} resultsGeneration={resultsGeneration} />
-        </MobileMapOverlay>
-      )}
-    </div>
+      {/* Phone: the «BUSCAR» sheet, the full-screen filters and «Crear alerta» (MAPUI-21, MAPUI-22, MAPUI-39). */}
+      <SearchSheet
+        open={page.searchSheetOpen}
+        initial={input}
+        place={place}
+        radiusKm={filters.distanceInKm}
+        onApply={({ place: chosenPlace, ...edited }) => {
+          filters.applyInput(edited, chosenPlace);
+          page.closeSearchSheet();
+        }}
+        onClose={page.closeSearchSheet}
+        returnFocusRef={page.searchOpenerRef}
+      />
+      <FilterPanel
+        mode="phone"
+        open={page.phoneFiltersOpen}
+        input={input}
+        onChange={(patch) => filters.applyInput(patch)}
+        onClear={filters.clearAll}
+        onApply={page.closePhoneFilters}
+        onDiscard={page.closePhoneFilters}
+        returnFocusRef={page.filtersOpenerRef}
+      />
+      <CreateAlert
+        {...createAlertProps}
+        open={page.alertOpen === "sheet"}
+        returnFocusRef={page.alertOpenerRef}
+      />
+    </main>
   );
 }

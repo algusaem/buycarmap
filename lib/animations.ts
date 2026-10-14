@@ -33,6 +33,14 @@ export const dropdownReveal = {
   transition: { duration: duration.fast },
 };
 
+/** A bottom sheet rising from the screen's edge, and leaving the same way. */
+export const sheetSlideUp = {
+  initial: { y: "100%" },
+  animate: { y: 0 },
+  exit: { y: "100%" },
+  transition: { duration: duration.fast, ease },
+};
+
 export const crossFade = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },

@@ -2,7 +2,7 @@
 
 Key: SRC
 Status: Implemented
-Last updated: 2026-10-11
+Last updated: 2026-10-13
 
 ---
 
@@ -221,6 +221,24 @@ meta.next_page
 
 `reserved.flag` replaced an older `flags.{sold,reserved,banned,expired}` object.
 
+**Fuel.** `type_attributes.engine` is an English display word, not the `engine`
+filter code the request sends. A live probe on 2026-10-13, one search per
+`engine` value, returned exactly one word per value:
+
+| `engine` sent | `type_attributes.engine` returned |
+| --- | --- |
+| `gasoline` | «Gasoline» |
+| `gasoil` | «Diesel» |
+| `hybride` | «Hybrid» |
+| `hybride_plugin` | «Hybrid Plug-in» |
+| `electric-hybrid` | «Electric» |
+| `lpg` | «LPG» |
+| `cng` | «CNG» |
+
+Which fuel group each word belongs to is
+[redesign-map.md](redesign-map.md) › Worked examples › Fuel vocabulary; the
+fixture's fuel is checked against this list offline (SRC-15).
+
 #### Normalisation
 
 [`lib/wallapop/normalize.ts`](../../lib/wallapop/normalize.ts) maps items into
@@ -374,6 +392,22 @@ items[]
 meta.totalPages
 ```
 
+**Fuel.** `fuelType` is a Spanish display word, next to its numeric
+`fuelTypeId`. A live probe on 2026-10-13, one search per `fuelTypeIds` value,
+returned exactly one word per id:
+
+| `fuelTypeId` | `fuelType` |
+| --- | --- |
+| 1 | «Diésel» |
+| 2 | «Gasolina» |
+| 3 | «Eléctrico» |
+| 4 | «Híbrido» |
+| 5 | «Híbrido enchufable» |
+| 6 | «Gas licuado (GLP)» |
+| 7 | «Gas natural (CNG)» |
+
+The fixture's fuel is checked against this list offline (SRC-15).
+
 #### Normalisation
 
 [`lib/cochesnet/normalize.ts`](../../lib/cochesnet/normalize.ts):
@@ -503,6 +537,12 @@ ads[]
   isReserved
 pagination.{ page, resultsPerPage, totalAds, totalPages }
 ```
+
+**Fuel.** The `combustible` tag's text, in lower case. A live probe on
+2026-10-13, one search per `fuels` token, returned exactly one text per
+token: `gasolina` «gasolina», `diesel` «diesel», `electrico` «eléctrico»,
+`hibrido` «híbrido». The fixture's fuel is checked against this list offline
+(SRC-15).
 
 #### Normalisation
 

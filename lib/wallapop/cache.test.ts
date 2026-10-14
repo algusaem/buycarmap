@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getCached, setCached } from "./cache";
+import { deleteCached, getCached, setCached } from "./cache";
 
 describe("wallapop cache", () => {
   beforeEach(() => vi.useFakeTimers());
@@ -19,5 +19,15 @@ describe("wallapop cache", () => {
     setCached("k-stale", [1, 2, 3]);
     vi.advanceTimersByTime(60_001);
     expect(getCached("k-stale")).toBeNull();
+  });
+
+  it("MAPUI-32: deleteCached removes a stored entry so a later read misses", () => {
+    setCached("k-deleted", { hello: "world" });
+    deleteCached("k-deleted");
+    expect(getCached("k-deleted")).toBeNull();
+  });
+
+  it("MAPUI-32: deleteCached on a key that was never set is a no-op", () => {
+    expect(() => deleteCached("never-set")).not.toThrow();
   });
 });
