@@ -49,7 +49,7 @@ This is phase 11 of ADR 0007: row 25.
 
 - [x] BAUTH-6 · node — No Better Auth HTTP endpoint lets a client skip a rule our server actions enforce.
   - Only the paths the browser needs stay reachable over HTTP, and every other Better Auth path is in `disabledPaths`. Our server actions still reach the disabled ones through `auth.api`, where our rules wrap them. The allowlist (amended 2026-10-04 after the security review):
-    - `/sign-in/social` and `/callback/:id` (Google and GitHub);
+    - `/sign-in/social` and `/callback/:id` (Google) (amended 2026-10-14, ENTRY — redesign-entry.md);
     - `/sign-in/email` (the no-email registration fallback signs in through the client);
     - `/get-session`, `/sign-out`, `/ok` and `/error`.
   - `/sign-in/email` called directly runs the same checks as our action through `hooks.before`: today's per-IP limit and the per-account lockout. Each failed attempt is counted once.
@@ -65,14 +65,14 @@ This is phase 11 of ADR 0007: row 25.
 
 ### OAuth and linking
 
-- [x] BAUTH-8 · node — Google and GitHub sign-in work through Better Auth's social providers, on the callback paths they use today (`/api/auth/callback/google`, `/api/auth/callback/github`), so the providers' consoles need no change.
+- [x] BAUTH-8 · node — Google sign-in works through Better Auth's social providers, on the callback path it uses today (`/api/auth/callback/google`), so the provider's console needs no change (amended 2026-10-14, ENTRY — redesign-entry.md).
 - [x] BAUTH-9 · node — Linking follows AUTH-12 and the owner's 2026-10-04 decision:
   - a new provider is linked automatically only when the provider itself reports the email as verified, so no provider is listed in `trustedProviders`, and the local account's email is verified (`requireLocalEmailVerified`);
   - a provider is never linked automatically to an account with two-factor on;
   - a first sign-in with a provider for an address with no local account, whether through the OAuth callback or any other provider sign-in, creates the user and its provider account only when the provider reports the email as verified; ID-token sign-in is disabled, so nobody can claim an address through a provider that never verified it. Later sign-ins with that provider keep working. Amended 2026-10-04;
   - explicit linking from `/account` is not offered: no UI links a provider today, and `/link-social` is not on the allowlist. Amended 2026-10-04.
   - The tests drive the real OAuth callback, with the provider's token and userinfo endpoints faked through MSW.
-- [x] BAUTH-10 · component — Unlinking keeps AUTH-14: the only remaining way to sign in cannot be disconnected.
+- [x] BAUTH-10 · component — Unlinking keeps AUTH-14: the only remaining way to sign in cannot be disconnected. The account page's connected-accounts list shows only Google (amended 2026-10-14, ENTRY — redesign-entry.md).
 
 ### Two-factor
 

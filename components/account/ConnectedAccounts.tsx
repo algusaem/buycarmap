@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,12 +20,10 @@ interface ConnectedAccountsProps {
 
 const PROVIDER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   google: FcGoogle,
-  github: FaGithub,
 };
 
 const PROVIDER_LABELS: Record<string, string> = {
   google: "Google",
-  github: "GitHub",
 };
 
 export function ConnectedAccounts({ providers, hasPassword }: ConnectedAccountsProps) {

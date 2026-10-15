@@ -44,7 +44,7 @@ UI Kit). Where this brief and the design disagree, the design wins and this brie
 - In scope: the search pill and its popovers, the filters row and panel, the phone search sheet and
   full-screen filters, price pins and grouping, the preview card, zoom, the results sheet, the loading,
   empty and error states, the shared car card, «Crear alerta» and the phone tab bar.
-- Untouched here: the landing's search (F4), the saved-cars and alerts page layouts (F5, F6), emails.
+- Untouched here: the landing's search ([`landing.md`](landing.md)), the saved-cars and alerts page layouts (F5, F6), emails.
 - Anti-goals: no quick-filter chip row («Todos», «Diésel»…) — the row shows only active filters; no
   sort control; no distance clustering; no photo carousel; no search-as-I-move-the-map; no
   navigation menu sheet or hamburger.

@@ -244,12 +244,21 @@ describe("SiteHeader — phone region", () => {
     expect(screen.queryByTestId("header-phone")).not.toBeInTheDocument();
   });
 
-  it("HEAD-7: / signed in still shows the avatar as the phone region's right-hand item", () => {
+  // Amended by ENTRY-8 (docs/specs/redesign-entry.md): the phone landing
+  // header used to keep the avatar since the landing had no tab bar of its
+  // own; now that the landing has one (MAPUI-52's own amendment), Cuenta
+  // lives there instead — the same reason the section pages already show no
+  // avatar at phone width (MAPUI-54, asserted a few lines below).
+  it("ENTRY-8/HEAD-7: / signed in shows the wordmark and the language control, with no avatar and no Sign in, because Cuenta is in the tab bar", () => {
     pathname.mockReturnValue("/");
     useSession.mockReturnValue(SIGNED_IN);
     renderWithI18n(<SiteHeader />);
 
-    expect(phone().getByRole("link", { name: "Account" })).toHaveAttribute("href", "/account");
+    const region = phone();
+    expect(region.getByRole("link", { name: "BuyCarMap" })).toHaveAttribute("href", "/");
+    expect(region.getByRole("group", { name: "Language" })).toBeInTheDocument();
+    expect(region.queryByRole("link", { name: "Account" })).not.toBeInTheDocument();
+    expect(region.queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
   });
 
   it.each(["/favorites", "/alerts", "/alerts/abc", "/account"])(

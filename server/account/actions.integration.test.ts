@@ -378,7 +378,7 @@ describe("unlinkAccount", () => {
   it("is idempotent for a provider that is not linked", async () => {
     await signedInAsNewUser({ password: "hash" });
 
-    expect(await unlinkAccount(formData({ provider: "github" }))).toEqual({ success: true });
+    expect(await unlinkAccount(formData({ provider: "google" }))).toEqual({ success: true });
   });
 
   it("PLAT-27: refuses with no provider field (unchanged)", async () => {

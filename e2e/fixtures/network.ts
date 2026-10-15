@@ -138,11 +138,19 @@ export const emptyMilanunciosFixture = {
 };
 
 // The two model-lookup endpoints (server/search/service.ts's
-// WALLAPOP_MODELS_URL / COCHESNET_MODELS_URL) stay empty in every scenario —
-// no e2e test asserts on a specific model list, only that filtering by model
-// doesn't crash the round.
-export const wallapopModelsFixture = { type: "model", id: "model", title: "Model", options: [] };
-export const cochesNetModelsFixture = { items: [] };
+// WALLAPOP_MODELS_URL / COCHESNET_MODELS_URL), returned the same for every
+// requested brand — the mock upstream server ignores the query string
+// (upstream-server.ts). "Golf" (server/search/service.ts's `SearchModel`
+// shape: Wallapop's `options[].{id,title}`, coches.net's `items[].{id,label}`)
+// is the one model e2e asserts on today (ENTRY-3's landing-to-map test);
+// every other test only needs filtering by model not to crash the round.
+export const wallapopModelsFixture = {
+  type: "model",
+  id: "model",
+  title: "Model",
+  options: [{ id: "golf", title: "Golf" }],
+};
+export const cochesNetModelsFixture = { items: [{ id: 1, label: "Golf" }] };
 
 // Wraps a Milanuncios ads+pagination node in the SSR page shell
 // lib/milanuncios/parse.ts's extractInitialProps reads back out of:

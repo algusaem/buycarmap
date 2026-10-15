@@ -10,10 +10,10 @@ interface AccessHeaderProps {
 }
 
 // HeaderNav README › Entrar y páginas de acceso (HEAD-6): the same header
-// signed in or not — the language and «Volver al mapa» (ghost, 15px weight
-// 700) on desktop, the language and one text link back to the map on the
-// phone. It reads no session, so it has nothing to hold back while the
-// session resolves.
+// signed in or not — the language and, 10px further, «Volver al mapa»
+// (ghost, 15px weight 700) on desktop, the language and one text link back
+// to the map on the phone. It reads no session, so it has nothing to hold
+// back while the session resolves.
 export function AccessHeader({ legal }: AccessHeaderProps) {
   const t = useTranslations();
 
@@ -21,11 +21,11 @@ export function AccessHeader({ legal }: AccessHeaderProps) {
     <>
       <DesktopRegion open>
         <Wordmark size="desktop" />
-        <MainNav>
+        <MainNav className="gap-2.5">
           <LanguageControl />
           <Link
             href="/map"
-            className="flex h-11 items-center whitespace-nowrap text-[15px] font-bold text-text transition-colors hover:text-lime"
+            className="flex h-11 items-center whitespace-nowrap text-body-15 font-bold text-text transition-colors hover:text-lime"
           >
             {t("nav.backToMap")}
           </Link>

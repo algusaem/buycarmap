@@ -50,11 +50,12 @@ layout (F3–F7).
   `/forgot-password`, `/reset-password`, `/verify-email`, `/confirm-email`, `/privacy`, `/terms`) show
   the wordmark, the language control and «Volver al mapa» linking to `/map`, signed in or not.
 - [x] HEAD-7 · component — At phone width each header shows the wordmark, the language control and
-  one item on the right: the avatar on the signed-in pages and on the signed-in landing, «Entrar» on
+  one item on the right: «Entrar» on
   the signed-out landing, «Mapa» on the sign-in and account-recovery pages, and «Volver» on the legal
   pages; `/map` at phone width shows no app header. — `/favorites`, `/alerts`, `/alerts/[id]` and
-  `/account` show no avatar, because «Cuenta» is in the tab bar (MAPUI-54)
-  (amended 2026-10-13, MAPUI — redesign-map.md)
+  `/account` show no avatar, because «Cuenta» is in the tab bar (MAPUI-54), and the signed-in landing
+  shows no item on the right, for the same reason (ENTRY-8)
+  (amended 2026-10-13, MAPUI — redesign-map.md; amended 2026-10-14, ENTRY — redesign-entry.md)
 - [x] HEAD-8 · component — At phone width, signed in, `/favorites`, `/alerts`, `/alerts/[id]` and
   `/account` show the bottom nav with «Mapa», «Guardados» and «Alertas» links, the current section
   marked as in HEAD-4 and none marked on `/account`; it is absent at desktop width, when signed out,
@@ -104,7 +105,7 @@ MAPUI-54) (amended 2026-10-13, MAPUI — redesign-map.md):
 | `/alerts`, `/alerts/[id]` | in | Idioma · Mapa · Guardados · **Alertas** · avatar | Idioma | Mapa · Guardados · **Alertas** · Cuenta |
 | `/account` | in | Idioma · Mapa · Guardados · Alertas · **avatar** (ring) | Idioma | Mapa · Guardados · Alertas · **Cuenta** |
 | `/` | out | Idioma · Entrar · Crear cuenta | Idioma · Entrar | none |
-| `/` | in | Idioma · Mapa · Guardados · Alertas · avatar (none current) | Idioma · avatar | none |
+| `/` | in | Idioma · Mapa · Guardados · Alertas · avatar (none current) | Idioma | Mapa · Guardados · Alertas · Cuenta (none current) |
 | `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/confirm-email` | any | Idioma · Volver al mapa | Idioma · Mapa | none |
 | `/privacy`, `/terms` | any | Idioma · Volver al mapa | Idioma · Volver | none |
 
@@ -144,8 +145,8 @@ NAV-10) — and that a session ending mid-page stops offering them (HEAD-12).
   bar (HEAD-18).
 - Narrow desktops (HEAD-16): from 1024px the header must fit without scrolling.
 - Phones with a home indicator (HEAD-17): the tab bar is padded by the safe area.
-- The phone avatar shows only on the signed-in landing until F4; every other phone header with a
-  tab bar drops it (MAPUI-54). (amended 2026-10-13, MAPUI — redesign-map.md)
+- No phone header shows the avatar: every signed-in page, the landing included, has «Cuenta» in the
+  tab bar (MAPUI-54, ENTRY-8). (amended 2026-10-14, ENTRY — redesign-entry.md)
 - Pages with no drawn header (`/palette`, `/typography`, the error and not-found pages) take the
   sign-in/legal header (HEAD-6's shape).
 

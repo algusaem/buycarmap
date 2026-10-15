@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Headline } from "./Headline";
 
 interface EmptyStateProps {
   /** The headline's question, «¿Nada por aquí?». */
@@ -23,14 +24,16 @@ export function EmptyState({
   punchline,
   line,
   children,
-  headingLevel: Heading = "h2",
+  headingLevel = "h2",
 }: EmptyStateProps) {
   return (
     <div className="flex max-w-155 flex-col gap-4 lg:gap-5.5">
-      <Heading className="m-0 font-display text-empty-title-mobile font-black text-balance uppercase lg:text-empty-title">
-        <span className="mb-headline-gap block text-headline-setup">{question}</span>
-        <span className="block text-lime">{punchline}</span>
-      </Heading>
+      <Headline
+        question={question}
+        punchline={punchline}
+        level={headingLevel}
+        className="text-empty-title-mobile lg:text-empty-title"
+      />
       <p className="m-0 text-body-15 text-text-muted lg:text-empty-line">{line}</p>
       <div className="flex flex-wrap gap-2.5">{children}</div>
     </div>

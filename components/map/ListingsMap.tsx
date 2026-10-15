@@ -8,6 +8,7 @@ import type { CarListing } from "@/interfaces/listing";
 import { env } from "@/lib/env";
 import { formatPrice } from "@/lib/format";
 import { groupPins } from "@/lib/map/group-pins";
+import { PIN_BASE_CLASSES } from "@/lib/map/pin-classes";
 import { MapPreview, type PreviewController, type PreviewProps } from "@/components/map/MapPreview";
 import { MapZoom } from "@/components/map/MapZoom";
 
@@ -38,7 +39,7 @@ function pinIcon(label: string) {
     className: "group/pin focus-visible:outline-none",
     iconSize: [0, 0],
     iconAnchor: [0, 0],
-    html: `<span class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-pointer whitespace-nowrap rounded-pill border border-line bg-surface px-2.75 py-1.5 font-sans text-pin font-bold text-text transition-[background-color,box-shadow] before:absolute before:top-1/2 before:left-1/2 before:size-11 before:-translate-x-1/2 before:-translate-y-1/2 lg:px-3.25 lg:py-1.75 lg:text-sm group-data-[active=true]/pin:border-transparent group-data-[active=true]/pin:bg-lime group-data-[active=true]/pin:font-extrabold group-data-[active=true]/pin:text-on-lime group-data-[active=true]/pin:shadow-pin-active group-focus-visible/pin:outline-2 group-focus-visible/pin:outline-offset-3 group-focus-visible/pin:outline-lime">${escapeHtml(label)}</span>`,
+    html: `<span class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-pointer border border-line bg-surface transition-[background-color,box-shadow] before:absolute before:top-1/2 before:left-1/2 before:size-11 before:-translate-x-1/2 before:-translate-y-1/2 ${PIN_BASE_CLASSES} group-data-[active=true]/pin:border-transparent group-data-[active=true]/pin:bg-lime group-data-[active=true]/pin:font-extrabold group-data-[active=true]/pin:text-on-lime group-data-[active=true]/pin:shadow-pin-active group-focus-visible/pin:outline-2 group-focus-visible/pin:outline-offset-3 group-focus-visible/pin:outline-lime">${escapeHtml(label)}</span>`,
   });
 }
 

@@ -9,73 +9,86 @@ import { GET } from "@/app/api/auth/[...all]/route";
 
 // BAUTH-9 (docs/specs/core-better-auth.md), security review fix: drives
 // Better Auth's real OAuth flow end to end — `auth.api.signInSocial` for the
-// authorization `state`, then the real `GET /api/auth/callback/github`
+// authorization `state`, then the real `GET /api/auth/callback/google`
 // route handler — rather than calling
 // `databaseHooks.account.create.before` by hand
 // (lib/auth/account-link-hook.integration.test.ts, kept alongside this file
 // for the hook's own internal shape, which still needs its own coverage).
 //
-// GitHub, not Google: its flow is token exchange plus two REST userinfo
-// calls (better-auth's @better-auth/core/dist/social-providers/github.mjs),
-// with no id-token JWT to fake a signature for. Google's flow verifies a
-// signed id_token against Google's JWKS, which would need a second fake (a
-// test keypair plus a faked JWKS endpoint) for no added coverage here — both
-// providers run through the exact same `handleOAuthUserInfo`
-// (better-auth/dist/oauth2/link-account.mjs) this file is actually testing.
+// Google is the only social provider (docs/specs/redesign-entry.md). Its
+// callback flow is one token exchange: the token endpoint answers with an
+// `id_token`, and `getUserInfo` (@better-auth/core's
+// social-providers/google.mjs) only *decodes* it (`decodeJwt`) — the token
+// came straight from Google's token endpoint, so the callback never checks its
+// signature against Google's JWKS. (The JWKS check belongs to the
+// `POST /sign-in/social` with `{ idToken }` path, which lib/auth/auth.ts turns
+// off with `disableIdTokenSignIn`.) The fake id_token below therefore carries
+// a placeholder signature, and no JWKS endpoint is faked: nothing fetches it.
 //
 // Better Auth's own default `storeStateStrategy` keeps the OAuth `state` in
 // the database (the `Verification` table) *and* a signed `state` cookie that
-// must match it — `startGithubSignIn` below carries both forward from
+// must match it — `startGoogleSignIn` below carries both forward from
 // `signInSocial`'s response to the callback request, the same way
 // server/auth/sign-in.integration.test.ts's `requestTwoFactorChallenge`
 // carries forward the two-factor challenge cookie.
 
-let nextGithubId = 1;
+// vitest.config.ts's dummy GOOGLE_CLIENT_ID, the id_token's audience.
+const GOOGLE_CLIENT_ID = "test-google-client-id";
 
-function githubHandlers(opts: { email: string; verified: boolean; login: string }) {
-  // A real id, not the email, is what ends up as `providerAccountId` — fixed
-  // per call to `githubHandlers` (one per simulated GitHub user) rather than
-  // per HTTP request, so a *second* sign-in for the same simulated user
+let nextGoogleSub = 1;
+
+function base64UrlJson(value: object): string {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+function googleHandlers(opts: { email: string; verified: boolean }) {
+  // A stable `sub`, not the email, is what ends up as `providerAccountId` —
+  // fixed per call to `googleHandlers` (one per simulated Google user) rather
+  // than per HTTP request, so a *second* sign-in for the same simulated user
   // resolves to the same `providerAccountId` and finds its existing account,
-  // the way a real GitHub id would. Incremented, not hardcoded, so two
+  // the way a real Google `sub` would. Incremented, not hardcoded, so two
   // different simulated users in the same test file never collide.
-  const githubId = nextGithubId++;
+  const sub = `google-test-sub-${nextGoogleSub++}`;
 
   return [
-    http.post("https://github.com/login/oauth/access_token", async () =>
-      HttpResponse.json({
-        access_token: "test-github-access-token",
-        token_type: "bearer",
-        scope: "read:user,user:email",
-      }),
-    ),
-    http.get("https://api.github.com/user", () =>
-      HttpResponse.json({
-        id: githubId,
-        login: opts.login,
-        name: "Test User",
-        avatar_url: "https://example.test/avatar.png",
-        // GitHub's own `/user` response can omit the email entirely when
-        // it is private — `getUserInfo` (github.mjs) falls back to
-        // `/user/emails` below for both the address and its verified flag.
-        email: null,
-      }),
-    ),
-    http.get("https://api.github.com/user/emails", () =>
-      HttpResponse.json([{ email: opts.email, primary: true, verified: opts.verified }]),
-    ),
+    http.post("https://oauth2.googleapis.com/token", () => {
+      const now = Math.floor(Date.now() / 1000);
+      const idToken = [
+        base64UrlJson({ alg: "RS256", kid: "test-key", typ: "JWT" }),
+        base64UrlJson({
+          iss: "https://accounts.google.com",
+          aud: GOOGLE_CLIENT_ID,
+          sub,
+          email: opts.email,
+          email_verified: opts.verified,
+          name: "Test User",
+          picture: "https://example.test/avatar.png",
+          iat: now,
+          exp: now + 3600,
+        }),
+        "placeholder-signature",
+      ].join(".");
+
+      return HttpResponse.json({
+        access_token: "test-google-access-token",
+        id_token: idToken,
+        token_type: "Bearer",
+        expires_in: 3600,
+        scope: "openid email profile",
+      });
+    }),
   ];
 }
 
 /**
- * Starts a real GitHub sign-in through `signInSocial` and returns the two
+ * Starts a real Google sign-in through `signInSocial` and returns the two
  * values the callback needs: the `state` query parameter, and the signed
  * `state` cookie Better Auth set alongside it (`asResponse: true` is what
  * surfaces that `Set-Cookie` header on a direct `auth.api.*` call).
  */
-async function startGithubSignIn(): Promise<{ state: string; stateCookie: string }> {
+async function startGoogleSignIn(): Promise<{ state: string; stateCookie: string }> {
   const response = await auth.api.signInSocial({
-    body: { provider: "github", callbackURL: "/", disableRedirect: true },
+    body: { provider: "google", callbackURL: "/", disableRedirect: true },
     headers: new Headers(),
     asResponse: true,
   });
@@ -94,12 +107,12 @@ async function startGithubSignIn(): Promise<{ state: string; stateCookie: string
 }
 
 /** The real callback route, carrying a sign-in's state cookie back to it. */
-async function runGithubCallback(
+async function runGoogleCallback(
   code: string,
   { state, stateCookie }: { state: string; stateCookie: string },
 ): Promise<Response> {
   const request = new NextRequest(
-    `http://localhost:3000/api/auth/callback/github?code=${code}&state=${state}`,
+    `http://localhost:3000/api/auth/callback/google?code=${code}&state=${state}`,
     { headers: { cookie: stateCookie } },
   );
   return GET(request);
@@ -111,10 +124,10 @@ function hasSessionCookie(response: Response): boolean {
 
 describe("BAUTH-9: the real OAuth callback — a brand-new address", () => {
   it("BAUTH-9: creates a user and an accounts row, and a second sign-in works", async () => {
-    const email = "brand-new-github-user@example.test";
-    server.use(...githubHandlers({ email, verified: true, login: "brand-new-user" }));
+    const email = "brand-new-google-user@example.test";
+    server.use(...googleHandlers({ email, verified: true }));
 
-    const first = await runGithubCallback("first-code", await startGithubSignIn());
+    const first = await runGoogleCallback("first-code", await startGoogleSignIn());
 
     expect(first.status).toBe(302);
     expect(hasSessionCookie(first)).toBe(true);
@@ -130,20 +143,20 @@ describe("BAUTH-9: the real OAuth callback — a brand-new address", () => {
     expect(user?.emailConfirmed).toBe(true);
 
     const account = await prisma.account.findFirst({
-      where: { userId: user?.id, provider: "github" },
+      where: { userId: user?.id, provider: "google" },
     });
     expect(account).not.toBeNull();
 
     // A second sign-in with the same provider account is a plain sign-in,
     // not another link decision — `databaseHooks.account.create.before`
     // never runs again for it, since the account already exists.
-    const second = await runGithubCallback("second-code", await startGithubSignIn());
+    const second = await runGoogleCallback("second-code", await startGoogleSignIn());
 
     expect(second.status).toBe(302);
     expect(hasSessionCookie(second)).toBe(true);
 
     const accountsForUser = await prisma.account.count({
-      where: { userId: user?.id, provider: "github" },
+      where: { userId: user?.id, provider: "google" },
     });
     expect(accountsForUser).toBe(1);
   });
@@ -151,15 +164,15 @@ describe("BAUTH-9: the real OAuth callback — a brand-new address", () => {
 
 describe("BAUTH-9 (amended 2026-10-04, security review round 2): the real OAuth callback — a brand-new address with an unverified email", () => {
   it("BAUTH-9: an unverified primary email for an unknown address creates no user, no account and no session", async () => {
-    const email = "brand-new-unverified-github-user@example.test";
+    const email = "brand-new-unverified-google-user@example.test";
     // `verified: false` with no local account for this address at all — the
     // amended brand-new-user bypass (lib/auth/auth.ts's
     // `databaseHooks.user.create.before`) must refuse the user creation
     // itself, not just the account link, or the address would be claimed by
     // a provider that never verified it.
-    server.use(...githubHandlers({ email, verified: false, login: "brand-new-unverified" }));
+    server.use(...googleHandlers({ email, verified: false }));
 
-    const response = await runGithubCallback("unverified-new-user-code", await startGithubSignIn());
+    const response = await runGoogleCallback("unverified-new-user-code", await startGoogleSignIn());
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toContain("/error");
@@ -168,7 +181,7 @@ describe("BAUTH-9 (amended 2026-10-04, security review round 2): the real OAuth 
     const user = await prisma.user.findUnique({ where: { email } });
     expect(user).toBeNull();
 
-    const account = await prisma.account.findFirst({ where: { provider: "github" } });
+    const account = await prisma.account.findFirst({ where: { provider: "google" } });
     expect(account).toBeNull();
   });
 });
@@ -177,15 +190,15 @@ describe("BAUTH-9: the real OAuth callback — linking onto an existing local ac
   it("BAUTH-9: a verified local user with no two-factor and a provider-verified email gets linked and signed in", async () => {
     const email = "verified-no-2fa@example.test";
     await createUser({ email, emailConfirmed: true, twoFactorEnabled: false });
-    server.use(...githubHandlers({ email, verified: true, login: "verified-no-2fa" }));
+    server.use(...googleHandlers({ email, verified: true }));
 
-    const response = await runGithubCallback("link-code", await startGithubSignIn());
+    const response = await runGoogleCallback("link-code", await startGoogleSignIn());
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/");
     expect(hasSessionCookie(response)).toBe(true);
 
-    const account = await prisma.account.findFirst({ where: { provider: "github" } });
+    const account = await prisma.account.findFirst({ where: { provider: "google" } });
     expect(account).not.toBeNull();
   });
 
@@ -194,15 +207,15 @@ describe("BAUTH-9: the real OAuth callback — linking onto an existing local ac
     await createUser({ email, emailConfirmed: true, twoFactorEnabled: false });
     // email_verified: false — the exact claim `trustedProviders` used to let
     // Better Auth skip checking entirely (item 2's fix removed it).
-    server.use(...githubHandlers({ email, verified: false, login: "unverified-provider" }));
+    server.use(...googleHandlers({ email, verified: false }));
 
-    const response = await runGithubCallback("unverified-code", await startGithubSignIn());
+    const response = await runGoogleCallback("unverified-code", await startGoogleSignIn());
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toContain("/error");
     expect(hasSessionCookie(response)).toBe(false);
 
-    const account = await prisma.account.findFirst({ where: { provider: "github" } });
+    const account = await prisma.account.findFirst({ where: { provider: "google" } });
     expect(account).toBeNull();
   });
 
@@ -212,15 +225,15 @@ describe("BAUTH-9: the real OAuth callback — linking onto an existing local ac
     // The provider itself reports the email as verified — Better Auth's own
     // gate would allow this; only our own two-factor refusal
     // (`databaseHooks.account.create.before`) stops it.
-    server.use(...githubHandlers({ email, verified: true, login: "two-factor-user" }));
+    server.use(...googleHandlers({ email, verified: true }));
 
-    const response = await runGithubCallback("two-factor-code", await startGithubSignIn());
+    const response = await runGoogleCallback("two-factor-code", await startGoogleSignIn());
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toContain("/error");
     expect(hasSessionCookie(response)).toBe(false);
 
-    const account = await prisma.account.findFirst({ where: { provider: "github" } });
+    const account = await prisma.account.findFirst({ where: { provider: "google" } });
     expect(account).toBeNull();
   });
 });

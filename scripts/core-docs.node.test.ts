@@ -346,7 +346,6 @@ describe("docs tree and spec format", () => {
       "Vercel",
       "Resend",
       "Google",
-      "GitHub",
       "Have I Been Pwned",
       "OpenStreetMap Nominatim",
       "CARTO",

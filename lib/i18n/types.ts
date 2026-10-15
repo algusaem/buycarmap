@@ -23,28 +23,20 @@ export interface Translations {
     title: string;
     titleHighlight: string;
     subtitle: string;
-    searchPlaceholder: string;
     exploreMap: string;
-    signInToSave: string;
-    stats: {
-      listings: string;
-      platforms: string;
-      free: string;
-    };
   };
   auth: {
-    welcomeBack: string;
-    signInDescription: string;
+    headline: string;
+    headlineHighlight: string;
+    tagline: string;
     email: string;
     emailPlaceholder: string;
     password: string;
     forgotPassword: string;
     signIn: string;
-    signingIn: string;
     noAccount: string;
     createOne: string;
     continueWithGoogle: string;
-    continueWithGithub: string;
     invalidCredentials: string;
     createAccount: string;
     signUpDescription: string;

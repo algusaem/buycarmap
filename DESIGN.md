@@ -413,7 +413,10 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 ### Inputs / Fields
 - **Style:** 52px, `radius-field`, `bg` fill, 1px `line` border, 16px text, placeholders in
   `text-muted`. **Focus:** the border turns `lime`. The password field adds a four-step meter in
-  `lime` and `line`. [PasswordField](docs/design/system/components/PasswordField/README.md).
+  `lime` and `line`. The password field has a show/hide `eye` / `eye-off` button at its right end,
+  44px target. **Error:** the message sits 8px under the field, an 18px `circle-alert` in `danger`
+  and 14px weight 600 `text`; the border does not change.
+  [PasswordField](docs/design/system/components/PasswordField/README.md).
 
 ### Select
 - One style, always with checkboxes: the trigger is a field with a `chevron-down`; the list is
@@ -440,8 +443,8 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 - **Avatar:** desktop only, a 42px `violet` circle with the user's initial in Unbounded, linking to
   Cuenta, in the map and page headers and on the signed-in landing; on Cuenta it is the current item,
   marked by the `shadow-current` ring. A phone header has no avatar: «Cuenta» is a tab of the tab bar.
-  **Exception until F4:** the signed-in landing has no tab bar yet, so its phone header keeps the
-  avatar (owner decision, 2026-10-13: «Vale»).
+  On the signed-in landing the phone header shows only the wordmark and the language; «Cuenta» is
+  in the tab bar.
 - **Language «ES · EN»:** in every header, a group of two 44 × 44 buttons in 13px Rethink Sans, the
   active one `text` weight 800 and pressed, the other `text-muted` weight 600; no accent, fill or
   border. [HeaderNav](docs/design/system/components/HeaderNav/README.md).
@@ -449,7 +452,8 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   64px tabs plus the safe area. Signed in, four tabs — Mapa · Guardados · Alertas · Cuenta — each an
   icon over an 11px label; the current one is `violet` with a bolder label and
   `aria-current="page"`, and «Cuenta» shows the user's initial. Signed out, on the map, two tabs: Mapa
-  and Entrar. It is on the map, Guardados, Alertas, an alert's page and Cuenta, never at desktop width.
+  and Entrar. It is on the map, Guardados, Alertas, an alert's page and Cuenta, and the signed-in
+  landing, with no tab marked, never at desktop width.
   On the map it hides only while the results sheet is full; on the pages it hides while scrolling down
   and comes back on scrolling up. [BottomNav](docs/design/system/components/BottomNav/README.md).
 - **Footer:** one discreet 12px `text-muted` line — «Privacidad · Términos · Ilustraciones de
@@ -487,8 +491,9 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 
 ### Brand marks
 - **Google sign-in:** 52px full width, `radius-pill`, `google-bg` fill, 1px `google-line` border,
-  `google-text` label, Google's official «G». The only colours that are not the brand's, because
-  Google mandates them. [GoogleButton](docs/design/system/components/GoogleButton/README.md).
+  `google-text` label, Google's official «G» on desktop; on a phone it goes without the «G». The
+  only colours that are not the brand's, because Google mandates them.
+  [GoogleButton](docs/design/system/components/GoogleButton/README.md).
 
 ## Do's and Don'ts
 

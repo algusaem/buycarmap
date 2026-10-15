@@ -22,7 +22,7 @@ behind, is in [deletion.md](deletion.md). Who else receives personal data is in
 | `TwoFactor` | `secret` | Better Auth's own TOTP secret for the `twoFactor` plugin (BAUTH-11), encrypted by the plugin — not readable from the database alone | Until two-factor is disabled, re-enrolled, or the account is deleted (cascade) |
 | `TwoFactor` | `backupCodes` | The plugin's own encrypted backup codes, for signing in without the authenticator | Until two-factor is disabled, re-enrolled, or the account is deleted (cascade) |
 | `Account` | `password` | bcrypt hash for credentials sign-in, on the `provider = "credential"` row (BAUTH-19); OAuth-only accounts have no such row | Until the account is deleted (cascade) |
-| `Account` | `providerAccountId` | The user's id at Google or GitHub, linking the OAuth identity | Until the provider is unlinked or the account is deleted (cascade) |
+| `Account` | `providerAccountId` | The user's id at Google, linking the OAuth identity | Until the provider is unlinked or the account is deleted (cascade) |
 | `Account` | `refresh_token` | OAuth token stored by the NextAuth adapter | Until the provider is unlinked or the account is deleted (cascade) |
 | `Account` | `access_token` | OAuth token stored by the NextAuth adapter | Until the provider is unlinked or the account is deleted (cascade) |
 | `Account` | `id_token` | OAuth token stored by the NextAuth adapter | Until the provider is unlinked or the account is deleted (cascade) |

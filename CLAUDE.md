@@ -428,7 +428,7 @@ coded.**
   Tailwind (`h-4 w-4`).
 - **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }
   from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `fadeInDown`,
-  `dropdownReveal`, `sheetSlideUp`, `crossFade`, `fadeIn(delay)`, `staggerContainer(delay)`, `buttonTap`)
+  `dropdownReveal`, `sheetSlideUp`, `crossFade`, `fadeIn(delay)`)
   instead of re-declaring `initial`/`animate` inline.
 
 <!-- BEGIN:nextjs-agent-rules -->

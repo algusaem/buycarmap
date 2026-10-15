@@ -33,11 +33,10 @@ describe("ConnectedAccounts", () => {
   });
 
   it("lists each linked provider", () => {
-    renderWithI18n(<ConnectedAccounts providers={["google", "github"]} hasPassword />);
+    renderWithI18n(<ConnectedAccounts providers={["google"]} hasPassword />);
 
     expect(screen.getByText("Google")).toBeInTheDocument();
-    expect(screen.getByText("GitHub")).toBeInTheDocument();
-    expect(disconnectButtons()).toHaveLength(2);
+    expect(disconnectButtons()).toHaveLength(1);
   });
 
   it("submits the provider and refreshes on success", async () => {
@@ -76,7 +75,9 @@ describe("ConnectedAccounts", () => {
   });
 
   it("allows disconnecting when a second provider remains", () => {
-    renderWithI18n(<ConnectedAccounts providers={["google", "github"]} hasPassword={false} />);
+    // "apple" stands in for any second linked provider id — the component's
+    // disable rule only cares about list length, not which providers exist.
+    renderWithI18n(<ConnectedAccounts providers={["google", "apple"]} hasPassword={false} />);
 
     for (const button of disconnectButtons()) {
       expect(button).toBeEnabled();
@@ -117,9 +118,7 @@ describe("ConnectedAccounts", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = renderWithI18n(
-      <ConnectedAccounts providers={["google", "github"]} hasPassword />,
-    );
+    const { container } = renderWithI18n(<ConnectedAccounts providers={["google"]} hasPassword />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

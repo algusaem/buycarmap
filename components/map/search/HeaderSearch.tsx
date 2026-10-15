@@ -41,8 +41,7 @@ export function HeaderSearch({
       minPrice={filters.minPrice}
       maxPrice={filters.maxPrice}
       openSegment={filters.activePopover}
-      onOpenSegment={filters.setActivePopover}
-      onCloseSegment={closePopover}
+      setOpenSegment={filters.setActivePopover}
       onSearch={filters.triggerSearch}
       popovers={{
         where: (

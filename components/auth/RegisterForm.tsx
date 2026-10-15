@@ -32,11 +32,11 @@ import { registerSchema, type RegisterInput } from "@/server/registration/schema
 import { register as registerUser, resendConfirmation } from "@/server/registration/actions";
 
 interface RegisterFormProps {
-  /** Which OAuth providers are configured server-side (lib/app-config.ts). */
-  oauthProviders: string[];
+  /** Whether Google is configured server-side (lib/app-config.ts). */
+  isGoogleConfigured: boolean;
 }
 
-export function RegisterForm({ oauthProviders }: RegisterFormProps) {
+export function RegisterForm({ isGoogleConfigured }: RegisterFormProps) {
   const t = useTranslations();
   const messages = useMessages() as Translations;
   const router = useRouter();
@@ -259,7 +259,7 @@ export function RegisterForm({ oauthProviders }: RegisterFormProps) {
                 letting someone who came here to sign up actually find the
                 option, instead of having to guess it lives behind "Welcome
                 back". */}
-            <OAuthButtons providers={oauthProviders} />
+            <OAuthButtons googleEnabled={isGoogleConfigured} />
           </CardContent>
         )}
 

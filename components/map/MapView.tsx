@@ -34,8 +34,9 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   const { favoriteIds, setFavorite } = useFavorites();
   const toggleFavorite = useFavoriteToggle();
 
-  // MAPUI-18: the landing's free text (`?q=`) is still searched until F4, but
-  // no control shows or edits it any more.
+  // MAPUI-18, amended by docs/specs/redesign-entry.md (ENTRY-6): `?q=` is
+  // still parsed and searched for an old link, but no control shows or
+  // edits it, and nothing in the app produces it any more.
   const getKeywords = useCallback(() => initialQuery, [initialQuery]);
   const filters = useSearchFilters(search, getKeywords);
   const { input } = filters;

@@ -184,6 +184,32 @@ describe("searchRound", () => {
     expect(filters.vehicles).toEqual([{ makeId: 39 }]);
   });
 
+  // docs/specs/data-sources.md (SRC-7, amended 2026-10-14, ENTRY —
+  // redesign-entry.md, owner decision): the lookup folds case and accents on
+  // both sides, so "León" resolves against an option labelled "Leon".
+  it("SRC-7: resolves a model name against coches.net's options ignoring case and accents", async () => {
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([makeWallapopItem()]))),
+      http.post(COCHESNET, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 1));
+      }),
+      http.get(MILANUNCIOS, () =>
+        HttpResponse.html(makeMilanunciosHtml(makeMilanunciosResponse([makeMilanunciosAd()], 1))),
+      ),
+      // Seat → makeId 39; the existing fixture's option is plain "Leon".
+      http.get("https://web.gw.coches.net/models", () =>
+        HttpResponse.json({ items: [{ id: 1, label: "Leon" }] }),
+      ),
+    );
+
+    await searchRound(makeCriteria({ brand: "Seat", model: "León" }), EMPTY_SEARCH_CURSORS);
+
+    const filters = body.filters as { vehicles?: { makeId: number; modelId?: number }[] };
+    expect(filters.vehicles).toEqual([{ makeId: 39, modelId: 1 }]);
+  });
+
   it("SRC-13: a non-ok Wallapop response is treated as a failed source, not an empty one", async () => {
     server.use(
       http.get(WALLAPOP, () => new HttpResponse(null, { status: 500 })),

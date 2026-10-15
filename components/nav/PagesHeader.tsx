@@ -20,16 +20,17 @@ interface PagesHeaderProps {
   current: Section | undefined;
   /** On `/account` the avatar carries the current ring (HEAD-4). */
   onAccount: boolean;
-  /** The signed-in landing reuses this header with the landing's 48px sides and no divider. */
+  /** The signed-in landing reuses this header with the landing's 48px sides (desktop) and no divider. */
   open: boolean;
 }
 
 // HeaderNav README › Páginas, and › Landing con sesión: the language, Mapa ·
 // Guardados · Alertas and, 8px further, the avatar (HEAD-3, HEAD-5, HEAD-7).
 // Signed out (a session that ended on one of these pages, HEAD-12) it offers
-// only «Entrar», like the signed-out map header. At phone width the section
-// pages show no avatar, because «Cuenta» is in the tab bar (MAPUI-54); the
-// signed-in landing (`open`) keeps it, since the landing has no tab bar.
+// only «Entrar», like the signed-out map header. At phone width every caller
+// shows no avatar, because «Cuenta» is in the tab bar — the section pages
+// (MAPUI-54) and, since ENTRY-8 gave the landing a tab bar too, the signed-in
+// landing as well (amends HEAD-7, which used to keep it there).
 export function PagesHeader({ session, current, onAccount, open }: PagesHeaderProps) {
   const t = useTranslations();
 
@@ -68,9 +69,6 @@ export function PagesHeader({ session, current, onAccount, open }: PagesHeaderPr
         <Wordmark size="phone" />
         <MainNav>
           <LanguageControl />
-          {open && session.status === "signedIn" && (
-            <Avatar name={session.name} email={session.email} size="phone" current={onAccount} />
-          )}
           {session.status === "pending" && (
             <span className="flex size-11 items-center justify-center">
               <Skeleton className="size-9 rounded-pill" />

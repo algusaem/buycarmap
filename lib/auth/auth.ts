@@ -18,7 +18,7 @@ import { getCookies } from "better-auth/cookies";
 import { serializeSignedCookie } from "better-call";
 import { prisma } from "@/lib/db/prisma";
 import { env } from "@/lib/env";
-import { appUrl, isGitHubConfigured, isGoogleConfigured } from "@/lib/app-config";
+import { appUrl, isGoogleConfigured } from "@/lib/app-config";
 import { logger } from "@/lib/logger";
 import { hashPassword, verifyPassword } from "@/lib/auth/hash";
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/lib/auth/password-strength";
@@ -60,14 +60,6 @@ const socialProviders = {
         },
       }
     : {}),
-  ...(isGitHubConfigured
-    ? {
-        github: {
-          clientId: env.GITHUB_ID as string,
-          clientSecret: env.GITHUB_SECRET as string,
-        },
-      }
-    : {}),
 };
 
 const upstashConfigured = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
@@ -79,7 +71,7 @@ const upstashConfigured = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDI
 const TWO_FACTOR_TOTP_OPTIONS = { digits: 6, period: 30 } as const;
 
 // BAUTH-6 (amended 2026-10-04, security review): only these flows stay
-// reachable over HTTP — Google/GitHub sign-in and their callback, the
+// reachable over HTTP — Google sign-in and its callback, the
 // no-email registration fallback's sign-in, session read/sign-out, and the
 // two generic redirect targets. Every other path Better Auth serves is
 // refused, computed below rather than hand-maintained, so a new Better Auth

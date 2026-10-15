@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { parseAsString, useQueryStates } from "nuqs";
-import { DEFAULT_RADIUS_KM, type SearchInput } from "@/lib/search/schema";
+import type { SearchInput } from "@/lib/search/schema";
 import type { SelectedLocation } from "@/interfaces/location";
 import { initUserGeolocation, waitForGeolocation } from "@/lib/geo/user-location";
 import type { ChipKey, FuelChipKey } from "@/lib/search/filter-chips";
@@ -12,6 +12,7 @@ import {
   panelCriteria,
 } from "@/lib/search/panel";
 import {
+  EMPTY_URL_FILTERS,
   KEYWORDS_PARAM,
   searchParsers,
   filtersToUrlState,
@@ -21,25 +22,9 @@ import {
 
 type FilterValues = UrlFilterValues;
 
-const INITIAL_FILTERS: FilterValues = {
-  engine: [],
-  gearbox: [],
-  brand: "",
-  model: "",
-  minPrice: undefined,
-  maxPrice: undefined,
-  minKm: undefined,
-  maxKm: undefined,
-  minYear: undefined,
-  maxYear: undefined,
-  minHorsePower: undefined,
-  maxHorsePower: undefined,
-  timeFilter: "",
-  selectedLocation: undefined,
-  distanceInKm: DEFAULT_RADIUS_KM,
-};
+const INITIAL_FILTERS: FilterValues = EMPTY_URL_FILTERS;
 
-/** The URL parsers, with the landing's `?q=` text so it is written in the same update (MAPUI-18). */
+/** The URL parsers, with an old link's `?q=` text so it is written in the same update (MAPUI-18). */
 const urlParsers = { ...searchParsers, [KEYWORDS_PARAM]: parseAsString };
 
 function toParams(keywords: string, f: FilterValues): SearchInput {
@@ -175,11 +160,12 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
   const lastUrlSerializedRef = useRef(JSON.stringify(urlState));
 
   // MAPUI-18 (docs/specs/redesign-map.md): «Borrar» and «Quitar filtros»
-  // (`clearAll`) clear the landing's `?q=` text too. The caller owns the
-  // text until F4 (`getKeywords`) while this ref is unset. A clear sets it to
-  // "", which drops `q` from the URL in the next commit and from every later
-  // search; Back/Forward set it to the restored URL's own `q`, so Back after
-  // «Quitar filtros» brings the text search back.
+  // (`clearAll`) clear an old link's `?q=` text too. The caller owns the
+  // text (`getKeywords`) while this ref is unset — still parsed for a link
+  // that carries one, never produced (docs/specs/redesign-entry.md, ENTRY-6).
+  // A clear sets it to "", which drops `q` from the URL in the next commit
+  // and from every later search; Back/Forward set it to the restored URL's
+  // own `q`, so Back after «Quitar filtros» brings the text search back.
   const keywordsRef = useRef<string | undefined>(undefined);
   const currentKeywords = useCallback(() => keywordsRef.current ?? getKeywords(), [getKeywords]);
 

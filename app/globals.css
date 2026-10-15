@@ -3,6 +3,34 @@
 @import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Keyed on TabBar's own `data-tab-bar` attribute (components/nav/TabBar.tsx),
+   never on a test id — a page below the phone tab bar uses this to clear it
+   without reading the session itself (ENTRY-8, Landing.tsx's phone region). */
+@custom-variant with-tab-bar (body:has([data-tab-bar]) &);
+
+/* The illustrations' room (docs/specs/redesign-entry.md, ENTRY-29): under
+   150px of drawn content the illustration is not shown. On the landing the
+   room is measured on the page's scrolling box (app/page.tsx's `landing`
+   container), because dropping the slot also drops its gap: the body's height
+   less the column (337px), its 30px gap, the footer's 24px gap and its 24px
+   links row. On the sign-in page it is the slot itself (`illus`), less the
+   24px gap under «Créala» the slot holds inside it. */
+@custom-variant landing-illus-hidden {
+  @container landing (height < 35.3125rem) {
+    @slot;
+  }
+}
+@custom-variant login-illus-hidden {
+  @container illus (height < 10.875rem) {
+    @slot;
+  }
+}
+
+/* The headline's box, trimmed to its cap height and baseline (the board's
+   `.display` class) — LoginHeadline.tsx and Landing.tsx's `<Headline>`. */
+@utility text-box-trim {
+  text-box: trim-both cap alphabetic;
+}
 
 @theme inline {
   /* Utility names the existing components use, aliased to the design tokens
@@ -233,6 +261,62 @@
 
   /* The 1.5px stroke (tokens.json › border): the unmarked «Cuenta» ring. */
   --border-width-thin: 1.5px;
+
+  /* Desktop width, the 1440 boards: where the landing and the sign-in page
+     take their two-column layout, with the map preview and the arrows;
+     below it they use the 1024 boards' one centred column (ENTRY-23 to
+     ENTRY-25). */
+  --breakpoint-3xl: 90rem;
+
+  /* `font`'s line-height for text that otherwise keeps a wrapper's own
+     line-height (SearchPill.tsx's landing variant, MapPreview.tsx's example
+     pins): a named value, not an arbitrary `leading-[normal]`. */
+  --leading-font: normal;
+
+  /* The landing's map preview, at the board's own 522×724 proportions
+     (ENTRY-7, components/landing/MapPreview.tsx). */
+  --aspect-map-preview: 522 / 724;
+
+  /* The landing's desktop grid (Landing.tsx): the two-column, five-row layout
+     the board's frame lays the headline, search, «Populares» and map preview
+     into. */
+  --grid-template-columns-landing: auto minmax(12.5rem, 32.625rem);
+  --grid-template-rows-landing: 1fr auto auto auto 1fr;
+
+  /* The landing's PillArrow (Landing.tsx): its curve's left edge and width
+     are measured from the pill's own right edge, however wide the chosen
+     values make it. */
+  --spacing-pill-arrow-left: calc(100% - 4.875rem);
+  --spacing-pill-arrow-width: calc(48.75rem - 100%);
+
+  /* The illustrations' drawn content (docs/specs/redesign-entry.md, Contracts ›
+     Illustrations): each file's empty top band as a fraction of the image's
+     width (its top fraction over 1.5), the margin that pulls the drawing up
+     to the top of its box; the drawn height at each cap; and the image width
+     that fits a size container's height (`100cqh`), up to the cap. The
+     sign-in slot holds the 24px gap under «Créala», so its room is 1.5rem
+     less than its height. */
+  --spacing-illus-band-vehicle: 13.3733%;
+  --spacing-illus-band-car: 16.2%;
+  --spacing-landing-illus-drawn: calc(30rem / 1.5 * 0.681);
+  --spacing-landing-illus: min(30rem, 100cqh * 1.5 / 0.681);
+  --spacing-login-illus: min(27.5rem, (100cqh - 1.5rem) * 1.5 / 0.6656);
+  --spacing-login-illus-drawn-desktop: calc(38.75rem / 1.5 * 0.6656);
+
+  /* The landing's desktop map preview pins (components/landing/MapPreview.tsx,
+     ENTRY-7): each pin's place as a fraction of the preview's 520×722
+     inside, named by its price so the five stay easy to tell apart. Moving
+     a pin means changing its two values here, not hunting the JSX. */
+  --spacing-pin-14500-top: 20.7756%;
+  --spacing-pin-14500-left: 13.4615%;
+  --spacing-pin-9400-top: 34.626%;
+  --spacing-pin-9400-left: 48.0769%;
+  --spacing-pin-18900-top: 15.2355%;
+  --spacing-pin-18900-left: 65.3846%;
+  --spacing-pin-16500-top: 52.6316%;
+  --spacing-pin-16500-left: 23.0769%;
+  --spacing-pin-11900-top: 48.4765%;
+  --spacing-pin-11900-left: 71.1538%;
 }
 
 /* BuyCarMap 2.0 design tokens, verbatim from docs/design/system/tokens.json

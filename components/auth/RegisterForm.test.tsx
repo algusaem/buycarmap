@@ -14,7 +14,7 @@ vi.mock("next/navigation", () => ({
 // auto-sign-in now goes through `authClient.signIn.email` (Better Auth's
 // client), not NextAuth's `next-auth/react` `signIn` — and which providers
 // are configured is a prop (lib/app-config.ts, computed server-side) rather
-// than a client fetch, so each render passes `oauthProviders` directly
+// than a client fetch, so each render passes `isGoogleConfigured` directly
 // instead of the old `getProviders` mock.
 const signInEmail = vi.fn().mockResolvedValue({ data: { user: {} }, error: null });
 vi.mock("@/lib/auth/auth-client", () => ({
@@ -52,7 +52,7 @@ describe("RegisterForm", () => {
     // There is no separate OAuth "register" — Better Auth creates the account
     // on first sign-in — so this page must surface the option rather than
     // hiding it behind the login page.
-    renderWithI18n(<RegisterForm oauthProviders={["google"]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={true} />);
 
     expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
     // The password form is still the primary path, not replaced by it.
@@ -60,14 +60,14 @@ describe("RegisterForm", () => {
   });
 
   it("shows no provider section when none is configured", async () => {
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await screen.findByRole("button", { name: "Sign up" });
     expect(screen.queryByRole("button", { name: /continue with/i })).not.toBeInTheDocument();
   });
 
   it("blocks submission and shows an error when passwords do not match", async () => {
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
     await userEvent.type(screen.getByLabelText("Password"), STRONG_PASSWORD);
@@ -83,7 +83,7 @@ describe("RegisterForm", () => {
     // so the panel must not hint at which case occurred — and must not attempt
     // a sign-in, since no account exists yet.
     registerUser.mockResolvedValue({ success: true, pending: true });
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await fillValid();
     await submit();
@@ -96,7 +96,7 @@ describe("RegisterForm", () => {
 
   it("hides the form once confirmation is pending", async () => {
     registerUser.mockResolvedValue({ success: true, pending: true });
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await fillValid();
     await submit();
@@ -109,7 +109,7 @@ describe("RegisterForm", () => {
   it("registers then signs in when the account was created immediately", async () => {
     // `pending: false` is the no-email-configured fallback.
     registerUser.mockResolvedValue({ success: true, pending: false });
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await fillValid();
     await submit();
@@ -124,7 +124,7 @@ describe("RegisterForm", () => {
   it("translates the action's error code and does not sign in on failure", async () => {
     // The server returns a locale-free code; the form resolves it to copy.
     registerUser.mockResolvedValue({ success: false, error: "emailTaken" });
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await fillValid();
     await submit();
@@ -137,7 +137,7 @@ describe("RegisterForm", () => {
 
   it("shows the generic fallback for an error code it does not recognise", async () => {
     registerUser.mockResolvedValue({ success: false, error: "some-new-code" });
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await fillValid();
     await submit();
@@ -149,7 +149,7 @@ describe("RegisterForm", () => {
   });
 
   it("rates a weak password low and a strong one high as the user types", async () => {
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
     const passwordField = screen.getByLabelText("Password");
 
     await userEvent.type(passwordField, "password");
@@ -162,7 +162,7 @@ describe("RegisterForm", () => {
   });
 
   it("flags a password built from the entered email", async () => {
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
     await userEvent.type(screen.getByLabelText("Password"), "ada-is-my-name-99");
@@ -172,7 +172,7 @@ describe("RegisterForm", () => {
 
   it("includes the name in the submitted form data when one is entered", async () => {
     registerUser.mockResolvedValue({ success: true });
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await userEvent.type(screen.getByLabelText("Name"), "Ada Lovelace");
     await fillValid();
@@ -186,7 +186,7 @@ describe("RegisterForm", () => {
   it("routes to /login if auto sign-in fails after a successful register", async () => {
     registerUser.mockResolvedValue({ success: true });
     signInEmail.mockResolvedValueOnce({ data: null, error: { message: "Invalid credentials" } });
-    renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
 
     await fillValid();
     await submit();
@@ -198,7 +198,7 @@ describe("RegisterForm", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = renderWithI18n(<RegisterForm oauthProviders={[]} />);
+    const { container } = renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
     expect(await axe(container)).toHaveNoViolations();
   });
 });

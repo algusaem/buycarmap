@@ -43,11 +43,10 @@ export const env = createEnv({
     QSTASH_CURRENT_SIGNING_KEY: z.string().optional(),
     QSTASH_NEXT_SIGNING_KEY: z.string().optional(),
 
-    // OAuth. Each provider is enabled only when both halves are present.
+    // OAuth. Enabled only when both halves are present. Google is the only
+    // social sign-in the product offers (docs/specs/redesign-entry.md, ENTRY-18).
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
-    GITHUB_ID: z.string().optional(),
-    GITHUB_SECRET: z.string().optional(),
 
     // Used by Prisma's migration commands only (prisma.config.ts); falls back
     // to DATABASE_URL when unset.

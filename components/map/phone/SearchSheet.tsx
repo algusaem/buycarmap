@@ -10,6 +10,7 @@ import { PriceRange } from "@/components/map/search/PriceRange";
 import { RadiusChoice } from "@/components/map/search/RadiusChoice";
 import { PhoneBottomSheet, SheetHeader, ShowCarsFooter } from "./SheetChrome";
 import type { SelectedLocation } from "@/interfaces/location";
+import type { SheetSearch } from "@/interfaces/search-sheet";
 import type { SearchInput } from "@/lib/search/schema";
 
 // docs/specs/redesign-map.md (MAPUI-21); docs/design/system/components/
@@ -20,10 +21,6 @@ import type { SearchInput } from "@/lib/search/schema";
 // at once, the phone applies on «Ver coches»"), and «Borrar» only empties the
 // sheet's fields. Escape closes an open list first, then the sheet
 // (closeListboxFirst).
-/** What «Ver coches» hands over: the edited criteria and the place, `null` for «Toda España». */
-interface SheetSearch extends SearchInput {
-  place: SelectedLocation | null;
-}
 
 export interface SearchSheetProps {
   open: boolean;

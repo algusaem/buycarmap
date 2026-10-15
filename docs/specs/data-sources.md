@@ -34,7 +34,7 @@ boundary behave.
 - [x] SRC-4 · unit — A listing missing optional attributes still produces a usable card rather than blanks or undefined values
 - [x] SRC-5 · unit — The one shared filter set is translated into each source's own parameter names
 - [x] SRC-6 · unit — A filter value a source has no equivalent for is dropped, never passed through raw
-- [x] SRC-7 · unit — A model name that matches nothing in a source falls back to filtering by brand alone
+- [x] SRC-7 · unit — A model name is matched against a source's options ignoring case and accents; one that still matches nothing falls back to filtering by brand alone (amended 2026-10-14, ENTRY — redesign-entry.md, owner decision)
 - [x] SRC-8 · unit — A search always sends coordinates to Wallapop, even when the user has chosen no location
 - [x] SRC-9 · node — Each proxy adds the headers its upstream refuses to answer without
 - [x] SRC-10 · node — A proxy called without its required parameter answers 400 and does not contact the upstream
@@ -54,6 +54,7 @@ boundary behave.
   Sevilla's entry in `lib/geo/cities.ts`.
 - **SRC-12** — Upstream connection fails; GET /api/wallapop/search?keywords=golf → 502 with the body `{ error: "Wallapop request failed" }`, never a thrown 500.
 - **SRC-14** — /api/cochesnet/models returns [{ id: 4321, label: "Serie 3" }]; resolveCochesNetModelId(103, "Serie 3") twice → 1 upstream call; make 104 with a first 503 then success → first call undefined, second 4321, 2 calls in total.
+- **SRC-7** — Model name «León»; coches.net's models answer `[{ id: 1, label: "Leon" }]` → resolves to id 1 (amended 2026-10-14, ENTRY — redesign-entry.md, owner decision).
 
 ## Data model
 

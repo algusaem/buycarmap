@@ -54,21 +54,3 @@ export const fadeIn = (delay = 0) => ({
   animate: { opacity: 1 },
   transition: { duration: duration.normal, delay },
 });
-
-// Variant-based animations (for staggered children)
-export const fadeInUpVariant = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
-
-export const staggerContainer = (staggerDelay = 0.1) => ({
-  initial: "hidden",
-  animate: "visible",
-  transition: { staggerChildren: staggerDelay },
-});
-
-// Interactive states
-export const buttonTap = {
-  whileHover: { scale: 1.05 },
-  whileTap: { scale: 0.95 },
-};

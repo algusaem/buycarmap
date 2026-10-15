@@ -59,8 +59,12 @@ export function currentTab(pathname: string): Tab | undefined {
   return currentSection(pathname);
 }
 
-/** Where the tab bar shows: the map, for everyone, and the signed-in section pages. */
+/**
+ * Where the tab bar shows: the map, for everyone, and the signed-in section
+ * pages and landing (docs/specs/redesign-entry.md, ENTRY-8, amending
+ * MAPUI-52: the landing was the one signed-in page without it).
+ */
 export function showsTabBar(pathname: string, signedIn: boolean) {
   if (pathname === "/map") return true;
-  return signedIn && isSectionPage(pathname);
+  return signedIn && (isSectionPage(pathname) || pathname === "/");
 }

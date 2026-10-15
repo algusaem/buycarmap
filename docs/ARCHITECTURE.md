@@ -99,9 +99,9 @@ would be hostile.
 offers included, and **keeps the place and the radius** (MAPUI-31). `setBrand` also
 clears `model`: a model only means anything under its brand.
 
-The landing's free text arrives as `?q=`. Until F4 the map keeps sending it without
-showing it (MAPUI-18), drops it for good once a control clears it, and never saves
-it in an alert (MAPUI-42).
+`?q=` survives only in old links; the map still parses it and drops it once a control clears it;
+nothing produces it any more (MAPUI-18 in [`specs/redesign-map.md`](specs/redesign-map.md), ENTRY-6
+in [`specs/redesign-entry.md`](specs/redesign-entry.md)). It never saves it in an alert (MAPUI-42).
 
 On mount the hook fires an immediate search using the Spain-centre fallback,
 starts browser geolocation, and re-searches when geolocation resolves — but only
@@ -333,8 +333,11 @@ codes (`AUTH_ERROR`, `FAVORITE_ERROR`). Forms resolve them at render with
 `translateAuthError(t, code)` from [`lib/i18n/errors.ts`](../lib/i18n/errors.ts).
 When calling `setError`, pass the raw code — the field translates it once.
 
-**Failures surface as toasts**, not inline error text — except field-level
-validation, which is inline and focuses the first error.
+**Which channel a failure uses follows `STACK.md` §14** (never a toast for a
+validation error). Field-level validation is inline and focuses the first
+error. Mutation failures elsewhere are toasts (FRONT-15). The sign-in form is
+the exception: it shows every failure inline, never a toast (ENTRY-11 to
+ENTRY-15, [redesign-entry.md](specs/redesign-entry.md)).
 
 **Configuration is validated at boot.** [`lib/env.ts`](../lib/env.ts) parses
 `process.env` with Zod at import time and throws with a readable message. Two
@@ -355,14 +358,15 @@ Spanish or English in components.
 | `components/alerts/` | The alerts pages' lists and the create-alert dialog |
 | `components/nav/` | The headers, the phone tab bar and the language control |
 | `components/ui/` | Radix-wrapped primitives |
+| `components/landing/` | The landing body and its map preview |
 | `lib/hooks/` | Every request lifecycle |
 | `lib/wallapop/`, `lib/cochesnet/`, `lib/milanuncios/` | One module per source: client, normalize, taxonomy |
-| `lib/auth/` | Session, password policy, tokens, two-factor |
+| `lib/auth/` | Session, password policy, tokens, two-factor, the redirect guard (`safe-redirect.ts`) |
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
 | `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database, apart from the LAYOUT-7 exception, `lib/auth/auth.ts` (see [specs/core-layout.md](specs/core-layout.md)) |
 | `lib/listings/` | The pure search-merge logic: interleaving, the radius, model and fuel post-filters, the page-state advance |
-| `lib/map/` | Pure map helpers: grouping listings into price pins, the results heading, the results state and the radius to widen to (`results-state.ts`), a card's DOM id (`card-dom-id.ts`) |
+| `lib/map/` | Pure map helpers: grouping listings into price pins, the results heading, the results state and the radius to widen to (`results-state.ts`), a card's DOM id (`card-dom-id.ts`), price-pin CSS classes (`pin-classes.ts`) |
 | `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server, and the search UI's pure helpers: what the filters panel offers and clears (`panel.ts`), case- and accent-blind comparison (`fold.ts`), the phone summary (`phone-summary.ts`), the radii (`radii.ts`), the type-ahead's matching, the fuel groups, the chips and the alert summary |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Tooling: branch databases, spec, docs and TODO checks — dependency-free except the TODO check, which loads `typescript` |
@@ -593,7 +597,7 @@ cannot reach them around our code.
 flowchart TB
     subgraph entry [Ways in]
         C[Credentials] --> SI[auth.api.signInEmail]
-        O[Google · GitHub] --> SP[Better Auth social providers]
+        O[Google] --> SP[Better Auth social providers]
     end
     SI -->|2FA on| TFR[twoFactorRedirect]
     TFR --> V[verifySignInTotp /<br/>verifySignInBackupCode]
@@ -748,8 +752,9 @@ redirects to sign in and back to `path` — shared by the heart and «Crear aler
 ### UI primitives
 
 `components/ui/` wraps Radix primitives: `button`, `card`, `input`, `label`,
-`separator`, plus `toggle-chip` and `checkbox-select`, which have behaviour of their own, and
-the shared states `EmptyState` (the question-and-punchline headline, its line and its actions),
+`separator`, plus `toggle-chip` and `checkbox-select`, which have behaviour of their own,
+`Headline` (the question-and-punchline headline, used by the landing, `/login` and
+`EmptyState`), and the shared states `EmptyState` (the headline, its line and its actions),
 `RouteError` and `CardGridSkeleton`. The popovers and sheets use Radix Popover and Dialog
 directly, and the price range Radix Slider.
 
@@ -790,7 +795,8 @@ example table is the whole contract of what each page offers; the look is
   The phone map has no header, so it has none.
 - **The phone tab bar** ([`components/nav/TabBar.tsx`](../components/nav/TabBar.tsx),
   [`specs/redesign-map.md`](specs/redesign-map.md) MAPUI-52, MAPUI-53) shows at phone width only, on
-  the map (signed in or out) and on the signed-in pages. It runs the full width of the screen,
+  the map (signed in or out) and on the signed-in pages, and the signed-in landing (ENTRY-8). It
+  runs the full width of the screen,
   padded at the bottom by the safe-area inset; the root layout's viewport opts into the safe area
   with `viewport-fit=cover` (HEAD-17). On the map it hides only while the results sheet is full,
   which `MapView` reports through [`lib/hooks/useResultsSheetFull.ts`](../lib/hooks/useResultsSheetFull.ts);
@@ -886,8 +892,7 @@ Motion (`motion/react-client`, with `AnimatePresence` from `motion/react`) rathe
 than CSS animations for React components.
 
 **Reuse the presets in [`lib/animations.ts`](../lib/animations.ts)** —
-`fadeInUp`, `fadeInDown`, `dropdownReveal`, `sheetSlideUp`, `crossFade`, `fadeIn(delay)`,
-`staggerContainer(delay)`, `buttonTap`
+`fadeInUp`, `fadeInDown`, `dropdownReveal`, `sheetSlideUp`, `crossFade`, `fadeIn(delay)`
 — instead of re-declaring `initial`/`animate` inline.
 
 Animate only `transform` and `opacity`. Never animate layout properties, and
@@ -1191,8 +1196,8 @@ plus `visual` (screenshots). `pnpm test:visual` runs the screenshots alone.
 
 #### The database-backed suite
 
-`pnpm test:e2e:db` (`E2E_DB=1`) runs the auth, two-factor, favorites and
-alert-queue round trips against a real database — the only tests that prove
+`pnpm test:e2e:db` (`E2E_DB=1`) runs the auth, two-factor, favorites, alert-queue and
+toast-theme (FRONT-23) round trips against a real database — the only tests that prove
 anything about persistence, since Prisma is mocked everywhere in Vitest.
 
 **The alert-queue tests are the only database-backed ones with no browser in
@@ -1488,7 +1493,7 @@ Better Auth session cookie (`getSessionCookie`), not from reading
 skips validation entirely — only `pnpm lint` (through `cross-env`) and CI's
 lint job set it. The flags and URLs derived from these variables
 (`isEmailConfigured`, `isTwoFactorConfigured`, `isGoogleConfigured`,
-`isGitHubConfigured`, `appUrl`) live in [`lib/app-config.ts`](../lib/app-config.ts)
+`appUrl`) live in [`lib/app-config.ts`](../lib/app-config.ts)
 instead, server-only, so the client bundle can import `lib/env.ts` for
 `NEXT_PUBLIC_*` without touching server-only fields.
 
@@ -1506,8 +1511,7 @@ Optional — each disables a feature rather than blocking startup:
 | `BETTER_AUTH_URL` | Also decides `useSecureCookies`. Must be `https://` in production or session cookies ship without the Secure flag |
 | `RESEND_API_KEY` + `EMAIL_FROM` | Mailer no-ops, so password-reset links are never delivered. Registration falls back to immediate account creation, **which leaks whether an address is registered** |
 | `APP_URL` | Falls back to `BETTER_AUTH_URL` → `https://$VERCEL_URL` → `http://localhost:3000`. Only set it when the canonical domain differs from `BETTER_AUTH_URL` |
-| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google button does not render. Both halves of the pair are required |
-| `GITHUB_ID` + `GITHUB_SECRET` | GitHub button does not render. Both halves of the pair are required |
+| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google button does not render. Both halves of the pair are required. Google is the only social sign-in the product offers (docs/specs/redesign-entry.md, ENTRY-16, ENTRY-18) |
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | `lib/platform/rate-limit.ts` disables rate limiting — every request is allowed and one warning is logged per process. Required when `VERCEL_ENV` is `production` or `preview`; the build fails without them there |
 | `QSTASH_TOKEN` | `scripts/qstash-schedule.mjs` refuses to run |
 | `QSTASH_CURRENT_SIGNING_KEY` + `QSTASH_NEXT_SIGNING_KEY` | The alert run endpoint refuses every request (no valid `Upstash-Signature` can ever verify), so alerts never fire |

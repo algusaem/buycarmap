@@ -97,6 +97,7 @@ export function TabBar() {
         <motion.nav
           key="bottom-nav"
           data-testid="bottom-nav"
+          data-tab-bar
           {...crossFade}
           animate={{ ...crossFade.animate, y: hidden ? "100%" : "0%" }}
           aria-label={t("nav.main")}

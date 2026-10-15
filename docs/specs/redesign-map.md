@@ -323,6 +323,9 @@ Phone tab bar
   - on `/alerts/[id]` the current tab is «Alertas»;
   - signed out, on the map, two tabs: «Mapa» and «Entrar» (`/login`).
 
+  Signed in, the landing `/` shows it too, with the four tabs and none current (amended 2026-10-14,
+  ENTRY-8 — redesign-entry.md).
+
   The bar replaces the floating bottom nav, and it is absent at desktop width and on every other page
   (amends HEAD-8 and HEAD-17).
 - [x] MAPUI-53 · component — On `/map` the tab bar hides only while the results sheet is full, and
@@ -366,6 +369,9 @@ row, whose text comes from SearchPill's guide.
 | max 20.000 | | | «Hasta 20.000 €» |
 | min 3.000 | | | «Desde 3.000 €» |
 | min 3.000, max 20.000 | | | «3.000 – 20.000 €» |
+
+**Popover exclusivity (MAPUI-2), bug found in F4 (2026-10-14).** With «Dónde» open, pressing
+«Coche» closed both; correct: «Coche» opens and «Dónde» closes.
 
 **Chip texts (MAPUI-13).**
 - `engine=gasoil`: one chip, «Diésel». `engine=gasoline,gasoil`: two chips, «Gasolina» and «Diésel».
@@ -590,8 +596,8 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
 
 ## Out of scope
 
-- The landing's search (F4). Until F4 the landing still sends free text as `?q=`, which the map keeps
-  using without showing it (MAPUI-18).
+- The landing's search (F4, [ENTRY](redesign-entry.md)): it no longer produces `?q=`; the map still
+  parses it from old links (MAPUI-18).
 - The saved-cars and alerts pages' own layouts (F5, F6). This phase changes only the card they render
   (MAPUI-38), their phone header and their tab bar (MAPUI-52 to MAPUI-54). The phone car sheet on
   saved cars and the phone alert page are designed (`F5-guardados-coche`, `F6-alerta`,
@@ -742,7 +748,7 @@ resolves the name, the merge's model post-filter compares names, and a number wo
 that post-filter.
 
 **Removed controls, kept parameters.** Horsepower, minimum mileage, maximum year, semi-automatic and
-CNG leave the UI, and so does free text, which goes until F4. The URL keeps understanding all of them.
+CNG leave the UI, and so does free text, which the landing stopped producing in F4 (ENTRY-6). The URL keeps understanding all of them.
 Old shared links and the current landing keep working instead of silently widening, and nothing a
 saved alert or a bookmark relies on breaks. Not showing them as chips is the cost: they would need
 copy and a design for criteria the product no longer offers.

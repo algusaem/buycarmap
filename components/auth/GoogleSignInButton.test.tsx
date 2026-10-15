@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -11,19 +13,40 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 const button = () => screen.getByRole("button");
 
+// Google's dark-variant values, transcribed from its published branding
+// guidelines (developers.google.com/identity/branding-guidelines). Drifting
+// from them is a terms breach, not a cosmetic regression, so the tokens the
+// button paints with are checked against these literals.
+const GOOGLE_DARK = { bg: "#131314", line: "#8E918F", text: "#E3E3E3" } as const;
+
+// jsdom computes no Tailwind CSS, so the tokens' own definitions are read from
+// app/globals.css.
+const GLOBALS = readFileSync(join(__dirname, "..", "..", "app", "globals.css"), "utf-8");
+const tokenValue = (name: string) =>
+  new RegExp(`^\\s*--${name}:\\s*([^;]+);`, "m").exec(GLOBALS)?.[1]?.trim().toUpperCase();
+
 describe("GoogleSignInButton branding", () => {
-  // Every expected value below is transcribed from Google's published branding
-  // guidelines (developers.google.com/identity/branding-guidelines). Drifting
-  // from them is a terms breach, not a cosmetic regression, so they are
-  // asserted literally rather than against the app's own tokens.
-  it("uses Google's dark palette, the app's only theme", () => {
+  it("defines the google-* tokens with Google's dark palette", () => {
+    expect(tokenValue("google-bg")).toBe(GOOGLE_DARK.bg);
+    expect(tokenValue("google-line")).toBe(GOOGLE_DARK.line);
+    expect(tokenValue("google-text")).toBe(GOOGLE_DARK.text);
+  });
+
+  it("paints with the google-* tokens, the app's only theme", () => {
     renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />);
 
-    expect(button()).toHaveStyle({
-      backgroundColor: "#131314",
-      border: "1px solid #8E918F",
-      color: "#E3E3E3",
-    });
+    expect(button()).toHaveClass(
+      "bg-google-bg",
+      "border",
+      "border-google-line",
+      "text-google-text",
+    );
+  });
+
+  it("is the full-width 52px pill the design draws", () => {
+    renderWithI18n(<GoogleSignInButton isPending={false} disabled={false} onClick={vi.fn()} />);
+
+    expect(button()).toHaveClass("h-13", "w-full", "rounded-pill");
   });
 
   it("uses one of Google's three permitted call-to-action strings", () => {
@@ -63,6 +86,12 @@ describe("GoogleSignInButton behaviour", () => {
     // The spinner replaces the logo, not the text — a button that empties out
     // mid-click shifts the layout and loses its accessible name.
     expect(button()).toHaveAccessibleName("Continue with Google");
+  });
+
+  it("hides the pending spinner from assistive technology", () => {
+    renderWithI18n(<GoogleSignInButton isPending disabled onClick={vi.fn()} />);
+
+    expect(button().querySelector(".animate-spin")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("has no accessibility violations", async () => {

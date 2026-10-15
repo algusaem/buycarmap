@@ -1,43 +1,32 @@
 {
   "common": {
     "search": "Buscar",
-    "popular": "Populares:",
+    "popular": "Populares",
     "or": "o",
     "close": "Cerrar"
   },
   "hero": {
-    "title": "Tu próximo coche",
-    "titleHighlight": "está en el mapa",
-    "subtitle": "Compara miles de coches de segunda mano de Wallapop, Milanuncios, Coches.net y más. Todo en nuestro mapa interactivo.",
-    "searchPlaceholder": "Marca, modelo o ubicación...",
-    "exploreMap": "Ver el mapa",
-    "signInToSave": "Accede para guardar búsquedas",
-    "stats": {
-      "listings": "Anuncios",
-      "platforms": "Plataformas",
-      "free": "Gratuito"
-    }
+    "title": "¿En busca de coche?",
+    "titleHighlight": "Mira el mapa",
+    "subtitle": "Una web, toda la segunda mano, sin cincuenta pestañas.",
+    "exploreMap": "Ver el mapa"
   },
   "auth": {
-    "welcomeBack": "¡Hola!",
-    "signInDescription": "Accede a tus búsquedas guardadas y anuncios favoritos",
-    "email": "Correo electrónico",
-    "emailPlaceholder": "tu@correo.com",
+    "email": "Email",
+    "emailPlaceholder": "tu@email.com",
     "password": "Contraseña",
-    "forgotPassword": "He olvidado mi contraseña",
+    "forgotPassword": "¿La olvidaste?",
     "signIn": "Entrar",
-    "signingIn": "Entrando...",
-    "noAccount": "¿Aún no tienes cuenta?",
-    "createOne": "Regístrate",
+    "noAccount": "¿No tienes cuenta?",
+    "createOne": "Créala",
     "continueWithGoogle": "Continuar con Google",
-    "continueWithGithub": "Continuar con GitHub",
     "invalidCredentials": "Email o contraseña incorrectos",
     "createAccount": "Crear cuenta",
     "signUpDescription": "Regístrate para guardar búsquedas y seguir anuncios",
     "name": "Nombre",
     "namePlaceholder": "Tu nombre (opcional)",
     "confirmPassword": "Confirmar contraseña",
-    "passwordPlaceholder": "Introduce tu contraseña",
+    "passwordPlaceholder": "Tu contraseña",
     "confirmPasswordPlaceholder": "Confirma tu contraseña",
     "signUp": "Registrarse",
     "creatingAccount": "Creando cuenta...",
@@ -49,7 +38,10 @@
     "and": "y",
     "privacyPolicy": "Política de privacidad",
     "brandTagline": "Encuentra tu próximo coche en el mapa",
-    "return": "Volver"
+    "return": "Volver",
+    "headline": "¿Te mola un coche?",
+    "headlineHighlight": "Guárdalo",
+    "tagline": "Recibir alertas es gratis, regístrate y nos encargamos del resto."
   },
   "forgotPassword": {
     "title": "Restablecer tu contraseña",
@@ -234,8 +226,8 @@
     }
   },
   "authErrors": {
-    "emailRequired": "El correo electrónico es obligatorio",
-    "emailInvalid": "Introduce un correo electrónico válido",
+    "emailRequired": "El email es obligatorio",
+    "emailInvalid": "Introduce un email válido",
     "passwordRequired": "La contraseña es obligatoria",
     "passwordTooShort": "Usa al menos 12 caracteres",
     "passwordTooLong": "Usa como máximo 72 caracteres",
@@ -323,12 +315,12 @@
     },
     "privacy": {
       "title": "Política de privacidad",
-      "updated": "11 de octubre de 2026",
+      "updated": "14 de octubre de 2026",
       "intro": "Esta política explica qué datos recopila BuyCarMap, por qué y qué puedes hacer al respecto. Intentamos recopilar los mínimos posibles.",
       "sections": [
         {
           "heading": "Información que recopilamos",
-          "body": "Si creas una cuenta, guardamos tu correo electrónico, un nombre opcional y una contraseña cifrada de forma segura, nunca la contraseña en sí. Si inicias sesión con Google o GitHub, guardamos el identificador de esa cuenta, los tokens de inicio de sesión que emite y la dirección de tu foto de perfil. Si activas la verificación en dos pasos, guardamos su clave secreta cifrada. También guardamos los anuncios que marcas como favoritos, las alertas que creas con sus criterios de búsqueda (incluida la ubicación que elijas), tu idioma para enviarte los correos en él y, por cada sesión iniciada, la dirección IP y el navegador desde los que se abrió, para que puedas ver y cerrar tus sesiones desde la página de tu cuenta. No guardamos un historial de tus búsquedas. Para proteger el servicio frente a abusos, tratamos tu dirección IP y, cuando inicias sesión o pides restablecer la contraseña, tu correo electrónico."
+          "body": "Si creas una cuenta, guardamos tu correo electrónico, un nombre opcional y una contraseña cifrada de forma segura, nunca la contraseña en sí. Si inicias sesión con Google, guardamos el identificador de esa cuenta, los tokens de inicio de sesión que emite y la dirección de tu foto de perfil. Si activas la verificación en dos pasos, guardamos su clave secreta cifrada. También guardamos los anuncios que marcas como favoritos, las alertas que creas con sus criterios de búsqueda (incluida la ubicación que elijas), tu idioma para enviarte los correos en él y, por cada sesión iniciada, la dirección IP y el navegador desde los que se abrió, para que puedas ver y cerrar tus sesiones desde la página de tu cuenta. No guardamos un historial de tus búsquedas. Para proteger el servicio frente a abusos, tratamos tu dirección IP y, cuando inicias sesión o pides restablecer la contraseña, tu correo electrónico."
         },
         {
           "heading": "Cómo usamos tus datos",
@@ -340,11 +332,11 @@
         },
         {
           "heading": "Cookies",
-          "body": "Usamos solo las cookies que la aplicación necesita para funcionar: una que mantiene tu sesión; mientras inicias sesión, otra de corta duración para el paso de verificación en dos pasos (10 minutos) o para entrar con Google o GitHub (5 minutos); y dos que recuerdan tu idioma y tu zona horaria durante un año. No usamos cookies publicitarias ni de analítica."
+          "body": "Usamos solo las cookies que la aplicación necesita para funcionar: una que mantiene tu sesión; mientras inicias sesión, otra de corta duración para el paso de verificación en dos pasos (10 minutos) o para entrar con Google (5 minutos); y dos que recuerdan tu idioma y tu zona horaria durante un año. No usamos cookies publicitarias ni de analítica."
         },
         {
           "heading": "Servicios de terceros",
-          "body": "Nos apoyamos en estos proveedores externos, y cada uno recibe solo lo que necesita: Neon (alojamiento de la base de datos) almacena todo lo que guardamos; Vercel (alojamiento) recibe cada petición, incluida tu dirección IP; Resend (envío de correo) recibe tu correo electrónico y el contenido de los correos que te enviamos; Google y GitHub (inicio de sesión) reciben tu solicitud de acceso, solo si decides entrar con ellos; Have I Been Pwned (comprobación de contraseñas filtradas) recibe los cinco primeros caracteres de un hash irreversible de una contraseña nueva, nunca la contraseña; Upstash (protección frente a abusos) recibe tu dirección IP y un hash irreversible de tu correo electrónico, que se conservan como máximo una hora; Sentry (informes de errores) recibe datos técnicos de los errores, sin cookies, sin tu dirección IP y sin datos de tu cuenta; OpenStreetMap / Nominatim (búsqueda de lugares) recibe el lugar que escribes, directamente desde tu navegador; CARTO (teselas del mapa) recibe las peticiones de teselas directamente desde tu navegador, que revelan la zona que estás viendo; Wallapop (anuncios) recibe tus filtros de búsqueda y las coordenadas de la búsqueda: la ubicación que elegiste, la posición de tu navegador o el centro de España; coches.net y Milanuncios (anuncios) reciben tus filtros de búsqueda. Las peticiones a Wallapop, coches.net y Milanuncios las hace nuestro servidor, así que ven su dirección, no la tuya. El tratamiento que hagan de los datos se rige por sus propias políticas de privacidad."
+          "body": "Nos apoyamos en estos proveedores externos, y cada uno recibe solo lo que necesita: Neon (alojamiento de la base de datos) almacena todo lo que guardamos; Vercel (alojamiento) recibe cada petición, incluida tu dirección IP; Resend (envío de correo) recibe tu correo electrónico y el contenido de los correos que te enviamos; Google (inicio de sesión) recibe tu solicitud de acceso, solo si decides entrar con Google; Have I Been Pwned (comprobación de contraseñas filtradas) recibe los cinco primeros caracteres de un hash irreversible de una contraseña nueva, nunca la contraseña; Upstash (protección frente a abusos) recibe tu dirección IP y un hash irreversible de tu correo electrónico, que se conservan como máximo una hora; Sentry (informes de errores) recibe datos técnicos de los errores, sin cookies, sin tu dirección IP y sin datos de tu cuenta; OpenStreetMap / Nominatim (búsqueda de lugares) recibe el lugar que escribes, directamente desde tu navegador; CARTO (teselas del mapa) recibe las peticiones de teselas directamente desde tu navegador, que revelan la zona que estás viendo; Wallapop (anuncios) recibe tus filtros de búsqueda y las coordenadas de la búsqueda: la ubicación que elegiste, la posición de tu navegador o el centro de España; coches.net y Milanuncios (anuncios) reciben tus filtros de búsqueda. Las peticiones a Wallapop, coches.net y Milanuncios las hace nuestro servidor, así que ven su dirección, no la tuya. El tratamiento que hagan de los datos se rige por sus propias políticas de privacidad."
         },
         {
           "heading": "Conservación de datos",

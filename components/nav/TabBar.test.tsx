@@ -325,7 +325,11 @@ describe("HEAD-8: the tab bar does not apply", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it.each(["/", "/login", "/privacy"])("HEAD-8: renders nothing on %s, signed in", (route) => {
+  // "/" removed from this signed-in list (amended by ENTRY-8,
+  // docs/specs/redesign-entry.md): the signed-in landing now shows the tab
+  // bar too (MAPUI-52's own amendment below). It stays in the signed-out
+  // list underneath — ENTRY-8 keeps the landing tab-bar-free when signed out.
+  it.each(["/login", "/privacy"])("HEAD-8: renders nothing on %s, signed in", (route) => {
     pathname.mockReturnValue(route);
     const { container } = renderWithI18n(<TabBar />);
 
@@ -334,6 +338,42 @@ describe("HEAD-8: the tab bar does not apply", () => {
 
   it.each(["/", "/login", "/privacy"])("HEAD-8: renders nothing on %s, signed out", (route) => {
     pathname.mockReturnValue(route);
+    useSession.mockReturnValue(SIGNED_OUT);
+    const { container } = renderWithI18n(<TabBar />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+// docs/specs/redesign-entry.md (ENTRY-8). Amends MAPUI-52: the signed-in
+// landing joins the tab bar's routes (nav-routes.ts's showsTabBar returns
+// true for "/" once the caller is signed in, alongside "/map" and the
+// signed-in section pages), with none of its four tabs marked current.
+describe("ENTRY-8: TabBar — the signed-in landing", () => {
+  it("ENTRY-8: / signed in shows Mapa, Guardados, Alertas and Cuenta", () => {
+    pathname.mockReturnValue("/");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<TabBar />, { locale: "es" });
+
+    expect(screen.getByRole("link", { name: /Mapa/ })).toHaveAttribute("href", "/map");
+    expect(screen.getByRole("link", { name: /Guardados/ })).toHaveAttribute("href", "/favorites");
+    expect(screen.getByRole("link", { name: /Alertas/ })).toHaveAttribute("href", "/alerts");
+    expect(screen.getByRole("link", { name: /Cuenta/ })).toHaveAttribute("href", "/account");
+  });
+
+  it("ENTRY-8: / signed in marks none of the four tabs current", () => {
+    pathname.mockReturnValue("/");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<TabBar />, { locale: "es" });
+
+    const current = screen
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page");
+    expect(current).toHaveLength(0);
+  });
+
+  it("ENTRY-8: / signed out still shows no tab bar", () => {
+    pathname.mockReturnValue("/");
     useSession.mockReturnValue(SIGNED_OUT);
     const { container } = renderWithI18n(<TabBar />);
 
@@ -350,9 +390,10 @@ describe("MAPUI-52: TabBar — accessibility", () => {
 });
 
 describe("HEAD-17: the tab bar clears the safe area", () => {
-  it(// jsdom computes no CSS, so a real safe-area offset can only be proven in
-  // a browser (HEAD-18's e2e half). This is the contract's string-level
-  // half: the nav carries the token's class, and the token is the inset.
+  it(// jsdom computes no CSS, so this only proves the string-level contract:
+  // the nav carries the token's class, and the token is the inset. HEAD-17
+  // is a "component" criterion (docs/specs/redesign-navigation.md), with no
+  // e2e counterpart asserting the real computed offset in a browser.
   "HEAD-17: the nav is padded by the safe-bottom token, defined as env(safe-area-inset-bottom)", () => {
     pathname.mockReturnValue("/favorites");
     renderWithI18n(<TabBar />);

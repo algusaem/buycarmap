@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -26,6 +26,18 @@ beforeEach(() => {
 // "nothing chosen" row's placeholder text is explicitly drawn from
 // "SearchPill's guide" per the table's own footnote, so it is asserted too.
 
+type SetOpenSegment = Dispatch<SetStateAction<SearchPopover | null>>;
+
+// The pill hands its caller's setter either the next segment or an updater;
+// this is the value the caller's state would hold after the last call.
+function nextOpenSegment(
+  setOpenSegment: ReturnType<typeof vi.fn<SetOpenSegment>>,
+  current: SearchPopover | null,
+): SearchPopover | null | undefined {
+  const action = setOpenSegment.mock.lastCall?.[0];
+  return typeof action === "function" ? action(current) : action;
+}
+
 const BASE: SearchPillProps = {
   place: null,
   radiusKm: 50,
@@ -34,8 +46,7 @@ const BASE: SearchPillProps = {
   minPrice: undefined,
   maxPrice: undefined,
   openSegment: null,
-  onOpenSegment: vi.fn(),
-  onCloseSegment: vi.fn(),
+  setOpenSegment: vi.fn<SetOpenSegment>(),
   onSearch: vi.fn(),
 };
 
@@ -100,12 +111,12 @@ describe("MAPUI-1: SearchPill segment values — the worked example table", () =
 
 describe("MAPUI-2: SearchPill popovers — at most one open", () => {
   it("MAPUI-2: pressing the Dónde segment opens it and reports aria-expanded true", async () => {
-    const onOpenSegment = vi.fn();
-    renderWithI18n(<SearchPill {...BASE} onOpenSegment={onOpenSegment} />, { locale: "es" });
+    const setOpenSegment = vi.fn<SetOpenSegment>();
+    renderWithI18n(<SearchPill {...BASE} setOpenSegment={setOpenSegment} />, { locale: "es" });
 
     await userEvent.click(screen.getByRole("button", { name: "Ciudad o código postal…" }));
 
-    expect(onOpenSegment).toHaveBeenCalledWith("where");
+    expect(nextOpenSegment(setOpenSegment, null)).toBe("where");
   });
 
   it("MAPUI-2: with Dónde open, its segment reports aria-expanded true and the others false", () => {
@@ -128,28 +139,28 @@ describe("MAPUI-2: SearchPill popovers — at most one open", () => {
   // Where the focus goes back to is covered with the real popovers below
   // («Escape pressed inside the open popover … puts the focus back on its segment»).
   it("MAPUI-2: Escape closes the open popover", async () => {
-    const onCloseSegment = vi.fn();
-    renderWithI18n(<SearchPill {...BASE} openSegment="car" onCloseSegment={onCloseSegment} />, {
+    const setOpenSegment = vi.fn<SetOpenSegment>();
+    renderWithI18n(<SearchPill {...BASE} openSegment="car" setOpenSegment={setOpenSegment} />, {
       locale: "es",
     });
 
     screen.getByRole("button", { name: "Cualquier marca" }).focus();
     await userEvent.keyboard("{Escape}");
 
-    expect(onCloseSegment).toHaveBeenCalled();
+    expect(nextOpenSegment(setOpenSegment, "car")).toBeNull();
   });
 });
 
 describe("MAPUI-12: SearchPill Buscar — closes the open popover and re-searches at once", () => {
   it("MAPUI-12: pressing Buscar calls onSearch and closes any open popover", async () => {
     const onSearch = vi.fn();
-    const onCloseSegment = vi.fn();
+    const setOpenSegment = vi.fn<SetOpenSegment>();
     renderWithI18n(
       <SearchPill
         {...BASE}
         openSegment="price"
         onSearch={onSearch}
-        onCloseSegment={onCloseSegment}
+        setOpenSegment={setOpenSegment}
       />,
       { locale: "es" },
     );
@@ -157,7 +168,8 @@ describe("MAPUI-12: SearchPill Buscar — closes the open popover and re-searche
     await userEvent.click(screen.getByRole("button", { name: "Buscar" }));
 
     expect(onSearch).toHaveBeenCalledTimes(1);
-    expect(onCloseSegment).toHaveBeenCalledTimes(1);
+    expect(setOpenSegment).toHaveBeenCalledTimes(1);
+    expect(nextOpenSegment(setOpenSegment, "price")).toBeNull();
   });
 });
 
@@ -169,8 +181,7 @@ describe("MAPUI-2: SearchPill — a closed popover leaves the tree", () => {
       <SearchPill
         {...BASE}
         openSegment={openSegment}
-        onOpenSegment={setOpenSegment}
-        onCloseSegment={() => setOpenSegment(null)}
+        setOpenSegment={setOpenSegment}
         popovers={{
           where: (
             <input role="combobox" aria-label="Ciudad o código postal" aria-expanded={false} />
@@ -208,8 +219,7 @@ describe("MAPUI-2: SearchPill — closing with the real popovers", () => {
       <SearchPill
         {...BASE}
         openSegment={openSegment}
-        onOpenSegment={setOpenSegment}
-        onCloseSegment={close}
+        setOpenSegment={setOpenSegment}
         popovers={{
           where: (
             <LocationPopover
@@ -247,6 +257,18 @@ describe("MAPUI-2: SearchPill — closing with the real popovers", () => {
       "aria-expanded",
       "false",
     );
+  });
+
+  it("MAPUI-2: with «Dónde» open, pressing «Coche» opens «Coche»", async () => {
+    renderWithI18n(<Harness initial="where" />, { locale: "es" });
+    expect(screen.getByRole("dialog", { name: "Dónde" })).toBeInTheDocument();
+    const carSegment = screen.getByRole("button", { name: "Cualquier marca" });
+
+    await userEvent.click(carSegment);
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Dónde" })).toBeNull());
+    expect(screen.getByRole("dialog", { name: "Coche" })).toBeInTheDocument();
+    expect(carSegment).toHaveAttribute("aria-expanded", "true");
   });
 
   it("MAPUI-2: Escape pressed inside the open popover closes it and puts the focus back on its segment", async () => {

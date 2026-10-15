@@ -159,6 +159,48 @@ test.describe("HEAD-8: bottom nav visibility", () => {
   );
 });
 
+// (F4 review round 1, docs/specs/redesign-entry.md ENTRY-8): the
+// signed-in landing joins the tab bar's routes — amends HEAD-5 and HEAD-7,
+// which used to keep a signed-in avatar/account link in the phone header
+// here instead.
+test.describe("ENTRY-8: the signed-in phone landing has the tab bar, not a header account link", () => {
+  dbTest(
+    "ENTRY-8 (dbTest): signed in at phone width, / shows the bottom nav with its four links, none current, and no account link or Entrar in the header",
+    async ({ page }) => {
+      const email = e2eEmail("nav-landing-tabbar");
+      await seedUser(email, PASSWORD);
+
+      await page.setViewportSize(MOBILE);
+      await signIn(page, email);
+      await page.goto("/");
+
+      const bottomNav = page.getByTestId("bottom-nav");
+      await expect(bottomNav).toBeVisible();
+      await expect(bottomNav.getByRole("link", { name: /mapa|map/i })).toHaveAttribute(
+        "href",
+        "/map",
+      );
+      await expect(bottomNav.getByRole("link", { name: /guardados|saved/i })).toHaveAttribute(
+        "href",
+        "/favorites",
+      );
+      await expect(bottomNav.getByRole("link", { name: /alertas|alerts/i })).toHaveAttribute(
+        "href",
+        "/alerts",
+      );
+      await expect(bottomNav.getByRole("link", { name: /cuenta|account/i })).toHaveAttribute(
+        "href",
+        "/account",
+      );
+      expect(await bottomNav.locator('a[aria-current="page"]').count()).toBe(0);
+
+      const phoneHeader = page.getByTestId("header-phone");
+      await expect(phoneHeader.getByRole("link", { name: /cuenta|account/i })).toHaveCount(0);
+      await expect(phoneHeader.getByText(/^(entrar|sign in)$/i)).toHaveCount(0);
+    },
+  );
+});
+
 test.describe("HEAD-18: Cerrar sesión clears the bottom nav", () => {
   dbTest(
     "HEAD-18 (dbTest): signed in at phone width, Sign out on /account is clear of the bottom nav and works",

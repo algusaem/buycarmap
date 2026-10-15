@@ -30,7 +30,7 @@ the phase's spec.
 | F1 Foundation | [redesign-foundation.md](../specs/redesign-foundation.md) (LOOK) | Implemented 2026-10-12 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | Tokens, dark only, fonts, shared primitives, source badge, footer, `DESIGN.md` |
 | F2 Navigation | [redesign-navigation.md](../specs/redesign-navigation.md) (HEAD) | Implemented 2026-10-12 on `claude/app-structural-redesign-c4a34d`; not merged yet | Desktop headers, phone headers, bottom nav |
 | F3 Map and search | [redesign-map.md](../specs/redesign-map.md) (MAPUI) | Implemented 2026-10-14 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | The map screen and its states |
-| F4 Landing and sign in | — | Not started | `/` landing and `/login` |
+| F4 Landing and sign in | [redesign-entry.md](../specs/redesign-entry.md) (ENTRY) | Implemented 2026-10-15 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | `/` landing and `/login` |
 | F5 Saved cars | — | Not started | `/favorites` |
 | F6 Alerts | — | Not started | `/alerts` and `/alerts/[id]` |
 | F7 Remaining pages | — | Not started | Register, account, password, legal, error pages |

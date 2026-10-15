@@ -22,6 +22,8 @@ interface AnimatedPopoverProps {
   align: "start" | "end";
   sideOffset: number;
   collisionPadding?: number;
+  /** Radix's flip and shift on collision; on unless a caller opts out. */
+  avoidCollisions?: boolean;
   onEscapeKeyDown?: (event: KeyboardEvent) => void;
   className: string;
 }
@@ -35,6 +37,7 @@ export function AnimatedPopover({
   align,
   sideOffset,
   collisionPadding,
+  avoidCollisions,
   onEscapeKeyDown,
   className,
 }: AnimatedPopoverProps) {
@@ -52,6 +55,7 @@ export function AnimatedPopover({
               align={align}
               sideOffset={sideOffset}
               collisionPadding={collisionPadding}
+              avoidCollisions={avoidCollisions}
               className={className}
             >
               <PopoverCard>{content}</PopoverCard>

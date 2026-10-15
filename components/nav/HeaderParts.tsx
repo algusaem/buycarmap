@@ -83,7 +83,7 @@ export function TextLink({ href, current = false, children }: TextLinkProps) {
       href={href}
       aria-current={current ? "page" : undefined}
       className={cn(
-        "whitespace-nowrap rounded-pill px-4 py-2.5 text-[15px] font-bold transition-colors",
+        "whitespace-nowrap rounded-pill px-4 py-2.5 text-body-15 font-bold transition-colors",
         current ? "bg-text text-bg" : "text-text hover:text-lime",
       )}
     >
@@ -92,12 +92,16 @@ export function TextLink({ href, current = false, children }: TextLinkProps) {
   );
 }
 
-/** Phone link on the right of the sign-in and landing headers: 14px weight 700 in a 44px hit area. */
+/**
+ * Phone link on the right of the sign-in and landing headers: 14px weight 700,
+ * drawn at its text's own width (so «Mapa» sits where the board puts it) with
+ * a 44px hit area around it, the way components/ui/button.tsx does it.
+ */
 export function PhoneTextLink({ href, children }: Omit<TextLinkProps, "current">) {
   return (
     <Link
       href={href}
-      className="flex h-11 min-w-11 items-center justify-center whitespace-nowrap text-sm font-bold text-text transition-colors hover:text-lime"
+      className="flex h-11 items-center justify-center whitespace-nowrap text-sm font-bold text-text transition-colors before:absolute before:size-11 hover:text-lime"
     >
       {children}
     </Link>

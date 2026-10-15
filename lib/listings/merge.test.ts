@@ -70,3 +70,30 @@ describe("applyResultFilters — fuel (MAPUI-55)", () => {
     ]);
   });
 });
+
+// docs/specs/map-and-search.md (MAP-18, amended 2026-10-14, ENTRY —
+// redesign-entry.md, owner decision): «SEAT León», «SEAT Leon», «Seat Leon»
+// and «seaT LeON» must all match the same model, so the post-filter folds
+// case and accents on both sides of the comparison.
+describe("applyResultFilters — model, case- and accent-insensitive (MAP-18)", () => {
+  it("MAP-18: model «León» keeps listings named «Leon», «LEON» or «SEAT León FR» in the title, and drops «Ibiza»", () => {
+    const leon = makeFavoriteInput({ id: "leon", model: "Leon", title: "Seat Leon 1.6" });
+    const leonUpper = makeFavoriteInput({ id: "leon-upper", model: "LEON", title: "Seat LEON FR" });
+    const leonTitleOnly = makeFavoriteInput({ id: "leon-title", model: "", title: "SEAT León FR" });
+    const leonLower = makeFavoriteInput({ id: "leon-lower", model: "león", title: "Seat león" });
+    const ibiza = makeFavoriteInput({ id: "ibiza", model: "Ibiza", title: "Seat Ibiza 1.2" });
+    const listings = [leon, leonUpper, leonTitleOnly, leonLower, ibiza];
+
+    expect(ids(applyResultFilters(listings, { model: "León" }))).toEqual([
+      "leon",
+      "leon-upper",
+      "leon-title",
+      "leon-lower",
+    ]);
+  });
+
+  it("MAP-18: model «Serie 3» keeps a listing modelled «serie 3» without any accent involved", () => {
+    const serie3 = makeFavoriteInput({ id: "serie3", model: "serie 3", title: "BMW serie 3" });
+    expect(ids(applyResultFilters([serie3], { model: "Serie 3" }))).toEqual(["serie3"]);
+  });
+});

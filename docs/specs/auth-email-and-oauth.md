@@ -125,11 +125,11 @@ EMAIL_FROM="BuyCarMap <no-reply@yourdomain.com>"   # domain must be verified (SP
 APP_URL=https://...     # base for links inside emails
 
 GOOGLE_CLIENT_ID=...  GOOGLE_CLIENT_SECRET=...
-GITHUB_ID=...         GITHUB_SECRET=...
 ```
 
-OAuth callback URLs to register in each console, for both local and production:
-`${APP_URL}/api/auth/callback/google` and `.../github`.
+OAuth callback URL to register in the console, for both local and production:
+`${APP_URL}/api/auth/callback/google`. Google is the only social sign-in the
+product offers (docs/specs/redesign-entry.md, ENTRY-16, ENTRY-18).
 
 Full list with commentary in `.env.example`.
 
@@ -222,15 +222,20 @@ other device, keeps this one via silent re-auth), connected OAuth providers
 everywhere, delete account (typed confirmation plus password).
 
 #### OAuth (Iteration D)
-Google and GitHub register only when both halves of their env pair are present;
-`OAuthButtons` renders nothing at all — divider included — when none are.
+Google registers only when both halves of its env pair are present;
+`OAuthButtons` renders nothing at all — divider included — when it is not.
+Google is the only social sign-in the product offers; GitHub was removed
+(docs/specs/redesign-entry.md, ENTRY-16, ENTRY-18).
 
 **Account-linking policy: auto-link on verified email**
-(`allowDangerousEmailAccountLinking`). Both providers release only verified
+(`allowDangerousEmailAccountLinking`). Google releases only verified
 addresses, and anyone controlling the mailbox could already take the account
 over through password reset, so linking grants no new capability. The
 alternative is a dead-end `OAuthAccountNotLinked` error for any user who
 registered with a password first.
+
+After sign-in, `callbackUrl` is followed only when it is a path on this site;
+see [ENTRY-17](redesign-entry.md).
 
 #### Transport and headers
 `next.config.ts` sets CSP, HSTS, `X-Frame-Options`, `X-Content-Type-Options`,
@@ -312,7 +317,8 @@ fails closed, so a crash mid-write strands nothing that a retry cannot repair.
   action that touches user data. `proxy.ts` only decodes the JWT and cannot see
   revocations — it is UX, not a security boundary.
 - **i18n**: new strings need keys in both locales plus the `Translations` type.
-- **Toasts** via Sonner. Field-fixable errors go on the field instead.
+- **Toasts** via Sonner. Field-fixable errors go on the field instead. The sign-in form shows every
+  failure inline ([ENTRY-11 to ENTRY-15](redesign-entry.md)).
 - **TypeScript**: `RULES.md` §7.
 - **Tests**: Vitest two-project split (`*.node.test.ts` for actions and
   anything needing Node globals), MSW for all network — including HIBP and

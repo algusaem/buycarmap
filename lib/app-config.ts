@@ -14,8 +14,6 @@ export const isEmailConfigured = Boolean(env.RESEND_API_KEY && env.EMAIL_FROM);
 
 export const isGoogleConfigured = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
-export const isGitHubConfigured = Boolean(env.GITHUB_ID && env.GITHUB_SECRET);
-
 interface AppUrlSources {
   APP_URL?: string;
   BETTER_AUTH_URL?: string;

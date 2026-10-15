@@ -111,8 +111,9 @@ this diff.
 - **The privacy gaps the inventory exposes are recorded, not fixed.**
   - There is no account data export (`RULES.md` §12).
   - `AlertCriteria` rows, which can hold the user's coordinates, survive account deletion.
-  - The in-app privacy page (`lib/i18n/locales/*.ts`) does not list Resend, Vercel, Google, GitHub
-    or Have I Been Pwned. Moved to FRONT-27 (`docs/specs/core-frontend.md`), against `messages/*.json`.
+  - The in-app privacy page (`lib/i18n/locales/*.ts`) does not list Resend, Vercel, Google
+    or Have I Been Pwned. Moved to FRONT-27 (`docs/specs/core-frontend.md`), against `messages/*.json`
+    (amended 2026-10-14, ENTRY — redesign-entry.md: GitHub dropped, since the product never lists it).
   - `SearchHistory` is never written.
 - `docs/operations/staging.md` belongs to phase 12. There is no staging environment until then
   (ADR 0007 row 26).
@@ -159,7 +160,7 @@ and links the issue.
 - Neon: `aws-eu-central-1`, measured through the Neon API on 2026-09-28.
 - Vercel.
 - Resend.
-- Google and GitHub, as OAuth providers.
+- Google, as the OAuth provider (amended 2026-10-14, ENTRY — redesign-entry.md).
 - Have I Been Pwned: a 5-character SHA-1 prefix.
 - OpenStreetMap Nominatim: the typed location query.
 - CARTO: map tiles.

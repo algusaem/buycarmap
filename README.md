@@ -372,6 +372,7 @@ solo project is ceremony.
 | [navbar.md](docs/specs/navbar.md) | NAV | Implemented | The pre-2.0 navigation bar; replaced by redesign-navigation.md (HEAD), kept criteria still hold |
 | [redesign-navigation.md](docs/specs/redesign-navigation.md) | HEAD | Implemented | BuyCarMap 2.0 F2: headers, phone headers, bottom nav, language control |
 | [redesign-map.md](docs/specs/redesign-map.md) | MAPUI | Implemented | BuyCarMap 2.0 F3: search pill, filters, price pins, phone sheets, car card, «Crear alerta» |
+| [redesign-entry.md](docs/specs/redesign-entry.md) | ENTRY | Implemented | BuyCarMap 2.0 F4: landing search and map preview, sign-in states, callbackUrl rule, GitHub removed |
 | [redesign-foundation.md](docs/specs/redesign-foundation.md) | LOOK | Implemented | BuyCarMap 2.0 F1: tokens, dark only, fonts, primitives, footer, DESIGN.md |
 | [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Implemented | Downloading a copy of one's own data from `/account` |
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
@@ -445,6 +446,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `components/map/phone/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/map/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
+| `lib/hooks/useLandingSearch.ts` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
 | `app/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
 | `components/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
 | `server/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
@@ -454,6 +456,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `components/alerts/CreateAlert*` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `server/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `lib/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `lib/auth/safe-redirect.ts` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
 | `server/rate-limit/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `server/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `server/account/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
@@ -474,7 +477,8 @@ Do not point a gap at a loosely related file to make it look covered.
 | `test/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `e2e/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `components/ui/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| `components/hero/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `components/landing/**` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
+| `public/illus/**` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
 | `components/legal/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/globals.css` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `lib/form-data.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
@@ -502,7 +506,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/map/loading.tsx` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `app/map/error.tsx` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `app/api/auth/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
-| `app/login/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
+| `app/login/**` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
 | `lib/ids.ts` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
 | `lib/db/soft-delete.ts` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
 | `server/retention/**` | [docs/specs/core-data-model.md](docs/specs/core-data-model.md) |
@@ -518,7 +522,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/confirm-email/**` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `components/AuthProvider.tsx` | [docs/specs/auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) |
 | `components/nav/**` | [docs/specs/redesign-navigation.md](docs/specs/redesign-navigation.md) |
-| `app/page.tsx` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `app/page.tsx` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
 | `app/layout.tsx` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/fonts/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/palette/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |

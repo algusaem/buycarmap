@@ -19,19 +19,19 @@
       "y": 8480
     },
     "R3-landing.dc.html": {
-      "h": 900,
+      "h": 980,
       "page": "r3",
       "title": "Landing",
-      "w": 1970,
+      "w": 4998,
       "x": 0,
       "y": 0
     },
     "R3-login.dc.html": {
-      "h": 900,
+      "h": 980,
       "page": "r3",
       "title": "Entrar",
-      "w": 1970,
-      "x": 2050,
+      "w": 15868,
+      "x": 5078,
       "y": 0
     },
     "R3-mapa-detalle.dc.html": {

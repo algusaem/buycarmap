@@ -1,6 +1,7 @@
 import type { CarListing } from "@/interfaces/listing";
 import type { SearchInput } from "@/lib/search/schema";
 import { filterByRadius } from "@/lib/geo/radius";
+import { fold } from "@/lib/search/fold";
 import { classifyFuel, groupsFromEngine, isGroupedEngineValue } from "@/lib/search/fuel-groups";
 
 // Merge the per-source result lists by round-robin, so every source appears
@@ -22,13 +23,14 @@ export function interleave(lists: CarListing[][]): CarListing[] {
 // related-but-wrong cars. Substring on the model field or title, erring
 // permissive — dropping a genuinely matching car is worse than keeping a
 // mislabelled one. Titles matter because Milanuncios carries no structured
-// model at all; descriptions would false-match ("acepto cambio por…").
+// model at all; descriptions would false-match ("acepto cambio por…"). Both
+// sides are folded (case and accents ignored, owner decision 2026-10-14) so
+// "SEAT León", "SEAT Leon" and "seaT LeON" all match the same model.
 function filterByModel(listings: CarListing[], model: string | undefined): CarListing[] {
-  const wanted = model?.trim().toLowerCase();
+  const wanted = fold(model?.trim() ?? "");
   if (!wanted) return listings;
   return listings.filter(
-    (listing) =>
-      listing.model.toLowerCase().includes(wanted) || listing.title.toLowerCase().includes(wanted),
+    (listing) => fold(listing.model).includes(wanted) || fold(listing.title).includes(wanted),
   );
 }
 

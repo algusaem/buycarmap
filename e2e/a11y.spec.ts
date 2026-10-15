@@ -93,6 +93,24 @@ for (const path of MAIN_PATHS) {
   });
 }
 
+// docs/specs/redesign-entry.md (ENTRY-21, amends FRONT-19): "/" and "/login"
+// now also run axe at phone width, not desktop only. The "mobile" Playwright
+// project (playwright.config.ts) does not match this file (its `testMatch`
+// is `/(map|auth|navigation)\.spec\.ts/`), so this sets the viewport
+// directly inside the same chromium project this file already runs under,
+// rather than widening that project's file match — unrelated test-infra
+// wiring outside this change (RULES.md §1).
+const MOBILE_VIEWPORT = { width: 375, height: 812 };
+
+for (const path of ["/", "/login"]) {
+  test(`ENTRY-21: no serious accessibility violations on ${path} at phone width`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await checkPage(page, path);
+  });
+}
+
 // /favorites, /alerts and /account need a signed-in session, which this
 // suite only has against a real database (E2E_DB) — the same gate
 // e2e/favorites.spec.ts uses for its round trips. Skipped, not silently
