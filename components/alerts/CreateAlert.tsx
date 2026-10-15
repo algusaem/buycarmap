@@ -10,7 +10,6 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { useLocale, useMessages, useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +25,7 @@ import {
   ALERT_ERROR,
   alertCriteriaSchema,
   createAlertFormSchema,
+  type CreateAlertFormValues,
   withoutUnsavedCriteria,
 } from "@/server/alerts/schema";
 
@@ -49,8 +49,6 @@ export interface CreateAlertProps {
   /** Phone: the results sheet's «Crear alerta», focused again when the sheet closes. */
   returnFocusRef?: RefObject<HTMLElement | null>;
 }
-
-type CreateAlertForm = z.infer<typeof createAlertFormSchema>;
 
 export function CreateAlert({
   open,
@@ -129,7 +127,7 @@ function CreateAlertBody({ criteria, placeName, onClose, sheet }: CreateAlertBod
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<CreateAlertForm>({
+  } = useForm<CreateAlertFormValues>({
     resolver: zodResolver(createAlertFormSchema),
     mode: "onBlur",
     defaultValues: { label: alertName(alertCriteria, placeName, copy) },
@@ -146,7 +144,7 @@ function CreateAlertBody({ criteria, placeName, onClose, sheet }: CreateAlertBod
     }
   }
 
-  async function submit({ label }: CreateAlertForm) {
+  async function submit({ label }: CreateAlertFormValues) {
     setRefusal(null);
     const result = await send(label);
     if (!result) return;

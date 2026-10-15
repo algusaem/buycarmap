@@ -30,6 +30,12 @@ export const alertLabelSchema = z.string().trim().min(1);
 // label rule the action applies.
 export const createAlertFormSchema = z.object({ label: alertLabelSchema });
 
+// LAYOUT-5 (docs/decisions/0007-adopt-core-rules.md): the form values type
+// is exported from here, next to the schema, so CreateAlert.tsx never needs
+// its own `z.infer` — only server/*/schema.ts, lib/search/schema.ts,
+// lib/env.ts, lib/ids.ts and tests may import zod.
+export type CreateAlertFormValues = z.infer<typeof createAlertFormSchema>;
+
 /**
  * Whether a criteria set is specific enough to be worth watching.
  *
