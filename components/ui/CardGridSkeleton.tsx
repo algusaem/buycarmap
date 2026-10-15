@@ -53,10 +53,10 @@ export function SheetCardPlaceholder() {
 }
 
 /**
- * FRONT-14 (docs/specs/core-frontend.md): a card-grid loading state shared by
- * the routes whose populated view is a grid of cards — `/favorites` and
- * `/alerts/[id]` — so each mirrors its own final content (RULES.md §19)
- * instead of a bare spinner. Each placeholder is the car card's shape
+ * FRONT-14 (docs/specs/core-frontend.md): the card-grid loading state of
+ * `/alerts/[id]`, whose populated view is a grid of cards, so it mirrors its
+ * final content (RULES.md §19) instead of a bare spinner. `/favorites` has its
+ * own since SAVED-30 (docs/specs/redesign-saved.md). Each placeholder is the car card's shape
  * (`CardPlaceholder`).
  *
  * MAP-20: the container is `aria-busy`, not `role="status"` — a live region

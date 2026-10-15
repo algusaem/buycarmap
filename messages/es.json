@@ -3,7 +3,8 @@
     "search": "Buscar",
     "popular": "Populares",
     "or": "o",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "closeToast": "Cerrar aviso"
   },
   "hero": {
     "title": "¿En busca de coche?",
@@ -452,10 +453,20 @@
     "viewAlerts": "Ver alertas"
   },
   "favorites": {
-    "title": "Coches guardados",
-    "subtitle": "Los precios son del día en que los guardaste.",
-    "empty": "Todavía no has guardado ningún coche.",
-    "emptyCta": "Buscar coches"
+    "title": "Guardados",
+    "emptyCta": "Buscar coches",
+    "sortRecent": "Recientes",
+    "sortPrice": "Precio",
+    "sortKm": "Km",
+    "mapLabel": "Mapa de tus guardados",
+    "mapTitle": "Tus guardados en el mapa",
+    "mapEmpty": "Aquí saldrán tus guardados",
+    "emptyTitle": "¿Aún nada?",
+    "emptyPunchline": "Guarda alguno",
+    "emptyLine": "Pulsa el corazón en cualquier coche y aparecerá aquí, con su precio del día.",
+    "emptyLinePhone": "Pulsa el corazón en cualquier coche y aparecerá aquí.",
+    "removed": "Quitado de guardados",
+    "undo": "Deshacer"
   },
   "alerts": {
     "title": "Alertas",
@@ -559,7 +570,8 @@
     "pageLoadFailed": "No se pudo cargar esta página. Inténtalo de nuevo.",
     "retry": "Reintentar",
     "pageTitle": "¿Se ha roto algo?",
-    "pagePunchline": "No es culpa tuya"
+    "pagePunchline": "No es culpa tuya",
+    "pageLine": "Esta página no ha cargado. Vuelve a intentarlo y, si sigue, vuelve al mapa."
   },
   "transactionalEmail": {
     "passwordReset": {

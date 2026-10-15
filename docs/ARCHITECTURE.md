@@ -283,10 +283,11 @@ from the code:
 
 **Reconciliation.** The sources know nothing about this user, so the saved set is
 joined on the client: `useFavorites` fetches the saved ids once per session and
-`MapView` passes `isFavorite` into every card. This was a real bug — cards
-rendered without the prop, so a saved car came back from a search looking
-unsaved, while the component test passed because it supplied a prop the
-application never did.
+`MapView` hands that set (`favoriteIds`) down to the results and the map, where
+each card and preview reads its own saved state from it (`savedProps` in
+`components/map/CarCard.tsx`). This was a real bug — cards once rendered without
+the saved state, so a saved car came back from a search looking unsaved, while
+the component test passed because it supplied a prop the application never did.
 
 ## Path 4 — a poll with no user in it
 
@@ -357,6 +358,7 @@ Spanish or English in components.
 | `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row and panel), `phone/` (the phone search, sheets and results sheet) |
 | `components/alerts/` | The alerts pages' lists and the create-alert dialog |
 | `components/nav/` | The headers, the phone tab bar and the language control |
+| `components/favorites/` | The saved cars page: the list column, the Guardados card, the phone row and car sheet, the sort chips and the loading placeholders |
 | `components/ui/` | Radix-wrapped primitives |
 | `components/landing/` | The landing body and its map preview |
 | `lib/hooks/` | Every request lifecycle |
@@ -365,6 +367,7 @@ Spanish or English in components.
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
 | `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database, apart from the LAYOUT-7 exception, `lib/auth/auth.ts` (see [specs/core-layout.md](specs/core-layout.md)) |
+| `lib/favorites/` | The saved cars' pure sort and its URL parser (`sort.ts`) |
 | `lib/listings/` | The pure search-merge logic: interleaving, the radius, model and fuel post-filters, the page-state advance |
 | `lib/map/` | Pure map helpers: grouping listings into price pins, the results heading, the results state and the radius to widen to (`results-state.ts`), a card's DOM id (`card-dom-id.ts`), price-pin CSS classes (`pin-classes.ts`) |
 | `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server, and the search UI's pure helpers: what the filters panel offers and clears (`panel.ts`), case- and accent-blind comparison (`fold.ts`), the phone summary (`phone-summary.ts`), the radii (`radii.ts`), the type-ahead's matching, the fuel groups, the chips and the alert summary |
@@ -742,12 +745,50 @@ query a signed-out buyer returns to after signing in.
 
 **One heart everywhere.** [`lib/hooks/useFavoriteToggle.ts`](../lib/hooks/useFavoriteToggle.ts)
 owns what pressing a heart does (the session check, the sign-in return with the full path and
-query, the optimistic flip and its rollback); `CarListingCard` (saved cars, alert matches), the
-map's list and its preview card all call it. The sign-in gate itself is
+query, the optimistic flip and its rollback); `CarListingCard` (alert matches), the map's list,
+its preview card and the saved cars page all call it. The sign-in gate itself is
 [`lib/hooks/useSignInGate.ts`](../lib/hooks/useSignInGate.ts) — `requireSession(path)`, which
 returns `true` when signed in, ignores the press while the session is still loading, and otherwise
 redirects to sign in and back to `path` — shared by the heart and «Crear alerta»
 (`useMapPageState`).
+
+### The saved cars page
+
+`/favorites` ([`specs/redesign-saved.md`](specs/redesign-saved.md), SAVED) reads the saved cars
+once on the server (`listFavoritesForPage`, newest saved first) and hands them to
+[`components/favorites/FavoritesList.tsx`](../components/favorites/FavoritesList.tsx), which draws
+the list column and, from `lg`, the saved map: the same `ListingsMap`, `groupPins` and
+`MapPreview` as `/map`. Below `lg` (`useIsPhone`) the list is compact rows that open the car sheet
+(`PhoneBottomSheet`). The composition switches by media query, not by CSS alone, because the
+virtualiser needs a row and a column count; until the client has read those queries (the server
+render and hydration), the page draws its loading placeholders, whose two compositions CSS picks
+between, so a phone never paints the desktop cards first. Besides `useIsPhone`, its state is these
+hooks:
+
+- [`lib/hooks/useSavedCars.ts`](../lib/hooks/useSavedCars.ts) — the server's list less the cars
+  removed on the page, in the order of the sort in the URL (`sortSaved` and `savedSortParsers` in
+  [`lib/favorites/sort.ts`](../lib/favorites/sort.ts); the phone ignores it). Removal and undo go
+  through `useFavoriteToggle`, guarded per car against an older answer, and return the failure's
+  copy for the page to toast.
+- [`lib/hooks/useSavedPins.ts`](../lib/hooks/useSavedPins.ts) — the active pin, tracked by its
+  point so a grouped preview survives the removal of its first car, and the cards it outlines.
+- [`lib/hooks/useSavedList.ts`](../lib/hooks/useSavedList.ts) — the virtualised list
+  (`@tanstack/react-virtual`, [ADR 0021](decisions/0021-react-virtual.md)): rows of cards, a pin's
+  row scrolled to, and the first row in view recorded per history entry in `sessionStorage` so
+  Back restores it.
+- [`lib/hooks/useSavedColumns.ts`](../lib/hooks/useSavedColumns.ts) — how many cards a row holds:
+  three from `xl`, two from `lg`, one compact row on the phone.
+- [`lib/hooks/useSavedCarSheet.ts`](../lib/hooks/useSavedCarSheet.ts) — the phone's car sheet: the
+  car it shows, whether it is open, and the row the focus returns to when it closes.
+- [`lib/hooks/useRemovalFocus.ts`](../lib/hooks/useRemovalFocus.ts) — where the focus goes after a
+  removal: the neighbour's first control, or the empty state's heading when no car is left.
+
+Its loading and error files draw the same frame
+([`components/favorites/SavedLayout.tsx`](../components/favorites/SavedLayout.tsx)) with
+placeholders or the page error. Every toast in the app is placed by `app/globals.css` from the
+page's `data-toast-anchor` (`saved` here, `map` on `/map`): under the header, or `/map`'s filter
+row, and centred over the list column (SAVED-24). A page with no `data-toast-anchor` has its
+toast under the header, centred on the viewport.
 
 ### UI primitives
 
@@ -755,7 +796,8 @@ redirects to sign in and back to `path` — shared by the heart and «Crear aler
 `separator`, plus `toggle-chip` and `checkbox-select`, which have behaviour of their own,
 `Headline` (the question-and-punchline headline, used by the landing, `/login` and
 `EmptyState`), and the shared states `EmptyState` (the headline, its line and its actions),
-`RouteError` and `CardGridSkeleton`. The popovers and sheets use Radix Popover and Dialog
+`RouteError`, `PageError` (the page-error state, used by the error files of `/map` and `/favorites`) and
+`CardGridSkeleton`. The popovers and sheets use Radix Popover and Dialog
 directly, and the price range Radix Slider.
 
 **`checkbox-select` is the design's select** (LOOK-21): one style, every option
@@ -1198,7 +1240,11 @@ plus `visual` (screenshots). `pnpm test:visual` runs the screenshots alone.
 
 `pnpm test:e2e:db` (`E2E_DB=1`) runs the auth, two-factor, favorites, alert-queue and
 toast-theme (FRONT-23) round trips against a real database — the only tests that prove
-anything about persistence, since Prisma is mocked everywhere in Vitest.
+anything about persistence, since Prisma is mocked everywhere in Vitest. It also runs the saved
+cars page (`e2e/saved.spec.ts`, SAVED-3 to SAVED-29), up to 200 saved cars per account. Those are
+seeded by a direct insert (`seedFavorites` in `e2e/fixtures/db.ts`) rather than through the UI:
+two hundred saves would take minutes, and the order depends on each row's `created_at`, which only
+an insert can set.
 
 **The alert-queue tests are the only database-backed ones with no browser in
 them.** They drive `FOR UPDATE SKIP LOCKED` through two overlapping `pg`

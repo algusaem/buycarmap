@@ -100,3 +100,16 @@ describe("MAPUI-35: CarCard — one link", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+// docs/specs/favorites.md (FAV-9): the saved state is the page's (the map's
+// favourite ids), handed to the card, so a saved car is drawn saved from its
+// first render. CarListingCard, which held its own copy, no longer takes one:
+// its only caller, an alert's matches, starts unsaved.
+describe("FAV-9: CarCard — an already-saved listing", () => {
+  it("FAV-9: renders in the saved state on first paint", () => {
+    renderWithI18n(<CarCard listing={listing} saved />);
+
+    expect(screen.getByRole("button", { name: "Remove from saved" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+  });
+});

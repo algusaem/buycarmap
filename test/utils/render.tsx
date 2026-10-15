@@ -1,17 +1,21 @@
 import type { ReactNode } from "react";
 import { render, type RenderOptions } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { NuqsTestingAdapter, type OnUrlUpdateFunction } from "nuqs/adapters/testing";
 import enMessages from "@/messages/en.json";
 import esMessages from "@/messages/es.json";
 
 const MESSAGES_BY_LOCALE = { en: enMessages, es: esMessages };
 
-interface RenderWithI18nOptions extends Omit<RenderOptions, "wrapper"> {
+export interface RenderWithI18nOptions extends Omit<RenderOptions, "wrapper"> {
   /** The specs' worked examples quote the Spanish copy (`es` is the default
    * locale), so a test asserting that copy word for word renders with
    * `locale: "es"` instead of the English default. */
   locale?: "en" | "es";
+  /** The page's query when it opens, as `?sort=price` would put it in the URL. */
+  searchParams?: string;
+  /** Called on every URL write, so a test can assert what a control wrote. */
+  onUrlUpdate?: OnUrlUpdateFunction;
 }
 
 // Renders with the English locale by default so tests can query by stable
@@ -24,12 +28,14 @@ interface RenderWithI18nOptions extends Omit<RenderOptions, "wrapper"> {
 // adapter would, rather than the URL being frozen to its initial value.
 export function renderWithI18n(
   ui: ReactNode,
-  { locale = "en", ...options }: RenderWithI18nOptions = {},
+  { locale = "en", searchParams, onUrlUpdate, ...options }: RenderWithI18nOptions = {},
 ) {
   return render(ui, {
     wrapper: ({ children }) => (
       <NextIntlClientProvider locale={locale} messages={MESSAGES_BY_LOCALE[locale]} timeZone="UTC">
-        <NuqsTestingAdapter hasMemory>{children}</NuqsTestingAdapter>
+        <NuqsTestingAdapter hasMemory searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
+          {children}
+        </NuqsTestingAdapter>
       </NextIntlClientProvider>
     ),
     ...options,

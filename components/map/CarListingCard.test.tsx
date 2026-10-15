@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
-import { makeFavoriteInput } from "@/test/fixtures/favorites";
+import { makeFavoriteInput } from "@/test/fixtures/favorite-listings";
 import type { CarListing } from "@/interfaces/listing";
 import { CarListingCard } from "./CarListingCard";
 
@@ -101,14 +101,6 @@ describe("CarListingCard", () => {
 });
 
 describe("CarListingCard favorites", () => {
-  it("FAV-9: renders an already-saved listing in the saved state without asking the server", () => {
-    renderWithI18n(<CarListingCard {...listing} isFavorite />);
-
-    expect(favoriteControl()).toHaveAccessibleName(REMOVE);
-    expect(saveFavorite).not.toHaveBeenCalled();
-    expect(removeFavorite).not.toHaveBeenCalled();
-  });
-
   it("FAV-10: flips the control before the save has come back", async () => {
     // Deliberately never resolved: the assertion is about what the user sees
     // while the request is still in flight.
@@ -127,9 +119,12 @@ describe("CarListingCard favorites", () => {
     );
   });
 
-  it("FAV-10: unsaving an already-saved listing calls through to removal", async () => {
+  it("FAV-10: unsaving a listing it saved calls through to removal", async () => {
+    vi.mocked(saveFavorite).mockResolvedValue({ ok: true, value: undefined });
     vi.mocked(removeFavorite).mockResolvedValue({ ok: true, value: undefined });
-    renderWithI18n(<CarListingCard {...listing} isFavorite />);
+    renderWithI18n(<CarListingCard {...listing} />);
+    await userEvent.click(favoriteControl());
+    expect(favoriteControl()).toHaveAccessibleName(REMOVE);
 
     await userEvent.click(favoriteControl());
 
@@ -164,7 +159,7 @@ describe("CarListingCard favorites", () => {
 
   it("FAV-11: puts the control back when the save throws", async () => {
     vi.mocked(saveFavorite).mockRejectedValue(new Error("network down"));
-    renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
+    renderWithI18n(<CarListingCard {...listing} />);
 
     await userEvent.click(favoriteControl());
 
@@ -178,7 +173,7 @@ describe("CarListingCard favorites", () => {
     // same generic copy it reads today (en.authErrors.generic ===
     // en.alertErrors.unexpected === "Something went wrong. Please try again.").
     vi.mocked(saveFavorite).mockRejectedValue(new Error("connection refused"));
-    renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
+    renderWithI18n(<CarListingCard {...listing} />);
 
     await userEvent.click(favoriteControl());
 
@@ -250,32 +245,6 @@ describe("CarListingCard favorites input", () => {
 });
 
 describe("CarListingCard saved-state sync", () => {
-  it("FAV-16: adopts the saved state when it arrives after mount", () => {
-    // The saved set is fetched separately and lands after the card has already
-    // rendered. Seeding useState once would leave an already-saved car showing
-    // as unsaved forever, which is the bug this criterion exists for.
-    const { rerender } = renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
-    expect(favoriteControl()).toHaveAccessibleName(ADD);
-
-    rerender(<CarListingCard {...listing} isFavorite />);
-
-    expect(favoriteControl()).toHaveAccessibleName(REMOVE);
-  });
-
-  it("FAV-16: does not undo a toggle the user just made", async () => {
-    vi.mocked(saveFavorite).mockResolvedValue({ ok: true, value: undefined });
-    const { rerender } = renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
-
-    await userEvent.click(favoriteControl());
-    expect(favoriteControl()).toHaveAccessibleName(REMOVE);
-
-    // A re-render carrying the same prop value must not reset the local
-    // optimistic state back to unsaved.
-    rerender(<CarListingCard {...listing} isFavorite={false} />);
-
-    expect(favoriteControl()).toHaveAccessibleName(REMOVE);
-  });
-
   it("FAV-16: reports the change so the parent's saved set stays in step", async () => {
     vi.mocked(saveFavorite).mockResolvedValue({ ok: true, value: undefined });
     const onFavoriteChange = vi.fn();
@@ -344,13 +313,16 @@ describe("MAPUI-35: CarListingCard — one link, heart outside it", () => {
 
 describe("MAPUI-36: CarListingCard — the heart's accessible name", () => {
   it("MAPUI-36: reads Save when not yet saved", () => {
-    renderWithI18n(<CarListingCard {...listing} isFavorite={false} />);
+    renderWithI18n(<CarListingCard {...listing} />);
 
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
-  it("MAPUI-36: reads Remove from saved once saved", () => {
-    renderWithI18n(<CarListingCard {...listing} isFavorite />);
+  it("MAPUI-36: reads Remove from saved once saved", async () => {
+    vi.mocked(saveFavorite).mockResolvedValue({ ok: true, value: undefined });
+    renderWithI18n(<CarListingCard {...listing} />);
+
+    await userEvent.click(favoriteControl());
 
     expect(screen.getByRole("button", { name: "Remove from saved" })).toBeInTheDocument();
   });

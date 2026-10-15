@@ -339,7 +339,8 @@ Two frames are drawn for every screen: desktop at 1440 × 900 and phone at 390 �
   Phone: the map full screen, the search summary and the filters row floating on top, the results in a
   bottom sheet over the tab bar. List and map stay in sync on every screen
   with a map (Mapa, Guardados, Alertas).
-- **Pages.** Saved cars and alerts are never without a map on desktop (an 830px list beside it);
+- **Pages.** Saved cars and alerts are never without a map on desktop (a list beside it, 546px wide
+  from 1024px and 830px from 1280px);
   account is a three-column grid of cards with no map; legal pages are a 720px reading column with an
   index; sign-in screens put the headline left and the form right.
 - **Hit targets.** At least 44px on a phone; fields at 16px.
@@ -426,7 +427,9 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   [Select](docs/design/system/components/Select/README.md).
 
 ### Toast
-- `surface`, 1px `line`, `radius-card`, `shadow-float`, 380px at most, top centre; a 18px icon
+- `surface`, 1px `line`, `radius-card`, `shadow-float`, 380px at most, 12px under the header (under
+  the filter row on the desktop map), centred over the list column where a map sits beside a list and
+  on the viewport elsewhere; each page sets it with `data-toast-anchor`. A 18px icon
   (`lime` success, `danger` failure), 15px text, an optional `lime` ghost action and a 32px close button
   with an `aria-label`. Never for a form error. [Toast](docs/design/system/components/Toast/README.md).
 
@@ -450,8 +453,8 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   border. [HeaderNav](docs/design/system/components/HeaderNav/README.md).
 - **Tab bar:** on a phone, a full-width `surface` bar along the bottom with a 1px `line` top border:
   64px tabs plus the safe area. Signed in, four tabs — Mapa · Guardados · Alertas · Cuenta — each an
-  icon over an 11px label; the current one is `violet` with a bolder label and
-  `aria-current="page"`, and «Cuenta» shows the user's initial. Signed out, on the map, two tabs: Mapa
+  icon over an 11px label; the current one has a `violet` icon and its label in `text` at weight 800
+  (violet text on `surface` fails 4.5:1), with `aria-current="page"`, and «Cuenta» shows the user's initial. Signed out, on the map, two tabs: Mapa
   and Entrar. It is on the map, Guardados, Alertas, an alert's page and Cuenta, and the signed-in
   landing, with no tab marked, never at desktop width.
   On the map it hides only while the results sheet is full; on the pages it hides while scrolling down

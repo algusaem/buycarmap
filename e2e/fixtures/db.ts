@@ -84,6 +84,56 @@ export async function favoriteCount(email: string): Promise<number> {
   });
 }
 
+/** One saved car to write straight into `favorites`, with the instant it was saved. */
+export interface SeedFavorite {
+  listingId: string;
+  title: string;
+  price: number;
+  mileage: number;
+  location: string;
+  lat: number;
+  lng: number;
+  savedAt: Date;
+  year?: number;
+}
+
+/**
+ * Saves `cars` for the account directly in Postgres (docs/specs/redesign-saved.md,
+ * SAVED-3 to SAVED-29). Two hundred saves through the UI would take minutes, and
+ * the order the page shows depends on `created_at`, which only a direct insert
+ * can set. The image is empty, so every card draws the car's tint and no
+ * `next/image` request is made. Global teardown removes the rows with the
+ * account, by cascade.
+ */
+export async function seedFavorites(email: string, cars: SeedFavorite[]): Promise<void> {
+  await withClient(async (client) => {
+    const result = await client.query("SELECT id FROM users WHERE email = $1", [email]);
+    const userId = result.rows[0].id as string;
+    for (const car of cars) {
+      // DATA-1: `id` has no database default (Prisma mints a UUIDv7), so a raw insert mints one.
+      await client.query(
+        `INSERT INTO favorites(id, user_id, listing_id, source, title, subtitle, image, brand, model,
+           location, fuel, url, price, mileage, year, lat, lng, created_at, updated_at)
+         VALUES ($1, $2, $3, 'Wallapop', $4, '', '', '', '', $5, 'gasoil', $6, $7, $8, $9, $10, $11, $12, now())`,
+        [
+          randomUUID(),
+          userId,
+          car.listingId,
+          car.title,
+          car.location,
+          `https://es.wallapop.com/item/${car.listingId}`,
+          car.price,
+          car.mileage,
+          car.year ?? 2018,
+          car.lat,
+          car.lng,
+          car.savedAt,
+        ],
+      );
+    }
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Alert queue helpers (ALERT-13, ALERT-14)
 //

@@ -332,3 +332,14 @@ describe("MAPUI-39: CreateAlert — the phone sheet's focus", () => {
     expect(screen.getByRole("button", { name: "Abrir" })).toHaveFocus();
   });
 });
+
+describe("SAVED-41: the phone sheet keeps «Cancelar»", () => {
+  it("SAVED-41: the phone «Crear alerta» sheet has «Cancelar» and no «Cerrar»", async () => {
+    renderWithI18n(<CreateAlert {...BASE} />, { locale: "es" });
+
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet.querySelector("[data-sheet-handle]")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cerrar" })).not.toBeInTheDocument();
+  });
+});

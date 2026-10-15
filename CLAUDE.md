@@ -78,7 +78,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prism
 with the **`@prisma/adapter-pg`** driver adapter · Better Auth (Postgres sessions) ·
 React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
 `components/ui/*`, plus Popover, Dialog and Slider used directly by the map and the create-alert
-dialog (ADR 0020) · Motion · Sonner · Leaflet + react-leaflet ·
+dialog (ADR 0020) · TanStack Virtual (the saved cars list, ADR 0021) · Motion · Sonner · Leaflet + react-leaflet ·
 Lucide React and React Icons · next-intl (i18n) · nuqs (URL state) · date-fns
 and `@date-fns/tz` (formatting).
 

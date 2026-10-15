@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { makeFavoriteInput } from "@/test/fixtures/favorites";
+import { makeFavoriteInput } from "@/test/fixtures/favorite-listings";
 
 const useSession = vi.fn();
 vi.mock("@/lib/auth/auth-client", () => ({

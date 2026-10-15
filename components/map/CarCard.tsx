@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 import Image from "next/image";
 import { Car, Heart } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 // docs/specs/redesign-map.md (MAPUI-35 to MAPUI-38);
 // docs/design/system/components/ListingCard/README.md. The car card the map's
-// list and results sheet, /favorites and an alert's matches all render: the
+// list and results sheet and an alert's matches render: the
 // photo (or the car's tint with the car icon), the source badge and the heart
 // over it, the name with the city beside it, «año · km · combustible» and the
 // price. The whole card is one link to the listing in a new tab; the heart is
@@ -49,12 +49,24 @@ function fuelLabel(fuel: string, t: LocaleCopy["t"]): string {
   return group ? t(`filters.fuelGroups.${group}`) : "";
 }
 
-/** «año · km · combustible», each part only when the listing has it. */
-export function listingMeta(listing: CarListing, { t, locale }: LocaleCopy): string {
+/** Which parts follow «año · km»: the fuel (the map's cards), or the city (Guardados' phone row, SAVED-19). */
+type MetaTail = "fuel" | "city" | "none";
+
+/**
+ * «año · km · combustible», each part only when the listing has it. The
+ * Guardados card drops the fuel («año · km», SAVED-9) and the phone row puts
+ * the city in its place («año · km · ciudad», SAVED-19).
+ */
+export function listingMeta(
+  listing: CarListing,
+  { t, locale }: LocaleCopy,
+  tail: MetaTail = "fuel",
+): string {
   const parts = [
     listing.year > 0 ? String(listing.year) : "",
     listing.mileage > 0 ? formatMileage(listing.mileage, locale) : "",
-    fuelLabel(listing.fuel, t),
+    tail === "fuel" ? fuelLabel(listing.fuel, t) : "",
+    tail === "city" ? listing.location : "",
   ];
   return parts.filter((part) => part !== "").join(" · ");
 }
@@ -65,10 +77,21 @@ interface CarPhotoProps {
   alt: string;
   sizes: string;
   className?: string;
+  /** The source badge over the photo; the phone row's thumbnail goes without (SAVED-19). */
+  badge?: boolean;
+  /** The car icon's size over the tint when there is no photo. */
+  iconClassName?: string;
 }
 
 /** The listing's photo, or its tint with the car icon when it has none or it fails to load. */
-export function CarPhoto({ listing, alt, sizes, className }: CarPhotoProps) {
+export function CarPhoto({
+  listing,
+  alt,
+  sizes,
+  className,
+  badge = true,
+  iconClassName = "size-15",
+}: CarPhotoProps) {
   const [failed, setFailed] = useState(false);
   const showImage = listing.image !== "" && !failed;
 
@@ -91,11 +114,77 @@ export function CarPhoto({ listing, alt, sizes, className }: CarPhotoProps) {
         />
       )}
       {!showImage && (
-        <Car aria-hidden="true" strokeWidth={1.1} className="size-15 text-photo-icon" />
+        <Car
+          aria-hidden="true"
+          strokeWidth={1.1}
+          className={cn("text-photo-icon", iconClassName)}
+        />
       )}
-      <SourceBadge source={listing.source} className="absolute top-3 left-3" />
+      {badge && <SourceBadge source={listing.source} className="absolute top-3 left-3" />}
     </div>
   );
+}
+
+interface CarNameProps extends ComponentProps<"strong"> {
+  title: string;
+}
+
+/** The car's name, truncated on one line. It spreads its props, so a dialog can make it its title (`asChild`). */
+export function CarName({ title, className, ...props }: CarNameProps) {
+  return (
+    <strong className={cn("min-w-0 truncate text-base font-bold text-text", className)} {...props}>
+      {title}
+    </strong>
+  );
+}
+
+interface CarNameRowProps {
+  listing: CarListing;
+  /** The name when it needs a wrapper (the car sheet's dialog title); the plain `CarName` otherwise. */
+  name?: ReactNode;
+  className?: string;
+}
+
+/** The name with the city beside it. The city truncates too, and never takes more than two fifths of the row. */
+export function CarNameRow({ listing, name, className }: CarNameRowProps) {
+  return (
+    <span className={cn("flex min-w-0 items-baseline justify-between gap-2", className)}>
+      {name ?? <CarName title={listing.title} />}
+      <span className="min-w-0 max-w-2/5 truncate text-sm text-text-muted">{listing.location}</span>
+    </span>
+  );
+}
+
+interface CarMetaProps {
+  listing: CarListing;
+  tail?: MetaTail;
+  className?: string;
+}
+
+/** The meta line, «año · km · combustible» by default (listingMeta), in tabular figures; nothing when no part is known. */
+export function CarMeta({ listing, tail = "fuel", className }: CarMetaProps) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const meta = listingMeta(listing, { t, locale }, tail);
+  if (meta === "") return null;
+
+  return (
+    <span className={cn("truncate text-sm text-text-muted tabular-nums", className)}>{meta}</span>
+  );
+}
+
+/**
+ * Hovering or focusing a card marks its pin (MAPUI-28): the four handlers a
+ * card's root spreads, or none when the card does not track it.
+ */
+export function activeHandlers(onActiveChange: ((active: boolean) => void) | undefined) {
+  if (!onActiveChange) return {};
+  return {
+    onMouseEnter: () => onActiveChange(true),
+    onMouseLeave: () => onActiveChange(false),
+    onFocus: () => onActiveChange(true),
+    onBlur: () => onActiveChange(false),
+  };
 }
 
 interface HeartButtonProps {
@@ -166,7 +255,6 @@ export function CarCard({
 }: CarCardProps) {
   const t = useTranslations();
   const locale = useLocale();
-  const meta = listingMeta(listing, { t, locale });
   const tracksActive = onActiveChange !== undefined;
 
   return (
@@ -176,10 +264,7 @@ export function CarCard({
       // Focusable from script only, so focusing its link (which bubbles here)
       // and a programmatic focus both mark the pin, without a second tab stop.
       tabIndex={tracksActive ? -1 : undefined}
-      onMouseEnter={tracksActive ? () => onActiveChange(true) : undefined}
-      onMouseLeave={tracksActive ? () => onActiveChange(false) : undefined}
-      onFocus={tracksActive ? () => onActiveChange(true) : undefined}
-      onBlur={tracksActive ? () => onActiveChange(false) : undefined}
+      {...activeHandlers(onActiveChange)}
       className="relative scroll-mt-4 outline-none"
     >
       <a
@@ -199,16 +284,8 @@ export function CarCard({
           )}
         />
         <span className="flex min-w-0 flex-col gap-0.75">
-          <span className="flex min-w-0 items-baseline justify-between gap-2">
-            <strong className="min-w-0 truncate text-base font-bold text-text">
-              {listing.title}
-            </strong>
-            {/* The city truncates too, and never takes more than two fifths of the row. */}
-            <span className="min-w-0 max-w-2/5 truncate text-sm text-text-muted">
-              {listing.location}
-            </span>
-          </span>
-          {meta !== "" && <span className="truncate text-sm text-text-muted">{meta}</span>}
+          <CarNameRow listing={listing} />
+          <CarMeta listing={listing} />
           <span className="mt-1.5 font-display text-price font-extrabold text-lime tabular-nums">
             {formatPrice(listing.price, locale)}
           </span>

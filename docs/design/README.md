@@ -30,7 +30,7 @@ violet accent, the illustrations and every F0 screen — and is not kept in sync
 ## The canvas
 
 Page "Pantallas", every screen in journey order, each artboard a desktop screen (1440 × 900)
-beside its phone screen (390 × 844); the landing and sign in also carry a laptop screen (1024 × 900):
+beside its phone screen (390 × 844); the landing, sign in and saved cars also carry a laptop screen (1024 × 900):
 
 - `R3-landing.dc.html`, `R3-login.dc.html` — the landing and sign in.
 - `F0-registro.dc.html`, `F0-confirmar.dc.html`, `F0-contrasena.dc.html`,
@@ -46,8 +46,10 @@ beside its phone screen (390 × 844); the landing and sign in also carry a lapto
   the search row and the «Buscar» sheet it opens.
 - `F0-estado-cargando.dc.html`, `F0-estado-sin-resultados.dc.html`,
   `F0-estado-error-busqueda.dc.html` — the map loading, with no results and with a failed search.
-- `R3-favoritos.dc.html`, `F5-guardados-coche.dc.html`, `F0-estado-guardados-vacio.dc.html` — saved cars, with
-  a car open (the preview on desktop, the car sheet on the phone), and empty.
+- `R3-favoritos.dc.html`, `F5-guardados-coche.dc.html`, `F5-guardados-estados.dc.html`,
+  `F0-estado-guardados-vacio.dc.html` — saved cars, with a car open (the preview on desktop, the car sheet
+  on the phone), on a laptop, scrolled down a long list, with several cars at one point on the map,
+  after removing one (desktop and phone), loading, and empty.
 - `R3-alertas.dc.html`, `F6-alerta.dc.html`, `F6-alerta-estados.dc.html`, `F0-estado-alertas-vacio.dc.html` —
   alerts; an alert's page on the phone; that page scrolled to the end, a match open, the delete
   confirmation and an alert with no matches (phones only); and no alerts.

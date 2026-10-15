@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { Headline } from "./Headline";
 
 interface EmptyStateProps {
@@ -12,6 +12,8 @@ interface EmptyStateProps {
   children: ReactNode;
   /** The headline's level: `h2` under a page's own heading, `h1` where it is the page's only one. */
   headingLevel?: "h1" | "h2";
+  /** The headline, for a caller that moves the focus to it (SAVED-18). */
+  headingRef?: Ref<HTMLHeadingElement>;
 }
 
 // docs/design/system/components/EmptyState/README.md: what a list shows when
@@ -25,6 +27,7 @@ export function EmptyState({
   line,
   children,
   headingLevel = "h2",
+  headingRef,
 }: EmptyStateProps) {
   return (
     <div className="flex max-w-155 flex-col gap-4 lg:gap-5.5">
@@ -32,6 +35,7 @@ export function EmptyState({
         question={question}
         punchline={punchline}
         level={headingLevel}
+        ref={headingRef}
         className="text-empty-title-mobile lg:text-empty-title"
       />
       <p className="m-0 text-body-15 text-text-muted lg:text-empty-line">{line}</p>

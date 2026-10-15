@@ -2,7 +2,7 @@
 
 Key: FAV
 Status: Implemented
-Last updated: 2026-10-13
+Last updated: 2026-10-15
 
 ---
 
@@ -35,11 +35,11 @@ signed-out and failure behaviours of the control.
 - [x] FAV-7 · node — A save with a blank listing id, an unknown source, or a missing title is rejected with an error code and writes nothing
 - [x] FAV-8 · node + e2e — Listing favorites returns only the caller’s own, newest first
 - [x] FAV-9 · component — A card for an already-saved listing renders in the saved state on first paint, without waiting for a request
-- [x] FAV-10 · component — Toggling the control updates it immediately, before the server has responded
-- [x] FAV-11 · component — When the save fails, the control returns to its previous state and the failure is surfaced as a toast
+- [x] FAV-10 · component — Toggling the control updates it immediately, before the server has responded — on `/favorites` the toggle is the removal: the car leaves the list and the map at once, with «Quitado de guardados» and «Deshacer» (SAVED-14, SAVED-15) (amended 2026-10-15, SAVED — redesign-saved.md)
+- [x] FAV-11 · component — When the save fails, the control returns to its previous state and the failure is surfaced as a toast — on `/favorites` a failed removal puts the car back in its place, and a failed undo takes it out again, each with the error toast (SAVED-16, SAVED-17) (amended 2026-10-15, SAVED — redesign-saved.md)
 - [x] FAV-12 · component — For a signed-out visitor the control leads to sign-in, and returns to where they were afterwards — the return keeps the full current path and query, so the search survives the sign-in (MAPUI-37) (amended 2026-10-13, MAPUI — redesign-map.md)
-- [x] FAV-13 · component — The favorites page renders each saved listing from stored data, with no request to any source API
-- [x] FAV-14 · component — With nothing saved, the favorites page shows an empty state offering a way back to search
+- [x] FAV-13 · component — The favorites page renders each saved listing from stored data, with no request to any source API — as the Guardados card and the map at desktop width, and as the compact row and its car sheet at phone width (SAVED-9, SAVED-12, SAVED-19, SAVED-20) (amended 2026-10-15, SAVED — redesign-saved.md)
+- [x] FAV-14 · component — With nothing saved, the favorites page shows an empty state offering a way back to search — «¿Aún nada?» over «Guarda alguno», its line and «Buscar coches» to `/map`, with the saved map's pill «Aquí saldrán tus guardados» at desktop width (SAVED-31) (amended 2026-10-15, SAVED — redesign-saved.md)
 - [x] FAV-15 · node — Visiting the favorites page without a session redirects to sign-in, carrying the intended path
 - [x] FAV-16 · component + e2e — A listing the user has already saved appears saved in search results, not just on the favorites page
 - [x] FAV-17 · component — A signed-in user can reach their saved cars from every header and from the bottom nav (amended 2026-10-12, HEAD — redesign-navigation.md) — the phone map gains its own link: «Guardados» in the phone tab bar, which replaces the bottom nav (MAPUI-52) (amended 2026-10-13, MAPUI — redesign-map.md)
@@ -68,7 +68,7 @@ matching `favorites Favorite[]` relation field on `User`:
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
+| `id` | `String @id @default(cuid())` | Amended 2026-10-15 (SAVED — redesign-saved.md): `String @id @default(uuid(7)) @db.Uuid` today (`prisma/schema.prisma`) |
 | `userId` | `String` | Indexed; cascade on user delete |
 | `listingId` | `String` | The normalized, source-prefixed id |
 | `source` | `String` | `Wallapop` / `Coches.net` / `Milanuncios` |
@@ -120,7 +120,9 @@ Contracts › Routing). For a signed-out visitor the control leads to sign-in
 - **Favorites for signed-out visitors**, stored locally and merged on sign-in.
   See FAV-12 and the first open question.
 - **Sorting, filtering, or paginating the favorites page.** Revisit when a real
-  user has more than a screenful.
+  user has more than a screenful. — Sorting is in scope since F5: «Recientes · Precio · Km» at
+  desktop width, in the URL (SAVED-5 to SAVED-8). Filtering and paginating stay out: the long list
+  is virtualised, not paged (SAVED-25). (amended 2026-10-15, SAVED — redesign-saved.md)
 
 ## Contracts
 
@@ -136,7 +138,10 @@ never prose:
 - `listFavorites()` — FAV-8
 
 Error codes in `server/favorites/schema.ts`, mirroring the `AUTH_ERROR` shape:
-`unauthenticated`, `invalidListing`, `unexpected`.
+`unauthenticated`, `invalidListing`, `unexpected`. — Amended 2026-10-15 (SAVED —
+redesign-saved.md): `FAVORITE_ERROR` holds `unauthenticated` and `invalidListing` only; there is no
+`unexpected` code. A thrown error reaches the heart as a throw, and `useFavoriteToggle` shows
+`alertErrors.unexpected` for it (PLAT-12).
 
 ### Routing
 
@@ -148,7 +153,9 @@ Error codes in `server/favorites/schema.ts`, mirroring the `AUTH_ERROR` shape:
 
 `t.map.addFavorite` and `t.map.removeFavorite` already exist in both locales.
 New keys needed in `en.ts`, `es.ts` and `types.ts`: a favorites page title, the
-empty state and its call to action, and the save-failed toast.
+empty state and its call to action, and the save-failed toast. — Amended 2026-10-15 (SAVED —
+redesign-saved.md): the messages are `messages/en.json` and `messages/es.json`, typed by
+`lib/i18n/types.ts`. F5's keys are listed in redesign-saved.md › Contracts.
 
 ## Decisions and rationale
 
@@ -174,6 +181,12 @@ reverse-engineered, rate-limited, and already known to fail intermittently
 for a page that always renders is the right way round; a favorites page that is
 blank because Wallapop is having a bad afternoon is worse than one showing
 last week's price.
+
+Amended 2026-10-15 (SAVED — redesign-saved.md, owner decision): the page no
+longer states the staleness. The subtitle «Los precios son del día en que los
+guardaste.» is removed, as in the design. The snapshot stays as saved and is not
+refreshed: refreshing each saved listing's price and availability is
+[#128](https://github.com/algusaem/buycarmap/issues/128).
 
 ### Identity is the normalized listing id
 
@@ -202,6 +215,11 @@ Because the saved set resolves after the cards have mounted, the card adjusts
 its state during render when the prop changes rather than seeding `useState`
 once. An effect would paint the wrong state and then correct it, which is a
 visible flicker on every search.
+
+Note (2026-10-15): `CarListingCard` no longer takes the saved state — the prop
+was removed with its last caller. FAV-9 is now proven in
+`components/map/CarCard.test.tsx`, and FAV-16 in `components/map/MapView.test.tsx`
+and `lib/hooks/useFavorites.test.tsx`.
 
 ### "Loading" is not "signed out"
 
@@ -258,7 +276,10 @@ Recorded as an open question rather than an assumption.
 
 Deleting a user must delete their favorites. That is `onDelete: Cascade`,
 enforced by Postgres — and this project has no test database, so no test in this
-repo can prove it. Rather than write a criterion that can only be verified by
+repo can prove it. (Amended 2026-10-15, SAVED — redesign-saved.md: no longer
+true. The Vitest integration project runs against real Postgres through
+Testcontainers, ADR 0014, and `server/favorites/actions.integration.test.ts`
+uses it. No FAV criterion has been added for the cascade.) Rather than write a criterion that can only be verified by
 mocking the very thing under test, it is specified in Data model as a schema
 requirement and left to review. Writing FAV-n for it would have produced a test
 that asserts Prisma was called with the right arguments, which proves nothing
@@ -285,7 +306,9 @@ about whether the constraint exists.
    unauthenticated surfaces where the abuse is enumeration and credential
    stuffing; applying it here would be reflex rather than reasoning. Revisit if
    a real abuse pattern appears.
-4. **Decided: not now.** The coordinates are snapshotted so it stays cheap to
+4. **Decided: not now.** — Superseded 2026-10-15 (SAVED — redesign-saved.md):
+   the redesign's Guardados page has the map, one pin per saved car, built in F5
+   (SAVED-11 to SAVED-13). The coordinates are snapshotted so it stays cheap to
    add, and nobody has asked for it. Building it because it is easy is how
    features arrive without anyone wanting them. Original note: The coordinates are
    snapshotted, so it is cheap to add later; not specified here because nobody

@@ -1,8 +1,15 @@
 "use client";
 
-import type { ReactNode, Ref, RefObject } from "react";
+import type { ComponentProps, ReactNode, Ref, RefObject } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { AnimatePresence } from "motion/react";
+import {
+  AnimatePresence,
+  animate,
+  type PanInfo,
+  useDragControls,
+  useMotionValue,
+  useReducedMotion,
+} from "motion/react";
 import * as motion from "motion/react-client";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -12,7 +19,8 @@ import { cn } from "@/lib/utils";
 
 // docs/design/system/components/SearchPopover/README.md (la hoja «BUSCAR») and
 // FilterSheet/README.md: the frame the «BUSCAR» sheet and the filters panel
-// share. A 70px header with the 40px close button, the Unbounded title (the
+// share. A 70px header with the 40px close button (visually hidden in the
+// «BUSCAR» sheet, which closes by dragging its handle down), the Unbounded title (the
 // dialog's `h2`, over the sections' `h3`s) and the underlined «Borrar», and a
 // footer with the 56px «Ver coches». Also the bottom-sheet frame the «BUSCAR»
 // sheet and Crear alerta's phone sheet share (PhoneBottomSheet).
@@ -59,15 +67,31 @@ interface PhoneBottomSheetProps {
   children: ReactNode;
 }
 
+// docs/specs/redesign-saved.md (SAVED-37 to SAVED-39, worked example "Drag to
+// close"); BottomSheet/README.md › Arrastrar para cerrar. How far down the
+// handle must go, in px, or how fast the release must move down, in px/s, for
+// the sheet to close; anything less springs it back.
+const DRAG_CLOSE_OFFSET = 100;
+const DRAG_CLOSE_VELOCITY = 800;
+/** How much the sheet gives when pulled up past where it sits. */
+const DRAG_TOP_ELASTIC = 0.1;
+const SPRING_BACK = { type: "spring", stiffness: 500, damping: 40 } as const;
+
+/** Whether letting go of the handle closes the sheet (SAVED-39). */
+export function shouldDragClose(offsetY: number, velocityY: number): boolean {
+  return offsetY > DRAG_CLOSE_OFFSET || velocityY > DRAG_CLOSE_VELOCITY;
+}
+
 /**
  * A modal bottom sheet on a phone (BottomSheet/README.md › Hojas modales): a
  * Radix dialog over the dimmed screen, `surface`, the top `line` border and
- * `radius-sheet` corners, with the 40 × 5 `handle` centred on top. It
- * animates in and out with Motion, closes with Escape or a press outside, and
- * gives the focus back to its opener (returnFocusTo). The caller draws the
- * title (a `Dialog.Title`) and everything under the handle. `fullScreen`
- * covers the whole viewport instead (the filters panel's phone dialog):
- * neither the dimmed overlay nor the handle apply then.
+ * `radius-sheet` corners, with the 40 × 5 `handle` centred on top. It shows no
+ * close «×»: it closes when its handle is dragged down (SheetPanel), with
+ * Escape or a press outside, and gives the focus back to its opener
+ * (returnFocusTo). The caller draws the title (a `Dialog.Title`) and
+ * everything under the handle. `fullScreen` covers the whole viewport instead
+ * (the filters panel's phone dialog): neither the dimmed overlay, the handle
+ * nor the drag apply then.
  */
 export function PhoneBottomSheet({
   open,
@@ -106,20 +130,81 @@ export function PhoneBottomSheet({
               onCloseAutoFocus={returnFocusTo(returnFocusRef)}
               className={cn(fullScreen ? FULL_SCREEN_CLASS : BOTTOM_SHEET_CLASS, className)}
             >
-              <motion.div ref={contentRef} {...SHEET_MOTION[entrance]}>
-                {!fullScreen && (
-                  <span
-                    aria-hidden="true"
-                    className="h-1.25 w-10 shrink-0 self-center rounded-pill bg-handle"
-                  />
-                )}
+              <SheetPanel
+                ref={contentRef}
+                {...SHEET_MOTION[entrance]}
+                draggable={!fullScreen}
+                onDragClose={onClose}
+              >
                 {children}
-              </motion.div>
+              </SheetPanel>
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         )}
       </AnimatePresence>
     </DialogPrimitive.Root>
+  );
+}
+
+type SheetPanelProps = Omit<ComponentProps<typeof motion.div>, "children"> & {
+  /** A bottom sheet: the handle on top, which drags the sheet down to close it. */
+  draggable: boolean;
+  onDragClose: () => void;
+  children: ReactNode;
+};
+
+/**
+ * The sheet itself, the Radix dialog's content. Mounted on each opening, so a
+ * drag never carries over to the next one. The drag starts from the handle
+ * strip only (`dragListener={false}`), so the sheet's own scroll is never
+ * taken over: down it follows the finger, up it barely gives. On release it
+ * closes past the threshold (shouldDragClose), or springs back, at once with
+ * reduced motion.
+ */
+function SheetPanel({ draggable, onDragClose, children, style, ...props }: SheetPanelProps) {
+  const dragControls = useDragControls();
+  const y = useMotionValue(0);
+  const reduceMotion = useReducedMotion();
+
+  function onDragEnd(_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) {
+    if (shouldDragClose(info.offset.y, info.velocity.y)) {
+      onDragClose();
+      return;
+    }
+    if (reduceMotion) {
+      y.set(0);
+      return;
+    }
+    animate(y, 0, SPRING_BACK);
+  }
+
+  return (
+    <motion.div
+      {...props}
+      style={{ ...style, y }}
+      drag={draggable ? "y" : false}
+      dragControls={dragControls}
+      dragListener={false}
+      dragMomentum={false}
+      dragConstraints={{ top: 0 }}
+      dragElastic={{ top: DRAG_TOP_ELASTIC }}
+      onDragEnd={onDragEnd}
+    >
+      {draggable && (
+        // The strip over the sheet's top padding and the handle, full width,
+        // a little into the gap under it: what a thumb grabs. Pointer-only:
+        // the keyboard closes with Escape or «Cerrar».
+        <div
+          data-sheet-handle=""
+          aria-hidden="true"
+          onPointerDown={(event) => dragControls.start(event)}
+          className="relative z-10 -mt-2.5 -mb-2 flex shrink-0 cursor-grab touch-none justify-center self-stretch pt-2.5 pb-2 active:cursor-grabbing"
+        >
+          <span className="h-1.25 w-10 rounded-pill bg-handle" />
+        </div>
+      )}
+      {children}
+    </motion.div>
   );
 }
 
@@ -147,22 +232,42 @@ interface SheetHeaderProps {
   closeLabel: string;
   onClose: () => void;
   onClear: () => void;
+  /**
+   * A bottom sheet's header (the «BUSCAR» sheet): the close button is
+   * visually hidden, for screen readers and the keyboard, and shows in its
+   * place only with keyboard focus (SAVED-41). The full-screen filters panel
+   * keeps it drawn.
+   */
+  hideClose?: boolean;
 }
 
 /** The phone header: close, the dialog's title, «Borrar». Inside a Radix Dialog only. */
-export function SheetHeader({ title, closeLabel, onClose, onClear }: SheetHeaderProps) {
+export function SheetHeader({
+  title,
+  closeLabel,
+  onClose,
+  onClear,
+  hideClose = false,
+}: SheetHeaderProps) {
   return (
     <div className="grid h-17.5 shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-line-soft px-5">
-      <Button
-        type="button"
-        variant="icon"
-        size="icon-40"
-        aria-label={closeLabel}
-        onClick={onClose}
-        className="justify-self-start"
-      >
-        <X aria-hidden="true" className="size-3.5" />
-      </Button>
+      {/* Its own grid cell, so a hidden close (out of the flow) still leaves
+          the title in the middle column. */}
+      <span className="flex justify-self-start">
+        <Button
+          type="button"
+          variant="icon"
+          size="icon-40"
+          aria-label={closeLabel}
+          onClick={onClose}
+          className={cn(
+            hideClose &&
+              "sr-only not-focus-visible:size-px focus-visible:not-sr-only focus-visible:size-10",
+          )}
+        >
+          <X aria-hidden="true" className="size-3.5" />
+        </Button>
+      </span>
       <DialogPrimitive.Title className="m-0 font-display text-base font-extrabold uppercase">
         {title}
       </DialogPrimitive.Title>

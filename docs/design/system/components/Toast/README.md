@@ -6,5 +6,6 @@ El aviso que confirma o explica algo que acaba de pasar. Es la tarjeta flotante 
 - Icono de 18px (trazo 2,4) a la izquierda: `check-circle` en `lime` si salió bien, `alert-circle` en `danger` si falló. El texto, en `text` a 15px peso 600, una frase corta. Sin punto final.
 - Una acción opcional («Deshacer») como botón fantasma con el texto en `lime`: es lo que puedes hacer ahora. Y el botón de cerrar de 32px, con la `x` de 16px en `text-muted` y `aria-label`.
 - En móvil, a 16px de los lados y 12px por debajo de la cabecera. Al quitar un guardado: «Quitado de guardados» con «Deshacer».
+- En escritorio, quitar un guardado con el corazón de una tarjeta o el de la vista previa saca la tarjeta de la cuadrícula y da el mismo aviso, arriba sobre la lista, a 12px de la cabecera.
 - Nunca para un error de formulario: eso va junto al campo.
 - Sonner lo anima; se anuncia con `aria-live="polite"`.

@@ -70,6 +70,24 @@ describe("MAPUI-52: TabBar — signed in", () => {
     expect(screen.getByRole("link", { name: /Mapa/ })).not.toHaveAttribute("aria-current");
   });
 
+  // Amended by docs/specs/redesign-saved.md (SAVED-33, Decisions › The current
+  // tab's label in the text colour): the current tab's icon stays violet and
+  // its label takes the text colour at weight 800; the others stay muted.
+  it("MAPUI-52: on /favorites, signed in, «Guardados» is current, violet at weight 800 with its label in the text colour, and «Mapa» stays muted", () => {
+    pathname.mockReturnValue("/favorites");
+    renderWithI18n(<TabBar />, { locale: "es" });
+
+    const saved = screen.getByRole("link", { name: /Guardados/ });
+    expect(saved).toHaveAttribute("aria-current", "page");
+    expect(saved).toHaveClass("text-violet", "font-extrabold");
+    expect(screen.getByText("Guardados")).toHaveClass("text-text");
+
+    const map = screen.getByRole("link", { name: /Mapa/ });
+    expect(map).not.toHaveAttribute("aria-current");
+    expect(map).toHaveClass("text-text-muted");
+    expect(screen.getByText("Mapa")).not.toHaveClass("text-text");
+  });
+
   it("MAPUI-52: /map marks Mapa current, and nothing else", () => {
     renderWithI18n(<TabBar />, { locale: "es" });
 

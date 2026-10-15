@@ -253,11 +253,14 @@ test.describe("HEAD-19: favorites and alerts scroll past the bottom nav", () => 
         await page.waitForTimeout(500);
 
         // Simulates a long list: appends a 3,000px filler plus a trailing
-        // marker inside the page root, so the page is taller than the
+        // marker inside the scrolling root, so the page is taller than the
         // viewport exactly as the bug's worked example describes (HEAD-19).
-        await page.evaluate(() => {
-          const root = document.querySelector('[class*="mx-auto"]');
-          if (!root) throw new Error("page root (mx-auto container) not found");
+        // Each route's own scrolling root: /favorites' list column, /alerts' centred container.
+        const rootSelector =
+          route === "/favorites" ? '[data-testid="saved-list"]' : '[class*="mx-auto"]';
+        await page.evaluate((selector) => {
+          const root = document.querySelector(selector);
+          if (!root) throw new Error(`scrolling root ${selector} not found`);
           const filler = document.createElement("div");
           filler.id = "__e2e_filler";
           filler.style.height = "3000px";
@@ -266,7 +269,7 @@ test.describe("HEAD-19: favorites and alerts scroll past the bottom nav", () => 
           marker.id = "__e2e_marker";
           marker.style.height = "1px";
           root.appendChild(marker);
-        });
+        }, rootSelector);
 
         const marker = page.locator("#__e2e_marker");
 

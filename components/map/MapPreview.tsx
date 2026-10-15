@@ -70,6 +70,11 @@ export interface PreviewProps {
 // never a bare `map.closePopup()` that could close a different pin's popup —
 // which then tears the (real) Leaflet popup down and lets the existing
 // popupclose handler return focus to the pin.
+//
+// A car that leaves an open grouped preview (removed on /favorites, SAVED-14)
+// fades out on its own, and one that comes back (an undo) fades in; the cars
+// there when the preview opens are drawn at once, so /map's preview is as it
+// was.
 export function MapPreview({
   group,
   favoriteIds,
@@ -126,14 +131,16 @@ export function MapPreview({
           aria-label={group.listings.length > 1 ? group.label : t("map.preview")}
           className="flex max-h-120 flex-col gap-4 overflow-y-auto overscroll-contain p-3 font-sans text-text"
         >
-          {group.listings.map((listing, index) => (
-            <PreviewCar
-              key={listing.id}
-              listing={listing}
-              {...savedProps(listing, favoriteIds, onToggleFavorite)}
-              onClose={index === 0 ? () => setClosing(true) : undefined}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {group.listings.map((listing, index) => (
+              <PreviewCar
+                key={listing.id}
+                listing={listing}
+                {...savedProps(listing, favoriteIds, onToggleFavorite)}
+                onClose={index === 0 ? () => setClosing(true) : undefined}
+              />
+            ))}
+          </AnimatePresence>
         </motion.article>
       )}
     </AnimatePresence>
@@ -153,7 +160,7 @@ function PreviewCar({ listing, saved, onToggleSaved, onClose }: PreviewCarProps)
   const locale = useLocale();
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <motion.div {...crossFade} className="flex flex-col gap-2.5">
       <div className="relative">
         <CarPhoto
           listing={listing}
@@ -198,6 +205,6 @@ function PreviewCar({ listing, saved, onToggleSaved, onClose }: PreviewCarProps)
           <ArrowUpRight aria-hidden="true" strokeWidth={2.4} className="size-4" />
         </a>
       </div>
-    </div>
+    </motion.div>
   );
 }

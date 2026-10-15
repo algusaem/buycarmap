@@ -10,7 +10,7 @@ interface RouteErrorProps {
 }
 
 /**
- * Shared `error.tsx` boundary for /favorites, /alerts and /alerts/[id]
+ * Shared `error.tsx` boundary for /alerts and /alerts/[id]
  * (PLAT-14, docs/specs/core-platform.md): a translated message and a retry
  * button that refreshes the route's server data and resets the boundary,
  * instead of the page silently rendering an empty list on a failed read

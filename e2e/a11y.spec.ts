@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mockListingSources } from "./fixtures/network";
-import { e2eEmail, seedUser } from "./fixtures/db";
+import { e2eEmail, seedFavorites, seedUser } from "./fixtures/db";
 
 // FRONT-19 (docs/specs/core-frontend.md, amended 2026-10-12, LOOK —
 // redesign-foundation.md): the contrast rule is no longer disabled, and
@@ -133,3 +133,73 @@ for (const { path, tag } of AUTH_PATHS) {
     },
   );
 }
+
+// docs/specs/redesign-saved.md (SAVED-33, amends FRONT-19): /favorites passes
+// axe at desktop and phone width, with saved cars and with none. The cars are
+// written straight into Postgres, two of them sharing one point so the
+// grouped pin is on the page too.
+const SAVED_CARS = [
+  {
+    listingId: "wallapop-a11y-1",
+    title: "Audi A3 2.0 TDI",
+    price: 14500,
+    mileage: 95000,
+    location: "Madrid",
+    lat: 40.4168,
+    lng: -3.7038,
+    savedAt: new Date("2026-10-01T10:00:00Z"),
+  },
+  {
+    listingId: "wallapop-a11y-2",
+    title: "Toyota Corolla 125H",
+    price: 19750,
+    mileage: 48000,
+    location: "Madrid",
+    lat: 40.4168,
+    lng: -3.7038,
+    savedAt: new Date("2026-09-30T16:00:00Z"),
+  },
+  {
+    listingId: "wallapop-a11y-3",
+    title: "SEAT León 1.5 TSI",
+    price: 16500,
+    mileage: 64000,
+    location: "Barcelona",
+    lat: 41.3874,
+    lng: 2.1686,
+    savedAt: new Date("2026-10-03T09:00:00Z"),
+  },
+];
+
+test.describe("SAVED-33: /favorites under axe", () => {
+  // The checks below wait on the Spanish copy, the default locale; Playwright
+  // negotiates en-US unless told otherwise.
+  test.use({ locale: "es-ES" });
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    for (const withCars of [true, false]) {
+      const state = withCars ? "with saved cars" : "with none";
+      dbTest(
+        `SAVED-33: no serious accessibility violations on /favorites at ${viewport.width}×${viewport.height}, ${state}`,
+        async ({ page }) => {
+          const email = e2eEmail(`a11y-saved-${viewport.width}-${withCars ? "cars" : "none"}`);
+          await seedUser(email, PASSWORD);
+          if (withCars) await seedFavorites(email, SAVED_CARS);
+          await page.setViewportSize(viewport);
+          await signIn(page, email);
+
+          await page.goto("/favorites");
+          await expect(page.getByRole("heading", { level: 1, name: "Guardados" })).toBeVisible({
+            timeout: 15_000,
+          });
+          if (withCars) await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+          else await expect(page.getByText("Guarda alguno")).toBeVisible();
+          expectNoSeriousViolations(await seriousViolations(page));
+        },
+      );
+    }
+  }
+});

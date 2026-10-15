@@ -10,6 +10,9 @@ Superseded in part by [0020](0020-radix-popover-dialog-slider.md), 2026-10-13: t
 packages the map and search redesign adds (`@radix-ui/react-popover`, `@radix-ui/react-dialog`,
 `@radix-ui/react-slider`) are recorded there, by name and use.
 
+Superseded in part by [0021](0021-react-virtual.md), 2026-10-15: `@tanstack/react-virtual`, which
+virtualises the saved cars list, is recorded there, by name and use.
+
 ## Context
 
 BuyCarMap was built before the shared core (`algusaem-claude`: `RULES.md`, `STACK.md`, the

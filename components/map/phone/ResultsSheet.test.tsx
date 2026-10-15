@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
-import { makeFavoriteInput } from "@/test/fixtures/favorites";
+import { makeFavoriteInput } from "@/test/fixtures/favorite-listings";
 import { ResultsSheet, type ResultsSheetProps } from "./ResultsSheet";
 
 const LISTINGS = [

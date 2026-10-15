@@ -16,11 +16,10 @@ import { phoneSummary } from "@/lib/search/phone-summary";
 // plain map surface, and the results sheet in its middle position with the
 // «BUSCANDO COCHES…» heading and one placeholder card (MAPUI-30).
 //
-// A client component, unlike its sibling loading files (app/favorites/
-// loading.tsx) which stay server-rendered: it needs `useTranslations` for
-// that heading, which only the hook (not an async server lookup) can give it
-// without turning this into an async component `app/map/loading.test.tsx`
-// cannot render. PhoneSearchBar and FilterRow (nested inside it) need no
+// A client component, unlike app/favorites/loading.tsx, which is a Server
+// Component: it hands PhoneSearchBar and ResultsSheet no-op handlers, and a
+// Server Component cannot pass a function to a client one. PhoneSearchBar
+// and FilterRow (nested inside it) need no
 // other provider, so they render here as the real components, but `inert`:
 // every handler is a no-op, since nothing on this static frame opens, and
 // nothing on it should be reachable by keyboard or a screen reader either.

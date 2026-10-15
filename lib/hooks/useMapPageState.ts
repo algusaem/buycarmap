@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CarListing } from "@/interfaces/listing";
+import { prefersReducedMotion } from "@/lib/animations";
 import { useCurrentPath } from "@/lib/hooks/useCurrentPath";
 import { setResultsSheetFull } from "@/lib/hooks/useResultsSheetFull";
 import { useSignInGate } from "@/lib/hooks/useSignInGate";
@@ -101,10 +102,10 @@ export function useMapPageState(listings: CarListing[], isPhone: boolean) {
     // MAPUI-27: the car's card is outlined and scrolled into view — at once
     // under reduced motion. "instant", not "auto": "auto" follows the CSS
     // `scroll-behavior`, which app/globals.css sets to smooth everywhere.
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    document
-      .getElementById(cardDomId(listingId))
-      ?.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "instant" : "smooth" });
+    document.getElementById(cardDomId(listingId))?.scrollIntoView({
+      block: "nearest",
+      behavior: prefersReducedMotion() ? "instant" : "smooth",
+    });
   }
 
   return {

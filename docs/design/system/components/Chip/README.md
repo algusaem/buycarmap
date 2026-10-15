@@ -11,3 +11,5 @@ La fila de filtros bajo el buscador del mapa: «Filtros» primero y, detrás, so
 - **Escritorio con muchos filtros** (desde 1024px): cuando los chips no caben, la fila hace lo mismo que en móvil. «Filtros» queda fijo al principio y los chips, sin encogerse, se cortan por la derecha y se deslizan en horizontal por detrás de él; no se parten en dos líneas ni la fila crece.
 - **Panel de filtros** (FilterSheet): chips de elegir con `aria-pressed`, padding 10px 16px, en varias líneas, y se pueden activar varios a la vez. El activo se rellena de `violet`, sin borde, y sube a peso 800; el resto es un borde `line` con peso 600. El estado no va solo en el color: también cambia el relleno y el peso.
 - **Orden**: en Guardados, «Recientes · Precio · Km» son chips de elegir que fijan el orden; solo uno activo. El mapa no tiene control de orden.
+  - Solo en escritorio. En móvil no hay orden: la lista va siempre del último guardado al primero.
+  - «Recientes», del último guardado al primero; «Precio», del más barato al más caro; «Km», de menos a más. Los coches sin precio o sin km (0) van al final y, a igualdad, primero el guardado más reciente.

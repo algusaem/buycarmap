@@ -1,5 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { e2eEmail, seedUser } from "./fixtures/db";
+import { dragDown, sheetOffset } from "./fixtures/drag";
+import { hitArea } from "./fixtures/measure";
 import { mockListingSources } from "./fixtures/network";
 
 test.beforeEach(async ({ page }) => {
@@ -71,6 +73,11 @@ const MADRID_RESULT = {
 
 /** Asserts every visible, named control inside `root` clears the 44px touch floor (MAPUI-51). */
 async function assertTouchTargets(root: Locator, label: string) {
+  // Waits for the page to have actually rendered root's controls before
+  // counting them: without this, .all() can run before React has painted
+  // anything, counting zero and failing MAPUI-51 intermittently.
+  await expect(root.getByRole("link").or(root.getByRole("button")).first()).toBeVisible();
+
   const controls = [
     ...(await root.getByRole("link").all()),
     ...(await root.getByRole("button").all()),
@@ -97,26 +104,6 @@ async function assertTouchTargets(root: Locator, label: string) {
       `${label}: ${name} is ${size.width}x${size.height}, under the 44px floor`,
     ).toBe(true);
   }
-}
-
-/**
- * A control's touch target. Its own drawn box can be smaller: the pins, the
- * phone «Filtros» chip (FilterRow.tsx), the price knobs (PriceRange.tsx) and
- * the «Cambio» options (RadioChips.tsx) keep the 44px floor with an invisible
- * `::before` hit-area extension instead of growing their visible size (RULES
- * §19). The real hit area is the larger of the drawn box and that
- * pseudo-element's computed size.
- */
-async function hitArea(target: Locator): Promise<{ width: number; height: number }> {
-  return target.evaluate((el) => {
-    const own = el.getBoundingClientRect();
-    const before = getComputedStyle(el, "::before");
-    const hasHitArea = before.content !== "none" && before.position === "absolute";
-    return {
-      width: Math.max(own.width, hasHitArea ? Number.parseFloat(before.width) || 0 : 0),
-      height: Math.max(own.height, hasHitArea ? Number.parseFloat(before.height) || 0 : 0),
-    };
-  });
 }
 
 /** Asserts each of `targets` clears the 44px touch floor (MAPUI-51). */
@@ -283,6 +270,65 @@ test.describe("MAPUI-50: phone BUSCAR sheet applies only on Ver coches", () => {
     await expect(summary).toHaveText(summaryBefore);
     await expect(page).toHaveURL(before);
     expect(page.url()).not.toContain("make=Toyota");
+  });
+});
+
+// docs/specs/redesign-saved.md (SAVED-37, SAVED-38): every phone bottom sheet
+// closes when its handle is dragged down, and shows no «×».
+test.describe("SAVED-37, SAVED-38: the phone BUSCAR sheet closes when dragged down", () => {
+  const PHONE_390 = { width: 390, height: 844 };
+
+  /** Opens the BUSCAR sheet from the summary and waits for it to settle. */
+  async function openSearchSheet(page: Page): Promise<{ summary: Locator; sheet: Locator }> {
+    await page.setViewportSize(PHONE_390);
+    await page.goto("/map");
+    const summary = page
+      .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
+      .first();
+    await summary.click();
+    const sheet = page.getByRole("dialog", { name: /^(buscar|search)$/i });
+    await expect(sheet).toBeVisible();
+    await expect
+      .poll(() => sheet.evaluate((element) => getComputedStyle(element).opacity))
+      .toBe("1");
+    return { summary, sheet };
+  }
+
+  test("SAVED-37: at 390×844 the BUSCAR sheet shows no «×», and dragging its handle down 150px closes it with focus back on the summary", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet");
+    const { summary, sheet } = await openSearchSheet(page);
+    // The only close button is «Cerrar», visually hidden: a 1px box inside its
+    // 1px border, clipped away.
+    const close = await sheet.getByRole("button", { name: /^(cerrar|close)$/i }).boundingBox();
+    expect(close?.width).toBeLessThanOrEqual(2);
+    expect(close?.height).toBeLessThanOrEqual(2);
+
+    await dragDown(page, sheet.locator("[data-sheet-handle]"), 150);
+
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(summary).toBeFocused();
+  });
+
+  test("SAVED-38: at 390×844 a 40px drag of the handle springs the BUSCAR sheet back, and a drag from its body moves nothing", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet");
+    const { sheet } = await openSearchSheet(page);
+
+    await dragDown(page, sheet.locator("[data-sheet-handle]"), 40, { hold: true });
+    expect(Math.abs((await sheetOffset(sheet)) - 40)).toBeLessThanOrEqual(1);
+    await page.mouse.up();
+    await expect.poll(() => sheetOffset(sheet)).toBeLessThan(0.5);
+    await expect(sheet).toBeVisible();
+
+    await dragDown(page, sheet.getByText(/^(dónde|where)$/i).first(), 150, { hold: true });
+    expect(await sheetOffset(sheet)).toBe(0);
+    await page.mouse.up();
+    await expect(sheet).toBeVisible();
   });
 });
 

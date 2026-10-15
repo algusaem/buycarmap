@@ -11,10 +11,10 @@
       "y": 10600
     },
     "R3-favoritos.dc.html": {
-      "h": 900,
+      "h": 980,
       "page": "r3",
       "title": "Favoritos",
-      "w": 1970,
+      "w": 7514,
       "x": 2050,
       "y": 8480
     },
@@ -210,6 +210,14 @@
       "x": 0,
       "y": 9540
     },
+    "F5-guardados-estados.dc.html": {
+      "h": 980,
+      "page": "r3",
+      "title": "Guardados · cargando y quitado (móvil)",
+      "w": 2410,
+      "x": 4100,
+      "y": 9540
+    },
     "F6-alerta.dc.html": {
       "h": 900,
       "page": "r3",
@@ -256,6 +264,7 @@
     "F0-estado-error-busqueda.dc.html",
     "R3-favoritos.dc.html",
     "F5-guardados-coche.dc.html",
+    "F5-guardados-estados.dc.html",
     "F0-estado-guardados-vacio.dc.html",
     "R3-alertas.dc.html",
     "F6-alerta.dc.html",

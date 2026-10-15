@@ -54,3 +54,11 @@ export const fadeIn = (delay = 0) => ({
   animate: { opacity: 1 },
   transition: { duration: duration.normal, delay },
 });
+
+/**
+ * Whether the OS asks for reduced motion, for the scrolls Motion does not
+ * drive (a jump to a pin's card): they land at once instead of gliding.
+ */
+export function prefersReducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}

@@ -22,7 +22,7 @@ import { e2eEmail, seedUser } from "./fixtures/db";
 //   Fields: field-input (an <input>), field-checkbox-select-trigger (the
 //     checkbox select's trigger).
 //   Toast: a button toast-demo that shows a toast "Guardado en tus coches."
-//     with action "Deshacer" and a close button named "Cerrar" ("Close" in English — the
+//     with action "Deshacer" and a close button named "Cerrar aviso" ("Close notice" in English, SAVED-36 — the
 //     Playwright context negotiates en-US by default).
 
 const dbTest = process.env.E2E_DB ? test : test.skip;
@@ -407,7 +407,7 @@ test("LOOK-14: a toast renders on surface with a line border, radius-card, shado
   await expect(undoAction).toBeVisible();
   expect(await undoAction.evaluate((el) => getComputedStyle(el).color)).toBe("rgb(198, 255, 61)");
 
-  await expect(toast.getByRole("button", { name: /^(cerrar|close)$/i })).toBeVisible();
+  await expect(toast.getByRole("button", { name: /^(cerrar aviso|close notice)$/i })).toBeVisible();
 });
 
 test.describe("LOOK-17: the footer is present only on the pages the design names", () => {

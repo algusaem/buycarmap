@@ -6,7 +6,9 @@ const PLACEHOLDER_KEYS = Array.from({ length: PLACEHOLDER_COUNT }, (_, index) =>
 // FRONT-14 (docs/specs/core-frontend.md): /alerts' loading state — a
 // skeleton mirroring AlertsList's populated row list (RULES.md §19), rather
 // than the card grid the other two routes use. Synchronous, not an async
-// Server Component: see app/favorites/loading.tsx's comment.
+// Server Component reading the locale: app/alerts/loading.test.tsx renders it
+// directly with `render()`, which (unlike Next's own RSC streaming) cannot
+// resolve an async component.
 export default function AlertsLoading() {
   return (
     <div role="status" aria-busy="true" className="flex flex-col gap-3">

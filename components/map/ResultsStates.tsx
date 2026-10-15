@@ -242,8 +242,28 @@ export function StatusPill({ state, radiusKm, canWiden, hasFilters }: StatusPill
         : t("mapStates.statusNone");
   }
 
+  return <MapPill text={text} live />;
+}
+
+interface MapPillProps {
+  /** What the pill says; none draws no pill. */
+  text: string | undefined;
+  /** Whether it is a polite live region (`role="status"`). */
+  live: boolean;
+}
+
+/**
+ * The pill at the top left of a desktop map (StatusPill/README.md), cross-
+ * fading from one text to the next: /map's status (StatusPill) and the saved
+ * map's title, which is a status only while it says there is nothing to show
+ * (docs/specs/redesign-saved.md, SAVED-13).
+ */
+export function MapPill({ text, live }: MapPillProps) {
   return (
-    <div role="status" className="absolute top-4.5 left-4.5 z-1000 max-lg:hidden">
+    <div
+      role={live ? "status" : undefined}
+      className="absolute top-4.5 left-4.5 z-1000 max-lg:hidden"
+    >
       <AnimatePresence mode="wait">
         {text && (
           <motion.span

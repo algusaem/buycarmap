@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { createUser } from "@/test/factories/user";
-import { makeFavoriteInput } from "@/test/fixtures/favorites";
+import { makeFavoriteInput, toSnapshot } from "@/test/fixtures/favorite-listings";
 
 vi.mock("@/lib/auth/session", () => ({ getCurrentUser: vi.fn() }));
 
@@ -244,12 +244,6 @@ describe("listFavorites", () => {
   });
 });
 
-/** The snapshot columns saveFavorite would have written, for rows seeded directly. */
-function toSnapshot() {
-  const { id: _id, ...snapshot } = makeFavoriteInput();
-  return snapshot;
-}
-
 // DATA-10/DATA-11 (docs/specs/core-data-model.md): `deletedAt` and `version`
 // do not exist on Favorite yet, so these reads are expected to fail until
 // DATA-8 adds them.
@@ -280,5 +274,83 @@ describe("DATA-10/DATA-11: soft delete and restore", () => {
     expect(restored?.id).toBe(savedRow.id);
     expect(restored?.deletedAt).toBeNull();
     expect(restored?.version).toBe(2);
+  });
+});
+
+// docs/specs/redesign-saved.md (SAVED-35): the page's «Deshacer» is
+// saveFavorite with the listing the page holds. It restores the same row, not
+// a new one, keeping its saved snapshot and its createdAt (so its place in
+// «Recientes»), whatever the listing sent with the save says now. One user's
+// undo never touches another user's row.
+describe("SAVED-35: undo restores the same row", () => {
+  // Worked example «Undo»: Ada saved wallapop-abc123 at 2026-10-01 10:00 with the price 14.500.
+  const SAVED_AT = new Date("2026-10-01T10:00:00.000Z");
+
+  async function seedAdasAudi() {
+    return prisma.favorite.create({
+      data: {
+        user: { connect: { id: ADA.id } },
+        listingId: "wallapop-abc123",
+        ...toSnapshot(),
+        createdAt: SAVED_AT,
+      },
+    });
+  }
+
+  it("SAVED-35: removing and saving again with a listing at 13.900 brings back the same row — deletedAt null, version 2, createdAt and price 14.500 kept", async () => {
+    const seeded = await seedAdasAudi();
+    signedInAs(ADA);
+
+    await removeFavorite("wallapop-abc123");
+    const result = await saveFavorite(makeFavoriteInput({ price: 13900 }));
+
+    expect(result).toEqual({ ok: true, value: undefined });
+    const rows = await prisma.favorite.findMany({ where: { userId: ADA.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe(seeded.id);
+    expect(rows[0].deletedAt).toBeNull();
+    expect(rows[0].version).toBe(2);
+    expect(rows[0].createdAt).toEqual(SAVED_AT);
+    expect(rows[0].price).toBe(14500);
+  });
+
+  it("SAVED-35: Grace saving the same listing id creates her own row, and Ada's stays removed", async () => {
+    const seeded = await seedAdasAudi();
+    signedInAs(ADA);
+    await removeFavorite("wallapop-abc123");
+
+    signedInAs(GRACE);
+    await saveFavorite(makeFavoriteInput({ price: 13900 }));
+
+    const adas = await prisma.favorite.findMany({ where: { userId: ADA.id } });
+    expect(adas).toHaveLength(1);
+    expect(adas[0].id).toBe(seeded.id);
+    expect(adas[0].deletedAt).toBeInstanceOf(Date);
+    expect(adas[0].version).toBe(1);
+    const graces = await prisma.favorite.findMany({ where: { userId: GRACE.id } });
+    expect(graces).toHaveLength(1);
+    expect(graces[0].id).not.toBe(seeded.id);
+    expect(graces[0].deletedAt).toBeNull();
+    expect(graces[0].price).toBe(13900);
+  });
+
+  it("SAVED-35: after Ada's undo, Grace saving the listing leaves Ada's restored row unchanged (worked example «Undo»)", async () => {
+    const seeded = await seedAdasAudi();
+    signedInAs(ADA);
+    await removeFavorite("wallapop-abc123");
+    await saveFavorite(makeFavoriteInput({ price: 13900 }));
+
+    signedInAs(GRACE);
+    await saveFavorite(makeFavoriteInput({ price: 13900 }));
+
+    const adas = await prisma.favorite.findUnique({ where: { id: seeded.id } });
+    expect(adas).toMatchObject({
+      userId: ADA.id,
+      deletedAt: null,
+      version: 2,
+      createdAt: SAVED_AT,
+      price: 14500,
+    });
+    expect(await prisma.favorite.count({ where: { listingId: "wallapop-abc123" } })).toBe(2);
   });
 });

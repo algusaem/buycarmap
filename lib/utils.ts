@@ -77,6 +77,7 @@ const twMerge = extendTailwindMerge({
         "pin-16500-left",
         "pin-11900-top",
         "pin-11900-left",
+        "toast-centre",
       ],
     },
     // tailwind-merge has no theme key for border widths, so the 1.5px

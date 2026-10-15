@@ -31,7 +31,7 @@ the phase's spec.
 | F2 Navigation | [redesign-navigation.md](../specs/redesign-navigation.md) (HEAD) | Implemented 2026-10-12 on `claude/app-structural-redesign-c4a34d`; not merged yet | Desktop headers, phone headers, bottom nav |
 | F3 Map and search | [redesign-map.md](../specs/redesign-map.md) (MAPUI) | Implemented 2026-10-14 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | The map screen and its states |
 | F4 Landing and sign in | [redesign-entry.md](../specs/redesign-entry.md) (ENTRY) | Implemented 2026-10-15 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | `/` landing and `/login` |
-| F5 Saved cars | — | Not started | `/favorites` |
+| F5 Saved cars | [redesign-saved.md](../specs/redesign-saved.md) (SAVED) | Implemented 2026-10-15 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | `/favorites` |
 | F6 Alerts | — | Not started | `/alerts` and `/alerts/[id]` |
 | F7 Remaining pages | — | Not started | Register, account, password, legal, error pages |
 
@@ -69,9 +69,10 @@ arrows, the landing search pill and map, GoogleButton, the form panel (`radius-p
 `auth-email-and-oauth.md` (AUTH) for the sign-in form, `cross-cutting.md` (CORE) where it covers the
 landing.
 
-**F5 Saved cars.** Design: `R3-favoritos`, `F5-guardados-coche`, `F0-estado-guardados-vacio`. Pieces: the phone car sheet (tap a row), the Guardados
+**F5 Saved cars.** Design: `R3-favoritos`, `F5-guardados-coche`, `F5-guardados-estados`, `F0-estado-guardados-vacio`. Pieces: the phone car sheet (tap a row), the Guardados
 ListingCard with «Ver anuncio», the sort chips, the compact phone row, the saved map with StatusPill.
-Governs: `favorites.md` (FAV).
+Governs: `favorites.md` (FAV), through `redesign-saved.md` (SAVED), which amends `favorites.md`
+(FAV), `redesign-map.md` (MAPUI), `core-frontend.md` (FRONT) and `core-platform.md` (PLAT).
 
 **F6 Alerts.** Design: `R3-alertas`, `F6-alerta`, `F6-alerta-estados`, `F0-estado-alertas-vacio`. Pieces: the phone alert page (zone map, matches, delete with confirmation, no matches), AlertCard (open and folded),
 AlertZone, the match cards. Governs: `alerts.md` (ALERT). Showing which matches are new is issue #122.
@@ -92,3 +93,4 @@ Each of these was left out of the phases on purpose and gets its own spec when p
 - [#121](https://github.com/algusaem/buycarmap/issues/121) Show the total number of results
 - [#122](https://github.com/algusaem/buycarmap/issues/122) Show which alert matches are new
 - [#123](https://github.com/algusaem/buycarmap/issues/123) Move the email templates to the redesign
+- [#128](https://github.com/algusaem/buycarmap/issues/128) Refresh each saved listing's price and availability

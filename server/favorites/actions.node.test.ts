@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createFavoriteStore, makeFavoriteInput } from "@/test/fixtures/favorites";
+import { createFavoriteStore } from "@/test/fixtures/favorites";
+import { makeFavoriteInput } from "@/test/fixtures/favorite-listings";
 
 // TEST-7 (docs/specs/core-testing.md): every other case in this file moved to
 // ./actions.integration.test.ts, which runs against a real database. A Prisma

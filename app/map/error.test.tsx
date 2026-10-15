@@ -17,8 +17,8 @@ import MapError from "./error";
 afterEach(() => vi.clearAllMocks());
 
 // docs/specs/redesign-map.md (MAPUI-34): "The error file renders the
-// page-error state with an action that retries the route" — the same
-// RouteError pattern as app/favorites/error.tsx (PLAT-14).
+// page-error state with an action that retries the route" — the page-error
+// state (components/ui/PageError.tsx).
 
 describe("MAPUI-34: /map error.tsx", () => {
   it("MAPUI-34: shows a retry control that resets the boundary and refreshes the route", async () => {

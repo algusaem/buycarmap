@@ -112,6 +112,7 @@ function SheetContent({ initial, place, radiusKm, onApply, onClose }: SheetConte
         title={t("search.sheetTitle")}
         closeLabel={t("search.close")}
         onClose={onClose}
+        hideClose
         onClear={() =>
           edit({ place: null, brand: "", model: "", minPrice: undefined, maxPrice: undefined })
         }

@@ -317,6 +317,10 @@
   --spacing-pin-16500-left: 23.0769%;
   --spacing-pin-11900-top: 48.4765%;
   --spacing-pin-11900-left: 71.1538%;
+
+  /* The toast's horizontal centre at desktop width (SAVED-24), set per page
+     by `data-toast-anchor` in the toast block below the tokens. */
+  --spacing-toast-centre: var(--toast-centre);
 }
 
 /* BuyCarMap 2.0 design tokens, verbatim from docs/design/system/tokens.json
@@ -373,6 +377,45 @@
   --shadow-pin-active: 0 0 0 7px rgba(198, 255, 61, 0.2);
   --shadow-current: 0 0 0 3px #0f0f10, 0 0 0 5px #f4f2f0;
   --shadow-current-sm: 0 0 0 2px #0f0f10, 0 0 0 4px #f4f2f0;
+}
+
+/* Where the one global toaster puts a toast (SAVED-24, docs/specs/
+   redesign-saved.md; Toast/README.md), read by components/Toaster.tsx: its top
+   12px under the header (64px on a phone, 80px from `lg`), or under /map's 66px
+   filter row; at most 380px wide and 16px clear of each side; centred on the
+   viewport, or, from `lg`, over the list column of the pages that name
+   themselves with `data-toast-anchor` — /map's half-width list (830px from
+   `xl`) and /favorites' 546px one (830px from `xl`). The phone /map has no
+   header, so its toast sits 12px under the safe area. */
+:root {
+  --toast-top: 4.75rem;
+  --toast-centre: 50%;
+  --toast-width: min(23.75rem, calc(100vw - 2rem));
+}
+
+:root:has([data-toast-anchor="map"]) {
+  --toast-top: calc(0.75rem + env(safe-area-inset-top));
+}
+
+@media (width >= 64rem) {
+  :root {
+    --toast-top: 5.75rem;
+  }
+
+  :root:has([data-toast-anchor="map"]) {
+    --toast-top: 9.875rem;
+    --toast-centre: 25%;
+  }
+
+  :root:has([data-toast-anchor="saved"]) {
+    --toast-centre: 17.0625rem;
+  }
+}
+
+@media (width >= 80rem) {
+  :root:has([data-toast-anchor]) {
+    --toast-centre: 25.9375rem;
+  }
 }
 
 @layer base {

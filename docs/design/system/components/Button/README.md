@@ -16,7 +16,7 @@ Píldoras `radius-pill`. El principal va en `lime` con texto `on-lime`, para lo 
   - Navegación de cabecera: 15px, padding 10px 16px («Entrar», «Mapa»).
   - Deshacer sin drama: «Quitar filtros», 48px a 15px con padding 0 14px. Al pasar el ratón o con foco, el texto pasa a `danger`.
 - **Peligro**: 44px, padding 0 18px, 14px peso 700, borde `danger` al 60 % y texto `danger`. Solo para lo que no tiene vuelta atrás («Eliminar mi cuenta»; «Eliminar alerta» al final de la página de una alerta y «Eliminar» en su hoja de confirmación, los dos a ancho completo), siempre con confirmación.
-- **De icono**: 42px redondo con borde `line` y `aria-label` obligatorio (Guardar, Favoritos). Guardado: relleno `violet` sin borde y el corazón relleno en `on-violet`. 40px para cerrar un panel (FilterSheet) o la hoja del coche, con la `x` de 14px; y «Volver» de la página de una alerta en móvil, un enlace de 40px con `chevron-left` de 18px.
+- **De icono**: 42px redondo con borde `line` y `aria-label` obligatorio (Guardar, Favoritos). Guardado: relleno `violet` sin borde y el corazón relleno en `on-violet`. 40px para cerrar un panel (FilterSheet), con la `x` de 14px, y para el «Cerrar» de la hoja del coche y de la hoja «BUSCAR», que solo se ve con el foco del teclado; y «Volver» de la página de una alerta en móvil, un enlace de 40px con `chevron-left` de 18px.
 - **De texto**: «Borrar» del panel de filtros, 14px peso 700 subrayado.
 - **Enlaces de texto**: en `text`; al pasar el ratón, `lime`. «Créala» y «Entra», al pie de los formularios de acceso, ya van en `lime` peso 700 porque son la siguiente acción.
 - El enlace a un portal externo lleva a la derecha el icono `arrow-up-right` de Lucide (15px, a 6px del texto; nunca el carácter «↗») y abre en pestaña nueva.

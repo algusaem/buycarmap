@@ -3,7 +3,8 @@
     "search": "Search",
     "popular": "Popular",
     "or": "or",
-    "close": "Close"
+    "close": "Close",
+    "closeToast": "Close notice"
   },
   "hero": {
     "title": "Looking for a car?",
@@ -452,10 +453,20 @@
     "viewAlerts": "View alerts"
   },
   "favorites": {
-    "title": "Saved cars",
-    "subtitle": "Prices are from the day you saved them.",
-    "empty": "You have not saved any cars yet.",
-    "emptyCta": "Search for cars"
+    "title": "Saved",
+    "emptyCta": "Search for cars",
+    "sortRecent": "Recent",
+    "sortPrice": "Price",
+    "sortKm": "Mileage",
+    "mapLabel": "Map of your saved cars",
+    "mapTitle": "Your saved cars on the map",
+    "mapEmpty": "Your saved cars will show here",
+    "emptyTitle": "Nothing yet?",
+    "emptyPunchline": "Save one",
+    "emptyLine": "Tap the heart on any car and it will show up here, with that day’s price.",
+    "emptyLinePhone": "Tap the heart on any car and it will show up here.",
+    "removed": "Removed from saved",
+    "undo": "Undo"
   },
   "alerts": {
     "title": "Alerts",
@@ -559,7 +570,8 @@
     "pageLoadFailed": "We could not load this page. Please try again.",
     "retry": "Retry",
     "pageTitle": "Did something break?",
-    "pagePunchline": "It's not your fault"
+    "pagePunchline": "It's not your fault",
+    "pageLine": "This page didn’t load. Try again and, if it keeps happening, go back to the map."
   },
   "transactionalEmail": {
     "passwordReset": {

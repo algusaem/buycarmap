@@ -8,38 +8,20 @@ import { useCurrentPath } from "@/lib/hooks/useCurrentPath";
 import { useFavoriteToggle } from "@/lib/hooks/useFavoriteToggle";
 
 interface CarListingCardProps extends CarListing {
-  isFavorite?: boolean;
   onFavoriteChange?: (listingId: string, saved: boolean) => void;
   /** Only set for an alert's matches — when the card was discovered, not when the listing was published (no source exposes that). */
   foundAt?: Date;
 }
 
 /**
- * The car card with its own saved state (FAV-9 to FAV-12, FAV-16), for
- * /favorites and an alert's matches (MAPUI-38). The map renders the same
- * CarCard with the saved state its page already holds.
+ * The car card with its own saved state (FAV-10 to FAV-12), for an alert's
+ * matches (MAPUI-38), which start unsaved. The map renders the same CarCard
+ * with the saved state its page already holds.
  */
-export function CarListingCard({
-  isFavorite = false,
-  onFavoriteChange,
-  foundAt,
-  ...listing
-}: CarListingCardProps) {
+export function CarListingCard({ onFavoriteChange, foundAt, ...listing }: CarListingCardProps) {
   const currentPath = useCurrentPath();
   const toggleFavorite = useFavoriteToggle();
-  const [favorite, setFavorite] = useState(isFavorite);
-
-  // The saved set arrives after the card has already mounted — search results
-  // and saved listings come from different places and resolve at different
-  // times — so seeding useState once would leave an already-saved car showing
-  // as unsaved forever. Adjusting during render is React's documented way to
-  // react to a changed prop; an effect here would render the wrong state first
-  // and then correct it, which is a visible flicker on every search.
-  const [syncedFavorite, setSyncedFavorite] = useState(isFavorite);
-  if (syncedFavorite !== isFavorite) {
-    setSyncedFavorite(isFavorite);
-    setFavorite(isFavorite);
-  }
+  const [favorite, setFavorite] = useState(false);
 
   async function handleToggle() {
     const failure = await toggleFavorite({

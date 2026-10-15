@@ -84,8 +84,10 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   };
 
   // The page's main landmark, as in the route's error state (app/map/error.tsx).
+  // `data-toast-anchor`: every toast here sits under the filter row, centred
+  // over the results list (SAVED-24, app/globals.css).
   return (
-    <main className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+    <main data-toast-anchor="map" className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
       {/* Desktop: the search pill and «Crear alerta» in the map header's centre (MAPUI-1, MAPUI-39). */}
       <HeaderSearch
         filters={filters}
@@ -97,7 +99,10 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
       />
 
       {/* Desktop: the filters row under the header (MAPUI-13, MAPUI-19). */}
-      <div className="hidden h-16.5 min-w-0 shrink-0 items-center border-b border-line-soft px-8 lg:flex">
+      <div
+        data-testid="filter-row"
+        className="hidden h-16.5 min-w-0 shrink-0 items-center border-b border-line-soft px-8 lg:flex"
+      >
         <FilterRow
           input={input}
           onRemove={filters.removeChip}

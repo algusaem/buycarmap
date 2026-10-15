@@ -2,7 +2,7 @@
 
 Key: MAPUI
 Status: Implemented
-Last updated: 2026-10-14
+Last updated: 2026-10-15
 
 ---
 
@@ -146,7 +146,9 @@ Phone
   «Precio»:
   - nothing chosen there reaches the URL, the summary or the search until «Ver coches», which applies
     it all and closes the sheet;
-  - closing the sheet discards it;
+  - closing the sheet discards it. It closes by dragging its handle down, a press outside it, Escape
+    or its visually hidden «Cerrar», with no visible «×» (amended 2026-10-15, owner: no visible close on phone sheets; drag down to close; SAVED-37 to SAVED-41,
+    redesign-saved.md);
   - «Borrar» empties the sheet's fields, applied only on «Ver coches».
 - [x] MAPUI-22 · component — The violet button opens the full-screen filters panel, with the same
   sections as MAPUI-14 and the apply, discard and «Borrar» behaviour of MAPUI-21. Removing a chip
@@ -171,7 +173,10 @@ Map
   at the same point (coordinates equal to five decimals) share one pin, «N coches · desde <lowest
   price>». The pins account for exactly the listings in the list (amends MAP-15).
 - [x] MAPUI-26 · unit — The grouping of listings into pins is a pure function that produces the worked
-  example's groups, labels and order.
+  example's groups, labels and order. — a listing with an unknown price (0) is ignored for «desde»
+  and goes after every listing with a known price; a group whose prices are all unknown reads «N
+  coches · desde 0 €», as a single unknown-price pin reads «0 €» (worked example "Grouping with an
+  unknown price") (amended 2026-10-15, SAVED-12 — redesign-saved.md)
 - [x] MAPUI-27 · component — At desktop width, activating a pin with a click, Enter or Space does three
   things:
   - it opens the preview card with the photo, name, city, «año · km · combustible», price,
@@ -253,20 +258,27 @@ Car card
 
   The card is one link to the listing in a new tab, and the heart is a separate button outside that
   link. (amended 2026-10-13)
+
+  On `/favorites` the card is the Guardados variant: a 20:17 photo, «año · km» with no fuel, and «Ver
+  anuncio» as visible text inside the link, beside the price (amended 2026-10-15, SAVED-9 and
+  SAVED-10 — redesign-saved.md).
 - [x] MAPUI-36 · component — The heart's accessible name is «Guardar», or «Quitar de guardados» once
   saved (keeps FAV-9 to FAV-11).
 - [x] MAPUI-37 · component — A signed-out buyer who presses the heart is sent to `/login` with a
   `callbackUrl` of the full current path and query, so the search survives the sign-in (bug fix;
   amends FAV-12).
 - [x] MAPUI-38 · component — `/favorites` and an alert's matches render this same card (keeps FAV-13
-  and ALERT-39).
+  and ALERT-39). — `/favorites` renders the Guardados variant of MAPUI-35 at desktop width and the
+  compact row at phone width. An alert's matches keep this card until F6 (amended 2026-10-15,
+  SAVED-9 and SAVED-19 — redesign-saved.md).
 
 Crear alerta
 
 - [x] MAPUI-39 · component — «Crear alerta» in the desktop header, and the «Crear alerta» button under
   the phone results sheet's title, open the create-alert dialog, and opening it closes an open preview
   card (MAPUI-27). The dialog has the name prefilled, the search summary, «Crear alerta» and
-  «Cancelar». (amended 2026-10-13)
+  «Cancelar». (amended 2026-10-13) On the phone the sheet shows no close «×» and also closes when its
+  handle is dragged down (amended 2026-10-15, owner: no visible close on phone sheets; drag down to close; SAVED-37 to SAVED-40, redesign-saved.md).
 - [x] MAPUI-40 · unit — The prefilled name and the summary are built from the search as in the worked
   examples. The summary never includes «Publicado».
 - [x] MAPUI-41 · component — For a search with no brand, no maximum price and no place, the summary
@@ -277,7 +289,9 @@ Crear alerta
   `timeFilter` and without the `?q=` text, and the trimmed name. On success the dialog closes and the toast «Alerta creada»
   offers «Ver alertas», which links to `/alerts`. The server strips both too: criteria sent to
   `createAlert` with a `timeFilter` or `keywords` are hashed and stored without them, the same as
-  the criteria without them. (amended 2026-10-13)
+  the criteria without them. (amended 2026-10-13) — at desktop width the toast's top is 12px below
+  the filter row and its centre is over the results list's, and its close button is «Cerrar aviso»,
+  as every toast in the app (amended 2026-10-15, SAVED-24 and SAVED-36 — redesign-saved.md)
 - [x] MAPUI-43 · node + component — Saving criteria the user already has as an alert succeeds:
   - a live alert: nothing is created, even at the 20-alert limit, and the answer is `created: false`.
     The dialog closes with the toast «Ya tienes esta alerta» and «Ver alertas»;
@@ -319,7 +333,9 @@ Phone tab bar
   `/account` show a full-width tab bar at the bottom, padded by the safe area:
   - signed in, four tabs: «Mapa», «Guardados», «Alertas» and «Cuenta»;
   - each tab is an icon over its label, and «Cuenta» shows the avatar's initial;
-  - the current tab is marked with `aria-current="page"`, in violet and with a bolder label;
+  - the current tab is marked with `aria-current="page"`, in violet and with a bolder label
+    (amended 2026-10-15: label in the text colour for contrast, icon violet — SAVED-33 /
+    redesign-saved.md);
   - on `/alerts/[id]` the current tab is «Alertas»;
   - signed out, on the map, two tabs: «Mapa» and «Entrar» (`/login`).
 
@@ -450,6 +466,13 @@ They give two pins:
 - «3 coches · desde 9.500 €» for A, B and C, since C equals the others to five decimals. Its preview
   lists B, C, A, by price ascending.
 - «18.900 €» for D.
+
+**Grouping with an unknown price (MAPUI-26; amended 2026-10-15, SAVED-12 — redesign-saved.md).**
+Listings E (0, unknown), F (12.000 €), G (9.500 €) and H (0, unknown), placed at (40.41680, -3.70380)
+in three cases:
+- E, F and G there: one pin, «3 coches · desde 9.500 €», not «desde 0 €». Its preview lists G, F, E.
+- E and H there: one pin, «2 coches · desde 0 €».
+- E alone there: one pin, «0 €», as today.
 
 **Results heading (MAPUI-33).**
 
@@ -829,7 +852,8 @@ drawn options, an Airbnb-style bar:
   never shows two navigations. «Cuenta» moves into it, which is why the phone headers drop the
   avatar.
 
-The current tab is bolder as well as violet, so the state is not carried by colour alone.
+The current tab is bolder, with a violet icon, so the state is not carried by colour alone
+(amended 2026-10-15: its label takes the text colour, redesign-saved.md › Decisions).
 
 **The results heading counts (owner decision).** «Cerca de Madrid» repeated what the search already
 says. A count tells the buyer what they have. The sources page their results and give no total, so

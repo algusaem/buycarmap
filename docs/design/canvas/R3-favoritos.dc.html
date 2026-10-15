@@ -15,7 +15,7 @@ body{margin:0}
 a{color:#F4F2F0}a:hover{color:#C6FF3D}
 </style>
 </helmet>
-<div style="width: 1970px; height: 900px; box-sizing: border-box; padding: 0 50px 0 40px; display: flex; gap: 50px; align-items: center; background: #000000; font-family: 'Rethink Sans', system-ui, sans-serif; color: #F4F2F0">
+<div style="width: 7514px; height: 980px; box-sizing: border-box; padding: 10px 50px 0 40px; display: flex; gap: 50px; align-items: flex-start; background: #000000; font-family: 'Rethink Sans', system-ui, sans-serif; color: #F4F2F0">
 
   <div style="width: 1440px; height: 900px; background: #0F0F10; display: flex; flex-direction: column; overflow: hidden">
     <header style="height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid #232326">
@@ -79,22 +79,273 @@ a{color:#F4F2F0}a:hover{color:#C6FF3D}
     </div>
   </div>
 
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="width: 1024px; height: 900px; background: #0F0F10; display: flex; flex-direction: column; overflow: hidden; position: relative">
+  <header style="height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid #232326">
+        <a href="#" style="font-family: Unbounded, sans-serif; font-size: 20px; font-weight: 900; text-decoration: none">BUYCAR<span style="color: #C6FF3D">MAP</span></a>
+        <nav style="display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700">
+          <div role="group" aria-label="Idioma" style="display: flex; align-items: center; font-family: 'Rethink Sans', system-ui, sans-serif; font-size: 13px; font-weight: 600"><button type="button" aria-pressed="true" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #F4F2F0">ES</button><span aria-hidden="true" style="color: #A3A0A6">·</span><button type="button" aria-pressed="false" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #A3A0A6">EN</button></div>
+          <a href="#" style="text-decoration: none; padding: 10px 16px">Mapa</a>
+          <a href="#" aria-current="page" style="text-decoration: none; padding: 10px 16px; border-radius: 999px; background: #F4F2F0; color: #0F0F10">Guardados</a>
+          <a href="#" style="text-decoration: none; padding: 10px 16px">Alertas</a>
+          <span style="width: 42px; height: 42px; margin-left: 8px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 800">A</span>
+        </nav>
+      </header>
+      <div style="flex: 1; display: flex; min-height: 0">
+      <main style="width: 546px; flex-shrink: 0; padding: 30px 32px; display: flex; flex-direction: column; gap: 24px; overflow: hidden">
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 16px">
+          <h1 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 40px; font-weight: 900; line-height: 0.9; letter-spacing: -0.015em; text-transform: uppercase">Guardados</h1>
+          <div style="display: flex; gap: 8px; font-size: 14px"><span style="padding: 9px 16px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; font-weight: 800">Recientes</span><span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-weight: 600">Precio</span><span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-weight: 600">Km</span></div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 20px">
+          <sc-for list="{{desk1024}}" as="car" hint-placeholder-count="4">
+            <article style="display: flex; flex-direction: column; gap: 12px">
+              <div style="position: relative; aspect-ratio: 20 / 17; border-radius: 22px; background: {{car.tint}}; display: flex; align-items: center; justify-content: center; color: rgba(244,242,240,0.2);{{car.ring}}">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; color: #F4F2F0">{{car.source}}</span>
+                <button type="button" aria-label="Quitar de guardados" style="all: unset; cursor: pointer; position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FAF9F8" stroke="#FAF9F8" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 3px">
+                <div style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-size: 16px; font-weight: 700">{{car.title}}</strong><span style="font-size: 14px; color: #A3A0A6">{{car.city}}</span></div>
+                <span style="font-size: 14px; color: #A3A0A6">{{car.year}} · {{car.km}}</span>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px"><span style="font-family: Unbounded, sans-serif; font-size: 22px; font-weight: 800; color: #C6FF3D">{{car.price}}</span><a href="#" style="font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></div>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+      </main>
+      <section aria-label="Mapa de tus guardados" style="flex: 1; position: relative; background: #141416; overflow: hidden; border-left: 1px solid #232326">
+        <svg width="610" height="820" viewBox="0 0 610 820" style="position: absolute; inset: 0" aria-hidden="true">
+          <path d="M-20 520 C 120 480 180 560 320 520 S 520 430 660 470 L 660 840 L -20 840 Z" fill="#111A22"/>
+          <path d="M-10 120 C 140 160 260 90 400 150 S 560 250 640 220" stroke="#232327" stroke-width="12" fill="none"/>
+          <path d="M80 -10 C 120 160 210 260 230 420 S 260 640 300 840" stroke="#2B2B30" stroke-width="10" fill="none"/>
+          <path d="M-10 330 C 160 320 330 360 640 320" stroke="#232327" stroke-width="7" fill="none"/>
+          <path d="M420 -10 C 400 140 450 260 520 360 S 600 520 640 600" stroke="#1E1E22" stroke-width="6" fill="none"/>
+        </svg>
+        <span style="position: absolute; top: 18px; left: 18px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 10px 16px; font-size: 14px; font-weight: 700">Tus guardados en el mapa</span>
+        <sc-for list="{{pins1024}}" as="p" hint-placeholder-count="8"><span style="{{p.style}}">{{p.label}}</span></sc-for>
+        <article aria-label="Vista previa del coche" style="position: absolute; left: 24px; top: 222px; width: 340px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 24px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 24px 50px rgba(0,0,0,0.55)">
+          <div style="height: 170px; border-radius: 16px; background: #29302C; position: relative">
+            <button type="button" aria-label="Cerrar vista previa" style="all: unset; cursor: pointer; position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 999px; background: rgba(15,15,16,0.85); display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F4F2F0" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700">Milanuncios</span>
+            
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline"><strong style="font-size: 16px">SEAT León 1.5 TSI</strong><span style="font-size: 13px; color: #A3A0A6">Sevilla</span></div>
+          <span style="font-size: 14px; color: #A3A0A6; margin-top: -6px">2020 · 64.000 km · Gasolina</span>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <strong style="font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; color: #C6FF3D; flex: 1; white-space: nowrap">16.500 €</strong>
+            <button type="button" aria-label="Quitar de guardados" style="all: unset; cursor: pointer; width: 42px; height: 42px; border-radius: 999px; background: #7C4DFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FAF9F8" stroke="#FAF9F8" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+            <a href="#" style="height: 42px; padding: 0 16px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; display: flex; align-items: center; font-size: 14px; font-weight: 800; text-decoration: none; white-space: nowrap">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left: 6px; flex-shrink: 0"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
+          </div>
+        </article>
+      </section>
+      </div>
+    </div>
+    <p style="margin: 0; width: 1024px; font-size: 13px; line-height: 1.4; color: #A3A0A6">Portátil, 1024px · la lista a la izquierda, 546px de tarjetas con sus márgenes de 32px, en 2 columnas de 263px: el mismo ancho de tarjeta que en 1440 · «Recientes · Precio · Km» bajan a su fila, bajo «GUARDADOS», porque juntos no caben en 546px · el mapa de tus guardados ocupa el resto (414px) y la vista previa (366px) cabe dentro, a 24px del borde · el mapa sale desde 1024px; por debajo, la composición del móvil, sin mapa y sin orden · desde 1280px la lista pasa a 830px, 3 columnas, con «GUARDADOS» y el orden en una fila, como la lista del mapa; en 1440, 3 columnas de 263px</p>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
   <div style="width: 390px; height: 844px; border-radius: 44px; background: #0F0F10; overflow: hidden; position: relative; box-shadow: 0 0 0 10px #232326, 0 30px 60px rgba(0,0,0,0.6); display: flex; flex-direction: column">
     <div style="height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #232326"><span style="font-family: Unbounded, sans-serif; font-size: 16px; font-weight: 900">BUYCAR<span style="color: #C6FF3D">MAP</span></span><div style="display: flex; align-items: center"><div role="group" aria-label="Idioma" style="display: flex; align-items: center; font-family: 'Rethink Sans', system-ui, sans-serif; font-size: 13px; font-weight: 600"><button type="button" aria-pressed="true" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #F4F2F0">ES</button><span aria-hidden="true" style="color: #A3A0A6">·</span><button type="button" aria-pressed="false" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #A3A0A6">EN</button></div></div></div>
     <div style="padding: 22px 20px; display: flex; flex-direction: column; gap: 18px">
       <h1 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 34px; font-weight: 900; line-height: 1; text-transform: uppercase">Guardados</h1>
       <sc-for list="{{mobile}}" as="car" hint-placeholder-count="4">
-        <button type="button" aria-haspopup="dialog" style="all: unset; cursor: pointer; box-sizing: border-box; width: 100%; display: flex; gap: 14px; align-items: center; text-align: left">
+        <button type="button" aria-haspopup="dialog" style="all: unset; cursor: pointer; box-sizing: border-box; width: 100%; display: flex; gap: 14px; align-items: center; text-align: left;{{car.pressed}}">
           <span style="width: 110px; height: 86px; border-radius: 18px; background: {{car.tint}}; flex-shrink: 0"></span>
           <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 15px">{{car.title}}</strong><span style="font-size: 13px; color: #A3A0A6">{{car.year}} · {{car.km}} · {{car.city}}</span><span style="font-family: Unbounded, sans-serif; font-size: 18px; font-weight: 800; color: #C6FF3D; margin-top: 4px">{{car.price}}</span></span>
         </button>
       </sc-for>
     </div>
-    <nav aria-label="Principal" style="position: absolute; left: 0; right: 0; bottom: 0; height: 99px; box-sizing: border-box; padding-bottom: 34px; background: #18181B; border-top: 1px solid #2A2A2E; display: flex"><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Mapa</span></a><a href="#" aria-current="page" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #7C4DFF"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg><span style="font-size: 11px; font-weight: 800; line-height: 13px; white-space: nowrap">Guardados</span></a><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Alertas</span></a><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><span aria-hidden="true" style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 999px; border: 1.5px solid #A3A0A6; background: transparent; color: #A3A0A6; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 11px; font-weight: 800; line-height: 1">A</span><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Cuenta</span></a></nav>
+    <nav aria-label="Principal" style="position: absolute; left: 0; right: 0; bottom: 0; height: 99px; box-sizing: border-box; padding-bottom: 34px; background: #18181B; border-top: 1px solid #2A2A2E; display: flex"><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Mapa</span></a><a href="#" aria-current="page" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #7C4DFF"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg><span style="font-size: 11px; font-weight: 800; line-height: 13px; white-space: nowrap; color: #F4F2F0">Guardados</span></a><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Alertas</span></a><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><span aria-hidden="true" style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 999px; border: 1.5px solid #A3A0A6; background: transparent; color: #A3A0A6; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 11px; font-weight: 800; line-height: 1">A</span><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Cuenta</span></a></nav>
+  </div>
+  <p style="margin: 0; width: 390px; font-size: 13px; line-height: 1.4; color: #A3A0A6">La fila pulsada (o con el puntero encima) toma el fondo gris de las tarjetas, con las esquinas redondeadas.</p>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="width: 1440px; height: 900px; background: #0F0F10; display: flex; flex-direction: column; overflow: hidden; position: relative">
+  <header style="height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid #232326">
+        <a href="#" style="font-family: Unbounded, sans-serif; font-size: 20px; font-weight: 900; text-decoration: none">BUYCAR<span style="color: #C6FF3D">MAP</span></a>
+        <nav style="display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700">
+          <div role="group" aria-label="Idioma" style="display: flex; align-items: center; font-family: 'Rethink Sans', system-ui, sans-serif; font-size: 13px; font-weight: 600"><button type="button" aria-pressed="true" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #F4F2F0">ES</button><span aria-hidden="true" style="color: #A3A0A6">·</span><button type="button" aria-pressed="false" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #A3A0A6">EN</button></div>
+          <a href="#" style="text-decoration: none; padding: 10px 16px">Mapa</a>
+          <a href="#" aria-current="page" style="text-decoration: none; padding: 10px 16px; border-radius: 999px; background: #F4F2F0; color: #0F0F10">Guardados</a>
+          <a href="#" style="text-decoration: none; padding: 10px 16px">Alertas</a>
+          <span style="width: 42px; height: 42px; margin-left: 8px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 800">A</span>
+        </nav>
+      </header>
+      <div style="flex: 1; display: flex; min-height: 0">
+      <main style="width: 830px; flex-shrink: 0; padding: 30px 32px; display: flex; flex-direction: column; gap: 24px; overflow: hidden">
+        <div style="margin-top: -150px; display: flex; flex-direction: column; gap: 24px">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end">
+            <h1 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 40px; font-weight: 900; line-height: 0.9; letter-spacing: -0.015em; text-transform: uppercase">Guardados</h1>
+            <div style="display: flex; gap: 8px; font-size: 14px"><span style="padding: 9px 16px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; font-weight: 800">Recientes</span><span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-weight: 600">Precio</span><span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-weight: 600">Km</span></div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 20px">
+            <sc-for list="{{all}}" as="car" hint-placeholder-count="8">
+              <article style="display: flex; flex-direction: column; gap: 12px">
+                <div style="position: relative; aspect-ratio: 20 / 17; border-radius: 22px; background: {{car.tint}}; display: flex; align-items: center; justify-content: center; color: rgba(244,242,240,0.2);{{car.ring}}">
+                  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                  <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; color: #F4F2F0">{{car.source}}</span>
+                  <button type="button" aria-label="Quitar de guardados" style="all: unset; cursor: pointer; position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FAF9F8" stroke="#FAF9F8" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 3px">
+                  <div style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-size: 16px; font-weight: 700">{{car.title}}</strong><span style="font-size: 14px; color: #A3A0A6">{{car.city}}</span></div>
+                  <span style="font-size: 14px; color: #A3A0A6">{{car.year}} · {{car.km}}</span>
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px"><span style="font-family: Unbounded, sans-serif; font-size: 22px; font-weight: 800; color: #C6FF3D">{{car.price}}</span><a href="#" style="font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></div>
+                </div>
+              </article>
+            </sc-for>
+          </div>
+        </div>
+      </main>
+      <section aria-label="Mapa de tus guardados" style="flex: 1; position: relative; background: #141416; overflow: hidden; border-left: 1px solid #232326">
+        <svg width="610" height="820" viewBox="0 0 610 820" style="position: absolute; inset: 0" aria-hidden="true">
+          <path d="M-20 520 C 120 480 180 560 320 520 S 520 430 660 470 L 660 840 L -20 840 Z" fill="#111A22"/>
+          <path d="M-10 120 C 140 160 260 90 400 150 S 560 250 640 220" stroke="#232327" stroke-width="12" fill="none"/>
+          <path d="M80 -10 C 120 160 210 260 230 420 S 260 640 300 840" stroke="#2B2B30" stroke-width="10" fill="none"/>
+          <path d="M-10 330 C 160 320 330 360 640 320" stroke="#232327" stroke-width="7" fill="none"/>
+          <path d="M420 -10 C 400 140 450 260 520 360 S 600 520 640 600" stroke="#1E1E22" stroke-width="6" fill="none"/>
+        </svg>
+        <span style="position: absolute; top: 18px; left: 18px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 10px 16px; font-size: 14px; font-weight: 700">Tus guardados en el mapa</span>
+        <sc-for list="{{pinsAll}}" as="p" hint-placeholder-count="8"><span style="{{p.style}}">{{p.label}}</span></sc-for>
+      </section>
+      </div>
+    </div>
+    <p style="margin: 0; width: 1440px; font-size: 13px; line-height: 1.4; color: #A3A0A6">Lista larga, bajada · solo se mueve la columna de la lista: la cabecera y el mapa, con todos los pines, se quedan fijos · «GUARDADOS» y el orden se van hacia arriba con las tarjetas; para cambiar el orden se vuelve arriba · las tarjetas se cortan en los bordes de la columna, arriba y abajo · la lista es virtual: solo existen las tarjetas que se ven, sin ningún cambio a la vista</p>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="width: 1440px; height: 900px; background: #0F0F10; display: flex; flex-direction: column; overflow: hidden; position: relative">
+  <header style="height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid #232326">
+        <a href="#" style="font-family: Unbounded, sans-serif; font-size: 20px; font-weight: 900; text-decoration: none">BUYCAR<span style="color: #C6FF3D">MAP</span></a>
+        <nav style="display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700">
+          <div role="group" aria-label="Idioma" style="display: flex; align-items: center; font-family: 'Rethink Sans', system-ui, sans-serif; font-size: 13px; font-weight: 600"><button type="button" aria-pressed="true" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #F4F2F0">ES</button><span aria-hidden="true" style="color: #A3A0A6">·</span><button type="button" aria-pressed="false" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #A3A0A6">EN</button></div>
+          <a href="#" style="text-decoration: none; padding: 10px 16px">Mapa</a>
+          <a href="#" aria-current="page" style="text-decoration: none; padding: 10px 16px; border-radius: 999px; background: #F4F2F0; color: #0F0F10">Guardados</a>
+          <a href="#" style="text-decoration: none; padding: 10px 16px">Alertas</a>
+          <span style="width: 42px; height: 42px; margin-left: 8px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 800">A</span>
+        </nav>
+      </header>
+      <div style="flex: 1; display: flex; min-height: 0">
+      <main style="width: 830px; flex-shrink: 0; padding: 30px 32px; display: flex; flex-direction: column; gap: 24px; overflow: hidden">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end">
+          <h1 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 40px; font-weight: 900; line-height: 0.9; letter-spacing: -0.015em; text-transform: uppercase">Guardados</h1>
+          <div style="display: flex; gap: 8px; font-size: 14px"><span style="padding: 9px 16px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; font-weight: 800">Recientes</span><span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-weight: 600">Precio</span><span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-weight: 600">Km</span></div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 20px">
+          <sc-for list="{{grouped}}" as="car" hint-placeholder-count="6">
+            <article style="display: flex; flex-direction: column; gap: 12px">
+              <div style="position: relative; aspect-ratio: 20 / 17; border-radius: 22px; background: {{car.tint}}; display: flex; align-items: center; justify-content: center; color: rgba(244,242,240,0.2);{{car.ring}}">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; color: #F4F2F0">{{car.source}}</span>
+                <button type="button" aria-label="Quitar de guardados" style="all: unset; cursor: pointer; position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FAF9F8" stroke="#FAF9F8" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 3px">
+                <div style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-size: 16px; font-weight: 700">{{car.title}}</strong><span style="font-size: 14px; color: #A3A0A6">{{car.city}}</span></div>
+                <span style="font-size: 14px; color: #A3A0A6">{{car.year}} · {{car.km}}</span>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px"><span style="font-family: Unbounded, sans-serif; font-size: 22px; font-weight: 800; color: #C6FF3D">{{car.price}}</span><a href="#" style="font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></div>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+      </main>
+      <section aria-label="Mapa de tus guardados" style="flex: 1; position: relative; background: #141416; overflow: hidden; border-left: 1px solid #232326">
+        <svg width="610" height="820" viewBox="0 0 610 820" style="position: absolute; inset: 0" aria-hidden="true">
+          <path d="M-20 520 C 120 480 180 560 320 520 S 520 430 660 470 L 660 840 L -20 840 Z" fill="#111A22"/>
+          <path d="M-10 120 C 140 160 260 90 400 150 S 560 250 640 220" stroke="#232327" stroke-width="12" fill="none"/>
+          <path d="M80 -10 C 120 160 210 260 230 420 S 260 640 300 840" stroke="#2B2B30" stroke-width="10" fill="none"/>
+          <path d="M-10 330 C 160 320 330 360 640 320" stroke="#232327" stroke-width="7" fill="none"/>
+          <path d="M420 -10 C 400 140 450 260 520 360 S 600 520 640 600" stroke="#1E1E22" stroke-width="6" fill="none"/>
+        </svg>
+        <span style="position: absolute; top: 18px; left: 18px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 10px 16px; font-size: 14px; font-weight: 700">Tus guardados en el mapa</span>
+        <sc-for list="{{pinsGrouped}}" as="p" hint-placeholder-count="7"><span style="{{p.style}}">{{p.label}}</span></sc-for>
+        <article aria-label="2 coches · desde 14.500 €" style="position: absolute; left: 120px; top: 162px; width: 340px; max-height: 480px; box-sizing: content-box; overflow: hidden; background: #18181B; border: 1px solid #2A2A2E; border-radius: 24px; padding: 12px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 24px 50px rgba(0,0,0,0.55)">
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <div style="height: 170px; flex-shrink: 0; border-radius: 16px; background: #2A2D33; position: relative">
+              <button type="button" aria-label="Cerrar vista previa" style="all: unset; cursor: pointer; position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 999px; background: rgba(15,15,16,0.85); display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F4F2F0" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+              <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700">Wallapop</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline"><strong style="font-size: 16px">Audi A3 2.0 TDI</strong><span style="font-size: 13px; color: #A3A0A6">Madrid</span></div>
+            <span style="font-size: 14px; color: #A3A0A6; margin-top: -6px">2018 · 95.000 km · Diésel</span>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <strong style="font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; color: #C6FF3D; flex: 1; white-space: nowrap">14.500 €</strong>
+              <button type="button" aria-label="Quitar de guardados" style="all: unset; cursor: pointer; width: 42px; height: 42px; border-radius: 999px; background: #7C4DFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FAF9F8" stroke="#FAF9F8" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+              <a href="#" style="height: 42px; padding: 0 16px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; display: flex; align-items: center; font-size: 14px; font-weight: 800; text-decoration: none; white-space: nowrap">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left: 6px; flex-shrink: 0"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <div style="height: 170px; flex-shrink: 0; border-radius: 16px; background: #2A2F33; position: relative">
+              <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700">coches.net</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline"><strong style="font-size: 16px">Toyota Corolla 125H</strong><span style="font-size: 13px; color: #A3A0A6">Madrid</span></div>
+            <span style="font-size: 14px; color: #A3A0A6; margin-top: -6px">2021 · 48.000 km · Híbrido</span>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <strong style="font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 800; color: #C6FF3D; flex: 1; white-space: nowrap">19.750 €</strong>
+              <button type="button" aria-label="Quitar de guardados" style="all: unset; cursor: pointer; width: 42px; height: 42px; border-radius: 999px; background: #7C4DFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FAF9F8" stroke="#FAF9F8" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+              <a href="#" style="height: 42px; padding: 0 16px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; display: flex; align-items: center; font-size: 14px; font-weight: 800; text-decoration: none; white-space: nowrap">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left: 6px; flex-shrink: 0"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
+            </div>
+          </div>
+        </article>
+      </section>
+      </div>
+    </div>
+    <p style="margin: 0; width: 1440px; font-size: 13px; line-height: 1.4; color: #A3A0A6">Varios guardados en el mismo punto · un solo pin «2 coches · desde 14.500 €», el más barato, como el del mapa · pulsarlo lo pasa a activo y abre una sola vista previa con los coches en orden de precio, uno debajo de otro a 16px, con scroll dentro (480px de alto como mucho); el cerrar va solo en el primero · cada coche lleva su corazón y su «Ver anuncio» · en la lista se marcan las tarjetas de los coches del grupo</p>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 18px; flex-shrink: 0">
+    <div style="width: 1440px; height: 900px; background: #0F0F10; display: flex; flex-direction: column; overflow: hidden; position: relative">
+  <header style="height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid #232326">
+        <a href="#" style="font-family: Unbounded, sans-serif; font-size: 20px; font-weight: 900; text-decoration: none">BUYCAR<span style="color: #C6FF3D">MAP</span></a>
+        <nav style="display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700">
+          <div role="group" aria-label="Idioma" style="display: flex; align-items: center; font-family: 'Rethink Sans', system-ui, sans-serif; font-size: 13px; font-weight: 600"><button type="button" aria-pressed="true" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #F4F2F0">ES</button><span aria-hidden="true" style="color: #A3A0A6">·</span><button type="button" aria-pressed="false" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #A3A0A6">EN</button></div>
+          <a href="#" style="text-decoration: none; padding: 10px 16px">Mapa</a>
+          <a href="#" aria-current="page" style="text-decoration: none; padding: 10px 16px; border-radius: 999px; background: #F4F2F0; color: #0F0F10">Guardados</a>
+          <a href="#" style="text-decoration: none; padding: 10px 16px">Alertas</a>
+          <span style="width: 42px; height: 42px; margin-left: 8px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 800">A</span>
+        </nav>
+      </header>
+      <div style="flex: 1; display: flex; min-height: 0">
+      <main style="width: 830px; flex-shrink: 0; padding: 30px 32px; display: flex; flex-direction: column; gap: 24px; overflow: hidden">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end">
+          <h1 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 40px; font-weight: 900; line-height: 0.9; letter-spacing: -0.015em; text-transform: uppercase">Guardados</h1>
+          <div style="display: flex; gap: 8px; font-size: 14px"><span style="padding: 9px 16px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; font-weight: 800">Recientes</span><span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-weight: 600">Precio</span><span style="padding: 9px 16px; border-radius: 999px; border: 1px solid #2A2A2E; font-weight: 600">Km</span></div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 20px">
+          <sc-for list="{{removed}}" as="car" hint-placeholder-count="6">
+            <article style="display: flex; flex-direction: column; gap: 12px">
+              <div style="position: relative; aspect-ratio: 20 / 17; border-radius: 22px; background: {{car.tint}}; display: flex; align-items: center; justify-content: center; color: rgba(244,242,240,0.2);{{car.ring}}">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; color: #F4F2F0">{{car.source}}</span>
+                <button type="button" aria-label="Quitar de guardados" style="all: unset; cursor: pointer; position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 999px; background: #7C4DFF; color: #FAF9F8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FAF9F8" stroke="#FAF9F8" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 3px">
+                <div style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-size: 16px; font-weight: 700">{{car.title}}</strong><span style="font-size: 14px; color: #A3A0A6">{{car.city}}</span></div>
+                <span style="font-size: 14px; color: #A3A0A6">{{car.year}} · {{car.km}}</span>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px"><span style="font-family: Unbounded, sans-serif; font-size: 22px; font-weight: 800; color: #C6FF3D">{{car.price}}</span><a href="#" style="font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0">Ver anuncio<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></div>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+      </main>
+      <section aria-label="Mapa de tus guardados" style="flex: 1; position: relative; background: #141416; overflow: hidden; border-left: 1px solid #232326">
+        <svg width="610" height="820" viewBox="0 0 610 820" style="position: absolute; inset: 0" aria-hidden="true">
+          <path d="M-20 520 C 120 480 180 560 320 520 S 520 430 660 470 L 660 840 L -20 840 Z" fill="#111A22"/>
+          <path d="M-10 120 C 140 160 260 90 400 150 S 560 250 640 220" stroke="#232327" stroke-width="12" fill="none"/>
+          <path d="M80 -10 C 120 160 210 260 230 420 S 260 640 300 840" stroke="#2B2B30" stroke-width="10" fill="none"/>
+          <path d="M-10 330 C 160 320 330 360 640 320" stroke="#232327" stroke-width="7" fill="none"/>
+          <path d="M420 -10 C 400 140 450 260 520 360 S 600 520 640 600" stroke="#1E1E22" stroke-width="6" fill="none"/>
+        </svg>
+        <span style="position: absolute; top: 18px; left: 18px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 10px 16px; font-size: 14px; font-weight: 700">Tus guardados en el mapa</span>
+        <sc-for list="{{pinsRemoved}}" as="p" hint-placeholder-count="7"><span style="{{p.style}}">{{p.label}}</span></sc-for>
+      </section>
+      </div>
+      <div style="position: absolute; top: 93px; left: 225px; z-index: 10"><div role="status" aria-live="polite" style="width: 380px; box-sizing: border-box; background: #18181B; border: 1px solid #2A2A2E; border-radius: 22px; padding: 14px 14px 14px 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C6FF3D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg><span style="flex: 1; font-size: 15px; font-weight: 600; line-height: 1.4">Quitado de guardados</span><button type="button" style="all: unset; cursor: pointer; color: #C6FF3D; font-size: 14px; font-weight: 700; padding: 8px 12px; border-radius: 999px">Deshacer</button><button type="button" aria-label="Cerrar aviso" style="all: unset; cursor: pointer; width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #A3A0A6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div></div>
+    </div>
+    <p style="margin: 0; width: 1440px; font-size: 13px; line-height: 1.4; color: #A3A0A6">Quitar en escritorio · con el corazón de una tarjeta o el de la vista previa, la tarjeta sale de la cuadrícula, las siguientes suben a ocupar su sitio y su pin sale del mapa (aquí, el SEAT León) · sale el aviso «Quitado de guardados» con «Deshacer», el mismo del móvil, arriba sobre la lista, a 12px de la cabecera, como «Alerta creada» en el mapa</p>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1970,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":7514,"height":980}}'>
 class Component extends DCLogic {
   renderVals() {
     const cars = [
@@ -110,7 +361,22 @@ class Component extends DCLogic {
     const pin = (x, y, on) => 'position: absolute; left: ' + x + 'px; top: ' + y + 'px; padding: 7px 13px; white-space: nowrap; border-radius: 999px; font-size: 14px; ' + (on ? 'font-weight: 800; background: #C6FF3D; color: #0F0F10; box-shadow: 0 0 0 7px rgba(198,255,61,0.2);' : 'font-weight: 700; background: #18181B; color: #F4F2F0; border: 1px solid #2A2A2E;');
     const pins = [['18.900 €', 440, 110, false], ['16.500 €', 210, 170, true], ['19.750 €', 420, 560, false], ['14.500 €', 50, 330, false], ['21.500 €', 420, 300, false], ['11.900 €', 90, 620, false], ['9.400 €', 400, 50, false], ['15.200 €', 300, 640, false]].map(([label, x, y, on]) => ({ label, style: pin(x, y, on) }));
     const desk = cars.slice(0, 6).map((c, i) => ({ ...c, ring: i === 1 ? ' box-shadow: 0 0 0 2px #C6FF3D;' : '' }));
-    return { desk, mobile: cars.slice(0, 5), pins };
+    const at = (list) => list.map(([label, x, y, on]) => ({ label, style: pin(x, y, on) }));
+    // laptop: the same pins, squeezed into the 414px map
+    const pins1024 = at([['18.900 €', 264, 110, false], ['16.500 €', 126, 170, true], ['19.750 €', 252, 560, false], ['14.500 €', 30, 600, false], ['21.500 €', 252, 300, false], ['11.900 €', 54, 680, false], ['9.400 €', 240, 50, false], ['15.200 €', 200, 640, false]]);
+    // every saved car, none open
+    const pinsAll = at([['18.900 €', 440, 110, false], ['16.500 €', 210, 170, false], ['19.750 €', 420, 560, false], ['14.500 €', 50, 330, false], ['21.500 €', 420, 300, false], ['11.900 €', 90, 620, false], ['9.400 €', 400, 50, false], ['15.200 €', 300, 640, false]]);
+    // the two Madrid cars share one point: one group pin, open
+    const pinsGrouped = at([['18.900 €', 440, 110, false], ['16.500 €', 440, 770, false], ['2 coches · desde 14.500 €', 150, 110, true], ['21.500 €', 24, 470, false], ['11.900 €', 90, 700, false], ['9.400 €', 400, 50, false], ['15.200 €', 300, 700, false]]);
+    // the SEAT León removed: its pin goes
+    const pinsRemoved = at([['18.900 €', 440, 110, false], ['19.750 €', 420, 560, false], ['14.500 €', 50, 330, false], ['21.500 €', 420, 300, false], ['11.900 €', 90, 620, false], ['9.400 €', 400, 50, false], ['15.200 €', 300, 640, false]]);
+    const ring = ' box-shadow: 0 0 0 2px #C6FF3D;';
+    const desk1024 = desk.slice(0, 4);
+    const all = cars.map((c) => ({ ...c, ring: '' }));
+    const grouped = cars.slice(0, 6).map((c) => ({ ...c, ring: c.city === 'Madrid' ? ring : '' }));
+    const removed = cars.filter((c) => c.title !== 'SEAT León 1.5 TSI').slice(0, 6).map((c) => ({ ...c, ring: '' }));
+    const mobile = cars.slice(0, 5).map((c, i) => ({ ...c, pressed: i === 1 ? ' background: #18181B; border-radius: 18px;' : '' }));
+    return { desk, mobile, pins, desk1024, pins1024, all, pinsAll, grouped, pinsGrouped, removed, pinsRemoved };
   }
 }
 </script>

@@ -20,8 +20,10 @@ import { currentTab, showsTabBar } from "./nav-routes";
 // bottom nav (HEAD-8, HEAD-17 amended): at phone width, a full-width bar of
 // 64px tabs plus the safe-area inset, on the map (signed in or out) and on the
 // signed-in section pages. Each tab is an icon over its label; the current one
-// is violet and weight 800, the others muted and weight 600, so the state is
-// not carried by colour alone. It does not exist from `lg`.
+// has a violet icon and its label in the text colour at weight 800 (violet text
+// on `surface` fails 4.5:1: MAPUI-52 amended, SAVED-33), the others muted and
+// weight 600, so the state is not carried by colour alone. It does not exist
+// from `lg`.
 //
 // It hides while the map's results sheet is full (what the map page reports
 // through lib/hooks/useResultsSheetFull.ts) and while a page is being
@@ -45,7 +47,7 @@ function TabLink({ href, label, current, icon }: TabLinkProps) {
       )}
     >
       {icon}
-      <span>{label}</span>
+      <span className={cn(current && "text-text")}>{label}</span>
     </Link>
   );
 }

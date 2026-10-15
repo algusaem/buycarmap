@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import type { CarListing } from "@/interfaces/listing";
 import { env } from "@/lib/env";
 import { formatPrice } from "@/lib/format";
-import { groupPins } from "@/lib/map/group-pins";
+import { groupPins, hasCoordinates } from "@/lib/map/group-pins";
 import { PIN_BASE_CLASSES } from "@/lib/map/pin-classes";
 import { MapPreview, type PreviewController, type PreviewProps } from "@/components/map/MapPreview";
 import { MapZoom } from "@/components/map/MapZoom";
@@ -63,7 +63,9 @@ function FitBounds({ listings }: FitBoundsProps) {
   listingsRef.current = listings;
 
   useEffect(() => {
-    const current = listingsRef.current;
+    // A listing with no coordinates has no pin (groupPins), so it has no say
+    // in the bounds either (redesign-saved.md › Edge cases).
+    const current = listingsRef.current.filter(hasCoordinates);
     if (current.length === 0) return;
     const bounds = L.latLngBounds(current.map((l) => [l.lat, l.lng]));
     mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });

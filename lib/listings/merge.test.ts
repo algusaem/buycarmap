@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeFavoriteInput } from "@/test/fixtures/favorites";
+import { makeFavoriteInput } from "@/test/fixtures/favorite-listings";
 import { applyResultFilters } from "./merge";
 
 // docs/specs/redesign-map.md (MAPUI-55), worked example "Fuel": four

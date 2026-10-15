@@ -7,12 +7,13 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { axe } from "vitest-axe";
 import { server } from "@/test/msw/server";
 import { renderWithI18n } from "@/test/utils/render";
+import { stubPhoneWidth } from "@/test/utils/viewport";
 import esMessages from "@/messages/es.json";
 import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
 import { makeCochesNetResponse } from "@/test/fixtures/cochesnet";
 import { makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
 import { triggerIntersection } from "@/test/mocks/intersection-observer";
-import { makeFavoriteInput } from "@/test/fixtures/favorites";
+import { makeFavoriteInput } from "@/test/fixtures/favorite-listings";
 import { listFavorites } from "@/server/favorites/actions";
 import { searchListings } from "@/server/search/actions";
 import { setMapHeaderSlot } from "@/lib/hooks/useMapHeaderSlot";
@@ -629,33 +630,6 @@ describe("MapView — MAPUI-33 the results heading", () => {
 
 // --- Phone width, the page's URL, and the cars a case returns. ---
 
-/** Makes useIsPhone (lib/hooks/useIsPhone.ts) report a phone, until the afterEach puts it back. */
-function stubPhoneWidth(): void {
-  window.matchMedia = vi.fn((query: string) => ({
-    matches: query === "(width < 64rem)",
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  }));
-}
-
-/** Renders in Spanish with the page opened at `searchParams`, reporting each URL change. */
-function renderAtUrl(ui: React.ReactNode, searchParams: string, onUrlUpdate = vi.fn()) {
-  return render(ui, {
-    wrapper: ({ children }) => (
-      <NextIntlClientProvider locale="es" messages={esMessages} timeZone="UTC">
-        <NuqsTestingAdapter hasMemory searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
-          {children}
-        </NuqsTestingAdapter>
-      </NextIntlClientProvider>
-    ),
-  });
-}
-
 const SEAT_TITLE = "Seat Leon FR";
 
 /** Wallapop alone, exhausted, with the Audi then the Seat. */
@@ -858,7 +832,7 @@ const MADRID = "lat=40.4168&lng=-3.7038&placeId=1&locationName=Madrid";
 describe("MapView — MAPUI-31 the empty state's actions", () => {
   it("MAPUI-31: «Ampliar a 100 km» searches again at 100 km", async () => {
     server.use(...nothingFound);
-    renderAtUrl(<MapView initialQuery="case-widen" />, MADRID);
+    renderWithI18n(<MapView initialQuery="case-widen" />, { locale: "es", searchParams: MADRID });
 
     await userEvent.click(await screen.findByRole("button", { name: "Ampliar a 100 km" }));
 
@@ -868,11 +842,11 @@ describe("MapView — MAPUI-31 the empty state's actions", () => {
   it("MAPUI-31: «Quitar filtros» clears every filter and the ?q= text, and keeps the place and the radius (worked example)", async () => {
     server.use(...nothingFound);
     const onUrlUpdate = vi.fn();
-    renderAtUrl(
-      <MapView initialQuery="case-clear-filters" />,
-      `${MADRID}&radius=25&engine=gasoil&maxPrice=20000&q=case-clear-filters`,
+    renderWithI18n(<MapView initialQuery="case-clear-filters" />, {
+      locale: "es",
+      searchParams: `${MADRID}&radius=25&engine=gasoil&maxPrice=20000&q=case-clear-filters`,
       onUrlUpdate,
-    );
+    });
 
     await userEvent.click(await screen.findByRole("button", { name: "Quitar filtros" }));
 
@@ -899,7 +873,10 @@ describe("MapView — MAPUI-31 the empty state's actions", () => {
 
   it("MAPUI-31: at 200 km there is no widen button, and neither the line nor the pill names a radius", async () => {
     server.use(...nothingFound);
-    renderAtUrl(<MapView initialQuery="case-widest" />, `${MADRID}&radius=200`);
+    renderWithI18n(<MapView initialQuery="case-widest" />, {
+      locale: "es",
+      searchParams: `${MADRID}&radius=200`,
+    });
 
     expect(await screen.findByText("Quita algún filtro")).toBeInTheDocument();
     expect(
@@ -946,7 +923,7 @@ describe("MapView — MAPUI-33 the heading while a page is appended", () => {
 describe("MapView — MAPUI-31 the empty state with no filter (worked example)", () => {
   it("MAPUI-31: Madrid, 50 km, nothing else: «No hay coches en 50 km.», «Ampliar a 100 km» and no «Quitar filtros»", async () => {
     server.use(...nothingFound);
-    renderAtUrl(<MapView />, `${MADRID}&radius=50`);
+    renderWithI18n(<MapView />, { locale: "es", searchParams: `${MADRID}&radius=50` });
 
     expect(await screen.findByText("No hay coches en 50 km.")).toBeInTheDocument();
     expect(screen.getByText("¿Nada por aquí?")).toBeInTheDocument();
@@ -959,7 +936,11 @@ describe("MapView — MAPUI-31 the empty state with no filter (worked example)",
   it("MAPUI-31: Madrid, 200 km, nothing else: «Toda España» clears the place for a national search", async () => {
     server.use(...nothingFound);
     const onUrlUpdate = vi.fn();
-    renderAtUrl(<MapView />, `${MADRID}&radius=200`, onUrlUpdate);
+    renderWithI18n(<MapView />, {
+      locale: "es",
+      searchParams: `${MADRID}&radius=200`,
+      onUrlUpdate,
+    });
 
     expect(await screen.findByText("No hay coches en 200 km.")).toBeInTheDocument();
     expect(screen.getByText("Ningún coche en 200 km")).toBeInTheDocument();
