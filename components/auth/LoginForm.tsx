@@ -189,7 +189,7 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
     // session on one of its own mutation paths (sign-in/sign-out/etc. called
     // through `authClient` itself) or on a fresh mount. Neither happens from
     // a Next.js client-side `router.push`, so every `authClient.useSession()`
-    // reader (SiteHeader, TabBar, CarListingCard, useFavorites) would keep
+    // reader (SiteHeader, TabBar, useFavorites) would keep
     // rendering signed-out. A full navigation forces that fresh mount.
     finishSignIn();
   };

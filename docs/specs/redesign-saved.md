@@ -196,16 +196,22 @@ close)
 "Phone bottom sheet" means each sheet built on `PhoneBottomSheet` with a handle: the car sheet (on
 `/favorites`), the «BUSCAR» sheet (MAPUI-21) and the phone «Crear alerta» sheet
 (MAPUI-39). The phone filters panel is full-screen, with no handle, and is not one (Decisions › No
-visible close on phone sheets).
+visible close on phone sheets). The alert page's car sheet and its confirmation sheet, «¿Eliminar
+esta alerta?», are phone bottom sheets too (amended 2026-10-15, ALERTUI-26 and ALERTUI-34 —
+redesign-alerts.md).
 
 - [x] SAVED-37 · e2e — At 390×844 no phone bottom sheet shows a close «×». Pressing the handle and
   dragging it down more than 100px closes the sheet, and focus returns to the control that opened it,
   as it does after Escape: the car sheet from a row on `/favorites` (database run) and the «BUSCAR»
-  sheet from the search summary on `/map`.
+  sheet from the search summary on `/map`. — Also the car sheet from a match row on `/alerts/[id]`
+  and the confirmation sheet from «Eliminar alerta» (database run; amended 2026-10-15, ALERTUI-32 —
+  redesign-alerts.md).
 - [x] SAVED-38 · e2e — At 390×844, dragging the handle down 40px slowly (under 800px/s) and letting
   go springs the sheet back to where it was, and it stays open. Dragging from the sheet's content
   instead of the handle moves nothing: the car sheet's photo on `/favorites` (database run) and the
-  «BUSCAR» sheet's body on `/map`.
+  «BUSCAR» sheet's body on `/map`. — Also the alert page's car sheet, from its photo, and the
+  confirmation sheet, from its title (database run; amended 2026-10-15, ALERTUI-32 —
+  redesign-alerts.md).
 - [x] SAVED-39 · unit — The release closes the sheet when the drag went down more than 100px or the
   release moved down faster than 800px/s, and never otherwise (worked example "Drag to close").
 - [x] SAVED-40 · component — Every phone bottom sheet still closes with Escape and with a press on the
@@ -214,7 +220,9 @@ visible close on phone sheets).
   (`sr-only`) but stays a button named «Cerrar», reachable with Tab, and pressing it closes the
   sheet. It shows only with keyboard focus (`focus-visible`), drawn at 40px with the `x` of 14px
   and a 44px hit area (SAVED-23). The phone «Crear alerta» sheet keeps «Cancelar» and has no
-  «Cerrar».
+  «Cerrar». — The alert page's car sheet has the same visually hidden «Cerrar»; the alert's
+  confirmation sheet keeps «Cancelar» and has no «Cerrar» (amended 2026-10-15, ALERTUI-26 and
+  ALERTUI-34 — redesign-alerts.md).
 
 The toast
 
@@ -232,6 +240,9 @@ The toast
     its centre over the results list's centre: x = 415px at 1440×900, where the list is 830px wide,
     and x = 256px at 1024×900, where it is half the width («Alerta creada», in the DB suite as
     FRONT-23's trigger);
+  - **on `/alerts` and `/alerts/[id]` at desktop width**, its top 12px below the header's bottom,
+    its centre over the list column's centre: x = 415px at 1440×900 and 1280×900, x = 273px at
+    1024×900 (amended 2026-10-15, ALERTUI-37 — redesign-alerts.md);
   - **on any other page at desktop width**, which has no list column, its top 12px below the
     header's bottom and its centre on the viewport's centre, the README's «arriba al centro».
 

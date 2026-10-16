@@ -262,6 +262,11 @@ Car card
   On `/favorites` the card is the Guardados variant: a 20:17 photo, «año · km» with no fuel, and «Ver
   anuncio» as visible text inside the link, beside the price (amended 2026-10-15, SAVED-9 and
   SAVED-10 — redesign-saved.md).
+
+  An alert's match in the open AlertCard on `/alerts` is the alert match card: a 110px photo, the
+  source as text with no badge, the name, «año · km» and the price, one link with no heart. On the
+  phone alert page it is the compact row with «año · km» and no city (amended 2026-10-15, ALERTUI-8
+  and ALERTUI-25 — redesign-alerts.md).
 - [x] MAPUI-36 · component — The heart's accessible name is «Guardar», or «Quitar de guardados» once
   saved (keeps FAV-9 to FAV-11).
 - [x] MAPUI-37 · component — A signed-out buyer who presses the heart is sent to `/login` with a
@@ -270,7 +275,10 @@ Car card
 - [x] MAPUI-38 · component — `/favorites` and an alert's matches render this same card (keeps FAV-13
   and ALERT-39). — `/favorites` renders the Guardados variant of MAPUI-35 at desktop width and the
   compact row at phone width. An alert's matches keep this card until F6 (amended 2026-10-15,
-  SAVED-9 and SAVED-19 — redesign-saved.md).
+  SAVED-9 and SAVED-19 — redesign-saved.md). — An alert's matches render the Guardados card on
+  `/alerts/[id]` at desktop width, the alert match card in the open AlertCard on `/alerts`, and the
+  compact row at phone width, each with its saved state read from the user's favorites (amended
+  2026-10-15, ALERTUI-7, ALERTUI-18, ALERTUI-20 and ALERTUI-22 — redesign-alerts.md).
 
 Crear alerta
 
@@ -280,7 +288,11 @@ Crear alerta
   «Cancelar». (amended 2026-10-13) On the phone the sheet shows no close «×» and also closes when its
   handle is dragged down (amended 2026-10-15, owner: no visible close on phone sheets; drag down to close; SAVED-37 to SAVED-40, redesign-saved.md).
 - [x] MAPUI-40 · unit — The prefilled name and the summary are built from the search as in the worked
-  examples. The summary never includes «Publicado».
+  examples. The summary never includes «Publicado». — The dialog's summary keeps this order. The
+  AlertCard's criteria on `/alerts` are a second function of the same module
+  (`lib/search/alert-summary.ts`), built from the same label builders, with the fuel before the
+  price and no «Cualquier marca» or «Cualquier precio» (amended 2026-10-15, ALERTUI-5 —
+  redesign-alerts.md).
 - [x] MAPUI-41 · component — For a search with no brand, no maximum price and no place, the summary
   reads «Cualquier marca · Cualquier precio». The dialog then shows «Añade una marca, un precio
   máximo o una zona para crear la alerta.» with `role="alert"`, «Crear alerta» is `aria-disabled`, and
@@ -291,7 +303,10 @@ Crear alerta
   `createAlert` with a `timeFilter` or `keywords` are hashed and stored without them, the same as
   the criteria without them. (amended 2026-10-13) — at desktop width the toast's top is 12px below
   the filter row and its centre is over the results list's, and its close button is «Cerrar aviso»,
-  as every toast in the app (amended 2026-10-15, SAVED-24 and SAVED-36 — redesign-saved.md)
+  as every toast in the app (amended 2026-10-15, SAVED-24 and SAVED-36 — redesign-saved.md) —
+  `createAlert` also receives the place chosen in «Dónde» as its place name, «Madrid» from
+  `locationName=Madrid`, and none with no place; the place name is stored on the alert, never in
+  its criteria or their hash (amended 2026-10-15, ALERTUI-46 to ALERTUI-48 — redesign-alerts.md)
 - [x] MAPUI-43 · node + component — Saving criteria the user already has as an alert succeeds:
   - a live alert: nothing is created, even at the 20-alert limit, and the answer is `created: false`.
     The dialog closes with the toast «Ya tienes esta alerta» and «Ver alertas»;
@@ -350,7 +365,10 @@ Phone tab bar
   down and comes back on scrolling up (bug fix). (amended 2026-10-13)
 - [x] MAPUI-54 · component — At phone width, the headers of `/favorites`, `/alerts`, `/alerts/[id]`
   and `/account` show the wordmark and the language control and no avatar, because «Cuenta» is in
-  the tab bar (amends HEAD-7). The alert page's own «Volver» is built with that page in F6.
+  the tab bar (amends HEAD-7). The alert page's own «Volver» is built with that page in F6. — Built:
+  at phone width `/alerts/[id]`'s header shows «Volver», a 40px round link to `/alerts`, before the
+  wordmark; at desktop width «Volver» sits in the list column beside the alert's name (amended
+  2026-10-15, ALERTUI-20 and ALERTUI-22 — redesign-alerts.md).
 
 Fuel filter, type-ahead messages and price format
 
@@ -630,13 +648,16 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
   (`docs/specs/data-sources.md`).
 - A photo carousel on the card (its own issue).
 - Deduplicating the same car across sources (`docs/specs/data-sources.md`).
-- Showing the place name on `/alerts`. The stored criteria hold coordinates, not a name.
+- Showing the place name on `/alerts`. The stored criteria hold coordinates, not a name. (Amended
+  2026-10-15, ALERTUI — redesign-alerts.md: in scope in F6, which stores the name on the alert,
+  ALERTUI-46.)
 - Dragging the phone results sheet between its positions. The handle toggles them (MAPUI-23); the
   drag is tracked in [#126](https://github.com/algusaem/buycarmap/issues/126).
 
 ## Contracts
 
-**`createAlert`** (`server/alerts/actions.ts`) keeps its signature `createAlert(criteria, label)` and
+**`createAlert`** (`server/alerts/actions.ts`) keeps its signature `createAlert(criteria, label)`
+(amended 2026-10-15, ALERTUI — redesign-alerts.md: `createAlert(criteria, label, placeName?)`) and
 returns the shared `Result<{ created: boolean }, AlertError>` (PLAT-11, `lib/result.ts`):
 
 - `ok({ created: false })` when the caller already had a live alert with the same criteria hash, even

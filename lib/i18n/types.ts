@@ -284,7 +284,6 @@ export interface Translations {
   map: {
     loading: string;
     filters: string;
-    backToHome: string;
     addFavorite: string;
     removeFavorite: string;
     markerLabel: string;
@@ -399,14 +398,25 @@ export interface Translations {
   alerts: {
     title: string;
     subtitle: string;
-    empty: string;
     emptyCta: string;
     create: string;
     delete: string;
     matchCount: string;
     inactive: string;
+    newAlert: string;
+    viewAllMatches: string;
+    createdOn: string;
+    deleteShort: string;
+    deleteConfirmNamed: string;
+    cancel: string;
+    mapLabel: string;
+    mapEmpty: string;
+    zoneLabel: string;
+    emptyTitle: string;
+    emptyPunchline: string;
+    emptyLine: string;
+    emptyLinePhone: string;
     noMatchesYet: string;
-    backToAlerts: string;
     unsubscribed: string;
     unsubscribedBody: string;
     email: {
@@ -498,13 +508,10 @@ export interface Translations {
     title: string;
     description: string;
   };
-  // `pageLoadFailed` and `retry` are components/ui/RouteError.tsx's, the shared
-  // error.tsx boundary for /alerts and /alerts/[id] (PLAT-14,
-  // docs/specs/core-platform.md). `pageTitle`, `pagePunchline`, `retry` and
-  // `pageLine` are the page-error state's (components/ui/PageError.tsx), on
-  // /favorites (SAVED-32) and /map, which gives its own line (MAPUI-34).
+  // `pageTitle`, `pagePunchline`, `retry` and `pageLine` are the page-error
+  // state's (components/ui/PageError.tsx), on /favorites (SAVED-32), /alerts
+  // and /alerts/[id] (ALERTUI-42), and /map, which gives its own line (MAPUI-34).
   errors: {
-    pageLoadFailed: string;
     retry: string;
     pageTitle: string;
     pagePunchline: string;

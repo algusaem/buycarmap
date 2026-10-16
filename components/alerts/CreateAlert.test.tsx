@@ -108,10 +108,13 @@ describe("MAPUI-42: CreateAlert — creating", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Crear alerta" }));
 
-    expect(createAlert).toHaveBeenCalledWith(
-      { brand: "Toyota", maxPrice: 20000 },
-      expect.any(String),
-    );
+    // Amended 2026-10-15 (MAPUI-42, ALERTUI-48 — redesign-alerts.md):
+    // createAlert also takes a place name, a third argument checked by
+    // ALERTUI-48's cases below; this one is about the criteria and the name.
+    expect(createAlert).toHaveBeenCalledTimes(1);
+    const [sentCriteria, sentName] = vi.mocked(createAlert).mock.calls[0];
+    expect(sentCriteria).toEqual({ brand: "Toyota", maxPrice: 20000 });
+    expect(sentName).toEqual(expect.any(String));
   });
 
   it("MAPUI-42: on success closes the dialog and shows the Alerta creada toast with Ver alertas", async () => {
@@ -237,9 +240,12 @@ describe("MAPUI-42: CreateAlert — the criteria and the name sent", () => {
     await userEvent.type(nameField, "  Mi alerta  ");
     await userEvent.click(screen.getByRole("button", { name: "Crear alerta" }));
 
+    // Amended 2026-10-15 (MAPUI-42, ALERTUI-48 — redesign-alerts.md): the
+    // place chosen in «Dónde» goes as the place name.
     expect(createAlert).toHaveBeenCalledWith(
       { brand: "Toyota", maxPrice: 20000, latitude: 40.4168, longitude: -3.7038, distanceInKm: 50 },
       "Mi alerta",
+      "Madrid",
     );
     const [sentCriteria] = vi.mocked(createAlert).mock.calls[0];
     expect(sentCriteria).not.toHaveProperty("timeFilter");
@@ -341,5 +347,67 @@ describe("SAVED-41: the phone sheet keeps «Cancelar»", () => {
     expect(sheet.querySelector("[data-sheet-handle]")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cerrar" })).not.toBeInTheDocument();
+  });
+});
+
+// docs/specs/redesign-alerts.md (ALERTUI-48; amends MAPUI-42): «Crear alerta»
+// sends the place chosen in «Dónde» as the alert's place name. From
+// /map?lat=40.4168&lng=-3.7038&placeId=1&locationName=Madrid&radius=50&make=Toyota
+// the dialog holds criteria Toyota at Madrid's point and 50 km, and the place
+// «Madrid» (the map passes the URL's locationName as placeName).
+describe("ALERTUI-48: CreateAlert sends the place name", () => {
+  it("ALERTUI-48: with Madrid chosen, createAlert gets the criteria, the name and «Madrid»", async () => {
+    vi.mocked(createAlert).mockResolvedValue({ ok: true, value: { created: true } });
+    renderWithI18n(
+      <CreateAlert
+        {...BASE}
+        criteria={{ brand: "Toyota", latitude: 40.4168, longitude: -3.7038, distanceInKm: 50 }}
+        placeName="Madrid"
+      />,
+      { locale: "es" },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Crear alerta" }));
+
+    expect(createAlert).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(createAlert).mock.calls[0]).toEqual([
+      { brand: "Toyota", latitude: 40.4168, longitude: -3.7038, distanceInKm: 50 },
+      "Toyota · Madrid",
+      "Madrid",
+    ]);
+  });
+
+  it("ALERTUI-48: with no place chosen, no place name is sent", async () => {
+    vi.mocked(createAlert).mockResolvedValue({ ok: true, value: { created: true } });
+    renderWithI18n(
+      <CreateAlert
+        {...BASE}
+        criteria={{ brand: "Toyota", maxPrice: 20000 }}
+        placeName={undefined}
+      />,
+      { locale: "es" },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Crear alerta" }));
+
+    expect(createAlert).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(createAlert).mock.calls[0][2]).toBeUndefined();
+  });
+
+  it("ALERTUI-48: a place name longer than 200 characters is clipped to its first 200 before it is sent — 250 «X» send 200", async () => {
+    vi.mocked(createAlert).mockResolvedValue({ ok: true, value: { created: true } });
+    renderWithI18n(
+      <CreateAlert
+        {...BASE}
+        criteria={{ brand: "Toyota", latitude: 40.4168, longitude: -3.7038, distanceInKm: 50 }}
+        placeName={"X".repeat(250)}
+      />,
+      { locale: "es" },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Crear alerta" }));
+
+    expect(createAlert).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(createAlert).mock.calls[0][2]).toBe("X".repeat(200));
   });
 });

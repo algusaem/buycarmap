@@ -357,7 +357,6 @@
   "map": {
     "loading": "Loading…",
     "filters": "Filters",
-    "backToHome": "Back to home",
     "addFavorite": "Save",
     "removeFavorite": "Remove from saved",
     "markerLabel": "{title}, {price}",
@@ -470,15 +469,26 @@
   },
   "alerts": {
     "title": "Alerts",
-    "subtitle": "We check every few minutes and email you when a new match appears.",
-    "empty": "You have no alerts yet.",
+    "subtitle": "You snooze, you lose: save it and we'll let you know.",
     "emptyCta": "Search for cars",
     "create": "Alert me about new matches",
     "delete": "Delete alert",
-    "matchCount": "matches found",
+    "matchCount": "{count, plural, =0 {No matches} one {# match} other {# matches}}",
     "inactive": "Paused",
-    "noMatchesYet": "Watching — nothing new yet.",
-    "backToAlerts": "Back to alerts",
+    "newAlert": "New alert",
+    "viewAllMatches": "View all {count, number} matches",
+    "createdOn": "Created on {date}",
+    "deleteShort": "Delete",
+    "deleteConfirmNamed": "Delete “{name}”?",
+    "cancel": "Cancel",
+    "mapLabel": "Alert map",
+    "mapEmpty": "Each alert's area will show here",
+    "zoneLabel": "Alert area",
+    "emptyTitle": "No alerts?",
+    "emptyPunchline": "Create one",
+    "emptyLine": "Search the map for what you want, click “Create alert” and we'll write when something turns up.",
+    "emptyLinePhone": "Search the map, tap “Create alert” and we'll let you know.",
+    "noMatchesYet": "We'll let you know as soon as a matching car turns up.",
     "unsubscribed": "Alert paused",
     "unsubscribedBody": "You will not receive any more emails about this search. Your other alerts are unaffected.",
     "email": {
@@ -488,8 +498,7 @@
       "viewAll": "View all matches",
       "unsubscribe": "Stop these emails",
       "footer": "You are receiving this because you set up an alert on BuyCarMap."
-    },
-    "foundAt": "Found {time}"
+    }
   },
   "alertErrors": {
     "unauthenticated": "Please sign in to manage alerts.",
@@ -567,7 +576,6 @@
     "description": "Car buying map to find the best deals near you"
   },
   "errors": {
-    "pageLoadFailed": "We could not load this page. Please try again.",
     "retry": "Retry",
     "pageTitle": "Did something break?",
     "pagePunchline": "It's not your fault",

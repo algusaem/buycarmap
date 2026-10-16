@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar } from "./Avatar";
 import {
+  BackLink,
   DesktopRegion,
   type HeaderSession,
   MainNav,
@@ -22,6 +23,8 @@ interface PagesHeaderProps {
   onAccount: boolean;
   /** The signed-in landing reuses this header with the landing's 48px sides (desktop) and no divider. */
   open: boolean;
+  /** At phone width, «Volver» before the wordmark, to this page (an alert's page, ALERTUI-22). */
+  back?: string;
 }
 
 // HeaderNav README › Páginas, and › Landing con sesión: the language, Mapa ·
@@ -31,7 +34,7 @@ interface PagesHeaderProps {
 // shows no avatar, because «Cuenta» is in the tab bar — the section pages
 // (MAPUI-54) and, since ENTRY-8 gave the landing a tab bar too, the signed-in
 // landing as well (amends HEAD-7, which used to keep it there).
-export function PagesHeader({ session, current, onAccount, open }: PagesHeaderProps) {
+export function PagesHeader({ session, current, onAccount, open, back }: PagesHeaderProps) {
   const t = useTranslations();
 
   return (
@@ -66,7 +69,10 @@ export function PagesHeader({ session, current, onAccount, open }: PagesHeaderPr
       </DesktopRegion>
 
       <PhoneRegion open={open}>
-        <Wordmark size="phone" />
+        <span className="flex items-center gap-3">
+          {back && <BackLink href={back} />}
+          <Wordmark size="phone" />
+        </span>
         <MainNav>
           <LanguageControl />
           {session.status === "pending" && (

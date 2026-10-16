@@ -550,3 +550,35 @@ describe("SiteHeader — language in the user's language", () => {
     expect(region.getByRole("link", { name: "Alertas" })).toBeInTheDocument();
   });
 });
+
+// docs/specs/redesign-alerts.md (ALERTUI-2, ALERTUI-22; amends HEAD-7 and
+// MAPUI-54): at phone width /alerts/[id]'s header shows «Volver», a 40px
+// round link to /alerts, before the wordmark, and the language control;
+// /alerts' shows no «Volver».
+describe("SiteHeader — the alert page's «Volver» at phone width", () => {
+  it("ALERTUI-22: /alerts/<id> shows «Volver» to /alerts before the wordmark, and the language control", () => {
+    pathname.mockReturnValue("/alerts/0199a000-0000-7000-8000-00000000c001");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<SiteHeader />, { locale: "es" });
+
+    const region = phone();
+    const back = region.getByRole("link", { name: "Volver" });
+    expect(back).toHaveAttribute("href", "/alerts");
+    expect(back).toHaveClass("size-10", "rounded-full");
+    const wordmark = region.getByRole("link", { name: "BuyCarMap" });
+    expect(
+      back.compareDocumentPosition(wordmark) & Node.DOCUMENT_POSITION_FOLLOWING,
+      "«Volver» before the wordmark",
+    ).toBeTruthy();
+    expect(region.getByRole("group", { name: "Idioma" })).toBeInTheDocument();
+  });
+
+  it("ALERTUI-2: /alerts shows no «Volver»", () => {
+    pathname.mockReturnValue("/alerts");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<SiteHeader />, { locale: "es" });
+
+    expect(phone().queryByRole("link", { name: "Volver" })).not.toBeInTheDocument();
+    expect(phone().getByRole("link", { name: "BuyCarMap" })).toBeInTheDocument();
+  });
+});

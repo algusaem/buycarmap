@@ -9,6 +9,7 @@ import { PhoneBottomSheet } from "@/components/map/phone/SheetChrome";
 import { Button } from "@/components/ui/button";
 import type { CarListing } from "@/interfaces/listing";
 import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 // docs/specs/redesign-saved.md (SAVED-20 to SAVED-23);
 // docs/design/system/components/BottomSheet/README.md › Hoja del coche and
@@ -17,13 +18,18 @@ import { formatPrice } from "@/lib/format";
 // sheet; «Cerrar» is visually hidden, SAVED-37 to SAVED-41), the 200px
 // photo with its badge, the name and city, «año · km · combustible», the
 // price, then «Quitar de guardados» and «Ver anuncio» (new tab), 48px each.
+// An alert's match opens the same sheet (docs/specs/redesign-alerts.md,
+// ALERTUI-26), whose button reads the buyer's favorites: «Guardar», or
+// «Quitar de guardados» drawn saved (ALERTUI-18).
 
 interface SavedCarSheetProps {
   /** The car shown, kept while the sheet plays its exit. */
   listing: CarListing | null;
   open: boolean;
   onClose: () => void;
-  onRemove: (listing: CarListing) => void;
+  /** Whether the car is saved: «Quitar de guardados» with the violet heart, or «Guardar». */
+  saved: boolean;
+  onToggleSaved: (listing: CarListing) => void;
   /** The row that opened it, or after a removal the item that takes the focus (SAVED-18, SAVED-21). */
   returnFocusRef: RefObject<HTMLElement | null>;
 }
@@ -32,7 +38,8 @@ export function SavedCarSheet({
   listing,
   open,
   onClose,
-  onRemove,
+  saved,
+  onToggleSaved,
   returnFocusRef,
 }: SavedCarSheetProps) {
   const t = useTranslations();
@@ -90,14 +97,14 @@ export function SavedCarSheet({
               variant="secondary"
               size="48"
               className="w-full"
-              onClick={() => onRemove(listing)}
+              onClick={() => onToggleSaved(listing)}
             >
               <Heart
                 aria-hidden="true"
                 strokeWidth={2}
-                className="size-4 fill-violet text-violet"
+                className={cn("size-4", saved && "fill-violet text-violet")}
               />
-              {t("map.removeFavorite")}
+              {saved ? t("map.removeFavorite") : t("map.addFavorite")}
             </Button>
             <Button asChild variant="primary" size="48" className="w-full gap-1.5">
               <a href={listing.url} target="_blank" rel="noopener noreferrer">

@@ -16,6 +16,7 @@ import {
   type AlertId,
   type AlertPollJobId,
   asAlertCriteriaId,
+  asAlertId,
   asAlertPollJobId,
   type UserId,
   uuidv7,
@@ -24,8 +25,13 @@ import { saveUserLocale } from "@/server/locale/service";
 import { searchAllSources } from "./search";
 import { hashUnsubscribeToken, unsubscribeTokenFor } from "./unsubscribe-token";
 import type { CarListing } from "@/interfaces/listing";
-import type { AlertSummary, RunSummary } from "@/interfaces/alert";
-import type { SearchInput } from "@/lib/search/schema";
+import type {
+  AlertSummary,
+  AlertsPageData,
+  AlertWithMatches,
+  RunSummary,
+} from "@/interfaces/alert";
+import { hasPlace, type SearchInput } from "@/lib/search/schema";
 import { err, ok, type Result } from "@/lib/result";
 import {
   ALERT_ERROR,
@@ -151,8 +157,13 @@ export async function createAlertForUser(
   userId: UserId,
   criteria: SearchInput,
   label: string,
+  placeName: string | null = null,
 ): Promise<Result<CreateAlertOutcome, AlertErrorCode>> {
   const criteriaHash = hashCriteria(criteria);
+  // ALERTUI-46, ALERTUI-47: the place name is the user's, so it goes on their
+  // own alert row and never into the shared criteria or their hash. A name
+  // sent with criteria that have no place names nothing, and is not stored.
+  const storedPlaceName = hasPlace(criteria) ? placeName : null;
 
   // An explicit id, because the unsubscribe token is an HMAC over it and the
   // row needs the hash at insert time — and because `unsubscribeSubject`
@@ -214,6 +225,7 @@ export async function createAlertForUser(
           userId,
           criteriaId: id,
           label,
+          placeName: storedPlaceName,
           active: true,
           unsubscribeTokenHash,
           unsubscribeSubject: alertId,
@@ -221,6 +233,7 @@ export async function createAlertForUser(
         },
         update: {
           label,
+          placeName: storedPlaceName,
           active: true,
           deletedAt: null,
           version: { increment: 1 },
@@ -280,22 +293,138 @@ async function backfillLocale(userId: UserId): Promise<void> {
   await saveUserLocale(userId, locale);
 }
 
+/**
+ * The snapshot a match is rendered from (docs/specs/redesign-alerts.md,
+ * Contracts › Server): every field the cards, the rows, the sheet, the
+ * preview and the pins read, and nothing else of the row.
+ */
+const MATCH_SNAPSHOT = {
+  listingId: true,
+  source: true,
+  title: true,
+  subtitle: true,
+  image: true,
+  brand: true,
+  model: true,
+  location: true,
+  fuel: true,
+  url: true,
+  price: true,
+  mileage: true,
+  year: true,
+  lat: true,
+  lng: true,
+} satisfies Prisma.AlertMatchSelect;
+
+/** A match's stored snapshot, as the alert pages' reads select it. */
+type StoredMatch = Prisma.AlertMatchGetPayload<{ select: typeof MATCH_SNAPSHOT }>;
+
+/**
+ * A stored match as the listing it was found as (ALERT-39): the snapshot with
+ * its listing's id. Shared by the /alerts read and the /alerts/[id] read.
+ */
+function matchListing({ listingId, ...snapshot }: StoredMatch): CarListing {
+  return { id: listingId, ...snapshot };
+}
+
+/**
+ * Newest first (ALERTUI-44, ALERTUI-45): by `createdAt`, then by the
+ * time-ordered UUIDv7 id, so two rows written in the same millisecond keep
+ * one order.
+ */
+const NEWEST_FIRST = [{ createdAt: "desc" as const }, { id: "desc" as const }];
+
+/**
+ * What both alert pages read of an alert itself (docs/specs/redesign-alerts.md,
+ * Contracts › Server): its name, place name, state, creation date and stored
+ * criteria. No unsubscribe token, subject, delivery or audit column.
+ */
+const ALERT_HEADER = {
+  id: true,
+  label: true,
+  placeName: true,
+  active: true,
+  createdAt: true,
+  criteria: { select: { criteria: true } },
+} satisfies Prisma.AlertSelect;
+
+/** An alert's header, as both pages' reads select it. */
+type StoredAlertHeader = Prisma.AlertGetPayload<{ select: typeof ALERT_HEADER }>;
+
+/** An alert's header as the pages render it, shared by the /alerts read and the /alerts/[id] read. */
+function alertHeader(row: StoredAlertHeader): Omit<AlertWithMatches, "matches"> {
+  return {
+    id: asAlertId(row.id),
+    label: row.label,
+    placeName: row.placeName,
+    // The column is Json, so what comes out is not typed just because what
+    // went in was: read back with the search schema.
+    criteria: parseStoredCriteria(row.criteria.criteria) ?? {},
+    active: row.active,
+    createdAt: row.createdAt,
+  };
+}
+
+/**
+ * The caller's alerts for /alerts, newest first, soft-deleted ones left out
+ * (ALERTUI-44), with only the fields the cards read.
+ */
 export async function findAlertSummaries(userId: UserId): Promise<AlertSummary[]> {
   const rows = await prisma.alert.findMany({
     where: { ...ownedBy({ id: userId }), ...notDeleted },
-    include: { criteria: true, _count: { select: { matches: true } } },
-    orderBy: { createdAt: "desc" },
+    select: { ...ALERT_HEADER, _count: { select: { matches: true } } },
+    orderBy: NEWEST_FIRST,
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    label: row.label,
-    // The column is Json, so what comes out is not typed just because what
-    // went in was.
-    criteria: parseStoredCriteria(row.criteria.criteria) ?? {},
-    matchCount: row._count.matches,
-    active: row.active,
-  }));
+  return rows.map((row) => ({ ...alertHeader(row), matchCount: row._count.matches }));
+}
+
+/**
+ * docs/specs/redesign-alerts.md (ALERTUI-44; Contracts › Server): the open
+ * alert's matches for /alerts, newest first, from their stored snapshot — only
+ * when the alert is the caller's and not deleted.
+ */
+async function findOpenAlertMatches(userId: UserId, alertId: AlertId): Promise<CarListing[]> {
+  const matches = await prisma.alertMatch.findMany({
+    where: { alertId, alert: { ...ownedBy({ id: userId }), ...notDeleted } },
+    select: MATCH_SNAPSHOT,
+    orderBy: NEWEST_FIRST,
+  });
+  return matches.map(matchListing);
+}
+
+/**
+ * docs/specs/redesign-alerts.md (ALERTUI-12; Contracts › URL): the open alert
+ * on /alerts — the requested id when it is one of the caller's listed alerts
+ * (`alertIds`, newest first), the newest otherwise, and null with no alert.
+ */
+export function resolveOpenAlertId(
+  alertIds: readonly AlertId[],
+  requested: string | null | undefined,
+): AlertId | null {
+  const chosen = requested ? alertIds.find((id) => id === requested) : undefined;
+  return chosen ?? alertIds[0] ?? null;
+}
+
+/**
+ * docs/specs/redesign-alerts.md (ALERTUI-12, ALERTUI-44): what /alerts reads
+ * for `requested`, the URL's `alert`. The caller's alerts; the open alert,
+ * resolved among them only, so a foreign or deleted id reads none of its rows
+ * and opens the newest; then that one alert's matches. Two reads, whatever
+ * the number of alerts.
+ */
+export async function findAlertsPage(
+  userId: UserId,
+  requested: string | null | undefined,
+): Promise<AlertsPageData> {
+  const alerts = await findAlertSummaries(userId);
+  const openAlertId = resolveOpenAlertId(
+    alerts.map((alert) => alert.id),
+    requested,
+  );
+  if (!openAlertId) return { alerts, openAlertId: null, matches: [] };
+  const matches = await findOpenAlertMatches(userId, openAlertId);
+  return { alerts, openAlertId, matches };
 }
 
 /** Soft delete (DATA-10): sets `deletedAt` rather than removing the row. */
@@ -377,14 +506,22 @@ export async function findCriteriaIdsForUser(
  * "not found" here instead of throwing out of Prisma the way a well-formed
  * but non-existent one does.
  */
-export async function findAlertWithMatches(userId: UserId, alertId: AlertId) {
+export async function findAlertWithMatches(
+  userId: UserId,
+  alertId: AlertId,
+): Promise<AlertWithMatches | null> {
   if (!alertIdSchema.safeParse(alertId).success) return null;
 
-  // Scoped by userId, so another account's alert is not found at all.
-  return prisma.alert.findFirst({
+  // Scoped by userId, so another account's alert is not found at all. Only
+  // what the page renders is read (docs/specs/redesign-alerts.md, ALERTUI-45):
+  // no unsubscribe token, subject, delivery or audit column reaches it.
+  const row = await prisma.alert.findFirst({
     where: { id: alertId, ...ownedBy({ id: userId }), ...notDeleted },
-    include: { matches: { orderBy: { createdAt: "desc" } } },
+    select: { ...ALERT_HEADER, matches: { select: MATCH_SNAPSHOT, orderBy: NEWEST_FIRST } },
   });
+  if (!row) return null;
+
+  return { ...alertHeader(row), matches: row.matches.map(matchListing) };
 }
 
 // --- The unsubscribe link (app/api/alerts/unsubscribe/route.ts) ---------------

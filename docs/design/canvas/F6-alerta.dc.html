@@ -32,9 +32,9 @@ a{color:#F4F2F0}a:hover{color:#C6FF3D}
       <section style="width: 830px; flex-shrink: 0; padding: 30px 32px; display: flex; flex-direction: column; gap: 20px; overflow: hidden">
         <div style="display: flex; justify-content: space-between; align-items: flex-end"><h1 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 40px; font-weight: 900; line-height: 0.9; letter-spacing: -0.015em; text-transform: uppercase">Alertas</h1><a href="#" style="text-decoration: none; font-size: 14px; font-weight: 800; padding: 10px 16px; border-radius: 999px; background: #C6FF3D; color: #0F0F10">Nueva alerta</a></div>
         <p style="margin: 0; font-size: 15px; color: #A3A0A6">El que no corre vuela, guárdalo y nosotros te avisamos.</p>
-        <sc-for list="{{alerts}}" as="a" hint-placeholder-count="3">
+        <sc-for list="{{alerts}}" as="a" hint-placeholder-count="4">
           <article style="{{a.style}}">
-            <div style="display: flex; justify-content: space-between; align-items: center"><strong style="font-family: Unbounded, sans-serif; font-size: 17px; font-weight: 800; text-transform: uppercase">{{a.name}}</strong><span style="{{a.badge}}">{{a.matches}}</span></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px"><div style="display: flex; align-items: center; gap: 10px; min-width: 0"><strong style="font-family: Unbounded, sans-serif; font-size: 17px; font-weight: 800; text-transform: uppercase; white-space: nowrap">{{a.name}}</strong><sc-if value="{{a.paused}}" hint-placeholder-val="{{ false }}"><span style="{{a.pausedBadge}}">En pausa</span></sc-if></div><span style="{{a.badge}}">{{a.matches}}</span></div>
             <sc-if value="{{a.off}}" hint-placeholder-val="{{ false }}"><span style="font-size: 14px; color: #A3A0A6">{{a.summary}}</span></sc-if>
             <sc-if value="{{a.on}}" hint-placeholder-val="{{ true }}">
               <div style="display: flex; flex-wrap: wrap; gap: 6px">
@@ -133,12 +133,13 @@ a{color:#F4F2F0}a:hover{color:#C6FF3D}
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1970,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    const badge = (hot) => 'font-size: 13px; font-weight: 800; border-radius: 999px; padding: 6px 11px; ' + (hot ? 'background: #C6FF3D; color: #0F0F10;' : 'border: 1px solid #2A2A2E; color: #A3A0A6;');
+    const badge = (hot) => 'font-size: 13px; font-weight: 800; border-radius: 999px; padding: 6px 11px; white-space: nowrap; ' + (hot ? 'background: #C6FF3D; color: #0F0F10;' : 'border: 1px solid #2A2A2E; color: #A3A0A6;');
     const alerts = [
       { name: 'Corolla híbrido', matches: '4 coincidencias', hot: false, on: true, created: 'el 2 de octubre', criteria: ['Toyota Corolla', 'Híbrido', 'Hasta 18.000 €', 'Madrid · 50 km'] },
-      { name: 'Golf TDI', matches: 'Sin coincidencias', hot: false, created: 'el 28 de septiembre', criteria: ['Volkswagen Golf', 'Diésel', 'Menos de 120.000 km', 'Valencia · 30 km'] },
-      { name: 'Clio barato', matches: '1 coincidencia', hot: false, created: 'el 21 de septiembre', criteria: ['Renault Clio', 'Hasta 9.000 €', 'Zaragoza · 50 km'] }
-    ].map((a) => ({ ...a, badge: badge(a.hot), summary: a.criteria.join(' · '), action: 'Eliminar', on: !!a.on, off: !a.on,
+      { name: 'Golf TDI', matches: 'Sin coincidencias', hot: false, created: 'el 28 de septiembre', criteria: ['Volkswagen Golf', 'Diésel', 'Hasta 120.000 km', 'Valencia · 25 km'] },
+      { name: 'Clio barato', matches: '1 coincidencia', hot: false, paused: true, created: 'el 21 de septiembre', criteria: ['Renault Clio', 'Hasta 9.000 €', '50 km'] },
+      { name: 'Serie 3 diésel', matches: '12 coincidencias', hot: false, created: 'el 14 de septiembre', criteria: ['BMW Serie 3', 'Diésel', 'Hasta 20.000 €'] }
+    ].map((a) => ({ ...a, badge: badge(a.hot), pausedBadge: 'font-size: 12px; font-weight: 700; border-radius: 999px; padding: 5px 10px; background: rgba(15,15,16,0.85); color: #A3A0A6; white-space: nowrap;', paused: !!a.paused, summary: a.criteria.join(' · '), action: 'Eliminar', on: !!a.on, off: !a.on,
       style: 'background: #18181B; border-radius: 22px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; ' + (a.on ? 'border: 1px solid #C6FF3D;' : 'border: 1px solid #2A2A2E;') }));
     const matches = [
       { title: 'Toyota Corolla 125H', year: '2020', km: '61.000 km', city: 'Majadahonda', price: '16.200 €', source: 'coches.net', found: 'Hoy', tint: '#2A2F33' },

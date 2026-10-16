@@ -42,6 +42,8 @@ const twMerge = extendTailwindMerge({
         "pin",
         "sheet-title",
         "empty-line",
+        "alert-name",
+        "alert-title",
       ],
       spacing: [
         "tab-clearance",

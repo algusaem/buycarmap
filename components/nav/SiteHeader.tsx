@@ -6,7 +6,7 @@ import { AccessHeader } from "./AccessHeader";
 import type { HeaderSession } from "./HeaderParts";
 import { LandingHeader } from "./LandingHeader";
 import { MapHeader } from "./MapHeader";
-import { currentSection, headerKind } from "./nav-routes";
+import { backHref, currentSection, headerKind } from "./nav-routes";
 import { PagesHeader } from "./PagesHeader";
 
 // docs/specs/redesign-navigation.md (HEAD): picks the header by route and
@@ -40,6 +40,7 @@ export function SiteHeader() {
           current={currentSection(pathname)}
           onAccount={pathname === "/account"}
           open={false}
+          back={backHref(pathname)}
         />
       )}
       {kind === "landing" && session.status === "signedIn" && (

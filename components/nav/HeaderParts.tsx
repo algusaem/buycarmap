@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { SECTIONS, type Section } from "./nav-routes";
@@ -8,6 +9,26 @@ import { SECTIONS, type Section } from "./nav-routes";
 // shares. Each header draws two regions: the desktop one from `lg` and the
 // phone one below it. Which one shows is CSS alone, so both are always in the
 // DOM (spec › Decisions: one header per kind of page, chosen by route).
+
+/**
+ * «Volver», the 40px round link of an alert's page (docs/specs/redesign-alerts.md,
+ * ALERTUI-20, ALERTUI-22; HeaderNav/README.md): in the phone header before the
+ * wordmark, and on desktop beside the page's name. 40px drawn, with the 44px
+ * hit area of RULES.md §19.
+ */
+export function BackLink({ href }: { href: string }) {
+  const t = useTranslations();
+
+  return (
+    <Link
+      href={href}
+      aria-label={t("nav.back")}
+      className="relative flex size-10 shrink-0 items-center justify-center rounded-full border border-line text-text transition-colors before:absolute before:size-11 hover:text-lime"
+    >
+      <ChevronLeft aria-hidden="true" strokeWidth={2.2} className="size-4.5" />
+    </Link>
+  );
+}
 
 /** What the header knows about the session (HEAD-11, HEAD-12). */
 export type HeaderSession =

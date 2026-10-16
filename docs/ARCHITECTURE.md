@@ -291,8 +291,8 @@ the component test passed because it supplied a prop the application never did.
 
 ## Path 4 — a poll with no user in it
 
-The three paths above all begin with a request. Alerts do not: a GitHub Actions
-cron POSTs to `app/api/alerts/run/route.ts`, which authenticates the caller and
+The three paths above all begin with a request. Alerts do not: the QStash schedule
+([ADR 0017](decisions/0017-upstash-qstash-react-email.md)) POSTs to `app/api/alerts/run/route.ts`, which authenticates the caller and
 hands the run to `server/alerts/service.ts`, which claims work off a Postgres
 queue and drains it. Two consequences reshape the rules above rather than
 following them.
@@ -356,7 +356,7 @@ Spanish or English in components.
 | `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/auth.ts` — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
 | `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row and panel), `phone/` (the phone search, sheets and results sheet) |
-| `components/alerts/` | The alerts pages' lists and the create-alert dialog |
+| `components/alerts/` | The alerts pages (`AlertsPage`, `AlertPage`), the AlertCard, the alert map and the phone zone map, the delete confirmation, the loading and error states, and the create-alert dialog |
 | `components/nav/` | The headers, the phone tab bar and the language control |
 | `components/favorites/` | The saved cars page: the list column, the Guardados card, the phone row and car sheet, the sort chips and the loading placeholders |
 | `components/ui/` | Radix-wrapped primitives |
@@ -513,6 +513,12 @@ pair would conflate concerns with different cascade and retention rules. See
 `AlertCriteria`'s hash of the canonicalised criteria is the property the
 upstream request budget depends on. `AlertMatch` stores a full snapshot for the
 same reason `Favorite` does: no source client can fetch a single listing by id.
+
+`Alert.placeName` is the place the user chose in «Dónde» when creating the alert, which names its
+zone on the alerts pages. It is the user's, so it lives on their own `Alert` and never on the
+shared `AlertCriteria` or in its hash: two users saving the same point under different names
+still share one criteria set ([redesign-alerts.md](specs/redesign-alerts.md) › Decisions › The
+place name is the user's). Null for alerts created before it.
 
 `User.locale` was added alongside these. It exists because the alert runner is a
 cron with no request to resolve a locale from, and the default is `es` — without
@@ -695,7 +701,7 @@ MapView
 ├─ MapResultsArea          the list-and-map column
 │  ├─ PhoneSearchBar       phone only: the summary, the filters button, FilterRow
 │  ├─ ResultsSheet         the list column on desktop, the results sheet on a phone
-│  │  ├─ CarCard ×n        one link, the heart beside it (CarListingCard wraps it)
+│  │  ├─ CarCard ×n        one link, the heart beside it
 │  │  └─ ResultsStatus     placeholders, no results, search error
 │  ├─ ListingsMap          dynamic, ssr: false: price pins, MapPreview, MapZoom
 │  └─ StatusPill           the desktop map's polite live region
@@ -745,8 +751,8 @@ query a signed-out buyer returns to after signing in.
 
 **One heart everywhere.** [`lib/hooks/useFavoriteToggle.ts`](../lib/hooks/useFavoriteToggle.ts)
 owns what pressing a heart does (the session check, the sign-in return with the full path and
-query, the optimistic flip and its rollback); `CarListingCard` (alert matches), the map's list,
-its preview card and the saved cars page all call it. The sign-in gate itself is
+query, the optimistic flip and its rollback); the map's list, its preview card, the saved cars page and
+the alerts pages (through `lib/hooks/useMatchFavorites.ts`) all call it. The sign-in gate itself is
 [`lib/hooks/useSignInGate.ts`](../lib/hooks/useSignInGate.ts) — `requireSession(path)`, which
 returns `true` when signed in, ignores the press while the session is still loading, and otherwise
 redirects to sign in and back to `path` — shared by the heart and «Crear alerta»
@@ -790,14 +796,48 @@ page's `data-toast-anchor` (`saved` here, `map` on `/map`): under the header, or
 row, and centred over the list column (SAVED-24). A page with no `data-toast-anchor` has its
 toast under the header, centred on the viewport.
 
+### The alerts pages
+
+`/alerts` and `/alerts/[id]` ([`specs/redesign-alerts.md`](specs/redesign-alerts.md), ALERTUI)
+draw the saved cars page's frame (`SavedLayout`): the list column, which alone scrolls, and from
+`lg` the alert map beside it, `ListingsMap` with the alert's zone (`components/map/ZoneLayers.tsx`,
+a react-leaflet `Circle` and centre dot under the pins) and the pill naming the alert. Both read
+on the server: `listAlertsForPage(alert)` returns the user's alerts, newest first, and the
+matches of one of them, the open one, resolved from the URL's `alert` among the caller's own
+(`resolveOpenAlertId`, in `findAlertsPage` of `server/alerts/service.ts`); `getAlertWithMatches(id)`
+returns one alert with every match, its criteria already read back. The matches
+are their stored snapshots, so neither page calls an upstream.
+
+- [`components/alerts/AlertsPage.tsx`](../components/alerts/AlertsPage.tsx) — the AlertCards: the
+  open one with its criteria as chips and its four newest matches, the others folded; pressing a
+  folded card writes `alert` ([`lib/hooks/useOpenAlert.ts`](../lib/hooks/useOpenAlert.ts), nuqs,
+  a non-shallow push in a transition) and the server answers with that alert's matches. The phone
+  lists one link per alert to its page.
+- [`components/alerts/AlertPage.tsx`](../components/alerts/AlertPage.tsx) — the alert's page: its
+  matches through the saved cars' virtualised list (`useSavedList`, `SavedList`, `SavedCard`,
+  `SavedRow` with no city, `SavedCarSheet`), and on the phone the static zone map
+  (`AlertZoneMap`). The phone header's «Volver» is `PagesHeader`'s (`backHref` in
+  `components/nav/nav-routes.ts`).
+- [`lib/hooks/useMatchFavorites.ts`](../lib/hooks/useMatchFavorites.ts) — a match's saved state,
+  from `useFavorites` and `useFavoriteToggle`, as `/map` reconciles its results.
+- [`lib/hooks/useAlertDelete.ts`](../lib/hooks/useAlertDelete.ts) — the delete behind its
+  confirmation (`DeleteAlertConfirm`: a centred `alertdialog` on desktop, `PhoneBottomSheet` on
+  the phone), one request at a time; a delete on an alert's page replaces it with `/alerts`.
+- [`lib/hooks/useAlertLabels.ts`](../lib/hooks/useAlertLabels.ts) — the criteria
+  (`alertCriteria` and `alertZone` in `lib/search/alert-summary.ts`), the match count and
+  «Creada el …» (`formatDate` in `lib/format.ts`, in next-intl's time zone).
+
+Their toasts are centred over the list column (`data-toast-anchor="alerts"`, ALERTUI-37).
+
 ### UI primitives
 
 `components/ui/` wraps Radix primitives: `button`, `card`, `input`, `label`,
 `separator`, plus `toggle-chip` and `checkbox-select`, which have behaviour of their own,
 `Headline` (the question-and-punchline headline, used by the landing, `/login` and
 `EmptyState`), and the shared states `EmptyState` (the headline, its line and its actions),
-`RouteError`, `PageError` (the page-error state, used by the error files of `/map` and `/favorites`) and
-`CardGridSkeleton`. The popovers and sheets use Radix Popover and Dialog
+`PageError` (the page-error state, used by the error files of `/map`, `/favorites`, `/alerts` and
+`/alerts/[id]`) and the map's card placeholders (`CardPlaceholder` and `SheetCardPlaceholder`, in
+`components/ui/CardGridSkeleton.tsx`). The popovers and sheets use Radix Popover and Dialog
 directly, and the price range Radix Slider.
 
 **`checkbox-select` is the design's select** (LOOK-21): one style, every option
@@ -1244,7 +1284,9 @@ anything about persistence, since Prisma is mocked everywhere in Vitest. It also
 cars page (`e2e/saved.spec.ts`, SAVED-3 to SAVED-29), up to 200 saved cars per account. Those are
 seeded by a direct insert (`seedFavorites` in `e2e/fixtures/db.ts`) rather than through the UI:
 two hundred saves would take minutes, and the order depends on each row's `created_at`, which only
-an insert can set.
+an insert can set. The alert pages (`e2e/alerts-ui.spec.ts`, the ALERTUI criteria that need a
+signed-in user's alerts) are seeded the same way, by `seedAlerts` and `seedAlertMatches`, up to
+200 matches per alert.
 
 **The alert-queue tests are the only database-backed ones with no browser in
 them.** They drive `FOR UPDATE SKIP LOCKED` through two overlapping `pg`
@@ -1499,10 +1541,9 @@ instead of `*.sentry.io`, so the CSP needs no Sentry host.
 #### Logging and error monitoring
 
 [`lib/logger.ts`](../lib/logger.ts) is the one Pino logger: JSON in
-production, `pino-pretty` in development, silent under Vitest. Its `redact`
-paths censor `password`, `token`, `email`, `secret`, `code`,
-`headers.authorization` and `headers.cookie` at the top level and one level
-deep. Every `console.*` call in `app/`, `components/`, `lib/`
+production, `pino-pretty` in development, silent under Vitest. What its
+`redact` paths censor is [PLAT-15](specs/core-platform.md), and the list
+itself is `REDACT_PATHS` in [`lib/logger.ts`](../lib/logger.ts). Every `console.*` call in `app/`, `components/`, `lib/`
 and `server/` was replaced by it (Biome's `noConsole` is an error for those
 paths; `scripts/**` and `e2e/**` are exempt).
 

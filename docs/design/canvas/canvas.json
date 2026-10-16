@@ -43,7 +43,7 @@
       "y": 3180
     },
     "UIKit.dc.html": {
-      "h": 18551,
+      "h": 18623,
       "page": "kit",
       "title": "UI Kit",
       "w": 1970,
@@ -233,6 +233,30 @@
       "w": 1970,
       "x": 0,
       "y": 11660
+    },
+    "F6-alerta-escritorio.dc.html": {
+      "h": 1000,
+      "page": "r3",
+      "title": "Alerta · escritorio y eliminar",
+      "w": 3020,
+      "x": 4100,
+      "y": 10600
+    },
+    "F6-alertas-escritorio.dc.html": {
+      "h": 1000,
+      "page": "r3",
+      "title": "Alertas · pausada, sin sitio, portátil y cargando",
+      "w": 5584,
+      "x": 7200,
+      "y": 10600
+    },
+    "F6-alerta-mas-estados.dc.html": {
+      "h": 1000,
+      "page": "r3",
+      "title": "Alerta · sin sitio, lista larga, guardado, cargando y sitio largo (móvil)",
+      "w": 2680,
+      "x": 4100,
+      "y": 11660
     }
   },
   "createdOnFiles": {
@@ -269,6 +293,9 @@
     "R3-alertas.dc.html",
     "F6-alerta.dc.html",
     "F6-alerta-estados.dc.html",
+    "F6-alertas-escritorio.dc.html",
+    "F6-alerta-escritorio.dc.html",
+    "F6-alerta-mas-estados.dc.html",
     "F0-estado-alertas-vacio.dc.html",
     "F0-cuenta.dc.html",
     "F0-legal.dc.html",

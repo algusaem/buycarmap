@@ -255,9 +255,10 @@ test.describe("HEAD-19: favorites and alerts scroll past the bottom nav", () => 
         // Simulates a long list: appends a 3,000px filler plus a trailing
         // marker inside the scrolling root, so the page is taller than the
         // viewport exactly as the bug's worked example describes (HEAD-19).
-        // Each route's own scrolling root: /favorites' list column, /alerts' centred container.
-        const rootSelector =
-          route === "/favorites" ? '[data-testid="saved-list"]' : '[class*="mx-auto"]';
+        // Each route's own scrolling root: the list column both routes draw
+        // (components/favorites/SavedLayout.tsx), since F6 for /alerts
+        // (docs/specs/redesign-alerts.md, ALERTUI-4).
+        const rootSelector = '[data-testid="saved-list"]';
         await page.evaluate((selector) => {
           const root = document.querySelector(selector);
           if (!root) throw new Error(`scrolling root ${selector} not found`);

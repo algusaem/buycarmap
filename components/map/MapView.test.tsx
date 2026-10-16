@@ -44,8 +44,8 @@ vi.mock("@/server/locale/actions", () => ({
 vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 import { toast } from "sonner";
-// CarListingCard reads the session (authClient.useSession(), Better Auth) to
-// decide what its favorite control does, and calls the favorites actions.
+// useFavorites reads the session (authClient.useSession(), Better Auth) to
+// decide what a card's favorite control does, and calls the favorites actions.
 // Neither is what these tests are about. Typed so a test can widen it to an
 // authenticated session; inferring from the default would pin `data` to null.
 const useSession = vi.fn<() => { data: { user: { id: string } } | null; isPending: boolean }>(

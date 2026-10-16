@@ -453,6 +453,12 @@ model Alert {
   // as JSON, and someone with several alerts has to tell them apart.
   label String
 
+  // docs/specs/redesign-alerts.md (ALERTUI-46, ALERTUI-49): the place the user
+  // chose in «Dónde» when creating the alert («Madrid»). Per user, so never on
+  // AlertCriteria nor in its hash, which are shared across users. Null for
+  // alerts created before F6, with no place, or when none was sent.
+  placeName String? @map("place_name")
+
   // Unsubscribing flips this rather than deleting, so the matches page still
   // renders and re-enabling loses no history. Only deleting the alert releases
   // the criteria set (see AlertCriteria's cascade).

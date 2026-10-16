@@ -23,7 +23,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const PLACEHOLDERS = { phone: 7, desktop: 6 };
 
-function keys(count: number): string[] {
+/** `count` stable keys for a run of placeholders. */
+export function keys(count: number): string[] {
   return Array.from({ length: count }, (_, index) => `placeholder-${index}`);
 }
 
@@ -66,7 +67,7 @@ export function SavedPagePlaceholder() {
   );
 }
 
-function SavedCardPlaceholder() {
+export function SavedCardPlaceholder() {
   return (
     <div aria-hidden="true" className="flex flex-col gap-3">
       <Skeleton className="aspect-20/17 rounded-card bg-surface" />
@@ -79,7 +80,7 @@ function SavedCardPlaceholder() {
   );
 }
 
-function SavedRowPlaceholder() {
+export function SavedRowPlaceholder() {
   return (
     <div aria-hidden="true" className="flex items-center gap-3.5">
       <Skeleton className="h-21.5 w-27.5 shrink-0 rounded-thumb bg-surface" />

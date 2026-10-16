@@ -604,3 +604,116 @@ describe("createAlert saving an alert again (MAPUI-43)", () => {
     expect(stillDeleted).toMatchObject({ label: "Toyota", deletedAt: expect.any(Date) });
   });
 });
+
+// docs/specs/redesign-alerts.md (ALERTUI-46, ALERTUI-47; worked example
+// "Place name"): createAlert stores the place chosen in «Dónde» on the
+// caller's own alert, never on the criteria shared across users nor in their
+// hash. C is makeCriteria(): Audi A3, up to 20.000 €, Madrid's point, 50 km.
+describe("ALERTUI-46 and ALERTUI-47: the place name", () => {
+  const C = makeCriteria();
+
+  async function criteriaRows() {
+    return prisma.alertCriteria.findMany();
+  }
+
+  async function aliveAlertOf(userId: string) {
+    const [alert] = await prisma.alert.findMany({ where: { userId } });
+    return alert;
+  }
+
+  it("ALERTUI-46: Ada saves C with «Madrid» and Grace the same C with «Centro» — one criteria row, hashed and stored as C alone, and each alert keeps its own name", async () => {
+    signedInAs(ADA);
+    expect(await createAlert(C, "Ada's search", "Madrid")).toEqual({
+      ok: true,
+      value: { created: true },
+    });
+    signedInAs(GRACE);
+    expect(await createAlert(C, "Grace's search", "Centro")).toEqual({
+      ok: true,
+      value: { created: true },
+    });
+
+    const rows = await criteriaRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].criteriaHash).toBe(hashCriteria(C));
+    expect(rows[0].criteria).toEqual(C);
+    expect(JSON.stringify(rows[0].criteria)).not.toMatch(/Madrid|Centro/);
+    expect((await aliveAlertOf(ADA.id)).placeName).toBe("Madrid");
+    expect((await aliveAlertOf(GRACE.id)).placeName).toBe("Centro");
+  });
+
+  it("ALERTUI-47: saving C again with Ada's alert live writes nothing — created: false, still «Ada's search» and «Madrid»", async () => {
+    signedInAs(ADA);
+    await createAlert(C, "Ada's search", "Madrid");
+
+    const again = await createAlert(C, "Otra", "Getafe");
+
+    expect(again).toEqual({ ok: true, value: { created: false } });
+    const alert = await aliveAlertOf(ADA.id);
+    expect(alert.label).toBe("Ada's search");
+    expect(alert.placeName).toBe("Madrid");
+  });
+
+  it("ALERTUI-47: Ada's alert paused from the email, then C with «Otra» and «Getafe» — created: true, active, named «Otra», place «Getafe»", async () => {
+    signedInAs(ADA);
+    await createAlert(C, "Ada's search", "Madrid");
+    await prisma.alert.updateMany({ where: { userId: ADA.id }, data: { active: false } });
+
+    const reactivated = await createAlert(C, "Otra", "Getafe");
+
+    expect(reactivated).toEqual({ ok: true, value: { created: true } });
+    const alert = await aliveAlertOf(ADA.id);
+    expect(alert).toMatchObject({ active: true, label: "Otra", placeName: "Getafe" });
+  });
+
+  it("ALERTUI-47: a soft-deleted alert restored by saving C again takes the new name and the new place", async () => {
+    signedInAs(ADA);
+    await createAlert(C, "Ada's search", "Madrid");
+    await prisma.alert.updateMany({ where: { userId: ADA.id }, data: { deletedAt: new Date() } });
+
+    const restored = await createAlert(C, "Otra", "Getafe");
+
+    expect(restored).toEqual({ ok: true, value: { created: true } });
+    const alert = await aliveAlertOf(ADA.id);
+    expect(alert).toMatchObject({ deletedAt: null, label: "Otra", placeName: "Getafe" });
+  });
+
+  it("ALERTUI-47: D, with no point, sent with «Madrid» stores no place name", async () => {
+    signedInAs(ADA);
+
+    await createAlert({ engine: ["gasoil"], maxPrice: 9000 }, "Diésel barato", "Madrid");
+
+    expect((await aliveAlertOf(ADA.id)).placeName).toBeNull();
+  });
+
+  it.each([
+    ["blank", "   "],
+    ["missing", undefined],
+  ])("ALERTUI-47: a %s place name is stored as null", async (_case, placeName) => {
+    signedInAs(ADA);
+
+    await createAlert(C, "Ada's search", placeName);
+
+    expect((await aliveAlertOf(ADA.id)).placeName).toBeNull();
+  });
+
+  it("ALERTUI-47: a place name is stored trimmed — «  Madrid  » is «Madrid»", async () => {
+    signedInAs(ADA);
+
+    await createAlert(C, "Ada's search", "  Madrid  ");
+
+    expect((await aliveAlertOf(ADA.id)).placeName).toBe("Madrid");
+  });
+
+  it("ALERTUI-47: a place name of 201 characters is invalidCriteria, and no alert is stored", async () => {
+    signedInAs(ADA);
+
+    const result = await createAlert(C, "Ada's search", "M".repeat(201));
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidCriteria", messageKey: "alertErrors.invalidCriteria" },
+    });
+    expect(await prisma.alert.count({ where: { userId: ADA.id } })).toBe(0);
+  });
+});

@@ -30,6 +30,18 @@ const baseSearchSchema = z.object({
 
 export type SearchInput = z.infer<typeof baseSearchSchema>;
 
+/**
+ * Whether the criteria hold a place: a latitude and a longitude. The one
+ * predicate the search's explicit location (server/search/service.ts), the
+ * alert's specificity rule and stored place name (server/alerts/) and the
+ * alert's zone (lib/map/zone.ts, lib/search/alert-summary.ts) all read.
+ */
+export function hasPlace(
+  input: SearchInput,
+): input is SearchInput & { latitude: number; longitude: number } {
+  return input.latitude != null && input.longitude != null;
+}
+
 // MAP-27: a search that carries coordinates but no `distanceInKm` is searched
 // within DEFAULT_RADIUS_KM of them instead of unbounded, so the radius
 // post-filter (lib/geo/radius.ts) and every source's query (e.g. Wallapop's

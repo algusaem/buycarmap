@@ -1,57 +1,37 @@
+import { cache } from "react";
 import type { Metadata } from "next";
-import { TAB_BAR_CLEARANCE } from "@/components/nav/tab-bar-clearance";
-import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
-import { AlertMatchesList } from "@/components/alerts/AlertMatchesList";
+import { AlertPage } from "@/components/alerts/AlertPage";
 import { getAlertWithMatches } from "@/server/alerts/queries";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations();
-  return { title: `${t("alerts.title")} · ${t("meta.title")}` };
+// The title and the page read the same alert once per request.
+const readAlert = cache(getAlertWithMatches);
+
+// docs/specs/redesign-alerts.md (ALERTUI-20): «<nombre de la alerta> · Buy Car Map».
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const [alert, t] = await Promise.all([readAlert(id), getTranslations()]);
+  return { title: `${alert.label} · ${t("meta.title")}` };
 }
 
+// docs/specs/redesign-alerts.md (ALERTUI-20, ALERTUI-22, ALERTUI-45): one of
+// the user's alerts with every match, newest first. Authenticates first;
+// another account's alert, a deleted, an unknown or a malformed id is a 404
+// (getAlertWithMatches). The matches render from their stored snapshot, so
+// the page works with every source unreachable (ALERT-39). The page does not
+// scroll; its list column does (ALERTUI-4), with every toast centred over it
+// (`data-toast-anchor`, ALERTUI-37).
 export default async function AlertMatchesPage({ params }: PageProps) {
   const { id } = await params;
-
-  // Authenticates first; another account's alert is a 404. An id that does
-  // not even look like a UUID is a 404 too (getAlertWithMatches).
-  const alert = await getAlertWithMatches(id);
+  const alert = await readAlert(id);
 
   return (
-    // `overflow-y-auto` is required, not cosmetic: the root layout pins the
-    // body to h-screen with overflow-hidden so the map never scrolls the page,
-    // which leaves this route unable to scroll at all otherwise (HEAD-19).
-    // Same pattern as app/account/page.tsx.
-    <div className="flex flex-1 flex-col overflow-y-auto bg-background">
-      <div className={cn("mx-auto w-full max-w-6xl px-4 pt-8 lg:pb-8", TAB_BAR_CLEARANCE)}>
-        <AlertMatchesList
-          alertLabel={alert.label}
-          // Rendered from the stored snapshot, so this page works with every
-          // source unreachable.
-          matches={alert.matches.map((match) => ({
-            id: match.listingId,
-            image: match.image,
-            title: match.title,
-            subtitle: match.subtitle,
-            price: match.price,
-            mileage: match.mileage,
-            year: match.year,
-            fuel: match.fuel,
-            brand: match.brand,
-            model: match.model,
-            location: match.location,
-            source: match.source,
-            lat: match.lat,
-            lng: match.lng,
-            url: match.url,
-            foundAt: match.createdAt,
-          }))}
-        />
-      </div>
-    </div>
+    <main data-toast-anchor="alerts" className="flex min-h-0 flex-1 flex-col bg-background">
+      <AlertPage alert={alert} />
+    </main>
   );
 }

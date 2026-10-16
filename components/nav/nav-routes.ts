@@ -38,6 +38,15 @@ export function currentSection(pathname: string): Section | undefined {
   return undefined;
 }
 
+/**
+ * Where the phone header's «Volver» leads, before the wordmark: an alert's
+ * page goes back to Alertas (docs/specs/redesign-alerts.md, ALERTUI-22;
+ * amends HEAD-7). Every other section page has no «Volver».
+ */
+export function backHref(pathname: string): string | undefined {
+  return pathname.startsWith("/alerts/") ? "/alerts" : undefined;
+}
+
 /** Mapa · Guardados · Alertas, in the order both the pages header and the bottom nav draw them. */
 export const SECTIONS: readonly { section: Section; href: string; labelKey: string }[] = [
   { section: "map", href: "/map", labelKey: "nav.map" },

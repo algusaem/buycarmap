@@ -23,6 +23,7 @@ import type { SearchInput } from "@/lib/search/schema";
 import { createAlert } from "@/server/alerts/actions";
 import {
   ALERT_ERROR,
+  ALERT_PLACE_NAME_MAX,
   alertCriteriaSchema,
   createAlertFormSchema,
   type CreateAlertFormValues,
@@ -135,7 +136,10 @@ function CreateAlertBody({ criteria, placeName, onClose, sheet }: CreateAlertBod
 
   async function send(label: string) {
     try {
-      return await createAlert(alertCriteria, label);
+      // ALERTUI-48: the place chosen in «Dónde» goes as the alert's place name,
+      // clipped to what the server stores (ALERTUI-47), so a long name never
+      // makes the save fail.
+      return await createAlert(alertCriteria, label, placeName?.slice(0, ALERT_PLACE_NAME_MAX));
     } catch {
       // A thrown action (the network, the server) has no code to explain it:
       // MAPUI-45's network copy, inline, with the dialog left open to try again.

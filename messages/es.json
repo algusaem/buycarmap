@@ -357,7 +357,6 @@
   "map": {
     "loading": "Cargando…",
     "filters": "Filtros",
-    "backToHome": "Volver al inicio",
     "addFavorite": "Guardar",
     "removeFavorite": "Quitar de guardados",
     "markerLabel": "{title}, {price}",
@@ -470,15 +469,26 @@
   },
   "alerts": {
     "title": "Alertas",
-    "subtitle": "Comprobamos cada pocos minutos y te avisamos por correo cuando aparece algo nuevo.",
-    "empty": "Todavía no tienes ninguna alerta.",
+    "subtitle": "El que no corre vuela, guárdalo y nosotros te avisamos.",
     "emptyCta": "Buscar coches",
     "create": "Avisarme de coches nuevos",
     "delete": "Eliminar alerta",
-    "matchCount": "coches encontrados",
+    "matchCount": "{count, plural, =0 {Sin coincidencias} one {# coincidencia} other {# coincidencias}}",
     "inactive": "En pausa",
-    "noMatchesYet": "Vigilando: todavía no hay nada nuevo.",
-    "backToAlerts": "Volver a las alertas",
+    "newAlert": "Nueva alerta",
+    "viewAllMatches": "Ver las {count, number} coincidencias",
+    "createdOn": "Creada el {date}",
+    "deleteShort": "Eliminar",
+    "deleteConfirmNamed": "¿Eliminar «{name}»?",
+    "cancel": "Cancelar",
+    "mapLabel": "Mapa de la alerta",
+    "mapEmpty": "Aquí verás la zona de cada alerta",
+    "zoneLabel": "Zona de la alerta",
+    "emptyTitle": "¿Sin alertas?",
+    "emptyPunchline": "Crea una",
+    "emptyLine": "Busca lo que quieres en el mapa, pulsa «Crear alerta» y te escribimos cuando salga algo.",
+    "emptyLinePhone": "Busca en el mapa, pulsa «Crear alerta» y te avisamos.",
+    "noMatchesYet": "Te avisaremos en cuanto salga un coche que encaje.",
     "unsubscribed": "Alerta pausada",
     "unsubscribedBody": "No recibirás más correos sobre esta búsqueda. Tus otras alertas no cambian.",
     "email": {
@@ -488,8 +498,7 @@
       "viewAll": "Ver todos los coches",
       "unsubscribe": "Dejar de recibir estos correos",
       "footer": "Recibes esto porque creaste una alerta en BuyCarMap."
-    },
-    "foundAt": "Encontrado {time}"
+    }
   },
   "alertErrors": {
     "unauthenticated": "Inicia sesión para gestionar tus alertas.",
@@ -567,7 +576,6 @@
     "description": "Encuentra coches de segunda mano cerca de ti. Comparador de anuncios en mapa."
   },
   "errors": {
-    "pageLoadFailed": "No se pudo cargar esta página. Inténtalo de nuevo.",
     "retry": "Reintentar",
     "pageTitle": "¿Se ha roto algo?",
     "pagePunchline": "No es culpa tuya",

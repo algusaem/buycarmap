@@ -8,6 +8,11 @@ const SOURCE_LABELS: Record<string, string> = {
   Milanuncios: "Milanuncios",
 };
 
+/** A source's display name, «coches.net»: the badge's text, and the alert match card's (ALERTUI-8). */
+export function sourceLabel(source: string): string {
+  return SOURCE_LABELS[source] ?? source;
+}
+
 interface SourceBadgeProps {
   source: string;
   className?: string;
@@ -25,7 +30,7 @@ export function SourceBadge({ source, className }: SourceBadgeProps) {
         className,
       )}
     >
-      {SOURCE_LABELS[source] ?? source}
+      {sourceLabel(source)}
     </span>
   );
 }

@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -19,7 +20,10 @@ import { NO_IDS } from "@/lib/hooks/useSavedPins";
 // a pin's card is scrolled to by its row (SAVED-26), the scroll is restored on
 // Back from the history entry's own record (SAVED-27), a removed car fades out
 // where it was drawn (a leaving entry, below), and a car an undo brings back
-// fades in where it lands (an arriving car).
+// fades in where it lands (an arriving car). An alert's matches on
+// /alerts/[id] use the same list at both widths (docs/specs/redesign-alerts.md,
+// ALERTUI-29 to ALERTUI-31, ALERTUI-51 to ALERTUI-55); their heart toggles,
+// so none ever leaves or arrives.
 
 // Close to a row's real height, so the scrollbar barely moves as rows are
 // measured: a Guardados card is a 20:17 photo of 231–242px plus its text, a
@@ -37,32 +41,89 @@ const OVERSCAN = { desktop: 3, phone: 7 };
 // column count that changed between leaving and coming back lands on the same
 // car.
 const STORAGE_PREFIX = "buycarmap:saved-car:";
+// /alerts' list column, which is not virtualised, stores its scroll offset.
+const COLUMN_STORAGE_PREFIX = "buycarmap:list-scroll:";
 
 /**
- * The history entry's own key, so Back restores the scroll of the very entry it
- * returns to and a fresh visit starts at the top. Without the Navigation API
- * every visit in the tab shares one record.
+ * The page's path and the history entry's own key, so Back restores the scroll
+ * of the very entry it returns to and a fresh visit starts at the top. Without
+ * the Navigation API every visit to a path in the tab shares one record, and
+ * /favorites, /alerts and each /alerts/[id] still keep their own.
  */
-function storageKey(): string {
-  return `${STORAGE_PREFIX}${window.navigation?.currentEntry?.key ?? "tab"}`;
+function storageKey(prefix: string): string {
+  const entry = window.navigation?.currentEntry?.key ?? "tab";
+  return `${prefix}${window.location.pathname}:${entry}`;
 }
 
-function readCarIndex(): number {
+function readScrollRecord(prefix: string): number {
   try {
-    return Number(window.sessionStorage.getItem(storageKey()) ?? 0) || 0;
+    return Number(window.sessionStorage.getItem(storageKey(prefix)) ?? 0) || 0;
   } catch {
     // Storage can be blocked (a private window, site data off): the list then starts at the top.
     return 0;
   }
 }
 
-function writeCarIndex(index: number) {
+function writeScrollRecord(prefix: string, value: number) {
   try {
-    window.sessionStorage.setItem(storageKey(), String(index));
+    window.sessionStorage.setItem(storageKey(prefix), String(value));
   } catch {
     // Blocked storage only costs the restored scroll on Back.
     return;
   }
+}
+
+/**
+ * docs/specs/redesign-alerts.md (ALERTUI-56): /alerts' list column records its
+ * scroll per history entry, as the saved list does (SAVED-27), and Back
+ * restores it once the column is drawn (`ready`). The alerts are at most 20
+ * (ALERT-8) and not virtualised, so the offset itself is the record. The
+ * restore waits a frame, as the saved list's does, for the cards to be laid
+ * out.
+ *
+ * Pressing a folded card pushes a new entry while the column stays where it
+ * is, so `carryScroll` records the offset under that new entry too, once the
+ * Navigation API reports it: scrolling, pressing a card, «Mapa» and Back
+ * restore the column. Only an entry of the same path is carried to.
+ */
+export function useColumnScroll(ready: boolean) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const restoredRef = useRef(false);
+  const carryToRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (restoredRef.current || !ready) return;
+    const top = readScrollRecord(COLUMN_STORAGE_PREFIX);
+    const frame = window.requestAnimationFrame(() => {
+      restoredRef.current = true;
+      if (top > 0 && scrollerRef.current) scrollerRef.current.scrollTop = top;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [ready]);
+
+  const recordScroll = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (scroller) writeScrollRecord(COLUMN_STORAGE_PREFIX, scroller.scrollTop);
+  }, []);
+
+  useEffect(() => {
+    const navigation = window.navigation;
+    if (!navigation) return;
+    const carry = () => {
+      const path = carryToRef.current;
+      carryToRef.current = null;
+      if (path === window.location.pathname) recordScroll();
+    };
+    navigation.addEventListener("currententrychange", carry);
+    return () => navigation.removeEventListener("currententrychange", carry);
+  }, [recordScroll]);
+
+  /** The next history entry of this path gets the column's offset too, once it is current. */
+  const carryScroll = useCallback(() => {
+    carryToRef.current = window.location.pathname;
+  }, []);
+
+  return { scrollerRef, recordScroll, carryScroll };
 }
 
 function subscribeToNothing() {
@@ -76,7 +137,7 @@ function subscribeToNothing() {
  * on: the render in which the media queries (useIsPhone, useSavedColumns) read
  * the window instead of reporting their server default.
  */
-function useClientResolved(): boolean {
+export function useClientResolved(): boolean {
   return useSyncExternalStore(
     subscribeToNothing,
     () => true,
@@ -99,17 +160,17 @@ export interface LeavingCar {
 }
 
 interface SavedListOptions {
-  /** How many cars are shown. */
-  count: number;
+  /** The cars shown, in order. A car shown again drops its leaving entry. */
+  shown: readonly CarListing[];
   /** Cards per row (useSavedColumns): 1 on the phone, 2 from `lg`, 3 from `xl`. */
   columns: SavedColumns;
-  /** The ids of the cars shown: a car shown again drops its leaving entry. */
-  shownIds: ReadonlySet<string>;
-  /** A row's key: the car's own id on the phone, so its row keeps its element (and focus) as rows around it come and go. */
-  rowKey: (row: number) => string | number;
+  /** The gap between compact rows on the phone: 18px on /favorites, 14px on an alert's page (F6-alerta-mas-estados). */
+  phoneGap?: number;
 }
 
-export function useSavedList({ count, columns, shownIds, rowKey }: SavedListOptions) {
+export function useSavedList({ shown, columns, phoneGap = GAP.phone }: SavedListOptions) {
+  const count = shown.length;
+  const shownIds = useMemo(() => new Set(shown.map((listing) => listing.id)), [shown]);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
@@ -161,14 +222,21 @@ export function useSavedList({ count, columns, shownIds, rowKey }: SavedListOpti
     [focusedRow, rowCount],
   );
 
+  // A row's key: on the phone the car's own id, so its row keeps its element
+  // (and the focus) as rows around it come and go; on desktop its index.
+  const getItemKey = useCallback(
+    (row: number) => (width === "phone" ? (shown[row]?.id ?? row) : row),
+    [width, shown],
+  );
+
   const virtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => scrollerRef.current,
     estimateSize: () => ESTIMATE[width],
-    gap: GAP[width],
+    gap: width === "phone" ? phoneGap : GAP.desktop,
     overscan: OVERSCAN[width],
     scrollMargin,
-    getItemKey: rowKey,
+    getItemKey,
     rangeExtractor,
   });
 
@@ -189,7 +257,7 @@ export function useSavedList({ count, columns, shownIds, rowKey }: SavedListOpti
   const restoredRef = useRef(false);
   useEffect(() => {
     if (restoredRef.current || count === 0 || !resolved) return;
-    const index = readCarIndex();
+    const index = readScrollRecord(STORAGE_PREFIX);
     const frame = window.requestAnimationFrame(() => {
       restoredRef.current = true;
       if (index > 0) virtualizer.scrollToIndex(Math.floor(index / columns), { align: "start" });
@@ -221,7 +289,7 @@ export function useSavedList({ count, columns, shownIds, rowKey }: SavedListOpti
     const item = virtualizer.getVirtualItemForOffset(top);
     if (!item) return;
     const row = item.start >= top - 1 ? item.index : item.index + 1;
-    writeCarIndex(row * columns);
+    writeScrollRecord(STORAGE_PREFIX, row * columns);
   }, [virtualizer, columns]);
 
   /** Brings the car at `index` (in the shown order) wholly into view (SAVED-26). */

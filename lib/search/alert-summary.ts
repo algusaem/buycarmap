@@ -1,6 +1,6 @@
 import type { LocaleCopy } from "@/lib/i18n/copy";
 import { carLabel, criteriaChips, placeLabel, priceLabel } from "@/lib/search/filter-chips";
-import type { SearchInput } from "@/lib/search/schema";
+import { hasPlace, type SearchInput } from "@/lib/search/schema";
 
 // docs/specs/redesign-map.md (MAPUI-40, worked examples under "Alert name and
 // summary"). `placeName` is passed in rather than resolved here — this
@@ -51,4 +51,43 @@ export function alertSummary(
     ...criteriaChips(input, copy).map((chip) => chip.label),
     ...(place ? [place] : []),
   ].join(SEPARATOR);
+}
+
+/**
+ * docs/specs/redesign-alerts.md (ALERTUI-5, ALERTUI-15, ALERTUI-22): the zone
+ * alone, «Madrid · 50 km» with a place name, «50 km» with a place but no
+ * name, and undefined when the alert has no place.
+ */
+export function alertZone(
+  input: SearchInput,
+  placeName: string | null,
+  copy: LocaleCopy,
+): string | undefined {
+  if (!hasPlace(input)) return undefined;
+  if (placeName) return placeLabel(placeName, input.distanceInKm, copy);
+  if (input.distanceInKm == null) return undefined;
+  return copy.t("search.radiusOption", { km: input.distanceInKm });
+}
+
+/**
+ * docs/specs/redesign-alerts.md (ALERTUI-5; amends MAPUI-40): an alert's
+ * criteria as the AlertCard writes them, each only when set — the car, the
+ * fuel groups, the price, the gearbox, the mileage, the year, then the zone
+ * («Madrid · 50 km», or «50 km» with a place but no place name). Never
+ * «Publicado», the `?q=` text, «Cualquier marca» or «Cualquier precio».
+ */
+export function alertCriteria(
+  input: SearchInput,
+  placeName: string | null,
+  copy: LocaleCopy,
+): string[] {
+  const chips = criteriaChips(input, copy);
+  const isFuel = (key: string) => key.startsWith("engine:");
+  return [
+    carLabel(input, copy),
+    ...chips.filter((chip) => isFuel(chip.key)).map((chip) => chip.label),
+    priceLabel(input, copy),
+    ...chips.filter((chip) => !isFuel(chip.key)).map((chip) => chip.label),
+    alertZone(input, placeName, copy),
+  ].filter((part): part is string => part !== undefined);
 }

@@ -1,8 +1,22 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { e2eEmail, favoriteCount, type SeedFavorite, seedFavorites, seedUser } from "./fixtures/db";
 import { dragDown, sheetOffset } from "./fixtures/drag";
-import { hitArea } from "./fixtures/measure";
+import {
+  box,
+  carTitle,
+  drawnTitles,
+  expectEachCarOnce,
+  expectNeighbours,
+  expectWithin,
+  firstWhollyVisible,
+  hitArea,
+  scrollTo,
+  scrollUntilMounted,
+  settledBox,
+  wholly,
+} from "./fixtures/measure";
 import { mockListingSources } from "./fixtures/network";
+import { signIn, waitForSession } from "./fixtures/session";
 import {
   makeSortExampleCar,
   SORT_EXAMPLE_LETTERS,
@@ -31,26 +45,6 @@ test.use({ locale: "es-ES" });
 // duplicated from auth.spec.ts/favorites.spec.ts, per their convention.
 const PASSWORD = "harbour-lentil-quilt-97";
 
-async function signIn(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel(/email|correo/i).fill(email);
-  await page.locator('input[type="password"]').fill(PASSWORD);
-  await page.getByRole("button", { name: /sign in|entrar/i }).click();
-  await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
-}
-
-/**
- * Waits until `useSession()` has resolved, so the hearts are operable: a press
- * while the session loads is ignored on purpose (FAV-18). The signed-in link to
- * /favorites (the header's on desktop, the tab bar's on a phone) is the
- * hydration signal, as in e2e/favorites.spec.ts.
- */
-async function waitForSession(page: Page) {
-  await expect(page.locator('a[href="/favorites"]').filter({ visible: true }).first()).toBeVisible({
-    timeout: 15_000,
-  });
-}
-
 /** A fresh account with `cars` saved, signed in, on /favorites at `viewport`. */
 async function openSaved(
   page: Page,
@@ -63,7 +57,7 @@ async function openSaved(
   await seedUser(email, PASSWORD);
   await seedFavorites(email, cars);
   await page.setViewportSize(viewport);
-  await signIn(page, email);
+  await signIn(page, email, PASSWORD);
   await page.goto(path);
   await waitForSession(page);
   return email;
@@ -126,10 +120,6 @@ function numberedCars(count: number): SeedFavorite[] {
   });
 }
 
-function carTitle(n: number): string {
-  return `Coche ${String(n).padStart(3, "0")}`;
-}
-
 // --- The page's parts ---
 
 function listColumn(page: Page): Locator {
@@ -160,142 +150,12 @@ function toastBox(page: Page): Locator {
   return page.locator('[data-sonner-toast][data-front="true"]');
 }
 
-interface Box {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-async function box(locator: Locator): Promise<Box> {
-  const measured = await locator.boundingBox();
-  expect(measured, "the element has a box").not.toBeNull();
-  return measured as Box;
-}
-
-/** The box once it stops moving: a toast slides in, a card list settles. */
-async function settledBox(locator: Locator): Promise<Box> {
-  // Sonner draws a toast one height above its place, holds it there for a
-  // moment, then slides it in: two equal reads can both be the start. Its
-  // place is where the slide ends, with no transform left.
-  if ((await locator.getAttribute("data-sonner-toast")) !== null) {
-    await expect(locator).toHaveAttribute("data-mounted", "true");
-    await expect
-      .poll(() => locator.evaluate((element) => getComputedStyle(element).transform))
-      .toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
-  }
-  let previous = await box(locator);
-  await expect
-    .poll(async () => {
-      const current = await box(locator);
-      const still = current.x === previous.x && current.y === previous.y;
-      previous = current;
-      return still;
-    })
-    .toBe(true);
-  return previous;
-}
-
-function expectWithin(actual: number, expected: number, label: string) {
-  expect(
-    Math.abs(actual - expected),
-    `${label}: ${actual}, expected ${expected} ±1`,
-  ).toBeLessThanOrEqual(1);
-}
-
-/** The cars' names in reading order (top to bottom, then left to right), as they are drawn. */
-async function drawnTitles(items: Locator): Promise<string[]> {
-  const drawn = await items.evaluateAll((elements) =>
-    elements.map((element) => {
-      const rect = element.getBoundingClientRect();
-      return {
-        top: Math.round(rect.top),
-        left: Math.round(rect.left),
-        text: element.textContent ?? "",
-      };
-    }),
-  );
-  return drawn.sort((a, b) => a.top - b.top || a.left - b.left).map((item) => item.text);
-}
-
 /** Which of the "Sort" example's cars each drawn card is, in reading order. */
 async function sortLetters(page: Page): Promise<string[]> {
   const texts = await drawnTitles(cards(page));
   return texts.map(
     (text) =>
       Object.entries(SORT_CARS).find(([, seeded]) => text.includes(seeded.title))?.[0] ?? "?",
-  );
-}
-
-/** The «Coche NNN» names of the items drawn, in reading order. */
-async function numberedTitles(items: Locator): Promise<string[]> {
-  return (await drawnTitles(items)).map((text) => /Coche \d{3}/.exec(text)?.[0] ?? "?");
-}
-
-/** The nearest scrolling ancestor of `item` (the list column on desktop, the page on a phone). */
-async function scrollBy(item: Locator, pixels: number) {
-  await item.evaluate((element, delta) => {
-    let node: HTMLElement | null = element.parentElement;
-    while (node) {
-      const style = getComputedStyle(node);
-      if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) break;
-      node = node.parentElement;
-    }
-    (node ?? document.scrollingElement ?? document.documentElement).scrollBy(0, delta);
-  }, pixels);
-}
-
-async function scrollTo(item: Locator, where: "middle" | "end") {
-  await item.evaluate((element, position) => {
-    let node: HTMLElement | null = element.parentElement;
-    while (node) {
-      const style = getComputedStyle(node);
-      if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) break;
-      node = node.parentElement;
-    }
-    const scroller = node ?? document.scrollingElement ?? document.documentElement;
-    const top = position === "middle" ? scroller.scrollHeight / 2 : scroller.scrollHeight;
-    scroller.scrollTo(0, top);
-  }, where);
-}
-
-/** Scrolls the list until the item named `title` is mounted, then brings it to the top of the view. */
-async function scrollUntilMounted(page: Page, items: Locator, title: string): Promise<Locator> {
-  const target = items.filter({ hasText: title });
-  for (let step = 0; step < 200 && (await target.count()) === 0; step++) {
-    await scrollBy(items.first(), 400);
-    await page.waitForTimeout(30);
-  }
-  await expect(target).toHaveCount(1);
-  await target.evaluate((element) => element.scrollIntoView({ block: "start" }));
-  return target;
-}
-
-/** The first item wholly inside `view`'s box, by its «Coche NNN» name. */
-async function firstWhollyVisible(items: Locator, view: Box): Promise<string> {
-  const drawn = await items.evaluateAll((elements) =>
-    elements.map((element) => {
-      const rect = element.getBoundingClientRect();
-      return {
-        top: rect.top,
-        bottom: rect.bottom,
-        left: rect.left,
-        text: element.textContent ?? "",
-      };
-    }),
-  );
-  const inView = drawn
-    .filter((item) => item.top >= view.y - 1 && item.bottom <= view.y + view.height + 1)
-    .sort((a, b) => a.top - b.top || a.left - b.left);
-  return /Coche \d{3}/.exec(inView[0]?.text ?? "")?.[0] ?? "none";
-}
-
-function wholly(inner: Box, outer: Box): boolean {
-  return (
-    inner.y >= outer.y - 1 &&
-    inner.y + inner.height <= outer.y + outer.height + 1 &&
-    inner.x >= outer.x - 1 &&
-    inner.x + inner.width <= outer.x + outer.width + 1
   );
 }
 
@@ -680,7 +540,7 @@ test.describe("SAVED-24: the toast's place", () => {
         const email = e2eEmail(`saved24-map-${viewport.width}`);
         await seedUser(email, PASSWORD);
         await page.setViewportSize(viewport);
-        await signIn(page, email);
+        await signIn(page, email, PASSWORD);
         await page.goto("/map?make=Toyota&maxPrice=20000");
         await page
           .getByRole("button", { name: /crear alerta|create alert/i })
@@ -970,16 +830,16 @@ test.describe("SAVED-25 to SAVED-29: 200 saved cars", () => {
       await expect(cards(page).filter({ hasText: "Coche 150" })).toHaveCount(0);
       await expect(pins).toHaveCount(199);
       await expect.poll(() => favoriteCount(email), { timeout: 15_000 }).toBe(199);
-      await expectNeighbours(page, ["Coche 149", "Coche 151"]);
-      await expectEachCarOnce(page);
+      await expectNeighbours(cards(page), ["Coche 149", "Coche 151"]);
+      await expectEachCarOnce(cards(page), ["Quitar de guardados"]);
 
       await toastBox(page).getByRole("button", { name: "Deshacer" }).click();
 
       await expect(cards(page).filter({ hasText: "Coche 150" })).toHaveCount(1);
       await expect(pins).toHaveCount(200);
       await expect.poll(() => favoriteCount(email), { timeout: 15_000 }).toBe(200);
-      await expectNeighbours(page, ["Coche 149", "Coche 150", "Coche 151"]);
-      await expectEachCarOnce(page);
+      await expectNeighbours(cards(page), ["Coche 149", "Coche 150", "Coche 151"]);
+      await expectEachCarOnce(cards(page), ["Quitar de guardados"]);
 
       // A second removal right after: the heart pressed is its own car's.
       await cards(page)
@@ -988,33 +848,10 @@ test.describe("SAVED-25 to SAVED-29: 200 saved cars", () => {
         .click();
 
       await expect(cards(page).filter({ hasText: "Coche 151" })).toHaveCount(0);
-      await expectNeighbours(page, ["Coche 150", "Coche 152"]);
+      await expectNeighbours(cards(page), ["Coche 150", "Coche 152"]);
       await expect(cards(page).filter({ hasText: "Coche 150" })).toHaveCount(1);
       await expect.poll(() => favoriteCount(email), { timeout: 15_000 }).toBe(199);
-      await expectEachCarOnce(page);
+      await expectEachCarOnce(cards(page), ["Quitar de guardados"]);
     },
   );
 });
-
-/** `run` appears, in that order and next to each other, among the cards drawn. */
-async function expectNeighbours(page: Page, run: string[]) {
-  await expect
-    .poll(async () => {
-      const titles = await numberedTitles(cards(page));
-      const start = titles.indexOf(run[0]);
-      return start === -1 ? [] : titles.slice(start, start + run.length);
-    })
-    .toEqual(run);
-}
-
-/** No car is drawn twice, and each card holds exactly one heart, its own. */
-async function expectEachCarOnce(page: Page) {
-  const titles = await numberedTitles(cards(page));
-  expect(new Set(titles).size, `cards drawn: ${titles.join(", ")}`).toBe(titles.length);
-  const heartsPerCard = await cards(page).evaluateAll((elements) =>
-    elements.map(
-      (element) => element.querySelectorAll('button[aria-label="Quitar de guardados"]').length,
-    ),
-  );
-  expect(heartsPerCard.every((count) => count === 1)).toBe(true);
-}

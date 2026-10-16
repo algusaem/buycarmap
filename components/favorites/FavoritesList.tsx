@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AnimatePresence } from "motion/react";
@@ -59,11 +59,7 @@ export function FavoritesList({ favorites }: FavoritesListProps) {
   const columns = useSavedColumns();
   const { sort, setSort, shown, savedIds, remove, undo } = useSavedCars(favorites, isPhone);
   const pins = useSavedPins(shown);
-  const rowKey = useCallback(
-    (row: number) => (isPhone ? (shown[row]?.id ?? row) : row),
-    [isPhone, shown],
-  );
-  const list = useSavedList({ count: shown.length, columns, shownIds: savedIds, rowKey });
+  const list = useSavedList({ shown, columns });
   const sheet = useSavedCarSheet();
   const removalFocus = useRemovalFocus({
     shown,
@@ -165,7 +161,8 @@ export function FavoritesList({ favorites }: FavoritesListProps) {
                 columns={columns}
                 activeIds={pins.activeIds}
                 onActiveChange={pins.setHoverId}
-                onRemove={handleRemove}
+                savedIds={savedIds}
+                onToggleSaved={handleRemove}
                 onOpen={sheet.openSheet}
                 onRowFocus={list.focusRow}
                 leaving={list.leaving}
@@ -197,7 +194,8 @@ export function FavoritesList({ favorites }: FavoritesListProps) {
           listing={sheet.listing}
           open={sheet.open}
           onClose={sheet.closeSheet}
-          onRemove={(listing) => {
+          saved
+          onToggleSaved={(listing) => {
             // SAVED-22: the sheet closes on a removal that was applied; while
             // the session resolves nothing happens, and it stays (FAV-18).
             if (handleRemove(listing)) sheet.closeSheet();

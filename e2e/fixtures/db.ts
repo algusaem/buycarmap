@@ -248,3 +248,117 @@ export async function claimConcurrently(
     await b.end();
   }
 }
+
+// ---------------------------------------------------------------------------
+// Alerts and their matches (docs/specs/redesign-alerts.md, ALERTUI-3 to
+// ALERTUI-55; Decisions › Raw SQL in the e2e fixture, approved by the owner
+// on 2026-10-15)
+//
+// Written straight into Postgres, as seedFavorites writes saved cars: the
+// app writes matches only from a poll, and stamps every row with the current
+// time, while the pages' order depends on each row's `created_at`. Each
+// criteria row's hash starts with `e2e-`, so clearAlertQueue sweeps it; the
+// alerts and their matches go with the account, by cascade, in global
+// teardown.
+// ---------------------------------------------------------------------------
+
+/** One alert to write straight into `alerts`, with its own criteria row. */
+export interface SeedAlert {
+  label: string;
+  criteria: Record<string, unknown>;
+  placeName?: string | null;
+  active?: boolean;
+  createdAt: Date;
+  deletedAt?: Date | null;
+}
+
+/** One match to write straight into `alert_matches`: its snapshot and the instant it was found. */
+export interface SeedAlertMatch {
+  listingId: string;
+  title: string;
+  price: number;
+  mileage: number;
+  location: string;
+  lat: number;
+  lng: number;
+  createdAt: Date;
+  year?: number;
+  source?: string;
+  fuel?: string;
+}
+
+/**
+ * Writes `alerts` for the account, each with its own criteria row, and
+ * returns their ids in the order given. `active` defaults to true and
+ * `placeName` to null, the pre-F6 case.
+ */
+export async function seedAlerts(email: string, alerts: SeedAlert[]): Promise<string[]> {
+  return withClient(async (client) => {
+    const result = await client.query("SELECT id FROM users WHERE email = $1", [email]);
+    const userId = result.rows[0].id as string;
+    const ids: string[] = [];
+    for (const alert of alerts) {
+      // DATA-1: neither id has a database default, so a raw insert mints them.
+      const criteriaId = randomUUID();
+      const alertId = randomUUID();
+      await client.query(
+        `INSERT INTO alert_criteria(id, criteria_hash, criteria, updated_at)
+         VALUES ($1, $2, $3::jsonb, now())`,
+        [criteriaId, `e2e-alert-${criteriaId}`, JSON.stringify(alert.criteria)],
+      );
+      await client.query(
+        `INSERT INTO alerts(id, user_id, criteria_id, label, place_name, active,
+           unsubscribe_token_hash, unsubscribe_subject, created_at, updated_at, deleted_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10)`,
+        [
+          alertId,
+          userId,
+          criteriaId,
+          alert.label,
+          alert.placeName ?? null,
+          alert.active ?? true,
+          `e2e-unsubscribe-${alertId}`,
+          // The HMAC subject is the alert's own id, as a new alert's is.
+          alertId,
+          alert.createdAt,
+          alert.deletedAt ?? null,
+        ],
+      );
+      ids.push(alertId);
+    }
+    return ids;
+  });
+}
+
+/**
+ * Writes `matches` for the alert `alertId`. The image is empty, so every card,
+ * row and sheet draws the car's tint and no `next/image` request is made.
+ * Each is marked notified at the instant it was found, so no digest is owed.
+ */
+export async function seedAlertMatches(alertId: string, matches: SeedAlertMatch[]): Promise<void> {
+  await withClient(async (client) => {
+    for (const match of matches) {
+      await client.query(
+        `INSERT INTO alert_matches(id, alert_id, listing_id, source, title, subtitle, image, brand,
+           model, location, fuel, url, price, mileage, year, lat, lng, notified_at, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, '', '', '', '', $6, $7, $8, $9, $10, $11, $12, $13, $14, $14, now())`,
+        [
+          randomUUID(),
+          alertId,
+          match.listingId,
+          match.source ?? "Wallapop",
+          match.title,
+          match.location,
+          match.fuel ?? "gasoil",
+          `https://es.wallapop.com/item/${match.listingId}`,
+          match.price,
+          match.mileage,
+          match.year ?? 2018,
+          match.lat,
+          match.lng,
+          match.createdAt,
+        ],
+      );
+    }
+  });
+}

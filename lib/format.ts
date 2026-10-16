@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { es, enGB } from "date-fns/locale";
 import { TZDate } from "@date-fns/tz";
 
@@ -126,4 +126,25 @@ export function parseDeviceLabel(userAgent: string): DeviceLabel {
   else if (/safari\//i.test(userAgent)) browser = "Safari";
 
   return { browser, os };
+}
+
+/** «Creada el …»'s day and month, with the year when it is not the current one, per locale. */
+const DATE_PATTERNS = {
+  es: { sameYear: "d 'de' MMMM", otherYear: "d 'de' MMMM 'de' yyyy" },
+  en: { sameYear: "d MMMM", otherYear: "d MMMM yyyy" },
+} as const;
+
+/**
+ * docs/specs/redesign-alerts.md (ALERTUI-10; amends FRONT-11): an absolute
+ * date, the day and the month in `locale` and in `timeZone` (next-intl's),
+ * with the year only when it differs from `now`'s year in that time zone
+ * («2 de octubre», «20 de diciembre de 2025»).
+ */
+export function formatDate(value: Date, locale: string, timeZone: string, now: Date): string {
+  const date = new TZDate(value, timeZone);
+  const patterns = locale === "es" ? DATE_PATTERNS.es : DATE_PATTERNS.en;
+  const sameYear = date.getFullYear() === new TZDate(now, timeZone).getFullYear();
+  return format(date, sameYear ? patterns.sameYear : patterns.otherYear, {
+    locale: dateFnsLocale(locale),
+  });
 }

@@ -30,7 +30,7 @@ violet accent, the illustrations and every F0 screen — and is not kept in sync
 ## The canvas
 
 Page "Pantallas", every screen in journey order, each artboard a desktop screen (1440 × 900)
-beside its phone screen (390 × 844); the landing, sign in and saved cars also carry a laptop screen (1024 × 900):
+beside its phone screen (390 × 844); the landing, sign in, saved cars and alerts also carry a laptop screen (1024 × 900):
 
 - `R3-landing.dc.html`, `R3-login.dc.html` — the landing and sign in.
 - `F0-registro.dc.html`, `F0-confirmar.dc.html`, `F0-contrasena.dc.html`,
@@ -50,9 +50,13 @@ beside its phone screen (390 × 844); the landing, sign in and saved cars also c
   `F0-estado-guardados-vacio.dc.html` — saved cars, with a car open (the preview on desktop, the car sheet
   on the phone), on a laptop, scrolled down a long list, with several cars at one point on the map,
   after removing one (desktop and phone), loading, and empty.
-- `R3-alertas.dc.html`, `F6-alerta.dc.html`, `F6-alerta-estados.dc.html`, `F0-estado-alertas-vacio.dc.html` —
+- `R3-alertas.dc.html`, `F6-alerta.dc.html`, `F6-alerta-estados.dc.html`, `F6-alertas-escritorio.dc.html`,
+  `F6-alerta-escritorio.dc.html`, `F6-alerta-mas-estados.dc.html`, `F0-estado-alertas-vacio.dc.html` —
   alerts; an alert's page on the phone; that page scrolled to the end, a match open, the delete
-  confirmation and an alert with no matches (phones only); and no alerts.
+  confirmation and an alert with no matches (phones only); a paused alert, an alert with no place
+  and several matches at one point, alerts on a laptop and loading (desktop); an alert's page on
+  desktop and its delete dialog; on the phone, an alert with no place, a long list scrolled, a
+  saved match and both pages loading; and no alerts.
 - `F0-cuenta.dc.html` — account. `F0-legal.dc.html` — privacy and terms.
   `F0-estado-error-pagina.dc.html` — any page that failed to load.
 

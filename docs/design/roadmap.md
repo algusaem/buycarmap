@@ -32,7 +32,7 @@ the phase's spec.
 | F3 Map and search | [redesign-map.md](../specs/redesign-map.md) (MAPUI) | Implemented 2026-10-14 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | The map screen and its states |
 | F4 Landing and sign in | [redesign-entry.md](../specs/redesign-entry.md) (ENTRY) | Implemented 2026-10-15 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | `/` landing and `/login` |
 | F5 Saved cars | [redesign-saved.md](../specs/redesign-saved.md) (SAVED) | Implemented 2026-10-15 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | `/favorites` |
-| F6 Alerts | — | Not started | `/alerts` and `/alerts/[id]` |
+| F6 Alerts | [redesign-alerts.md](../specs/redesign-alerts.md) (ALERTUI) | Implemented 2026-10-16 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | `/alerts` and `/alerts/[id]` |
 | F7 Remaining pages | — | Not started | Register, account, password, legal, error pages |
 
 Order matters: F1 before everything (every phase uses its tokens and primitives); F2 before F3–F7
@@ -74,8 +74,11 @@ ListingCard with «Ver anuncio», the sort chips, the compact phone row, the sav
 Governs: `favorites.md` (FAV), through `redesign-saved.md` (SAVED), which amends `favorites.md`
 (FAV), `redesign-map.md` (MAPUI), `core-frontend.md` (FRONT) and `core-platform.md` (PLAT).
 
-**F6 Alerts.** Design: `R3-alertas`, `F6-alerta`, `F6-alerta-estados`, `F0-estado-alertas-vacio`. Pieces: the phone alert page (zone map, matches, delete with confirmation, no matches), AlertCard (open and folded),
-AlertZone, the match cards. Governs: `alerts.md` (ALERT). Showing which matches are new is issue #122.
+**F6 Alerts.** Design: `R3-alertas`, `F6-alerta`, `F6-alerta-estados`, `F6-alertas-escritorio`, `F6-alerta-escritorio`, `F6-alerta-mas-estados`, `F0-estado-alertas-vacio`, `F0-estado-error-pagina`. Pieces: the phone alert page (zone map, matches, delete with confirmation, no matches), AlertCard (open and folded),
+AlertZone, the match cards. Governs: `alerts.md` (ALERT), through `redesign-alerts.md` (ALERTUI), which
+amends `alerts.md` (ALERT), `redesign-map.md` (MAPUI), `redesign-saved.md` (SAVED), `core-frontend.md`
+(FRONT), `core-platform.md` (PLAT), `redesign-navigation.md` (HEAD) and `account-data-export.md`
+(EXPORT). Showing which matches are new is issue #122.
 
 **F7 Remaining pages.** Design: `F0-registro`, `F0-confirmar`, `F0-contrasena`,
 `F0-nueva-contrasena`, `F0-cuenta`, `F0-legal`, `F0-estado-error-pagina`. Pieces: PasswordField,

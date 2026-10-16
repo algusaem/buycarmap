@@ -5,7 +5,7 @@ import type { Ref } from "react";
 import { PresenceContext } from "motion/react";
 import * as motion from "motion/react-client";
 import { SavedCard } from "@/components/favorites/SavedCard";
-import { SavedRow } from "@/components/favorites/SavedRow";
+import { type RowTail, SavedRow } from "@/components/favorites/SavedRow";
 import type { CarListing } from "@/interfaces/listing";
 import { crossFade } from "@/lib/animations";
 import type { SavedColumns } from "@/lib/hooks/useSavedColumns";
@@ -17,7 +17,9 @@ import { cn } from "@/lib/utils";
 // Guardados cards on desktop, 20px apart, or as compact rows on the phone.
 // Each row sits at the offset the virtualiser gives it and is measured once
 // drawn; the rows are in the DOM in their order, so Tab walks the cars in
-// order.
+// order. An alert's page (docs/specs/redesign-alerts.md, ALERTUI-20,
+// ALERTUI-22, ALERTUI-51) draws its matches with the same list: there the
+// heart toggles the buyer's favorites and the row has no city.
 //
 // A removed car fades out where it was, drawn once more over the list as a
 // leaving entry: `inert`, `aria-hidden` and not one of `listings`. The cars
@@ -50,9 +52,11 @@ function ignore() {
 interface SavedItemProps {
   listing: CarListing;
   isPhone: boolean;
+  rowTail: RowTail;
   active: boolean;
   onActiveChange: (active: boolean) => void;
-  onRemove: () => void;
+  saved: boolean;
+  onToggleSaved: () => void;
   onOpen: (listing: CarListing, row: HTMLButtonElement) => void;
   onFocus: () => void;
 }
@@ -61,21 +65,24 @@ interface SavedItemProps {
 function SavedItem({
   listing,
   isPhone,
+  rowTail,
   active,
   onActiveChange,
-  onRemove,
+  saved,
+  onToggleSaved,
   onOpen,
   onFocus,
 }: SavedItemProps) {
   return (
     <>
-      {isPhone && <SavedRow listing={listing} onOpen={onOpen} onFocus={onFocus} />}
+      {isPhone && <SavedRow listing={listing} tail={rowTail} onOpen={onOpen} onFocus={onFocus} />}
       {!isPhone && (
         <SavedCard
           listing={listing}
           active={active}
           onActiveChange={onActiveChange}
-          onRemove={onRemove}
+          saved={saved}
+          onToggleSaved={onToggleSaved}
           onFocus={onFocus}
         />
       )}
@@ -92,7 +99,12 @@ interface SavedListProps {
   /** The cars whose pin is active, outlined (SAVED-11). */
   activeIds: ReadonlySet<string>;
   onActiveChange: (listingId: string | null) => void;
-  onRemove: (listing: CarListing) => void;
+  /** The cars whose heart reads saved: every one on /favorites, the buyer's favorites on an alert's page. */
+  savedIds: ReadonlySet<string>;
+  /** The heart was pressed: a removal on /favorites, a toggle on an alert's page. */
+  onToggleSaved: (listing: CarListing) => void;
+  /** What a compact row writes after «año · km» (SAVED-19, ALERTUI-25). */
+  rowTail?: RowTail;
   onOpen: (listing: CarListing, row: HTMLButtonElement) => void;
   /** A row took the focus, so the rows around it stay mounted (SAVED-28). */
   onRowFocus: (row: number) => void;
@@ -111,7 +123,9 @@ export function SavedList({
   columns,
   activeIds,
   onActiveChange,
-  onRemove,
+  savedIds,
+  onToggleSaved,
+  rowTail = "city",
   onOpen,
   onRowFocus,
   leaving,
@@ -145,9 +159,11 @@ export function SavedList({
                   <SavedItem
                     listing={listing}
                     isPhone={isPhone}
+                    rowTail={rowTail}
                     active={activeIds.has(listing.id)}
                     onActiveChange={(active) => onActiveChange(active ? listing.id : null)}
-                    onRemove={() => onRemove(listing)}
+                    saved={savedIds.has(listing.id)}
+                    onToggleSaved={() => onToggleSaved(listing)}
                     onOpen={onOpen}
                     onFocus={() => onRowFocus(row.index)}
                   />
@@ -175,9 +191,11 @@ export function SavedList({
               <SavedItem
                 listing={entry.listing}
                 isPhone={isPhone}
+                rowTail={rowTail}
                 active={false}
                 onActiveChange={ignore}
-                onRemove={ignore}
+                saved
+                onToggleSaved={ignore}
                 onOpen={ignore}
                 onFocus={ignore}
               />

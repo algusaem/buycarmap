@@ -293,7 +293,8 @@ Frontend › Typography); there is no monospace face.
 - **Empty title** (Unbounded 900, 48px desktop / 28px phone): the question-and-punchline of an
   EmptyState.
 - **Page title** (Unbounded 900, 40px desktop / 34px phone, line-height 0.9): one-line page titles
-  (Guardados, Alertas, Cuenta), with no counter.
+  (Guardados, Alertas, Cuenta), with no counter. An alert's name as its page title may take two
+  lines: `alert-title`, 40px / 1.04 on desktop, `hero-mobile` 34px / 1.06 on the phone.
 - **Form and legal titles** (Unbounded 800–900, `form-title` 26px, `legal-h1` 48px, `legal-h2` 20px).
 - **Count and price** (Unbounded 800, 30px and 22px): the results title, which counts the cars
   («MÁS DE 40 COCHES» while more pages remain, «24 COCHES» or «1 COCHE» once the sources run out;
@@ -406,8 +407,9 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 - «Filtros» is a secondary button, not a chip. [Chip](docs/design/system/components/Chip/README.md).
 
 ### Cards / Containers
-- `surface`, 1px `line` border, `radius-card`, 24px padding (AccountCard, AlertCard; the open alert
-  takes a `lime` border). Sign-in panels use `radius-panel`.
+- `surface`, 1px `line` border, `radius-card`. AccountCard takes 24px of padding; AlertCard 18px
+  20px (16px on the phone), 12px between blocks, and the open alert takes a `lime` border. Sign-in
+  panels use `radius-panel`.
   [AccountCard](docs/design/system/components/AccountCard/README.md),
   [AlertCard](docs/design/system/components/AlertCard/README.md).
 

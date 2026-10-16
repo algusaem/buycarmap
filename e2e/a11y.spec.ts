@@ -1,7 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mockListingSources } from "./fixtures/network";
-import { e2eEmail, seedFavorites, seedUser } from "./fixtures/db";
+import { e2eEmail, seedAlertMatches, seedAlerts, seedFavorites, seedUser } from "./fixtures/db";
+import { signIn } from "./fixtures/session";
 
 // FRONT-19 (docs/specs/core-frontend.md, amended 2026-10-12, LOOK —
 // redesign-foundation.md): the contrast rule is no longer disabled, and
@@ -16,19 +17,9 @@ import { e2eEmail, seedFavorites, seedUser } from "./fixtures/db";
 // findings, unfixed) is separate work.
 
 const dbTest = process.env.E2E_DB ? test : test.skip;
-// Clears all three password layers (length, strength, breach corpus) —
-// duplicated from auth.spec.ts/favorites.spec.ts rather than shared, per
-// their own convention (five lines of page-object glue isn't worth coupling
-// two spec files together to save).
+// Clears all three password layers (length, strength, breach corpus). The
+// sign-in itself is the shared one in e2e/fixtures/session.ts.
 const PASSWORD = "harbour-lentil-quilt-97";
-
-async function signIn(page: Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel(/email|correo/i).fill(email);
-  await page.locator('input[type="password"]').fill(PASSWORD);
-  await page.getByRole("button", { name: /sign in|entrar/i }).click();
-  await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
-}
 
 async function seriousViolations(page: Page) {
   // Mount animations (fadeInUp) fade whole cards in from opacity 0; axe
@@ -37,14 +28,18 @@ async function seriousViolations(page: Page) {
   // finite ones are waited on. Motion drives some fades from JS rather than
   // the Web Animations API, writing inline `opacity`, so any inline opacity
   // below 1 means the fade is still running — or, before hydration, has not
-  // started yet (the server renders the `initial` opacity 0).
+  // started yet (the server renders the `initial` opacity 0). Radix's focus
+  // guards around an open dialog carry a permanent inline `opacity: 0`, so
+  // they are left out of the wait.
   await page.waitForFunction(
     () =>
       document
         .getAnimations()
         .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
         .every((animation) => animation.playState !== "running") &&
-      Array.from(document.querySelectorAll<HTMLElement>("[style*='opacity']")).every((element) => {
+      Array.from(
+        document.querySelectorAll<HTMLElement>("[style*='opacity']:not([data-radix-focus-guard])"),
+      ).every((element) => {
         const opacity = Number.parseFloat(element.style.opacity);
         return Number.isNaN(opacity) || opacity === 1;
       }),
@@ -73,7 +68,7 @@ async function checkPage(page: Page, path: string) {
 async function checkSignedInPage(page: Page, path: string, tag: string) {
   const email = e2eEmail(tag);
   await seedUser(email, PASSWORD);
-  await signIn(page, email);
+  await signIn(page, email, PASSWORD);
 
   await page.goto(path);
   expectNoSeriousViolations(await seriousViolations(page));
@@ -189,7 +184,7 @@ test.describe("SAVED-33: /favorites under axe", () => {
           await seedUser(email, PASSWORD);
           if (withCars) await seedFavorites(email, SAVED_CARS);
           await page.setViewportSize(viewport);
-          await signIn(page, email);
+          await signIn(page, email, PASSWORD);
 
           await page.goto("/favorites");
           await expect(page.getByRole("heading", { level: 1, name: "Guardados" })).toBeVisible({
@@ -197,6 +192,138 @@ test.describe("SAVED-33: /favorites under axe", () => {
           });
           if (withCars) await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
           else await expect(page.getByText("Guarda alguno")).toBeVisible();
+          expectNoSeriousViolations(await seriousViolations(page));
+        },
+      );
+    }
+  }
+});
+
+// docs/specs/redesign-alerts.md (ALERTUI-43, amends FRONT-19): /alerts passes
+// axe at desktop and phone width, with alerts and with none, and so does
+// /alerts/[id] with matches and with none, with the confirmation open too.
+// The alerts are written straight into Postgres (seedAlerts,
+// seedAlertMatches): Corolla híbrido with its zone and two matches at one
+// point, so the grouped pin is on the page, and Clio barato with none.
+test.describe("ALERTUI-43: /alerts and /alerts/[id] under axe", () => {
+  test.use({ locale: "es-ES" });
+
+  const MATCH_AT_MADRID = {
+    title: "Toyota Corolla 125H",
+    price: 16200,
+    mileage: 41000,
+    location: "Madrid",
+    lat: 40.4168,
+    lng: -3.7038,
+  };
+
+  /** A fresh, signed-in account; with `alerts`, Corolla híbrido (two matches) and Clio barato (none). */
+  async function openWithAlerts(
+    page: Page,
+    tag: string,
+    viewport: { width: number; height: number },
+    alerts: boolean,
+  ): Promise<{ corolla: string; clio: string }> {
+    const email = e2eEmail(tag);
+    await seedUser(email, PASSWORD);
+    let ids = { corolla: "", clio: "" };
+    if (alerts) {
+      const [corolla, clio] = await seedAlerts(email, [
+        {
+          label: "Corolla híbrido",
+          criteria: {
+            brand: "Toyota",
+            model: "Corolla",
+            maxPrice: 18000,
+            latitude: 40.4168,
+            longitude: -3.7038,
+            distanceInKm: 50,
+          },
+          placeName: "Madrid",
+          createdAt: new Date("2026-10-02T10:00:00Z"),
+        },
+        {
+          label: "Clio barato",
+          criteria: {
+            brand: "Renault",
+            model: "Clio",
+            maxPrice: 9000,
+            latitude: 40.4168,
+            longitude: -3.7038,
+            distanceInKm: 50,
+          },
+          createdAt: new Date("2026-09-21T10:00:00Z"),
+        },
+      ]);
+      await seedAlertMatches(corolla, [
+        {
+          ...MATCH_AT_MADRID,
+          listingId: "wallapop-a11y-alert-1",
+          createdAt: new Date("2026-10-14T10:00:00Z"),
+        },
+        {
+          ...MATCH_AT_MADRID,
+          listingId: "wallapop-a11y-alert-2",
+          title: "Toyota Corolla Touring Sports",
+          price: 17200,
+          createdAt: new Date("2026-10-14T09:00:00Z"),
+        },
+      ]);
+      ids = { corolla, clio };
+    }
+    await page.setViewportSize(viewport);
+    await signIn(page, email, PASSWORD);
+    return ids;
+  }
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    for (const withAlerts of [true, false]) {
+      dbTest(
+        `ALERTUI-43: no serious accessibility violations on /alerts at ${viewport.width}×${viewport.height}, ${withAlerts ? "with alerts" : "with none"}`,
+        async ({ page }) => {
+          await openWithAlerts(
+            page,
+            `a11y-alerts-${viewport.width}-${withAlerts}`,
+            viewport,
+            withAlerts,
+          );
+
+          await page.goto("/alerts");
+          await expect(page.getByRole("heading", { level: 1, name: "Alertas" })).toBeVisible({
+            timeout: 15_000,
+          });
+          if (withAlerts) await expect(page.getByText("Corolla híbrido").first()).toBeVisible();
+          else await expect(page.getByText("Crea una")).toBeVisible();
+          expectNoSeriousViolations(await seriousViolations(page));
+        },
+      );
+    }
+
+    for (const which of ["corolla", "clio"] as const) {
+      dbTest(
+        `ALERTUI-43: no serious accessibility violations on /alerts/[id] at ${viewport.width}×${viewport.height}, ${which === "corolla" ? "with matches" : "with none"}, and with the confirmation open`,
+        async ({ page }) => {
+          const ids = await openWithAlerts(
+            page,
+            `a11y-alert-${viewport.width}-${which}`,
+            viewport,
+            true,
+          );
+
+          await page.goto(`/alerts/${ids[which]}`);
+          const name = which === "corolla" ? "Corolla híbrido" : "Clio barato";
+          await expect(page.getByRole("heading", { level: 1, name })).toBeVisible({
+            timeout: 15_000,
+          });
+          expectNoSeriousViolations(await seriousViolations(page));
+
+          await page.getByRole("button", { name: "Eliminar alerta" }).click();
+          await expect(
+            page.getByRole("alertdialog", { name: `¿Eliminar «${name}»?` }),
+          ).toBeVisible();
           expectNoSeriousViolations(await seriousViolations(page));
         },
       );

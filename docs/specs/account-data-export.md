@@ -2,7 +2,7 @@
 
 Key: EXPORT
 Status: Implemented
-Last updated: 2026-10-11
+Last updated: 2026-10-15
 
 ---
 
@@ -33,7 +33,7 @@ authorization, its rate limit and its failure paths.
 - [x] EXPORT-3 · node — `signInMethods.password` is `true` exactly when the caller has a credential password, and `signInMethods.providers` lists each linked OAuth provider as `{ provider, linkedAt }`; the credential row never appears as a provider
 - [x] EXPORT-4 · node — `sessions` lists every one of the caller's sessions as exactly `{ createdAt, expiresAt, ipAddress, userAgent }`
 - [x] EXPORT-5 · node — `favorites` lists each of the caller's saved listings with its stored snapshot fields and `createdAt`, oldest first; a soft-deleted favorite is not exported
-- [x] EXPORT-6 · node — `alerts` lists each of the caller's alerts as exactly `{ label, criteria, active, createdAt }`, oldest first, with `criteria` the saved search as stored; an inactive (unsubscribed) alert is exported, a soft-deleted one is not
+- [x] EXPORT-6 · node — `alerts` lists each of the caller's alerts as exactly `{ label, criteria, active, createdAt }`, oldest first, with `criteria` the saved search as stored; an inactive (unsubscribed) alert is exported, a soft-deleted one is not — each alert is exactly `{ label, placeName, criteria, active, createdAt }`, with `placeName` the place name stored on the alert, `null` when it has none (`Alert.placeName`, ALERTUI-46) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
 - [x] EXPORT-7 · node — `alertMatches` lists the matches of the caller's exported alerts with the `label` of the alert each belongs to as `alertLabel`, their stored snapshot fields, `createdAt` and `notifiedAt`, oldest first; matches of a soft-deleted alert are not exported
 - [x] EXPORT-8 · node — No secret value appears anywhere in the export: no password hash, OAuth provider account id, OAuth access, refresh or id token, session token, two-factor secret or backup code, unsubscribe token hash or subject, or password-reset or email-verification token hash
 - [x] EXPORT-9 · node — No row belonging to another user appears in the caller's export
@@ -185,7 +185,7 @@ reads `TwoFactor`, `PasswordResetToken`, `PendingRegistration`, `Verification`,
 | `signInMethods.providers[]` | `Account` where `provider != "credential"` | `provider`, and `createdAt` as `linkedAt` |
 | `sessions[]` | `Session` | `createdAt`, `expires` as `expiresAt`, `ipAddress`, `userAgent` |
 | `favorites[]` | `Favorite`, `deletedAt` null | `listingId`, `source`, `title`, `subtitle`, `image`, `brand`, `model`, `location`, `fuel`, `url`, `price`, `mileage`, `year`, `lat`, `lng`, `createdAt` |
-| `alerts[]` | `Alert`, `deletedAt` null | `label`, `criteria` (the linked `AlertCriteria.criteria` JSON), `active`, `createdAt` |
+| `alerts[]` | `Alert`, `deletedAt` null | `label`, `placeName` (`null` when none), `criteria` (the linked `AlertCriteria.criteria` JSON), `active`, `createdAt` |
 | `alertMatches[]` | `AlertMatch` of an exported alert, `deletedAt` null | the alert's `label` as `alertLabel`, the `favorites[]` snapshot fields, `createdAt`, `notifiedAt` |
 
 ### What is not exported, and why

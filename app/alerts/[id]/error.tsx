@@ -1,16 +1,17 @@
 "use client";
 
-import { RouteError } from "@/components/ui/RouteError";
+import { AlertsRouteError } from "@/components/alerts/AlertsRouteError";
 
-// PLAT-14 (docs/specs/core-platform.md): server/alerts/queries.ts's
-// findAlertWithMatches read is not swallowed into a fallback state; this
-// catches a failed read and offers a retry instead.
+// PLAT-14 (docs/specs/core-platform.md): a failed read of an alert's page is
+// caught here with a retry instead of an empty list (issue #48). Since
+// docs/specs/redesign-alerts.md (ALERTUI-42) it is the page-error state beside
+// the empty alert map, as /alerts' own.
 export default function AlertMatchesError({
-  error: _error,
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  return <RouteError reset={reset} />;
+  return <AlertsRouteError error={error} reset={reset} />;
 }

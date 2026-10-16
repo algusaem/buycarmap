@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { CarPhoto, listingMeta } from "@/components/map/CarCard";
+import { CarPhoto, listingMeta, type MetaTail } from "@/components/map/CarCard";
 import type { CarListing } from "@/interfaces/listing";
 import { formatPrice } from "@/lib/format";
 import { cardDomId } from "@/lib/map/card-dom-id";
@@ -12,19 +12,24 @@ import { cardDomId } from "@/lib/map/card-dom-id";
 // that opens the car sheet, with the 110×86 thumbnail (no badge, no heart),
 // the name, «año · km · ciudad» and the price. It is named by the car and its
 // price, and described by «año · km · ciudad»: the name stays short, and it
-// never reads as the desktop sort chips («Km», «Precio»).
+// never reads as the desktop sort chips («Km», «Precio»). An alert's match
+// drops the city: «año · km» (docs/specs/redesign-alerts.md, ALERTUI-25).
+
+/** What a compact row writes after «año · km»: the city on /favorites, nothing on an alert's page. */
+export type RowTail = Exclude<MetaTail, "fuel">;
 
 interface SavedRowProps {
   listing: CarListing;
+  tail: RowTail;
   onOpen: (listing: CarListing, row: HTMLButtonElement) => void;
   /** The row took the focus (lib/hooks/useSavedList.ts keeps its neighbours mounted). */
   onFocus: () => void;
 }
 
-export function SavedRow({ listing, onOpen, onFocus }: SavedRowProps) {
+export function SavedRow({ listing, tail, onOpen, onFocus }: SavedRowProps) {
   const t = useTranslations();
   const locale = useLocale();
-  const meta = listingMeta(listing, { t, locale }, "city");
+  const meta = listingMeta(listing, { t, locale }, tail);
   const id = useId();
 
   return (

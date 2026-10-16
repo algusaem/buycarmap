@@ -826,6 +826,8 @@ async function seedAda() {
       },
     },
     label: "Ada Golf alert",
+    // ALERTUI-46 (redesign-alerts.md): the place name stored on the alert.
+    placeName: "Valencia",
     active: true,
     unsubscribeTokenHash: "ada-unsub-hash",
     unsubscribeSubject: "ada-unsub-subject",
@@ -1000,7 +1002,7 @@ describe("exportMyData", () => {
     expect(data.favorites[1].createdAt).toBe("2026-09-06T10:00:00.000Z");
   });
 
-  it("EXPORT-6: lists alerts with their stored criteria, oldest first, keeping inactive and dropping soft-deleted ones", async () => {
+  it("EXPORT-6: lists alerts with their stored criteria and place name, oldest first, keeping inactive and dropping soft-deleted ones", async () => {
     await signedInAsAda();
 
     const { data } = await exportAsCaller();
@@ -1009,14 +1011,24 @@ describe("exportMyData", () => {
       "Ada Golf alert",
       "Ada paused alert",
     ]);
+    // Amended 2026-10-15 (EXPORT-6, ALERTUI-46 — redesign-alerts.md): each
+    // alert also carries its place name, null when it has none.
     expect(data.alerts[0]).toEqual({
       label: "Ada Golf alert",
+      placeName: "Valencia",
       criteria: { brand: "volkswagen", model: "golf", maxPrice: 15000 },
       active: true,
       createdAt: "2026-09-10T10:00:00.000Z",
     });
-    expect(Object.keys(data.alerts[0])).toEqual(["label", "criteria", "active", "createdAt"]);
+    expect(Object.keys(data.alerts[0])).toEqual([
+      "label",
+      "placeName",
+      "criteria",
+      "active",
+      "createdAt",
+    ]);
     expect(data.alerts[1].active).toBe(false);
+    expect(data.alerts[1].placeName).toBeNull();
   });
 
   it("EXPORT-7: lists the matches of exported alerts with their alert's label, and none of a soft-deleted alert", async () => {

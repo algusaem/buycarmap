@@ -1,13 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-interface CardGridSkeletonProps {
-  count?: number;
-  className?: string;
-  /** The loading region's accessible name, for a route with no other way to read it (MAP-20). */
-  label?: string;
-}
-
 export const DEFAULT_COUNT = 6;
 
 interface CardPlaceholderProps {
@@ -19,8 +12,7 @@ interface CardPlaceholderProps {
  * MAPUI-30, MAPUI-38): the photo — 250px tall on a phone, 20:19 from `lg` —
  * the name and meta bars, and the price bar in `surface-strong`. The map's
  * results (components/map/ResultsStates.tsx) compose this directly for the
- * desktop grid, rather than through `CardGridSkeleton`, since below `lg` it
- * shows `SheetCardPlaceholder` instead (MAPUI-30).
+ * desktop grid; below `lg` it shows `SheetCardPlaceholder` instead (MAPUI-30).
  */
 export function CardPlaceholder({ className }: CardPlaceholderProps) {
   return (
@@ -48,39 +40,6 @@ export function SheetCardPlaceholder() {
       <Skeleton className="h-62.5 rounded-card bg-surface-strong" />
       <Skeleton className="h-4 w-2/3 bg-surface-strong" />
       <Skeleton className="h-5.5 w-5/12 rounded-skeleton bg-surface-strong" />
-    </div>
-  );
-}
-
-/**
- * FRONT-14 (docs/specs/core-frontend.md): the card-grid loading state of
- * `/alerts/[id]`, whose populated view is a grid of cards, so it mirrors its
- * final content (RULES.md §19) instead of a bare spinner. `/favorites` has its
- * own since SAVED-30 (docs/specs/redesign-saved.md). Each placeholder is the car card's shape
- * (`CardPlaceholder`).
- *
- * MAP-20: the container is `aria-busy`, not `role="status"` — a live region
- * announces every update inside it, and a second one beside a page's own
- * status region is matched twice by `getByRole("status")` under strict mode.
- * `aria-busy` still marks the region as
- * loading for assistive tech (RULES.md §19 "redundant status cues") without
- * claiming the live-region role; the individual placeholders are
- * `aria-hidden` so they are never announced as if they were real cards.
- */
-export function CardGridSkeleton({
-  count = DEFAULT_COUNT,
-  className,
-  label,
-}: CardGridSkeletonProps) {
-  return (
-    <div
-      aria-busy="true"
-      className={className ?? "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"}
-    >
-      {label && <span className="sr-only">{label}</span>}
-      {Array.from({ length: count }, (_, index) => `placeholder-${index}`).map((key) => (
-        <CardPlaceholder key={key} />
-      ))}
     </div>
   );
 }

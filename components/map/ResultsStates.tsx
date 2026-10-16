@@ -248,30 +248,43 @@ export function StatusPill({ state, radiusKm, canWiden, hasFilters }: StatusPill
 interface MapPillProps {
   /** What the pill says; none draws no pill. */
   text: string | undefined;
+  /** A second part after « · », in lime: an alert's zone (AlertZone/README.md). */
+  accent?: string;
   /** Whether it is a polite live region (`role="status"`). */
   live: boolean;
 }
 
 /**
  * The pill at the top left of a desktop map (StatusPill/README.md), cross-
- * fading from one text to the next: /map's status (StatusPill) and the saved
+ * fading from one text to the next: /map's status (StatusPill), the saved
  * map's title, which is a status only while it says there is nothing to show
- * (docs/specs/redesign-saved.md, SAVED-13).
+ * (docs/specs/redesign-saved.md, SAVED-13), and the alert map's name and zone
+ * (docs/specs/redesign-alerts.md, ALERTUI-15).
  */
-export function MapPill({ text, live }: MapPillProps) {
+export function MapPill({ text, accent, live }: MapPillProps) {
   return (
     <div
       role={live ? "status" : undefined}
-      className="absolute top-4.5 left-4.5 z-1000 max-lg:hidden"
+      // The same inset on the right as on the left, so the pill inside, as wide
+      // as its text up to this strip, is cut to one line with «…» rather than
+      // run past the map's edge. The strip lets the map take the presses
+      // around the pill.
+      className="pointer-events-none absolute top-4.5 right-4.5 left-4.5 z-1000 max-lg:hidden"
     >
       <AnimatePresence mode="wait">
         {text && (
           <motion.span
-            key={text}
+            key={`${text}${accent ?? ""}`}
             {...crossFade}
-            className="block rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-bold text-text"
+            className="pointer-events-auto block w-fit max-w-full truncate rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-bold text-text"
           >
             {text}
+            {accent && (
+              <>
+                {" · "}
+                <span className="text-lime">{accent}</span>
+              </>
+            )}
           </motion.span>
         )}
       </AnimatePresence>

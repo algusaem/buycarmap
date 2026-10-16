@@ -64,6 +64,10 @@ interface PhoneBottomSheetProps {
   onEscapeKeyDown?: (event: KeyboardEvent) => void;
   /** A full-screen dialog instead of a bottom sheet: no dimmed overlay, no handle. */
   fullScreen?: boolean;
+  /** `alertdialog` for a confirmation (docs/specs/redesign-alerts.md, ALERTUI-34); a plain dialog otherwise. */
+  role?: "alertdialog";
+  /** The handle stays, but the sheet does not follow it: a confirmation while its delete runs (ALERTUI-34). */
+  dragDisabled?: boolean;
   children: ReactNode;
 }
 
@@ -104,6 +108,8 @@ export function PhoneBottomSheet({
   onOpenAutoFocus,
   onEscapeKeyDown,
   fullScreen = false,
+  role,
+  dragDisabled = false,
   children,
 }: PhoneBottomSheetProps) {
   return (
@@ -125,6 +131,7 @@ export function PhoneBottomSheet({
               forceMount
               asChild
               aria-describedby={undefined}
+              {...(role && { role })}
               onOpenAutoFocus={onOpenAutoFocus}
               onEscapeKeyDown={onEscapeKeyDown}
               onCloseAutoFocus={returnFocusTo(returnFocusRef)}
@@ -134,6 +141,7 @@ export function PhoneBottomSheet({
                 ref={contentRef}
                 {...SHEET_MOTION[entrance]}
                 draggable={!fullScreen}
+                dragDisabled={dragDisabled}
                 onDragClose={onClose}
               >
                 {children}
@@ -149,6 +157,8 @@ export function PhoneBottomSheet({
 type SheetPanelProps = Omit<ComponentProps<typeof motion.div>, "children"> & {
   /** A bottom sheet: the handle on top, which drags the sheet down to close it. */
   draggable: boolean;
+  /** The handle is drawn but the sheet stays put. */
+  dragDisabled?: boolean;
   onDragClose: () => void;
   children: ReactNode;
 };
@@ -161,7 +171,14 @@ type SheetPanelProps = Omit<ComponentProps<typeof motion.div>, "children"> & {
  * closes past the threshold (shouldDragClose), or springs back, at once with
  * reduced motion.
  */
-function SheetPanel({ draggable, onDragClose, children, style, ...props }: SheetPanelProps) {
+function SheetPanel({
+  draggable,
+  dragDisabled = false,
+  onDragClose,
+  children,
+  style,
+  ...props
+}: SheetPanelProps) {
   const dragControls = useDragControls();
   const y = useMotionValue(0);
   const reduceMotion = useReducedMotion();
@@ -182,7 +199,7 @@ function SheetPanel({ draggable, onDragClose, children, style, ...props }: Sheet
     <motion.div
       {...props}
       style={{ ...style, y }}
-      drag={draggable ? "y" : false}
+      drag={draggable && !dragDisabled ? "y" : false}
       dragControls={dragControls}
       dragListener={false}
       dragMomentum={false}

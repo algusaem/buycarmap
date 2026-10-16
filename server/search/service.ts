@@ -2,7 +2,7 @@ import type { CarListing } from "@/interfaces/listing";
 import type { WallapopSearchResponse, WallapopFilterResponse } from "@/interfaces/wallapop";
 import type { CochesNetSearchResponse, CochesNetTaxonomyResponse } from "@/interfaces/cochesnet";
 import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
-import type { SearchInput } from "@/lib/search/schema";
+import { hasPlace, type SearchInput } from "@/lib/search/schema";
 import { env } from "@/lib/env";
 import { buildWallapopQuery } from "@/lib/wallapop/client";
 import { normalizeWallapopItems } from "@/lib/wallapop/normalize";
@@ -103,16 +103,12 @@ async function fetchJson<T>(url: string, init: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-function hasExplicitLocation(input: SearchInput): boolean {
-  return input.latitude != null && input.longitude != null;
-}
-
 async function fetchWallapopPage(
   input: SearchInput,
   nextPage: string | undefined,
   orderBy: string | undefined,
 ): Promise<WallapopSearchResponse> {
-  const located = hasExplicitLocation(input);
+  const located = hasPlace(input);
   const query = buildWallapopQuery(input, {
     lat: input.latitude ?? SPAIN_CENTER.lat,
     lng: input.longitude ?? SPAIN_CENTER.lng,

@@ -1,10 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useTranslations } from "next-intl";
-import { SavedColumn, SavedMapFrame } from "@/components/favorites/SavedLayout";
-import { Button } from "@/components/ui/button";
-import { PageError } from "@/components/ui/PageError";
+import { SavedRouteError } from "@/components/favorites/SavedLayout";
 
 // PLAT-14 (docs/specs/core-platform.md): server/favorites/queries.ts no
 // longer swallows a failed read into an empty list (issue #48); this catches
@@ -18,20 +14,5 @@ interface FavoritesErrorProps {
 }
 
 export default function FavoritesError({ error, reset }: FavoritesErrorProps) {
-  const t = useTranslations();
-
-  return (
-    <main className="flex min-h-0 flex-1 bg-background">
-      <SavedColumn>
-        <div className="mt-4.5 lg:mt-14">
-          <PageError error={error} reset={reset} line={t("errors.pageLine")}>
-            <Button asChild variant="secondary" size="48">
-              <Link href="/map">{t("nav.backToMap")}</Link>
-            </Button>
-          </PageError>
-        </div>
-      </SavedColumn>
-      <SavedMapFrame />
-    </main>
-  );
+  return <SavedRouteError error={error} reset={reset} />;
 }

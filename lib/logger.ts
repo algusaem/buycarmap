@@ -36,6 +36,10 @@ const REDACT_PATHS = [
   "*.userAgent",
   "backupCodes",
   "*.backupCodes",
+  // docs/specs/redesign-alerts.md (ALERTUI-46): the place an alert was
+  // created for («Getafe») says where a person looks for a car.
+  "placeName",
+  "*.placeName",
 ];
 
 /**

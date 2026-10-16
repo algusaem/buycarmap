@@ -62,8 +62,8 @@ for (const [device, viewport] of Object.entries(VIEWPORTS)) {
     test.use({ viewport });
 
     // FRONT-14: the four list states. Loading/error/populated/empty are not
-    // yet a decided prop surface on MapView/FavoritesList/AlertsList/
-    // AlertMatchesList (not in this brief's "decided surfaces"), so these
+    // yet a decided prop surface on MapView/FavoritesList/AlertsPage/
+    // AlertPage (not in this brief's "decided surfaces"), so these
     // capture what exists today as placeholders to be replaced once that
     // surface is implemented — each screenshot's name says which state it
     // is meant to become.

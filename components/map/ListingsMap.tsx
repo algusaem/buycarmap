@@ -11,8 +11,18 @@ import { groupPins, hasCoordinates } from "@/lib/map/group-pins";
 import { PIN_BASE_CLASSES } from "@/lib/map/pin-classes";
 import { MapPreview, type PreviewController, type PreviewProps } from "@/components/map/MapPreview";
 import { MapZoom } from "@/components/map/MapZoom";
+import { ZoneLayers, zoneBounds } from "@/components/map/ZoneLayers";
+import type { MapZone } from "@/lib/map/zone";
+
+/** Where every map starts: Spain, whole (MAP-25). An alert's map comes back to it (ALERTUI-16). */
+const DEFAULT_VIEW = { center: [40.4168, -3.7038] as L.LatLngTuple, zoom: 6 };
 
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+/** The basemap's tiles, with the CARTO key when one is configured: every map in the app draws the same ones. */
+export function cartoTileUrl(): string {
+  return withCartoKey(TILE_URL);
+}
 
 function withCartoKey(url: string): string {
   const key = env.NEXT_PUBLIC_CARTO_API_KEY;
@@ -51,23 +61,39 @@ function pinIcon(label: string) {
 // `listings` are read through refs, not the effect's dependencies, because
 // this same instance still re-renders with a new `listings` array on every
 // appended page and must not re-fit then.
+// An alert's map (docs/specs/redesign-alerts.md, ALERTUI-16) fits its zone
+// and every pin together, once, when the alert opens: the alert's id is its
+// generation. With neither a zone nor a pin it goes back to the default view
+// (`resetWhenEmpty`), so the alert open before leaves no zone fitted behind;
+// a search with no results keeps the view it had (MAP-25).
 interface FitBoundsProps {
   listings: CarListing[];
+  zone?: MapZone;
+  resetWhenEmpty: boolean;
 }
 
-function FitBounds({ listings }: FitBoundsProps) {
+function FitBounds({ listings, zone, resetWhenEmpty }: FitBoundsProps) {
   const map = useMap();
   const mapRef = useRef(map);
   mapRef.current = map;
   const listingsRef = useRef(listings);
   listingsRef.current = listings;
+  const zoneRef = useRef(zone);
+  zoneRef.current = zone;
+  const resetRef = useRef(resetWhenEmpty);
+  resetRef.current = resetWhenEmpty;
 
   useEffect(() => {
     // A listing with no coordinates has no pin (groupPins), so it has no say
     // in the bounds either (redesign-saved.md › Edge cases).
     const current = listingsRef.current.filter(hasCoordinates);
-    if (current.length === 0) return;
+    const fitZone = zoneRef.current;
+    if (current.length === 0 && !fitZone) {
+      if (resetRef.current) mapRef.current.setView(DEFAULT_VIEW.center, DEFAULT_VIEW.zoom);
+      return;
+    }
     const bounds = L.latLngBounds(current.map((l) => [l.lat, l.lng]));
+    if (fitZone) bounds.extend(zoneBounds(fitZone));
     mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
   }, []);
 
@@ -374,7 +400,12 @@ function anyPopupOpen(map: L.Map): boolean {
 
 interface ListingsMapProps {
   listings?: CarListing[];
-  resultsGeneration?: number;
+  /** Refits the map when it changes: a new search's first results, or the alert newly open. */
+  resultsGeneration?: number | string;
+  /** An alert's zone, drawn under the pins and fitted with them (ALERTUI-14, ALERTUI-16). */
+  zone?: MapZone;
+  /** A new generation with neither a zone nor a pin goes back to the default view: an alert's map (ALERTUI-16). */
+  resetWhenEmpty?: boolean;
   /** The car whose pin is active: its preview is open or its card is hovered (MAPUI-27, MAPUI-28). */
   activeId?: string | null;
   /** The car whose preview popup is open — unlike `activeId`, never set by a hover or focus (MAPUI-39). */
@@ -391,6 +422,8 @@ interface ListingsMapProps {
 export function ListingsMap({
   listings = [],
   resultsGeneration,
+  zone,
+  resetWhenEmpty = false,
   activeId,
   previewId,
   onActivate,
@@ -402,7 +435,7 @@ export function ListingsMap({
   const t = useTranslations();
   const locale = useLocale();
   const groups = useMemo(() => groupPins(listings, { t, locale }), [listings, t, locale]);
-  const tileUrl = withCartoKey(TILE_URL);
+  const tileUrl = cartoTileUrl();
   // One pin's close at a time is tracked here (see OpenPin above), shared by
   // every PricePin instance for as long as this ListingsMap stays mounted.
   const openPinRef = useRef<OpenPin | null>(null);
@@ -412,8 +445,8 @@ export function ListingsMap({
     // map, the header's popovers and the results sheet stay above them.
     <div className="isolate h-full w-full">
       <MapContainer
-        center={[40.4168, -3.7038]}
-        zoom={6}
+        center={DEFAULT_VIEW.center}
+        zoom={DEFAULT_VIEW.zoom}
         zoomControl={false}
         // The preview card fades in with Motion, which honours reduced motion;
         // Leaflet's own CSS fade (popups and tiles) does not.
@@ -428,7 +461,14 @@ export function ListingsMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url={tileUrl}
         />
-        <FitBounds key={resultsGeneration} listings={listings} />
+        {zone && <ZoneLayers zone={zone} />}
+        <FitBounds
+          key={resultsGeneration}
+          listings={listings}
+          zone={zone}
+          // No generation (an alert's map waiting for its next alert) is not a new one.
+          resetWhenEmpty={resetWhenEmpty && resultsGeneration !== undefined}
+        />
         <ClosePopupOnPreviewClear previewId={previewId} openPinRef={openPinRef} />
         {groups.map((group) => (
           <PricePin

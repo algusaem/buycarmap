@@ -1,5 +1,4 @@
 import { vi } from "vitest";
-import type { AlertSummary } from "@/interfaces/alert";
 import type { CarListing } from "@/interfaces/listing";
 import type { SearchInput } from "@/lib/search/schema";
 
@@ -100,17 +99,6 @@ export function makeMatchListing(overrides: Partial<CarListing> = {}): CarListin
     lat: 40.4168,
     lng: -3.7038,
     url: "https://es.wallapop.com/item/audi-a3-abc123",
-    ...overrides,
-  };
-}
-
-export function makeAlertSummary(overrides: Partial<AlertSummary> = {}): AlertSummary {
-  return {
-    id: "alert-1",
-    label: "Audi A3 under 20k",
-    criteria: makeCriteria(),
-    matchCount: 0,
-    active: true,
     ...overrides,
   };
 }

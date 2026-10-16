@@ -20,7 +20,10 @@ import { cn } from "@/lib/utils";
 // Guardados card. The map card's photo, badge, heart, name row and meta line
 // (components/map/CarCard.tsx), at 20:17, with «año · km» rather than the
 // fuel, and «Ver anuncio» beside the price, inside the card's one link to the
-// listing in a new tab. The heart, outside that link, removes the car.
+// listing in a new tab. The heart, outside that link, toggles the saved
+// state: on /favorites every car is saved, so it removes it; an alert's match
+// (docs/specs/redesign-alerts.md, ALERTUI-18, ALERTUI-20) reads the buyer's
+// favorites and saves or removes it.
 
 interface SavedCardProps {
   listing: CarListing;
@@ -28,7 +31,9 @@ interface SavedCardProps {
   active: boolean;
   /** Hovering or focusing the card marks its pin (MAPUI-28). */
   onActiveChange: (active: boolean) => void;
-  onRemove: () => void;
+  /** Whether the car is saved: its heart reads «Quitar de guardados», filled, or «Guardar». */
+  saved: boolean;
+  onToggleSaved: () => void;
   /** The card took the focus (lib/hooks/useSavedList.ts keeps its neighbours mounted). */
   onFocus: () => void;
 }
@@ -44,7 +49,14 @@ function revealCard(event: FocusEvent<HTMLElement>) {
   event.currentTarget.scrollIntoView({ block: "nearest" });
 }
 
-export function SavedCard({ listing, active, onActiveChange, onRemove, onFocus }: SavedCardProps) {
+export function SavedCard({
+  listing,
+  active,
+  onActiveChange,
+  saved,
+  onToggleSaved,
+  onFocus,
+}: SavedCardProps) {
   const t = useTranslations();
   const locale = useLocale();
   const marksPin = activeHandlers(onActiveChange);
@@ -91,7 +103,7 @@ export function SavedCard({ listing, active, onActiveChange, onRemove, onFocus }
           </span>
         </span>
       </a>
-      <HeartButton saved onToggle={onRemove} className="absolute top-2.5 right-2.5" />
+      <HeartButton saved={saved} onToggle={onToggleSaved} className="absolute top-2.5 right-2.5" />
     </article>
   );
 }

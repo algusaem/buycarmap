@@ -113,3 +113,20 @@ describe("FAV-9: CarCard — an already-saved listing", () => {
     expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
   });
 });
+
+// MAPUI-36, moved here from components/map/CarListingCard.test.tsx when F6
+// removed that card (docs/specs/redesign-alerts.md, Contracts › Client): the
+// heart's accessible name follows the saved state its caller passes in.
+describe("MAPUI-36: CarCard — the heart's accessible name", () => {
+  it("MAPUI-36: reads Save when not yet saved", () => {
+    renderWithI18n(<CarCard listing={listing} saved={false} />);
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  });
+
+  it("MAPUI-36: reads Remove from saved once saved", () => {
+    renderWithI18n(<CarCard listing={listing} saved />);
+
+    expect(screen.getByRole("button", { name: "Remove from saved" })).toBeInTheDocument();
+  });
+});

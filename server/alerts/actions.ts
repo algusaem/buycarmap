@@ -11,6 +11,7 @@ import {
   type AlertErrorCode,
   alertCriteriaSchema,
   alertLabelSchema,
+  alertPlaceNameSchema,
   type CreateAlertOutcome,
 } from "./schema";
 import { createAlertForUser, deleteAlertForUser } from "./service";
@@ -22,6 +23,9 @@ function alertError(code: AlertErrorCode): AlertError {
 export async function createAlert(
   criteria: SearchInput,
   label: string,
+  // ALERTUI-46 to ALERTUI-48: the place chosen in «Dónde», stored on the
+  // caller's own alert, never on the shared criteria.
+  placeName?: string,
 ): Promise<Result<CreateAlertOutcome, AlertError>> {
   return withRequestContext(async () => {
     const user = await getCurrentUser();
@@ -43,7 +47,17 @@ export async function createAlert(
       return err(alertError(ALERT_ERROR.invalidCriteria));
     }
 
-    const saved = await createAlertForUser(asUserId(user.id), parsed.data, parsedLabel.data);
+    const parsedPlaceName = alertPlaceNameSchema.safeParse(placeName);
+    if (!parsedPlaceName.success) {
+      return err(alertError(ALERT_ERROR.invalidCriteria));
+    }
+
+    const saved = await createAlertForUser(
+      asUserId(user.id),
+      parsed.data,
+      parsedLabel.data,
+      parsedPlaceName.data,
+    );
     if (!saved.ok) {
       return err(alertError(saved.error));
     }

@@ -6,19 +6,19 @@ import { Car, Heart } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type { CarListing } from "@/interfaces/listing";
 import { SourceBadge } from "@/components/map/SourceBadge";
-import { formatMileage, formatPrice, formatRelativeTime } from "@/lib/format";
+import { formatMileage, formatPrice } from "@/lib/format";
 import type { LocaleCopy } from "@/lib/i18n/copy";
 import { classifyFuel } from "@/lib/search/fuel-groups";
 import { cn } from "@/lib/utils";
 
 // docs/specs/redesign-map.md (MAPUI-35 to MAPUI-38);
 // docs/design/system/components/ListingCard/README.md. The car card the map's
-// list and results sheet and an alert's matches render: the
+// list and its results sheet render: the
 // photo (or the car's tint with the car icon), the source badge and the heart
 // over it, the name with the city beside it, «año · km · combustible» and the
 // price. The whole card is one link to the listing in a new tab; the heart is
 // a separate button outside that link. It holds no saved state of its own:
-// CarListingCard and the map pass it in.
+// the map passes it in.
 
 // One tint per car, from photo-tint-1 to photo-tint-8, picked by its id so the
 // same car keeps its tint across renders.
@@ -50,7 +50,7 @@ function fuelLabel(fuel: string, t: LocaleCopy["t"]): string {
 }
 
 /** Which parts follow «año · km»: the fuel (the map's cards), or the city (Guardados' phone row, SAVED-19). */
-type MetaTail = "fuel" | "city" | "none";
+export type MetaTail = "fuel" | "city" | "none";
 
 /**
  * «año · km · combustible», each part only when the listing has it. The
@@ -239,8 +239,6 @@ export interface CarCardProps {
   active?: boolean;
   /** Hovering or focusing the card marks its pin (MAPUI-28). */
   onActiveChange?: (active: boolean) => void;
-  /** Only set for an alert's matches — when the card was discovered, not when the listing was published (no source exposes that). */
-  foundAt?: Date;
   domId?: string;
 }
 
@@ -250,10 +248,8 @@ export function CarCard({
   onToggleSaved,
   active = false,
   onActiveChange,
-  foundAt,
   domId,
 }: CarCardProps) {
-  const t = useTranslations();
   const locale = useLocale();
   const tracksActive = onActiveChange !== undefined;
 
@@ -289,11 +285,6 @@ export function CarCard({
           <span className="mt-1.5 font-display text-price font-extrabold text-lime tabular-nums">
             {formatPrice(listing.price, locale)}
           </span>
-          {foundAt && (
-            <span className="text-xs text-text-muted">
-              {t("alerts.foundAt", { time: formatRelativeTime(foundAt, locale) })}
-            </span>
-          )}
         </span>
       </a>
       <HeartButton saved={saved} onToggle={onToggleSaved} className="absolute top-2.5 right-2.5" />

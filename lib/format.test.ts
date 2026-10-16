@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAmount, formatMileage, formatPrice, parseDeviceLabel } from "./format";
+import { formatAmount, formatDate, formatMileage, formatPrice, parseDeviceLabel } from "./format";
 
 // FRONT-11 (docs/specs/core-frontend.md) worked examples. Each expected
 // string was independently derived by running the equivalent
@@ -57,8 +57,11 @@ describe("formatPrice — one format for every price (MAPUI-57)", () => {
 
   it("MAPUI-57: lib/format.ts has no second price formatter", async () => {
     const formatters = Object.keys(await import("./format")).sort();
+    // Amended 2026-10-15 (FRONT-11, ALERTUI-10 — redesign-alerts.md): formatDate
+    // comes back for «Creada el …», an absolute date, not a price formatter.
     expect(formatters).toEqual([
       "formatAmount",
+      "formatDate",
       "formatMileage",
       "formatPrice",
       "formatRelativeTime",
@@ -117,5 +120,39 @@ describe("parseDeviceLabel", () => {
 describe("formatMileage", () => {
   it("FRONT-11: formats kilometres for the Spanish locale with a period thousands separator and NBSP before the unit", () => {
     expect(formatMileage(84000, "es")).toBe("84.000 km");
+  });
+});
+
+// docs/specs/redesign-alerts.md (ALERTUI-10; amends FRONT-11; worked example
+// "Created on"). Today is 2026-10-15; Europe/Madrid is UTC+2 until
+// 2026-10-25 and UTC+1 in winter, so 22:30 UTC on 30 September is 00:30 on
+// 1 October there, and 23:30 UTC on 31 December 2025 is 00:30 on 1 January
+// 2026 — the current year, so no year is written.
+describe("ALERTUI-10: formatDate — «Creada el …»", () => {
+  const NOW = new Date("2026-10-15T12:00:00.000Z");
+
+  it.each([
+    ["2026-10-02T10:00:00.000Z", "Europe/Madrid", "2 de octubre", "2 October"],
+    ["2026-09-30T22:30:00.000Z", "Europe/Madrid", "1 de octubre", "1 October"],
+    ["2026-09-30T22:30:00.000Z", "UTC", "30 de septiembre", "30 September"],
+    ["2025-12-20T12:00:00.000Z", "Europe/Madrid", "20 de diciembre de 2025", "20 December 2025"],
+    ["2025-12-31T23:30:00.000Z", "Europe/Madrid", "1 de enero", "1 January"],
+    ["2025-12-31T23:30:00.000Z", "UTC", "31 de diciembre de 2025", "31 December 2025"],
+  ])("ALERTUI-10: %s in %s reads «%s» in es and %s in en", (createdAt, timeZone, es, en) => {
+    expect(formatDate(new Date(createdAt), "es", timeZone, NOW)).toBe(es);
+    expect(formatDate(new Date(createdAt), "en", timeZone, NOW)).toBe(en);
+  });
+
+  it("ALERTUI-10: the current year is read in the same time zone — 31 December 2026 23:30 UTC, seen at 23:45 UTC, is 1 January in Madrid and 31 December in UTC, neither with a year", () => {
+    // Madrid is UTC+1 in winter: the date is 1 January 2027 there, and on
+    // that same day the current year in Madrid is 2027, so no year is shown;
+    // read in UTC, both are 31 December 2026, also with no year.
+    const now = new Date("2026-12-31T23:45:00.000Z");
+    expect(formatDate(new Date("2026-12-31T23:30:00.000Z"), "es", "Europe/Madrid", now)).toBe(
+      "1 de enero",
+    );
+    expect(formatDate(new Date("2026-12-31T23:30:00.000Z"), "es", "UTC", now)).toBe(
+      "31 de diciembre",
+    );
   });
 });

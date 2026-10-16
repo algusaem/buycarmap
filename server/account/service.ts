@@ -285,6 +285,7 @@ export async function findMyDataExport(user: PermissionUser, now: Date) {
       where: { ...owned, ...notDeleted },
       select: {
         label: true,
+        placeName: true,
         active: true,
         createdAt: true,
         criteria: { select: { criteria: true } },
@@ -350,6 +351,8 @@ export async function findMyDataExport(user: PermissionUser, now: Date) {
     favorites: favorites.map(toSnapshot),
     alerts: alerts.map((alert) => ({
       label: alert.label,
+      // EXPORT-6, amended by redesign-alerts.md (ALERTUI-46): null when none.
+      placeName: alert.placeName,
       criteria: alert.criteria.criteria,
       active: alert.active,
       createdAt: alert.createdAt,

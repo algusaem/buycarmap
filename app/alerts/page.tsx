@@ -1,46 +1,38 @@
 import type { Metadata } from "next";
-import { TAB_BAR_CLEARANCE } from "@/components/nav/tab-bar-clearance";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { AlertsPage } from "@/components/alerts/AlertsPage";
 import { listAlertsForPage } from "@/server/alerts/queries";
-import { AlertsList } from "@/components/alerts/AlertsList";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
   return { title: `${t("alerts.title")} · ${t("meta.title")}` };
 }
 
-export default async function AlertsPage() {
-  const alerts = await listAlertsForPage();
-  const t = await getTranslations();
+interface AlertsRouteProps {
+  /** The open alert, `alert` (docs/specs/redesign-alerts.md, ALERTUI-12). */
+  searchParams: Promise<{ alert?: string | string[] }>;
+}
+
+/** The URL's `alert`, or none: a repeated parameter reads as its first value. */
+function requestedAlert(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+// docs/specs/redesign-alerts.md (ALERTUI-1, ALERTUI-2, ALERTUI-12,
+// ALERTUI-44): the user's alerts and the open one's matches, read on the
+// server for the URL's `alert`. No back link: the way back is the header's
+// «Mapa» and the tab bar's. The page does not scroll; its list column does
+// (ALERTUI-4). `data-toast-anchor`: every toast here is centred over that
+// column (ALERTUI-37, amends SAVED-24; app/globals.css). The page's `main`,
+// as its loading and error states'.
+export default async function AlertsRoute({ searchParams }: AlertsRouteProps) {
+  const { alert } = await searchParams;
+  const page = await listAlertsForPage(requestedAlert(alert));
 
   return (
-    // `overflow-y-auto` is required, not cosmetic: the root layout pins the
-    // body to h-screen with overflow-hidden so the map never scrolls the page,
-    // which leaves this route unable to scroll at all otherwise (HEAD-19).
-    // Same pattern as app/account/page.tsx.
-    <div className="flex flex-1 flex-col overflow-y-auto bg-background">
-      <div className={cn("mx-auto w-full max-w-4xl px-4 pt-8 lg:pb-8", TAB_BAR_CLEARANCE)}>
-        <div className="mb-8 flex items-center gap-3">
-          <Link
-            href="/map"
-            aria-label={t("map.backToHome")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-card hover:text-foreground"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t("alerts.title")}</h1>
-            {/* Cadence is approximate — GitHub's scheduler drifts under load — so
-                the copy says "every few minutes" rather than promising five. */}
-            <p className="text-sm text-muted-foreground">{t("alerts.subtitle")}</p>
-          </div>
-        </div>
-
-        <AlertsList alerts={alerts} />
-      </div>
-    </div>
+    <main data-toast-anchor="alerts" className="flex min-h-0 flex-1 flex-col bg-background">
+      <AlertsPage {...page} />
+    </main>
   );
 }

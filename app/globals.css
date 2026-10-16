@@ -219,14 +219,18 @@
   /* Sizes the component guides give with no style of their own: the 11px
      labels over the price, mileage and year boxes (FilterSheet), the tab
      labels and the account initial (BottomNav), the 13px phone price pin
-     (PricePin), the 15px sheet titles (BottomSheet) and EmptyState's 17px
-     desktop line. They set only the size. */
+     (PricePin), the 15px sheet titles (BottomSheet), EmptyState's 17px
+     desktop line and AlertCard's 17px desktop name. They set only the size. */
   --text-box-label: 11px;
   --text-tab-label: 11px;
   --text-pin: 13px;
   --text-sheet-title: 15px;
   --text-empty-line: 17px;
   --text-empty-line--line-height: 1.5;
+  --text-alert-name: 17px;
+  --text-alert-title: 40px;
+  --text-alert-title--line-height: 1.04;
+  --text-alert-title--letter-spacing: -0.01em;
 
   /* The phone tab bar: the padding a page gives its scroll container to clear
      it (64px tabs, 24px of air and the safe area, HEAD-18), and the bottom
@@ -385,7 +389,8 @@
    filter row; at most 380px wide and 16px clear of each side; centred on the
    viewport, or, from `lg`, over the list column of the pages that name
    themselves with `data-toast-anchor` — /map's half-width list (830px from
-   `xl`) and /favorites' 546px one (830px from `xl`). The phone /map has no
+   `xl`), and /favorites' and the alerts pages' 546px one (830px from `xl`;
+   ALERTUI-37, docs/specs/redesign-alerts.md). The phone /map has no
    header, so its toast sits 12px under the safe area. */
 :root {
   --toast-top: 4.75rem;
@@ -407,7 +412,8 @@
     --toast-centre: 25%;
   }
 
-  :root:has([data-toast-anchor="saved"]) {
+  :root:has([data-toast-anchor="saved"]),
+  :root:has([data-toast-anchor="alerts"]) {
     --toast-centre: 17.0625rem;
   }
 }

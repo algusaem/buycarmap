@@ -2,7 +2,7 @@
 
 Key: HEAD
 Status: Implemented
-Last updated: 2026-10-13
+Last updated: 2026-10-15
 
 ---
 
@@ -56,6 +56,8 @@ layout (F3–F7).
   `/account` show no avatar, because «Cuenta» is in the tab bar (MAPUI-54), and the signed-in landing
   shows no item on the right, for the same reason (ENTRY-8)
   (amended 2026-10-13, MAPUI — redesign-map.md; amended 2026-10-14, ENTRY — redesign-entry.md)
+  — `/alerts/[id]` also shows «Volver», a 40px round link to `/alerts` named «Volver», before the
+  wordmark (ALERTUI-22) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
 - [x] HEAD-8 · component — At phone width, signed in, `/favorites`, `/alerts`, `/alerts/[id]` and
   `/account` show the bottom nav with «Mapa», «Guardados» and «Alertas» links, the current section
   marked as in HEAD-4 and none marked on `/account`; it is absent at desktop width, when signed out,
@@ -88,7 +90,8 @@ layout (F3–F7).
   be scrolled fully clear of the bottom nav and is clickable.
 - [x] HEAD-19 · e2e — Signed in at phone width, `/favorites` and `/alerts` scroll when their content is
   taller than the screen, and their last element can be scrolled fully clear of the bottom nav (bug
-  fix, found 2026-10-12).
+  fix, found 2026-10-12). — So does `/alerts/[id]`, whose last element is «Eliminar alerta», after
+  its virtualised rows (ALERTUI-31) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
 
 ## Worked examples
 

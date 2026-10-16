@@ -16,12 +16,26 @@ function idsOf(group: PinGroup | undefined): ReadonlySet<string> {
   return new Set(group.listings.map((listing) => listing.id));
 }
 
-export function useSavedPins(shown: CarListing[]) {
+/**
+ * `scope` is what the pins belong to: on /alerts, the open alert's id. A new
+ * scope starts with no preview open and no card under the pointer, even
+ * where a pin of the new scope stands on the old one's point
+ * (docs/specs/redesign-alerts.md, ALERTUI-17).
+ */
+export function useSavedPins(shown: CarListing[], scope: string | null = null) {
   const t = useTranslations();
   const locale = useLocale();
   const groups = useMemo(() => groupPins(shown, { t, locale }), [shown, t, locale]);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const [seenScope, setSeenScope] = useState(scope);
+
+  // Cleared while rendering, React's way to follow a changed prop, as below.
+  if (scope !== seenScope) {
+    setSeenScope(scope);
+    setPreviewKey(null);
+    setHoverId(null);
+  }
 
   // A removal can take away the pin whose preview is open (a single car's) or
   // the card under the pointer, neither of which then says so. Both are

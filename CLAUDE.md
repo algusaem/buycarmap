@@ -77,8 +77,8 @@ file is a rule; the explanations live in `docs/`.
 Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prisma 7
 with the **`@prisma/adapter-pg`** driver adapter · Better Auth (Postgres sessions) ·
 React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
-`components/ui/*`, plus Popover, Dialog and Slider used directly by the map and the create-alert
-dialog (ADR 0020) · TanStack Virtual (the saved cars list, ADR 0021) · Motion · Sonner · Leaflet + react-leaflet ·
+`components/ui/*`, plus Popover, Dialog and Slider used directly by the map, the create-alert
+dialog, the saved car sheet and the delete-alert confirmation (ADR 0020) · TanStack Virtual (the saved cars list, ADR 0021) · Motion · Sonner · Leaflet + react-leaflet ·
 Lucide React and React Icons · next-intl (i18n) · nuqs (URL state) · date-fns
 and `@date-fns/tz` (formatting).
 
@@ -94,8 +94,8 @@ or an installed dependency the ADR approves or accepts until its phase (see its 
   and guard against out-of-order responses with a version ref or `cancelled` flag, as the
   existing hooks do. The search and car-models hooks call the `searchListings` and
   `listCarModels` Server Actions (`server/search/actions.ts`), the favorites hooks call
-  theirs (`server/favorites/actions.ts`), and the account and locale hooks their own feature's
-  actions; every other hook calls a cross-cutting helper in `lib/<source>/*` or `lib/geo/*` —
+  theirs (`server/favorites/actions.ts`), the alerts hooks theirs (`server/alerts/actions.ts`), and
+  the account and locale hooks their own feature's actions; every other hook calls a cross-cutting helper in `lib/<source>/*` or `lib/geo/*` —
   never a raw endpoint.
 
 Full detail: `docs/ARCHITECTURE.md`.

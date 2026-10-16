@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { AppError } from "@/lib/result";
-import { searchSchema, type SearchInput } from "@/lib/search/schema";
+import { hasPlace, searchSchema, type SearchInput } from "@/lib/search/schema";
 
 // Codes, not sentences — same reasoning as FAVORITE_ERROR and AUTH_ERROR: a
 // server action cannot read the client's i18n context, and the default locale
@@ -49,8 +49,7 @@ export type CreateAlertFormValues = z.infer<typeof createAlertFormSchema>;
  * is the one thing this feature must not do.
  */
 export function isSpecificEnough(criteria: SearchInput): boolean {
-  const hasLocation = criteria.latitude != null && criteria.longitude != null;
-  return Boolean(criteria.brand) || criteria.maxPrice != null || hasLocation;
+  return Boolean(criteria.brand) || criteria.maxPrice != null || hasPlace(criteria);
 }
 
 /**
@@ -88,3 +87,18 @@ export function parseStoredCriteria(value: unknown): SearchInput | null {
   const parsed = searchSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
+
+/**
+ * docs/specs/redesign-alerts.md (ALERTUI-46, ALERTUI-47; Contracts › Server):
+ * `createAlert`'s optional third argument, the place chosen in «Dónde»,
+ * trimmed, then at most `ALERT_PLACE_NAME_MAX` characters, and null when
+ * empty or missing.
+ */
+export const ALERT_PLACE_NAME_MAX = 200;
+
+export const alertPlaceNameSchema = z
+  .string()
+  .trim()
+  .max(ALERT_PLACE_NAME_MAX)
+  .optional()
+  .transform((value) => value || null);
