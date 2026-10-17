@@ -1,6 +1,6 @@
 {
   "name": "buycarmap",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "packageManager": "pnpm@11.28.4",
   "engines": {
@@ -19,7 +19,6 @@
     "db:branch:rm": "node scripts/db-branch.mjs --delete",
     "db:seed": "prisma db seed",
     "qstash:schedule": "node scripts/qstash-schedule.mjs",
-    "auth:notify-2fa-reset": "tsx --env-file=.env scripts/notify-2fa-reset.mjs",
     "depcruise": "depcruise app components lib interfaces server proxy.ts --config .dependency-cruiser.cjs",
     "gen": "plop",
     "spec:check": "node scripts/spec-check.mjs",

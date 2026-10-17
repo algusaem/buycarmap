@@ -149,6 +149,8 @@ idempotent: a new `users.two_factor_reset_notified_at` column (added by its own 
 migration, `20261004000100_two_factor_reset_notice`) is set right after sending, so a second run
 finds nothing left to notify.
 
+The notice has since done its job and was retired, with `users.two_factor_enabled_at` and `users.two_factor_reset_notified_at`, by BAUTH-21 ([#103](https://github.com/algusaem/buycarmap/issues/103)).
+
 ### Other fixes from the 2026-10-04 security review
 
 **The two-factor sign-in challenge takes no email.** `verifySignInTotp`/`verifySignInBackupCode`

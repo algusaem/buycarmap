@@ -308,7 +308,6 @@ describe("docs tree and spec format", () => {
       ["User", "name"],
       ["User", "image"],
       ["User", "locale"],
-      ["User", "twoFactorEnabledAt"],
       ["User", "createdAt"],
       ["Account", "password"],
       ["Account", "providerAccountId"],

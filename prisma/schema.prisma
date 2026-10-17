@@ -55,19 +55,9 @@ model User {
   // so falling back would mail Spanish to every English-speaking user.
   locale String?
 
-  // Null while enrolment is half-finished — a secret exists but no code has
-  // been verified yet, so 2FA is NOT enforced. Only this field gates login.
-  twoFactorEnabledAt       DateTime? @map("two_factor_enabled_at") @db.Timestamptz(3)
   // Better Auth's own boolean two-factor flag, read by its `twoFactor`
-  // plugin (phase 12). Starts false for every row — including anyone who
-  // had `twoFactorEnabledAt` set before the cutover, who the migration that
-  // added this column (BAUTH-13/14) switches off, not just leaves alone.
-  twoFactorEnabled         Boolean   @default(false) @map("two_factor_enabled")
-  // BAUTH-13: set once scripts/notify-2fa-reset.mjs has emailed this user
-  // about the cutover switching their old two-factor off. Null for anyone
-  // not yet notified (including every user who never had it on), so the
-  // script is idempotent — a second run finds nothing left to send.
-  twoFactorResetNotifiedAt DateTime? @map("two_factor_reset_notified_at") @db.Timestamptz(3)
+  // plugin (phase 12). Only this field gates sign-in.
+  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
 
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -124,7 +114,8 @@ model User {
   @@map("users")
 }
 
-// Required by @next-auth/prisma-adapter to link OAuth identities to a User.
+// Better Auth's account table: OAuth identity links and the credential
+// password (BAUTH-14).
 model Account {
   id                    String    @id @default(uuid(7)) @db.Uuid
   userId                String    @map("user_id") @db.Uuid
@@ -135,11 +126,8 @@ model Account {
   providerAccountId     String    @map("provider_account_id")
   refresh_token         String?
   access_token          String?
-  expires_at            Int?
-  token_type            String?
   scope                 String?
   id_token              String?
-  session_state         String?
   // The credential account's bcrypt hash (BAUTH-14). Better Auth's Prisma
   // adapter writes and reads it on the `provider = "credential"` row, the
   // only place a user's password is stored (BAUTH-19).

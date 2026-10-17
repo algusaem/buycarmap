@@ -753,7 +753,6 @@ async function seedAda() {
     locale: "en",
     emailConfirmed: true,
     twoFactorEnabled: true,
-    twoFactorEnabledAt: new Date("2026-09-03T10:00:00.000Z"),
     createdAt: new Date("2026-09-01T10:00:00.000Z"),
     password: "hashed:ada-secret",
   });
@@ -974,7 +973,6 @@ describe("exportMyData", () => {
       "locale",
       "emailConfirmed",
       "twoFactorEnabled",
-      "twoFactorEnabledAt",
       "createdAt",
     ]);
     expect(data.profile).toEqual({
@@ -984,7 +982,6 @@ describe("exportMyData", () => {
       locale: "en",
       emailConfirmed: true,
       twoFactorEnabled: true,
-      twoFactorEnabledAt: "2026-09-03T10:00:00.000Z",
       createdAt: "2026-09-01T10:00:00.000Z",
     });
   });

@@ -657,13 +657,6 @@
       "intro": "La dirección de correo de tu cuenta de BuyCarMap se ha cambiado por otra. Recibes este aviso en tu dirección anterior para que sepas que ha ocurrido.",
       "action": "Si no has sido tú, es posible que alguien tenga acceso a tu cuenta. Restablece tu contraseña de inmediato y contacta con nosotros."
     },
-    "twoFactorReset": {
-      "subject": "Vuelve a activar la verificación en dos pasos",
-      "heading": "Vuelve a activar la verificación en dos pasos",
-      "intro": "BuyCarMap ha pasado a un nuevo sistema de inicio de sesión y, durante el cambio, se desactivó tu verificación en dos pasos anterior. Vuelve a configurarla desde la página de tu cuenta.",
-      "button": "Ir a mi cuenta",
-      "action": "Si no tenías activada la verificación en dos pasos, puedes ignorar este correo."
-    },
     "footer": "BuyCarMap — coches de segunda mano en un mapa"
   }
 }

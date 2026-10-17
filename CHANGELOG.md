@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.3.1...buycarmap-v0.4.0) (2026-10-11)
+
+
+### Features
+
+* **account:** let users download a copy of their data ([#108](https://github.com/algusaem/buycarmap/issues/108)) ([0ba57cc](https://github.com/algusaem/buycarmap/commit/0ba57ccd9b0df7f0d967bb028b67599f0d3c344a))
+
+
+### Bug Fixes
+
+* **alerts:** reclaim a poll job whose worker died ([#107](https://github.com/algusaem/buycarmap/issues/107)) ([99a3120](https://github.com/algusaem/buycarmap/commit/99a312049198f069f9b5514c00fe5aa193aa7d1d))
+* **alerts:** retry a save that races another save of the same new criteria ([#106](https://github.com/algusaem/buycarmap/issues/106)) ([f47bbf7](https://github.com/algusaem/buycarmap/commit/f47bbf789dcca9679c74d6fb45567ea7f9ce898c))
+* **db:** make related registration and alert writes atomic ([#97](https://github.com/algusaem/buycarmap/issues/97)) ([7200362](https://github.com/algusaem/buycarmap/commit/7200362554ebe3b53d9d7ed89f9bc3974e3b442e))
+* **deps:** override vulnerable handlebars and source-map-js ([#104](https://github.com/algusaem/buycarmap/issues/104)) ([fe4bfad](https://github.com/algusaem/buycarmap/commit/fe4bfade51371b9529e12671290029851bf5bf1e))
+* **i18n:** store the chosen language on the account when signed in ([#110](https://github.com/algusaem/buycarmap/issues/110)) ([28269b2](https://github.com/algusaem/buycarmap/commit/28269b20775dc778c53cdab769c5211f7ca34978))
+* **privacy:** list every processor and state only what the app does ([#99](https://github.com/algusaem/buycarmap/issues/99)) ([f787e24](https://github.com/algusaem/buycarmap/commit/f787e2427a0af50ebb0f7ec26d437efe9de3529a))
+* **search:** drop a next page that arrives after a newer search ([#91](https://github.com/algusaem/buycarmap/issues/91)) ([669a7d2](https://github.com/algusaem/buycarmap/commit/669a7d277871c3cdf4aa486f588811be7d5e63b6))
+* **search:** rate-limit the car models action per IP ([#112](https://github.com/algusaem/buycarmap/issues/112)) ([2dca876](https://github.com/algusaem/buycarmap/commit/2dca8768c24204977dc9f2e7de7540c4a10a24de))
+* **search:** search within 50 km when coordinates come without a radius ([#92](https://github.com/algusaem/buycarmap/issues/92)) ([afbba08](https://github.com/algusaem/buycarmap/commit/afbba08d605d996e2e3155d913f1bb423d947965))
+* **ui:** honour prefers-reduced-motion across the app ([#115](https://github.com/algusaem/buycarmap/issues/115)) ([f66cae3](https://github.com/algusaem/buycarmap/commit/f66cae39dd6b591fefc0d9cb2c5e20db4b71d760))
+* **wallapop:** fall back to the country centre like the other sources ([#111](https://github.com/algusaem/buycarmap/issues/111)) ([3e25e11](https://github.com/algusaem/buycarmap/commit/3e25e117e7d03d36d2eac9cd4249b922aaad4846)), closes [#30](https://github.com/algusaem/buycarmap/issues/30)
+
 ## [0.3.1](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.3.0...buycarmap-v0.3.1) (2026-10-09)
 
 

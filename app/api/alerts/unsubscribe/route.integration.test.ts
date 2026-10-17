@@ -71,6 +71,33 @@ describe("GET /api/alerts/unsubscribe", () => {
     expect(untouchedRow?.active).toBe(true);
   });
 
+  it("ALERT-5: one user's unsubscribe link cannot deactivate another user's alert on the same criteria", async () => {
+    // ALERT-3: identical criteria are shared, so both alerts point at one row.
+    // Deactivating by criteria rather than by token would pause Bob's too.
+    const criteria = await createAlertCriteria();
+    const ada = await createUser();
+    const bob = await createUser();
+    const adaAlert = await createAlert({
+      user: { connect: { id: ada.id } },
+      criteria: { connect: { id: criteria.id } },
+      active: true,
+      unsubscribeTokenHash: hashOf("raw-token-ada"),
+    });
+    const bobAlert = await createAlert({
+      user: { connect: { id: bob.id } },
+      criteria: { connect: { id: criteria.id } },
+      active: true,
+      unsubscribeTokenHash: hashOf("raw-token-bob"),
+    });
+
+    await visit("raw-token-ada");
+
+    const adaRow = await prisma.alert.findUnique({ where: { id: adaAlert.id } });
+    const bobRow = await prisma.alert.findUnique({ where: { id: bobAlert.id } });
+    expect(adaRow?.active).toBe(false);
+    expect(bobRow?.active).toBe(true);
+  });
+
   it("ALERT-26: keeps the criteria set, so the matches page still renders", async () => {
     const alert = await seedAlertWithToken("raw-token-ada");
 

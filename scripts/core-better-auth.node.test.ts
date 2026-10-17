@@ -5,10 +5,11 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 // Static checks against docs/specs/core-better-auth.md: BAUTH-12 (AUTH-8
-// withdrawn), BAUTH-17 (every ownership check goes through can()/ownedBy())
-// and BAUTH-18 (docs and configuration record the change). None of these
-// need a running `auth` instance — they read the working tree directly, the
-// way scripts/core-platform.node.test.ts does.
+// withdrawn), BAUTH-17 (every ownership check goes through can()/ownedBy()),
+// BAUTH-18 (docs and configuration record the change), BAUTH-19 (legacy users
+// columns leave the schema) and BAUTH-21 (the remaining legacy auth columns
+// leave the code). None of these need a running `auth` instance — they read
+// the working tree directly, the way scripts/core-platform.node.test.ts does.
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8").replace(/\r\n/g, "\n");
@@ -118,6 +119,67 @@ describe("BAUTH-19: the legacy users columns leave the Prisma schema", () => {
       "twoFactorLastStep",
     ]) {
       expect(fieldNames).not.toContain(legacy);
+    }
+  });
+});
+
+describe("BAUTH-21: the remaining legacy auth columns leave the code", () => {
+  const modelFieldNames = (name: string): string[] => {
+    const schema = read("prisma/schema.prisma");
+    const model = schema.match(new RegExp(`^model ${name} \\{\\n([\\s\\S]*?)^\\}`, "m"))?.[1] ?? "";
+    return model
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line !== "" && !line.startsWith("//") && !line.startsWith("@@"))
+      .map((line) => line.split(/\s+/)[0]);
+  };
+
+  it("BAUTH-21: the User model names neither twoFactorEnabledAt nor twoFactorResetNotifiedAt", () => {
+    const fieldNames = modelFieldNames("User");
+
+    expect(fieldNames).toContain("twoFactorEnabled");
+    expect(fieldNames).not.toContain("twoFactorEnabledAt");
+    expect(fieldNames).not.toContain("twoFactorResetNotifiedAt");
+  });
+
+  it("BAUTH-21: the Account model names none of the NextAuth-only columns", () => {
+    const fieldNames = modelFieldNames("Account");
+
+    expect(fieldNames).toContain("accessTokenExpiresAt");
+    expect(fieldNames).not.toContain("expires_at");
+    expect(fieldNames).not.toContain("token_type");
+    expect(fieldNames).not.toContain("session_state");
+  });
+
+  it("BAUTH-21: no tracked source outside migrations and tests names the two-factor legacy fields", () => {
+    const sources = gitLsFiles("*.ts", "*.tsx", "*.mjs", "*.cjs", "*.js")
+      .filter((path) => !path.startsWith("prisma/migrations/"))
+      .filter((path) => !path.startsWith("app/generated/"))
+      .filter((path) => !/\.test\.tsx?$/.test(path) && !/\.spec\.ts$/.test(path))
+      .filter((path) => exists(path));
+
+    const offenders = sources.filter((path) =>
+      /twoFactorEnabledAt|twoFactorResetNotifiedAt|two_factor_enabled_at|two_factor_reset_notified_at/.test(
+        read(path),
+      ),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("BAUTH-21: the re-enrolment notice and its pieces are gone", () => {
+    expect(exists("scripts/notify-2fa-reset.mjs")).toBe(false);
+    expect(exists("server/two-factor/reenrol.ts")).toBe(false);
+    expect(exists("server/two-factor/reenrol.integration.test.ts")).toBe(false);
+    expect(exists("emails/TwoFactorResetEmail.tsx")).toBe(false);
+
+    const scripts = JSON.parse(read("package.json")).scripts;
+    expect(scripts).not.toHaveProperty("auth:notify-2fa-reset");
+
+    for (const path of ["messages/en.json", "messages/es.json"]) {
+      const transactionalEmail = JSON.parse(read(path)).transactionalEmail;
+      expect(transactionalEmail).toBeDefined();
+      expect(transactionalEmail).not.toHaveProperty("twoFactorReset");
     }
   });
 });

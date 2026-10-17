@@ -447,12 +447,6 @@ email verified" is `emailConfirmed`, Better Auth's own flag.
 `image`, not `avatarUrl`: the NextAuth Prisma adapter writes the OAuth profile
 picture to that exact field name, and renaming it breaks linking silently.
 
-One field is left over from the pre-cutover TOTP implementation:
-
-| Field | Job |
-| --- | --- |
-| `twoFactorEnabledAt` | Frozen since BAUTH-11 (docs/specs/core-better-auth.md) moved enrolment, sign-in and disabling onto Better Auth's `twoFactor` plugin — its own state lives in `users.two_factor_enabled` and the `two_factors` table instead. Still read by `scripts/notify-2fa-reset.mjs`; kept until a later PR drops it |
-
 Sessions are server-side rows: revoking one deletes the row, and there is no
 revocation clock (ADR 0004, superseded).
 

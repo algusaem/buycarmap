@@ -319,7 +319,6 @@ export async function findMyDataExport(user: PermissionUser, now: Date) {
         locale: true,
         emailConfirmed: true,
         twoFactorEnabled: true,
-        twoFactorEnabledAt: true,
         createdAt: true,
       },
     }),
@@ -387,7 +386,6 @@ export async function findMyDataExport(user: PermissionUser, now: Date) {
       locale: profile.locale,
       emailConfirmed: profile.emailConfirmed,
       twoFactorEnabled: profile.twoFactorEnabled,
-      twoFactorEnabledAt: profile.twoFactorEnabledAt,
       createdAt: profile.createdAt,
     },
     pendingEmailChange: emailChange
