@@ -138,15 +138,28 @@ test("LOOK-7: the fonts in use are Rethink Sans and Unbounded", async ({ page })
   }, firstFamily);
   expect(firstFamilyLoaded).toBe(true);
 
-  // Nothing on / sets the display family yet, so the browser has not fetched it: load the
-  // registered Unbounded face explicitly and check it resolves.
-  const unboundedLoaded = await page.evaluate(async () => {
+  const displayFamily = await page.evaluate(() =>
+    (
+      getComputedStyle(document.documentElement).getPropertyValue("--font-display").split(",")[0] ??
+      ""
+    )
+      .trim()
+      .replace(/["']/g, ""),
+  );
+  expect(displayFamily).toMatch(/unbounded/i);
+
+  // Load the registered Unbounded face by its exact family, whether or not / has fetched it yet,
+  // and check it resolves. Only that face: next/font also registers an "unbounded Fallback" face
+  // whose src is local(Arial), which rejects with a NetworkError where Arial is not installed.
+  const unboundedLoaded = await page.evaluate(async (display) => {
     await document.fonts.ready;
-    const faces = [...document.fonts].filter((face) => /unbounded/i.test(face.family));
+    const faces = [...document.fonts].filter(
+      (face) => face.family.replace(/["']/g, "") === display,
+    );
     if (faces.length === 0) return false;
     const loaded = await Promise.all(faces.map((face) => face.load()));
     return loaded.every((face) => face.status === "loaded");
-  });
+  }, displayFamily);
   expect(unboundedLoaded).toBe(true);
 });
 
