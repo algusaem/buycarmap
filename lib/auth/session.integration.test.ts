@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { createUser } from "@/test/factories/user";
 import { hashPassword, verifyPassword } from "@/lib/auth/hash";
 import { auth, signSessionToken } from "./auth";
-import { getCurrentUser } from "./session";
+import { getCurrentUser, getCurrentUserWithSessionId } from "./session";
 
 // BAUTH-2's cookie mock below replaces next/headers' real `cookies()` with a
 // store this file controls, so a single test file can simulate "browser A's
@@ -62,7 +62,8 @@ describe("BAUTH-2 worked example: changing the password signs other sessions out
     formData.set("confirmPassword", "harbour-lentil-quilt");
     formData.set("version", "1");
 
-    expect(await changePassword(formData)).toEqual({ success: true });
+    // The row's new version, 1 moved on by one (redesign-pages.md, Contracts › Server).
+    expect(await changePassword(formData)).toEqual({ success: true, version: 2 });
 
     // Only A's own session survives — AUTH-5's "every other session" rule.
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(1);
@@ -99,7 +100,8 @@ describe("BAUTH-19 worked example: changing the password writes the credential a
     formData.set("confirmPassword", "harbour-lentil-quilt");
     formData.set("version", "1");
 
-    expect(await changePassword(formData)).toEqual({ success: true });
+    // The row's new version, 1 moved on by one (redesign-pages.md, Contracts › Server).
+    expect(await changePassword(formData)).toEqual({ success: true, version: 2 });
 
     const credential = await prisma.account.findFirst({
       where: { userId: user.id, provider: "credential" },
@@ -111,5 +113,54 @@ describe("BAUTH-19 worked example: changing the password writes the credential a
       body: { email: user.email, password: "harbour-lentil-quilt" },
     });
     expect(signedIn.token).toEqual(expect.any(String));
+  });
+});
+
+// docs/specs/redesign-pages.md (PAGES-35, Permissions): /account resolves the
+// user and the session behind the request from one lookup, to mark «esta»
+// among the user's sessions; it honours revocation as getCurrentUser does.
+describe("PAGES-35: getCurrentUserWithSessionId", () => {
+  /** Sets the cookie jar to the signed cookie of `token`. */
+  async function useCookieOf(token: string) {
+    const cookie = await signSessionToken(token);
+    cookieStore.get.mockImplementation((name: string) =>
+      name === cookie.name ? { value: cookie.value } : undefined,
+    );
+  }
+
+  it("PAGES-35: returns the signed-in user and the id of the session behind the cookie", async () => {
+    const user = await createUser({ password: await hashPassword("the-old-password") });
+    const sessionA = await auth.api.signInEmail({
+      body: { email: user.email, password: "the-old-password" },
+    });
+    const sessionB = await auth.api.signInEmail({
+      body: { email: user.email, password: "the-old-password" },
+    });
+    await useCookieOf(sessionA.token);
+
+    const current = await getCurrentUserWithSessionId();
+
+    const rowA = await prisma.session.findUnique({ where: { sessionToken: sessionA.token } });
+    const rowB = await prisma.session.findUnique({ where: { sessionToken: sessionB.token } });
+    expect(current?.user.id).toBe(user.id);
+    expect(current?.sessionId).toBe(rowA?.id);
+    expect(current?.sessionId).not.toBe(rowB?.id);
+  });
+
+  it("PAGES-35: with no cookie, returns null", async () => {
+    cookieStore.get.mockImplementation(() => undefined);
+
+    expect(await getCurrentUserWithSessionId()).toBeNull();
+  });
+
+  it("PAGES-35: once the session row is deleted, returns null", async () => {
+    const user = await createUser({ password: await hashPassword("the-old-password") });
+    const session = await auth.api.signInEmail({
+      body: { email: user.email, password: "the-old-password" },
+    });
+    await useCookieOf(session.token);
+    await prisma.session.delete({ where: { sessionToken: session.token } });
+
+    expect(await getCurrentUserWithSessionId()).toBeNull();
   });
 });

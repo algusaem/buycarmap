@@ -2,7 +2,7 @@ import type { CarListing } from "@/interfaces/listing";
 import type { WallapopSearchResponse, WallapopFilterResponse } from "@/interfaces/wallapop";
 import type { CochesNetSearchResponse, CochesNetTaxonomyResponse } from "@/interfaces/cochesnet";
 import type { MilanunciosSearchResponse } from "@/interfaces/milanuncios";
-import type { SearchInput } from "@/lib/search/schema";
+import { hasPlace, type SearchInput } from "@/lib/search/schema";
 import { env } from "@/lib/env";
 import { buildWallapopQuery } from "@/lib/wallapop/client";
 import { normalizeWallapopItems } from "@/lib/wallapop/normalize";
@@ -14,6 +14,7 @@ import { normalizeMilanunciosItems } from "@/lib/milanuncios/normalize";
 import { extractInitialProps } from "@/lib/milanuncios/parse";
 import { ALL_CARS_SLUG } from "@/lib/milanuncios/taxonomy";
 import { interleave } from "@/lib/listings/merge";
+import { fold } from "@/lib/search/fold";
 import { EMPTY_SEARCH_CURSORS, type SearchCursors } from "./schema";
 
 // FRONT-1 (docs/specs/core-frontend.md): the only server-side search fan-out.
@@ -102,16 +103,12 @@ async function fetchJson<T>(url: string, init: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-function hasExplicitLocation(input: SearchInput): boolean {
-  return input.latitude != null && input.longitude != null;
-}
-
 async function fetchWallapopPage(
   input: SearchInput,
   nextPage: string | undefined,
   orderBy: string | undefined,
 ): Promise<WallapopSearchResponse> {
-  const located = hasExplicitLocation(input);
+  const located = hasPlace(input);
   const query = buildWallapopQuery(input, {
     lat: input.latitude ?? SPAIN_CENTER.lat,
     lng: input.longitude ?? SPAIN_CENTER.lng,
@@ -134,7 +131,9 @@ async function fetchWallapopPage(
  * the model as a name, coches.net needs its numeric modelId. Falls back to
  * make-only filtering when the name has no exact match, or when the taxonomy
  * call itself fails — losing the model filter degrades the round rather than
- * failing the whole source.
+ * failing the whole source. Both sides are folded (case and accents ignored,
+ * owner decision 2026-10-14) so "León" resolves against an option labelled
+ * "Leon".
  */
 async function resolveCochesNetModelId(
   makeId: number,
@@ -145,8 +144,8 @@ async function resolveCochesNetModelId(
       `${COCHESNET_MODELS_URL}?makeId=${makeId}`,
       { headers: { Accept: "application/json", "X-Schibsted-Tenant": "coches" } },
     );
-    const target = modelName.toLowerCase().trim();
-    return (data.items ?? []).find((option) => option.label.toLowerCase().trim() === target)?.id;
+    const target = fold(modelName.trim());
+    return (data.items ?? []).find((option) => fold(option.label.trim()) === target)?.id;
   } catch {
     return undefined;
   }

@@ -90,8 +90,21 @@ async function mockUpstreams(page: Page) {
   );
 }
 
+// docs/specs/redesign-map.md (MAPUI-49): price now lives in the pill's
+// «Precio» popover, not the filters panel — the brand check below still
+// opens the panel's «Marca y modelo» section, which MAPUI-14 keeps.
+async function openPricePopover(page: Page) {
+  const segment = page
+    .getByRole("button", { name: /^(cualquiera|any)$|^(hasta|desde|up to|from) /i })
+    .first();
+  if ((await segment.getAttribute("aria-expanded")) !== "true") {
+    await segment.click();
+  }
+  await expect(segment).toHaveAttribute("aria-expanded", "true");
+}
+
 async function openFilters(page: Page) {
-  const toggle = page.getByRole("button", { name: /filter/i }).first();
+  const toggle = page.getByRole("button", { name: /filtros|filters/i }).first();
   // Back is a soft navigation: the panel can still be open, and clicking the
   // toggle then would close it.
   if ((await toggle.getAttribute("aria-expanded")) !== "true") {
@@ -100,7 +113,7 @@ async function openFilters(page: Page) {
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
 }
 
-test("FRONT-13: a filtered search deep-links, reloads, and Back/Forward restore earlier filters", async ({
+test("FRONT-13/MAPUI-49: a filtered search deep-links, reloads, and Back/Forward restore earlier filters", async ({
   page,
 }) => {
   await mockUpstreams(page);
@@ -109,13 +122,17 @@ test("FRONT-13: a filtered search deep-links, reloads, and Back/Forward restore 
   await expect(page.getByText("Seat León 1.5 TSI")).toBeVisible();
 
   await openFilters(page);
-  await expect(page.getByRole("combobox", { name: /Brand/ })).toHaveAccessibleName(/Brand/);
-  await expect(page.getByPlaceholder(/^Max\s€$/)).toHaveValue("10000");
+  // With a brand in the URL the panel's field becomes «Modelo de seat…»
+  // (MAPUI-7), so its name proves the brand was restored.
+  await expect(page.getByRole("combobox", { name: /modelo de seat|seat model/i })).toBeVisible();
+
+  await openPricePopover(page);
+  await expect(page.getByRole("textbox", { name: /^(máximo|maximum)$/i })).toHaveValue("10,000");
 
   // A reload must restore the same filters from the URL alone.
   await page.reload();
-  await openFilters(page);
-  await expect(page.getByPlaceholder(/^Max\s€$/)).toHaveValue("10000");
+  await openPricePopover(page);
+  await expect(page.getByRole("textbox", { name: /^(máximo|maximum)$/i })).toHaveValue("10,000");
 
   // nuqs (2.10.1) clears its queued update on Back only once its popstate
   // listener is registered, after hydration; a Back before that leaves the
@@ -124,7 +141,7 @@ test("FRONT-13: a filtered search deep-links, reloads, and Back/Forward restore 
   await page.waitForFunction(() => "nuqs" in history);
 
   // Change maxPrice to 8000 …
-  const maxPriceInput = page.getByPlaceholder(/^Max\s€$/);
+  const maxPriceInput = page.getByRole("textbox", { name: /^(máximo|maximum)$/i });
   await maxPriceInput.fill("8000");
   await maxPriceInput.blur();
   await expect(page).toHaveURL(/maxPrice=8000/);
@@ -132,6 +149,6 @@ test("FRONT-13: a filtered search deep-links, reloads, and Back/Forward restore 
   // … then Back returns to the 10 000 search and its results.
   await page.goBack();
   await expect(page).toHaveURL(/maxPrice=10000/);
-  await openFilters(page);
-  await expect(page.getByPlaceholder(/^Max\s€$/)).toHaveValue("10000");
+  await openPricePopover(page);
+  await expect(page.getByRole("textbox", { name: /^(máximo|maximum)$/i })).toHaveValue("10,000");
 });

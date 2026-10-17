@@ -9,10 +9,20 @@ import { createAlert } from "@/test/factories/alert";
 // the "revoke every other session" delete. Resolving to null here is the
 // same as "no real Better Auth session cookie in this test" — exactly what
 // the pre-existing session rows created directly below simulate.
-vi.mock("@/lib/auth/session", () => ({
-  getCurrentUser: vi.fn(),
-  getCurrentSessionId: vi.fn(async () => null),
-}));
+// /account's page query (getAccountOverview) finds the user and this session
+// in one lookup: it reads the same signed-in user as getCurrentUser, through a
+// session no seeded row has.
+vi.mock("@/lib/auth/session", () => {
+  const getCurrentUser = vi.fn();
+  return {
+    getCurrentUser,
+    getCurrentSessionId: vi.fn(async () => null),
+    getCurrentUserWithSessionId: vi.fn(async () => {
+      const user = await getCurrentUser();
+      return user ? { user, sessionId: "no-seeded-session" } : null;
+    }),
+  };
+});
 vi.mock("@/lib/auth/hash", () => ({
   hashPassword: vi.fn(async (p: string) => `hashed:${p}`),
   verifyPassword: vi.fn(),
@@ -220,7 +230,9 @@ describe("changePassword", () => {
     });
     vi.mocked(verifyPassword).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
-    expect(await changePassword(changeRequest())).toEqual({ success: true });
+    // The row's new version, 1 asserted and moved on by one (docs/specs/redesign-pages.md,
+    // Contracts › Server, decided 2026-10-16).
+    expect(await changePassword(changeRequest())).toEqual({ success: true, version: 2 });
 
     expect(await credentialPassword(user.id)).toBe(`hashed:${NEW_PASSWORD}`);
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
@@ -249,7 +261,8 @@ describe("DATA-15: optimistic locking on updateProfile and changePassword", () =
     const user = await signedInAsNewUser({ name: "Ana", version: 3 });
 
     const first = await updateProfile(formData({ name: "Ana María", version: "3" }));
-    expect(first).toEqual({ success: true });
+    // 3 asserted, moved on to 4: the action answers the new version (redesign-pages.md, Contracts).
+    expect(first).toEqual({ success: true, version: 4 });
     const afterFirst = await prisma.user.findUnique({ where: { id: user.id } });
     expect(afterFirst?.version).toBe(4);
 
@@ -378,7 +391,7 @@ describe("unlinkAccount", () => {
   it("is idempotent for a provider that is not linked", async () => {
     await signedInAsNewUser({ password: "hash" });
 
-    expect(await unlinkAccount(formData({ provider: "github" }))).toEqual({ success: true });
+    expect(await unlinkAccount(formData({ provider: "google" }))).toEqual({ success: true });
   });
 
   it("PLAT-27: refuses with no provider field (unchanged)", async () => {
@@ -593,6 +606,28 @@ describe("BAUTH-4: listMySessions", () => {
       lastUsedAt: expect.anything(),
     });
   });
+
+  it("PAGES-49: an expired session is not listed (decided 2026-10-16, owner)", async () => {
+    const user = await signedInAsNewUser();
+    const live = await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-live",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+    await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-expired",
+        expires: new Date(Date.now() - 60 * 60 * 1000),
+      },
+    });
+
+    const sessions = await listMySessions();
+
+    expect(sessions.map((session) => session.id)).toEqual([live.id]);
+  });
 });
 
 describe("BAUTH-4: revokeMySession", () => {
@@ -665,7 +700,7 @@ describe("BAUTH-19 worked examples", () => {
     });
 
     const record = await getAccountOverview();
-    expect(record.password).not.toBeNull();
+    expect(record.hasPassword).toBe(true);
 
     expect(await deleteAccount(formData({}))).toEqual({
       success: false,
@@ -825,6 +860,8 @@ async function seedAda() {
       },
     },
     label: "Ada Golf alert",
+    // ALERTUI-46 (redesign-alerts.md): the place name stored on the alert.
+    placeName: "Valencia",
     active: true,
     unsubscribeTokenHash: "ada-unsub-hash",
     unsubscribeSubject: "ada-unsub-subject",
@@ -997,7 +1034,7 @@ describe("exportMyData", () => {
     expect(data.favorites[1].createdAt).toBe("2026-09-06T10:00:00.000Z");
   });
 
-  it("EXPORT-6: lists alerts with their stored criteria, oldest first, keeping inactive and dropping soft-deleted ones", async () => {
+  it("EXPORT-6: lists alerts with their stored criteria and place name, oldest first, keeping inactive and dropping soft-deleted ones", async () => {
     await signedInAsAda();
 
     const { data } = await exportAsCaller();
@@ -1006,14 +1043,24 @@ describe("exportMyData", () => {
       "Ada Golf alert",
       "Ada paused alert",
     ]);
+    // Amended 2026-10-15 (EXPORT-6, ALERTUI-46 — redesign-alerts.md): each
+    // alert also carries its place name, null when it has none.
     expect(data.alerts[0]).toEqual({
       label: "Ada Golf alert",
+      placeName: "Valencia",
       criteria: { brand: "volkswagen", model: "golf", maxPrice: 15000 },
       active: true,
       createdAt: "2026-09-10T10:00:00.000Z",
     });
-    expect(Object.keys(data.alerts[0])).toEqual(["label", "criteria", "active", "createdAt"]);
+    expect(Object.keys(data.alerts[0])).toEqual([
+      "label",
+      "placeName",
+      "criteria",
+      "active",
+      "createdAt",
+    ]);
     expect(data.alerts[1].active).toBe(false);
+    expect(data.alerts[1].placeName).toBeNull();
   });
 
   it("EXPORT-7: lists the matches of exported alerts with their alert's label, and none of a soft-deleted alert", async () => {

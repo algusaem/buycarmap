@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { createUser } from "@/test/factories/user";
 import { createFavorite } from "@/test/factories/favorite";
-import { makeFavoriteInput } from "@/test/fixtures/favorites";
+import { makeFavoriteInput } from "@/test/fixtures/favorite-listings";
 import { makeCriteria } from "@/test/fixtures/alerts";
 
 // docs/specs/core-data-model.md: the cross-cutting database conventions that

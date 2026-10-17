@@ -43,10 +43,18 @@ const wallapopResponseContract = z.object({
 
 const UPSTREAM = "https://api.wallapop.com/api/v3/search/section";
 
+// `type_attributes.engine` as a live probe recorded it on 2026-10-13
+// (docs/specs/data-sources.md › Wallapop › Response).
+const RECORDED_FUELS = ["Gasoline", "Diesel", "Hybrid", "Hybrid Plug-in", "Electric", "LPG", "CNG"];
+
 describe("Wallapop response contract", () => {
   it("SRC-15: the fixture satisfies the shape the normalizer depends on", () => {
     const response = makeWallapopResponse([makeWallapopItem()], "page-2");
     expect(wallapopResponseContract.safeParse(response).success).toBe(true);
+  });
+
+  it("SRC-15: the fixture's fuel is one Wallapop was recorded sending", () => {
+    expect(RECORDED_FUELS).toContain(makeWallapopItem().type_attributes?.engine);
   });
 
   it.runIf(process.env.CONTRACT_LIVE)(

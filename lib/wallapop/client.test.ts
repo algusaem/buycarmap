@@ -93,6 +93,12 @@ describe("buildWallapopQuery", () => {
     expect(q.get("time_filter")).toBe("today");
   });
 
+  it("MAPUI-14: sends max_km=0 rather than dropping it (a truthy check would treat it as absent)", () => {
+    const q = buildWallapopQuery({ maxKm: 0 }, { lat: 40, lng: -3.5 });
+
+    expect(q.get("max_km")).toBe("0");
+  });
+
   it("forwards the next_page cursor for pagination", () => {
     const q = buildWallapopQuery({}, { lat: 40, lng: -3.5, nextPage: "cursor-xyz" });
     expect(q.get("next_page")).toBe("cursor-xyz");

@@ -27,6 +27,8 @@ const UPSTREAM_URL = `http://localhost:${UPSTREAM_PORT}`;
 // Throwaway, but at least 32 characters: lib/env.ts logs a security warning
 // below that length, and a warning on every e2e run trains people to ignore it.
 const E2E_FALLBACK_SECRET = "e2e-secret-at-least-32-characters-long";
+// e2e/fixtures/session.ts imports it, to sign the session cookies it sets.
+export { E2E_FALLBACK_SECRET };
 
 // Registration behaves completely differently depending on whether email is
 // configured: verify-first (no account until a link is clicked) when it is,
@@ -60,6 +62,15 @@ const UPSTREAM_ENV = {
 // reaching a Redis that was never going to run the real algorithm anyway.
 const NO_REDIS = { UPSTASH_REDIS_REST_URL: "", UPSTASH_REDIS_REST_TOKEN: "" };
 
+// The sign-in and register pages draw «Continuar con Google» and its «o» only
+// when Google is configured (OAuthButtons). Fake values make every run draw
+// them — CI has no Google credentials, a developer's `.env` may — and no test
+// ever completes a real Google sign-in, so nothing reaches Google with them.
+const FAKE_GOOGLE = {
+  GOOGLE_CLIENT_ID: "e2e-google-client-id",
+  GOOGLE_CLIENT_SECRET: "e2e-google-client-secret",
+};
+
 // ENV-5/ENV-6 (docs/specs/core-environments.md): against a real deployed URL
 // (e2e/preview-smoke.spec.ts, run by .github/workflows/e2e-preview.yml), there
 // is no local Next dev server to start and no mock upstream server to stand
@@ -73,6 +84,7 @@ const serverEnv = dbEnabled
       ...NO_EMAIL,
       ...UPSTREAM_ENV,
       ...NO_REDIS,
+      ...FAKE_GOOGLE,
       DATABASE_URL: process.env.DATABASE_URL ?? "",
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? E2E_FALLBACK_SECRET,
       BETTER_AUTH_URL: BASE_URL,
@@ -81,6 +93,7 @@ const serverEnv = dbEnabled
       ...NO_EMAIL,
       ...UPSTREAM_ENV,
       ...NO_REDIS,
+      ...FAKE_GOOGLE,
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
       BETTER_AUTH_SECRET: E2E_FALLBACK_SECRET,
       BETTER_AUTH_URL: BASE_URL,
@@ -147,7 +160,7 @@ export default defineConfig({
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },
-      testMatch: /(map|auth|navbar)\.spec\.ts/,
+      testMatch: /(map|auth|navigation)\.spec\.ts/,
     },
     // Runs as part of `pnpm test:e2e` like everything else. It used to be
     // excluded as "inherently flaky"; it wasn't — the screenshots were racing

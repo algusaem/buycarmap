@@ -1,0 +1,58 @@
+<!-- @dsCard group="Alertas" height=820 subtitle="Tarjeta de alerta: abierta con coincidencias, plegada y en móvil" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AlertCard</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;flex-direction:column;gap:var(--space-5)}
+.a{width:766px;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.a.open{border-color:var(--lime)}
+.h{display:flex;justify-content:space-between;align-items:center}
+.n{font-family:var(--font-display);font-size:17px;font-weight:800;text-transform:uppercase}
+.b{font-size:13px;font-weight:800;border-radius:var(--radius-pill);padding:6px 11px;border:1px solid var(--line);color:var(--text-muted)}
+.sum{font-size:14px;color:var(--text-muted)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:var(--radius-pill);padding:6px 11px}
+.matches{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.match{display:flex;flex-direction:column;gap:4px}
+.ph{height:110px;border-radius:var(--radius-field)}
+.match.active .ph{box-shadow:0 0 0 2px var(--lime)}
+.t1{background:var(--photo-tint-1)}.t2{background:var(--photo-tint-2)}.t3{background:var(--photo-tint-3)}.t5{background:var(--photo-tint-5)}
+.s{font-size:12px;font-weight:700;color:var(--text-muted);margin-top:4px}
+.match strong{font-size:15px}
+.mm{font-size:13px;color:var(--text-muted)}
+.mp{font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--lime);margin-top:2px}
+.f{display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted)}
+.f button{all:unset;cursor:pointer;font-weight:700;color:var(--text)}
+.f button:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.mobile{width:350px;display:flex;flex-direction:column;gap:14px}
+.mobile .a{width:auto;padding:16px;gap:10px}
+.mobile .n{font-size:14px}
+.mobile .sum{font-size:13px}
+</style>
+</head>
+<body>
+<article class="a open">
+  <div class="h"><strong class="n">Corolla híbrido</strong><span class="b">4 coincidencias</span></div>
+  <div class="tags"><span>Toyota Corolla</span><span>Híbrido</span><span>Hasta 18.000 €</span><span>Madrid · 50 km</span></div>
+  <div class="matches">
+    <article class="match active"><span class="ph t5"></span><span class="s">coches.net</span><strong>Toyota Corolla 125H</strong><span class="mm">2020 · 61.000 km</span><span class="mp">16.200 €</span></article>
+    <article class="match"><span class="ph t1"></span><span class="s">Wallapop</span><strong>Toyota Corolla 125H TS</strong><span class="mm">2021 · 52.000 km</span><span class="mp">17.900 €</span></article>
+    <article class="match"><span class="ph t3"></span><span class="s">Milanuncios</span><strong>Toyota Corolla 125H</strong><span class="mm">2019 · 96.000 km</span><span class="mp">15.300 €</span></article>
+    <article class="match"><span class="ph t2"></span><span class="s">coches.net</span><strong>Toyota Corolla 125H</strong><span class="mm">2020 · 74.000 km</span><span class="mp">16.900 €</span></article>
+  </div>
+  <div class="f"><span>Creada el 2 de octubre</span><button type="button">Eliminar</button></div>
+</article>
+<article class="a">
+  <div class="h"><strong class="n">Golf TDI</strong><span class="b">Sin coincidencias</span></div>
+  <span class="sum">Volkswagen Golf · Diésel · Hasta 120.000 km · Valencia · 25 km</span>
+  <div class="f"><span>Creada el 28 de septiembre</span></div>
+</article>
+<div class="mobile">
+  <article class="a"><div class="h"><strong class="n">Corolla híbrido</strong><span class="b">4 coincidencias</span></div><span class="sum">Toyota Corolla · Híbrido · Hasta 18.000 € · Madrid · 50 km</span></article>
+  <article class="a"><div class="h"><strong class="n">Clio barato</strong><span class="b">1 coincidencia</span></div><span class="sum">Renault Clio · Hasta 9.000 € · Zaragoza · 50 km</span></article>
+</div>
+</body>
+</html>

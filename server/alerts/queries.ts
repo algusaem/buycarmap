@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { asAlertId, asUserId } from "@/lib/ids";
-import type { AlertSummary } from "@/interfaces/alert";
-import { findAlertSummaries, findAlertWithMatches } from "./service";
+import type { AlertsPageData, AlertWithMatches } from "@/interfaces/alert";
+import { findAlertsPage, findAlertWithMatches } from "./service";
 
 /**
  * One of the signed-in user's alerts with its matches, for the alert matches
@@ -14,7 +14,7 @@ import { findAlertSummaries, findAlertWithMatches } from "./service";
  * id that does not look like a UUID reaches that lookup exactly like one that
  * is well-formed but does not exist, and gets the same 404.
  */
-export async function getAlertWithMatches(id: string) {
+export async function getAlertWithMatches(id: string): Promise<AlertWithMatches> {
   const user = await getCurrentUser();
   if (!user) redirect(`/login?callbackUrl=%2Falerts%2F${id}`);
 
@@ -27,10 +27,12 @@ export async function getAlertWithMatches(id: string) {
 }
 
 /**
- * The signed-in user's alerts, for the alert list page. Signed-out visitors
+ * The signed-in user's alerts, for the alert list page, with the open alert
+ * (`requestedAlert`, the URL's `alert`, resolved by ALERTUI-12) and its
+ * matches (docs/specs/redesign-alerts.md, ALERTUI-44). Signed-out visitors
  * are sent to log in and come back here.
  */
-export async function listAlertsForPage(): Promise<AlertSummary[]> {
+export async function listAlertsForPage(requestedAlert?: string | null): Promise<AlertsPageData> {
   // `proxy.ts` already redirects anonymous visitors, but this is the check that
   // matters: the proxy only decodes the JWT, while `getCurrentUser` runs the
   // session callback and honours revocation.
@@ -41,5 +43,5 @@ export async function listAlertsForPage(): Promise<AlertSummary[]> {
   // rendered an empty list on a failed read until this phase (ADR 0012),
   // which showed "no alerts yet" to a user whose alerts exist. The new
   // app/alerts/error.tsx shows a translated error and a retry instead.
-  return await findAlertSummaries(asUserId(user.id));
+  return findAlertsPage(asUserId(user.id), requestedAlert);
 }

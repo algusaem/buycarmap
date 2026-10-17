@@ -40,9 +40,17 @@ describe("searchSchema", () => {
     expect(searchSchema.safeParse({ distanceInKm: 0 }).success).toBe(false);
   });
 
-  it("rejects a year before 1900 and a non-integer year", () => {
-    expect(searchSchema.safeParse({ minYear: 1899 }).success).toBe(false);
+  it("MAPUI-14: accepts any year, including before 1900, but rejects a non-integer year", () => {
+    expect(searchSchema.safeParse({ minYear: 1899 }).success).toBe(true);
+    expect(searchSchema.safeParse({ minYear: 1890 }).success).toBe(true);
     expect(searchSchema.safeParse({ minYear: 2010.5 }).success).toBe(false);
+  });
+
+  it("MAPUI-14: accepts a maxKm of 0 but rejects a negative or non-integer maxKm", () => {
+    expect(searchSchema.safeParse({ maxKm: 0 }).success).toBe(true);
+    expect(searchSchema.safeParse({ maxKm: 100 }).success).toBe(true);
+    expect(searchSchema.safeParse({ maxKm: -1 }).success).toBe(false);
+    expect(searchSchema.safeParse({ maxKm: 100.5 }).success).toBe(false);
   });
 
   it("rejects an unknown timeFilter value", () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseStoredCriteria } from "./schema";
-import { hashCriteria, isSpecificEnough, MAX_ALERTS_PER_USER } from "./service";
+import { ALERT_ID } from "@/test/fixtures/alert-listings";
+import { alertPlaceNameSchema, isSpecificEnough, parseStoredCriteria } from "./schema";
+import { hashCriteria, MAX_ALERTS_PER_USER, resolveOpenAlertId } from "./service";
 
 describe("hashCriteria", () => {
   it("gives the same hash regardless of key order", () => {
@@ -104,5 +105,62 @@ describe("parseStoredCriteria", () => {
 describe("MAX_ALERTS_PER_USER", () => {
   it("is a positive bound, since it gates every creation", () => {
     expect(MAX_ALERTS_PER_USER).toBeGreaterThan(0);
+  });
+});
+
+// docs/specs/redesign-alerts.md (ALERTUI-12; worked example "Open alert"):
+// the open alert resolved from the URL's `alert` against the caller's own
+// alerts, newest first. Anything that is not one of them reads as the newest,
+// with no error.
+describe("ALERTUI-12: resolveOpenAlertId", () => {
+  const ADAS = [ALERT_ID.corolla, ALERT_ID.golf, ALERT_ID.clio, ALERT_ID.serie3];
+
+  it("ALERTUI-12: with no `alert`, the newest — Corolla híbrido", () => {
+    expect(resolveOpenAlertId(ADAS, null)).toBe(ALERT_ID.corolla);
+    expect(resolveOpenAlertId(ADAS, undefined)).toBe(ALERT_ID.corolla);
+  });
+
+  it("ALERTUI-12: one of the user's alerts is that alert — Clio barato", () => {
+    expect(resolveOpenAlertId(ADAS, ALERT_ID.clio)).toBe(ALERT_ID.clio);
+  });
+
+  it.each([
+    ["empty", ""],
+    ["malformed", "not-a-uuid"],
+    ["another user's", ALERT_ID.grace],
+    ["deleted or unknown", "0199a000-0000-7000-8000-0000000dead1"],
+  ])("ALERTUI-12: an %s id reads as the newest", (_case, requested) => {
+    expect(resolveOpenAlertId(ADAS, requested)).toBe(ALERT_ID.corolla);
+  });
+
+  it("ALERTUI-12: with no alert at all, nothing is open", () => {
+    expect(resolveOpenAlertId([], ALERT_ID.clio)).toBeNull();
+    expect(resolveOpenAlertId([], null)).toBeNull();
+  });
+});
+
+// docs/specs/redesign-alerts.md (ALERTUI-47; Contracts › Server): the place
+// name createAlert takes is optional, trimmed, and null when empty.
+describe("ALERTUI-47: alertPlaceNameSchema", () => {
+  it.each([
+    ["Madrid", "Madrid"],
+    ["  Getafe  ", "Getafe"],
+    ["   ", null],
+    ["", null],
+    [undefined, null],
+  ])("ALERTUI-47: %j is stored as %j", (sent, stored) => {
+    expect(alertPlaceNameSchema.parse(sent)).toBe(stored);
+  });
+
+  it("ALERTUI-47: a place name is at most 200 characters — 200 is stored, 201 is refused", () => {
+    expect(alertPlaceNameSchema.parse("M".repeat(200))).toBe("M".repeat(200));
+    expect(alertPlaceNameSchema.safeParse("M".repeat(201)).success).toBe(false);
+  });
+
+  it("ALERTUI-47: the place name is trimmed before its length is checked — 195 «M» with 3 spaces on each side is stored as the 195", () => {
+    const padded = `   ${"M".repeat(195)}   `;
+    expect(padded).toHaveLength(201);
+
+    expect(alertPlaceNameSchema.parse(padded)).toBe("M".repeat(195));
   });
 });

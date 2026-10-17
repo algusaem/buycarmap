@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { listFavoritesForPage } from "@/server/favorites/queries";
 import { FavoritesList } from "@/components/favorites/FavoritesList";
@@ -10,29 +8,18 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: `${t("favorites.title")} · ${t("meta.title")}` };
 }
 
+// docs/specs/redesign-saved.md (SAVED-1, SAVED-2): the saved cars, read once
+// on the server, newest saved first (SAVED-34). No subtitle and no back link:
+// the way back is the header's «Mapa» and the tab bar's. The page does not
+// scroll; its list column does (SAVED-4). `data-toast-anchor`: every toast here
+// is centred over that column (SAVED-24, app/globals.css). The page's `main`,
+// as its loading and error states'.
 export default async function FavoritesPage() {
   const favorites = await listFavoritesForPage();
-  const t = await getTranslations();
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <div className="mb-8 flex items-center gap-3">
-        <Link
-          href="/map"
-          aria-label={t("map.backToHome")}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-card hover:text-foreground"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("favorites.title")}</h1>
-          {/* The snapshot is deliberately not refreshed (see the spec), so the
-              staleness is stated rather than hidden. */}
-          <p className="text-sm text-muted-foreground">{t("favorites.subtitle")}</p>
-        </div>
-      </div>
-
+    <main data-toast-anchor="saved" className="flex min-h-0 flex-1 flex-col bg-background">
       <FavoritesList favorites={favorites} />
-    </div>
+    </main>
   );
 }

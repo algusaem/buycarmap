@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 
-const useSession = vi.fn();
-vi.mock("@/lib/auth/auth-client", () => ({
-  authClient: { useSession: () => useSession() },
-}));
 vi.mock("@/server/account/actions", () => ({
   listMySessions: vi.fn(),
   revokeMySession: vi.fn(),
@@ -16,10 +12,6 @@ import * as Sentry from "@sentry/nextjs";
 import { listMySessions, revokeMySession, revokeOtherMySessions } from "@/server/account/actions";
 import { useMySessions } from "./useMySessions";
 
-const signedIn = () =>
-  useSession.mockReturnValue({ data: { user: { id: "user-ada" } }, isPending: false });
-const signedOut = () => useSession.mockReturnValue({ data: null, isPending: false });
-
 const SESSION_A = {
   id: "session-a",
   userAgent: "ua-a",
@@ -29,27 +21,34 @@ const SESSION_A = {
 };
 
 beforeEach(() => {
-  useSession.mockReset();
   vi.mocked(listMySessions).mockReset();
   vi.mocked(revokeMySession).mockReset();
   vi.mocked(revokeOtherMySessions).mockReset();
   vi.mocked(Sentry.captureException).mockReset();
 });
 
-// BAUTH-4 (docs/specs/core-better-auth.md): owns the request lifecycle for
-// the "Active sessions" section on /account.
+// BAUTH-4 (docs/specs/core-better-auth.md): owns the request lifecycle of
+// the «Sesiones» dialog on /account. Since docs/specs/redesign-pages.md
+// (PAGES-49; BAUTH-4 amended) the list is read again each time the dialog
+// opens, which mounts the hook. It no longer waits on the client session to
+// decide whether to read — only the signed-in page opens the dialog, and
+// listMySessions answers nothing to a signed-out caller — so the old
+// "asks for nothing when nobody is signed in" case is replaced by the
+// re-read on every mount.
 describe("useMySessions", () => {
-  it("BAUTH-4: asks for nothing and reports no sessions when nobody is signed in", async () => {
-    signedOut();
+  it("BAUTH-4: reads the list again each time it mounts (PAGES-49)", async () => {
+    vi.mocked(listMySessions).mockResolvedValue([SESSION_A]);
 
-    const { result } = renderHook(() => useMySessions());
+    const first = renderHook(() => useMySessions());
+    await waitFor(() => expect(first.result.current.status).toBe("ready"));
+    first.unmount();
+    const second = renderHook(() => useMySessions());
+    await waitFor(() => expect(second.result.current.status).toBe("ready"));
 
-    await waitFor(() => expect(result.current.sessions).toEqual([]));
-    expect(listMySessions).not.toHaveBeenCalled();
+    expect(listMySessions).toHaveBeenCalledTimes(2);
   });
 
   it("BAUTH-4: loads the signed-in user's sessions", async () => {
-    signedIn();
     vi.mocked(listMySessions).mockResolvedValue([SESSION_A]);
 
     const { result } = renderHook(() => useMySessions());
@@ -59,7 +58,6 @@ describe("useMySessions", () => {
   });
 
   it("BAUTH-4: reports an error state and reports it to Sentry when the list fails", async () => {
-    signedIn();
     vi.mocked(listMySessions).mockRejectedValue(new Error("boom"));
 
     const { result } = renderHook(() => useMySessions());
@@ -68,8 +66,19 @@ describe("useMySessions", () => {
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
   });
 
+  it("BAUTH-4: reads the list again on reload, after a failure (PAGES-50)", async () => {
+    vi.mocked(listMySessions).mockRejectedValueOnce(new Error("boom"));
+    vi.mocked(listMySessions).mockResolvedValueOnce([SESSION_A]);
+
+    const { result } = renderHook(() => useMySessions());
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    await result.current.reload();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.sessions).toEqual([SESSION_A]);
+  });
+
   it("BAUTH-4: refetches after revoking one session", async () => {
-    signedIn();
     vi.mocked(listMySessions).mockResolvedValue([SESSION_A]);
     vi.mocked(revokeMySession).mockResolvedValue({ success: true });
 
@@ -83,7 +92,6 @@ describe("useMySessions", () => {
   });
 
   it("BAUTH-4: does not refetch when revoking a session fails", async () => {
-    signedIn();
     vi.mocked(listMySessions).mockResolvedValue([SESSION_A]);
     vi.mocked(revokeMySession).mockResolvedValue({ success: false, error: "unauthorized" });
 
@@ -97,7 +105,6 @@ describe("useMySessions", () => {
   });
 
   it("BAUTH-4: refetches after revoking every other session", async () => {
-    signedIn();
     vi.mocked(listMySessions).mockResolvedValue([SESSION_A]);
     vi.mocked(revokeOtherMySessions).mockResolvedValue({ success: true });
 
@@ -108,5 +115,20 @@ describe("useMySessions", () => {
 
     expect(outcome).toEqual({ success: true });
     await waitFor(() => expect(listMySessions).toHaveBeenCalledTimes(2));
+  });
+});
+
+// docs/specs/redesign-pages.md (Edge cases, «No sessions listed»): the user's
+// own session is always listed, so a read that answers none means this
+// session ended elsewhere — the failed read, never an empty list.
+describe("useMySessions with no session listed", () => {
+  it("PAGES-50: a read that answers no session is the error state, with nothing reported to Sentry", async () => {
+    vi.mocked(listMySessions).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useMySessions());
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.sessions).toEqual([]);
+    expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 });

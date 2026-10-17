@@ -14,7 +14,7 @@ describe("normalizeWallapopItems", () => {
       price: 14500,
       mileage: 95_000,
       year: 2018,
-      fuel: "gasoil",
+      fuel: "Diesel",
       brand: "Audi",
       model: "A3",
       location: "Madrid",

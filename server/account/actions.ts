@@ -35,8 +35,10 @@ import {
   findPasswordHash,
   findSessionOwner,
   findSignInMethods,
+  type ListedSession,
   replacePassword,
   revokeAllSessions,
+  toListedSession,
   updateUserName,
 } from "./service";
 
@@ -45,7 +47,16 @@ export interface AccountResult {
   error?: AuthErrorCode;
 }
 
-export async function updateProfile(formData: FormData): Promise<AccountResult> {
+/**
+ * updateProfile's and changePassword's result: on success, the user row's new
+ * version, which the page asserts on its next save (DATA-15;
+ * docs/specs/redesign-pages.md, Contracts › Server).
+ */
+interface VersionedAccountResult extends AccountResult {
+  version?: number;
+}
+
+export async function updateProfile(formData: FormData): Promise<VersionedAccountResult> {
   // Never trust proxy.ts for authorization: it only checks whether the
   // session cookie is present and cannot see a revocation. `getCurrentUser`
   // calls `auth.api.getSession()`, which does.
@@ -67,25 +78,26 @@ export async function updateProfile(formData: FormData): Promise<AccountResult> 
     };
   }
 
+  let version: number | null;
   try {
     // Scoped to the session's own id — the form carries no user identifier,
     // so there is nothing for a caller to tamper with.
-    const matched = await updateUserName(
+    version = await updateUserName(
       asUserId(user.id),
       parsed.data.name || null,
       parsed.data.version,
     );
-    if (!matched) {
-      return { success: false, error: AUTH_ERROR.conflict };
-    }
   } catch {
     return { success: false, error: AUTH_ERROR.generic };
   }
 
-  return { success: true };
+  if (version === null) {
+    return { success: false, error: AUTH_ERROR.conflict };
+  }
+  return { success: true, version };
 }
 
-export async function changePassword(formData: FormData): Promise<AccountResult> {
+export async function changePassword(formData: FormData): Promise<VersionedAccountResult> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -148,13 +160,13 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
   // BAUTH-2: this device's own session survives; every other one does not.
   const currentSessionId = await getCurrentSessionId();
 
-  const matched = await replacePassword(
+  const version = await replacePassword(
     userId,
     await hashPassword(password),
     parsed.data.version,
     currentSessionId,
   );
-  if (!matched) {
+  if (version === null) {
     return { success: false, error: AUTH_ERROR.conflict };
   }
 
@@ -167,7 +179,7 @@ export async function changePassword(formData: FormData): Promise<AccountResult>
     text,
   });
 
-  return { success: true };
+  return { success: true, version };
 }
 
 /**
@@ -263,22 +275,17 @@ export async function unlinkAccount(formData: FormData): Promise<AccountResult> 
   return { success: true };
 }
 
-export interface MySession {
-  id: string;
-  // "" rather than null for a row with no recorded device — a session
-  // created outside a real browser request (an older row, or a test). The UI
-  // renders this the same way as an unrecognised device, never a blank cell.
-  userAgent: string;
+export type { ListedSession };
+
+/** A session in the «Sesiones» dialog: the page's ListedSession and its IP. */
+export interface MySession extends ListedSession {
   ipAddress: string;
-  lastUsedAt: Date;
-  current: boolean;
 }
 
 /**
- * BAUTH-4: the signed-in user's own sessions, for the "Active sessions"
- * section on /account. `current` marks the session backing this very
- * request, so the UI can label it "This device" and hide its own revoke
- * button.
+ * BAUTH-4: the signed-in user's own sessions, for the «Sesiones» dialog on
+ * /account. `current` marks the session backing this very request, so the UI
+ * can label it «Este dispositivo» and hide its own revoke button.
  */
 export async function listMySessions(): Promise<MySession[]> {
   const user = await getCurrentUser();
@@ -293,11 +300,8 @@ export async function listMySessions(): Promise<MySession[]> {
   ]);
 
   return sessions.map((session) => ({
-    id: session.id,
-    userAgent: session.userAgent ?? "",
+    ...toListedSession(session, currentSessionId),
     ipAddress: session.ipAddress ?? "",
-    lastUsedAt: session.updatedAt,
-    current: session.id === currentSessionId,
   }));
 }
 

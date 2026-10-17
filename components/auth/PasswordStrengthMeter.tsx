@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import type { Translations } from "@/lib/i18n/types";
+import { cn } from "@/lib/utils";
 import {
   evaluatePassword,
   type PasswordIssue,
@@ -11,31 +12,13 @@ import {
 
 interface PasswordStrengthMeterProps {
   password: string;
-  /** Email and name, so the meter can flag a password built from them. */
+  /** The email, so the meter can flag a password built from it. */
   userInputs?: string[];
 }
 
 // Stable ids for the strength-meter segments, so React keys don't depend on
 // array position (the segment count never changes at runtime).
 const SEGMENT_IDS = ["segment-1", "segment-2", "segment-3", "segment-4"] as const;
-
-// Amber is the brand's "good"; eucalyptus marks the top band so "strong" reads
-// as distinct from "good" rather than just more of the same colour.
-const SCORE_FILL: Record<PasswordScore, string> = {
-  0: "bg-destructive",
-  1: "bg-destructive",
-  2: "bg-primary/60",
-  3: "bg-primary",
-  4: "bg-accent",
-};
-
-const SCORE_TEXT: Record<PasswordScore, string> = {
-  0: "text-destructive",
-  1: "text-destructive",
-  2: "text-muted-foreground",
-  3: "text-primary",
-  4: "text-accent",
-};
 
 const SCORE_LABEL_KEY: Record<PasswordScore, keyof Translations["passwordStrength"]["scores"]> = {
   0: "veryWeak",
@@ -45,22 +28,14 @@ const SCORE_LABEL_KEY: Record<PasswordScore, keyof Translations["passwordStrengt
   4: "strong",
 };
 
-// A filled bar count of 1 at score 0 keeps the control visible rather than
-// rendering as an empty, ambiguous track.
-function filledSegments(score: PasswordScore): number {
-  return Math.max(1, score);
-}
-
-function Segment({ active, score }: { active: boolean; score: PasswordScore }) {
-  return (
-    <span
-      className={`h-1 flex-1 rounded-full transition-colors ${
-        active ? SCORE_FILL[score] : "bg-border"
-      }`}
-    />
-  );
-}
-
+// docs/design/system/components/PasswordField/README.md and
+// docs/specs/redesign-pages.md (PAGES-5): four 4px segments 6px apart, the
+// ones the score has passed in `lime` and the rest in `line` — none for
+// «muy débil», all four for «muy buena» — then, 6px under them, one line
+// «Seguridad: <nivel>» in 12px `text-muted`, then what fails, one line per
+// issue, or the hint when nothing fails under «buena». It is a hint: it never
+// blocks submit, the server's policy decides (AUTH-3). Mounted 10px under its
+// field, or under the field's error when the server rejected the password.
 export function PasswordStrengthMeter({ password, userInputs = [] }: PasswordStrengthMeterProps) {
   const t = useTranslations();
 
@@ -74,37 +49,41 @@ export function PasswordStrengthMeter({ password, userInputs = [] }: PasswordStr
 
   if (!password) return null;
 
-  const filled = filledSegments(score);
-  const label = t(`passwordStrength.scores.${SCORE_LABEL_KEY[score]}`);
+  const level = t(`passwordStrength.scores.${SCORE_LABEL_KEY[score]}`);
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-1" aria-hidden="true">
+    <div className="mt-0.5 flex flex-col gap-1.5 text-caption text-text-muted">
+      <div className="flex gap-1.5" aria-hidden="true">
         {SEGMENT_IDS.map((id, index) => (
-          <Segment key={id} active={index < filled} score={score} />
+          <span
+            key={id}
+            className={cn(
+              "h-1 flex-1 rounded-pill transition-colors",
+              index < score ? "bg-lime" : "bg-line",
+            )}
+          />
         ))}
       </div>
 
-      {/* The bar is decorative; this line carries the same information as text
-          so strength is never communicated by colour alone. */}
-      <p className="flex items-center justify-between gap-2 text-xs" aria-live="polite">
-        <span className="text-muted-foreground">{t("passwordStrength.label")}</span>
-        <span className={`font-medium ${SCORE_TEXT[score]}`}>{label}</span>
+      {/* The bar is decorative; this line carries the same information as
+          text, so strength is never communicated by colour alone. */}
+      <p className="m-0" aria-live="polite">
+        {t.rich("passwordStrength.label", {
+          level,
+          // One message, so a translation places the level where its grammar wants it.
+          strong: (chunks) => <strong className="font-bold text-text">{chunks}</strong>,
+        })}
       </p>
 
       {issues.length > 0 && (
-        <ul className="space-y-0.5">
+        <ul className="m-0 flex list-none flex-col gap-1 p-0">
           {issues.map((issue: PasswordIssue) => (
-            <li key={issue} className="text-xs text-muted-foreground">
-              {t(`passwordStrength.issues.${issue}`)}
-            </li>
+            <li key={issue}>{t(`passwordStrength.issues.${issue}`)}</li>
           ))}
         </ul>
       )}
 
-      {issues.length === 0 && score < 3 && (
-        <p className="text-xs text-muted-foreground">{t("passwordStrength.hint")}</p>
-      )}
+      {issues.length === 0 && score < 3 && <p className="m-0">{t("passwordStrength.hint")}</p>}
     </div>
   );
 }

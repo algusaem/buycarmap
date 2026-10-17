@@ -31,7 +31,9 @@ flowchart TB
 Two rules fall out of that picture and explain most of the code:
 
 - **Components never call `fetch`.** Request lifecycles live in `lib/hooks/*`,
-  which call clients in `lib/<source>/*`. A component consumes a hook.
+  which call a feature's Server Actions in `server/<feature>/actions.ts` (the
+  search, favorites, account and locale hooks) or a cross-cutting helper in
+  `lib/<source>/*` or `lib/geo/*`. A component consumes a hook.
 - **Mutations are server actions; route handlers are only for proxying.**
   Anything writing to the database is an action in `server/<feature>/actions.ts`,
   which reaches Prisma only through that feature's `service.ts`
@@ -65,7 +67,7 @@ sequenceDiagram
     end
     X-->>R: source-shaped responses
     R->>R: normalize → interleave → CarListing[]
-    A->>A: applyResultFilters (radius + model)
+    A->>A: applyResultFilters (radius + model + fuel)
     A-->>S: listings, next cursors, failedSources
     S-->>U: cards + map markers
 ```
@@ -78,16 +80,28 @@ browser-bound `searchWallapop`/`searchCochesNet`/`searchMilanuncios` any more.
 
 **Filters.** [`lib/hooks/useSearchFilters.ts`](../lib/hooks/useSearchFilters.ts)
 holds every filter in one `FilterValues` object and exposes a typed setter per
-field. Each setter funnels into `update()`, which patches state and **debounces
-the search by 400 ms** — filters re-search as you touch them, so without the
-debounce a drag on a range slider would fire a dozen fan-outs.
+field. Two paths write it:
 
-Two deliberate asymmetries:
+- `update()` — every desktop popover and filters-panel change — patches state and
+  **debounces the search by 400 ms** (MAP-11), so a drag on the price range fires one
+  fan-out, not a dozen.
+- `apply()` patches and searches at once, with no pause: the phone sheets' «Ver
+  coches», a removed chip and the panel's «Borrar» (MAPUI-13, MAPUI-19, MAPUI-21,
+  MAPUI-22).
 
-- `triggerSearch()` (the search button) searches immediately **and collapses the
-  filter panel**. `update()` does not collapse it — closing the panel out from
-  under someone still adjusting filters would be hostile.
-- `setBrand` also clears `model`. A model id only means anything under its brand.
+Which desktop popover is open is one piece of state in the hook
+(`activePopover`), so at most one is (MAPUI-2). `triggerSearch()` («Buscar»)
+searches immediately and closes both the open popover and the filters dropdown;
+`update()` closes neither — closing them out from under someone still choosing
+would be hostile.
+
+`clearAll()` («Quitar filtros») clears every filter, the criteria the UI no longer
+offers included, and **keeps the place and the radius** (MAPUI-31). `setBrand` also
+clears `model`: a model only means anything under its brand.
+
+`?q=` survives only in old links; the map still parses it and drops it once a control clears it;
+nothing produces it any more (MAPUI-18 in [`specs/redesign-map.md`](specs/redesign-map.md), ENTRY-6
+in [`specs/redesign-entry.md`](specs/redesign-entry.md)). It never saves it in an alert (MAPUI-42).
 
 On mount the hook fires an immediate search using the Spain-centre fallback,
 starts browser geolocation, and re-searches when geolocation resolves — but only
@@ -100,7 +114,8 @@ radius live in the URL through [nuqs](https://nuqs.dev) parsers in
 plus `filtersToUrlState`/`urlStateToFilters` to convert to and from the hook's
 `FilterValues`), so a filtered search deep-links and a reload restores it. The
 URL is only written at the same points the hook already calls `search()` —
-the debounce firing, an explicit `triggerSearch()`, or `clearAll()` — each as
+the debounce firing, an explicit `triggerSearch()`, or `apply()` («Ver coches», a removed
+chip, «Borrar»; `clearAll()` goes through it) — each as
 a pushed history entry, not on every keystroke; a `useEffect` watching the
 nuqs-backed state resyncs and re-searches when the URL changes from outside
 the hook's own writes (Back/Forward, or a hand-edited URL). The root layout
@@ -131,10 +146,12 @@ near the top instead of whichever returned most dominating the first screen.
 radius on its side, and only the structured sources honour the model, so the
 merged list is post-filtered: with a location chosen, listings outside the
 radius — or pinned at the country-centre fallback — are dropped
-(`lib/geo/radius.ts`), and with a model selected, listings naming it neither
-in their model field nor their title are dropped. The behaviour is owned by
-MAP-16..18 in [`specs/map-and-search.md`](specs/map-and-search.md); removing
-the post-filter reverts coches.net and Milanuncios to nationwide results.
+(`lib/geo/radius.ts`), with a model selected, listings naming it neither
+in their model field nor their title are dropped, and with a fuel chosen,
+listings whose fuel is unknown or of another fuel group are dropped. The
+behaviour is owned by MAP-16..18 in [`specs/map-and-search.md`](specs/map-and-search.md)
+and, for the fuel, MAPUI-55 in [`specs/redesign-map.md`](specs/redesign-map.md);
+removing the post-filter reverts coches.net and Milanuncios to nationwide results.
 
 **Out-of-order responses.** Every call to `search()` increments
 `searchVersionRef`, and the result is discarded if the version moved on while it
@@ -223,7 +240,7 @@ mutations.
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant C as CarListingCard
+    participant C as Car card (useFavoriteToggle)
     participant A as saveFavorite action
     participant DB as Postgres
 
@@ -266,15 +283,16 @@ from the code:
 
 **Reconciliation.** The sources know nothing about this user, so the saved set is
 joined on the client: `useFavorites` fetches the saved ids once per session and
-`MapView` passes `isFavorite` into every card. This was a real bug — cards
-rendered without the prop, so a saved car came back from a search looking
-unsaved, while the component test passed because it supplied a prop the
-application never did.
+`MapView` hands that set (`favoriteIds`) down to the results and the map, where
+each card and preview reads its own saved state from it (`savedProps` in
+`components/map/CarCard.tsx`). This was a real bug — cards once rendered without
+the saved state, so a saved car came back from a search looking unsaved, while
+the component test passed because it supplied a prop the application never did.
 
 ## Path 4 — a poll with no user in it
 
-The three paths above all begin with a request. Alerts do not: a GitHub Actions
-cron POSTs to `app/api/alerts/run/route.ts`, which authenticates the caller and
+The three paths above all begin with a request. Alerts do not: the QStash schedule
+([ADR 0017](decisions/0017-upstash-qstash-react-email.md)) POSTs to `app/api/alerts/run/route.ts`, which authenticates the caller and
 hands the run to `server/alerts/service.ts`, which claims work off a Postgres
 queue and drains it. Two consequences reshape the rules above rather than
 following them.
@@ -290,7 +308,7 @@ authenticates with a shared secret in constant time. This is the one place the
 because there is no session and no browser to run an action from.
 
 **It applies Path 1's post-filter too.** `server/alerts/search.ts` runs the
-same `applyResultFilters` (radius + model) on what `searchRound` returns,
+same `applyResultFilters` (radius, model and fuel) on what `searchRound` returns,
 after counting each source's raw result for `SourceHealth` — a narrow radius
 filtering a nationwide page to nothing must not read as the source going
 quiet. A filtered-out listing is never recorded as seen and never matches,
@@ -316,8 +334,11 @@ codes (`AUTH_ERROR`, `FAVORITE_ERROR`). Forms resolve them at render with
 `translateAuthError(t, code)` from [`lib/i18n/errors.ts`](../lib/i18n/errors.ts).
 When calling `setError`, pass the raw code — the field translates it once.
 
-**Failures surface as toasts**, not inline error text — except field-level
-validation, which is inline and focuses the first error.
+**Which channel a failure uses follows `STACK.md` §14** (never a toast for a
+validation error). Field-level validation is inline and focuses the first
+error. Mutation failures elsewhere are toasts (FRONT-15). The sign-in form is
+the exception: it shows every failure inline, never a toast (ENTRY-11 to
+ENTRY-15, [redesign-entry.md](specs/redesign-entry.md)).
 
 **Configuration is validated at boot.** [`lib/env.ts`](../lib/env.ts) parses
 `process.env` with Zod at import time and throws with a readable message. Two
@@ -334,16 +355,23 @@ Spanish or English in components.
 | `app/` | Routes, layouts, proxy route handlers |
 | `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/auth.ts` — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
-| `components/map/` | The search + map feature |
+| `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row and panel), `phone/` (the phone search, sheets and results sheet) |
+| `components/alerts/` | The alerts pages (`AlertsPage`, `AlertPage`), the AlertCard, the alert map and the phone zone map, the delete confirmation, the loading and error states, and the create-alert dialog |
+| `components/nav/` | The headers, the phone tab bar and the language control |
+| `components/account/` | The account page: its cards, the dialog-or-sheet frame and each card's form in it, the loading placeholders |
+| `components/favorites/` | The saved cars page: the list column, the Guardados card, the phone row and car sheet, the sort chips and the loading placeholders |
 | `components/ui/` | Radix-wrapped primitives |
+| `components/landing/` | The landing body and its map preview |
 | `lib/hooks/` | Every request lifecycle |
 | `lib/wallapop/`, `lib/cochesnet/`, `lib/milanuncios/` | One module per source: client, normalize, taxonomy |
-| `lib/auth/` | Session, password policy, tokens, two-factor |
+| `lib/auth/` | Session, password policy, tokens, two-factor, the redirect guard (`safe-redirect.ts`), and `settle-action.ts`, which turns a Server Action that throws into the `generic` refusal on the access and account pages |
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
 | `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database, apart from the LAYOUT-7 exception, `lib/auth/auth.ts` (see [specs/core-layout.md](specs/core-layout.md)) |
-| `lib/listings/` | The pure search-merge logic: interleaving, the radius and model post-filters, the page-state advance |
-| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server |
+| `lib/favorites/` | The saved cars' pure sort and its URL parser (`sort.ts`) |
+| `lib/listings/` | The pure search-merge logic: interleaving, the radius, model and fuel post-filters, the page-state advance |
+| `lib/map/` | Pure map helpers: grouping listings into price pins, the results heading, the results state and the radius to widen to (`results-state.ts`), a card's DOM id (`card-dom-id.ts`), price-pin CSS classes (`pin-classes.ts`) |
+| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server, and the search UI's pure helpers: what the filters panel offers and clears (`panel.ts`), case- and accent-blind comparison (`fold.ts`), the phone summary (`phone-summary.ts`), the radii (`radii.ts`), the type-ahead's matching, the fuel groups, the chips and the alert summary |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Tooling: branch databases, spec, docs and TODO checks — dependency-free except the TODO check, which loads `typescript` |
 
@@ -352,7 +380,8 @@ Spanish or English in components.
 ## Data model
 
 Fifteen models in [`prisma/schema.prisma`](../prisma/schema.prisma), on Neon
-Postgres, reached through Prisma 7's `@prisma/adapter-pg` driver adapter. Which
+Postgres, reached through Prisma 7's driver adapters: `@prisma/adapter-neon` on Vercel and
+`@prisma/adapter-pg` elsewhere (see Environments › `DATABASE_URL`). Which
 fields hold personal data, and for how long, is in
 [`privacy/data-inventory.md`](privacy/data-inventory.md).
 
@@ -481,6 +510,12 @@ pair would conflate concerns with different cascade and retention rules. See
 upstream request budget depends on. `AlertMatch` stores a full snapshot for the
 same reason `Favorite` does: no source client can fetch a single listing by id.
 
+`Alert.placeName` is the place the user chose in «Dónde» when creating the alert, which names its
+zone on the alerts pages. It is the user's, so it lives on their own `Alert` and never on the
+shared `AlertCriteria` or in its hash: two users saving the same point under different names
+still share one criteria set ([redesign-alerts.md](specs/redesign-alerts.md) › Decisions › The
+place name is the user's). Null for alerts created before it.
+
 `User.locale` was added alongside these. It exists because the alert runner is a
 cron with no request to resolve a locale from, and the default is `es` — without
 it every English-speaking user would be mailed in Spanish.
@@ -567,7 +602,7 @@ cannot reach them around our code.
 flowchart TB
     subgraph entry [Ways in]
         C[Credentials] --> SI[auth.api.signInEmail]
-        O[Google · GitHub] --> SP[Better Auth social providers]
+        O[Google] --> SP[Better Auth social providers]
     end
     SI -->|2FA on| TFR[twoFactorRedirect]
     TFR --> V[verifySignInTotp /<br/>verifySignInBackupCode]
@@ -635,131 +670,378 @@ depend on.
 
 ## Frontend
 
-The map feature's structure, the design system, internationalisation and
+The map feature's structure, the navigation, the design system, internationalisation and
 theming. Search *behaviour* — the fan-out, debounce and pagination — is
 [Path 1](#path-1--a-search) above and specified in
-[`specs/map-and-search.md`](specs/map-and-search.md); locale, geography and theme
-behaviour in [`specs/cross-cutting.md`](specs/cross-cutting.md).
+[`specs/map-and-search.md`](specs/map-and-search.md); locale and geography
+behaviour in [`specs/cross-cutting.md`](specs/cross-cutting.md); the look in
+[`specs/redesign-foundation.md`](specs/redesign-foundation.md).
 
 ### The map feature
 
 Everything lives under `/map` and is orchestrated by
 [`components/map/MapView.tsx`](../components/map/MapView.tsx), which composes two
 hooks — `useListingsSearch()` for results and `useSearchFilters()` for filter
-state — and renders a listings panel beside the map.
+state — and renders the results beside the map on desktop and in a sheet over it on a phone.
+What each piece does is specified in [`specs/redesign-map.md`](specs/redesign-map.md) (MAPUI).
 
 ```
 MapView
-├─ ListingsHeader          keyword input + filters toggle
-│  └─ SearchFilters        motion.div expand/collapse
-│     ├─ LocationSearch    Nominatim autocomplete
-│     ├─ ToggleChip ×n     fuel, transmission
-│     ├─ RangeInput ×4     price, mileage, year, horsepower
-│     └─ Select ×2         brand, model
-├─ CarListingCard ×n       + SourceBadge, favorite toggle
-├─ ListingsMap             dynamic, ssr: false
-└─ MobileMapOverlay        the map, full-screen, on small viewports
+├─ HeaderSearch            portalled into MapHeader's centre (lib/hooks/useMapHeaderSlot.ts)
+│  └─ SearchPill           «Dónde» · «Coche» · «Precio», then «Crear alerta»
+│     ├─ LocationPopover   PlaceField (Nominatim), RadiusChoice, «Toda España»
+│     ├─ CarPopover        CarTypeahead: brands, then models through useCarModels
+│     ├─ PricePopover      PriceRange (Radix Slider and boxes), shortcuts
+│     └─ CreateAlert       the inline card, in the pill's own popover
+├─ FilterRow               «Filtros» and the chips; FilterPanel is its desktop dropdown
+├─ MapResultsArea          the list-and-map column
+│  ├─ PhoneSearchBar       phone only: the summary, the filters button, FilterRow
+│  ├─ ResultsSheet         the list column on desktop, the results sheet on a phone
+│  │  ├─ CarCard ×n        one link, the heart beside it
+│  │  └─ ResultsStatus     placeholders, no results, search error
+│  ├─ ListingsMap          dynamic, ssr: false: price pins, MapPreview, MapZoom
+│  └─ StatusPill           the desktop map's polite live region
+├─ SearchSheet             phone «BUSCAR» (Radix Dialog), applied on «Ver coches»
+├─ FilterPanel (phone)     the full-screen filters (Radix Dialog)
+└─ CreateAlert (sheet)     the phone create-alert bottom sheet (Radix Dialog)
 ```
 
+**Layout switches at `lg` in CSS; behaviour reads a media query.** The phone results sheet
+slices its cards by position, a phone pin moves the sheet instead of opening the preview, and the
+phone map has no zoom control. Those are behaviours, not styles, so
+[`lib/hooks/useIsPhone.ts`](../lib/hooks/useIsPhone.ts) tells `MapView` which applies; the
+server, and jsdom, take the desktop branch.
+
 **`ListingsMap` is loaded via `next/dynamic` with `ssr: false`.** Leaflet needs
-the DOM and will not survive server rendering. It switches CARTO tiles by theme,
-drops amber `divIcon` markers, and fits bounds via a `FitBounds` child using
-`useMap()` — on a new search's first results only, not on every listings change
-(see `docs/specs/map-and-search.md` › Decisions › The map fits on a new search,
-not on a new page (MAP-25)).
+the DOM and will not survive server rendering. It loads the dark CARTO tiles,
+draws one price pin per point (`lib/map/group-pins.ts` groups the listings that share one), and
+fits bounds via a `FitBounds` child using `useMap()` — on a new search's first results only,
+not on every listings change (see `docs/specs/map-and-search.md` › Decisions › The map fits on a
+new search, not on a new page (MAP-25)). A pin is a `divIcon` whose HTML carries the theme's
+utility classes; its active state is a `data-active` attribute toggled on Leaflet's own element,
+because a new icon would make Leaflet replace the element and lose its focus and listeners. The
+desktop preview is the marker's Leaflet `Popup`, restyled with important utilities because
+`leaflet.css` is unlayered. The map's wrapper is `isolate`, so Leaflet's pane z-indexes stay
+below the header's popovers and the results sheet.
 
-Consequences for tests: mock `react-leaflet` in component tests and render it for
-real only in Playwright — see [Environment gotchas](#environment-gotchas).
+Consequences for tests: most component tests mock `react-leaflet`.
+`components/map/ListingsMap.preview.test.tsx` is the exception — it renders real Leaflet and
+react-leaflet in jsdom for the preview popup's open/close lifecycle, relying on
+`test/utils/animations.ts`'s `withAnimations` to turn real exit animations back on for the cases
+that need the fade still in flight — see [Environment gotchas](#environment-gotchas).
 
-**Filter option constants** live in `components/map/search-filter-options.ts`.
-Labels are resolved through i18n keys, never from the raw constant strings.
+**The brand list** the type-ahead matches is `components/map/search-filter-options.ts`. The
+filter choices and the chip texts come from `lib/search/fuel-groups.ts` and
+`lib/search/filter-chips.ts`, whose labels are i18n keys; what the panel offers and what «Borrar»
+clears is `lib/search/panel.ts`, shared with the chips and the search hook.
 
-**`SearchFiltersProps` is exported** from `SearchFilters.tsx` and threaded
-through `MapView`. Adding a filter means updating both — keep the prop names in
-sync.
+**State lives in hooks.** [`lib/hooks/useMapPageState.ts`](../lib/hooks/useMapPageState.ts) holds
+the map page's own UI state (which phone sheet is open, the results sheet's position, the active
+pin and card, «Crear alerta»); [`lib/hooks/useCarTypeahead.ts`](../lib/hooks/useCarTypeahead.ts)
+the «Coche» type-ahead's query, brand step and choices; `lib/hooks/useOptionNavigation.ts` a
+combobox's keyboard and how its list closes (Escape or a press outside, before the popover or sheet
+around it). [`lib/hooks/createExternalStore.ts`](../lib/hooks/createExternalStore.ts) shares a value
+between parts of the tree with no common parent, such as the root layout's header and tab bar and
+the map page; [`lib/hooks/useCurrentPath.ts`](../lib/hooks/useCurrentPath.ts) gives the path and
+query a signed-out buyer returns to after signing in.
+
+**One heart everywhere.** [`lib/hooks/useFavoriteToggle.ts`](../lib/hooks/useFavoriteToggle.ts)
+owns what pressing a heart does (the session check, the sign-in return with the full path and
+query, the optimistic flip and its rollback); the map's list, its preview card, the saved cars page and
+the alerts pages (through `lib/hooks/useMatchFavorites.ts`) all call it. The sign-in gate itself is
+[`lib/hooks/useSignInGate.ts`](../lib/hooks/useSignInGate.ts) — `requireSession(path)`, which
+returns `true` when signed in, ignores the press while the session is still loading, and otherwise
+redirects to sign in and back to `path` — shared by the heart and «Crear alerta»
+(`useMapPageState`).
+
+### The saved cars page
+
+`/favorites` ([`specs/redesign-saved.md`](specs/redesign-saved.md), SAVED) reads the saved cars
+once on the server (`listFavoritesForPage`, newest saved first) and hands them to
+[`components/favorites/FavoritesList.tsx`](../components/favorites/FavoritesList.tsx), which draws
+the list column and, from `lg`, the saved map: the same `ListingsMap`, `groupPins` and
+`MapPreview` as `/map`. Below `lg` (`useIsPhone`) the list is compact rows that open the car sheet
+(`PhoneBottomSheet`). The composition switches by media query, not by CSS alone, because the
+virtualiser needs a row and a column count; until the client has read those queries (the server
+render and hydration), the page draws its loading placeholders, whose two compositions CSS picks
+between, so a phone never paints the desktop cards first. Besides `useIsPhone`, its state is these
+hooks:
+
+- [`lib/hooks/useSavedCars.ts`](../lib/hooks/useSavedCars.ts) — the server's list less the cars
+  removed on the page, in the order of the sort in the URL (`sortSaved` and `savedSortParsers` in
+  [`lib/favorites/sort.ts`](../lib/favorites/sort.ts); the phone ignores it). Removal and undo go
+  through `useFavoriteToggle`, guarded per car against an older answer, and return the failure's
+  copy for the page to toast.
+- [`lib/hooks/useSavedPins.ts`](../lib/hooks/useSavedPins.ts) — the active pin, tracked by its
+  point so a grouped preview survives the removal of its first car, and the cards it outlines.
+- [`lib/hooks/useSavedList.ts`](../lib/hooks/useSavedList.ts) — the virtualised list
+  (`@tanstack/react-virtual`, [ADR 0021](decisions/0021-react-virtual.md)): rows of cards, a pin's
+  row scrolled to, and the first row in view recorded per history entry in `sessionStorage` so
+  Back restores it.
+- [`lib/hooks/useSavedColumns.ts`](../lib/hooks/useSavedColumns.ts) — how many cards a row holds:
+  three from `xl`, two from `lg`, one compact row on the phone.
+- [`lib/hooks/useSavedCarSheet.ts`](../lib/hooks/useSavedCarSheet.ts) — the phone's car sheet: the
+  car it shows, whether it is open, and the row the focus returns to when it closes.
+- [`lib/hooks/useRemovalFocus.ts`](../lib/hooks/useRemovalFocus.ts) — where the focus goes after a
+  removal: the neighbour's first control, or the empty state's heading when no car is left.
+
+Its loading and error files draw the same frame
+([`components/favorites/SavedLayout.tsx`](../components/favorites/SavedLayout.tsx)) with
+placeholders or the page error. Every toast in the app is placed by `app/globals.css` from the
+page's `data-toast-anchor` (`saved` here, `map` on `/map`): under the header, or `/map`'s filter
+row, and centred over the list column (SAVED-24). A page with no `data-toast-anchor` has its
+toast under the header, centred on the viewport.
+
+### The alerts pages
+
+`/alerts` and `/alerts/[id]` ([`specs/redesign-alerts.md`](specs/redesign-alerts.md), ALERTUI)
+draw the saved cars page's frame (`SavedLayout`): the list column, which alone scrolls, and from
+`lg` the alert map beside it, `ListingsMap` with the alert's zone (`components/map/ZoneLayers.tsx`,
+a react-leaflet `Circle` and centre dot under the pins) and the pill naming the alert. Both read
+on the server: `listAlertsForPage(alert)` returns the user's alerts, newest first, and the
+matches of one of them, the open one, resolved from the URL's `alert` among the caller's own
+(`resolveOpenAlertId`, in `findAlertsPage` of `server/alerts/service.ts`); `getAlertWithMatches(id)`
+returns one alert with every match, its criteria already read back. The matches
+are their stored snapshots, so neither page calls an upstream.
+
+- [`components/alerts/AlertsPage.tsx`](../components/alerts/AlertsPage.tsx) — the AlertCards: the
+  open one with its criteria as chips and its four newest matches, the others folded; pressing a
+  folded card writes `alert` ([`lib/hooks/useOpenAlert.ts`](../lib/hooks/useOpenAlert.ts), nuqs,
+  a non-shallow push in a transition) and the server answers with that alert's matches. The phone
+  lists one link per alert to its page.
+- [`components/alerts/AlertPage.tsx`](../components/alerts/AlertPage.tsx) — the alert's page: its
+  matches through the saved cars' virtualised list (`useSavedList`, `SavedList`, `SavedCard`,
+  `SavedRow` with no city, `SavedCarSheet`), and on the phone the static zone map
+  (`AlertZoneMap`). The phone header's «Volver» is `PagesHeader`'s (`backHref` in
+  `components/nav/nav-routes.ts`).
+- [`lib/hooks/useMatchFavorites.ts`](../lib/hooks/useMatchFavorites.ts) — a match's saved state,
+  from `useFavorites` and `useFavoriteToggle`, as `/map` reconciles its results.
+- [`lib/hooks/useAlertDelete.ts`](../lib/hooks/useAlertDelete.ts) — the delete behind its
+  confirmation (`DeleteAlertConfirm`, in `ResponsiveDialog`: a centred `alertdialog` on desktop,
+  `PhoneBottomSheet` on the phone), one request at a time; a delete on an alert's page replaces it with `/alerts`.
+- [`lib/hooks/useAlertLabels.ts`](../lib/hooks/useAlertLabels.ts) — the criteria
+  (`alertCriteria` and `alertZone` in `lib/search/alert-summary.ts`), the match count and
+  «Creada el …» (`formatDate` in `lib/format.ts`, in next-intl's time zone).
+
+Their toasts are centred over the list column (`data-toast-anchor="alerts"`, ALERTUI-37).
+
+### The access pages
+
+`/login`, `/register`, `/verify-email`, `/confirm-email`, `/forgot-password` and `/reset-password`
+share one composition, [`components/auth/AccessLayout.tsx`](../components/auth/AccessLayout.tsx)
+([`specs/redesign-entry.md`](specs/redesign-entry.md), ENTRY-19 to ENTRY-30;
+[`specs/redesign-pages.md`](specs/redesign-pages.md), PAGES-1, PAGES-7, PAGES-75): `AccessShell`
+(the scrolling page, `<main>` and the footer), `AccessBody` (one state, cross-fading into the next
+under `AnimatePresence`), `AccessHeadline`, `AccessPanel` (the panel from 1440px wide, the bare
+content under it), `AccessArrow` and `AccessState` (a state with actions and no fields). The pages
+are Server Components that read only whether `token` is present (PAGES-14); each form is the client
+part and swaps its own states (form, «check your inbox», confirmed, expired link) with no toast,
+moving the focus to the new state's headline (PAGES-76, `lib/focus.ts`). `/verify-email` and
+`/confirm-email` share one request lifecycle,
+[`lib/hooks/useTokenConfirmation.ts`](../lib/hooks/useTokenConfirmation.ts).
+
+### The account page
+
+`/account` ([`specs/redesign-pages.md`](specs/redesign-pages.md), PAGES-25 to PAGES-60, PAGES-71
+to PAGES-73) is a summary of cards, each with one action that opens its form in a dialog on
+desktop and a bottom sheet on the phone. The page reads on the server in one query,
+`getAccountOverview()` (`findAccountOverview` in `server/account/service.ts`), whose fields
+PAGES-60 lists, with this request's own session marked `current` among them: the user and that
+session come from one lookup (`getCurrentUserWithSessionId` in `lib/auth/session.ts`).
+
+- [`components/account/AccountPage.tsx`](../components/account/AccountPage.tsx) — the heading, the
+  grid of cards (`AccountCard`, `OwnCard`, `EmailCard`, `GoogleCard`, `DataExportCard`) and the
+  dialogs. [`lib/hooks/useAccountPage.ts`](../lib/hooks/useAccountPage.ts) keeps what the dialogs
+  change — the name, two-factor, the providers, the version DATA-15 asserts, as the actions answer
+  it — and which dialog is open, so the cards follow without a reload; the sessions line re-reads
+  with `router.refresh()`.
+- [`components/account/AccountDialog.tsx`](../components/account/AccountDialog.tsx) — the frame of
+  every form, in `ResponsiveDialog` (`components/ui/ResponsiveDialog.tsx`, shared with
+  `DeleteAlertConfirm`): the centred dialog on desktop, `PhoneBottomSheet` on the phone. Its
+  `run` holds it open while a request runs (PAGES-72) and reads a thrown request as the `generic`
+  refusal (`lib/auth/settle-action.ts`); its body mounts afresh on every opening; the focus starts
+  on the first field unless the dialog names another control, and goes back to the card's button.
+  `DialogActions` is every form's footer.
+- `NameDialog`, `EmailDialog`, `PasswordDialog`, `TwoFactorDialog` (with `TwoFactorSetup` and
+  `RecoveryCodesPanel`, the codes taking the same dialog over as an `alertdialog`),
+  `SessionsDialog` and `DeleteAccountDialog` — each form calls its Server Action directly
+  (React Hook Form where the form has a schema), with a server refusal under its field or as a
+  form alert, never a toast (PAGES-71).
+- [`lib/hooks/useMySessions.ts`](../lib/hooks/useMySessions.ts) — the «Sesiones» dialog's list,
+  read again each time it opens; [`lib/hooks/useAccountLabels.ts`](../lib/hooks/useAccountLabels.ts)
+  — the summary line, the sessions line and the device, from `formatMonth`, `formatDeviceLabel`
+  and `formatRelativeTime` in `lib/format.ts`, in next-intl's time zone.
+- `app/account/loading.tsx` (`AccountPlaceholder`, in the page's own frame and heading,
+  `AccountHeading`) and `app/account/error.tsx` (`components/ui/PageStateError.tsx`, shared with the
+  root `app/error.tsx`: `PageError` in the saved cars' list column, beside an empty map drawn for
+  the eye only).
+
+### The legal pages, the not-found page and the root error
+
+`/privacy` and `/terms` ([`specs/redesign-pages.md`](specs/redesign-pages.md), PAGES-61 to PAGES-64,
+PAGES-74) are one template,
+[`components/legal/LegalContent.tsx`](../components/legal/LegalContent.tsx): the page's scrolling
+box, with the footer inside it after the text, and from `lg` a grid of the index and the reading
+column (PAGES-64). Each section's `h2` carries the `id` stored beside it in the
+message files, the same in both locales. The index,
+[`components/legal/LegalToc.tsx`](../components/legal/LegalToc.tsx), is one list for both widths:
+a sticky column from `lg`, a field folded after the date on a phone.
+[`lib/hooks/useLegalToc.ts`](../lib/hooks/useLegalToc.ts) marks the section on screen from the
+scrolling box's scroll, opens and folds the phone index, and jumps to a heading, after the phone
+list has left so the page no longer shifts under the jump.
+
+`app/not-found.tsx` (every unmatched address and every `notFound()`, PAGES-65) and `app/error.tsx`
+(the error boundary of every route with no error file of its own, PAGES-68) share
+[`components/ui/PageStateLayout.tsx`](../components/ui/PageStateLayout.tsx): the state in the saved
+cars' column width, beside an empty map drawn for the eye only. The not-found page's header and tab
+bar follow the session, not the path (see [Navigation](#navigation)).
 
 ### UI primitives
 
-`components/ui/` wraps Radix primitives: `button`, `card`, `input`, `label`,
-`select`, `separator`, plus two with real behaviour of their own —
-`range-input` and `toggle-chip`.
+`components/ui/` wraps Radix primitives: `button`, `input`, `label`,
+`separator`, plus `toggle-chip` and `checkbox-select`, which have behaviour of their own,
+`Headline` (the question-and-punchline headline, used by the landing, the access pages and
+`EmptyState`), `BusyButton` (a button's busy state: `aria-disabled` and `aria-busy`, a press ignored, so
+the focus stays on it, and the spinner left of the unchanged label), `ResponsiveDialog` (the
+centred dialog on desktop and bottom sheet on the phone of the account forms and the alerts'
+delete confirmation), and the shared states `EmptyState` (the headline, its line and its actions),
+`PageError` (the page-error state, used by the error files of `/map`, `/favorites`, `/alerts`,
+`/alerts/[id]`, `/account` and the root `app/error.tsx`), `PageStateLayout` (the frame of the
+not-found page and the root error) and the map's card placeholders (`CardPlaceholder` and `SheetCardPlaceholder`, in
+`components/ui/CardGridSkeleton.tsx`). The popovers and sheets use Radix Popover and Dialog
+directly, and the price range Radix Slider.
+
+**`checkbox-select` is the design's select** (LOOK-21): one style, every option
+with a checkbox, several values at once, the trigger listing the chosen values
+separated by commas. The Radix select is gone: F3 replaced its uses with the design's controls
+(MAPUI-48).
 
 Composition uses `class-variance-authority` with `clsx` and `tailwind-merge`; the
 `cn` helper is in `lib/utils.ts`.
-
-**`RangeInput` is controlled.** A value only accumulates if a parent holds state.
 
 **Icons are never raw SVG.** Lucide React for UI icons, React Icons for brand
 icons. Size with Tailwind (`h-4 w-4`). Icon-only buttons need a descriptive
 `aria-label`.
 
-### Design system — Cartographic Modern
+### Navigation
 
-Dark-first, inspired by night maps: warm amber on deep ink. Defined in
-[`app/globals.css`](../app/globals.css), where `:root` is the **dark** theme and
-`.light` is warm paper. Live references at `/palette` and `/typography`.
+Specified by [`specs/redesign-navigation.md`](specs/redesign-navigation.md) (HEAD), whose worked
+example table is the whole contract of what each page offers; the look is
+[HeaderNav](design/system/components/HeaderNav/README.md) and
+[BottomNav](design/system/components/BottomNav/README.md). The pieces live in `components/nav/`.
 
-| Token | OKLCH (dark) | Hex | Used for |
-| --- | --- | --- | --- |
-| `--background` | `oklch(0.16 0.015 250)` | #0F1419 | Deep ink — app background |
-| `--card` | `oklch(0.20 0.015 250)` | #1C2128 | Elevated surfaces |
-| `--popover` | `oklch(0.22 0.015 250)` | #262D36 | Panels, dropdowns |
-| `--primary` | `oklch(0.75 0.14 75)` | #E8A849 | Amber — CTAs, highlights, markers |
-| `--accent` | `oklch(0.62 0.12 160)` | #3B9B6D | Eucalyptus — success, available |
-| `--destructive` | `oklch(0.58 0.18 25)` | #D94F4F | Muted red — alerts, price drops |
-| `--border` | `oklch(0.28 0.01 250)` | #30363D | Structure, dividers |
-| `--foreground` | `oklch(0.92 0.01 250)` | #E6EDF3 | Primary text (cream) |
-| `--muted-foreground` | `oklch(0.62 0.01 250)` | #8B949E | Secondary text, metadata |
+- **One header per kind of page, chosen by route** in
+  [`components/nav/SiteHeader.tsx`](../components/nav/SiteHeader.tsx): the map header (`/map`), the
+  pages header (`/favorites`, `/alerts`, `/alerts/[id]`, `/account`, and the signed-in landing), the
+  landing header (`/` signed out), and the sign-in/legal header (the sign-in, account-recovery and
+  legal pages, and the development pages `/palette` and `/typography`). An address no route matches
+  is the not-found page, whose header follows the session: the sign-in header signed out, the pages
+  header with nothing current signed in, and then the tab bar too, with no tab current
+  ([`specs/redesign-pages.md`](specs/redesign-pages.md), PAGES-66). Each header's content is fixed
+  rather than one bar growing conditionals per page.
+- **Desktop and phone regions switch at `lg` in CSS**, not through a media-query hook, which would
+  flash on hydration because the server cannot know the viewport. jsdom has no layout engine, so
+  what each viewport shows is proved in e2e.
+- **No menu and no dropdown** (HEAD-14). Every destination has a home in a header, the tab bar or
+  the account page.
+- **The language control sits in every header**:
+  [`components/nav/LanguageControl.tsx`](../components/nav/LanguageControl.tsx), a group of one
+  button per locale (HEAD-10; switching writes the `locale` cookie and calls `setLocale`, see
+  [Internationalisation](#internationalisation)).
+  The phone map has no header, so it has none.
+- **The phone tab bar** ([`components/nav/TabBar.tsx`](../components/nav/TabBar.tsx),
+  [`specs/redesign-map.md`](specs/redesign-map.md) MAPUI-52, MAPUI-53) shows at phone width only, on
+  the map (signed in or out) and on the signed-in pages, the signed-in landing (ENTRY-8) and the
+  signed-in not-found page (PAGES-66). It
+  runs the full width of the screen,
+  padded at the bottom by the safe-area inset; the root layout's viewport opts into the safe area
+  with `viewport-fit=cover` (HEAD-17). On the map it hides only while the results sheet is full,
+  which `MapView` reports through [`lib/hooks/useResultsSheetFull.ts`](../lib/hooks/useResultsSheetFull.ts);
+  scrolling the map or the sheet never hides it. On the other pages it hides while the page scrolls
+  down ([`lib/hooks/useHideOnScrollDown.ts`](../lib/hooks/useHideOnScrollDown.ts), which captures
+  scroll events from the pages' own scroll containers). Pages keep their last control clear of it with `TAB_BAR_CLEARANCE`
+  (HEAD-18, HEAD-19).
+- **Sign-out lives on `/account`**,
+  [`components/account/SignOutButton.tsx`](../components/account/SignOutButton.tsx) (HEAD-13), not in
+  any header.
+- **Hiding a link is not authorisation.** The headers read the browser session to decide what to
+  offer; `proxy.ts` and `getCurrentUser()` decide who sees a page.
 
-Semantic aliases also exist: `--success`, `--warning`, `--info`, and
-`--chart-1..5`.
+### Design system — BuyCarMap 2.0
 
-The light theme is **not** a mechanical inversion — `--primary` darkens to
-`oklch(0.65 0.16 75)` for contrast on paper. Adding a token means adding both.
+The visual source of truth is [`docs/design/`](design/README.md); [`DESIGN.md`](../DESIGN.md)
+summarises it for whoever builds a screen, and
+[`specs/redesign-foundation.md`](specs/redesign-foundation.md) (LOOK) specifies how the app takes
+it. Live references at `/palette` and `/typography`; `/palette` also renders every primitive and is
+the e2e harness for their looks (LOOK-9 to LOOK-14), because jsdom does not compute styles from
+`globals.css`.
 
-**Semantic usage.** Primary (amber) for CTAs, selected states, active markers and
-favorited highlights. Accent (eucalyptus) for available badges, price decreases
-and success. Destructive for errors, sparingly.
+**The tokens in [`app/globals.css`](../app/globals.css) mirror
+[`docs/design/system/tokens.json`](design/system/tokens.json)** — every colour, radius and shadow,
+with the same name and value, as CSS variables on `:root` (`--bg`, `--surface`, `--lime`,
+`--radius-pill`, `--shadow-float`…; LOOK-1). There is no OKLCH value and no second theme block. A
+token changes in the design first (`CLAUDE.md` › Design first), then in both files.
+
+**The shadcn utility names are aliases** (LOOK-2), so the classes existing components use
+(`bg-card`, `text-muted-foreground`, `border-border`…) take the new palette without an edit; the
+design tokens are also exposed under their own names for new code.
+
+| Utility token | Resolves to |
+| --- | --- |
+| `background` | `bg` |
+| `foreground` | `text` |
+| `card`, `popover`, `muted`, `secondary`, `accent` | `surface` |
+| `border`, `input` | `line` |
+| `muted-foreground` | `text-muted` |
+| `primary` / `primary-foreground` | `lime` / `on-lime` |
+| `destructive` | `danger` |
+| `ring` | `lime` |
+
+`accent` maps to `surface`, not `violet`, because it paints hover backgrounds today. The jobs of the
+two accents — lime for what you are doing now, violet for what is yours — are in `DESIGN.md` ›
+Colors.
 
 #### Typography
 
-Two fonts, self-hosted as files committed under `app/fonts/` and loaded with
-`next/font/local` in `app/layout.tsx` (FRONT-26, `docs/specs/core-frontend.md`) —
-not `next/font/google`, so no build step downloads a font — exposed as CSS
-variables:
+Two families, self-hosted as variable `woff2` files committed with their `OFL.txt` licences and
+loaded with `next/font/local` in `app/layout.tsx` (FRONT-26, LOOK-6) — not `next/font/google`, so no
+build step downloads a font — exposed as CSS variables:
 
-- **Plus Jakarta Sans** (`--font-sans`) — all UI text
-- **JetBrains Mono** (`--font-mono`) — prices, mileage, ids, any compared number
+- **Rethink Sans** (`--font-sans`, `app/fonts/rethink-sans/`) — all text
+- **Unbounded** (`--font-display`, `app/fonts/unbounded/`) — display type, always uppercase:
+  wordmark, headlines, counts and prices
 
-```jsx
-<h1 className="text-5xl font-extrabold tracking-tight">BuyCarMap</h1>
-<span className="font-mono text-xl text-primary">€14,500</span>
-<span className="text-sm text-muted-foreground">45,230 km</span>
-```
+**The type scale is theme tokens too.** `app/globals.css`'s `@theme` exposes `tokens.json` › `type`
+with its values unchanged, as `text-<style>` utilities that set the size, and the line height and
+letter spacing where the style has them (`text-overline`, `text-section-label`, `text-body-15`,
+`text-price`, `text-count`, `text-empty-title`…), plus the phone sizes the styles' notes give
+(`text-count-mobile`, `text-empty-title-mobile`) and the sizes the component guides give with no
+style of their own (`text-box-label`, `text-tab-label`, `text-pin`, `text-sheet-title`,
+`text-empty-line`). The phone tab-bar clearance and the bottom padding of a sheet over it are
+spacing tokens (`pb-tab-clearance`, `pb-sheet-bottom`). `lib/utils.ts`'s `cn` knows these names, so
+`text-body-15` merges as a font size instead of as a colour.
 
-Use `font-variant-numeric: tabular-nums` for numbers that are compared down a
-column.
+Each declaration carries a fallback stack (`system-ui, -apple-system, "Segoe UI", sans-serif` for
+sans; `"Arial Black", system-ui, sans-serif` for display, as in `tokens.json`), so text stays
+readable if a file fails to load. There is no monospace face: `font-mono` is aliased to the sans
+family (LOOK-8), so the classes still using it render in Rethink Sans until their phase rewrites
+them. Use `font-variant-numeric: tabular-nums` for numbers that are compared down a column.
 
 ### Theming
 
-`next-themes` with `attribute="class"`, dark by default, `.light` for light.
+**One dark theme, no toggle.** `<html>` carries a static `class="dark"` with
+`color-scheme: dark`, and `<meta name="theme-color">` is `#0F0F10` (LOOK-3). next-themes is removed,
+and with it the stored preference: nothing reads or writes a theme in `localStorage`, so a
+`theme=light` left by an earlier version is ignored (LOOK-4). The `dark` class stays because the
+`dark:` variants in `button.tsx` and `input.tsx` key off it until those primitives are rewritten.
 
-**Any component calling `useTheme` must wait for `mounted`**
-(`lib/hooks/useMounted.ts`) or it will hydrate mismatched. Use CSS variables
-(`var(--…)`) for theme-aware styles rather than branching in JS.
+Use the CSS variables (`var(--…)`) for colour rather than branching in JS. The Toaster, the map
+tiles and the Google button read the theme as a constant.
 
-**The theme toggle goes through `lib/hooks/useThemeTransition.ts`**, not
-`setTheme` directly. It drives the View Transitions API — an expanding-circle
-`clip-path` from the click point. jsdom does not implement View Transitions, so
-this is Playwright territory if anywhere.
-
-Map tiles switch with `useTheme().resolvedTheme`:
-
-- Dark — `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`
-- Light — `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png`
-
-Both carry `?key=` with `NEXT_PUBLIC_CARTO_API_KEY` when it is set; without it CARTO serves an
-"API KEY REQUIRED" watermark tile instead of the map (MAP-23, [`docs/specs/map-and-search.md`](specs/map-and-search.md)).
+Map tiles are the dark CARTO style only,
+`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`. It carries `?key=` with
+`NEXT_PUBLIC_CARTO_API_KEY` when it is set; without it CARTO serves an "API KEY REQUIRED" watermark
+tile instead of the map (MAP-23, [`docs/specs/map-and-search.md`](specs/map-and-search.md)).
 
 ### Animation
 
@@ -767,15 +1049,14 @@ Motion (`motion/react-client`, with `AnimatePresence` from `motion/react`) rathe
 than CSS animations for React components.
 
 **Reuse the presets in [`lib/animations.ts`](../lib/animations.ts)** —
-`fadeInUp`, `fadeInDown`, `dropdownReveal`, `crossFade`, `fadeIn(delay)`,
-`staggerContainer(delay)`, `buttonTap`
+`fadeInUp`, `dropdownReveal`, `sheetSlideUp`, `crossFade`
 — instead of re-declaring `initial`/`animate` inline.
 
 Animate only `transform` and `opacity`. Never animate layout properties, and
 never `transition: all`. Honour `prefers-reduced-motion`.
 
-The app root sets `MotionConfig reducedMotion="user"` in `components/ThemeProvider.tsx`,
-the client boundary that already wraps every page, so this applies everywhere
+The app root sets `MotionConfig reducedMotion="user"` in `components/MotionProvider.tsx`,
+the client boundary that wraps every page, so this applies everywhere
 (FRONT-29, [`docs/specs/core-frontend.md`](specs/core-frontend.md)).
 
 `dropdownReveal` (fade with a 4 px vertical offset in and out, `duration.fast`)
@@ -837,9 +1118,19 @@ request, so there is no `getTranslations()` to call — they use next-intl's
 locale and the same JSON message files.
 
 **Tests.** `test/utils/render.tsx`'s `renderWithI18n` wraps components in
-`NextIntlClientProvider` with `messages/en.json` and locale `en` (plus nuqs's
-testing adapter, for components that read or write URL state — see
-"URL state" below), so component tests query stable English labels.
+`NextIntlClientProvider` with `messages/en.json` and locale `en` by default (plus
+nuqs's testing adapter, for components that read or write URL state — see
+"URL state" below), so component tests query stable English labels. Copy that a spec's worked
+example quotes word for word (in Spanish, the default locale) is asserted with
+`renderWithI18n(ui, { locale: "es" })`.
+
+**Pure helpers take their copy.** The map's pure label builders
+(`lib/search/filter-chips.ts`, `lib/search/alert-summary.ts`,
+`lib/map/group-pins.ts`, `lib/map/results-heading.ts`) take a `copy` argument,
+a `LocaleCopy` from [`lib/i18n/copy.ts`](../lib/i18n/copy.ts) — the translator
+and the locale — which the calling component builds from `useTranslations()` and
+`useLocale()`. The argument is required, with no default, so no caller silently
+renders a fixed locale.
 
 Errors reach the UI as codes and are translated at render — see
 [Patterns that apply everywhere](#patterns-that-apply-everywhere).
@@ -929,7 +1220,8 @@ Two entries in the `node` include list are worth knowing:
 | `test/fixtures/*.ts` | Typed builders — `makeWallapopItem`, `makeCochesNetItem`, … |
 | `test/mocks/intersection-observer.ts` | Controllable IO; `triggerIntersection()` drives infinite scroll |
 | `test/mocks/next-image.tsx` | Stands in for next/image in jsdom tests: `vi.mock("next/image", () => import("@/test/mocks/next-image"))` |
-| `test/utils/render.tsx` | `renderWithI18n(ui)` |
+| `test/utils/render.tsx` | `renderWithI18n(ui)`, or `renderWithI18n(ui, { locale: "es" })` for Spanish copy |
+| `test/utils/copy.ts` | `ES_COPY` and `EN_COPY`: the real messages of one locale, as the `copy` a pure text helper is given in a test |
 
 Override per-test with `server.use(...)`. Handlers reset in `afterEach`.
 
@@ -937,7 +1229,8 @@ Override per-test with `server.use(...)`. Handlers reset in `afterEach`.
 field in every test is how a fixture stops describing anything.
 
 **`renderWithI18n` wraps in `NextIntlClientProvider` with `messages/en.json`,
-locale `en` and timeZone `UTC`** (plus nuqs's `NuqsTestingAdapter`, with
+locale `en` and timeZone `UTC`** by default — `{ locale: "es" }` swaps in
+`messages/es.json` — (plus nuqs's `NuqsTestingAdapter`, with
 `hasMemory` so a component that both reads and writes URL state round-trips
 within one test), so tests can query stable English labels. Unlike the
 removed hand-rolled `I18nProvider`, `useTranslations()` throws with no
@@ -974,16 +1267,13 @@ keys per test, or fake timers.
 a `setTimeout` it only advances when it detects *jest's* fake clock, which Vitest
 does not expose — so every interaction hangs until the test times out. Either
 drive the hook directly (`renderHook` + `act`), or keep real timers and let
-`findBy*` (1 s default) absorb the 400 ms debounce. `LocationSearch.test.tsx`
+`findBy*` (1 s default) absorb the 400 ms debounce. `LocationPopover.test.tsx`
 does the latter.
 
-**Radix Select needs pointer plumbing jsdom lacks.**
-`hasPointerCapture`/`setPointerCapture`/`releasePointerCapture` are stubbed in
-`test/setup.jsdom.ts`, and the trigger must be clicked with
-`userEvent.setup({ pointerEventsCheck: 0 })`. `SelectValue` renders nothing while
-the content is unmounted, so a closed trigger's accessible name is its label
-alone — query `getByRole("combobox", { name: /Brand/ })`, **never** by the
-selected value.
+**Radix Slider and the card scroll need plumbing jsdom lacks.**
+`hasPointerCapture`/`setPointerCapture`/`releasePointerCapture` (the price range's thumbs
+call them on pointerdown) and `Element.prototype.scrollIntoView` (a pin scrolls its card into
+view) are stubbed in `test/setup.jsdom.ts`. Drive the range with the keyboard in jsdom.
 
 **`useListingsSearch.loadMore` is not public.** It fires only from the sentinel.
 Test it with `sentinelRef(node)` then `triggerIntersection()`.
@@ -994,19 +1284,22 @@ address" message never renders. Assert "did not submit" for malformed input, and
 use empty/required cases to exercise RHF's own messages. The forms deliberately
 do not set `noValidate`.
 
-**Controlled inputs need a stateful harness.** A value only accumulates in e.g.
-`RangeInput` if a parent holds state. Do not pass a static `value` and expect
-typing to work.
+**Controlled inputs need a stateful harness.** A value only accumulates in a controlled input if
+a parent holds state. Do not pass a static `value` and expect typing to work.
 
 **jsdom lacks** IntersectionObserver, geolocation (defaults to denied, so the
 Spain-centre fallback is what you get), matchMedia and canvas. All are stubbed in
 `test/setup.jsdom.ts`.
 
-Motion runs with instant animations in jsdom (`test/setup.jsdom.ts`); tests assert end states, and
-animations are exercised by E2E.
+Motion runs with instant animations in jsdom by default (`test/setup.jsdom.ts`); most tests assert
+end states, and animations are exercised by E2E. A test that needs an exit still in flight — a
+fading preview card, a closing popover — wraps its own body in `withAnimations`
+(`test/utils/animations.ts`), which turns real animations back on for exactly that call.
 
-**Leaflet cannot run in jsdom.** Mock `react-leaflet` in component tests; render
-it for real only in Playwright.
+**Leaflet runs in jsdom for exactly one test file.** Most component tests mock `react-leaflet`;
+`components/map/ListingsMap.preview.test.tsx` renders the real library instead, for the preview
+popup's open, close and focus lifecycle, which a mock would only repeat rather than prove. jsdom
+lays nothing out, so that file asserts no position or size.
 
 ### End-to-end
 
@@ -1014,6 +1307,12 @@ it for real only in Playwright.
 `E2E_PORT` (default 3000) sets the port Playwright starts the app on; neither
 `webServer` entry reuses an existing server (FRONT-25), so set it when another
 app already listens on 3000.
+
+**Primitive looks are measured on `/palette`** (`e2e/foundation.spec.ts`, LOOK-9 to
+LOOK-14). jsdom does not compute styles from `app/globals.css`, so a button's height,
+a chip's pressed fill or a focus outline can only be proven in a browser; the style
+guide renders every primitive and token in one stable page instead of hunting for each
+variant across screens that later phases rebuild.
 
 **Search is mocked by a local upstream server, not `page.route()`**
 (FRONT-22, `docs/specs/core-frontend.md`). Search runs through a Server
@@ -1054,9 +1353,19 @@ plus `visual` (screenshots). `pnpm test:visual` runs the screenshots alone.
 
 #### The database-backed suite
 
-`pnpm test:e2e:db` (`E2E_DB=1`) runs the auth, two-factor, favorites and
-alert-queue round trips against a real database — the only tests that prove
-anything about persistence, since Prisma is mocked everywhere in Vitest.
+`pnpm test:e2e:db` (`E2E_DB=1`) runs the auth, two-factor, favorites, alert-queue and
+toast-theme (FRONT-23) round trips against a real database — the only tests that prove
+anything about persistence, since Prisma is mocked everywhere in Vitest. It also runs the saved
+cars page (`e2e/saved.spec.ts`, SAVED-3 to SAVED-29), up to 200 saved cars per account. Those are
+seeded by a direct insert (`seedFavorites` in `e2e/fixtures/db.ts`) rather than through the UI:
+two hundred saves would take minutes, and the order depends on each row's `created_at`, which only
+an insert can set. The alert pages (`e2e/alerts-ui.spec.ts`, the ALERTUI criteria that need a
+signed-in user's alerts) are seeded the same way, by `seedAlerts` and `seedAlertMatches`, up to
+200 matches per alert. The account pages (`e2e/pages-account.spec.ts`) seed extra sessions with
+`seedSessions` and a Google-only account, which the `/login` form cannot sign in, with
+`seedGoogleOnlySession`, whose session cookie `signInWithSessionToken` (`e2e/fixtures/session.ts`)
+signs with `BETTER_AUTH_SECRET` — or, unset, the fallback secret `playwright.config.ts` hands
+the dev server, which it exports and the fixture imports, so there is one copy.
 
 **The alert-queue tests are the only database-backed ones with no browser in
 them.** They drive `FOR UPDATE SKIP LOCKED` through two overlapping `pg`
@@ -1099,7 +1408,7 @@ paints its cards from the server, so they are clickable well before
 `useSession()` resolves — and a favorite click while the session is loading is
 deliberately ignored (FAV-18). Clicking too early is therefore a silent no-op,
 which surfaced as `FAV-3` failing two runs in three. `waitForSession()` waits for
-the navbar to swap in the signed-in controls, the same hydration signal
+the header to swap in the signed-in controls, the same hydration signal
 `waitForPageToSettle` uses. `/map` hides this window because its cards only exist
 after the source fetches resolve.
 
@@ -1125,8 +1434,13 @@ browser in `e2e/visual-baseline.spec.ts`, which runs in the `chromium` project
 and so in CI, where the visual tests themselves skip until Linux baselines are
 committed.
 
+**The login and map baselines were regenerated for BuyCarMap 2.0** (owner-approved,
+`docs/specs/redesign-foundation.md` › Decisions › Visual baselines and docs move with the
+look): a baseline of the old look would only prove the old look. A later phase that
+changes a screen regenerates its baseline the same way, after the owner reviews it.
+
 **Screenshots must wait for the page to settle** (`waitForPageToSettle` in
-`e2e/visual.spec.ts`). The navbar swaps a placeholder for real links when
+`e2e/visual.spec.ts`). The header swaps a placeholder for real links when
 `useSession()` resolves, and `next/font` loads asynchronously. Both raced the
 camera and made these tests look inherently flaky. They are not.
 
@@ -1283,10 +1597,10 @@ for every route.
 **`Content-Security-Policy` is built per request in [`proxy.ts`](../proxy.ts)**,
 not `next.config.ts`. `script-src` carries a fresh base64 **nonce** of at
 least 128 bits on every response — `'self' 'nonce-<n>' 'strict-dynamic'`, plus
-`'unsafe-eval'` in development — with no `'unsafe-inline'`. The nonce also
-reaches `app/layout.tsx`'s `<ThemeProvider>` (via the `x-nonce` request
-header proxy.ts sets), so next-themes' inline bootstrap script still runs
-under it. The high-value directives are otherwise unchanged: `frame-ancestors`,
+`'unsafe-eval'` in development — with no `'unsafe-inline'`. The nonce no
+longer feeds a theme script: next-themes and its inline bootstrap script are
+gone with the single dark theme, and the CSP keeps working for the map, login
+and favorites (PLAT-23, amended by LOOK). The high-value directives are otherwise unchanged: `frame-ancestors`,
 `object-src`, `base-uri` and `form-action` are what block clickjacking, plugin
 injection and form exfiltration.
 
@@ -1306,10 +1620,9 @@ instead of `*.sentry.io`, so the CSP needs no Sentry host.
 #### Logging and error monitoring
 
 [`lib/logger.ts`](../lib/logger.ts) is the one Pino logger: JSON in
-production, `pino-pretty` in development, silent under Vitest. Its `redact`
-paths censor `password`, `token`, `email`, `secret`, `code`,
-`headers.authorization` and `headers.cookie` at the top level and one level
-deep. Every `console.*` call in `app/`, `components/`, `lib/`
+production, `pino-pretty` in development, silent under Vitest. What its
+`redact` paths censor is [PLAT-15](specs/core-platform.md), and the list
+itself is `REDACT_PATHS` in [`lib/logger.ts`](../lib/logger.ts). Every `console.*` call in `app/`, `components/`, `lib/`
 and `server/` was replaced by it (Biome's `noConsole` is an error for those
 paths; `scripts/**` and `e2e/**` are exempt).
 
@@ -1346,7 +1659,7 @@ Better Auth session cookie (`getSessionCookie`), not from reading
 skips validation entirely — only `pnpm lint` (through `cross-env`) and CI's
 lint job set it. The flags and URLs derived from these variables
 (`isEmailConfigured`, `isTwoFactorConfigured`, `isGoogleConfigured`,
-`isGitHubConfigured`, `appUrl`) live in [`lib/app-config.ts`](../lib/app-config.ts)
+`appUrl`) live in [`lib/app-config.ts`](../lib/app-config.ts)
 instead, server-only, so the client bundle can import `lib/env.ts` for
 `NEXT_PUBLIC_*` without touching server-only fields.
 
@@ -1364,8 +1677,7 @@ Optional — each disables a feature rather than blocking startup:
 | `BETTER_AUTH_URL` | Also decides `useSecureCookies`. Must be `https://` in production or session cookies ship without the Secure flag |
 | `RESEND_API_KEY` + `EMAIL_FROM` | Mailer no-ops, so password-reset links are never delivered. Registration falls back to immediate account creation, **which leaks whether an address is registered** |
 | `APP_URL` | Falls back to `BETTER_AUTH_URL` → `https://$VERCEL_URL` → `http://localhost:3000`. Only set it when the canonical domain differs from `BETTER_AUTH_URL` |
-| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google button does not render. Both halves of the pair are required |
-| `GITHUB_ID` + `GITHUB_SECRET` | GitHub button does not render. Both halves of the pair are required |
+| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google button does not render. Both halves of the pair are required. Google is the only social sign-in the product offers (docs/specs/redesign-entry.md, ENTRY-16, ENTRY-18) |
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | `lib/platform/rate-limit.ts` disables rate limiting — every request is allowed and one warning is logged per process. Required when `VERCEL_ENV` is `production` or `preview`; the build fails without them there |
 | `QSTASH_TOKEN` | `scripts/qstash-schedule.mjs` refuses to run |
 | `QSTASH_CURRENT_SIGNING_KEY` + `QSTASH_NEXT_SIGNING_KEY` | The alert run endpoint refuses every request (no valid `Upstash-Signature` can ever verify), so alerts never fire |

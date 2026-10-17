@@ -1,0 +1,22 @@
+<!-- @dsCard group="Formularios" height=230 subtitle="Continuar con Google, con la «o» que lo separa del botón principal" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>GoogleButton</title>
+<link href="https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6);background:var(--surface);color:var(--text);font-family:var(--font-sans);display:flex;flex-direction:column;gap:18px;width:440px}
+.or{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text-muted)}
+.or span{flex:1;height:1px;background:var(--line)}
+.g{all:unset;cursor:pointer;box-sizing:border-box;height:52px;border-radius:var(--radius-pill);background:var(--google-bg);border:1px solid var(--google-line);color:var(--google-text);display:flex;align-items:center;justify-content:center;gap:12px;font-size:15px;font-weight:600}
+.mark{width:20px;height:20px;border-radius:var(--radius-pill);background:var(--google-badge);color:var(--google-bg);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.g:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="or"><span></span>o<span></span></div>
+<button class="g" type="button"><span class="mark" aria-hidden="true">G</span>Continuar con Google</button>
+<button class="g" type="button">Continuar con Google</button>
+</body>
+</html>

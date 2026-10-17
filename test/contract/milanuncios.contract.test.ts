@@ -26,10 +26,19 @@ const milanunciosAdContract = z.object({
 
 const SEARCH_URL = "https://www.milanuncios.com/coches-de-segunda-mano/";
 
+// The `combustible` tag's text as a live probe recorded it on 2026-10-13
+// (docs/specs/data-sources.md › Milanuncios › Response).
+const RECORDED_FUELS = ["gasolina", "diesel", "eléctrico", "híbrido"];
+
 describe("Milanuncios response contract", () => {
   it("SRC-15: the fixture satisfies the shape the normalizer depends on", () => {
     const { ads } = makeMilanunciosResponse([makeMilanunciosAd()]);
     expect(milanunciosAdContract.safeParse(ads[0]).success).toBe(true);
+  });
+
+  it("SRC-15: the fixture's fuel is one Milanuncios was recorded sending", () => {
+    const fuel = makeMilanunciosAd().tags?.find((tag) => tag.type === "combustible")?.text;
+    expect(RECORDED_FUELS).toContain(fuel);
   });
 
   it.runIf(process.env.CONTRACT_LIVE)(

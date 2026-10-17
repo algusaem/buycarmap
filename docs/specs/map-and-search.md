@@ -2,7 +2,7 @@
 
 Key: MAP
 Status: Implemented
-Last updated: 2026-10-09
+Last updated: 2026-10-13
 
 ---
 
@@ -43,26 +43,27 @@ MAP-24 was amended in and implemented test-first on 2026-10-09.
 - [x] MAP-12 · unit — Changing the brand clears the selected model, so the two cannot contradict each other
 - [x] MAP-13 · unit — A distance radius is sent only when the user has chosen a location
 - [x] MAP-14 · unit — The first search uses a country-wide fallback, re-runs once the browser reports the user's position, and does not override a location the user picked
-- [x] MAP-15 · component — A search returning nothing shows the empty state, and the list and the map always show the same set of listings
+- [x] MAP-15 · component — A search returning nothing shows the empty state, and the list and the map always show the same set of listings — the map shows them as price pins, listings at the same point sharing one pin, so the pins account for exactly the listings in the list (MAPUI-25), and the empty state offers a wider radius and «Quitar filtros» (MAPUI-31) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] MAP-16 · unit — When the user has chosen a location, no listing whose map position lies outside the chosen radius appears in the results, whatever its source
 - [x] MAP-17 · unit — When the user has chosen a location, a listing whose position could only be resolved to the country-centre fallback is excluded rather than placed at the country centre
-- [x] MAP-18 · unit — When a model is selected, a listing that names the chosen model neither in its model field nor in its title does not appear in the results
+- [x] MAP-18 · unit — When a model is selected, a listing that names the chosen model — ignoring case and accents — neither in its model field nor in its title does not appear in the results (amended 2026-10-14, ENTRY — redesign-entry.md, owner decision)
 - [x] MAP-19 · unit — When every listing on a fetched page is removed by the filters, the search keeps fetching until a page yields a listing or every source is exhausted — on the first search as well as on the sentinel
-- [x] MAP-20 · unit — While the location search is loading or has no results, no listbox is rendered: the combobox reports `aria-expanded="false"` with no `aria-controls`, and the loading or no-results text is announced through a polite status region that stays mounted. With results, `aria-controls="location-listbox"` and `aria-expanded="true"` point at the listbox of options. After the "Madrid" options show, typing more starts a new search: while it loads, no listbox is rendered (the previous options are not shown), `aria-expanded="false"`, and the status region reads "Loading…". While that new search loads, ArrowDown then Enter selects nothing — hidden options are not selectable. A response for an earlier query that arrives after a later query was typed is discarded: the listbox shows only the latest query's options, and while the latest search is pending it stays hidden. While options animate out — after a new query, Escape, a click outside, or a selection — they are no longer a listbox and cannot be selected; a click on a fading option selects nothing. A late response for "Madr" that arrives after the query was shortened to "M" is discarded: results stay empty and nothing is loading.
+- [x] MAP-20 · unit — While the location search is loading or has no results, no listbox is rendered: the combobox reports `aria-expanded="false"` with no `aria-controls`, and the loading or no-results text is announced through a polite status region that stays mounted. With results, `aria-controls="location-listbox"` and `aria-expanded="true"` point at the listbox of options. After the "Madrid" options show, typing more starts a new search: while it loads, no listbox is rendered (the previous options are not shown), `aria-expanded="false"`, and the status region reads "Loading…". While that new search loads, ArrowDown then Enter selects nothing — hidden options are not selectable. A response for an earlier query that arrives after a later query was typed is discarded: the listbox shows only the latest query's options, and while the latest search is pending it stays hidden. While options animate out — after a new query, Escape, a click outside, or a selection — they are no longer a listbox and cannot be selected; a click on a fading option selects nothing. A late response for "Madr" that arrives after the query was shortened to "M" is discarded: results stay empty and nothing is loading. — the combobox moves into the search pill's «Dónde» popover and the phone search sheet, where choosing a place applies it with the radius in force (MAPUI-3) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] MAP-21 · unit — If the map unmounts before the browser's geolocation resolves, the search is not repeated when it does.
 - [x] MAP-22 · unit — If the location search unmounts before its 400 ms debounce fires, no geocoding request is sent.
-- [x] MAP-23 · unit — Every map tile URL, dark and light, carries the CARTO Basemaps key from `NEXT_PUBLIC_CARTO_API_KEY` as the URL-encoded `key` query parameter; with no key configured the tile URLs carry no `key` parameter.
+- [x] MAP-23 · unit — Only the dark map tile URL remains (the light basemap and the theme that chose between them are gone), and it carries the CARTO Basemaps key from `NEXT_PUBLIC_CARTO_API_KEY` as the URL-encoded `key` query parameter; with no key configured the tile URL carries no `key` parameter. (amended 2026-10-12, LOOK — redesign-foundation.md)
 - [x] MAP-24 · unit — Within one search, a Wallapop `next_page` cursor that was already requested — the same cursor handed back again (c1 → c1) or an earlier one coming round again (c1 → c2 → c1) — is treated as Wallapop being exhausted: that round reports no next Wallapop cursor and `hasMore.Wallapop` false, the page that carried the repeat keeps its listings, and the other sources keep paging, so neither the first search nor the sentinel loops forever
-- [x] MAP-25 · unit — The map fits its viewport to the results when a search's first results arrive, and only then: appending the next page, or toggling a favourite, leaves the viewport where the user left it. A search whose first results are empty leaves the viewport alone.
+- [x] MAP-25 · unit — The map fits its viewport to the results when a search's first results arrive, and only then: appending the next page, or toggling a favourite, leaves the viewport where the user left it. A search whose first results are empty leaves the viewport alone. — on a phone the results sit in a sheet over a map that is always on screen, so there is no mobile map to open and fit (MAPUI-23) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] MAP-26 · unit — A next page that arrives after a newer search has committed its results is discarded: the newer search's list is not extended with it, and its next page continues the newer search, not the older one (issue #74).
 - [x] MAP-27 · unit — A search that carries coordinates but no `distanceInKm` is searched within 50 km of them — the radius the filter panel defaults to — so the radius post-filter (MAP-16) and every source's query respect it as if the caller had sent it; because `searchSchema` is where the interactive search (`server/search/actions.ts`) and the stored alert criteria (`server/alerts/schema.ts`'s `parseStoredCriteria`, `server/alerts/actions.ts`'s `createAlert`) alike parse their input, both get the default from one change. A search with no coordinates still sends no radius (MAP-13 unchanged) (issue #75; see also alerts.md ALERT-43/ALERT-44 and its open question 7).
 
 ## Worked examples
 
-- **MAP-7** — Locale es, all three sources 500 → the results list's inline error state reads "No se pudieron cargar los anuncios. Inténtalo de nuevo." with a Retry button (FRONT-14); latitude 999 → "Esos filtros de búsqueda no son válidos."
+- **MAP-7** — Locale es, all three sources 500 → the results list's inline error state reads "No hemos podido traer los anuncios. Suele ser cosa de un momento." with a "Reintentar" button (FRONT-14); latitude 999 → "Esos filtros de búsqueda no son válidos." (amended 2026-10-13, MAPUI — redesign-map.md)
 - **MAP-16** — Centre Madrid (40.4168, −3.7038), radius 100 km, each source one near and one far item (far Wallapop in Barcelona 41.3874, 2.1686) → exactly wallapop-wp-near, cochesnet-cn-near, milanuncios-mn-near.
 - **MAP-17** — Madrid, 100 km; coches.net Getafe cn-near plus coches.net and Milanuncios items with unresolvable "Villarriba" / province 99 (pinned at the Spain centre 40.0, −3.5, ~49 km away) → exactly ["cochesnet-cn-near"].
 - **MAP-18** — Brand "BMW", model "Serie 3", no location; coches.net cn-contradicts (model "Serie 5", title "BMW Serie 5 530d") and Milanuncios mn-diluted (title "BMW Serie 5 530d Luxury") among matches → exactly wallapop-wp-match, cochesnet-cn-match, milanuncios-mn-match.
+- **MAP-18** — Model «León» keeps the listings whose model or title is «Leon», «LEON», «león» or «SEAT León FR», and drops «Ibiza» (amended 2026-10-14, ENTRY — redesign-entry.md, owner decision).
 - **MAP-19** — Madrid, 100 km, only Wallapop answers; page 1 = one Barcelona item wp-bcn with next_page "page-2", page 2 = wp-madrid → pages requested ["first","page-2"], listings ["wallapop-wp-madrid"], isLoading false; both pages Barcelona-only → exactly 2 requests, listings [], hasMore false.
 - **MAP-24** — The bug this records (#72): Wallapop handing back a cursor already requested, on a page the filters empty, made the MAP-19 loop refetch it forever.
   - *One round, server side.* Cursors `{ wallapop: "c2", wallapopRequested: ["c1"], cochesNet: 2, milanuncios: 0 }`; Wallapop's "c2" page is wp-a with `next_page` "c1", coches.net and Milanuncios answering → the round's listings include `wallapop-wp-a`, its cursors are `{ wallapop: null, wallapopRequested: ["c1", "c2"], cochesNet: 3, milanuncios: 1 }`, `hasMore.Wallapop` false. The same round with Wallapop failing → `wallapop` "c2" and `wallapopRequested` ["c1"], unchanged.
@@ -136,7 +137,8 @@ The contracts are:
 
 - **`SearchInput`** (`lib/search/schema.ts`) — the one filter set all three
   sources translate from. Bounds worth keeping: latitude ±90, longitude ±180,
-  `distanceInKm` positive, `minYear` at least 1900, `timeFilter` one of
+  `distanceInKm` positive, `minYear` any whole year and `maxKm` any whole amount from 0 (owner
+  decision, 2026-10-13, [redesign-map.md](redesign-map.md) MAPUI-14), `timeFilter` one of
   `today` / `lastWeek` / `lastMonth`.
 - **`CarListing`** (`interfaces/listing.ts`) — what every source normalises to
   and what both the list and the map consume.
@@ -144,8 +146,10 @@ The contracts are:
   opaque `next_page` cursor, coches.net and Milanuncios use page numbers with a
   total. `PageState` tracks all three separately; "there is more" is the OR of
   them.
-- **The proxy routes** (`/api/*/search`) are the only way these APIs are
-  reachable — CORS and CloudFront block the browser directly.
+- **The server-side search.** The browser reaches these APIs only through the
+  `searchListings` and `listCarModels` Server Actions (`server/search/actions.ts`,
+  ADR 0016) — CORS and CloudFront block the browser directly. The search UI that
+  drives them is the search pill of [redesign-map.md](redesign-map.md).
 
 ## Decisions and rationale
 
@@ -234,11 +238,10 @@ default and will be "simplified away" by someone otherwise.
 ### Filters debounce, the search button does not
 
 Every filter change re-searches after 400 ms, so dragging a price range does not
-fire eight requests. The explicit search button bypasses the debounce and also
-collapses the filter panel — the user has finished choosing and the panel is
-covering the results they asked for. `update()` deliberately does not collapse
-the panel, because closing it under someone still adjusting filters would be
-hostile.
+fire eight requests. The explicit search button bypasses the debounce. Since F3
+the search is the pill of [redesign-map.md](redesign-map.md): on desktop «Buscar»
+re-searches at once and closes any open popover (MAPUI-12), and on a phone nothing
+applies until «Ver coches» (MAPUI-21).
 
 ### The radius is enforced at the merge, not upstream (MAP-16, MAP-17)
 
@@ -436,9 +439,10 @@ Consequences accepted deliberately:
   zooming out shows them.
 - **Toggling a favourite does not refit.** Favourites reconcile in `MapView` through `favoriteIds`,
   which only the cards receive; neither the listings nor the generation change.
-- **Opening the mobile map fits it.** `MobileMapOverlay` mounts a fresh `ListingsMap`, which fits
-  to every listing loaded so far on mount, as it does today. The desktop map is a separate
-  instance, so its viewport is not affected.
+- **The phone map is always on screen.** Since F3 the phone shows the results in a sheet over a
+  map that is always on screen ([redesign-map.md](redesign-map.md), MAPUI-23), so there is no
+  mobile map to open and refit. Until then `MobileMapOverlay` mounted a fresh `ListingsMap`,
+  which fitted to every listing loaded so far on mount.
 - **An empty first page does not fit**, as before: there are no bounds to fit to.
 
 Why `unit` is enough: with `react-leaflet` mocked (Leaflet cannot run in jsdom — `docs/ARCHITECTURE.md`

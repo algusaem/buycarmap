@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 import type { CarListing } from "@/interfaces/listing";
+import type { saveFavorite } from "@/server/favorites/actions";
 
 // A stored favorite: every CarListing field, snapshotted at save time (see
 // docs/specs/favorites.md › Decisions and rationale), plus the row's own identity and ordering.
@@ -8,27 +9,6 @@ export interface FavoriteRow extends CarListing {
   userId: string;
   listingId: string;
   createdAt: Date;
-}
-
-export function makeFavoriteInput(overrides: Partial<CarListing> = {}): CarListing {
-  return {
-    id: "wallapop-abc123",
-    image: "https://cdn.wallapop.com/img1-big.jpg",
-    title: "Audi A3 2.0 TDI",
-    subtitle: "Great condition",
-    price: 14500,
-    mileage: 95000,
-    year: 2018,
-    fuel: "gasoil",
-    brand: "Audi",
-    model: "A3",
-    location: "Madrid",
-    source: "Wallapop",
-    lat: 40.4168,
-    lng: -3.7038,
-    url: "https://es.wallapop.com/item/audi-a3-abc123",
-    ...overrides,
-  };
 }
 
 /**
@@ -122,4 +102,32 @@ export function createFavoriteStore(seed: FavoriteRow[] = []) {
       rows.push(toRow(userId, listing));
     },
   };
+}
+
+/** The Spanish copy the saved-cars tests press and read. */
+export const SAVED_COPY = {
+  removed: "Quitado de guardados",
+  undo: "Deshacer",
+  remove: "Quitar de guardados",
+  unexpected: "Algo ha salido mal. Inténtalo de nuevo.",
+} as const;
+
+/** What saveFavorite and removeFavorite resolve to. */
+export type FavoriteActionResult = Awaited<ReturnType<typeof saveFavorite>>;
+
+export const FAVORITE_OK: FavoriteActionResult = { ok: true, value: undefined };
+export const FAVORITE_UNAUTHENTICATED: FavoriteActionResult = {
+  ok: false,
+  error: { code: "unauthenticated", messageKey: "favoriteErrors.unauthenticated" },
+};
+export const FAVORITE_INVALID_LISTING: FavoriteActionResult = {
+  ok: false,
+  error: { code: "invalidListing", messageKey: "favoriteErrors.invalidListing" },
+};
+
+/** A request the server never answers, so a test can look at the page before it does. */
+export function unanswered(): Promise<FavoriteActionResult> {
+  return new Promise<FavoriteActionResult>(() => {
+    // Never settles.
+  });
 }

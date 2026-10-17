@@ -43,20 +43,18 @@ function skipWithoutBaseline(name: string) {
  * Two independent races, both found by reading the diff images rather than
  * guessing:
  *
- * 1. The navbar renders an animated placeholder while `useSession()` loads and
- *    only then swaps in the real links (the theme and language switchers
- *    likewise wait on `useMounted`). Screenshots caught whichever half had
- *    landed — the map diff was confined to the top-right corner.
+ * 1. The header renders animated skeletons while `useSession()` loads and
+ *    only then swaps in the real links (HEAD-11). Screenshots caught whichever
+ *    half had landed — the map diff was confined to the top-right corner.
  * 2. `next/font` loads Plus Jakarta Sans asynchronously. Until it arrives, text
  *    renders in the fallback face, and the glyph shapes differ. This only
  *    showed up once every project ran together and the machine was loaded
  *    enough to lose the race — the diff was the wordmark's letterforms.
  */
 async function waitForPageToSettle(page: Page) {
-  await page
-    .getByRole("navigation")
-    .getByRole("link", { name: /sign in|entrar/i })
-    .waitFor();
+  const header = page.getByTestId("header-desktop");
+  await header.waitFor();
+  await expect(header.locator('[data-slot="skeleton"]')).toHaveCount(0);
   await page.evaluate(() => document.fonts.ready);
 }
 

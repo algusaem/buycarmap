@@ -1,0 +1,64 @@
+<!-- @dsCard group="Filtros" height=560 subtitle="Buscador: cabecera del mapa, landing, móvil en el mapa y móvil en la landing" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>SearchPill</title>
+<link href="https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;flex-direction:column;gap:var(--space-6);align-items:flex-start}
+.pill{display:inline-flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-pill);padding:6px 6px 6px 8px}
+.seg{all:unset;cursor:pointer;padding:6px 22px;display:flex;flex-direction:column;border-right:1px solid var(--line);white-space:nowrap}
+.seg.price{border-right:0}
+.k{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.v{font-size:15px;font-weight:600}
+.v.empty{color:var(--text-muted)}
+.go{all:unset;cursor:pointer;width:46px;height:46px;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime);display:flex;align-items:center;justify-content:center}
+.pill.lg{padding:8px 8px 8px 10px}
+.pill.lg .seg{padding:6px 26px}
+.pill.lg .v{font-size:16px}
+.go.text{width:auto;height:54px;padding:0 24px;gap:7px;font-size:16px;font-weight:800}
+.mobile{display:flex;gap:var(--space-6);align-items:flex-start;flex-wrap:wrap}
+.map{width:390px;box-sizing:border-box;padding:20px 16px;background:var(--map-ground)}
+.row{all:unset;cursor:pointer;box-sizing:border-box;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-pill);padding:9px 9px 9px 18px;display:flex;align-items:center;gap:12px}
+.sum{flex:1;display:flex;flex-direction:column}
+.sum strong{font-size:14px}
+.sum span{font-size:12px;color:var(--text-muted)}
+.filters{width:38px;height:38px;border-radius:var(--radius-pill);background:var(--violet);color:var(--on-violet);display:flex;align-items:center;justify-content:center}
+.stack{width:350px;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sheet);padding:6px;display:flex;flex-direction:column}
+.stack .seg{border-right:0;padding:12px 16px}
+.stack .seg.where{border-bottom:1px solid var(--line)}
+.stack .v{font-size:16px}
+.go.block{width:auto;height:52px;font-size:16px;font-weight:800}
+.seg:focus-visible,.go:focus-visible,.row:focus-visible{outline:2px solid var(--lime);outline-offset:2px;border-radius:var(--radius-field)}
+</style>
+</head>
+<body>
+<form class="pill" role="search" onsubmit="event.preventDefault()">
+  <button class="seg" type="button"><span class="k">Dónde</span><span class="v">Madrid · 50 km</span></button>
+  <button class="seg" type="button"><span class="k">Coche</span><span class="v">Cualquier marca</span></button>
+  <button class="seg price" type="button"><span class="k">Precio</span><span class="v">Hasta 20.000 €</span></button>
+  <button class="go" type="submit" aria-label="Buscar"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+</form>
+<form class="pill lg" role="search" onsubmit="event.preventDefault()">
+  <button class="seg" type="button"><span class="k">Dónde</span><span class="v empty">Ciudad o código postal…</span></button>
+  <button class="seg" type="button"><span class="k">Coche</span><span class="v empty">Marca o modelo…</span></button>
+  <button class="seg price" type="button"><span class="k">Precio</span><span class="v empty">Cualquiera</span></button>
+  <button class="go text" type="submit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Buscar</button>
+</form>
+<div class="mobile">
+  <div class="map">
+    <button class="row" type="button" aria-label="Cambiar búsqueda: Madrid · 50 km, cualquier marca, hasta 20.000 €">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span class="sum"><strong>Madrid · 50 km</strong><span>Cualquier marca · hasta 20.000 €</span></span>
+      <span class="filters"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg></span>
+    </button>
+  </div>
+  <form class="stack" role="search" onsubmit="event.preventDefault()">
+    <button class="seg where" type="button"><span class="k">Dónde</span><span class="v empty">Ciudad o código postal…</span></button>
+    <button class="seg" type="button"><span class="k">Coche</span><span class="v empty">Marca o modelo…</span></button>
+    <button class="go block" type="submit">Buscar</button>
+  </form>
+</div>
+</body>
+</html>

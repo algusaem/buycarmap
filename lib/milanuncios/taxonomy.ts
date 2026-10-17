@@ -31,7 +31,7 @@ export function mapBrandToSlug(brand?: string): string {
   return `${slugify(brand)}-de-segunda-mano`;
 }
 
-// Wallapop fuel token (FUEL_OPTIONS value) -> Milanuncios `fuels` token.
+// Wallapop fuel token (lib/search/fuel-groups.ts's FUEL_GROUPS) -> Milanuncios `fuels` token.
 // Milanuncios has no plug-in-hybrid token, so it collapses into `hibrido`.
 const FUEL_TOKEN_TO_MILANUNCIOS: Record<string, string> = {
   gasoline: "gasolina",
@@ -41,9 +41,11 @@ const FUEL_TOKEN_TO_MILANUNCIOS: Record<string, string> = {
   hybride_plugin: "hibrido",
 };
 
-// Wallapop transmission token (TRANSMISSION_OPTIONS value) -> Milanuncios
-// `cajacambio` token. Milanuncios only distinguishes manual/automatic, so
-// semi-automatic maps to automatic.
+// Wallapop transmission token -> Milanuncios `cajacambio` token. The tokens
+// the UI offers are lib/search/panel.ts's OFFERED_GEARBOXES; `semiautomatic`
+// is a value the UI no longer offers but old links still carry
+// (docs/specs/redesign-map.md, MAPUI-18). Milanuncios only distinguishes
+// manual/automatic, so semi-automatic maps to automatic.
 const TRANSMISSION_TOKEN_TO_MILANUNCIOS: Record<string, string> = {
   manual: "manual",
   automatic: "automatico",

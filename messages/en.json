@@ -1,149 +1,151 @@
 {
   "common": {
     "search": "Search",
-    "popular": "Popular:",
-    "or": "or"
+    "popular": "Popular",
+    "or": "or",
+    "close": "Close",
+    "closeToast": "Close notice"
   },
   "hero": {
-    "title": "Find your next car",
-    "titleHighlight": "on the map",
-    "subtitle": "Search thousands of second-hand cars from Wallapop, Milanuncios, Coches.net and more — all in one place, visualized on an interactive map.",
-    "searchPlaceholder": "Search make, model, or location...",
-    "exploreMap": "Explore the map",
-    "signInToSave": "Sign in to save searches",
-    "stats": {
-      "listings": "Active listings",
-      "platforms": "Platforms",
-      "free": "Free to use"
-    }
+    "title": "Looking for a car?",
+    "titleHighlight": "Check the map",
+    "subtitle": "One site, every second-hand listing, no fifty tabs.",
+    "exploreMap": "Explore the map"
   },
   "auth": {
-    "welcomeBack": "Welcome back",
-    "signInDescription": "Sign in to access your saved searches and favorites",
     "email": "Email",
-    "emailPlaceholder": "you@example.com",
+    "emailPlaceholder": "you@email.com",
     "password": "Password",
-    "forgotPassword": "Forgot password?",
+    "forgotPassword": "Forgot it?",
     "signIn": "Sign in",
-    "signingIn": "Signing in...",
-    "noAccount": "Don't have an account?",
+    "noAccount": "No account?",
     "createOne": "Create one",
     "continueWithGoogle": "Continue with Google",
-    "continueWithGithub": "Continue with GitHub",
     "invalidCredentials": "Invalid email or password",
     "createAccount": "Create an account",
-    "signUpDescription": "Sign up to save your searches and track car listings",
-    "name": "Name",
-    "namePlaceholder": "Your name (optional)",
     "confirmPassword": "Confirm password",
-    "passwordPlaceholder": "Enter your password",
-    "confirmPasswordPlaceholder": "Confirm your password",
+    "passwordPlaceholder": "Your password",
+    "confirmPasswordPlaceholder": "Once more, just in case",
     "signUp": "Sign up",
-    "creatingAccount": "Creating account...",
     "alreadyHaveAccount": "Already have an account?",
-    "registrationFailed": "Registration failed. Please try again.",
     "accountCreated": "Account created successfully!",
-    "legalNotice": "By signing in, you agree to our",
-    "terms": "Terms",
-    "and": "and",
-    "privacyPolicy": "Privacy Policy",
-    "brandTagline": "Find your next car on the map",
-    "return": "Return"
+    "legalNotice": "By creating an account you accept the <terms>Terms</terms> and the <privacy>Privacy policy</privacy>.",
+    "headline": "Like a car?",
+    "headlineHighlight": "Save it",
+    "tagline": "Alerts are free — sign up and we take care of the rest.",
+    "signInLink": "Sign in",
+    "registerHeadline": "No account yet?",
+    "registerHeadlineHighlight": "Get one"
   },
   "forgotPassword": {
-    "title": "Reset your password",
-    "description": "Enter the email linked to your account and we'll send you a link to choose a new password.",
+    "title": "Recover your password",
+    "description": "Enter your email and we’ll send you a link to choose another password.",
     "submit": "Send reset link",
-    "submitting": "Sending…",
     "backToLogin": "Back to sign in",
     "successTitle": "Check your email",
-    "successDescription": "If an account matches that email, a link to reset your password is on its way. It may take a few minutes to arrive.",
-    "genericError": "Something went wrong. Please try again."
+    "successDescription": "If an account matches that email, a link arrives in a few minutes. Check your spam folder too.",
+    "headline": "Forgot it?",
+    "headlineHighlight": "Happens to everyone",
+    "successHeadline": "All done?",
+    "successHeadlineHighlight": "Check your inbox"
   },
   "verifyEmail": {
     "pendingTitle": "Check your email",
-    "pendingDescription": "If that address can be used for a new account, we've sent a link to confirm it. The link expires in 24 hours.",
+    "pendingDescription": "If that address can be used for a new account, a link to confirm it is on its way. It expires in 24 hours. Check your spam folder too.",
     "title": "Confirm your account",
-    "description": "One last step — confirm you own this address to finish creating your account.",
     "submit": "Confirm my account",
-    "submitting": "Confirming…",
-    "success": "Account created. You can sign in now.",
     "successTitle": "You're all set",
-    "successDescription": "Your account is ready. Sign in to get started.",
+    "successDescription": "Your account is ready. Sign in and save the first one you like.",
     "signIn": "Go to sign in",
     "invalidTitle": "This link is no longer valid",
-    "invalidDescription": "Confirmation links expire after 24 hours and can only be used once. Sign up again to get a new one.",
+    "invalidDescription": "Confirmation links last 24 hours and work only once. Sign up again and we’ll send you another.",
     "backToRegister": "Back to sign up",
-    "resend": "Didn't get it? Send it again",
-    "resending": "Sending…",
-    "resent": "Sent. Check your inbox again in a minute."
+    "resend": "Resend the email",
+    "resent": "Sent. Check your inbox again in a minute",
+    "pendingHeadline": "All done?",
+    "pendingHeadlineHighlight": "Check your inbox",
+    "headline": "Is it you?",
+    "headlineHighlight": "Confirm it",
+    "line": "One last step: confirm this email is yours and your account is ready.",
+    "hint": "Press the button to finish creating your account.",
+    "successHeadline": "Ready?",
+    "successHeadlineHighlight": "Go find a car",
+    "invalidHeadline": "Link expired?",
+    "invalidHeadlineHighlight": "Sign up again"
   },
   "confirmEmail": {
-    "title": "Confirm your email address",
-    "description": "Confirm this address to finish the change.",
+    "title": "Confirm your email",
     "submit": "Confirm this address",
-    "submitting": "Confirming…",
     "successTitle": "Email confirmed",
     "successDescription": "Your email address is verified and up to date.",
     "backToAccount": "Back to your account",
     "invalidTitle": "This link is no longer valid",
-    "invalidDescription": "Confirmation links expire after 24 hours and can only be used once. Request a new one from your account settings."
+    "invalidDescription": "Links last 24 hours and work only once. Ask for another from your account.",
+    "headline": "Is this your new email?",
+    "headlineHighlight": "Confirm it",
+    "line": "One last step: confirm this email is yours and the change is done.",
+    "hint": "Confirm this address to finish the change.",
+    "successHeadline": "Done?",
+    "successHeadlineHighlight": "Email changed",
+    "invalidHeadline": "Link expired?",
+    "invalidHeadlineHighlight": "Ask for another"
   },
   "resetPassword": {
-    "title": "Choose a new password",
-    "description": "Pick a password you don't use anywhere else.",
+    "title": "New password",
+    "description": "One you don’t use anywhere else. The meter tells you if it holds up.",
     "newPassword": "New password",
-    "newPasswordPlaceholder": "Enter a new password",
     "confirmPassword": "Confirm password",
-    "confirmPasswordPlaceholder": "Confirm your new password",
+    "confirmPasswordPlaceholder": "Once more, just in case",
     "submit": "Update password",
-    "submitting": "Updating…",
     "success": "Password updated. You can sign in now.",
     "invalidTitle": "This link is no longer valid",
-    "invalidDescription": "Reset links expire after an hour and can only be used once. Request a new one to continue.",
+    "invalidDescription": "Links last an hour and work only once. Ask for a new one and you’re set.",
     "requestNewLink": "Request a new link",
-    "backToLogin": "Back to sign in"
+    "backToLogin": "Back to sign in",
+    "headline": "New password?",
+    "headlineHighlight": "Make it a fresh one",
+    "invalidHeadline": "Link expired?",
+    "invalidHeadlineHighlight": "Ask for another"
   },
   "account": {
     "title": "Account",
-    "description": "Manage your profile and security settings.",
-    "backToMap": "Back to the map",
+    "description": "Your data, your rules. Change whatever you like, whenever you like.",
+    "descriptionShort": "Your data, your rules.",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "summary": {
+      "line": "<b>{saved, plural, one {# saved} other {# saved}}</b> · <b>{alerts, plural, one {# alert} other {# alerts}}</b> · on BuyCarMap since {month}"
+    },
     "profile": {
-      "title": "Profile",
-      "description": "How your name appears across BuyCarMap.",
+      "changeCta": "Change name",
       "name": "Name",
       "namePlaceholder": "Your name",
-      "email": "Email",
-      "emailHint": "Your email address cannot be changed.",
       "submit": "Save changes",
-      "submitting": "Saving…",
-      "success": "Profile updated."
+      "success": "Profile updated"
     },
     "email": {
-      "title": "Email address",
-      "description": "The address you sign in with and receive notices at.",
-      "current": "Current address",
+      "title": "Email",
+      "line": "<address>{email}</address>. You sign in with it and your alerts arrive there.",
+      "lineLocked": "<address>{email}</address>. Your email address can’t be changed.",
       "verified": "Verified",
       "unverified": "Not verified",
       "verifyCta": "Send verification email",
-      "verifying": "Sending…",
-      "verifySent": "Verification email sent. Check your inbox.",
+      "verifySent": "Verification email sent. Check your inbox",
       "newEmail": "New email address",
       "newEmailPlaceholder": "new@example.com",
       "currentPassword": "Current password",
-      "currentPasswordPlaceholder": "Enter your current password",
       "submit": "Change email",
-      "submitting": "Sending…",
       "submitted": "If that address is available, we've sent it a confirmation link. The change takes effect once you click it.",
       "notice": "We'll send a link to the new address. Your email only changes once you confirm it there."
     },
     "twoFactor": {
-      "title": "Two-factor authentication",
-      "description": "Require a code from your phone in addition to your password.",
+      "title": "Two-factor",
+      "line": "A code from your phone on top of your password, with Google Authenticator or similar.",
       "enabled": "On",
       "disabled": "Off",
-      "enableCta": "Set up two-factor",
-      "starting": "Preparing…",
+      "enableCta": "Turn on",
+      "manageCta": "Manage",
+      "setupCta": "Set up two-factor",
       "scanTitle": "Scan this with your authenticator app",
       "scanDescription": "Use Google Authenticator, 1Password, Authy or any other TOTP app.",
       "manualLabel": "Can't scan? Enter this key manually",
@@ -152,84 +154,74 @@
       "codePlaceholder": "123456",
       "recoveryHint": "Lost your phone? Enter one of your recovery codes instead.",
       "confirm": "Turn on two-factor",
-      "confirming": "Verifying…",
-      "cancel": "Cancel",
-      "enabledToast": "Two-factor authentication is on.",
+      "enabledToast": "Two-factor authentication is on",
       "recoveryTitle": "Save your recovery codes",
       "recoveryDescription": "Each code works once, and gets you in if you lose your phone.",
       "recoveryWarning": "This is the only time they're shown. Store them somewhere safe before continuing.",
       "copyCodes": "Copy codes",
-      "copied": "Copied to clipboard.",
+      "copied": "Copied to clipboard",
       "copyFailed": "Couldn't copy automatically. Select the codes above and copy them by hand.",
       "recoveryDone": "I've saved them",
       "regenerateCta": "Generate new recovery codes",
-      "regenerating": "Generating…",
       "regenerateHint": "Replaces your existing codes. The old ones stop working immediately.",
       "disableCta": "Turn off two-factor",
-      "disabling": "Turning off…",
       "disableHint": "Needs your password and a current code, so a stolen session alone can't undo it.",
-      "disabledToast": "Two-factor authentication is off.",
-      "currentPassword": "Your password",
-      "currentPasswordPlaceholder": "Enter your password"
+      "disabledToast": "Two-factor authentication is off",
+      "currentPassword": "Your password"
     },
     "sessions": {
-      "title": "Active sessions",
-      "description": "Signed in somewhere you no longer use?",
-      "submit": "Sign out everywhere",
-      "submitting": "Signing out…",
-      "warning": "This signs you out on every device, including this one. You'll need to sign in again.",
-      "listTitle": "Devices signed in",
-      "loading": "Loading your sessions…",
-      "loadError": "Could not load your sessions.",
-      "empty": "No active sessions found.",
+      "title": "Sessions",
+      "open": "{count, plural, one {# open} other {# open}}",
+      "thisDevice": "{device}, this one",
+      "otherDevice": "{device}, {when}",
+      "line": "{first}{second, select, none {} other {. {second}}}{more, plural, =0 {} other {, and # more}}.",
       "current": "This device",
       "unknownDevice": "Unknown device",
+      "device": "{browser} on {os}",
       "signOutSession": "Sign out",
-      "signingOutSession": "Signing out…",
-      "signOutOthers": "Sign out of all other sessions",
-      "signingOutOthers": "Signing out…",
-      "signedOutOthers": "Signed out of every other session."
+      "signOutSessionNamed": "Sign out of {device}",
+      "signOutOthers": "Sign out the others",
+      "signedOutOthers": "Signed out of every other session",
+      "warning": "This signs you out on every device, including this one. You'll need to sign in again.",
+      "submit": "Sign out everywhere",
+      "loadError": "Could not load your sessions."
     },
     "export": {
       "title": "Your data",
-      "description": "Download a copy of everything BuyCarMap stores about you as a JSON file: your profile, sign-in methods, sessions, saved cars and alerts.",
+      "description": "Your profile, your sessions, your saved cars and your alerts, in a JSON file.",
       "submit": "Download my data"
     },
     "providers": {
-      "title": "Connected accounts",
-      "description": "Services you can use to sign in.",
+      "title": "Google",
+      "connected": "Connected",
+      "line": "You can also sign in with Google.",
       "none": "No connected accounts.",
       "unlink": "Disconnect",
-      "unlinking": "Disconnecting…",
-      "unlinked": "Account disconnected.",
-      "lastMethodHint": "This is your only way to sign in. Set a password before disconnecting it."
+      "unlinked": "Account disconnected",
+      "lastMethodHint": "It’s your only way to sign in."
     },
     "security": {
       "title": "Password",
-      "description": "Change the password you use to sign in.",
+      "line": "The one you use to sign in with your email.",
+      "changeCta": "Change password",
       "currentPassword": "Current password",
-      "currentPasswordPlaceholder": "Enter your current password",
       "newPassword": "New password",
-      "newPasswordPlaceholder": "Enter a new password",
-      "confirmPassword": "Confirm new password",
-      "confirmPasswordPlaceholder": "Confirm your new password",
-      "submit": "Update password",
-      "submitting": "Updating…",
-      "success": "Password updated.",
+      "confirmPassword": "Repeat the password",
+      "confirmPasswordPlaceholder": "Once more, just in case",
+      "submit": "Save password",
+      "success": "Password updated",
       "signOutNotice": "Changing your password signs you out everywhere else. This device stays signed in."
     },
     "danger": {
       "title": "Delete account",
-      "description": "Permanently delete your account and all of its data.",
-      "warning": "This cannot be undone. Your account, saved searches and history will be deleted immediately.",
+      "line": "Deletes your account, your saved cars and your alerts for good. There’s no going back.",
+      "question": "Delete your account?",
       "confirmLabel": "Type DELETE to confirm",
       "confirmHint": "Type DELETE in capitals to enable the button.",
       "confirmWord": "DELETE",
       "password": "Your password",
-      "passwordPlaceholder": "Enter your password",
       "submit": "Delete my account",
-      "submitting": "Deleting…",
-      "success": "Your account has been deleted."
+      "success": "Your account has been deleted"
     }
   },
   "authErrors": {
@@ -253,21 +245,21 @@
     "oauthLinkBlocked": "An account with this email already exists. Sign in with your email and password.",
     "alreadyVerified": "Your email address is already verified",
     "sameEmail": "That is already your email address",
-    "lastSignInMethod": "That's your only way to sign in. Set a password before disconnecting it.",
+    "lastSignInMethod": "You can’t disconnect it: it’s your only way to sign in.",
     "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
     "unauthorized": "You need to sign in to do that",
     "conflict": "This changed in another tab or device. Reload the page to see the current version.",
     "generic": "Something went wrong. Please try again."
   },
   "passwordStrength": {
-    "label": "Password strength",
+    "label": "Strength: <strong>{level}</strong>",
     "hint": "Three or four unrelated words make a password that is both strong and easy to remember.",
     "scores": {
-      "veryWeak": "Very weak",
-      "weak": "Weak",
-      "fair": "Fair",
-      "good": "Good",
-      "strong": "Strong"
+      "veryWeak": "very weak",
+      "weak": "weak",
+      "fair": "fair",
+      "good": "good",
+      "strong": "strong"
     },
     "issues": {
       "tooShort": "Too short — use at least 12 characters",
@@ -279,7 +271,7 @@
     }
   },
   "legal": {
-    "backToHome": "Back to home",
+    "onThisPage": "On this page",
     "lastUpdated": "Last updated",
     "terms": {
       "title": "Terms of Service",
@@ -287,34 +279,42 @@
       "intro": "These terms govern your use of BuyCarMap. By accessing or using the service, you agree to them. Please read them carefully.",
       "sections": [
         {
+          "id": "service",
           "heading": "About the service",
           "body": "BuyCarMap aggregates second-hand car listings published on third-party platforms such as Wallapop, coches.net and Milanuncios, and shows them together on an interactive map. We are a search and comparison tool: we do not sell vehicles, hold listings, or take part in any transaction between buyers and sellers."
         },
         {
+          "id": "account",
           "heading": "Your account",
           "body": "You may browse without an account. If you create one, you are responsible for keeping your credentials secure and for all activity under your account. Provide accurate information and notify us of any unauthorized use."
         },
         {
+          "id": "acceptable-use",
           "heading": "Acceptable use",
           "body": "Use BuyCarMap only for lawful, personal, non-commercial purposes. Do not attempt to scrape, overload, reverse-engineer, or disrupt the service, and do not use it to infringe the rights of others."
         },
         {
+          "id": "listings",
           "heading": "Third-party listings",
           "body": "Listing details — price, mileage, photos, availability and seller information — originate from the source platforms and are shown as provided. We do not verify them and cannot guarantee their accuracy, completeness, or that a vehicle is still available. Always confirm details directly with the seller before acting."
         },
         {
+          "id": "warranty",
           "heading": "No warranty",
           "body": "The service is provided “as is” and “as available”, without warranties of any kind. We do not guarantee that BuyCarMap will be uninterrupted, error-free, or that results will meet your requirements."
         },
         {
+          "id": "liability",
           "heading": "Limitation of liability",
           "body": "To the fullest extent permitted by law, BuyCarMap is not liable for any loss arising from your use of the service or from any transaction with a seller found through it, including the purchase of a vehicle."
         },
         {
+          "id": "changes",
           "heading": "Changes to these terms",
           "body": "We may update these terms as the service evolves. Material changes will be reflected by the “last updated” date above, and continued use of BuyCarMap means you accept the revised terms."
         },
         {
+          "id": "contact",
           "heading": "Contact",
           "body": "Questions about these terms? Reach us at hello@buycarmap.com."
         }
@@ -322,38 +322,46 @@
     },
     "privacy": {
       "title": "Privacy Policy",
-      "updated": "11 October 2026",
+      "updated": "14 October 2026",
       "intro": "This policy explains what data BuyCarMap collects, why, and what you can do about it. We aim to collect as little as possible.",
       "sections": [
         {
+          "id": "collection",
           "heading": "Information we collect",
-          "body": "If you create an account, we store your email address, an optional display name, and a securely hashed password — never the password itself. If you sign in with Google or GitHub, we store the identifier of that account, the sign-in tokens it issues and the address of your profile picture. If you turn on two-factor authentication, we store its secret in encrypted form. We also store the listings you save as favourites, the alerts you create with their search criteria (including any location you chose), your language so emails reach you in it, and, for each signed-in session, the IP address and browser it came from, so you can see and end your sessions from your account page. We do not keep a history of your searches. To protect the service from abuse, we process your IP address and, when you sign in or ask for a password reset, your email address."
+          "body": "If you create an account, we store your email address, an optional display name, and a securely hashed password — never the password itself. If you sign in with Google, we store the identifier of that account, the sign-in tokens it issues and the address of your profile picture. If you turn on two-factor authentication, we store its secret in encrypted form. We also store the listings you save as favourites, the alerts you create with their search criteria (including any location you chose), your language so emails reach you in it, and, for each signed-in session, the IP address and browser it came from, so you can see and end your sessions from your account page. We do not keep a history of your searches. To protect the service from abuse, we process your IP address and, when you sign in or ask for a password reset, your email address."
         },
         {
+          "id": "use",
           "heading": "How we use your data",
           "body": "We use your data to provide the service: to authenticate you, keep you signed in, keep your favourites and alerts, send you account and alert emails, protect the service from abuse, and improve how BuyCarMap works. We do not sell your personal data."
         },
         {
+          "id": "location",
           "heading": "Location",
           "body": "To centre the map on you, we may ask your browser for your location. It is used to centre the map and to search near you, so our server sends its coordinates to Wallapop with your search. It is never stored on our servers unless you save it as part of an alert. You can decline, and we fall back to the centre of Spain."
         },
         {
+          "id": "cookies",
           "heading": "Cookies",
-          "body": "We use only the cookies the app needs to work: one that keeps you signed in; while you sign in, a short-lived one for the two-factor step (10 minutes) or for signing in with Google or GitHub (5 minutes); and two that remember your language and your time zone for one year. Your theme choice is kept in your browser's local storage, not in a cookie. We do not use advertising or analytics cookies."
+          "body": "We use only the cookies the app needs to work: one that keeps you signed in; while you sign in, a short-lived one for the two-factor step (10 minutes) or for signing in with Google (5 minutes); and two that remember your language and your time zone for one year. We do not use advertising or analytics cookies."
         },
         {
+          "id": "third-parties",
           "heading": "Third-party services",
-          "body": "We rely on these external providers, and each receives only what it needs: Neon (database hosting) stores everything we keep; Vercel (hosting) receives every request, including your IP address; Resend (email delivery) receives your email address and the content of the emails we send you; Google and GitHub (sign-in) receive your sign-in request, only if you choose to sign in with them; Have I Been Pwned (leaked-password check) receives the first five characters of a one-way hash of a new password, never the password itself; Upstash (abuse protection) receives your IP address and a one-way hash of your email address, kept for at most one hour; Sentry (error reports) receives technical details of errors, without cookies, your IP address or your account details; OpenStreetMap / Nominatim (place search) receives the place you type, straight from your browser; CARTO (map tiles) receives tile requests straight from your browser, which show the area you are viewing; Wallapop (listings) receives your search filters and the coordinates of the search: the location you chose, your browser's position, or the centre of Spain; coches.net and Milanuncios (listings) receive your search filters. Our server sends the requests to Wallapop, coches.net and Milanuncios, so they see its address, not yours. Their handling of any data is governed by their own privacy policies."
+          "body": "We rely on these external providers, and each receives only what it needs: Neon (database hosting) stores everything we keep; Vercel (hosting) receives every request, including your IP address; Resend (email delivery) receives your email address and the content of the emails we send you; Google (sign-in) receives your sign-in request, only if you choose to sign in with Google; Have I Been Pwned (leaked-password check) receives the first five characters of a one-way hash of a new password, never the password itself; Upstash (abuse protection) receives your IP address and a one-way hash of your email address, kept for at most one hour; Sentry (error reports) receives technical details of errors, without cookies, your IP address or your account details; OpenStreetMap / Nominatim (place search) receives the place you type, straight from your browser; CARTO (map tiles) receives tile requests straight from your browser, which show the area you are viewing; Wallapop (listings) receives your search filters and the coordinates of the search: the location you chose, your browser's position, or the centre of Spain; coches.net and Milanuncios (listings) receive your search filters. Our server sends the requests to Wallapop, coches.net and Milanuncios, so they see its address, not yours. Their handling of any data is governed by their own privacy policies."
         },
         {
+          "id": "retention",
           "heading": "Data retention",
           "body": "We keep your account data, favourites and alerts for as long as your account is active. A favourite or alert you remove is erased 30 days later. When you delete your account, its data is removed at once, except the search criteria of an alert that another user's alert also uses: those are kept, no longer linked to you, until no alert uses them. Unconfirmed sign-ups, password-reset and confirmation links, and abuse-protection records are deleted after they expire."
         },
         {
+          "id": "rights",
           "heading": "Your rights",
           "body": "You can request access to, correction of, or deletion of your personal data at any time. Depending on where you live, you may have additional rights under laws such as the GDPR."
         },
         {
+          "id": "contact",
           "heading": "Contact",
           "body": "For any privacy question or request, contact us at privacy@buycarmap.com."
         }
@@ -361,37 +369,140 @@
     }
   },
   "map": {
-    "searching": "Searching…",
-    "emptyState": "Search for cars to see results",
     "loading": "Loading…",
     "filters": "Filters",
-    "backToHome": "Back to home",
-    "closeMap": "Close map",
-    "addFavorite": "Add to favorites",
-    "removeFavorite": "Remove from favorites",
-    "unknownTitle": "Unknown",
-    "searchFailed": "Could not load listings. Please try again.",
-    "loadMoreFailed": "Could not load more listings.",
-    "invalidSearch": "Those search filters are not valid.",
-    "markerLabel": "{title}, {price}"
+    "addFavorite": "Save",
+    "removeFavorite": "Remove from saved",
+    "markerLabel": "{title}, {price}",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "viewListing": "View listing",
+    "preview": "Car preview",
+    "closePreview": "Close preview",
+    "pinGroup": "{count} cars · from {price}",
+    "sheetHandle": "Results list"
+  },
+  "search": {
+    "where": "Where",
+    "car": "Car",
+    "price": "Price",
+    "wherePlaceholder": "City or postcode…",
+    "whereLabel": "City or postcode",
+    "places": "Places",
+    "carPlaceholder": "Make or model…",
+    "carLabel": "Make or model",
+    "carOptions": "Makes and models",
+    "modelOf": "{brand} model…",
+    "modelOfLabel": "{brand} model",
+    "priceAny": "Any",
+    "allSpain": "All of Spain",
+    "anyBrand": "Any make",
+    "anyPrice": "Any price",
+    "radius": "Radius",
+    "radiusOption": "{km} km",
+    "brands": "Makes",
+    "models": "Models",
+    "results": "{count, plural, one {# result} other {# results}}",
+    "submit": "Search",
+    "sheetTitle": "SEARCH",
+    "filtersTitle": "FILTERS",
+    "clear": "Clear",
+    "clearText": "Clear text",
+    "showCars": "Show cars",
+    "close": "Close",
+    "closeFilters": "Close filters",
+    "remove": "Remove {label}",
+    "brandModel": "{brand} {model}",
+    "placeRadius": "{place} · {km} km",
+    "priceUpTo": "Up to {price}",
+    "priceFrom": "From {price}",
+    "summaryUpTo": "up to {price}",
+    "summaryFrom": "from {price}",
+    "priceMin": "Minimum",
+    "priceMax": "Maximum",
+    "priceMinSlider": "Minimum price",
+    "priceMaxSlider": "Maximum price",
+    "priceCurrency": "€",
+    "noBrand": "No make by that name",
+    "noPlace": "No place by that name",
+    "placeSearchDown": "The place search is not responding. Try again."
+  },
+  "mapStates": {
+    "loading": "Finding cars…",
+    "headingLoading": "FINDING CARS…",
+    "headingNone": "NO CARS",
+    "headingError": "CARS",
+    "headingCount": "{count, plural, one {# CAR} other {# CARS}}",
+    "headingMore": "{count, plural, one {MORE THAN # CAR} other {MORE THAN # CARS}}",
+    "emptyTitle": "Nothing here?",
+    "emptyWiden": "Widen the radius",
+    "emptyRemove": "Remove a filter",
+    "emptyLineRadius": "No cars match these filters within {km} km. Try further out or remove a filter.",
+    "emptyLine": "No cars match these filters. Try removing one.",
+    "emptyLineNoFilters": "No cars within {km} km.",
+    "widenTo": "Widen to {km} km",
+    "widenAllSpain": "All of Spain",
+    "clearFilters": "Remove filters",
+    "statusNoneRadius": "No cars within {km} km",
+    "statusNone": "No cars match these filters",
+    "errorTitle": "Is something down?",
+    "errorRetry": "Try again",
+    "errorLine": "We couldn't fetch the listings. It's usually back in a moment.",
+    "retry": "Retry",
+    "statusError": "Can't reach the listings",
+    "pageErrorLine": "The map didn't load. Try again later."
+  },
+  "createAlert": {
+    "open": "Create alert",
+    "title": "CREATE ALERT",
+    "name": "Name",
+    "submit": "Create alert",
+    "cancel": "Cancel",
+    "tooBroad": "Add a make, a maximum price or an area to create the alert.",
+    "nameRequired": "Give the alert a name.",
+    "networkError": "We couldn't create the alert. Try again.",
+    "created": "Alert created",
+    "alreadyExisted": "You already have this alert",
+    "viewAlerts": "View alerts"
   },
   "favorites": {
-    "title": "Saved cars",
-    "subtitle": "Prices are from the day you saved them.",
-    "empty": "You have not saved any cars yet.",
-    "emptyCta": "Search for cars"
+    "title": "Saved",
+    "emptyCta": "Search for cars",
+    "sortRecent": "Recent",
+    "sortPrice": "Price",
+    "sortKm": "Mileage",
+    "mapLabel": "Map of your saved cars",
+    "mapTitle": "Your saved cars on the map",
+    "mapEmpty": "Your saved cars will show here",
+    "emptyTitle": "Nothing yet?",
+    "emptyPunchline": "Save one",
+    "emptyLine": "Tap the heart on any car and it will show up here, with that day’s price.",
+    "emptyLinePhone": "Tap the heart on any car and it will show up here.",
+    "removed": "Removed from saved",
+    "undo": "Undo"
   },
   "alerts": {
     "title": "Alerts",
-    "subtitle": "We check every few minutes and email you when a new match appears.",
-    "empty": "You have no alerts yet.",
+    "subtitle": "You snooze, you lose: save it and we'll let you know.",
     "emptyCta": "Search for cars",
     "create": "Alert me about new matches",
     "delete": "Delete alert",
-    "matchCount": "matches found",
+    "matchCount": "{count, plural, =0 {No matches} one {# match} other {# matches}}",
     "inactive": "Paused",
-    "noMatchesYet": "Watching — nothing new yet.",
-    "backToAlerts": "Back to alerts",
+    "newAlert": "New alert",
+    "viewAllMatches": "View all {count, number} matches",
+    "createdOn": "Created on {date}",
+    "deleteShort": "Delete",
+    "deleteConfirmNamed": "Delete “{name}”?",
+    "cancel": "Cancel",
+    "mapLabel": "Alert map",
+    "mapEmpty": "Each alert's area will show here",
+    "zoneLabel": "Alert area",
+    "emptyTitle": "No alerts?",
+    "emptyPunchline": "Create one",
+    "emptyLine": "Search the map for what you want, click “Create alert” and we'll write when something turns up.",
+    "emptyLinePhone": "Search the map, tap “Create alert” and we'll let you know.",
+    "noMatchesYet": "We'll let you know as soon as a matching car turns up.",
     "unsubscribed": "Alert paused",
     "unsubscribedBody": "You will not receive any more emails about this search. Your other alerts are unaffected.",
     "email": {
@@ -401,8 +512,7 @@
       "viewAll": "View all matches",
       "unsubscribe": "Stop these emails",
       "footer": "You are receiving this because you set up an alert on BuyCarMap."
-    },
-    "foundAt": "Found {time}"
+    }
   },
   "alertErrors": {
     "unauthenticated": "Please sign in to manage alerts.",
@@ -412,15 +522,16 @@
     "unexpected": "Something went wrong. Please try again."
   },
   "favoriteErrors": {
-    "unauthenticated": "Please sign in to save favorites.",
+    "unauthenticated": "Sign in to save cars.",
     "invalidListing": "That listing could not be saved."
   },
   "localeErrors": {
     "invalidLocale": "That language is not supported."
   },
-  "theme": {
-    "dark": "Dark",
-    "light": "Light"
+  "footer": {
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "illustrations": "Illustrations by {storyset}"
   },
   "password": {
     "show": "Show password",
@@ -429,71 +540,65 @@
   "filters": {
     "fuelType": "Fuel type",
     "transmission": "Transmission",
-    "brand": "Brand",
-    "model": "Model",
-    "loadingModels": "Loading…",
     "price": "Price",
-    "minPrice": "Min €",
-    "maxPrice": "Max €",
-    "mileage": "Mileage",
-    "minKm": "Min km",
-    "maxKm": "Max km",
-    "year": "Year",
-    "minYear": "From",
-    "maxYear": "To",
-    "horsePower": "Horsepower",
-    "minHp": "Min HP",
-    "maxHp": "Max HP",
+    "maxKm": "Mileage, up to",
+    "year": "Year, from",
     "listed": "Listed",
-    "any": "Any",
-    "clearFilters": "Clear filters",
-    "fuelTypes": {
-      "gasoline": "Gasoline",
-      "gasoil": "Diesel",
-      "electricHybrid": "Electric/Hybrid",
-      "hybrid": "Hybrid",
-      "hybridPlugin": "Plug-in Hybrid",
-      "lpg": "LPG",
-      "cng": "CNG"
-    },
     "transmissions": {
       "manual": "Manual",
-      "automatic": "Automatic",
-      "semiautomatic": "Semi-automatic"
+      "automatic": "Automatic"
     },
-    "timeFilters": {
-      "today": "Today",
+    "fuelGroups": {
+      "gasoline": "Petrol",
+      "gasoil": "Diesel",
+      "hybrid": "Hybrid",
+      "electric": "Electric",
+      "lpg": "LPG"
+    },
+    "gearboxAll": "Any",
+    "listedChoices": {
+      "any": "Any time",
+      "today": "Last 24 h",
       "lastWeek": "Last week",
       "lastMonth": "Last month"
     },
-    "location": "Location",
-    "locationPlaceholder": "City or address…",
-    "distance": "Distance",
-    "noResults": "No locations found",
-    "distanceOptions": {
-      "km10": "10 km",
-      "km25": "25 km",
-      "km50": "50 km",
-      "km100": "100 km",
-      "km200": "200 km"
-    }
+    "kmAndYear": "Mileage and year",
+    "maxKmPlaceholder": "100,000…",
+    "maxKmSuffix": "km",
+    "minYearPlaceholder": "2017…",
+    "maxKmChip": "Up to {km}",
+    "minYearChip": "From {year}",
+    "brandAndModel": "Make and model"
   },
   "nav": {
     "signIn": "Sign in",
-    "signUp": "Sign up",
     "signOut": "Sign out",
     "account": "Account",
-    "favorites": "Saved cars",
-    "menu": "Menu",
-    "closeMenu": "Close menu"
+    "map": "Map",
+    "saved": "Saved",
+    "alerts": "Alerts",
+    "backToMap": "Back to map",
+    "back": "Back",
+    "language": "Language",
+    "main": "Main",
+    "createAccount": "Create account",
+    "localeEs": "Spanish",
+    "localeEn": "English"
   },
   "meta": {
     "title": "Buy Car Map",
     "description": "Car buying map to find the best deals near you"
   },
   "errors": {
-    "pageLoadFailed": "We could not load this page. Please try again.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "pageTitle": "Did something break?",
+    "pagePunchline": "It's not your fault",
+    "pageLine": "This page didn’t load. Try again and, if it keeps happening, go back to the map."
+  },
+  "notFound": {
+    "question": "Lost your way?",
+    "punchline": "This doesn’t exist",
+    "line": "This address doesn’t lead to any page. Head back to the map and keep looking."
   },
   "transactionalEmail": {
     "passwordReset": {

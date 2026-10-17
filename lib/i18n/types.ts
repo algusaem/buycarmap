@@ -1,4 +1,8 @@
+import type { useTranslations } from "next-intl";
+
 interface LegalSection {
+  /** The section's anchor: the same in every locale, never built from the heading (PAGES-74). */
+  id: string;
   heading: string;
   body: string;
 }
@@ -15,72 +19,57 @@ export interface Translations {
     search: string;
     popular: string;
     or: string;
+    close: string;
+    closeToast: string;
   };
   hero: {
     title: string;
     titleHighlight: string;
     subtitle: string;
-    searchPlaceholder: string;
     exploreMap: string;
-    signInToSave: string;
-    stats: {
-      listings: string;
-      platforms: string;
-      free: string;
-    };
   };
   auth: {
-    welcomeBack: string;
-    signInDescription: string;
     email: string;
     emailPlaceholder: string;
     password: string;
     forgotPassword: string;
     signIn: string;
-    signingIn: string;
     noAccount: string;
     createOne: string;
     continueWithGoogle: string;
-    continueWithGithub: string;
     invalidCredentials: string;
     createAccount: string;
-    signUpDescription: string;
-    name: string;
-    namePlaceholder: string;
     confirmPassword: string;
     passwordPlaceholder: string;
     confirmPasswordPlaceholder: string;
     signUp: string;
-    creatingAccount: string;
     alreadyHaveAccount: string;
-    registrationFailed: string;
     accountCreated: string;
     legalNotice: string;
-    terms: string;
-    and: string;
-    privacyPolicy: string;
-    brandTagline: string;
-    return: string;
+    headline: string;
+    headlineHighlight: string;
+    tagline: string;
+    signInLink: string;
+    registerHeadline: string;
+    registerHeadlineHighlight: string;
   };
   forgotPassword: {
     title: string;
     description: string;
     submit: string;
-    submitting: string;
     backToLogin: string;
     successTitle: string;
     successDescription: string;
-    genericError: string;
+    headline: string;
+    headlineHighlight: string;
+    successHeadline: string;
+    successHeadlineHighlight: string;
   };
   verifyEmail: {
-    // Shown on /register after submitting, for taken and free addresses alike.
     pendingTitle: string;
     pendingDescription: string;
     title: string;
-    description: string;
     submit: string;
-    submitting: string;
-    success: string;
     successTitle: string;
     successDescription: string;
     signIn: string;
@@ -88,83 +77,93 @@ export interface Translations {
     invalidDescription: string;
     backToRegister: string;
     resend: string;
-    resending: string;
     resent: string;
+    pendingHeadline: string;
+    pendingHeadlineHighlight: string;
+    headline: string;
+    headlineHighlight: string;
+    line: string;
+    hint: string;
+    successHeadline: string;
+    successHeadlineHighlight: string;
+    invalidHeadline: string;
+    invalidHeadlineHighlight: string;
   };
   confirmEmail: {
     title: string;
-    description: string;
     submit: string;
-    submitting: string;
     successTitle: string;
     successDescription: string;
     backToAccount: string;
     invalidTitle: string;
     invalidDescription: string;
+    headline: string;
+    headlineHighlight: string;
+    line: string;
+    hint: string;
+    successHeadline: string;
+    successHeadlineHighlight: string;
+    invalidHeadline: string;
+    invalidHeadlineHighlight: string;
   };
   resetPassword: {
     title: string;
     description: string;
     newPassword: string;
-    newPasswordPlaceholder: string;
     confirmPassword: string;
     confirmPasswordPlaceholder: string;
     submit: string;
-    submitting: string;
     success: string;
     invalidTitle: string;
     invalidDescription: string;
     requestNewLink: string;
     backToLogin: string;
+    headline: string;
+    headlineHighlight: string;
+    invalidHeadline: string;
+    invalidHeadlineHighlight: string;
   };
   account: {
     title: string;
     description: string;
-    backToMap: string;
+    descriptionShort: string;
+    cancel: string;
+    loading: string;
+    summary: {
+      saved: string;
+      alerts: string;
+      since: string;
+    };
     profile: {
-      title: string;
-      description: string;
+      changeCta: string;
       name: string;
       namePlaceholder: string;
-      email: string;
-      emailHint: string;
       submit: string;
-      submitting: string;
       success: string;
     };
     email: {
       title: string;
-      description: string;
-      current: string;
+      line: string;
+      lineLocked: string;
       verified: string;
       unverified: string;
       verifyCta: string;
-      verifying: string;
       verifySent: string;
       newEmail: string;
       newEmailPlaceholder: string;
       currentPassword: string;
-      currentPasswordPlaceholder: string;
       submit: string;
-      submitting: string;
       submitted: string;
       notice: string;
     };
-    sessions: {
-      title: string;
-      description: string;
-      submit: string;
-      submitting: string;
-      warning: string;
-    };
     twoFactor: {
       title: string;
-      description: string;
+      line: string;
       enabled: string;
       disabled: string;
-      unavailable: string;
       enableCta: string;
-      starting: string;
+      manageCta: string;
+      setupCta: string;
       scanTitle: string;
       scanDescription: string;
       manualLabel: string;
@@ -173,8 +172,6 @@ export interface Translations {
       codePlaceholder: string;
       recoveryHint: string;
       confirm: string;
-      confirming: string;
-      cancel: string;
       enabledToast: string;
       recoveryTitle: string;
       recoveryDescription: string;
@@ -184,50 +181,64 @@ export interface Translations {
       copyFailed: string;
       recoveryDone: string;
       regenerateCta: string;
-      regenerating: string;
       regenerateHint: string;
       disableCta: string;
-      disabling: string;
       disableHint: string;
       disabledToast: string;
       currentPassword: string;
-      currentPasswordPlaceholder: string;
+    };
+    sessions: {
+      title: string;
+      open: string;
+      thisDevice: string;
+      otherDevice: string;
+      line: string;
+      current: string;
+      unknownDevice: string;
+      device: string;
+      signOutSession: string;
+      signOutSessionNamed: string;
+      signOutOthers: string;
+      signedOutOthers: string;
+      warning: string;
+      submit: string;
+      loadError: string;
+    };
+    export: {
+      title: string;
+      description: string;
+      submit: string;
     };
     providers: {
       title: string;
-      description: string;
+      connected: string;
+      line: string;
       none: string;
       unlink: string;
-      unlinking: string;
       unlinked: string;
       lastMethodHint: string;
     };
     security: {
       title: string;
-      description: string;
+      line: string;
+      changeCta: string;
       currentPassword: string;
-      currentPasswordPlaceholder: string;
       newPassword: string;
-      newPasswordPlaceholder: string;
       confirmPassword: string;
       confirmPasswordPlaceholder: string;
       submit: string;
-      submitting: string;
       success: string;
       signOutNotice: string;
     };
     danger: {
       title: string;
-      description: string;
-      warning: string;
+      line: string;
+      question: string;
       confirmLabel: string;
       confirmHint: string;
-      /** The word the user must type to arm the delete button, per locale. */
       confirmWord: string;
       password: string;
-      passwordPlaceholder: string;
       submit: string;
-      submitting: string;
       success: string;
     };
   };
@@ -280,42 +291,147 @@ export interface Translations {
     };
   };
   legal: {
-    backToHome: string;
+    onThisPage: string;
     lastUpdated: string;
     terms: LegalDocument;
     privacy: LegalDocument;
   };
   map: {
-    searching: string;
-    emptyState: string;
     loading: string;
     filters: string;
-    backToHome: string;
-    closeMap: string;
     addFavorite: string;
     removeFavorite: string;
-    unknownTitle: string;
-    searchFailed: string;
-    loadMoreFailed: string;
-    invalidSearch: string;
+    markerLabel: string;
+    zoomIn: string;
+    zoomOut: string;
+    viewListing: string;
+    preview: string;
+    closePreview: string;
+    pinGroup: string;
+    sheetHandle: string;
+  };
+  // docs/specs/redesign-map.md › Contracts › i18n keys (MAPUI).
+  search: {
+    where: string;
+    car: string;
+    price: string;
+    wherePlaceholder: string;
+    whereLabel: string;
+    places: string;
+    carPlaceholder: string;
+    carLabel: string;
+    carOptions: string;
+    modelOf: string;
+    modelOfLabel: string;
+    priceAny: string;
+    allSpain: string;
+    anyBrand: string;
+    anyPrice: string;
+    radius: string;
+    radiusOption: string;
+    brands: string;
+    models: string;
+    results: string;
+    submit: string;
+    sheetTitle: string;
+    filtersTitle: string;
+    clear: string;
+    clearText: string;
+    showCars: string;
+    close: string;
+    closeFilters: string;
+    remove: string;
+    brandModel: string;
+    placeRadius: string;
+    priceUpTo: string;
+    priceFrom: string;
+    summaryUpTo: string;
+    summaryFrom: string;
+    priceMin: string;
+    priceMax: string;
+    priceMinSlider: string;
+    priceMaxSlider: string;
+    priceCurrency: string;
+    noBrand: string;
+    noPlace: string;
+    placeSearchDown: string;
+  };
+  mapStates: {
+    loading: string;
+    headingLoading: string;
+    headingNone: string;
+    headingError: string;
+    headingCount: string;
+    headingMore: string;
+    emptyTitle: string;
+    emptyWiden: string;
+    emptyRemove: string;
+    emptyLineRadius: string;
+    emptyLine: string;
+    emptyLineNoFilters: string;
+    widenTo: string;
+    widenAllSpain: string;
+    clearFilters: string;
+    statusNoneRadius: string;
+    statusNone: string;
+    errorTitle: string;
+    errorRetry: string;
+    errorLine: string;
+    retry: string;
+    statusError: string;
+    pageErrorLine: string;
+  };
+  createAlert: {
+    open: string;
+    title: string;
+    name: string;
+    submit: string;
+    cancel: string;
+    tooBroad: string;
+    nameRequired: string;
+    networkError: string;
+    created: string;
+    alreadyExisted: string;
+    viewAlerts: string;
   };
   favorites: {
     title: string;
-    subtitle: string;
-    empty: string;
     emptyCta: string;
+    sortRecent: string;
+    sortPrice: string;
+    sortKm: string;
+    mapLabel: string;
+    mapTitle: string;
+    mapEmpty: string;
+    emptyTitle: string;
+    emptyPunchline: string;
+    emptyLine: string;
+    emptyLinePhone: string;
+    removed: string;
+    undo: string;
   };
   alerts: {
     title: string;
     subtitle: string;
-    empty: string;
     emptyCta: string;
     create: string;
     delete: string;
     matchCount: string;
     inactive: string;
+    newAlert: string;
+    viewAllMatches: string;
+    createdOn: string;
+    deleteShort: string;
+    deleteConfirmNamed: string;
+    cancel: string;
+    mapLabel: string;
+    mapEmpty: string;
+    zoneLabel: string;
+    emptyTitle: string;
+    emptyPunchline: string;
+    emptyLine: string;
+    emptyLinePhone: string;
     noMatchesYet: string;
-    backToAlerts: string;
     unsubscribed: string;
     unsubscribedBody: string;
     email: {
@@ -346,9 +462,10 @@ export interface Translations {
   localeErrors: {
     invalidLocale: string;
   };
-  theme: {
-    dark: string;
-    light: string;
+  footer: {
+    privacy: string;
+    terms: string;
+    illustrations: string;
   };
   password: {
     show: string;
@@ -357,72 +474,71 @@ export interface Translations {
   filters: {
     fuelType: string;
     transmission: string;
-    brand: string;
-    model: string;
-    loadingModels: string;
     price: string;
-    minPrice: string;
-    maxPrice: string;
-    mileage: string;
-    minKm: string;
     maxKm: string;
     year: string;
-    minYear: string;
-    maxYear: string;
-    horsePower: string;
-    minHp: string;
-    maxHp: string;
     listed: string;
-    any: string;
-    clearFilters: string;
-    fuelTypes: {
-      gasoline: string;
-      gasoil: string;
-      electricHybrid: string;
-      hybrid: string;
-      hybridPlugin: string;
-      lpg: string;
-      cng: string;
-    };
     transmissions: {
       manual: string;
       automatic: string;
-      semiautomatic: string;
     };
-    timeFilters: {
+    fuelGroups: {
+      gasoline: string;
+      gasoil: string;
+      hybrid: string;
+      electric: string;
+      lpg: string;
+    };
+    gearboxAll: string;
+    listedChoices: {
+      any: string;
       today: string;
       lastWeek: string;
       lastMonth: string;
     };
-    location: string;
-    locationPlaceholder: string;
-    distance: string;
-    noResults: string;
-    distanceOptions: {
-      km10: string;
-      km25: string;
-      km50: string;
-      km100: string;
-      km200: string;
-    };
+    kmAndYear: string;
+    maxKmPlaceholder: string;
+    maxKmSuffix: string;
+    minYearPlaceholder: string;
+    maxKmChip: string;
+    minYearChip: string;
+    brandAndModel: string;
   };
   nav: {
     signIn: string;
-    signUp: string;
     signOut: string;
     account: string;
-    favorites: string;
-    menu: string;
-    closeMenu: string;
+    map: string;
+    saved: string;
+    alerts: string;
+    backToMap: string;
+    back: string;
+    language: string;
+    main: string;
+    createAccount: string;
+    localeEs: string;
+    localeEn: string;
   };
   meta: {
     title: string;
     description: string;
   };
-  // Shown by components/ui/RouteError.tsx, the shared error.tsx boundary for
-  // /favorites, /alerts and /alerts/[id] (PLAT-14, docs/specs/core-platform.md).
+  // `pageTitle`, `pagePunchline`, `retry` and `pageLine` are the page-error
+  // state's (components/ui/PageError.tsx), on /favorites (SAVED-32), /alerts
+  // and /alerts/[id] (ALERTUI-42), and /map, which gives its own line (MAPUI-34).
   errors: {
-    pageLoadFailed: string;
     retry: string;
+    pageTitle: string;
+    pagePunchline: string;
+    pageLine: string;
+  };
+  // The not-found page's headline and line (docs/specs/redesign-pages.md, PAGES-65).
+  notFound: {
+    question: string;
+    punchline: string;
+    line: string;
   };
 }
+
+/** next-intl's translate function, as a component hands it to its own helpers. */
+export type Translate = ReturnType<typeof useTranslations>;

@@ -2,7 +2,7 @@
 
 Key: ALERT
 Status: Implemented
-Last updated: 2026-10-11
+Last updated: 2026-10-15
 
 ---
 
@@ -39,7 +39,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-4 · node — A caller with no session cannot create, list or delete an alert, and nothing is written
 - [x] ALERT-5 · node — A user cannot delete or deactivate an alert belonging to a different user
 - [x] ALERT-6 · node — Criteria that fail `searchSchema` are rejected with an error code and nothing is written
-- [x] ALERT-7 · node — Saving criteria the user has already saved reports success and leaves exactly one alert
+- [x] ALERT-7 · node — Saving criteria the user has already saved reports success and leaves exactly one alert — and reports that it already existed (MAPUI-43); an alert with those criteria that was paused from the email or soft-deleted is reactivated with the new name and reported as created, and a live one is reported even at the per-user cap (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] ALERT-8 · node — Creating an alert beyond the per-user cap is rejected with a distinct error code, and the existing alerts are untouched
 - [x] ALERT-9 · node — A request to the run endpoint without the shared secret is refused, and enqueues and processes nothing
 - [x] ALERT-10 · node — A run enqueues every active criteria set last polled longer ago than the poll interval, and skips those polled more recently
@@ -58,10 +58,10 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-23 · node — A match already notified is not emailed again on any later run
 - [x] ALERT-24 · node — When the send fails, the match stays un-notified and is retried on the next run rather than being lost
 - [x] ALERT-25 · node — With email unconfigured, matches are still recorded and the run reports that nothing was sent, rather than silently succeeding
-- [x] ALERT-26 · node — Following the unsubscribe link in an email deactivates exactly that alert, with no session required
+- [x] ALERT-26 · node — Following the unsubscribe link in an email deactivates exactly that alert, with no session required — saving the same search again from the map reactivates it with the new name (MAPUI-43) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] ALERT-27 · node — An unsubscribe link with an unknown, malformed or already-used token changes nothing and reports the same response as a valid one
-- [x] ALERT-28 · component — The alerts page lists the user's alerts with a readable summary of the criteria and how many matches each has found
-- [x] ALERT-29 · component — With no alerts saved, the page shows an empty state offering a route to create one from a search
+- [x] ALERT-28 · component — The alerts page lists the user's alerts with a readable summary of the criteria and how many matches each has found — the list is the AlertCard: its criteria are ALERTUI-5's (car, fuels, price, gearbox, «Hasta N km», «Desde AAAA», then the zone with its stored place name), folded on one line or as chips on the open card, and the count reads «Sin coincidencias», «1 coincidencia» or «N coincidencias» (ALERTUI-6, ALERTUI-7, ALERTUI-9, ALERTUI-28) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
+- [x] ALERT-29 · component — With no alerts saved, the page shows an empty state offering a route to create one from a search — «¿Sin alertas?» over «Crea una», its line and «Buscar coches» to `/map`, with the map's pill «Aquí verás la zona de cada alerta» at desktop width (ALERTUI-40) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
 - [x] ALERT-30 · node — Visiting the alerts page without a session redirects to sign-in, carrying the intended path
 - [x] ALERT-31 · node — A run reports the age of the oldest un-polled criteria set, so a lap exceeding the freshness target is observable rather than silent
 - [x] ALERT-32 · node — The email is written in the locale stored on the user, falling back to the default when none is stored
@@ -71,18 +71,18 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-36 · node — When the criteria count would exceed the ceiling, the interval stretches by the same factor for every criteria set, so none is polled preferentially
 - [x] ALERT-37 · node — A run reports the interval in force, so a stretched cadence is visible rather than inferred from the lap age
 - [x] ALERT-38 · node — Criteria naming no brand, no maximum price and no location are rejected with a distinct error code, and nothing is written
-- [x] ALERT-39 · component — Selecting an alert lists what it has found, newest first, rendered from stored snapshots with no request to any source API
-- [x] ALERT-40 · component — An alert that has found nothing shows an empty state explaining it is watching, not a blank list
+- [x] ALERT-39 · component — Selecting an alert lists what it has found, newest first, rendered from stored snapshots with no request to any source API — at desktop width the open AlertCard on `/alerts` shows the four newest and «Ver las N coincidencias» beyond four, and `/alerts/[id]` shows every match, as Guardados cards on desktop and compact rows on the phone, each with its saved state read from the user's favorites (ALERTUI-7, ALERTUI-18, ALERTUI-20, ALERTUI-22) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
+- [x] ALERT-40 · component — An alert that has found nothing shows an empty state explaining it is watching, not a blank list — «Sin coincidencias» over «Te avisaremos en cuanto salga un coche que encaje.» on `/alerts/[id]` and on the open AlertCard (ALERTUI-41) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
 - [x] ALERT-41 · node — A criteria set whose subscribers are all inactive is not enqueued, and stops consuming upstream requests
 - [x] ALERT-42 · node — Deleting the last alert that references a criteria set stops it being polled at once (DATA-10); the criteria set and its seen-list are deleted when the last alert referencing it is purged (DATA-12, 30 days after deletion), so a restored alert keeps its seen-list
-- [x] ALERT-43 · node — A poll, and the seed poll of a new alert, apply the same post-filter as the map search (MAP-16, MAP-17, MAP-18): when the criteria name a location, a listing outside the radius or pinned at the country-centre fallback, and when they name a model, a listing naming that model in neither its model field nor its title, produces no match, is never emailed, and is not recorded as seen
+- [x] ALERT-43 · node — A poll, and the seed poll of a new alert, apply the same post-filter as the map search (MAP-16, MAP-17, MAP-18, MAPUI-55), by radius, model and fuel: when the criteria name a location, a listing outside the radius or pinned at the country-centre fallback, when they name a model, a listing naming that model in neither its model field nor its title, and when they name a fuel, a listing whose fuel is unknown or of another fuel group, produces no match, is never emailed, and is not recorded as seen (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] ALERT-44 · node — A poll whose listings are all removed by the post-filter requests no further page from any source, records no match, and still records each source's pre-filter result count for source health (ALERT-20)
 - [x] ALERT-45 · node — Deleting an account deletes, in the same transaction as the user row, every criteria set its alerts referenced — active, inactive or soft-deleted — that no alert references any more, together with its seen-list; a criteria set still referenced by another user's alert, inactive or soft-deleted included, is kept
 - [x] ALERT-46 · node — Creating an alert's criteria record and its alert row commit together or not at all; a failure between them leaves no orphaned criteria row, so the save can be retried and the seed poll still runs
 - [x] ALERT-47 · node — A poll's matches, seen-list update, `lastPolledAt` and job removal commit together in one transaction opened only after every source has answered; source health is recorded before it, outside the transaction
 - [x] ALERT-48 · node — A poll job left `running` by a worker that died is claimed again once its lease is older than ten minutes: the lost run counts as one failed attempt, and the next drain polls the job as it would a pending one, or marks it failed if that attempt exhausts the retry budget (ALERT-19); a job whose lease is ten minutes old or newer is left to the worker holding it
 - [x] ALERT-49 · node — Two users saving the same new criteria at the same moment both get their alert: the criteria set is stored once, both alerts reference it, and its seen-list is seeded by exactly one seed poll ([#95](https://github.com/algusaem/buycarmap/issues/95))
-- [x] ALERT-50 · component — Switching language from either switcher (the language buttons and the navbar menu) writes the `locale` cookie and calls `setLocale` with the new language, so a signed-in user's stored locale follows the switch (ALERT-33) and a signed-out visitor's stays cookie-only; the switch still happens when `setLocale` fails ([#45](https://github.com/algusaem/buycarmap/issues/45))
+- [x] ALERT-50 · component — Switching language from the header's language control writes the `locale` cookie and calls `setLocale` with the new language, so a signed-in user's stored locale follows the switch (ALERT-33) and a signed-out visitor's stays cookie-only; the switch still happens when `setLocale` fails ([#45](https://github.com/algusaem/buycarmap/issues/45)) (amended 2026-10-12, HEAD — redesign-navigation.md)
 
 Fifty criteria: forty-two on the server boundary, five on rendering, one on
 the email template, two on real Postgres. Twelve cover the management surface, thirteen
@@ -133,7 +133,7 @@ subscribe.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
+| `id` | `String @id @default(cuid())` | Amended 2026-10-15 (ALERTUI — redesign-alerts.md): `String @id @default(uuid(7)) @db.Uuid` today (`prisma/schema.prisma`) |
 | `criteriaHash` | `String @unique` | SHA-256 of the canonicalised `SearchInput` — keys sorted, `undefined` dropped, arrays sorted, so equivalent filters hash alike |
 | `criteria` | `Json` | The `SearchInput` itself, re-validated with `searchSchema` on read; never trusted as typed |
 | `lastPolledAt` | `DateTime?` | Null until the first successful poll. Drives ALERT-10 and ALERT-14 |
@@ -143,12 +143,14 @@ subscribe.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
+| `id` | `String @id @default(cuid())` | Amended 2026-10-15 (ALERTUI — redesign-alerts.md): `String @id @default(uuid(7)) @db.Uuid` today (`prisma/schema.prisma`) |
 | `userId` | `String` | Indexed; cascade on user delete |
 | `criteriaId` | `String` | Indexed; cascade |
 | `label` | `String` | Human summary shown on the alerts page (ALERT-28) |
 | `active` | `Boolean @default(true)` | Unsubscribe flips this rather than deleting, so the seen-set survives a re-subscribe |
 | `unsubscribeTokenHash` | `String @unique` | SHA-256; the raw token exists only in the email |
+| `unsubscribeSubject` | `String` | The HMAC subject the unsubscribe token is derived from (`server/alerts/unsubscribe-token.ts`): the alert's own id at creation, kept when the id changes so links already sent keep working (`docs/specs/core-data-model.md`). Added 2026-10-15 (ALERTUI — redesign-alerts.md): the table lacked it |
+| `placeName` | `String?` | The place the user chose in «Dónde» when creating the alert, shown as the alert's zone; null before F6, with no place, or when none was sent. Never on `AlertCriteria` nor in its hash. Added 2026-10-15 (ALERTUI-46, redesign-alerts.md) |
 | `createdAt` | `DateTime @default(now())` | |
 
 Constraints: `@@unique([userId, criteriaId])` makes ALERT-7 true in the database
@@ -160,7 +162,7 @@ delivery row.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
+| `id` | `String @id @default(cuid())` | Amended 2026-10-15 (ALERTUI — redesign-alerts.md): `String @id @default(uuid(7)) @db.Uuid` today (`prisma/schema.prisma`) |
 | `criteriaId` | `String` | Cascade |
 | `listingId` | `String` | The normalized source-prefixed id — `wallapop-abc123`, already unique across sources |
 | `source` | `String` | Which source produced it, so ALERT-17 can update per source |
@@ -177,7 +179,7 @@ and the other fourteen are copied.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
+| `id` | `String @id @default(cuid())` | Amended 2026-10-15 (ALERTUI — redesign-alerts.md): `String @id @default(uuid(7)) @db.Uuid` today (`prisma/schema.prisma`) |
 | `alertId` | `String` | Indexed; cascade |
 | `listingId` | `String` | Normalized id |
 | `source`, `title`, `subtitle`, `image`, `brand`, `model`, `location`, `fuel`, `url` | `String` | Snapshot. `subtitle`, `image` and `fuel` may be empty strings, matching `CarListing` |
@@ -194,7 +196,7 @@ appended, which is what makes ALERT-11 a unique constraint instead of a check.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `id` | `String @id @default(cuid())` | |
+| `id` | `String @id @default(cuid())` | Amended 2026-10-15 (ALERTUI — redesign-alerts.md): `String @id @default(uuid(7)) @db.Uuid` today (`prisma/schema.prisma`) |
 | `criteriaId` | `String @unique` | One live job per criteria set |
 | `status` | `String` | `pending` · `running` · `failed` |
 | `attempts` | `Int @default(0)` | ALERT-18, ALERT-19 |
@@ -262,7 +264,7 @@ Routing). Signed-out visitors cannot have alerts (see Out of scope).
 - ALERT-38 — criteria naming no brand, no maximum price and no location.
 - ALERT-40 — an alert that has found nothing.
 - ALERT-41 — a criteria set whose subscribers are all inactive.
-- ALERT-43 — a listing outside the radius, at the country-centre fallback, or not naming the chosen model.
+- ALERT-43 — a listing outside the radius, at the country-centre fallback, not naming the chosen model, or whose fuel is unknown or another than the chosen one.
 - ALERT-44 — a poll whose listings are all removed by the post-filter.
 - ALERT-45 — deleting an account whose criteria set another user still watches, or that only an inactive or soft-deleted alert references.
 - A new listing ranked beyond the first page — see Decisions › "New" cannot mean "published recently", so it means "not seen before".
@@ -301,6 +303,15 @@ URL with `new URL(BASE_URL, window.location.origin)`, and the other two do the
 same: they call the proxy routes from the browser, which is the whole point of
 those routes existing. A cron has no `window` and no origin to resolve against.
 
+> **Amended 2026-10-15 (ALERTUI — [redesign-alerts.md](redesign-alerts.md)).** The
+> paragraph above no longer holds: there are no browser-bound fetchers or proxy
+> routes left to resolve against `window.location.origin`. `server/alerts/search.ts`
+> polls through `searchRound` in `server/search/service.ts`, the one server-side
+> fan-out it shares with the interactive search, reusing the pure query builders of
+> `lib/*/client.ts` ([ADR 0016](../decisions/0016-server-search-and-next-intl.md);
+> FRONT-6). Only the alert-specific overrides stay in `server/alerts/search.ts`, and
+> the result shape below is unchanged.
+
 So `server/alerts/search.ts` exports `searchAllSources(criteria)`, which calls the
 three upstreams directly — the same requests `app/api/*/route.ts` forwards, with
 the same required headers — and returns more than a merged list:
@@ -323,8 +334,8 @@ never new again. **ALERT-20** needs `perSourceCounts`, because after merging,
 are indistinguishable, which is precisely the silent-death failure that criterion
 exists to catch.
 
-Both fields describe what each source returned, **before** the radius and model
-post-filter of ALERT-43 is applied to the listings. A narrow radius routinely
+Both fields describe what each source returned, **before** the radius, model
+and fuel post-filter of ALERT-43 is applied to the listings. A narrow radius routinely
 filters a nationwide coches.net or Milanuncios page down to nothing; counting
 after the filter would read that as the source being empty and mark it
 unhealthy (ALERT-44).
@@ -398,8 +409,8 @@ interface RunSummary {
 `getCurrentUser()` first, Zod `safeParse`, typed `{ success, error?: Code }`
 where the error is a **code**:
 
-- `createAlert(criteria, label)` — ALERT-1, ALERT-2, ALERT-3, ALERT-4, ALERT-6, ALERT-7, ALERT-8, ALERT-34
-- `listAlertsForPage()` in `server/alerts/queries.ts` — ALERT-4, ALERT-28
+- `createAlert(criteria, label)` — ALERT-1, ALERT-2, ALERT-3, ALERT-4, ALERT-6, ALERT-7, ALERT-8, ALERT-34 — amended 2026-10-15 (ALERTUI — redesign-alerts.md): `createAlert(criteria, label, placeName?)`, the place name stored on the alert only (ALERTUI-46, ALERTUI-47)
+- `listAlertsForPage()` in `server/alerts/queries.ts` — ALERT-4, ALERT-28 — amended 2026-10-15 (ALERTUI — redesign-alerts.md): it takes the requested open alert and also returns that alert's matches (ALERTUI-44)
 - `deleteAlert(alertId)` — ALERT-4, ALERT-5
 - `deleteAccount(formData)` in `server/account/actions.ts` — ALERT-45, the release of the account's criteria sets
 - `setLocale(locale)` — ALERT-33, in `server/locale/actions.ts`. It no-ops for
@@ -427,7 +438,7 @@ ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
 
 | Name | Value | Why |
 | --- | --- | --- |
-| Base poll interval | 5 min | GitHub's cron floor |
+| Base poll interval | 5 min | GitHub's cron floor — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period, `*/5 * * * *` (Scheduling, below) |
 | Upstream request ceiling | 60 req/min | The budget the cadence stretches to respect (ALERT-35, ALERT-36). Unmeasured — see the third open question |
 | Effective interval | `max(base, criteria × 3 ÷ ceiling)` | Uniform across every criteria set |
 | Worker slice | 25 criteria sets | Bounded so ALERT-12 holds inside the Vercel invocation timeout |
@@ -461,7 +472,10 @@ it actually governs.
 All new keys in `en.ts`, `es.ts` and `types.ts`: the alerts page title, the
 criteria summary, the empty state and its call to action, the create-alert
 control, the four error codes in `lib/i18n/errors.ts`, and the unsubscribe
-confirmation page.
+confirmation page. — Amended 2026-10-15 (ALERTUI — redesign-alerts.md): the
+messages are `messages/en.json` and `messages/es.json`, typed by
+`lib/i18n/types.ts`; the alerts pages' keys are listed in redesign-alerts.md ›
+Contracts.
 
 The email body resolves through `getTranslationsSync(locale)` with the locale
 read from `User.locale` — the one path that cannot use `getTranslations()`,
@@ -503,6 +517,14 @@ what stops a match count linking nowhere.
 > touched an existing job, so a worker killed while holding a job left it
 > `running` for ever and its criteria set was never polled again. See "A stale
 > lease is reclaimed, and counts as a failed attempt" below.
+
+> **Amended 2026-10-15: ALERT-28, ALERT-29, ALERT-39 and ALERT-40, by the F6
+> redesign ([redesign-alerts.md](redesign-alerts.md), ALERTUI).** The alerts
+> pages take the AlertCard, the alert map with its zone, the alert's page on
+> desktop and phone, and their new states; an alert stores the place name it
+> was created with (`Alert.placeName`). The same change corrects facts this
+> spec had gone stale on: the ids, the `Alert` table's `unsubscribeSubject`,
+> the message files, the scheduler and the runner's path to the upstreams.
 
 ### "New" cannot mean "published recently", so it means "not seen before"
 
@@ -586,7 +608,7 @@ arriving**. That decomposes:
 
 | Segment | Budget | Bounded by |
 | --- | --- | --- |
-| Listing appears → next poll | ≤ 5 min | GitHub's minimum cron granularity |
+| Listing appears → next poll | ≤ 5 min | GitHub's minimum cron granularity — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period |
 | Poll → match recorded | ≤ 2 min | Slice size and worker count |
 | Match recorded → email sent | ≤ 3 min | Notification drain in the same run |
 
@@ -599,7 +621,10 @@ output instead of as a user quietly getting stale alerts.
 
 Scheduled GitHub Actions runs drift under load, sometimes by several minutes.
 The cadence is approximate and the target is a design goal measured by ALERT-31,
-not a guarantee to make to users.
+not a guarantee to make to users. — Amended 2026-10-15 (ALERTUI —
+redesign-alerts.md): the runs come from the QStash schedule, not GitHub Actions
+(Contracts › Scheduling; ADR 0017). The cadence stays approximate and the target
+stays a design goal measured by ALERT-31.
 
 ### The cadence adapts to total load, not to how useful an alert is
 
@@ -788,6 +813,14 @@ listing outside the radius, at the country-centre fallback when a location is
 set, or naming the chosen model in neither its model field nor its title is
 not a match. One filter, shared with the map, so what an alert emails is what
 the saved search would show.
+
+> **Amended 2026-10-13 (MAPUI — [redesign-map.md](redesign-map.md)).** The
+> shared post-filter also checks the fuel (MAPUI-55), so a poll drops by
+> radius, model and fuel: with a fuel criterion, a listing whose fuel is
+> unknown or of another fuel group is not a match (owner decision,
+> 2026-10-13: «es lógico que funcione así»). A criterion holding a fuel value
+> no fuel choice offers, such as `engine=gasoil,cng`, applies no fuel
+> post-filter.
 
 Three consequences, decided deliberately:
 

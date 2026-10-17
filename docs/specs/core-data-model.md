@@ -69,7 +69,7 @@ This is phase 8 of ADR 0007: row 18.
   - When no row matches, the action returns `AUTH_ERROR.conflict` and changes nothing.
   - Every other write still increments `version` (two-factor, `setLocale`, the system writes) without asserting it, because nothing the user edits by hand is at stake there.
   - Alerts and favorites have no update today, only create and delete.
-- [x] DATA-16 · unit + e2e — On `conflict` the UI shows a translated message, in both locales, telling the user that the item changed elsewhere and to reload. The e2e test opens `/account` in two pages, saves a new name in the first, saves another in the second, and sees the message there. The first name stays.
+- [x] DATA-16 · unit + e2e — On `conflict` the UI shows a translated message, in both locales, telling the user that the item changed elsewhere and to reload. The e2e test opens `/account` in two pages, saves a new name in the first, saves another in the second, and sees the message there. The first name stays. — the message is a form alert in the «Cambiar nombre» dialog (and the «Cambiar contraseña» one), not a toast; its e2e test opens the dialogs (PAGES-40) (amended 2026-10-16, PAGES — redesign-pages.md).
 
 ### Relations
 

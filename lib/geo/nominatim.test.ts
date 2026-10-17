@@ -51,13 +51,17 @@ describe("searchLocations", () => {
     expect(results.map((r) => r.displayName)).toEqual(["Ronda", "Málaga", "Full Raw Name"]);
   });
 
-  it("returns an empty array on a non-ok response", async () => {
+  // MAPUI-56: a non-ok response and a request that throws both have to reach
+  // the caller as a failure, distinct from Nominatim legitimately finding
+  // nothing (an ok response with an empty array, kept above) — so "Dónde"
+  // can tell "the place search is down" from "no place by that name".
+  it("MAPUI-56: throws on a non-ok response, instead of returning an empty array", async () => {
     server.use(http.get(ENDPOINT, () => new HttpResponse(null, { status: 500 })));
-    expect(await searchLocations("x")).toEqual([]);
+    await expect(searchLocations("x")).rejects.toThrow();
   });
 
-  it("returns an empty array when the request throws", async () => {
+  it("MAPUI-56: throws when the request itself throws, instead of returning an empty array", async () => {
     server.use(http.get(ENDPOINT, () => HttpResponse.error()));
-    expect(await searchLocations("x")).toEqual([]);
+    await expect(searchLocations("x")).rejects.toThrow();
   });
 });

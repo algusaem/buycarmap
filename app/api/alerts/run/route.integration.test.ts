@@ -1079,3 +1079,20 @@ describe("delivery", () => {
     expect(subject).toMatch(/coche|nuevo/i);
   });
 });
+
+// docs/specs/redesign-alerts.md (ALERTUI-50): the digest's link to the alert
+// is the alert's page, `<app URL>/alerts/<alert id>` — here
+// https://buycarmap.test (lib/app-config's mock above).
+describe("ALERTUI-50: the digest links to the alert's page", () => {
+  it("ALERTUI-50: Grace's digest links to https://buycarmap.test/alerts/<her alert's id>", async () => {
+    const { alert } = await seedSubscribedCriteria({ userId: GRACE.id });
+    sourcesReturn(makeMatchListing({ id: "wallapop-digest-link" }));
+
+    await run();
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    const [{ html, text }] = vi.mocked(sendEmail).mock.calls[0];
+    expect(html).toContain(`href="https://buycarmap.test/alerts/${alert.id}"`);
+    expect(text).toContain(`https://buycarmap.test/alerts/${alert.id}`);
+  });
+});

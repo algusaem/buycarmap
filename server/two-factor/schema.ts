@@ -18,3 +18,7 @@ export const disableTwoFactorSchema = z.object({
   currentPassword: z.string().min(1, AUTH_ERROR.passwordRequired),
   code: z.string().trim().min(1, AUTH_ERROR.totpInvalid),
 });
+
+export type TwoFactorCodeInput = z.infer<typeof twoFactorCodeSchema>;
+export type TwoFactorPasswordInput = z.infer<typeof twoFactorPasswordSchema>;
+export type DisableTwoFactorInput = z.infer<typeof disableTwoFactorSchema>;

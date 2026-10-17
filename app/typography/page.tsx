@@ -1,164 +1,254 @@
+import type { CSSProperties } from "react";
+
+// Internal style guide for the BuyCarMap 2.0 type system
+// (docs/design/system/tokens.json › type): Unbounded for display, always in
+// capitals, and Rethink Sans for everything else. Each style below mirrors its
+// tokens.json entry verbatim.
+
+interface TypeStyle {
+  name: string;
+  fontSize: string;
+  lineHeight: number | "normal";
+  fontWeight: number;
+  letterSpacing?: string;
+  sample: string;
+}
+
+const DISPLAY_STYLES: TypeStyle[] = [
+  {
+    name: "hero",
+    fontSize: "72px",
+    lineHeight: 1.04,
+    fontWeight: 900,
+    letterSpacing: "-0.01em",
+    sample: "MIRA EL MAPA",
+  },
+  {
+    name: "hero-setup",
+    fontSize: "40px",
+    lineHeight: 1.1,
+    fontWeight: 900,
+    letterSpacing: "0",
+    sample: "¿EN BUSCA DE COCHE?",
+  },
+  {
+    name: "hero-mobile",
+    fontSize: "34px",
+    lineHeight: 1.06,
+    fontWeight: 900,
+    letterSpacing: "-0.01em",
+    sample: "MIRA EL MAPA",
+  },
+  {
+    name: "empty-title",
+    fontSize: "48px",
+    lineHeight: 1.04,
+    fontWeight: 900,
+    letterSpacing: "-0.01em",
+    sample: "AMPLÍA EL RADIO",
+  },
+  {
+    name: "page-title",
+    fontSize: "40px",
+    lineHeight: 0.9,
+    fontWeight: 900,
+    letterSpacing: "-0.015em",
+    sample: "GUARDADOS",
+  },
+  {
+    name: "page-title-mobile",
+    fontSize: "34px",
+    lineHeight: 1,
+    fontWeight: 900,
+    letterSpacing: "0",
+    sample: "GUARDADOS",
+  },
+  {
+    name: "form-title",
+    fontSize: "26px",
+    lineHeight: "normal",
+    fontWeight: 800,
+    letterSpacing: "0",
+    sample: "ENTRAR",
+  },
+  {
+    name: "legal-h1",
+    fontSize: "48px",
+    lineHeight: 0.95,
+    fontWeight: 900,
+    letterSpacing: "0",
+    sample: "PRIVACIDAD",
+  },
+  {
+    name: "legal-h2",
+    fontSize: "20px",
+    lineHeight: "normal",
+    fontWeight: 800,
+    letterSpacing: "0",
+    sample: "UBICACIÓN",
+  },
+  {
+    name: "count",
+    fontSize: "30px",
+    lineHeight: 1,
+    fontWeight: 800,
+    letterSpacing: "-0.02em",
+    sample: "COCHES",
+  },
+  {
+    name: "price",
+    fontSize: "22px",
+    lineHeight: 1,
+    fontWeight: 800,
+    letterSpacing: "0",
+    sample: "14.500 €",
+  },
+  {
+    name: "wordmark",
+    fontSize: "20px",
+    lineHeight: 1,
+    fontWeight: 900,
+    letterSpacing: "0",
+    sample: "BUYCARMAP",
+  },
+  {
+    name: "button-display",
+    fontSize: "15px",
+    lineHeight: 1,
+    fontWeight: 800,
+    letterSpacing: "0",
+    sample: "VER COCHES",
+  },
+];
+
+const TEXT_STYLES: TypeStyle[] = [
+  {
+    name: "lead",
+    fontSize: "19px",
+    lineHeight: 1.5,
+    fontWeight: 400,
+    sample: "Una web, toda la segunda mano, sin cincuenta pestañas.",
+  },
+  {
+    name: "lead-mobile",
+    fontSize: "16px",
+    lineHeight: 1.5,
+    fontWeight: 400,
+    sample: "Una web, toda la segunda mano, sin cincuenta pestañas.",
+  },
+  {
+    name: "body",
+    fontSize: "16px",
+    lineHeight: 1.5,
+    fontWeight: 400,
+    sample: "Wallapop · Zaragoza",
+  },
+  {
+    name: "body-15",
+    fontSize: "15px",
+    lineHeight: 1.5,
+    fontWeight: 400,
+    sample: "Tus datos, tus reglas.",
+  },
+  {
+    name: "legal-body",
+    fontSize: "17px",
+    lineHeight: 1.65,
+    fontWeight: 400,
+    sample: "Guardamos tu correo y lo que decides guardar.",
+  },
+  {
+    name: "card-title",
+    fontSize: "16px",
+    lineHeight: 1.25,
+    fontWeight: 700,
+    sample: "Audi A3 2.0 TDI",
+  },
+  { name: "label", fontSize: "14px", lineHeight: 1.3, fontWeight: 700, sample: "Crear alerta" },
+  { name: "field-label", fontSize: "13px", lineHeight: "normal", fontWeight: 700, sample: "Email" },
+  {
+    name: "meta",
+    fontSize: "14px",
+    lineHeight: 1.4,
+    fontWeight: 400,
+    sample: "2018 · 95.000 km · Diésel",
+  },
+  {
+    name: "small",
+    fontSize: "13px",
+    lineHeight: "normal",
+    fontWeight: 400,
+    sample: "2019 · 71.000 km",
+  },
+  { name: "caption", fontSize: "12px", lineHeight: 1.3, fontWeight: 700, sample: "Wallapop" },
+  {
+    name: "overline",
+    fontSize: "11px",
+    lineHeight: 1.2,
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    sample: "DÓNDE",
+  },
+  {
+    name: "section-label",
+    fontSize: "12px",
+    lineHeight: "normal",
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    sample: "COMBUSTIBLE",
+  },
+];
+
 export default function TypographyPage() {
   return (
-    <div className="flex-1 bg-background p-8 md:p-12">
-      <div className="mx-auto max-w-4xl space-y-16">
-        {/* Header */}
-        <div className="space-y-4">
-          <p className="text-sm font-medium uppercase tracking-widest text-primary">
-            Typography System
-          </p>
-          <h1 className="text-5xl font-extrabold tracking-tight text-foreground md:text-6xl">
-            Plus Jakarta Sans
-          </h1>
-          <p className="max-w-2xl text-lg text-muted-foreground">
-            A professional, geometric sans-serif that conveys trust and confidence. Clean and modern
-            without being cold.
-          </p>
-        </div>
+    <div className="flex-1 overflow-y-auto bg-bg px-5 py-6 font-sans text-text md:px-12 md:py-10">
+      <div className="mx-auto flex max-w-5xl flex-col gap-10">
+        <h1 className="font-display text-3xl font-black uppercase">Tipografía</h1>
 
-        {/* Font showcase */}
-        <div className="grid gap-8 md:grid-cols-2">
-          {/* Plus Jakarta Sans */}
-          <div className="space-y-6 rounded-xl border border-border bg-card p-6">
-            <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-widest text-primary">
-                Primary Font
-              </p>
-              <h2 className="text-2xl font-bold text-foreground">Plus Jakarta Sans</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Used for all text — headlines, body copy, UI elements. Weight variations create
-              hierarchy without needing multiple font families.
-            </p>
-            <div className="space-y-3 border-t border-border pt-6">
-              <p className="text-4xl font-extrabold text-foreground">BuyCarMap</p>
-              <p className="text-2xl font-bold text-foreground">Find Your Next Car</p>
-              <p className="text-xl font-semibold text-muted-foreground">Discover deals near you</p>
-            </div>
-            <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-              <span className="rounded bg-secondary px-2 py-1 text-sm font-light">Light 300</span>
-              <span className="rounded bg-secondary px-2 py-1 text-sm">Regular 400</span>
-              <span className="rounded bg-secondary px-2 py-1 text-sm font-medium">Medium 500</span>
-              <span className="rounded bg-secondary px-2 py-1 text-sm font-semibold">
-                Semibold 600
-              </span>
-              <span className="rounded bg-secondary px-2 py-1 text-sm font-bold">Bold 700</span>
-              <span className="rounded bg-secondary px-2 py-1 text-sm font-extrabold">
-                ExtraBold 800
-              </span>
-            </div>
-          </div>
-
-          {/* JetBrains Mono */}
-          <div className="space-y-6 rounded-xl border border-border bg-card p-6">
-            <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-widest text-primary">
-                Monospace Font
-              </p>
-              <h2 className="text-2xl font-bold text-foreground">JetBrains Mono</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Used for prices, mileage, IDs, and other numerical data. Increased height improves
-              readability of important figures.
-            </p>
-            <div className="flex flex-wrap gap-4 border-t border-border pt-6">
-              <div className="rounded-lg bg-background p-4">
-                <p className="mb-1 text-xs text-muted-foreground">Price</p>
-                <p className="font-mono text-2xl font-medium text-primary">€14,500</p>
-              </div>
-              <div className="rounded-lg bg-background p-4">
-                <p className="mb-1 text-xs text-muted-foreground">Mileage</p>
-                <p className="font-mono text-2xl font-medium text-foreground">45,230 km</p>
-              </div>
-              <div className="rounded-lg bg-background p-4">
-                <p className="mb-1 text-xs text-muted-foreground">Listing ID</p>
-                <p className="font-mono text-lg text-muted-foreground">#WLP-2847291</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Type scale */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-foreground">Type Scale</h2>
-          <div className="space-y-4 rounded-xl border border-border bg-card p-6">
-            <div className="flex items-baseline gap-4 border-b border-border pb-4">
-              <span className="w-24 shrink-0 font-mono text-xs text-muted-foreground">
-                7xl / 800
-              </span>
-              <p className="text-7xl font-extrabold tracking-tight text-foreground">Hero</p>
-            </div>
-            <div className="flex items-baseline gap-4 border-b border-border pb-4">
-              <span className="w-24 shrink-0 font-mono text-xs text-muted-foreground">
-                5xl / 800
-              </span>
-              <p className="text-5xl font-extrabold tracking-tight text-foreground">Page Title</p>
-            </div>
-            <div className="flex items-baseline gap-4 border-b border-border pb-4">
-              <span className="w-24 shrink-0 font-mono text-xs text-muted-foreground">
-                3xl / 700
-              </span>
-              <p className="text-3xl font-bold text-foreground">Section Heading</p>
-            </div>
-            <div className="flex items-baseline gap-4 border-b border-border pb-4">
-              <span className="w-24 shrink-0 font-mono text-xs text-muted-foreground">
-                xl / 600
-              </span>
-              <p className="text-xl font-semibold text-foreground">Card Title</p>
-            </div>
-            <div className="flex items-baseline gap-4 border-b border-border pb-4">
-              <span className="w-24 shrink-0 font-mono text-xs text-muted-foreground">
-                base / 400
-              </span>
-              <p className="text-base text-foreground">Body text for descriptions and content</p>
-            </div>
-            <div className="flex items-baseline gap-4 border-b border-border pb-4">
-              <span className="w-24 shrink-0 font-mono text-xs text-muted-foreground">
-                sm / 400
-              </span>
-              <p className="text-sm text-muted-foreground">Secondary text, metadata, and labels</p>
-            </div>
-            <div className="flex items-baseline gap-4">
-              <span className="w-24 shrink-0 font-mono text-xs text-muted-foreground">
-                xs / 400
-              </span>
-              <p className="text-xs text-muted-foreground">Captions, timestamps, fine print</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Example card */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-foreground">In Context</h2>
-          <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="aspect-video bg-linear-to-br from-secondary to-background" />
-            <div className="p-6">
-              <div className="mb-2 flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold text-foreground">2019 Volkswagen Golf</h3>
-                  <p className="text-sm text-muted-foreground">Madrid · Wallapop</p>
-                </div>
-                <p className="font-mono text-xl font-medium text-primary">€14,500</p>
-              </div>
-              <div className="mt-4 flex gap-4 text-sm text-muted-foreground">
-                <span className="font-mono">45,230 km</span>
-                <span>·</span>
-                <span>Diesel</span>
-                <span>·</span>
-                <span>Manual</span>
-              </div>
-              <div className="mt-4 flex gap-2">
-                <span className="rounded-md bg-accent/10 px-2 py-1 text-xs font-medium text-accent">
-                  Good Price
-                </span>
-                <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                  Price Dropped
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StyleGroup title="Display · Unbounded" family="font-display" styles={DISPLAY_STYLES} />
+        <StyleGroup title="Texto · Rethink Sans" family="font-sans" styles={TEXT_STYLES} />
       </div>
     </div>
+  );
+}
+
+function StyleGroup({
+  title,
+  family,
+  styles,
+}: {
+  title: string;
+  family: "font-display" | "font-sans";
+  styles: TypeStyle[];
+}) {
+  return (
+    <section className="flex flex-col gap-4">
+      <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-text-muted">{title}</h2>
+      <ul className="flex flex-col divide-y divide-line-soft rounded-card border border-line bg-surface">
+        {styles.map((style) => (
+          <StyleRow key={style.name} style={style} family={family} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function StyleRow({ style, family }: { style: TypeStyle; family: "font-display" | "font-sans" }) {
+  const sampleStyle: CSSProperties = {
+    fontSize: style.fontSize,
+    lineHeight: style.lineHeight,
+    fontWeight: style.fontWeight,
+    letterSpacing: style.letterSpacing,
+  };
+
+  return (
+    <li className="flex flex-col gap-2 p-5 md:flex-row md:items-baseline md:gap-6">
+      <span className="w-44 shrink-0 text-xs text-text-muted tabular-nums">
+        {style.name} · {style.fontSize} / {style.fontWeight}
+      </span>
+      <p className={`${family} min-w-0 break-words`} style={sampleStyle}>
+        {style.sample}
+      </p>
+    </li>
   );
 }

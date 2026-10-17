@@ -30,10 +30,26 @@ const cochesNetResponseContract = z.object({
 
 const UPSTREAM = "https://web.gw.coches.net/search/listing";
 
+// `fuelType` as a live probe recorded it on 2026-10-13
+// (docs/specs/data-sources.md › coches.net › Response).
+const RECORDED_FUELS = [
+  "Gasolina",
+  "Diésel",
+  "Eléctrico",
+  "Híbrido",
+  "Híbrido enchufable",
+  "Gas licuado (GLP)",
+  "Gas natural (CNG)",
+];
+
 describe("coches.net response contract", () => {
   it("SRC-15: the fixture satisfies the shape the normalizer depends on", () => {
     const response = makeCochesNetResponse([makeCochesNetItem()], 3);
     expect(cochesNetResponseContract.safeParse(response).success).toBe(true);
+  });
+
+  it("SRC-15: the fixture's fuel is one coches.net was recorded sending", () => {
+    expect(RECORDED_FUELS).toContain(makeCochesNetItem().fuelType);
   });
 
   it.runIf(process.env.CONTRACT_LIVE)(

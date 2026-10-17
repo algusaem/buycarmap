@@ -3,7 +3,7 @@ import type { CarListing } from "@/interfaces/listing";
 import { searchSchema, type SearchInput } from "@/lib/search/schema";
 import { searchListings } from "@/server/search/actions";
 import { EMPTY_SEARCH_CURSORS, type SearchCursors } from "@/server/search/schema";
-import { getCached, setCached } from "@/lib/wallapop/cache";
+import { deleteCached, getCached, setCached } from "@/lib/wallapop/cache";
 import { hasAnyMore } from "@/lib/listings/merge";
 
 // FRONT-3 (docs/specs/core-frontend.md): the hook keeps the request
@@ -75,6 +75,23 @@ async function runPaginationUntilResults(
   return { aborted: false, collected, cursors, more };
 }
 
+// What the cache keeps per query (MAP-5): the first results together with the
+// pagination they ended on, so a search served from it — Back to an earlier
+// search — still knows whether more pages remain and where they start
+// (MAP-19, MAPUI-33's «MÁS DE N COCHES»).
+interface CachedSearch {
+  listings: CarListing[];
+  cursors: SearchCursors;
+  hasMore: boolean;
+}
+
+// The cache key `search` and `retry` both key off of — one validated params
+// object always maps to the same key, so retry evicts exactly the entry a
+// matching search would have read.
+function cacheKeyFor(params: SearchInput): string {
+  return JSON.stringify(params);
+}
+
 interface SearchStateSetters {
   setListings: (value: CarListing[]) => void;
   setIsLoading: (value: boolean) => void;
@@ -94,22 +111,24 @@ interface SearchRunContext {
 }
 
 // The cache-hit branch of `search`: a repeat of an identical, still-fresh
-// query resets pagination to this query's first page and skips the network
-// entirely. Pulled out of `search` only to keep that function's branching
-// readable — it is not reused anywhere else.
+// query restores that query's results and pagination and skips the network
+// entirely. It is the current search, so it also clears the loading state a
+// superseded round may have left on (MAPUI-33). Pulled out of `search` only
+// to keep that function's branching readable — it is not reused anywhere else.
 function applyCachedSearch(
-  cached: CarListing[],
+  cached: CachedSearch,
   params: SearchInput,
   version: number,
   ctx: SearchRunContext,
   setters: SearchStateSetters,
 ): void {
   if (ctx.searchVersionRef.current !== version) return;
-  ctx.cursorsRef.current = EMPTY_SEARCH_CURSORS;
+  ctx.cursorsRef.current = cached.cursors;
   ctx.lastParamsRef.current = params;
   setters.setError(false);
-  setters.setHasMore(false);
-  setters.setListings(cached);
+  setters.setIsLoading(false);
+  setters.setHasMore(cached.hasMore);
+  setters.setListings(cached.listings);
   setters.bumpResultsGeneration();
 }
 
@@ -138,7 +157,11 @@ async function runSearchRounds(
     ctx.cursorsRef.current = paginationResult.cursors;
     setters.setListings(paginationResult.collected);
     setters.bumpResultsGeneration();
-    setCached(cacheKey, paginationResult.collected);
+    setCached<CachedSearch>(cacheKey, {
+      listings: paginationResult.collected,
+      cursors: paginationResult.cursors,
+      hasMore: paginationResult.more,
+    });
     setters.setHasMore(paginationResult.more);
     setters.setIsLoading(false);
   } catch {
@@ -184,6 +207,8 @@ export function useListingsSearch() {
 
     if (!parsed.success) {
       lastParamsRef.current = sanitized;
+      // The current search, so it clears what a superseded round left on (MAPUI-33).
+      setIsLoading(false);
       setError(true);
       setListings([]);
       setHasMore(false);
@@ -191,9 +216,9 @@ export function useListingsSearch() {
     }
 
     const params = parsed.data;
-    const cacheKey = JSON.stringify(params);
+    const cacheKey = cacheKeyFor(params);
 
-    const cached = getCached<CarListing[]>(cacheKey);
+    const cached = getCached<CachedSearch>(cacheKey);
     if (cached) {
       applyCachedSearch(cached, params, version, ctx, setters);
       return;
@@ -216,7 +241,9 @@ export function useListingsSearch() {
   // every render (like the rest of this hook), so there is no stable
   // reference to memoize against.
   function retry() {
-    if (lastParamsRef.current) search(lastParamsRef.current);
+    if (!lastParamsRef.current) return;
+    deleteCached(cacheKeyFor(lastParamsRef.current));
+    search(lastParamsRef.current);
   }
 
   const loadMore = useCallback(async () => {

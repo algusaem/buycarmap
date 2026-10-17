@@ -64,7 +64,10 @@ export async function deleteFavorite(userId: UserId, listingId: ListingRef): Pro
 export async function findFavorites(userId: UserId): Promise<CarListing[]> {
   const rows = await prisma.favorite.findMany({
     where: { ...ownedBy({ id: userId }), ...notDeleted },
-    orderBy: { createdAt: "desc" },
+    // SAVED-34 (docs/specs/redesign-saved.md): newest saved first, and the
+    // UUIDv7 `id` as the tie-break, so two rows saved in the same millisecond
+    // keep one order between reads (the client's sorts are stable over it).
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   });
   return rows.map(toListing);
 }

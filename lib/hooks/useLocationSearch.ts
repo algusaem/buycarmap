@@ -5,6 +5,10 @@ export function useLocationSearch(locale: string = "es") {
   const [query, setQueryState] = useState("");
   const [results, setResults] = useState<GeocodingResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  // MAPUI-56: true once a search's request fails, so "Dónde" can say the
+  // place search is down instead of that no place matches. False again once
+  // a search succeeds, or the query shortens below two characters.
+  const [failed, setFailed] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const searchVersionRef = useRef(0);
 
@@ -18,6 +22,7 @@ export function useLocationSearch(locale: string = "es") {
         searchVersionRef.current += 1;
         setResults([]);
         setIsSearching(false);
+        setFailed(false);
         return;
       }
 
@@ -25,10 +30,18 @@ export function useLocationSearch(locale: string = "es") {
       setIsSearching(true);
 
       timerRef.current = setTimeout(async () => {
-        const data = await searchLocations(value, locale);
-        if (searchVersionRef.current !== version) return;
-        setResults(data);
-        setIsSearching(false);
+        try {
+          const data = await searchLocations(value, locale);
+          if (searchVersionRef.current !== version) return;
+          setResults(data);
+          setFailed(false);
+          setIsSearching(false);
+        } catch {
+          if (searchVersionRef.current !== version) return;
+          setResults([]);
+          setFailed(true);
+          setIsSearching(false);
+        }
       }, 400);
     },
     [locale],
@@ -45,5 +58,5 @@ export function useLocationSearch(locale: string = "es") {
     };
   }, []);
 
-  return { query, setQuery, results, isSearching, clear };
+  return { query, setQuery, results, isSearching, failed, clear };
 }

@@ -1,0 +1,85 @@
+<!-- @dsCard group="Alertas" height=1236 subtitle="Crear alerta: desplegable de escritorio normal, demasiado amplio, sin nombre y sin red, los avisos de creada y de ya existía, y el botón y la hoja de móvil" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>CreateAlert</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;flex-direction:column;gap:var(--space-8)}
+.row{display:flex;gap:var(--space-6);align-items:flex-start;flex-wrap:wrap}
+.card{width:380px;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--shadow-float);padding:var(--space-5);display:flex;flex-direction:column;gap:14px}
+.sheet{width:390px;box-sizing:border-box;background:var(--surface);border-top:1px solid var(--line);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;padding:10px var(--space-5) 34px;display:flex;flex-direction:column;gap:14px}
+.sheet.top{padding-bottom:var(--space-5)}
+.grab{align-self:center;width:40px;height:5px;border-radius:var(--radius-pill);background:var(--handle)}
+.title{font-family:var(--font-display);font-size:16px;font-weight:800;text-transform:uppercase}
+.sheet .title{font-size:15px;align-self:center}
+label{display:flex;flex-direction:column;gap:8px}
+label span{font-size:13px;font-weight:700}
+input{height:52px;box-sizing:border-box;border-radius:var(--radius-field);border:1px solid var(--line);background:var(--bg);color:var(--text);padding:0 16px;font:inherit;font-size:16px;outline:0}
+.sum{font-size:14px;line-height:1.4;color:var(--text-muted)}
+.err{margin:0;display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4;font-weight:600;color:var(--text)}
+.err svg{color:var(--danger);flex-shrink:0;margin-top:1px}
+.fld{display:flex;flex-direction:column;gap:8px}
+.acts{display:flex;flex-direction:column;gap:4px;margin-top:2px}
+.go{all:unset;cursor:pointer;box-sizing:border-box;height:48px;width:100%;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime);font-size:15px;font-weight:800}
+.go[aria-disabled="true"]{cursor:not-allowed;opacity:.4}
+.ghost{all:unset;cursor:pointer;box-sizing:border-box;height:44px;width:100%;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-pill);color:var(--text);font-size:15px;font-weight:700}
+.open{all:unset;cursor:pointer;box-sizing:border-box;height:44px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);border-radius:var(--radius-pill);color:var(--text);font-size:14px;font-weight:700}
+.t{width:380px;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);padding:14px 14px 14px 18px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-float)}
+.t span{flex:1;font-size:15px;font-weight:600;line-height:1.4}
+.ok{color:var(--lime);flex-shrink:0}
+.a{color:var(--lime);font-size:14px;font-weight:700;text-decoration:none;padding:8px 12px;border-radius:var(--radius-pill)}
+.x{all:unset;cursor:pointer;width:32px;height:32px;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.go:focus-visible,.ghost:focus-visible,.open:focus-visible,.a:focus-visible,.x:focus-visible,input:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="card" role="dialog" aria-label="Crear alerta">
+    <strong class="title">Crear alerta</strong>
+    <label><span>Nombre</span><input type="text" name="alertName" value="Toyota Corolla · Madrid"></label>
+    <span class="sum">Toyota Corolla · Hasta 20.000 € · Madrid · 50 km</span>
+    <div class="acts"><button class="go" type="button">Crear alerta</button><button class="ghost" type="button">Cancelar</button></div>
+  </div>
+  <div class="card" role="dialog" aria-label="Crear alerta">
+    <strong class="title">Crear alerta</strong>
+    <label><span>Nombre</span><input type="text" name="alertName" value="Coches"></label>
+    <span class="sum">Cualquier marca · Cualquier precio</span>
+    <p class="err" role="alert"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>Añade una marca, un precio máximo o una zona para crear la alerta.</p>
+    <div class="acts"><button class="go" type="button" aria-disabled="true">Crear alerta</button><button class="ghost" type="button">Cancelar</button></div>
+  </div>
+  <div class="card" role="dialog" aria-label="Crear alerta">
+    <strong class="title">Crear alerta</strong>
+    <div class="fld"><label><span>Nombre</span><input type="text" name="alertName" value=""></label><p class="err" role="alert"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>Ponle un nombre a la alerta.</p></div>
+    <span class="sum">Toyota Corolla · Hasta 20.000 € · Madrid · 50 km</span>
+    <div class="acts"><button class="go" type="button">Crear alerta</button><button class="ghost" type="button">Cancelar</button></div>
+  </div>
+  <div class="card" role="dialog" aria-label="Crear alerta">
+    <strong class="title">Crear alerta</strong>
+    <label><span>Nombre</span><input type="text" name="alertName" value="Toyota Corolla · Madrid"></label>
+    <span class="sum">Toyota Corolla · Hasta 20.000 € · Madrid · 50 km</span>
+    <p class="err" role="alert"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>No hemos podido crear la alerta. Vuelve a intentarlo.</p>
+    <div class="acts"><button class="go" type="button">Crear alerta</button><button class="ghost" type="button">Cancelar</button></div>
+  </div>
+</div>
+<div class="row">
+  <div class="t" role="status"><svg class="ok" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg><span>Alerta creada</span><a class="a" href="#">Ver alertas</a><button class="x" type="button" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+  <div class="t" role="status"><svg class="ok" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg><span>Ya tienes esta alerta</span><a class="a" href="#">Ver alertas</a><button class="x" type="button" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+</div>
+<div class="row">
+  <div class="sheet top">
+    <span class="grab"></span>
+    <strong class="title">Más de 40 coches</strong>
+    <button class="open" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M15 8h6"/><path d="M18 5v6"/><path d="M20.002 14.464a9 9 0 0 0 .738.863A1 1 0 0 1 20 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 8.75-5.332"/></svg>Crear alerta</button>
+  </div>
+  <div class="sheet" role="dialog" aria-label="Crear alerta">
+    <span class="grab"></span>
+    <strong class="title">Crear alerta</strong>
+    <label><span>Nombre</span><input type="text" name="alertName" value="Toyota Corolla · Madrid"></label>
+    <span class="sum">Toyota Corolla · Hasta 20.000 € · Madrid · 50 km</span>
+    <div class="acts"><button class="go" type="button">Crear alerta</button><button class="ghost" type="button">Cancelar</button></div>
+  </div>
+</div>
+</body>
+</html>

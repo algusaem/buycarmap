@@ -5,9 +5,14 @@ import { e2eEmail, seedUser, userExists } from "./fixtures/db";
 // The app defaults to Spanish, so every user-facing matcher accepts EN or ES.
 const SIGN_IN = /sign in|entrar/i;
 const SIGN_UP = /sign up|registr|crear/i;
-const SIGN_OUT = /sign out|cerrar sesi/i;
-// messages/en.json nav.favorites: "Saved cars"; messages/es.json: "Coches guardados".
-const SAVED_CARS = /saved cars|coches guardados/i;
+// Anchored: /account also has «Cerrar sesión en todas partes»/"Sign out everywhere".
+const SIGN_OUT = /^(sign out|cerrar sesión)$/i;
+// messages/en.json nav.saved: "Saved"; messages/es.json: "Guardados".
+const SAVED_CARS = /^(saved|guardados)$/i;
+// messages/en.json nav.account: "Account"; messages/es.json: "Cuenta" (HEAD-9).
+const ACCOUNT = /^(account|cuenta)$/i;
+// messages/en.json nav.createAccount: "Create account"; messages/es.json: "Crear cuenta" (HEAD-5).
+const CREATE_ACCOUNT = /^(create account|crear cuenta)$/i;
 
 // Real register/login persist to a database. They run only with E2E_DB=1 (and a
 // real DATABASE_URL); the global teardown then deletes every seeded account.
@@ -19,25 +24,29 @@ const dbTest = process.env.E2E_DB ? test : test.skip;
 // "password" once the trailing decoration is stripped.
 const PASSWORD = "harbour-lentil-quilt-97";
 
-// Scope auth controls to the navbar: the home Hero also has a "Sign in to save
-// searches" CTA, so an unscoped sign-in matcher would catch that too.
+// Scope auth controls to the desktop header region (docs/specs/redesign-navigation.md):
+// the home page body can carry its own sign-in CTA, so an unscoped sign-in
+// matcher would catch that too.
 function navSignIn(page: Page) {
-  return page.getByRole("navigation").getByRole("link", { name: SIGN_IN });
+  return page.getByTestId("header-desktop").getByRole("link", { name: SIGN_IN });
 }
 function navSavedCars(page: Page) {
-  return page.getByRole("navigation").getByRole("link", { name: SAVED_CARS });
+  return page.getByTestId("header-desktop").getByRole("link", { name: SAVED_CARS });
 }
 
 /**
- * The account dropdown's trigger, named after the signed-in user — desktop
- * sign-out is a menuitem inside it, hidden until it is opened.
+ * The header avatar, named «Cuenta»/"Account" and linking to `/account` (HEAD-9).
+ * Scoped to `header` rather than one region: whichever region the viewport
+ * shows is the one the accessibility tree exposes.
  */
-function accountTrigger(page: Page, name: string) {
-  return page.getByRole("navigation").getByRole("button", { name });
+function accountLink(page: Page) {
+  return page.locator("header").getByRole("link", { name: ACCOUNT });
 }
 
-async function signOut(page: Page, name: string) {
-  await accountTrigger(page, name).click();
+/** HEAD-13: sign-out moved from the account dropdown to «Cerrar sesión» on `/account`. */
+async function signOut(page: Page) {
+  await accountLink(page).click();
+  await page.waitForURL("**/account");
   // Waiting on the URL alone is not enough: a sign-in that landed on "/"
   // leaves the browser already there, so a later `waitForURL("/")` after
   // signing out would resolve on the spot rather than on the redirect this
@@ -51,33 +60,44 @@ async function signOut(page: Page, name: string) {
     (response) =>
       response.url().includes("/api/auth/sign-out") && response.request().method() === "POST",
   );
-  await page.getByRole("menuitem", { name: SIGN_OUT }).click();
+  await page.getByRole("button", { name: SIGN_OUT }).click();
   await signedOut;
 }
 
 /**
- * Asserts the navbar is offering a visitor a way in and no session controls.
+ * Asserts the header is offering a visitor a way in and no session controls.
  *
- * Viewport-aware since the navbar restructure (docs/specs/navbar.md): below the
- * `lg` breakpoint sign-in lives inside the collapsed menu, so looking for it in
- * the bar finds nothing on a phone. The saved-cars link is checked at count 0
- * rather than hidden — signed out, it is not rendered anywhere, menu included.
+ * Viewport-aware (docs/specs/redesign-navigation.md): both header regions are
+ * always in the DOM and CSS shows one. The session links are checked at count
+ * 0 with a CSS locator, which also sees the hidden region — signed out, no
+ * header region renders a link to saved cars, alerts or the account (HEAD-2,
+ * HEAD-5). At phone width `/map` has no app header at all (HEAD-7), so there
+ * is no sign-in link to find there; elsewhere the phone header offers «Entrar».
  */
 async function expectSignedOut(page: Page, isMobile: boolean) {
-  await expect(navSavedCars(page)).toHaveCount(0);
+  await expect(
+    page.locator(
+      'header a[href="/favorites"], header a[href="/alerts"], header a[href="/account"]',
+    ),
+  ).toHaveCount(0);
 
   if (!isMobile) {
     await expect(navSignIn(page)).toBeVisible();
     return;
   }
 
-  await page.getByRole("button", { name: /^(menu|menú)$/i }).click();
-  await expect(page.getByRole("dialog").getByRole("link", { name: SIGN_IN })).toBeVisible();
+  if (new URL(page.url()).pathname === "/map") {
+    await expect(page.getByTestId("header-phone")).toBeHidden();
+    return;
+  }
+
+  await expect(page.getByTestId("header-phone").getByRole("link", { name: SIGN_IN })).toBeVisible();
 }
 
-async function registerViaUi(page: Page, email: string, name = "E2E User") {
+// amended 2026-10-16, PAGES-9/PAGES-10: /register dropped the name field —
+// it is set later from «Cambiar nombre», not collected at signup.
+async function registerViaUi(page: Page, email: string) {
   await page.goto("/register");
-  await page.getByLabel(/name|nombre/i).fill(name);
   await page.getByLabel(/email|correo/i).fill(email);
   const passwords = page.locator('input[type="password"]');
   await passwords.nth(0).fill(PASSWORD);
@@ -101,15 +121,14 @@ test.describe("logged-out experience (auth is optional)", () => {
   test("home shows signed-out controls, not a session", async ({ page, isMobile }) => {
     await page.goto("/");
 
-    // Sign up is visible at every width. This assertion used to say the
-    // opposite on mobile — `hidden sm:inline-flex` meant the register link was
-    // absent on phones, and the test recorded that as intended. NAV-17 in
-    // docs/specs/navbar.md decided it was a defect: it is the product's primary
-    // conversion action and it was missing on the devices most people arrive on.
-    //
-    // Checked before expectSignedOut, which opens the menu on a phone and puts
-    // an overlay over the bar this is looking at.
-    await expect(page.getByRole("navigation").getByRole("link", { name: SIGN_UP })).toBeVisible();
+    // HEAD-5 (docs/specs/redesign-navigation.md): the signed-out landing's
+    // desktop header offers «Crear cuenta». At phone width HEAD-7 gives the
+    // header one item on the right, «Entrar», which expectSignedOut checks.
+    if (!isMobile) {
+      await expect(
+        page.getByTestId("header-desktop").getByRole("link", { name: CREATE_ACCOUNT }),
+      ).toBeVisible();
+    }
 
     await expectSignedOut(page, isMobile);
   });
@@ -120,7 +139,7 @@ test.describe("logged-out experience (auth is optional)", () => {
 
     // Listings render for an anonymous visitor...
     await expect(page.getByText("Audi A3 2.0 TDI", { exact: false })).toBeVisible();
-    // ...and the navbar still offers sign-in rather than a session.
+    // ...and the header still offers sign-in rather than a session.
     await expectSignedOut(page, isMobile);
   });
 });
@@ -163,26 +182,41 @@ test.describe("client-side validation", () => {
     const password = page.locator('input[type="password"]').nth(0);
 
     await password.fill("password");
-    await expect(page.getByText(/very weak|muy débil/i)).toBeVisible();
+    // amended 2026-10-16, PAGES-5: the label and level now sit on one line,
+    // the level word in its own <strong> — `.first()` picks whichever of the
+    // two (the line or the word alone) Playwright's text match resolves to.
+    await expect(page.getByText(/very weak|muy débil/i).first()).toBeVisible();
 
     await password.fill(PASSWORD);
-    await expect(page.getByText(/strong|muy segura/i)).toBeVisible();
+    // messages/{en,es}.json's top score is "strong"/"muy buena", not "muy segura".
+    await expect(page.getByText(/strong|muy buena/i).first()).toBeVisible();
   });
+
+  // amended 2026-10-16, PAGES-16/PAGES-19/PAGES-24: the expired-link panel's
+  // own title ("This link is no longer valid"/"ya no es válido") is the
+  // `AccessPanel` title, shown only from 1440px wide (AccessLayout.tsx:
+  // `hidden ... 3xl:block`) — narrower than both Playwright projects'
+  // viewports, so it is never visible here. The headline above it ("Link
+  // expired?"/"¿Enlace caducado?") is the same for all three pages and is
+  // always visible, so that is what proves the expired-link state renders.
+  const LINK_EXPIRED_HEADLINE = /link expired\?|enlace caducado/i;
 
   test("reset-password without a token offers a way forward", async ({ page }) => {
     await page.goto("/reset-password");
 
     // No dead ends: the page must route the user to a fresh link.
-    await expect(page.getByText(/no longer valid|ya no es válido/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: LINK_EXPIRED_HEADLINE })).toBeVisible();
+    // amended 2026-10-16, PAGES-24: «Pedir otro enlace», not «Solicitar un
+    // enlace nuevo» (messages/es.json's resetPassword.requestNewLink).
     await expect(
-      page.getByRole("link", { name: /request a new link|solicitar un enlace/i }),
+      page.getByRole("link", { name: /request a new link|pedir otro enlace/i }),
     ).toBeVisible();
   });
 
   test("verify-email without a token offers a way forward", async ({ page }) => {
     await page.goto("/verify-email");
 
-    await expect(page.getByText(/no longer valid|ya no es válido/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: LINK_EXPIRED_HEADLINE })).toBeVisible();
     await expect(
       page.getByRole("link", { name: /back to sign up|volver al registro/i }),
     ).toBeVisible();
@@ -191,7 +225,7 @@ test.describe("client-side validation", () => {
   test("confirm-email without a token offers a way forward", async ({ page }) => {
     await page.goto("/confirm-email");
 
-    await expect(page.getByText(/no longer valid|ya no es válido/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: LINK_EXPIRED_HEADLINE })).toBeVisible();
     await expect(
       page.getByRole("link", { name: /back to your account|volver a tu cuenta/i }),
     ).toBeVisible();
@@ -228,14 +262,17 @@ test.describe("authenticated flows (real database)", () => {
 
   dbTest("register signs the user in, persists across reload, and signs out", async ({ page }) => {
     const email = e2eEmail("register");
-    const name = "E2E User";
 
-    await registerViaUi(page, email, name);
+    await registerViaUi(page, email);
 
-    // Auto sign-in after registration → session-driven navbar.
+    // Auto sign-in after registration → session-driven header.
     await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
     await expect(navSignIn(page)).toHaveCount(0);
-    await expect(page.getByText(name)).toBeVisible();
+    // amended 2026-10-16, PAGES-9/PAGES-10: register no longer collects a
+    // name, so the avatar falls back to the email's initial
+    // (components/nav/Avatar.tsx's `initialOf`, NAV-15) — `e2eEmail` always
+    // starts with "e2e-", so "E".
+    await expect(accountLink(page)).toHaveText("E");
 
     // The account was actually written to the database.
     expect(await userExists(email)).toBe(true);
@@ -245,7 +282,7 @@ test.describe("authenticated flows (real database)", () => {
     await expect(navSavedCars(page)).toBeVisible();
 
     // Sign out returns to the anonymous state.
-    await signOut(page, name);
+    await signOut(page);
     await expect(navSignIn(page)).toBeVisible({ timeout: 15_000 });
     await expect(navSavedCars(page)).toHaveCount(0);
   });
@@ -294,39 +331,56 @@ test.describe("authenticated flows (real database)", () => {
   const CONFLICT_MESSAGE_EN = /changed in another tab or device/i;
   const CONFLICT_MESSAGE_ES = /cambiado en otra pestaña o dispositivo/i;
 
-  dbTest(
-    "DATA-16: a stale save on /account is rejected as a conflict, and the first save wins",
-    async ({ page, context }) => {
-      const email = e2eEmail("conflict");
-      await seedUser(email, PASSWORD, "Ana");
+  // The dialog is matched on its Spanish copy, so the browser asks for Spanish
+  // (Playwright negotiates "en-US" otherwise; e2e/pages-account.spec.ts).
+  test.describe("DATA-16 in Spanish", () => {
+    test.use({ locale: "es-ES" });
 
-      await loginViaUi(page, email, PASSWORD);
-      await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
+    dbTest(
+      "DATA-16: a stale save on /account is rejected as a conflict, and the first save wins",
+      async ({ page, context }) => {
+        const email = e2eEmail("conflict");
+        await seedUser(email, PASSWORD, "Ana");
 
-      const second = await context.newPage();
-      await page.goto("/account");
-      await second.goto("/account");
+        await loginViaUi(page, email, PASSWORD);
+        await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
 
-      const nameField1 = page.getByLabel(/^name$|^nombre$/i);
-      const nameField2 = second.getByLabel(/^name$|^nombre$/i);
-      await expect(nameField1).toHaveValue("Ana");
-      await expect(nameField2).toHaveValue("Ana");
+        const second = await context.newPage();
+        await page.goto("/account");
+        await second.goto("/account");
 
-      await nameField1.fill("Ana María");
-      await page.getByRole("button", { name: /save changes|guardar cambios/i }).click();
-      await expect(page.getByText(/profile updated|perfil actualizado/i)).toBeVisible();
+        // amended 2026-10-16, PAGES-40: «Cambiar nombre» moved the name field
+        // off the page and into its own dialog («Cambiar nombre», field
+        // «Nombre», «Guardar cambios») — the conflict itself amends DATA-16
+        // the same way (a form alert in the dialog, not a toast). It is
+        // matched on the Spanish copy the spec quotes.
+        await page.getByRole("button", { name: "Cambiar nombre" }).click();
+        const dialog1 = page.getByRole("dialog", { name: "Cambiar nombre" });
+        await expect(dialog1.getByLabel("Nombre")).toHaveValue("Ana");
 
-      await nameField2.fill("Anita");
-      await second.getByRole("button", { name: /save changes|guardar cambios/i }).click();
+        await second.getByRole("button", { name: "Cambiar nombre" }).click();
+        const dialog2 = second.getByRole("dialog", { name: "Cambiar nombre" });
+        await expect(dialog2.getByLabel("Nombre")).toHaveValue("Ana");
 
-      await expect(
-        second.getByText(
-          new RegExp(`${CONFLICT_MESSAGE_EN.source}|${CONFLICT_MESSAGE_ES.source}`, "i"),
-        ),
-      ).toBeVisible();
+        await dialog1.getByLabel("Nombre").fill("Ana María");
+        await dialog1.getByRole("button", { name: "Guardar cambios" }).click();
+        await expect(page.getByText(/profile updated|perfil actualizado/i)).toBeVisible();
 
-      await page.reload();
-      await expect(page.getByLabel(/^name$|^nombre$/i)).toHaveValue("Ana María");
-    },
-  );
+        await dialog2.getByLabel("Nombre").fill("Anita");
+        await dialog2.getByRole("button", { name: "Guardar cambios" }).click();
+
+        await expect(
+          dialog2.getByText(
+            new RegExp(`${CONFLICT_MESSAGE_EN.source}|${CONFLICT_MESSAGE_ES.source}`, "i"),
+          ),
+        ).toBeVisible();
+
+        await page.reload();
+        await page.getByRole("button", { name: "Cambiar nombre" }).click();
+        await expect(
+          page.getByRole("dialog", { name: "Cambiar nombre" }).getByLabel("Nombre"),
+        ).toHaveValue("Ana María");
+      },
+    );
+  });
 });

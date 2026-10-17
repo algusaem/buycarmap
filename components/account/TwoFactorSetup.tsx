@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import QRCode from "react-qr-code";
-import { toast } from "sonner";
-import { AiOutlineLoading3Quarters } from "react-icons/ai";
-import { Button } from "@/components/ui/button";
+import { useMessages, useTranslations } from "next-intl";
+import { FieldMessage } from "@/components/auth/FieldMessage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTranslations, useMessages } from "next-intl";
-import { translateAuthError } from "@/lib/i18n/errors";
+import { AUTH_ERROR } from "@/lib/auth/errors";
+import { focusOnMount } from "@/lib/focus";
+import { translateAuthError, translateRefusal } from "@/lib/i18n/errors";
 import type { Translations } from "@/lib/i18n/types";
 import { confirmTwoFactorSetup } from "@/server/two-factor/actions";
+import { type TwoFactorCodeInput, twoFactorCodeSchema } from "@/server/two-factor/schema";
+import { DialogActions, useAccountDialog } from "./AccountDialog";
 
 interface TwoFactorSetupProps {
   otpauthUri: string;
@@ -22,93 +26,122 @@ interface TwoFactorSetupProps {
    * authenticator itself has now proven to work.
    */
   onConfirmed: () => void;
-  onCancel: () => void;
+}
+
+/** Selects the whole key, so one copy takes all of it (PAGES-44). */
+function selectAll(event: { currentTarget: HTMLInputElement }) {
+  event.currentTarget.select();
 }
 
 /**
- * The enrolment step: scan, then prove the app works before anything is
- * enforced. Nothing here changes how login behaves until the code is accepted.
+ * The enrolment step (docs/specs/redesign-pages.md, PAGES-44, PAGES-76;
+ * F7-cuenta-dos-pasos › Paso 2): scan, then prove the app works before
+ * anything is enforced. Nothing here changes how login behaves until the code
+ * is accepted. The QR sits on a `text` plate with its modules in `bg`, the
+ * contrast cameras need without the pure white the system bans; the key is a
+ * read-only field selected whole, where the focus lands as the step opens.
+ * «Activar dos pasos» is enabled from the start (RULES.md §19): an empty code
+ * is the schema's error under the code field, as a wrong code is, which takes
+ * the focus; a rate limit or an unexpected failure is a form alert.
  */
-export function TwoFactorSetup({ otpauthUri, secret, onConfirmed, onCancel }: TwoFactorSetupProps) {
+export function TwoFactorSetup({ otpauthUri, secret, onConfirmed }: TwoFactorSetupProps) {
   const t = useTranslations();
   const messages = useMessages() as Translations;
-  const [code, setCode] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const { run, busy } = useAccountDialog();
+  const [formError, setFormError] = useState<string | undefined>();
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setError(undefined);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<TwoFactorCodeInput>({
+    resolver: zodResolver(twoFactorCodeSchema),
+    mode: "onBlur",
+  });
+
+  const onSubmit = async (data: TwoFactorCodeInput) => {
+    setFormError(undefined);
 
     const formData = new FormData();
-    formData.append("code", code);
-
-    const result = await confirmTwoFactorSetup(formData);
-    setIsSubmitting(false);
+    formData.append("code", data.code);
+    const result = await run(() => confirmTwoFactorSetup(formData));
 
     if (!result.success) {
-      setError(translateAuthError(messages, result.error));
+      // The raw code: the field renders it through `translateAuthError`.
+      if (result.error === AUTH_ERROR.totpInvalid) {
+        setError("code", { message: result.error }, { shouldFocus: true });
+      } else setFormError(translateRefusal(messages, result.error));
       return;
     }
 
-    toast.success(t("account.twoFactor.enabledToast"));
     onConfirmed();
   };
 
+  const codeError = translateAuthError(messages, errors.code?.message);
+
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="font-semibold">{t("account.twoFactor.scanTitle")}</h3>
-        <p className="text-sm text-muted-foreground">{t("account.twoFactor.scanDescription")}</p>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5" noValidate>
+      <div className="flex flex-col gap-1">
+        <p className="m-0 text-meta font-bold">{t("account.twoFactor.scanTitle")}</p>
+        <p className="m-0 text-meta leading-normal text-text-muted">
+          {t("account.twoFactor.scanDescription")}
+        </p>
       </div>
 
-      {/* Rendered as inline SVG on a white plate: QR scanners need the light
-          quiet zone, and the app's dark surface would otherwise invert it. */}
-      <div className="w-fit rounded-md bg-white p-3">
-        <QRCode value={otpauthUri} size={168} />
+      <div className="w-fit rounded-field bg-text p-3 text-bg">
+        <QRCode value={otpauthUri} size={150} fgColor="currentColor" bgColor="transparent" />
       </div>
 
-      <div className="space-y-1">
-        <p className="text-sm font-medium">{t("account.twoFactor.manualLabel")}</p>
-        <code className="block break-all rounded-md border border-border/50 bg-background/50 p-2 font-mono text-sm">
-          {secret}
-        </code>
-        <p className="text-xs text-muted-foreground">{t("account.twoFactor.manualHint")}</p>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="two-factor-secret" className="text-field-label font-bold">
+          {t("account.twoFactor.manualLabel")}
+        </Label>
+        <Input
+          ref={focusOnMount}
+          id="two-factor-secret"
+          name="secret"
+          readOnly
+          value={secret}
+          spellCheck={false}
+          autoComplete="off"
+          aria-describedby="two-factor-secret-hint"
+          onFocus={selectAll}
+          onClick={selectAll}
+          className="font-bold tracking-wide select-all"
+        />
+        <p id="two-factor-secret-hint" className="m-0 text-meta text-text-muted">
+          {t("account.twoFactor.manualHint")}
+        </p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="two-factor-code">{t("account.twoFactor.codeLabel")}</Label>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="two-factor-code" className="text-field-label font-bold">
+          {t("account.twoFactor.codeLabel")}
+        </Label>
         <Input
           id="two-factor-code"
           // `inputMode` brings up the numeric keypad; `one-time-code` lets
           // password managers and iOS autofill offer the code directly.
           inputMode="numeric"
           autoComplete="one-time-code"
+          spellCheck={false}
           placeholder={t("account.twoFactor.codePlaceholder")}
-          className="bg-background/50 font-mono tracking-widest"
           maxLength={6}
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
+          aria-invalid={!!codeError}
+          aria-describedby={codeError ? "two-factor-code-error" : undefined}
+          {...register("code")}
         />
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        <FieldMessage show={!!codeError} id="two-factor-code-error" role="alert">
+          {codeError}
+        </FieldMessage>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={isSubmitting || code.length === 0}>
-          {isSubmitting ? (
-            <span className="flex items-center gap-2">
-              <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-              {t("account.twoFactor.confirming")}
-            </span>
-          ) : (
-            t("account.twoFactor.confirm")
-          )}
-        </Button>
-        <Button type="button" variant="ghost" disabled={isSubmitting} onClick={onCancel}>
-          {t("account.twoFactor.cancel")}
-        </Button>
-      </div>
+      <FieldMessage show={!!formError} role="alert">
+        {formError}
+      </FieldMessage>
+
+      <DialogActions busy={busy}>{t("account.twoFactor.confirm")}</DialogActions>
     </form>
   );
 }

@@ -42,7 +42,7 @@ under test on fixtures.
 - [x] DOCS-3 · unit — `spec:check` fails when an `Implemented` spec has an unchecked criterion, and accepts one in a `Draft` or `Approved` spec.
 - [x] DOCS-4 · unit — `spec:check` keeps every check it has today: a duplicate key, an enforced spec with no criteria, a criterion no test title names, and a test title naming an undeclared id of a known key each fail. The existing `spec-check.node.test.ts` cases keep their assertions, with only their spec fixtures rewritten from table rows to checklist items.
 - [x] DOCS-5 · unit — Every criterion on the critical list (Contracts › the critical list: permission boundaries and bug fixes) has at least one worked example under `## Worked examples` in its spec. The example names the criterion id and carries an exact input and an exact result.
-- [x] DOCS-6 · unit — Every file under `docs/` is `docs/ARCHITECTURE.md`, `docs/decisions/NNNN-<title>.md`, `docs/specs/<feature>.md`, `docs/specs/_template.md`, `docs/privacy/{data-inventory,processors,deletion}.md`, `docs/operations/backups.md` or `docs/images/*`. So `architecture.md`, `auth.md`, `data-model.md`, `frontend.md`, `getting-started.md`, `operations.md`, `testing.md`, `integrations/`, both plans, `docs/README.md`, `docs/specs/README.md` and `docs/decisions/README.md` are gone.
+- [x] DOCS-6 · unit — Every file under `docs/` is `docs/ARCHITECTURE.md`, `docs/decisions/NNNN-<title>.md`, `docs/specs/<feature>.md`, `docs/specs/_template.md`, `docs/privacy/{data-inventory,processors,deletion}.md`, `docs/operations/backups.md`, `docs/images/*` or anything under `docs/design/` (the approved design and its build roadmap — amended 2026-10-12, LOOK — redesign-foundation.md). So `architecture.md`, `auth.md`, `data-model.md`, `frontend.md`, `getting-started.md`, `operations.md`, `testing.md`, `integrations/`, both plans, `docs/README.md`, `docs/specs/README.md` and `docs/decisions/README.md` are gone.
 - [x] DOCS-7 · unit — `docs-check` uses the root `README.md` as its index. Every `.md` under `docs/` is reachable by links from it, and the ownership map is read from its "Ownership map" section.
 - [x] DOCS-8 · unit — `docs/privacy/data-inventory.md` has a table with the columns Model · Field · Purpose · Retention and one row per personal field listed under Contracts. `processors.md` has a table with the columns Processor · Region · Data received · DPA and one row per processor listed under Contracts. `deletion.md` describes erasure through the account deletion action, what survives it, and Neon's restore window of 6 hours.
 - [x] DOCS-9 · unit — `docs/operations/backups.md` gives the Neon point-in-time-restore procedure. It names the project region `aws-eu-central-1` and the 6-hour history window.
@@ -111,8 +111,9 @@ this diff.
 - **The privacy gaps the inventory exposes are recorded, not fixed.**
   - There is no account data export (`RULES.md` §12).
   - `AlertCriteria` rows, which can hold the user's coordinates, survive account deletion.
-  - The in-app privacy page (`lib/i18n/locales/*.ts`) does not list Resend, Vercel, Google, GitHub
-    or Have I Been Pwned. Moved to FRONT-27 (`docs/specs/core-frontend.md`), against `messages/*.json`.
+  - The in-app privacy page (`lib/i18n/locales/*.ts`) does not list Resend, Vercel, Google
+    or Have I Been Pwned. Moved to FRONT-27 (`docs/specs/core-frontend.md`), against `messages/*.json`
+    (amended 2026-10-14, ENTRY — redesign-entry.md: GitHub dropped, since the product never lists it).
   - `SearchHistory` is never written.
 - `docs/operations/staging.md` belongs to phase 12. There is no staging environment until then
   (ADR 0007 row 26).
@@ -159,7 +160,7 @@ and links the issue.
 - Neon: `aws-eu-central-1`, measured through the Neon API on 2026-09-28.
 - Vercel.
 - Resend.
-- Google and GitHub, as OAuth providers.
+- Google, as the OAuth provider (amended 2026-10-14, ENTRY — redesign-entry.md).
 - Have I Been Pwned: a 5-character SHA-1 prefix.
 - OpenStreetMap Nominatim: the typed location query.
 - CARTO: map tiles.

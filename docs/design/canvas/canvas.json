@@ -1,0 +1,397 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "R3-alertas.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Alertas",
+      "w": 1970,
+      "x": 0,
+      "y": 10600
+    },
+    "R3-favoritos.dc.html": {
+      "h": 980,
+      "page": "r3",
+      "title": "Favoritos",
+      "w": 7514,
+      "x": 2050,
+      "y": 8480
+    },
+    "R3-landing.dc.html": {
+      "h": 980,
+      "page": "r3",
+      "title": "Landing",
+      "w": 4998,
+      "x": 0,
+      "y": 0
+    },
+    "R3-login.dc.html": {
+      "h": 980,
+      "page": "r3",
+      "title": "Entrar",
+      "w": 15868,
+      "x": 5078,
+      "y": 0
+    },
+    "R3-mapa-detalle.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · coche abierto + filtros (móvil)",
+      "w": 1970,
+      "x": 2050,
+      "y": 3180
+    },
+    "UIKit.dc.html": {
+      "h": 19501,
+      "page": "kit",
+      "title": "UI Kit",
+      "w": 1970,
+      "x": 0,
+      "y": 0
+    },
+    "R2Base.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa (base que reutiliza la pantalla del coche abierto)",
+      "w": 1970,
+      "x": 0,
+      "y": 3180
+    },
+    "F0-registro.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Registro",
+      "w": 1970,
+      "x": 0,
+      "y": 1060
+    },
+    "F0-contrasena.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Recuperar contraseña · y «mira tu correo» (móvil)",
+      "w": 1970,
+      "x": 0,
+      "y": 2120
+    },
+    "F0-nueva-contrasena.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Nueva contraseña · y enlace caducado (móvil)",
+      "w": 1970,
+      "x": 2050,
+      "y": 2120
+    },
+    "F0-confirmar.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Confirmar cuenta · y cuenta lista (móvil)",
+      "w": 1970,
+      "x": 2050,
+      "y": 1060
+    },
+    "F0-legal.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Privacidad y términos",
+      "w": 1970,
+      "x": 2050,
+      "y": 12720
+    },
+    "F0-cuenta.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Cuenta",
+      "w": 1970,
+      "x": 0,
+      "y": 12720
+    },
+    "F0-estado-cargando.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · cargando",
+      "w": 1970,
+      "x": 0,
+      "y": 7420
+    },
+    "F0-estado-sin-resultados.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · sin resultados",
+      "w": 1970,
+      "x": 2050,
+      "y": 7420
+    },
+    "F0-estado-error-busqueda.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · error de búsqueda",
+      "w": 1970,
+      "x": 0,
+      "y": 8480
+    },
+    "F0-estado-guardados-vacio.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Guardados · vacío",
+      "w": 1970,
+      "x": 2050,
+      "y": 9540
+    },
+    "F0-estado-alertas-vacio.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Alertas · vacío",
+      "w": 1970,
+      "x": 2050,
+      "y": 11660
+    },
+    "F0-estado-error-pagina.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Cualquier página · error al cargar",
+      "w": 1970,
+      "x": 0,
+      "y": 13780
+    },
+    "F3-mapa-filtros.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · filtros abiertos",
+      "w": 1970,
+      "x": 0,
+      "y": 4240
+    },
+    "F3-mapa-crear-alerta.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · crear alerta",
+      "w": 1970,
+      "x": 2050,
+      "y": 4240
+    },
+    "F3-crear-alerta-estados.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Crear alerta · demasiado amplia y creada",
+      "w": 1970,
+      "x": 0,
+      "y": 5300
+    },
+    "F3-buscador-donde.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · buscador: Dónde",
+      "w": 1970,
+      "x": 2050,
+      "y": 5300
+    },
+    "F3-buscador-coche.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · buscador: Coche",
+      "w": 1970,
+      "x": 0,
+      "y": 6360
+    },
+    "F3-buscador-precio.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · buscador: Precio",
+      "w": 1970,
+      "x": 2050,
+      "y": 6360
+    },
+    "F5-guardados-coche.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Guardados · coche abierto (móvil)",
+      "w": 1970,
+      "x": 0,
+      "y": 9540
+    },
+    "F5-guardados-estados.dc.html": {
+      "h": 980,
+      "page": "r3",
+      "title": "Guardados · cargando y quitado (móvil)",
+      "w": 2410,
+      "x": 4100,
+      "y": 9540
+    },
+    "F6-alerta.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Alerta (móvil)",
+      "w": 1970,
+      "x": 2050,
+      "y": 10600
+    },
+    "F6-alerta-estados.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Alerta · al final, coche, eliminar y sin coincidencias (móvil)",
+      "w": 1970,
+      "x": 0,
+      "y": 11660
+    },
+    "F6-alerta-escritorio.dc.html": {
+      "h": 1000,
+      "page": "r3",
+      "title": "Alerta · escritorio y eliminar",
+      "w": 3020,
+      "x": 4100,
+      "y": 10600
+    },
+    "F6-alertas-escritorio.dc.html": {
+      "h": 1000,
+      "page": "r3",
+      "title": "Alertas · pausada, sin sitio, portátil y cargando",
+      "w": 5584,
+      "x": 7200,
+      "y": 10600
+    },
+    "F6-alerta-mas-estados.dc.html": {
+      "h": 1000,
+      "page": "r3",
+      "title": "Alerta · sin sitio, lista larga, guardado, cargando y sitio largo (móvil)",
+      "w": 2680,
+      "x": 4100,
+      "y": 11660
+    },
+    "F7-registro-estados.dc.html": {
+      "h": 1040,
+      "page": "r3",
+      "title": "Registro · revisa tu correo, errores, medidor y portátil",
+      "w": 5414,
+      "x": 4100,
+      "y": 1060
+    },
+    "F7-confirmar-estados.dc.html": {
+      "h": 1040,
+      "page": "r3",
+      "title": "Confirmar cuenta y cambio de correo · lista, enlace caducado y confirmado",
+      "w": 9690,
+      "x": 9594,
+      "y": 1060
+    },
+    "F7-contrasena-estados.dc.html": {
+      "h": 1040,
+      "page": "r3",
+      "title": "Recuperar y nueva contraseña · enviado, formularios, caducado y errores",
+      "w": 5830,
+      "x": 4100,
+      "y": 2120
+    },
+    "F7-cuenta-editar.dc.html": {
+      "h": 1040,
+      "page": "r3",
+      "title": "Cuenta · cambiar nombre, correo y contraseña, y correo sin verificar",
+      "w": 7760,
+      "x": 4100,
+      "y": 12720
+    },
+    "F7-cuenta-dos-pasos.dc.html": {
+      "h": 1040,
+      "page": "r3",
+      "title": "Cuenta · dos pasos: activar, códigos de recuperación y gestionar",
+      "w": 7760,
+      "x": 11940,
+      "y": 12720
+    },
+    "F7-cuenta-sesiones-google.dc.html": {
+      "h": 1040,
+      "page": "r3",
+      "title": "Cuenta · sesiones y Google",
+      "w": 5220,
+      "x": 19780,
+      "y": 12720
+    },
+    "F7-cuenta-eliminar-y-mas.dc.html": {
+      "h": 1040,
+      "page": "r3",
+      "title": "Cuenta · eliminar, descargar datos, solo Google, cargando y portátil",
+      "w": 7954,
+      "x": 25080,
+      "y": 12720
+    },
+    "F7-legal-estados.dc.html": {
+      "h": 1040,
+      "page": "r3",
+      "title": "Privacidad y términos · índice abierto, apartado actual, términos y portátil",
+      "w": 4974,
+      "x": 2050,
+      "y": 13780
+    },
+    "F7-no-existe.dc.html": {
+      "h": 1040,
+      "page": "r3",
+      "title": "Página que no existe · y error al cargar sin sesión",
+      "w": 5830,
+      "x": 0,
+      "y": 14840
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-11T18:30:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {},
+  "order": [
+    "R3-landing.dc.html",
+    "R3-login.dc.html",
+    "F0-registro.dc.html",
+    "F7-registro-estados.dc.html",
+    "F0-confirmar.dc.html",
+    "F7-confirmar-estados.dc.html",
+    "F0-contrasena.dc.html",
+    "F0-nueva-contrasena.dc.html",
+    "F7-contrasena-estados.dc.html",
+    "R2Base.dc.html",
+    "R3-mapa-detalle.dc.html",
+    "F3-mapa-filtros.dc.html",
+    "F3-mapa-crear-alerta.dc.html",
+    "F3-crear-alerta-estados.dc.html",
+    "F3-buscador-donde.dc.html",
+    "F3-buscador-coche.dc.html",
+    "F3-buscador-precio.dc.html",
+    "F0-estado-cargando.dc.html",
+    "F0-estado-sin-resultados.dc.html",
+    "F0-estado-error-busqueda.dc.html",
+    "R3-favoritos.dc.html",
+    "F5-guardados-coche.dc.html",
+    "F5-guardados-estados.dc.html",
+    "F0-estado-guardados-vacio.dc.html",
+    "R3-alertas.dc.html",
+    "F6-alerta.dc.html",
+    "F6-alerta-estados.dc.html",
+    "F6-alertas-escritorio.dc.html",
+    "F6-alerta-escritorio.dc.html",
+    "F6-alerta-mas-estados.dc.html",
+    "F0-estado-alertas-vacio.dc.html",
+    "F0-cuenta.dc.html",
+    "F7-cuenta-editar.dc.html",
+    "F7-cuenta-dos-pasos.dc.html",
+    "F7-cuenta-sesiones-google.dc.html",
+    "F7-cuenta-eliminar-y-mas.dc.html",
+    "F0-legal.dc.html",
+    "F7-legal-estados.dc.html",
+    "F0-estado-error-pagina.dc.html",
+    "F7-no-existe.dc.html",
+    "UIKit.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "r3",
+      "name": "Pantallas"
+    },
+    {
+      "id": "kit",
+      "name": "UI Kit"
+    }
+  ],
+  "title": "BuyCarMap 2.0"
+}

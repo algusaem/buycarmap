@@ -67,7 +67,7 @@ session did not follow this section, whatever its «Lacayos» line says.
 
 ## Project Overview
 
-BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, year, mileage, horsepower, fuel, transmission, and recency, then browse results as a synchronized card list + map.
+BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, and recency (horsepower only survives in old links), then browse results as a synchronized card list + map.
 
 What is and is not built is under **Current state** below. Everything else in this
 file is a rule; the explanations live in `docs/`.
@@ -75,25 +75,30 @@ file is a rule; the explanations live in `docs/`.
 ## Stack today
 
 Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prisma 7
-with the **`@prisma/adapter-pg`** driver adapter · Better Auth (Postgres sessions) ·
+with the **`@prisma/adapter-neon`** (on Vercel) and **`@prisma/adapter-pg`** (elsewhere) driver adapters · Better Auth (Postgres sessions) ·
 React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
-`components/ui/*` · Motion · Sonner · next-themes · Leaflet + react-leaflet ·
+`components/ui/*`, plus Popover, Dialog and Slider used directly by the map, the create-alert
+dialog, the saved car sheet, the delete-alert confirmation and the account dialogs (ADR 0020) · TanStack Virtual (the saved cars list, ADR 0021) · Motion · Sonner · Leaflet + react-leaflet ·
 Lucide React and React Icons · next-intl (i18n) · nuqs (URL state) · date-fns
 and `@date-fns/tz` (formatting).
 
 Where this differs from `STACK.md` it is a deviation the adoption ADR accepts until its phase,
 or an installed dependency the ADR approves or accepts until its phase (see its dependency list). Constraints that hold until then, and that a plausible-looking change will break:
 
-- Prisma connects through `@prisma/adapter-pg` with a plain `DATABASE_URL`, not the Neon
-  serverless driver. Do not change this outside phase 6 (ADR 0007 row 12).
+- `lib/db/prisma.ts` picks the driver adapter by environment: `PrismaNeon` (Neon's serverless
+  driver) over the pooled `DATABASE_URL` when `VERCEL` is set — every Vercel deployment — and
+  `PrismaPg` with a plain connection everywhere else, local and tests included. Keep both: a
+  change that drops one breaks either the deployments or the local database.
 - The Prisma client is generated to `app/generated/prisma` — gitignored, and
   required before `pnpm typecheck` and before tests will even import.
 - Hooks in `lib/hooks/*` own every client request lifecycle (ADR 0007 row 19, resolved;
   `docs/decisions/0001-no-data-fetching-library.md`, `docs/decisions/0016-server-search-and-next-intl.md`)
   and guard against out-of-order responses with a version ref or `cancelled` flag, as the
   existing hooks do. The search and car-models hooks call the `searchListings` and
-  `listCarModels` Server Actions (`server/search/actions.ts`); every other hook calls a
-  cross-cutting helper in `lib/<source>/*` or `lib/geo/*` — never a raw endpoint.
+  `listCarModels` Server Actions (`server/search/actions.ts`), the favorites hooks call
+  theirs (`server/favorites/actions.ts`), the alerts hooks theirs (`server/alerts/actions.ts`), and
+  the account and locale hooks their own feature's actions; every other hook calls a cross-cutting helper in `lib/<source>/*` or `lib/geo/*` —
+  never a raw endpoint.
 
 Full detail: `docs/ARCHITECTURE.md`.
 
@@ -190,12 +195,12 @@ reasonable-looking change, because breaking one is silent:
 - **coches.net and Milanuncios items carry no coordinates.** Their pins are
   city- or province-level approximations. Wallapop's are exact when the listing
   carries coordinates (SRC-3).
-- **The merge post-filters by radius and model** (`applyResultFilters` in
+- **The merge post-filters by radius, model and fuel** (`applyResultFilters` in
   `lib/listings/merge.ts`, applied by `server/search/actions.ts`'s `searchListings` after
   `server/search/service.ts`'s `searchRound` returns). It looks redundant — "upstream already
   filters" — but only Wallapop enforces the radius and Milanuncios matches the
   model as free text. Removing it silently reverts to nationwide results
-  (MAP-16..18). **Because that filter can empty a page**, the first search and
+  (MAP-16..18); the fuel drops a listing whose fuel is unknown or of another group (MAPUI-55). **Because that filter can empty a page**, the first search and
   `loadMore` both keep fetching until a round yields a listing or the sources
   run out — collapsing either loop back to one fetch strands the scroll and
   makes an empty first page permanent (MAP-19). Every round advances each source's
@@ -263,6 +268,10 @@ After a spec is approved, invoke `/spec-tests` — do not implement straight fro
 
 Each phase of the migration onto the core has its own spec in `docs/specs/` (`core-*.md`), approved
 before the phase starts.
+
+**The BuyCarMap 2.0 redesign follows `docs/design/roadmap.md`.** Read it before any redesign
+work: it lists the phases F1–F7, their order, what each covers and its state. When a phase changes
+state, update its row in the same change; a new phase starts by drafting its spec, not by coding.
 
 Specs follow the core section order — Problem, Acceptance criteria, Worked examples, Data model,
 Permissions, Edge cases, Out of scope — optionally followed by Contracts, Decisions and rationale
@@ -391,22 +400,37 @@ Any change here needs approval first (`RULES.md` §1).
 - **Do not relax account linking.** A provider is auto-linked only when both emails are
   verified, and never to an account with two-factor on (`lib/auth/linking.ts`, BAUTH-9).
 
+## Design first
+
+The design in `docs/design/` (the BuyCarMap 2.0 canvas and design system, see its `README.md`) is
+the visual source of truth, and it leads: **a visual change is designed before it is specified or
+coded.**
+
+- Any change to what the user sees (a screen, a layout, a colour, type, on-screen copy, a
+  component or its states) first goes into the design canvas, and into the design system and
+  the UI Kit when it touches them.
+- Show the owner the updated design and stop. The owner accepts or rejects it; only an accepted
+  design moves on to its spec (`RULES.md` §4) and code.
+- Republish the changed files from `docs/design/` to the Claude Design project in the same change
+  (`DesignSync`, project pinned in `.design-sync/config.json`), so the repo and the project never
+  differ.
+- Code that disagrees with the design is a bug. If the code turns out to need something different,
+  amend the design first and get it accepted again.
+
 ## UI specifics
 
-- **Theming**: next-themes, `attribute="class"`, dark default, `.light` for light. Theme-aware
-  styles use the CSS variables (`var(--…)`) the theme defines. Components
-  using `useTheme` wait for `mounted` (`lib/hooks/useMounted.ts`) to stay hydration-safe. Theme
-  switching uses the View Transitions API via `lib/hooks/useThemeTransition.ts` — use it rather
-  than calling `setTheme` directly in the toggle.
+- **Theming**: one dark theme, no toggle (`class="dark"` static on `<html>`; next-themes removed,
+  LOOK). Theme-aware styles use the CSS variables from `app/globals.css`, which mirror
+  `docs/design/system/tokens.json`.
 - **Forms**: `zodResolver`, inline field errors, and `isSubmitting` for the loading state.
 - **Toasts**: the Sonner `Toaster` (`components/Toaster.tsx`) is in the root layout and takes the
-  next-themes theme; style it via `classNames` with Tailwind's important modifier (Sonner's
+  dark theme as a constant; style it via `classNames` with Tailwind's important modifier (Sonner's
   unlayered styles beat `@layer utilities` otherwise), not inline styles (FRONT-23).
 - **Icons**: never raw SVGs. Lucide React for UI icons, React Icons for brand icons. Size with
   Tailwind (`h-4 w-4`).
 - **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }
-  from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `fadeInDown`,
-  `dropdownReveal`, `crossFade`, `fadeIn(delay)`, `staggerContainer(delay)`, `buttonTap`)
+  from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `dropdownReveal`,
+  `sheetSlideUp`, `crossFade`)
   instead of re-declaring `initial`/`animate` inline.
 
 <!-- BEGIN:nextjs-agent-rules -->

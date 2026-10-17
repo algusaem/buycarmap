@@ -32,7 +32,7 @@ describe("findAlertWithMatches", () => {
     expect(alert).toBeNull();
   });
 
-  it("LAYOUT-11: the user's own alert is returned", async () => {
+  it("LAYOUT-11 / ALERTUI-45: the user's own alert is returned", async () => {
     const ada = await createUser({ email: "ada@example.com" });
     const criteria = await createAlertCriteria();
     const adasAlert = await createAlert({
@@ -42,7 +42,25 @@ describe("findAlertWithMatches", () => {
 
     const alert = await findAlertWithMatches(asUserId(ada.id), asAlertId(adasAlert.id));
 
-    expect(alert).toMatchObject({ id: adasAlert.id, userId: ada.id });
+    // ALERTUI-45: only the fields of redesign-alerts.md › Contracts › Server;
+    // ownership is the 404 above (another user's alert is not found).
+    expect(alert).toMatchObject({
+      id: adasAlert.id,
+      label: adasAlert.label,
+      placeName: adasAlert.placeName,
+      active: adasAlert.active,
+      createdAt: adasAlert.createdAt,
+      matches: [],
+    });
+    expect(Object.keys(alert ?? {}).sort()).toEqual([
+      "active",
+      "createdAt",
+      "criteria",
+      "id",
+      "label",
+      "matches",
+      "placeName",
+    ]);
   });
 });
 

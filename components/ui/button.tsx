@@ -4,29 +4,73 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+// Sizes drawn under 44px keep a 44x44 hit area (RULES §19) without changing
+// their drawn size (LOOK-9): an absolutely positioned 44px pseudo-element with
+// no insets sits at its static position, which the button's own
+// `items-center justify-center` centres over the label. The button is
+// deliberately not `relative`: the pseudo-element then belongs to an
+// ancestor's containing block, so it never adds to the button's own scroll
+// size (a label that wraps is detected that way).
+const HIT_AREA = "before:absolute before:size-11";
+
+// The look follows docs/design/system/components/Button/README.md: every
+// button is a pill that never wraps its label. Transitions list their
+// properties (never `transition-all`); `color` is left out so the undo
+// button's hover/focus colour is immediate (LOOK-10).
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-pill font-sans transition-[background-color,border-color] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
-        outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+        // Principal: lime / on-lime, weight 800.
+        primary: "bg-lime font-extrabold text-on-lime",
+        // Secundario: 1px line border, text, weight 700.
+        secondary: "border border-line font-bold text-text",
+        // Fantasma: text only, weight 700.
+        ghost: "font-bold text-text",
+        // Deshacer: a ghost whose text turns danger on hover and focus.
+        undo: "font-bold text-text hover:text-danger focus-visible:text-danger",
+        // Peligro: danger text and a danger border at 60 %.
+        danger: "border border-danger/60 font-bold text-danger",
+        // De icono: round, 1px line border.
+        icon: "border border-line text-text",
+        // Legacy names still used by callers, mapped onto the looks above.
+        default: "bg-lime font-extrabold text-on-lime",
+        outline: "border border-line font-bold text-text",
+        destructive: "border border-danger/60 font-bold text-danger",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
-        "icon-sm": "size-8",
-        "icon-lg": "size-10",
+        // 56px full width, button-display: Unbounded uppercase 15px.
+        display: "h-14 w-full px-6 font-display text-[15px] uppercase",
+        // 54px: padding 0 24px, 7px gap, 16px.
+        "54": "h-13.5 gap-1.75 px-6 text-base",
+        // 52px, 16px.
+        "52": "h-13 px-6 text-base",
+        // 48px: padding 0 22px (primary), 15px.
+        "48": "h-12 px-5.5 text-[15px]",
+        // 44px: padding 0 18px, 14px.
+        "44": "h-11 px-4.5 text-sm",
+        // 42px: padding 0 16px, 14px.
+        "42": `h-10.5 px-4 text-sm ${HIT_AREA}`,
+        // Small by padding: 11px 20px at 15px, and 10px 16px at 14px.
+        "pad-15": `px-5 py-2.75 text-[15px] ${HIT_AREA}`,
+        "pad-14": `px-4 py-2.5 text-sm ${HIT_AREA}`,
+        // Icon buttons: 42px round, and 40px to close a panel.
+        icon: `size-10.5 ${HIT_AREA}`,
+        "icon-40": `size-10 ${HIT_AREA}`,
+        // Legacy names still used by callers.
+        default: "h-12 px-5.5 text-[15px]",
+        sm: `px-4 py-2.5 text-sm ${HIT_AREA}`,
+        lg: "h-13 px-6 text-base",
+        "icon-sm": `size-10 ${HIT_AREA}`,
+        "icon-lg": `size-10.5 ${HIT_AREA}`,
       },
     },
+    compoundVariants: [
+      // Secondary at 48px uses padding 0 20px; the undo ghost 0 14px.
+      { variant: ["secondary", "outline"], size: ["48", "default"], className: "px-5" },
+      { variant: "undo", size: ["48", "default"], className: "px-3.5" },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",

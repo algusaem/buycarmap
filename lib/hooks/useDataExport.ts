@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import * as Sentry from "@sentry/nextjs";
-import { AUTH_ERROR } from "@/lib/auth/errors";
+import { AUTH_ERROR, refusalCode } from "@/lib/auth/errors";
 import { exportMyData, type AccountResult } from "@/server/account/actions";
 import { dataExportEnvelopeSchema } from "@/server/account/schema";
 
@@ -46,7 +46,7 @@ export function useDataExport() {
     try {
       const result = await exportMyData();
       if (!result.success || result.data === undefined) {
-        return { success: false, error: result.error ?? AUTH_ERROR.generic };
+        return { success: false, error: refusalCode(result.error) };
       }
       saveAsFile(result.data, exportFileName(result.data));
       return { success: true };

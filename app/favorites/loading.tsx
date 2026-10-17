@@ -1,12 +1,14 @@
-import { CardGridSkeleton } from "@/components/ui/CardGridSkeleton";
+import { SavedPagePlaceholder } from "@/components/favorites/SavedPlaceholders";
 
-// FRONT-14 (docs/specs/core-frontend.md): /favorites' loading state — a
-// skeleton mirroring FavoritesList's populated card grid (RULES.md §19),
-// alongside the error state app/favorites/error.tsx already has and the
-// empty/populated states FavoritesList itself renders. Synchronous, not an
-// async Server Component reading the locale: `app/favorites/loading.test.tsx`
-// renders it directly with `render()`, which (unlike Next's own RSC
-// streaming) cannot resolve an async component.
+// docs/specs/redesign-saved.md (SAVED-30, SAVED-13; amends FRONT-14);
+// F5-guardados-estados. /favorites' loading state mirrors the populated page
+// (components/favorites/SavedPlaceholders.tsx), under the same `main` as the
+// page. A Server Component (RULES.md §9): both compositions are drawn and CSS
+// breakpoints pick one, so nothing waits on the client's media queries.
 export default function FavoritesLoading() {
-  return <CardGridSkeleton />;
+  return (
+    <main className="flex min-h-0 flex-1 flex-col bg-background">
+      <SavedPagePlaceholder />
+    </main>
+  );
 }

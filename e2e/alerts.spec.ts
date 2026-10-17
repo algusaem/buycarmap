@@ -1,5 +1,13 @@
-import { test, expect } from "@playwright/test";
-import { clearAlertQueue, seedAlertJobs, claimConcurrently, claimOnce } from "./fixtures/db";
+import { test, expect, type Page } from "@playwright/test";
+import {
+  clearAlertQueue,
+  seedAlertJobs,
+  claimConcurrently,
+  claimOnce,
+  e2eEmail,
+  seedUser,
+} from "./fixtures/db";
+import { mockListingSources } from "./fixtures/network";
 
 // The queue's safety property is the one thing Vitest cannot reach. Prisma is
 // mocked there, so a node test would assert that the right query was issued
@@ -73,4 +81,50 @@ test.describe("alert queue", () => {
     expect(claimed).toHaveLength(1);
     expect(claimed[0].enqueuedMinutesAgo).toBe(5);
   });
+});
+
+// docs/specs/redesign-map.md (MAPUI-47). Unlike the queue tests above, this
+// one drives the browser — the database proves the alert was actually
+// persisted end to end (ALERT-1), which a mocked Prisma client cannot.
+// Deliberately duplicated `signIn` rather than imported from
+// e2e/favorites.spec.ts, the same "five lines of page-object glue" call that
+// file's own comment makes.
+const PASSWORD = "harbour-lentil-quilt-97";
+
+async function signIn(page: Page, email: string) {
+  await page.goto("/login");
+  await page.getByLabel(/email|correo/i).fill(email);
+  await page.locator('input[type="password"]').fill(PASSWORD);
+  await page.getByRole("button", { name: /sign in|entrar/i }).click();
+  await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
+}
+
+test.describe("create alert end to end", () => {
+  dbTest(
+    "MAPUI-47: creating an alert from /map?make=Toyota&maxPrice=20000 adds it to /alerts",
+    async ({ page }) => {
+      const email = e2eEmail("createalert");
+      await seedUser(email, PASSWORD, "Create Alert User");
+      await mockListingSources(page);
+
+      await signIn(page, email);
+      await page.goto("/map?make=Toyota&maxPrice=20000");
+
+      await page
+        .getByRole("button", { name: /crear alerta|create alert/i })
+        .first()
+        .click();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: /crear alerta|create alert/i })
+        .click();
+
+      // Sonner renders the toast as a list item without role="status"; the
+      // only status region on the page is the map's own (empty) StatusPill.
+      await expect(page.getByText(/alerta creada|alert created/i)).toBeVisible({ timeout: 15_000 });
+
+      await page.goto("/alerts");
+      await expect(page.getByText(/toyota/i).first()).toBeVisible({ timeout: 15_000 });
+    },
+  );
 });

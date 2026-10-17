@@ -1,23 +1,33 @@
 import type { CarListing } from "./listing";
+import type { AlertId } from "@/lib/ids";
 import type { SearchInput } from "@/lib/search/schema";
 
 /** One row on the alerts page: the saved search, and how it is doing. */
 export interface AlertSummary {
-  id: string;
+  id: AlertId;
   label: string;
+  /** The place chosen in «Dónde» when the alert was created (ALERTUI-46); null before F6 or with none. */
+  placeName: string | null;
   criteria: SearchInput;
   matchCount: number;
   active: boolean;
+  createdAt: Date;
 }
 
 /**
- * A listing an alert found, as the matches page renders it.
- *
- * `foundAt` is the discovery time rather than the listing's publish date —
- * no source exposes one, which is the reason the seen-list exists at all.
+ * What the /alerts page reads (docs/specs/redesign-alerts.md, ALERTUI-44): the
+ * caller's alerts, newest first, the open alert resolved on the server
+ * (ALERTUI-12), and that one alert's matches, newest first.
  */
-export interface AlertMatch extends CarListing {
-  foundAt: Date;
+export interface AlertsPageData {
+  alerts: AlertSummary[];
+  openAlertId: AlertId | null;
+  matches: CarListing[];
+}
+
+/** One alert and every match it found, as /alerts/[id] renders it (ALERTUI-20, ALERTUI-22, ALERTUI-45). */
+export interface AlertWithMatches extends Omit<AlertSummary, "matchCount"> {
+  matches: CarListing[];
 }
 
 /** What one invocation of the alert cron (`app/api/alerts/run/route.ts`) did. */

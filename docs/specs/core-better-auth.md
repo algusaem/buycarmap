@@ -42,14 +42,14 @@ This is phase 11 of ADR 0007: row 25.
   - It keeps AUTH-6's per-account lockout and today's per-IP limit, using `server/rate-limit/service.ts`.
   - It keeps the identical generic failure response.
   - A two-factor account gets the `twoFactorRedirect` step, not a session (AUTH-7).
-- [x] BAUTH-4 · node — `/account` lists the user's active sessions, with device, browser and last use, and can revoke one, or every other one.
+- [x] BAUTH-4 · node — `/account` lists the user's active sessions, with device, browser and last use, and can revoke one, or every other one. — the list is the «Sesiones» dialog or sheet, read again each time it opens, the device «X en Y» (PAGES-49, PAGES-52); the «Sesiones» card reads the sessions with the page query (PAGES-35, PAGES-60) (amended 2026-10-16, PAGES — redesign-pages.md).
 - [x] BAUTH-5 · node — `proxy.ts` checks for the session cookie with `getSessionCookie` from `better-auth/cookies`. It is a presence check for redirects only; authorization stays in `getCurrentUser()`, as `CLAUDE.md` › Authentication requires.
 
 ### Direct endpoint safety
 
 - [x] BAUTH-6 · node — No Better Auth HTTP endpoint lets a client skip a rule our server actions enforce.
   - Only the paths the browser needs stay reachable over HTTP, and every other Better Auth path is in `disabledPaths`. Our server actions still reach the disabled ones through `auth.api`, where our rules wrap them. The allowlist (amended 2026-10-04 after the security review):
-    - `/sign-in/social` and `/callback/:id` (Google and GitHub);
+    - `/sign-in/social` and `/callback/:id` (Google) (amended 2026-10-14, ENTRY — redesign-entry.md);
     - `/sign-in/email` (the no-email registration fallback signs in through the client);
     - `/get-session`, `/sign-out`, `/ok` and `/error`.
   - `/sign-in/email` called directly runs the same checks as our action through `hooks.before`: today's per-IP limit and the per-account lockout. Each failed attempt is counted once.
@@ -65,21 +65,21 @@ This is phase 11 of ADR 0007: row 25.
 
 ### OAuth and linking
 
-- [x] BAUTH-8 · node — Google and GitHub sign-in work through Better Auth's social providers, on the callback paths they use today (`/api/auth/callback/google`, `/api/auth/callback/github`), so the providers' consoles need no change.
+- [x] BAUTH-8 · node — Google sign-in works through Better Auth's social providers, on the callback path it uses today (`/api/auth/callback/google`), so the provider's console needs no change (amended 2026-10-14, ENTRY — redesign-entry.md).
 - [x] BAUTH-9 · node — Linking follows AUTH-12 and the owner's 2026-10-04 decision:
   - a new provider is linked automatically only when the provider itself reports the email as verified, so no provider is listed in `trustedProviders`, and the local account's email is verified (`requireLocalEmailVerified`);
   - a provider is never linked automatically to an account with two-factor on;
   - a first sign-in with a provider for an address with no local account, whether through the OAuth callback or any other provider sign-in, creates the user and its provider account only when the provider reports the email as verified; ID-token sign-in is disabled, so nobody can claim an address through a provider that never verified it. Later sign-ins with that provider keep working. Amended 2026-10-04;
   - explicit linking from `/account` is not offered: no UI links a provider today, and `/link-social` is not on the allowlist. Amended 2026-10-04.
   - The tests drive the real OAuth callback, with the provider's token and userinfo endpoints faked through MSW.
-- [x] BAUTH-10 · component — Unlinking keeps AUTH-14: the only remaining way to sign in cannot be disconnected.
+- [x] BAUTH-10 · component — Unlinking keeps AUTH-14: the only remaining way to sign in cannot be disconnected. The account page's connected-accounts list shows only Google (amended 2026-10-14, ENTRY — redesign-entry.md). — the Google card shows «Conectada» only, never the Google email (PAGES-34) (amended 2026-10-16, PAGES — redesign-pages.md).
 
 ### Two-factor
 
 - [x] BAUTH-11 · node — Two-factor uses Better Auth's `twoFactor` plugin (owner's decision, 2026-10-04):
   - TOTP is SHA-1, 6 digits, 30 s and ±1 step (AUTH-9);
   - backup codes work once (AUTH-10);
-  - enrolment, confirmation, disabling and regenerating codes keep today's UI flow and copy.
+  - enrolment, confirmation, disabling and regenerating codes keep today's UI flow and copy — the codes show in the alertdialog of PAGES-45, once; «Ya los he guardado» is enabled after any press of «Copiar códigos», and Escape or a press outside does not close it; a wrong password in the two-factor dialog is a field error (PAGES-44, PAGES-48), no longer a toast (amended 2026-10-16, PAGES — redesign-pages.md).
 - [x] BAUTH-12 · node — AUTH-8, "a TOTP code cannot be reused inside its own window", is withdrawn: the plugin has no replay store. The owner accepted the loss on 2026-10-04. The auth spec marks AUTH-8 withdrawn, with the date and the reason, and its test is deleted.
 - [x] BAUTH-13 · node — Users who had two-factor on before the cutover have it switched off by the migration and receive one email, in their locale, asking them to enrol again. The rehearsal on a production copy reports how many users that is. The email half is retired by BAUTH-21 once it has done its job; the migration half keeps its test.
 
@@ -141,7 +141,7 @@ This is phase 11 of ADR 0007: row 25.
   - A credential user changes their password → the `credential` `accounts` row's `password` holds the new hash, and signing in with the new password succeeds.
   - A user with `users.password = null` and a `credential` `accounts` row (created after step A) opens `/account` → it shows the forms for an account with a password: change password, two-factor, and a delete form that asks for the password. `deleteAccount` with no password → `{ success: false, error: "passwordRequired" }`, and with a wrong one → `{ success: false, error: "currentPasswordIncorrect" }`; the user is not deleted. Reading `users.password` instead would treat this user as OAuth-only: no password forms, and deletion with no password asked for.
 - **BAUTH-20**: a database migrated, in name order, up to just before the drop, holding user U with all five legacy columns set (including `password` = H and `email_verified` set) and U's `credential` `accounts` row with `password` = H. After the drop, the five columns no longer exist on `users`, U's other columns are unchanged, U's `credential` account still holds H, and every other table keeps its row count.
-- **BAUTH-21**: Ada (`twoFactorEnabled = true`) exports her data → `profile` has no `twoFactorEnabledAt` key (before: `"twoFactorEnabledAt": "2026-09-03T10:00:00.000Z"`). A provider sign-in (GitHub, in the test) creates an `accounts` row and the three NextAuth columns stay null on it, as they already do today.
+- **BAUTH-21**: Ada (`twoFactorEnabled = true`) exports her data → `profile` has no `twoFactorEnabledAt` key (before: `"twoFactorEnabledAt": "2026-09-03T10:00:00.000Z"`). A provider sign-in (Google, in the test — GitHub sign-in is gone, ENTRY-18; amended 2026-10-17) creates an `accounts` row and the three NextAuth columns stay null on it, as they already do today.
 
 ## Data model
 

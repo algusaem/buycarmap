@@ -15,10 +15,9 @@ vi.mock("@/lib/app-config", () => ({
   isEmailConfigured: true,
   // BAUTH-7 (docs/specs/core-better-auth.md), harness change: registration
   // now transitively pulls in lib/auth/auth.ts (createSessionCookie), which
-  // reads these two to decide which OAuth providers to register — neither
-  // is exercised by this file, so both are simply off.
+  // reads this to decide whether to register the Google provider — not
+  // exercised by this file, so it is simply off.
   isGoogleConfigured: false,
-  isGitHubConfigured: false,
 }));
 vi.mock("@/server/rate-limit/service", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/server/rate-limit/service")>()),

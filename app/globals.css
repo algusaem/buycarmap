@@ -3,169 +3,436 @@
 @import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Keyed on TabBar's own `data-tab-bar` attribute (components/nav/TabBar.tsx),
+   never on a test id — a page below the phone tab bar uses this to clear it
+   without reading the session itself (ENTRY-8, Landing.tsx's phone region). */
+@custom-variant with-tab-bar (body:has([data-tab-bar]) &);
+
+/* The illustrations' room (docs/specs/redesign-entry.md, ENTRY-29): under
+   150px of drawn content the illustration is not shown. On the landing the
+   room is measured on the page's scrolling box (app/page.tsx's `landing`
+   container), because dropping the slot also drops its gap: the body's height
+   less the column (337px), its 30px gap, the footer's 24px gap and its 24px
+   links row. On the sign-in page it is the slot itself (`illus`), less the
+   24px gap under «Créala» the slot holds inside it. */
+@custom-variant landing-illus-hidden {
+  @container landing (height < 35.3125rem) {
+    @slot;
+  }
+}
+@custom-variant login-illus-hidden {
+  @container illus (height < 10.875rem) {
+    @slot;
+  }
+}
+
+/* The headline's box, trimmed to its cap height and baseline (the board's
+   `.display` class) — LoginHeadline.tsx and Landing.tsx's `<Headline>`. */
+@utility text-box-trim {
+  text-box: trim-both cap alphabetic;
+}
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Utility names the existing components use, aliased to the design tokens
+     (LOOK-2, docs/specs/redesign-foundation.md). */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--text-muted);
+  --color-secondary: var(--surface);
+  --color-secondary-foreground: var(--text);
+  --color-accent: var(--surface);
+  --color-accent-foreground: var(--text);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-primary: var(--lime);
+  --color-primary-foreground: var(--on-lime);
+  --color-destructive: var(--danger);
+  --color-ring: var(--lime);
+
+  /* The design tokens under their own names (bg-lime, text-on-lime, border-line…). */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-legal: var(--text-legal);
+  --color-lime: var(--lime);
+  --color-on-lime: var(--on-lime);
+  --color-violet: var(--violet);
+  --color-on-violet: var(--on-violet);
+  --color-danger: var(--danger);
+  --color-lime-glow: var(--lime-glow);
+  --color-map-ground: var(--map-ground);
+  --color-map-road: var(--map-road);
+  --color-map-road-major: var(--map-road-major);
+  --color-map-road-minor: var(--map-road-minor);
+  --color-map-water: var(--map-water);
+  --color-photo-placeholder: var(--photo-placeholder);
+  --color-photo-tint-1: var(--photo-tint-1);
+  --color-photo-tint-2: var(--photo-tint-2);
+  --color-photo-tint-3: var(--photo-tint-3);
+  --color-photo-tint-4: var(--photo-tint-4);
+  --color-photo-tint-5: var(--photo-tint-5);
+  --color-photo-tint-6: var(--photo-tint-6);
+  --color-photo-tint-7: var(--photo-tint-7);
+  --color-photo-tint-8: var(--photo-tint-8);
+  --color-photo-icon: var(--photo-icon);
+  --color-scrim: var(--scrim);
+  --color-handle: var(--handle);
+  --color-google-bg: var(--google-bg);
+  --color-google-line: var(--google-line);
+  --color-google-text: var(--google-text);
+  --color-google-badge: var(--google-badge);
+  --radius-pill: var(--radius-pill);
+  --radius-card: var(--radius-card);
+  --radius-field: var(--radius-field);
+  --radius-sheet: var(--radius-sheet);
+  --radius-panel: var(--radius-panel);
+  --radius-preview: var(--radius-preview);
+  --radius-thumb: var(--radius-thumb);
+  --radius-option: var(--radius-option);
+  --radius-skeleton: var(--radius-skeleton);
+  --radius-skeleton-sm: var(--radius-skeleton-sm);
+  --shadow-float: var(--shadow-float);
+  --shadow-pin-active: var(--shadow-pin-active);
+  --shadow-current: var(--shadow-current);
+  --shadow-current-sm: var(--shadow-current-sm);
+
+  /* The desktop filters dropdown's maximum height (tokens.json ›
+     space-filters-max): 640px or the room Radix measures under «Filtros».
+     Inline, so the Radix variable resolves on the dropdown itself. */
+  --spacing-filters-max: min(40rem, var(--radix-popover-content-available-height));
+
+  /* Rethink Sans for text, Unbounded for display; font-mono resolves to the
+     sans family until each out-of-phase component is restyled (LOOK-8). */
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-sans);
 
-  /* Semantic colors for car listings */
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-info: var(--info);
+  /* The radius scale the existing components use (rounded-md…), unchanged. */
+  --radius-sm: calc(0.625rem - 4px);
+  --radius-md: calc(0.625rem - 2px);
+  --radius-lg: 0.625rem;
+  --radius-xl: calc(0.625rem + 4px);
+  --radius-2xl: calc(0.625rem + 8px);
+  --radius-3xl: calc(0.625rem + 12px);
+  --radius-4xl: calc(0.625rem + 16px);
 
-  /* Source badge colors (components/map/SourceBadge.tsx) - same value in both themes */
-  --color-source-wallapop: var(--source-wallapop);
-  --color-source-cochesnet: var(--source-cochesnet);
-  --color-source-milanuncios: var(--source-milanuncios);
+  /* Source badge colors (components/map/SourceBadge.tsx), kept until the badge
+     takes the single design style (LOOK-15). */
+  --color-source-wallapop: #008573;
+  --color-source-cochesnet: #db3500;
+  --color-source-milanuncios: #3c8400;
 }
 
+/* The type scale of docs/design/system/tokens.json › type, values unchanged
+   (docs/specs/redesign-map.md › Contracts › Type scale): `text-<style>` sets
+   the size, and the line height and letter spacing where the style has them. */
+@theme {
+  --text-hero: 72px;
+  --text-hero--line-height: 1.04;
+  --text-hero--letter-spacing: -0.01em;
+  --text-hero-setup: 40px;
+  --text-hero-setup--line-height: 1.1;
+  --text-hero-setup--letter-spacing: 0;
+  --text-hero-mobile: 34px;
+  --text-hero-mobile--line-height: 1.06;
+  --text-hero-mobile--letter-spacing: -0.01em;
+  --text-empty-title: 48px;
+  --text-empty-title--line-height: 1.04;
+  --text-empty-title--letter-spacing: -0.01em;
+  --text-page-title: 40px;
+  --text-page-title--line-height: 0.9;
+  --text-page-title--letter-spacing: -0.015em;
+  --text-page-title-mobile: 34px;
+  --text-page-title-mobile--line-height: 1;
+  --text-page-title-mobile--letter-spacing: 0;
+  --text-form-title: 26px;
+  --text-form-title--line-height: normal;
+  --text-form-title--letter-spacing: 0;
+  --text-legal-h1: 48px;
+  --text-legal-h1--line-height: 0.95;
+  --text-legal-h1--letter-spacing: 0;
+  --text-legal-h2: 20px;
+  --text-legal-h2--line-height: normal;
+  --text-legal-h2--letter-spacing: 0;
+  --text-count: 30px;
+  --text-count--line-height: 1;
+  --text-count--letter-spacing: -0.02em;
+  --text-price: 22px;
+  --text-price--line-height: 1;
+  --text-price--letter-spacing: 0;
+  --text-wordmark: 20px;
+  --text-wordmark--line-height: 1;
+  --text-wordmark--letter-spacing: 0;
+  --text-button-display: 15px;
+  --text-button-display--line-height: 1;
+  --text-button-display--letter-spacing: 0;
+  --text-lead: 19px;
+  --text-lead--line-height: 1.5;
+  --text-lead-mobile: 16px;
+  --text-lead-mobile--line-height: 1.5;
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+  --text-body-15: 15px;
+  --text-body-15--line-height: 1.5;
+  --text-legal-body: 17px;
+  --text-legal-body--line-height: 1.65;
+  --text-card-title: 16px;
+  --text-card-title--line-height: 1.25;
+  /* /account's own card from `lg`: the name and the avatar's initial, 22px on
+     the leading of `text-lg` they grow from (PAGES-29). */
+  --text-account-name: 22px;
+  --text-account-name--line-height: calc(1.75 / 1.125);
+  --text-label: 14px;
+  --text-label--line-height: 1.3;
+  --text-field-label: 13px;
+  --text-field-label--line-height: normal;
+  --text-meta: 14px;
+  --text-meta--line-height: 1.4;
+  --text-small: 13px;
+  --text-small--line-height: normal;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.3;
+  --text-overline: 11px;
+  --text-overline--line-height: 1.2;
+  --text-overline--letter-spacing: 0.08em;
+  --text-section-label: 12px;
+  --text-section-label--line-height: normal;
+  --text-section-label--letter-spacing: 0.08em;
+
+  /* The phone sizes the styles' usage notes give (`count` in the results
+     sheet, `empty-title` on a phone), and the question over a headline's
+     punchline at 0.56 of its size (`hero-setup`). */
+  --text-count-mobile: 15px;
+  --text-count-mobile--line-height: 1;
+  --text-empty-title-mobile: 28px;
+  --text-empty-title-mobile--line-height: 1.06;
+  --text-empty-title-mobile--letter-spacing: -0.01em;
+  --text-headline-setup: 0.56em;
+  --text-headline-setup--line-height: 1.1;
+  --text-headline-setup--letter-spacing: 0;
+
+  /* Sizes the component guides give with no style of their own: the 11px
+     labels over the price, mileage and year boxes (FilterSheet), the tab
+     labels and the account initial (BottomNav), the 13px phone price pin
+     (PricePin), the 15px sheet titles (BottomSheet), EmptyState's 17px
+     desktop line and AlertCard's 17px desktop name. They set only the size. */
+  --text-box-label: 11px;
+  --text-tab-label: 11px;
+  --text-pin: 13px;
+  --text-sheet-title: 15px;
+  --text-empty-line: 17px;
+  --text-empty-line--line-height: 1.5;
+  --text-alert-name: 17px;
+  --text-alert-title: 40px;
+  --text-alert-title--line-height: 1.04;
+  --text-alert-title--letter-spacing: -0.01em;
+
+  /* The phone tab bar: the padding a page gives its scroll container to clear
+     it (64px tabs, 24px of air and the safe area, HEAD-18), and the bottom
+     padding of a sheet that rises over it. */
+  --spacing-tab-clearance: calc(88px + env(safe-area-inset-bottom));
+  --spacing-sheet-bottom: calc(2.125rem + env(safe-area-inset-bottom));
+
+  /* The phone map's measures with the safe area (tokens.json › spacing): the
+     floating search's insets (MAPUI-20), the results sheet's full-top padding,
+     its offset over the tab bar and its middle height (MAPUI-23), the sheets'
+     footer padding and a headline's question-to-punchline gap. `sheet-middle` is 520px or the room
+     between the tab bar (4rem) and the floating search (8.875rem). */
+  --spacing-float-top: calc(1.25rem + env(safe-area-inset-top));
+  --spacing-float-left: calc(1rem + env(safe-area-inset-left));
+  --spacing-float-right: calc(1rem + env(safe-area-inset-right));
+  --spacing-sheet-full-top: calc(0.625rem + env(safe-area-inset-top));
+  --spacing-sheet-above-tabs: calc(4rem + env(safe-area-inset-bottom));
+  --spacing-sheet-middle: min(
+    32.5rem,
+    calc(100% - 4rem - env(safe-area-inset-bottom) - 8.875rem - env(safe-area-inset-top))
+  );
+  --spacing-sheet-footer: calc(1.75rem + env(safe-area-inset-bottom));
+  --spacing-sheet-full-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  --spacing-headline-gap: 0.22em;
+
+  /* The bare safe-area insets: the tab bar's bottom padding (MAPUI-52,
+     HEAD-17), the phone filters panel's top padding, and the tallest a
+     bottom sheet may grow, under the top inset. */
+  --spacing-safe-top: env(safe-area-inset-top);
+  --spacing-safe-bottom: env(safe-area-inset-bottom);
+  --spacing-sheet-max: calc(100dvh - env(safe-area-inset-top));
+  /* The tallest the account's centred dialog grows, 16px clear of each edge
+     of the window; the rest scrolls inside it (PAGES-38). */
+  --spacing-dialog-max: calc(100dvh - 2rem);
+
+  /* The 1.5px stroke (tokens.json › border): the unmarked «Cuenta» ring. */
+  --border-width-thin: 1.5px;
+
+  /* Desktop width, the 1440 boards: where the landing and the sign-in page
+     take their two-column layout, with the map preview and the arrows;
+     below it they use the 1024 boards' one centred column (ENTRY-23 to
+     ENTRY-25). */
+  --breakpoint-3xl: 90rem;
+
+  /* `font`'s line-height for text that otherwise keeps a wrapper's own
+     line-height (SearchPill.tsx's landing variant, MapPreview.tsx's example
+     pins): a named value, not an arbitrary `leading-[normal]`. */
+  --leading-font: normal;
+
+  /* The landing's map preview, at the board's own 522×724 proportions
+     (ENTRY-7, components/landing/MapPreview.tsx). */
+  --aspect-map-preview: 522 / 724;
+
+  /* The landing's desktop grid (Landing.tsx): the two-column, five-row layout
+     the board's frame lays the headline, search, «Populares» and map preview
+     into. */
+  --grid-template-columns-landing: auto minmax(12.5rem, 32.625rem);
+  --grid-template-rows-landing: 1fr auto auto auto 1fr;
+
+  /* The legal pages from `lg` (LegalContent.tsx): the 260px index and a
+     reading column of at most 720px (PAGES-64). */
+  --grid-template-columns-legal: 16.25rem minmax(0, 45rem);
+
+  /* The landing's PillArrow (Landing.tsx): its curve's left edge and width
+     are measured from the pill's own right edge, however wide the chosen
+     values make it. */
+  --spacing-pill-arrow-left: calc(100% - 4.875rem);
+  --spacing-pill-arrow-width: calc(48.75rem - 100%);
+
+  /* The illustrations' drawn content (docs/specs/redesign-entry.md, Contracts ›
+     Illustrations): each file's empty top band as a fraction of the image's
+     width (its top fraction over 1.5), the margin that pulls the drawing up
+     to the top of its box; the drawn height at each cap; and the image width
+     that fits a size container's height (`100cqh`), up to the cap. The
+     sign-in slot holds the 24px gap under «Créala», so its room is 1.5rem
+     less than its height. */
+  --spacing-illus-band-vehicle: 13.3733%;
+  --spacing-illus-band-car: 16.2%;
+  --spacing-landing-illus-drawn: calc(30rem / 1.5 * 0.681);
+  --spacing-landing-illus: min(30rem, 100cqh * 1.5 / 0.681);
+  --spacing-login-illus: min(27.5rem, (100cqh - 1.5rem) * 1.5 / 0.6656);
+  --spacing-login-illus-drawn-desktop: calc(38.75rem / 1.5 * 0.6656);
+
+  /* The landing's desktop map preview pins (components/landing/MapPreview.tsx,
+     ENTRY-7): each pin's place as a fraction of the preview's 520×722
+     inside, named by its price so the five stay easy to tell apart. Moving
+     a pin means changing its two values here, not hunting the JSX. */
+  --spacing-pin-14500-top: 20.7756%;
+  --spacing-pin-14500-left: 13.4615%;
+  --spacing-pin-9400-top: 34.626%;
+  --spacing-pin-9400-left: 48.0769%;
+  --spacing-pin-18900-top: 15.2355%;
+  --spacing-pin-18900-left: 65.3846%;
+  --spacing-pin-16500-top: 52.6316%;
+  --spacing-pin-16500-left: 23.0769%;
+  --spacing-pin-11900-top: 48.4765%;
+  --spacing-pin-11900-left: 71.1538%;
+
+  /* The toast's horizontal centre at desktop width (SAVED-24), set per page
+     by `data-toast-anchor` in the toast block below the tokens. */
+  --spacing-toast-centre: var(--toast-centre);
+}
+
+/* BuyCarMap 2.0 design tokens, verbatim from docs/design/system/tokens.json
+   (LOOK-1). The app has a single dark theme. */
 :root {
-  --radius: 0.625rem;
+  color-scheme: dark;
 
-  /* Cartographic Modern - Dark-first theme for map-based car discovery */
-  /* Primary: Amber/Gold (discovery, value) | Secondary: Eucalyptus (maps, success) */
-
-  --background: oklch(0.16 0.015 250); /* #0F1419 - deep ink */
-  --foreground: oklch(0.92 0.01 250); /* #E6EDF3 - cream text */
-
-  --card: oklch(0.2 0.015 250); /* #1C2128 - elevated surface */
-  --card-foreground: oklch(0.92 0.01 250);
-
-  --popover: oklch(0.22 0.015 250); /* #262D36 - panels */
-  --popover-foreground: oklch(0.92 0.01 250);
-
-  --primary: oklch(0.75 0.14 75); /* #E8A849 - amber/gold */
-  --primary-foreground: oklch(0.16 0.015 250); /* dark text on amber */
-
-  --secondary: oklch(0.22 0.015 250); /* #262D36 */
-  --secondary-foreground: oklch(0.92 0.01 250);
-
-  --muted: oklch(0.22 0.015 250);
-  --muted-foreground: oklch(0.62 0.01 250); /* #8B949E */
-
-  --accent: oklch(0.62 0.12 160); /* #3B9B6D - eucalyptus green */
-  --accent-foreground: oklch(0.98 0.01 250);
-
-  --destructive: oklch(0.58 0.18 25); /* #D94F4F - muted red */
-
-  --border: oklch(0.28 0.01 250); /* #30363D */
-  --input: oklch(0.28 0.01 250);
-  --ring: oklch(0.75 0.14 75); /* amber ring */
-
-  /* Chart colors - amber to green spectrum */
-  --chart-1: oklch(0.75 0.14 75); /* amber */
-  --chart-2: oklch(0.62 0.12 160); /* eucalyptus */
-  --chart-3: oklch(0.7 0.1 50); /* warm tan */
-  --chart-4: oklch(0.55 0.08 200); /* slate teal */
-  --chart-5: oklch(0.58 0.18 25); /* alert red */
-
-  /* Sidebar - slightly lighter than background */
-  --sidebar: oklch(0.18 0.015 250);
-  --sidebar-foreground: oklch(0.92 0.01 250);
-  --sidebar-primary: oklch(0.75 0.14 75);
-  --sidebar-primary-foreground: oklch(0.16 0.015 250);
-  --sidebar-accent: oklch(0.24 0.015 250);
-  --sidebar-accent-foreground: oklch(0.92 0.01 250);
-  --sidebar-border: oklch(0.28 0.01 250);
-  --sidebar-ring: oklch(0.75 0.14 75);
-
-  /* Semantic colors for car listings */
-  --success: oklch(0.62 0.12 160); /* available, good deal */
-  --warning: oklch(0.75 0.14 75); /* price change, attention */
-  --info: oklch(0.55 0.08 200); /* metadata, neutral */
-
-  /* Source badge colors (components/map/SourceBadge.tsx) - white text passes
-     contrast in both themes, so these are not redefined in .light */
-  --source-wallapop: oklch(0.552 0.101 178.8); /* #008573 */
-  --source-cochesnet: oklch(0.584 0.208 34.4); /* #db3500 */
-  --source-milanuncios: oklch(0.545 0.164 136.5); /* #3c8400 */
+  --bg: #0f0f10;
+  --surface: #18181b;
+  --surface-strong: #1e1e22;
+  --line: #2a2a2e;
+  --line-soft: #232326;
+  --text: #f4f2f0;
+  --text-muted: #a3a0a6;
+  --text-legal: #d6d3d8;
+  --lime: #c6ff3d;
+  --on-lime: #0f0f10;
+  --violet: #7c4dff;
+  --on-violet: #faf9f8;
+  --danger: #ff5c5c;
+  --lime-glow: rgba(198, 255, 61, 0.2);
+  --map-ground: #141416;
+  --map-road: #232327;
+  --map-road-major: #2b2b30;
+  --map-road-minor: #1c1c20;
+  --map-water: #111a22;
+  --photo-placeholder: #2a2b30;
+  --photo-tint-1: #2a2d33;
+  --photo-tint-2: #302c2a;
+  --photo-tint-3: #29302c;
+  --photo-tint-4: #2d2a33;
+  --photo-tint-5: #2a2f33;
+  --photo-tint-6: #322e2a;
+  --photo-tint-7: #2b2e34;
+  --photo-tint-8: #2e2b30;
+  --photo-icon: rgba(244, 242, 240, 0.2);
+  --scrim: rgba(15, 15, 16, 0.85);
+  --handle: #3a3a40;
+  --google-bg: #131314;
+  --google-line: #8e918f;
+  --google-text: #e3e3e3;
+  --google-badge: #ffffff;
+  --radius-pill: 999px;
+  --radius-card: 22px;
+  --radius-field: 16px;
+  --radius-sheet: 26px;
+  --radius-panel: 28px;
+  --radius-preview: 24px;
+  --radius-thumb: 18px;
+  --radius-option: 12px;
+  --radius-skeleton: 8px;
+  --radius-skeleton-sm: 6px;
+  --shadow-float: 0 24px 50px rgba(0, 0, 0, 0.55);
+  --shadow-pin-active: 0 0 0 7px rgba(198, 255, 61, 0.2);
+  --shadow-current: 0 0 0 3px #0f0f10, 0 0 0 5px #f4f2f0;
+  --shadow-current-sm: 0 0 0 2px #0f0f10, 0 0 0 4px #f4f2f0;
 }
 
-/* Light mode alternative - warm paper aesthetic */
-.light {
-  --background: oklch(0.97 0.01 80); /* warm off-white */
-  --foreground: oklch(0.2 0.02 250); /* deep ink text */
+/* Where the one global toaster puts a toast (SAVED-24, docs/specs/
+   redesign-saved.md; Toast/README.md), read by components/Toaster.tsx: its top
+   12px under the header (64px on a phone, 80px from `lg`), or under /map's 66px
+   filter row; at most 380px wide and 16px clear of each side; centred on the
+   viewport, or, from `lg`, over the list column of the pages that name
+   themselves with `data-toast-anchor` — /map's half-width list (830px from
+   `xl`), and /favorites' and the alerts pages' 546px one (830px from `xl`;
+   ALERTUI-37, docs/specs/redesign-alerts.md). The phone /map has no
+   header, so its toast sits 12px under the safe area. */
+:root {
+  --toast-top: 4.75rem;
+  --toast-centre: 50%;
+  --toast-width: min(23.75rem, calc(100vw - 2rem));
+}
 
-  --card: oklch(0.99 0.005 80); /* white cards */
-  --card-foreground: oklch(0.2 0.02 250);
+:root:has([data-toast-anchor="map"]) {
+  --toast-top: calc(0.75rem + env(safe-area-inset-top));
+}
 
-  --popover: oklch(0.99 0.005 80);
-  --popover-foreground: oklch(0.2 0.02 250);
+@media (width >= 64rem) {
+  :root {
+    --toast-top: 5.75rem;
+  }
 
-  --primary: oklch(0.54 0.16 75); /* darker amber for contrast */
-  --primary-foreground: oklch(0.99 0.005 80);
+  :root:has([data-toast-anchor="map"]) {
+    --toast-top: 9.875rem;
+    --toast-centre: 25%;
+  }
 
-  --secondary: oklch(0.94 0.01 80);
-  --secondary-foreground: oklch(0.2 0.02 250);
+  :root:has([data-toast-anchor="saved"]),
+  :root:has([data-toast-anchor="alerts"]) {
+    --toast-centre: 17.0625rem;
+  }
+}
 
-  --muted: oklch(0.94 0.01 80);
-  --muted-foreground: oklch(0.5 0.01 250);
-
-  --accent: oklch(0.52 0.12 160); /* darker eucalyptus */
-  --accent-foreground: oklch(0.99 0.005 80);
-
-  --destructive: oklch(0.5 0.2 25);
-
-  --border: oklch(0.88 0.01 80);
-  --input: oklch(0.88 0.01 80);
-  --ring: oklch(0.65 0.16 75);
-
-  --chart-1: oklch(0.54 0.16 75);
-  --chart-2: oklch(0.52 0.12 160);
-  --chart-3: oklch(0.6 0.1 50);
-  --chart-4: oklch(0.45 0.08 200);
-  --chart-5: oklch(0.5 0.2 25);
-
-  --sidebar: oklch(0.95 0.01 80);
-  --sidebar-foreground: oklch(0.2 0.02 250);
-  --sidebar-primary: oklch(0.54 0.16 75);
-  --sidebar-primary-foreground: oklch(0.99 0.005 80);
-  --sidebar-accent: oklch(0.92 0.01 80);
-  --sidebar-accent-foreground: oklch(0.2 0.02 250);
-  --sidebar-border: oklch(0.88 0.01 80);
-  --sidebar-ring: oklch(0.65 0.16 75);
-
-  --success: oklch(0.52 0.12 160);
-  --warning: oklch(0.65 0.16 75);
-  --info: oklch(0.45 0.08 200);
+@media (width >= 80rem) {
+  :root:has([data-toast-anchor]) {
+    --toast-centre: 25.9375rem;
+  }
 }
 
 @layer base {
@@ -174,22 +441,26 @@
     scroll-behavior: smooth;
   }
   body {
-    @apply bg-background text-foreground;
-    /* Plus Jakarta Sans ships an `fi` ligature that merges the i's tittle into
-       the f, so "confirma", "perfil" and "filtros" render with what looks like
-       a dotless i. Elegant in display type, but at UI sizes it reads as a
-       rendering fault. Standard ligatures off; `contextual` stays on because
-       it only handles legitimate glyph spacing. Delete this to restore them. */
-    font-variant-ligatures: no-common-ligatures contextual;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
   }
   ::selection {
-    @apply bg-accent/30 text-foreground;
+    background-color: var(--lime-glow);
+    color: var(--text);
+  }
+
+  /* Keyboard focus on every interactive primitive: a 2px lime outline offset
+     by 3px (LOOK-11). */
+  :where(button, a, input, textarea, select, [role="button"], [role="combobox"]):focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 3px;
   }
 
   /* Custom scrollbar */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    scrollbar-color: var(--line) transparent;
   }
 
   *::-webkit-scrollbar {
@@ -202,12 +473,12 @@
   }
 
   *::-webkit-scrollbar-thumb {
-    background: var(--border);
+    background: var(--line);
     border-radius: 4px;
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: var(--muted-foreground);
+    background: var(--text-muted);
   }
 
   *::-webkit-scrollbar-corner {
@@ -215,76 +486,27 @@
   }
 }
 
-/* Leaflet map theme-aware overrides. Each selector carries `.leaflet-container`
+/* Leaflet map overrides. Each selector carries `.leaflet-container`
    and the control's own classes so it outranks leaflet.css — whose strongest
    competitors are `.leaflet-touch .leaflet-bar a` and
    `.leaflet-container .leaflet-control-attribution` — without !important. */
 .leaflet-container {
-  background: var(--background);
+  background: var(--bg);
   font-family: var(--font-sans);
 }
 
 .leaflet-container .leaflet-control.leaflet-control-attribution {
-  background: color-mix(in oklch, var(--background) 80%, transparent);
-  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  color: var(--text-muted);
   font-size: 10px;
   padding: 2px 8px;
   backdrop-filter: blur(4px);
 }
 
 .leaflet-container .leaflet-control-attribution a {
-  color: var(--muted-foreground);
+  color: var(--text-muted);
 }
 
 .leaflet-container .leaflet-control-attribution a:hover {
-  color: var(--primary);
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom {
-  border: none;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2);
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom a {
-  background: var(--card);
-  border: 1px solid var(--border);
-  color: var(--muted-foreground);
-  width: 36px;
-  height: 36px;
-  line-height: 36px;
-  font-size: 18px;
-  font-weight: 400;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom a:first-child {
-  border-radius: 8px 8px 0 0;
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom a:last-child {
-  border-radius: 0 0 8px 8px;
-  border-top: none;
-}
-
-.leaflet-container .leaflet-bar.leaflet-control-zoom a:hover {
-  background: var(--popover);
-  color: var(--foreground);
-}
-
-/* View Transition for theme switching */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-::view-transition-old(root) {
-  z-index: 1;
-}
-
-::view-transition-new(root) {
-  z-index: 2;
+  color: var(--lime);
 }

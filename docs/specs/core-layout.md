@@ -237,7 +237,7 @@ It runs in the browser on proxy results, because the upstreams cannot be called 
 
 ### Auth flows keep their domain checks in the actions until phase 11 (owner's decision, 2026-09-29)
 
-The auth actions keep their token checks, enumeration resistance, password-reuse check and email fork in `actions.ts`, where they sat before this phase. Phase 11 rewrites every auth flow on Better Auth. Restructuring security-sensitive code now, only for it to be replaced later, risks a regression for no gain. The alerts domain rules (`MAX_ALERTS_PER_USER`, `isSpecificEnough`, `hashCriteria`) are simple, so they move from `schema.ts` to `service.ts` now. ADR 0012 records the remaining deviation.
+The auth actions keep their token checks, enumeration resistance, password-reuse check and email fork in `actions.ts`, where they sat before this phase. Phase 11 rewrites every auth flow on Better Auth. Restructuring security-sensitive code now, only for it to be replaced later, risks a regression for no gain. The alerts domain rules (`MAX_ALERTS_PER_USER`, `isSpecificEnough`, `hashCriteria`) are simple, so they move from `schema.ts` to `service.ts` now. ADR 0012 records the remaining deviation. — `isSpecificEnough` stays in `server/alerts/schema.ts` as the refinement of `alertCriteriaSchema`, which the create-alert dialog and the server both parse with, so they share one rule (amended 2026-10-13, MAPUI — redesign-map.md)
 
 ### ADRs are dated records (owner's decision, 2026-09-29)
 

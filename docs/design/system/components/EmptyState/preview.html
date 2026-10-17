@@ -1,0 +1,53 @@
+<!-- @dsCard group="Estados" height=1552 subtitle="Vacío y error (escritorio y móvil), el vacío sin sitio o a 200 km, el vacío pequeño de una sección y el esqueleto de carga" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>EmptyState</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans);padding:24px;display:flex;flex-direction:column;gap:48px}
+.wrap{display:flex;flex-direction:column;gap:22px;max-width:620px}
+.wrap.sm{width:350px;gap:16px}
+.q{font-family:var(--font-display);font-weight:900;text-transform:uppercase;margin:0;font-size:48px;line-height:1.04;letter-spacing:-.01em;text-wrap:balance;text-box:trim-both cap alphabetic}
+.sm .q{font-size:28px;line-height:1.06}
+.q span{display:block;font-size:.56em;line-height:1.1;letter-spacing:0;margin-bottom:.22em}
+.q b{display:block;color:var(--lime)}
+p{margin:0;color:var(--text-muted);font-size:17px;line-height:1.5}
+.sm p{font-size:15px}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.b{display:inline-flex;align-items:center;box-sizing:border-box;height:48px;border-radius:var(--radius-pill);font-size:15px;text-decoration:none;color:var(--text)}
+.p{padding:0 22px;background:var(--lime);color:var(--on-lime);font-weight:800}
+.g{padding:0 14px;font-weight:700}
+.g:hover,.g:focus-visible{color:var(--danger)}
+.s{padding:0 20px;border:1px solid var(--line);font-weight:700}
+.b:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.mini{width:350px;display:flex;flex-direction:column;gap:14px}
+.mini h4{margin:10px 0 0;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.mini p{font-size:15px}
+.pair{display:flex;gap:56px;flex-wrap:wrap;align-items:flex-start}
+.skel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px var(--space-5);max-width:766px}
+.sk{display:flex;flex-direction:column;gap:var(--space-3)}
+.sk i{display:block;background:var(--surface)}
+.sk .ph{aspect-ratio:20/19;border-radius:var(--radius-card)}
+.sk .bars{display:flex;flex-direction:column;gap:8px}
+.sk .l1{width:72%;height:16px;border-radius:var(--radius-skeleton-sm)}
+.sk .l2{width:52%;height:14px;border-radius:var(--radius-skeleton-sm)}
+.sk .pr{width:38%;height:24px;margin-top:6px;border-radius:var(--radius-skeleton);background:var(--surface-strong)}
+</style>
+</head>
+<body>
+<div class="pair">
+  <div class="wrap"><h3 class="q"><span>¿Nada por aquí?</span><b>Amplía el radio</b></h3><p>Con estos filtros no hay coches en 50 km. Prueba más lejos o quita algún filtro.</p><div class="row"><a class="b p" href="#">Ampliar a 100 km</a><a class="b g" href="#">Quitar filtros</a></div></div>
+  <div class="wrap sm"><h3 class="q"><span>¿Nada por aquí?</span><b>Amplía el radio</b></h3><p>Con estos filtros no hay coches en 50 km.</p><div class="row"><a class="b p" href="#">Ampliar a 100 km</a><a class="b g" href="#">Quitar filtros</a></div></div>
+</div>
+<div class="wrap"><h3 class="q"><span>¿Nada por aquí?</span><b>Quita algún filtro</b></h3><p>Con estos filtros no hay coches. Prueba a quitar algún filtro.</p><div class="row"><a class="b p" href="#">Quitar filtros</a></div></div>
+<div class="wrap"><h3 class="q"><span>¿Se ha roto algo?</span><b>No es culpa tuya</b></h3><p>Esta página no ha cargado. Vuelve a intentarlo y, si sigue, vuelve al mapa.</p><div class="row"><a class="b p" href="#">Reintentar</a><a class="b s" href="#">Volver al mapa</a></div></div>
+<div class="mini"><h4>Sin coincidencias</h4><p>Te avisaremos en cuanto salga un coche que encaje.</p></div>
+<div class="skel" aria-hidden="true">
+  <div class="sk"><i class="ph"></i><div class="bars"><i class="l1"></i><i class="l2"></i><i class="pr"></i></div></div>
+  <div class="sk"><i class="ph"></i><div class="bars"><i class="l1"></i><i class="l2"></i><i class="pr"></i></div></div>
+  <div class="sk"><i class="ph"></i><div class="bars"><i class="l1"></i><i class="l2"></i><i class="pr"></i></div></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!-- @dsCard group="Mapa" height=350 subtitle="Píldora de estado sobre el mapa: cargando, vacío (con radio y sin sitio), guardados, alerta y la zona en móvil" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>StatusPill</title>
+<link href="https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans)}
+.map{position:relative;height:350px;background:var(--map-ground);overflow:hidden}
+.map svg{position:absolute;inset:0}
+.road{stroke:var(--map-road);fill:none}
+.minor{stroke:var(--map-road-minor);fill:none}
+.list{position:absolute;top:18px;left:18px;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.pill{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-pill);padding:10px 16px;font-size:14px;font-weight:700}
+.pill span{color:var(--lime)}
+</style>
+</head>
+<body>
+<div class="map">
+  <svg width="100%" height="350" viewBox="0 0 960 230" preserveAspectRatio="none" aria-hidden="true"><path class="road" stroke-width="12" d="M-10 60 C 250 90 500 30 970 80"/><path class="minor" stroke-width="3" d="M-10 170 L 970 190"/></svg>
+  <div class="list">
+    <span class="pill" role="status">Buscando coches…</span>
+    <span class="pill" role="status">Ningún coche en 50 km</span>
+    <span class="pill" role="status">Ningún coche con estos filtros</span>
+    <span class="pill">Tus guardados en el mapa</span>
+    <span class="pill">Corolla híbrido · <span>Madrid · 50 km</span></span>
+    <span class="pill"><span>Madrid · 50 km</span></span>
+  </div>
+</div>
+</body>
+</html>

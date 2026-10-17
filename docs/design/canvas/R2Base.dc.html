@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ronda 2 · plantilla</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&amp;family=Rethink+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F4F2F0}a:hover{color:#C6FF3D}
+</style>
+</helmet>
+<div style="width: 1970px; height: 900px; box-sizing: border-box; padding: 0 50px 0 40px; display: flex; gap: 50px; align-items: center; background: #000000; font-family: 'Rethink Sans', system-ui, sans-serif; color: #F4F2F0">
+
+  <div style="width: 1440px; height: 900px; background: #0F0F10; display: flex; flex-direction: column; overflow: hidden">
+    <header style="height: 80px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 32px; border-bottom: 1px solid #232326">
+      <a href="#" style="justify-self: start; font-family: Unbounded, sans-serif; font-size: 20px; font-weight: 900; text-decoration: none; color: #F4F2F0">BUYCAR<span style="color: {{accent}}">MAP</span></a>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <form style="display: flex; align-items: center; background: #18181B; border: 1px solid #2A2A2E; border-radius: {{pill}}; padding: 6px 6px 6px 8px">
+          <button type="button" style="all: unset; cursor: pointer; padding: 6px 22px; display: flex; flex-direction: column; border-right: 1px solid #2A2A2E; white-space: nowrap"><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Dónde</span><span style="font-size: 15px; font-weight: 600">Madrid · 50 km</span></button>
+          <button type="button" style="all: unset; cursor: pointer; padding: 6px 22px; display: flex; flex-direction: column; border-right: 1px solid #2A2A2E; white-space: nowrap"><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Coche</span><span style="font-size: 15px; font-weight: 600">Cualquier marca</span></button>
+          <button type="button" style="all: unset; cursor: pointer; padding: 6px 22px; display: flex; flex-direction: column; white-space: nowrap"><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Precio</span><span style="font-size: 15px; font-weight: 600">Hasta 20.000 €</span></button>
+          <button type="submit" aria-label="Buscar" style="all: unset; cursor: pointer; width: 46px; height: 46px; border-radius: {{pill}}; background: {{accent}}; color: {{onAccent}}; display: flex; align-items: center; justify-content: center">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </button>
+        </form>
+        <button type="button" style="all: unset; cursor: pointer; box-sizing: border-box; height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border: 1px solid #2A2A2E; border-radius: {{pill}}; color: #F4F2F0; font-size: 14px; font-weight: 700; white-space: nowrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M15 8h6"/><path d="M18 5v6"/><path d="M20.002 14.464a9 9 0 0 0 .738.863A1 1 0 0 1 20 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 8.75-5.332"/></svg>Crear alerta</button>
+      </div>
+      <nav style="justify-self: end; display: flex; align-items: center; gap: 10px">
+        <div role="group" aria-label="Idioma" style="display: flex; align-items: center; font-family: 'Rethink Sans', system-ui, sans-serif; font-size: 13px; font-weight: 600"><button type="button" aria-pressed="true" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #F4F2F0">ES</button><span aria-hidden="true" style="color: #A3A0A6">·</span><button type="button" aria-pressed="false" style="all: unset; cursor: pointer; box-sizing: border-box; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #A3A0A6">EN</button></div>
+        <button type="button" aria-label="Favoritos" style="all: unset; cursor: pointer; width: 42px; height: 42px; border: 1px solid #2A2A2E; border-radius: {{pill}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+        <button type="button" aria-label="Alertas" style="all: unset; cursor: pointer; width: 42px; height: 42px; border: 1px solid #2A2A2E; border-radius: {{pill}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg></button>
+        <button type="button" aria-label="Cuenta" style="all: unset; cursor: pointer; width: 42px; height: 42px; border-radius: {{pill}}; background: {{violet}}; color: {{onViolet}}; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 800">A</button>
+      </nav>
+    </header>
+
+    <div style="height: 66px; display: flex; align-items: center; gap: 8px; padding: 0 32px; border-bottom: 1px solid #232326">
+      <button type="button" aria-haspopup="dialog" style="all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid #2A2A2E; border-radius: {{pill}}; font-size: 14px; font-weight: 700; white-space: nowrap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Filtros<sc-if value="{{filterCount}}"> <span style="background: {{violet}}; color: {{onViolet}}; border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 800">{{filterCount}}</span></sc-if></button>
+      <sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+        <span style="{{c.style}}">{{c.label}}<button type="button" aria-label="{{c.aria}}" style="{{c.remove}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+      </sc-for>
+    </div>
+
+    <div style="flex: 1; display: flex; min-height: 0">
+      <section style="width: 830px; padding: 26px 32px; display: flex; flex-direction: column; gap: 22px; overflow: hidden">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end">
+          <h1 style="margin: 0; font-family: Unbounded, sans-serif; font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; text-transform: uppercase">Más de 40 coches</h1>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 20px">
+          <sc-for list="{{cars}}" as="car" hint-placeholder-count="6">
+            <article style="display: flex; flex-direction: column; gap: 12px">
+              <div style="{{car.photo}}">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); color: #F4F2F0; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700">{{car.source}}</span>
+                <button type="button" aria-label="Guardar" style="{{car.heart}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="{{car.heartFill}}" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg></button>
+                
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 3px">
+                <div style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-size: 16px; font-weight: 700">{{car.title}}</strong><span style="font-size: 14px; color: #A3A0A6">{{car.city}}</span></div>
+                <span style="font-size: 14px; color: #A3A0A6">{{car.year}} · {{car.km}} · {{car.fuel}}</span>
+                <span style="font-family: Unbounded, sans-serif; font-size: 22px; font-weight: 800; margin-top: 6px; color: {{accent}}">{{car.price}}</span>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-label="Mapa" style="flex: 1; position: relative; background: #141416; overflow: hidden; border-left: 1px solid #232326">
+        <svg width="610" height="760" viewBox="0 0 610 760" style="position: absolute; inset: 0" aria-hidden="true">
+          <path d="M-20 520 C 120 480 180 560 320 520 S 520 430 660 470 L 660 800 L -20 800 Z" fill="#111A22"/>
+          <path d="M-10 120 C 140 160 260 90 400 150 S 560 250 640 220" stroke="#232327" stroke-width="12" fill="none"/>
+          <path d="M80 -10 C 120 160 210 260 230 420 S 260 640 300 780" stroke="#2B2B30" stroke-width="10" fill="none"/>
+          <path d="M-10 330 C 160 320 330 360 640 320" stroke="#232327" stroke-width="7" fill="none"/>
+          <path d="M420 -10 C 400 140 450 260 520 360 S 600 520 640 600" stroke="#1E1E22" stroke-width="6" fill="none"/>
+          <path d="M-10 240 L 640 280" stroke="#1C1C20" stroke-width="3" fill="none"/>
+          <path d="M300 -10 L 340 460" stroke="#1C1C20" stroke-width="3" fill="none"/>
+        </svg>
+        
+        <sc-for list="{{pins}}" as="p" hint-placeholder-count="8">
+          <button type="button" style="{{p.style}}">{{p.label}}</button>
+        </sc-for>
+        <div style="position: absolute; right: 18px; bottom: 24px; display: flex; flex-direction: column; background: #18181B; border: 1px solid #2A2A2E; border-radius: {{pill}}; overflow: hidden">
+          <button type="button" aria-label="Acercar" style="all: unset; cursor: pointer; width: 42px; height: 42px; text-align: center; font-size: 20px; border-bottom: 1px solid #2A2A2E">+</button>
+          <button type="button" aria-label="Alejar" style="all: unset; cursor: pointer; width: 42px; height: 42px; text-align: center; font-size: 20px">−</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div style="width: 390px; height: 844px; border-radius: 44px; background: #0F0F10; overflow: hidden; position: relative; box-shadow: 0 0 0 10px #232326, 0 30px 60px rgba(0,0,0,0.6)">
+    <div style="position: absolute; inset: 0; background: #141416">
+      <svg width="390" height="844" viewBox="0 0 390 844" aria-hidden="true">
+        <path d="M-20 300 C 80 270 160 330 260 300 S 360 250 420 270 L 420 900 L -20 900 Z" fill="#111A22"/>
+        <path d="M60 -10 C 90 120 150 200 170 300" stroke="#2B2B30" stroke-width="9" fill="none"/>
+        <path d="M-10 150 C 120 170 240 120 400 160" stroke="#232327" stroke-width="9" fill="none"/>
+        <path d="M280 -10 C 270 100 300 180 350 240" stroke="#1E1E22" stroke-width="5" fill="none"/>
+      </svg>
+      <span style="position: absolute; top: 165px; left: 36px; background: #18181B; border: 1px solid #2A2A2E; border-radius: {{pill}}; padding: 6px 11px; font-size: 13px; font-weight: 700">14.500 €</span>
+      <span style="position: absolute; top: 215px; left: 186px; background: {{accent}}; color: {{onAccent}}; border-radius: {{pill}}; padding: 6px 11px; font-size: 13px; font-weight: 800; box-shadow: 0 0 0 7px {{glow}}">16.500 €</span>
+      <span style="position: absolute; top: 125px; left: 262px; background: #18181B; border: 1px solid #2A2A2E; border-radius: {{pill}}; padding: 6px 11px; font-size: 13px; font-weight: 700">9.400 €</span>
+    </div>
+    <div style="position: absolute; top: 20px; left: 16px; right: 16px; display: flex; flex-direction: column; gap: 10px">
+      <button type="button" style="all: unset; cursor: pointer; background: #18181B; border: 1px solid #2A2A2E; border-radius: {{pill}}; padding: 9px 9px 9px 18px; display: flex; align-items: center; gap: 12px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span style="flex: 1; display: flex; flex-direction: column"><strong style="font-size: 14px">Madrid · 50 km</strong><span style="font-size: 12px; color: #A3A0A6">Cualquier marca · hasta 20.000 €</span></span>
+        <span style="width: 38px; height: 38px; border-radius: {{pill}}; background: {{violet}}; color: {{onViolet}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span>
+      </button>
+      <div style="display: flex; gap: 8px; align-items: center; overflow: hidden; padding: 4px 0; margin: -4px 0">
+        <button type="button" aria-haspopup="dialog" style="all: unset; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: #18181B; border: 1px solid #2A2A2E; border-radius: {{pill}}; font-size: 14px; font-weight: 700; white-space: nowrap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Filtros<sc-if value="{{filterCount}}"> <span style="background: {{violet}}; color: {{onViolet}}; border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 800">{{filterCount}}</span></sc-if></button>
+        <sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+          <span style="{{c.phoneStyle}}">{{c.label}}<button type="button" aria-label="{{c.aria}}" style="{{c.remove}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+        </sc-for>
+      </div>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; bottom: 99px; height: 520px; background: #18181B; border-top: 1px solid #2A2A2E; border-radius: 26px 26px 0 0; padding: 10px 20px 0; display: flex; flex-direction: column; gap: 14px">
+      <span style="align-self: center; width: 40px; height: 5px; border-radius: 999px; background: #3A3A40"></span>
+      <strong style="align-self: center; font-family: Unbounded, sans-serif; font-size: 15px; font-weight: 800; text-transform: uppercase">Más de 40 coches</strong>
+      <button type="button" style="all: unset; cursor: pointer; box-sizing: border-box; height: 44px; width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #2A2A2E; border-radius: {{pill}}; color: #F4F2F0; font-size: 14px; font-weight: 700"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M15 8h6"/><path d="M18 5v6"/><path d="M20.002 14.464a9 9 0 0 0 .738.863A1 1 0 0 1 20 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 8.75-5.332"/></svg>Crear alerta</button>
+      <div style="height: 250px; border-radius: {{card}}; background: #2A2B30; position: relative; display: flex; align-items: center; justify-content: center; color: rgba(244,242,240,0.2)">
+        <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+        <span style="position: absolute; top: 12px; left: 12px; background: rgba(15,15,16,0.85); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; color: #F4F2F0">Milanuncios</span>
+      </div>
+      <div style="display: flex; justify-content: space-between"><strong style="font-size: 16px">SEAT León 1.5 TSI FR</strong><span style="font-size: 14px; color: #A3A0A6">Sevilla</span></div>
+      <span style="font-size: 14px; color: #A3A0A6; margin-top: -10px">2020 · 64.000 km · Gasolina</span>
+      <strong style="font-family: Unbounded, sans-serif; font-size: 22px; font-weight: 800; color: {{accent}}">16.500 €</strong>
+    </div>
+    <nav aria-label="Principal" style="position: absolute; left: 0; right: 0; bottom: 0; height: 99px; box-sizing: border-box; padding-bottom: 34px; background: #18181B; border-top: 1px solid #2A2A2E; display: flex"><a href="#" aria-current="page" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #7C4DFF"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg><span style="font-size: 11px; font-weight: 800; line-height: 13px; white-space: nowrap; color: #F4F2F0">Mapa</span></a><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Guardados</span></a><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Alertas</span></a><a href="#" style="flex: 1 1 0; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: #A3A0A6"><span aria-hidden="true" style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 999px; border: 1.5px solid #A3A0A6; background: transparent; color: #A3A0A6; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-size: 11px; font-weight: 800; line-height: 1">A</span><span style="font-size: 11px; font-weight: 600; line-height: 13px; white-space: nowrap">Cuenta</span></a></nav>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C6FF3D","options":["#C6FF3D","#FFD60A","#5B7CFF","#2BF5A0","#FF4FB8","#A98BFF"]},"onAccent":{"editor":"color","default":"#0F0F10"},"corners":{"editor":"enum","default":"round","options":["round","square"]},"$preview":{"width":1970,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#C6FF3D';
+    const onAccent = this.props.onAccent ?? '#0F0F10';
+    const square = (this.props.corners ?? 'round') === 'square';
+    const pill = square ? '4px' : '999px';
+    const card = square ? '4px' : '22px';
+    const glow = accent + '33';
+    // the row shows «Filtros» and then only the active filters, each a violet chip with its remove button
+    const active = (phone) => 'display: inline-flex; align-items: center; height: 36px; box-sizing: border-box; padding-left: 16px; border-radius: ' + pill + '; background: #7C4DFF; color: #FAF9F8; font-size: 14px; font-weight: 800; white-space: nowrap' + (phone ? '; flex-shrink: 0' : '');
+    const remove = 'all: unset; cursor: pointer; box-sizing: border-box; width: 44px; height: 44px; margin: -4px 0 -4px -4px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #FAF9F8';
+    const chips = ['Diésel', 'Hasta 20.000 €', 'Automático', 'Últimas 24 h'].map((label) => ({ label, aria: 'Quitar ' + label, style: active(false), phoneStyle: active(true), remove }));
+    const filterCount = chips.length;
+    const tints = ['#2A2D33', '#302C2A', '#29302C', '#2D2A33', '#2A2F33', '#322E2A'];
+    const cars = [
+      { title: 'Audi A3 2.0 TDI', city: 'Madrid', year: '2018', km: '95.000 km', fuel: 'Diésel', price: '14.500 €', source: 'Wallapop' },
+      { title: 'BMW Serie 3 320d', city: 'Barcelona', year: '2019', km: '120.000 km', fuel: 'Diésel', price: '18.900 €', source: 'coches.net', saved: true },
+      { title: 'SEAT León 1.5 TSI', city: 'Sevilla', year: '2020', km: '64.000 km', fuel: 'Gasolina', price: '16.500 €', source: 'Milanuncios' },
+      { title: 'VW Golf 1.6 TDI', city: 'Valencia', year: '2017', km: '132.000 km', fuel: 'Diésel', price: '11.900 €', source: 'Wallapop' },
+      { title: 'Toyota Corolla 125H', city: 'Madrid', year: '2021', km: '48.000 km', fuel: 'Híbrido', price: '19.750 €', source: 'coches.net' },
+      { title: 'Renault Clio TCe 90', city: 'Zaragoza', year: '2019', km: '71.000 km', fuel: 'Gasolina', price: '9.400 €', source: 'Wallapop' }
+    ].map((c, i) => ({ ...c,
+      photo: 'position: relative; aspect-ratio: 20 / 19; border-radius: ' + card + '; background: ' + tints[i] + '; display: flex; align-items: center; justify-content: center; color: rgba(244,242,240,0.2);' + (i === 2 ? ' box-shadow: 0 0 0 2px ' + accent + ';' : ''),
+      heart: 'all: unset; cursor: pointer; position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: ' + pill + '; display: flex; align-items: center; justify-content: center; ' + (c.saved ? 'background: #7C4DFF; color: #FAF9F8;' : 'background: rgba(15,15,16,0.85); color: #F4F2F0;'),
+      heartFill: c.saved ? '#FAF9F8' : 'none' }));
+    const pin = (x, y, on) => 'all: unset; cursor: pointer; position: absolute; left: ' + x + 'px; top: ' + y + 'px; padding: 7px 13px; white-space: nowrap; border-radius: ' + pill + '; font-size: 14px; ' + (on ? 'font-weight: 800; background: ' + accent + '; color: ' + onAccent + '; box-shadow: 0 0 0 7px ' + glow + ';' : 'font-weight: 700; background: #18181B; color: #F4F2F0; border: 1px solid #2A2A2E;');
+    const pins = [
+      ['14.500 €', 120, 180, false], ['18.900 €', 420, 120, false], ['16.500 €', 260, 300, true], ['11.900 €', 470, 380, false],
+      ['19.750 €', 90, 400, false], ['9.400 €', 360, 230, false], ['12.300 €', 200, 120, false], ['21.000 €', 480, 250, false]
+    ].map(([label, x, y, on]) => ({ label, style: pin(x, y, on) }));
+    return { accent, onAccent, violet: '#7C4DFF', onViolet: '#FAF9F8', pill, card, glow, chips, filterCount, cars, pins };
+  }
+}
+</script>
+</body>
+</html>

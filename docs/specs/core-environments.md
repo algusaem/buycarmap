@@ -146,8 +146,9 @@ header.
   required check the PR stays blocked. This is intended: `RULES.md` §16's "no required check runs
   against a deployment that didn't happen" is satisfied by treating the missing report as a
   blocker, not a pass.
-- **OAuth sign-in on preview deployments.** The Google and GitHub apps allow only the production
-  callback URL, so provider sign-in fails on a preview; email sign-in still works. Accepted.
+- **OAuth sign-in on preview deployments.** The Google app allows only the production
+  callback URL, so provider sign-in fails on a preview; email sign-in still works. Accepted
+  (amended 2026-10-14, ENTRY — redesign-entry.md: GitHub removed).
 
 ## Out of scope
 

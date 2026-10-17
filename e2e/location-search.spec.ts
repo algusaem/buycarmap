@@ -14,12 +14,17 @@ const MADRID_RESULT = {
   address: { city: "Madrid", state: "Comunidad de Madrid" },
 };
 
-const FILTERS_BUTTON = /filters|filtros/i;
-const LOCATION_PLACEHOLDER = /city or address|ciudad o dirección/i;
+// docs/specs/redesign-map.md (MAPUI-3): "Dónde" replaces the filters panel's
+// location field — the combobox now opens from the search pill's own
+// segment instead of behind "Filtros".
+// The Desktop Chrome device sends Accept-Language en-US, so the page renders
+// in English (FRONT-9); the patterns match the segment's name in either locale.
+const WHERE_SEGMENT = /ciudad o código postal|city or postcode/i;
+const LOCATION_PLACEHOLDER = /ciudad o código postal|city or postcode/i;
 
 async function openLocationSearch(page: Page) {
   await page.goto("/map");
-  await page.getByRole("button", { name: FILTERS_BUTTON }).first().click();
+  await page.getByRole("button", { name: WHERE_SEGMENT }).first().click();
   return page.getByPlaceholder(LOCATION_PLACEHOLDER);
 }
 
@@ -55,7 +60,10 @@ test("MAP-20: while a new search loads, hides the previous options and the keybo
 
   await expect(page.getByRole("listbox")).toHaveCount(0);
   await expect(input).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByRole("status")).toHaveText(/Cargando|Loading/);
+  // Scoped to the popover: the map's own StatusPill is a second status region.
+  await expect(page.getByRole("dialog", { name: /dónde|where/i }).getByRole("status")).toHaveText(
+    /Cargando|Loading/,
+  );
 
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
@@ -76,13 +84,10 @@ test("MAP-20: selecting an option closes the dropdown", async ({ page }) => {
   await expect(option).toBeVisible();
   await option.click();
 
-  // LocationSearch swaps the input for a chip (MapPin icon, the location's
-  // displayName, and an icon button whose only accessible name is
-  // "Clear filters" — getByLabel targets that aria-label specifically, unlike
-  // getByRole("button", { name }), which also matches SearchFilters' own
-  // "Clear filters" text button elsewhere on the page.
-  await expect(page.getByLabel(/clear filters|borrar filtros/i)).toBeVisible();
-  // The dropdown's options are gone, not just hidden behind the chip — scoped
-  // to role="option" because the chip repeats the same display name as text.
+  // Choosing applies the place at once: the «Dónde» segment is named by it,
+  // with the radius in force (MAPUI-1, MAPUI-3).
+  await expect(page.getByRole("button", { name: /madrid · 50 km/i })).toBeVisible();
+  // The dropdown's options are gone, not just hidden — scoped to role="option"
+  // because the field and the segment repeat the same display name as text.
   await expect(page.getByRole("option")).toHaveCount(0);
 });

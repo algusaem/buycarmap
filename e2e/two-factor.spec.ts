@@ -18,24 +18,30 @@ const dbTest = process.env.E2E_DB ? test : test.skip;
 const PASSWORD = "harbour-lentil-quilt-97";
 
 const SIGN_IN = /sign in|entrar/i;
-const SIGN_OUT = /sign out|cerrar sesi/i;
-// messages/en.json nav.favorites: "Saved cars"; messages/es.json: "Coches guardados".
-const SAVED_CARS = /saved cars|coches guardados/i;
+// Anchored: /account also has «Cerrar sesión en todas partes»/"Sign out everywhere".
+const SIGN_OUT = /^(sign out|cerrar sesión)$/i;
+// messages/en.json nav.saved: "Saved"; messages/es.json: "Guardados".
+const SAVED_CARS = /^(saved|guardados)$/i;
+// messages/en.json nav.account: "Account"; messages/es.json: "Cuenta" (HEAD-9).
+const ACCOUNT = /^(account|cuenta)$/i;
 
 function navSavedCars(page: Page) {
-  return page.getByRole("navigation").getByRole("link", { name: SAVED_CARS });
+  return page.getByTestId("header-desktop").getByRole("link", { name: SAVED_CARS });
 }
 
 /**
- * The account dropdown's trigger, named after the signed-in user — desktop
- * sign-out is a menuitem inside it, hidden until it is opened.
+ * The header avatar, named «Cuenta»/"Account" and linking to `/account` (HEAD-9).
+ * Scoped to `header` rather than one region: whichever region the viewport
+ * shows is the one the accessibility tree exposes.
  */
-function accountTrigger(page: Page, name: string) {
-  return page.getByRole("navigation").getByRole("button", { name });
+function accountLink(page: Page) {
+  return page.locator("header").getByRole("link", { name: ACCOUNT });
 }
 
-async function signOut(page: Page, name: string) {
-  await accountTrigger(page, name).click();
+/** HEAD-13: sign-out moved from the account dropdown to «Cerrar sesión» on `/account`. */
+async function signOut(page: Page) {
+  await accountLink(page).click();
+  await page.waitForURL("**/account");
   // Waiting on the URL alone is not enough: a sign-in that landed on "/"
   // leaves the browser already there, so a later `waitForURL("/")` after
   // signing out would resolve on the spot rather than on the redirect this
@@ -49,7 +55,7 @@ async function signOut(page: Page, name: string) {
     (response) =>
       response.url().includes("/api/auth/sign-out") && response.request().method() === "POST",
   );
-  await page.getByRole("menuitem", { name: SIGN_OUT }).click();
+  await page.getByRole("button", { name: SIGN_OUT }).click();
   await signedOut;
 }
 
@@ -80,23 +86,22 @@ async function loginViaUi(page: Page, email: string, code?: string) {
 /** Runs enrolment through the UI and returns the secret and recovery codes. */
 async function enrolTwoFactor(page: Page) {
   await page.goto("/account");
-  // BAUTH-11 (docs/specs/core-better-auth.md): Better Auth's own
-  // `enableTwoFactor` always requires a password, so the "set up" button
-  // only activates once one is typed. Scoped by id, not label text: the
-  // delete-account password field on the same page shares the same label.
-  await page.locator("#two-factor-setup-password").fill(PASSWORD);
+  // docs/specs/redesign-pages.md (PAGES-44; BAUTH-11 amended): the form is in
+  // the «Dos pasos» dialog, which the card's «Activar» opens. Better Auth's
+  // own `enableTwoFactor` always requires a password, asked for first.
+  await page
+    .getByRole("region", { name: /two-factor|dos pasos/i })
+    .getByRole("button", { name: /^(turn on|activar)$/i })
+    .click();
+  await page.locator("#two-factor-password").fill(PASSWORD);
   await page.getByRole("button", { name: /set up two-factor|configurar dos pasos/i }).click();
 
   // The manual-entry key is on screen for anyone who cannot scan — which also
   // makes it the natural way for a test to learn the secret, with no database
-  // access and no reliance on internals.
-  const secret = (
-    await page
-      .locator("code")
-      .filter({ hasText: /^[A-Z2-7]+$/ })
-      .first()
-      .innerText()
-  ).trim();
+  // access and no reliance on internals. A read-only field (PAGES-44).
+  const key = page.locator("#two-factor-secret");
+  await expect(key).toHaveValue(/^[A-Z2-7]+$/);
+  const secret = (await key.inputValue()).trim();
 
   await page
     .getByLabel(/enter the 6-digit code|código de 6/i)
@@ -138,7 +143,7 @@ test.describe("two-factor authentication (real database)", () => {
     await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
 
     const { secret } = await enrolTwoFactor(page);
-    await signOut(page, name);
+    await signOut(page);
     await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     // Password alone is no longer enough.
@@ -167,7 +172,7 @@ test.describe("two-factor authentication (real database)", () => {
     await loginViaUi(page, email);
     await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
     await enrolTwoFactor(page);
-    await signOut(page, name);
+    await signOut(page);
     await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     await loginViaUi(page, email, "000000");
@@ -188,14 +193,14 @@ test.describe("two-factor authentication (real database)", () => {
     const { recoveryCodes } = await enrolTwoFactor(page);
     expect(recoveryCodes).toHaveLength(10);
 
-    await signOut(page, name);
+    await signOut(page);
     await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     // A recovery code stands in for the authenticator.
     await loginViaUi(page, email, recoveryCodes[0]);
     await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
 
-    await signOut(page, name);
+    await signOut(page);
     await expect(navSavedCars(page)).toHaveCount(0, { timeout: 15_000 });
 
     // The same code must not work a second time.

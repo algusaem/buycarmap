@@ -1,0 +1,57 @@
+<!-- @dsCard group="Cuenta" height=900 subtitle="Tarjetas de cuenta: perfil, normal, activa, peligro, móvil y el aro del avatar" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>AccountCard</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans);padding:24px;display:flex;flex-direction:column;gap:32px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:1060px}
+.c{box-sizing:border-box;min-height:196px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);padding:24px;display:flex;flex-direction:column;gap:12px}
+.c.wide{grid-column:span 2}
+.h{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:26px}
+.t{font-family:var(--font-display);font-size:16px;font-weight:800;text-transform:uppercase;margin:0}
+.b{flex-shrink:0;font-size:12px;font-weight:800;border-radius:var(--radius-pill);padding:5px 10px;border:1px solid var(--line);color:var(--text-muted)}
+.b.on{background:var(--violet);color:var(--on-violet);border:0}
+p{margin:0;font-size:14px;line-height:1.5;color:var(--text-muted)}
+p b{color:var(--text);font-weight:700}
+.me{display:flex;align-items:center;gap:14px}
+.av{width:56px;height:56px;flex-shrink:0;border-radius:var(--radius-pill);background:var(--violet);color:var(--on-violet);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:22px;font-weight:900}
+.who{display:flex;flex-direction:column;gap:2px;min-width:0}
+.who strong{font-family:var(--font-display);font-size:22px;font-weight:900;text-transform:uppercase}
+.who span{font-size:14px;color:var(--text-muted)}
+.foot{margin-top:auto}
+.a{display:inline-flex;align-items:center;box-sizing:border-box;height:44px;padding:0 18px;border-radius:var(--radius-pill);border:1px solid var(--line);color:var(--text);font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap}
+.a:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.d{border-color:color-mix(in srgb,var(--danger) 35%,transparent)}
+.d .t,.d .a{color:var(--danger)}
+.d .a{border-color:color-mix(in srgb,var(--danger) 60%,transparent)}
+.mobile{width:350px;display:flex;flex-direction:column;gap:12px}
+.mobile .c{min-height:0;padding:18px}
+.mobile .t{font-size:14px}
+.mobile .av{width:48px;height:48px;font-size:18px}
+.mobile .who strong{font-size:18px}
+.rings{display:flex;gap:32px;align-items:center}
+.ring{border-radius:var(--radius-pill);background:var(--violet);color:var(--on-violet);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;text-decoration:none}
+.ring.lg{width:42px;height:42px;font-size:15px;box-shadow:var(--shadow-current)}
+.ring.sm{width:36px;height:36px;font-size:13px;box-shadow:var(--shadow-current-sm)}
+</style>
+</head>
+<body>
+<div class="grid">
+  <article class="c"><div class="me"><span class="av">A</span><div class="who"><strong>Alba</strong><span>alba@email.com</span></div></div><p><b>8 guardados</b> · <b>3 alertas</b> · en BuyCarMap desde marzo</p><div class="foot"><a class="a" href="#">Cambiar nombre</a></div></article>
+  <article class="c"><div class="h"><h3 class="t">Correo</h3><span class="b on">Verificado</span></div><p>alba@email.com. Con él entras y te llegan las alertas.</p><div class="foot"><a class="a" href="#">Cambiar correo</a></div></article>
+  <article class="c"><div class="h"><h3 class="t">Dos pasos</h3><span class="b">Desactivada</span></div><p>Un código del móvil además de la contraseña, con Google Authenticator o similar.</p><div class="foot"><a class="a" href="#">Activar</a></div></article>
+  <article class="c"><div class="h"><h3 class="t">Contraseña</h3></div><p>La que usas para entrar con tu correo.</p><div class="foot"><a class="a" href="#">Cambiar contraseña</a></div></article>
+  <article class="c d wide"><div class="h"><h3 class="t">Eliminar cuenta</h3></div><p>Borra tu cuenta, tus guardados y tus alertas para siempre. No hay vuelta atrás.</p><div class="foot"><a class="a" href="#">Eliminar mi cuenta</a></div></article>
+</div>
+<div style="display:flex;gap:56px;align-items:flex-start;flex-wrap:wrap">
+  <div class="mobile">
+    <article class="c"><div class="me"><span class="av">A</span><div class="who"><strong>Alba</strong><span>alba@email.com</span></div></div><p><b>8 guardados</b> · <b>3 alertas</b> · en BuyCarMap desde marzo</p><div class="foot"><a class="a" href="#">Cambiar nombre</a></div></article>
+    <article class="c"><div class="h"><h3 class="t">Correo</h3><span class="b on">Verificado</span></div><p>alba@email.com. Con él entras y te llegan las alertas.</p><div class="foot"><a class="a" href="#">Cambiar correo</a></div></article>
+  </div>
+  <div class="rings"><a class="ring lg" href="#" aria-current="page" aria-label="Cuenta">A</a><span class="ring sm" aria-current="page">A</span></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!-- @dsCard group="Filtros" height=1691 subtitle="Desplegables del buscador: Dónde, Coche (escribiendo, con marca y reabierto) y Precio, el segmento abierto y la hoja Buscar de móvil" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>SearchPopover</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=Rethink+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6);background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;flex-direction:column;gap:var(--space-8)}
+.row{display:flex;gap:var(--space-6);align-items:flex-start;flex-wrap:wrap}
+.pill{display:flex;align-items:center;align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-pill);padding:6px 6px 6px 8px}
+.seg{all:unset;cursor:pointer;position:relative;padding:6px 22px;display:flex;flex-direction:column;white-space:nowrap;border-right:1px solid var(--line)}
+.seg.end{border-right:0}
+.seg .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
+.seg .v{font-size:15px;font-weight:600}
+.seg[aria-expanded="true"]::after{content:"";position:absolute;left:22px;right:22px;bottom:0;height:2px;border-radius:var(--radius-pill);background:var(--lime)}
+.go{all:unset;cursor:pointer;width:46px;height:46px;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime);display:flex;align-items:center;justify-content:center}
+.pop{width:420px;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--shadow-float);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+.field{height:52px;box-sizing:border-box;border-radius:var(--radius-field);border:1px solid var(--line);background:var(--bg);display:flex;align-items:center;gap:10px;padding:0 4px 0 16px;color:var(--text-muted)}
+.field.focus{border-color:var(--lime)}
+.field svg{flex-shrink:0}
+.field input{all:unset;flex:1;min-width:0;height:100%;font-family:inherit;font-size:16px;color:var(--text)}
+.field input::placeholder{color:var(--text-muted);opacity:1}
+.clr{all:unset;cursor:pointer;box-sizing:border-box;width:44px;height:44px;flex-shrink:0;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.list{display:flex;flex-direction:column;gap:2px;margin:-4px -6px 0}
+.grp{display:flex;flex-direction:column;gap:2px}
+.gh{padding:10px 14px 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
+.opt{min-height:44px;box-sizing:border-box;padding:0 12px 0 14px;border-radius:var(--radius-option);display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;font-weight:500}
+.opt.sub{padding-top:5px;padding-bottom:5px}
+.opt.hover{background:var(--surface-strong)}
+.opt[aria-selected="true"]{font-weight:700}
+.opt .m{display:flex;flex-direction:column;min-width:0}
+.opt .s{font-size:13px;font-weight:400;line-height:1.2;color:var(--text-muted)}
+.opt .ck{color:var(--violet);flex-shrink:0}
+.div{height:1px;background:var(--line-soft);margin:0 calc(-1 * var(--space-5))}
+.sec{display:flex;flex-direction:column;gap:12px}
+.lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
+.radios{display:flex;flex-wrap:wrap;gap:8px}
+.radios.fill{flex-wrap:nowrap}
+.r{all:unset;cursor:pointer;box-sizing:border-box;padding:10px 16px;border-radius:var(--radius-pill);font-size:14px;font-weight:600;white-space:nowrap;border:1px solid var(--line);color:var(--text)}
+.fill .r{flex:1;text-align:center;padding:10px 0}
+.tall .r{height:44px;display:flex;align-items:center;justify-content:center}
+.r[aria-checked="true"]{background:var(--violet);color:var(--on-violet);border:0;font-weight:800}
+.ghost{all:unset;cursor:pointer;box-sizing:border-box;height:44px;width:100%;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-pill);color:var(--text);font-size:15px;font-weight:700}
+.chip{align-self:flex-start;display:inline-flex;align-items:center;height:36px;box-sizing:border-box;padding-left:16px;border-radius:var(--radius-pill);background:var(--violet);color:var(--on-violet);font-size:14px;font-weight:800;white-space:nowrap}
+.chip button{all:unset;cursor:pointer;box-sizing:border-box;width:44px;height:44px;margin:-4px 0 -4px -4px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-pill);color:var(--on-violet)}
+.range{position:relative;height:4px;background:var(--line);border-radius:var(--radius-pill);margin:10px 8px}
+.range .fillbar{position:absolute;left:0;right:34%;top:0;bottom:0;background:var(--lime);border-radius:var(--radius-pill)}
+.range .knob{all:unset;cursor:pointer;position:absolute;top:-10px;width:24px;height:24px;margin-left:-12px;border-radius:var(--radius-pill);background:var(--lime)}
+.pair{display:flex;gap:10px}
+.box{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-field);padding:10px 14px;display:flex;flex-direction:column}
+.box span{font-size:11px;color:var(--text-muted)}
+.box strong{font-size:16px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.sheet{width:390px;box-sizing:border-box;background:var(--surface);border-top:1px solid var(--line);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;display:flex;flex-direction:column}
+.grab{align-self:center;margin-top:10px;width:40px;height:5px;border-radius:var(--radius-pill);background:var(--handle)}
+.head{height:70px;flex-shrink:0;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-5);border-bottom:1px solid var(--line-soft)}
+.close{all:unset;cursor:pointer;box-sizing:border-box;width:40px;height:40px;border-radius:var(--radius-pill);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text)}
+.title{font-family:var(--font-display);font-size:16px;font-weight:800;text-transform:uppercase}
+.clear{all:unset;cursor:pointer;font-size:14px;font-weight:700;text-decoration:underline}
+.body{padding:22px var(--space-5);display:flex;flex-direction:column;gap:26px}
+.foot{padding:14px var(--space-5) 28px;border-top:1px solid var(--line-soft)}
+.see{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;width:100%;box-sizing:border-box;height:56px;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime);font-family:var(--font-display);font-size:15px;font-weight:800;text-transform:uppercase}
+.seg:focus-visible,.go:focus-visible,.clr:focus-visible,.r:focus-visible,.ghost:focus-visible,.chip button:focus-visible,.knob:focus-visible,.close:focus-visible,.clear:focus-visible,.see:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+</style>
+</head>
+<body>
+<form class="pill" role="search">
+  <button class="seg" type="button" aria-haspopup="dialog" aria-expanded="true"><span class="k">Dónde</span><span class="v">Madrid · 50 km</span></button>
+  <button class="seg" type="button" aria-haspopup="dialog" aria-expanded="false"><span class="k">Coche</span><span class="v">Cualquier marca</span></button>
+  <button class="seg end" type="button" aria-haspopup="dialog" aria-expanded="false"><span class="k">Precio</span><span class="v">Hasta 20.000 €</span></button>
+  <button class="go" type="submit" aria-label="Buscar"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+</form>
+<div class="row">
+  <div class="pop" role="dialog" aria-label="Dónde">
+    <div class="field focus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" name="place" aria-label="Ciudad o código postal" autocomplete="off" role="combobox" aria-expanded="true" value="Mad"><button class="clr" type="button" aria-label="Borrar texto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+    <div class="list" role="listbox" aria-label="Sitios">
+      <div class="opt sub hover" role="option" aria-selected="false"><span class="m">Madrid<span class="s">Comunidad de Madrid</span></span></div>
+      <div class="opt" role="option" aria-selected="false"><span class="m">Majadahonda</span></div>
+      <div class="opt" role="option" aria-selected="false"><span class="m">Madridejos</span></div>
+    </div>
+    <p class="sr" role="status" aria-live="polite">3 resultados</p>
+    <div class="div"></div>
+    <div class="sec"><span class="lbl">Radio</span><div class="radios fill" role="radiogroup" aria-label="Radio"><button class="r" type="button" role="radio" aria-checked="false">10 km</button><button class="r" type="button" role="radio" aria-checked="false">25 km</button><button class="r" type="button" role="radio" aria-checked="true">50 km</button><button class="r" type="button" role="radio" aria-checked="false">100 km</button><button class="r" type="button" role="radio" aria-checked="false">200 km</button></div></div>
+    <button class="ghost" type="button">Toda España</button>
+  </div>
+  <div class="pop" role="dialog" aria-label="Precio">
+    <div class="range"><span class="fillbar"></span><button class="knob" type="button" role="slider" aria-label="Precio mínimo" aria-valuetext="0 €" style="left:0%"></button><button class="knob" type="button" role="slider" aria-label="Precio máximo" aria-valuetext="20.000 €" style="left:66%"></button></div>
+    <div class="pair"><span class="box"><span>Mínimo</span><strong>0 €</strong></span><span class="box"><span>Máximo</span><strong>20.000 €</strong></span></div>
+    <div class="radios" role="radiogroup" aria-label="Precio máximo"><button class="r" type="button" role="radio" aria-checked="false">Hasta 5.000 €</button><button class="r" type="button" role="radio" aria-checked="false">Hasta 10.000 €</button><button class="r" type="button" role="radio" aria-checked="true">Hasta 20.000 €</button><button class="r" type="button" role="radio" aria-checked="false">Hasta 30.000 €</button></div>
+    <button class="ghost" type="button">Cualquier precio</button>
+  </div>
+</div>
+<div class="row">
+  <div class="pop" role="dialog" aria-label="Coche">
+    <div class="field focus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" name="car" aria-label="Marca o modelo" autocomplete="off" role="combobox" aria-expanded="true" value="Toy"><button class="clr" type="button" aria-label="Borrar texto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+    <div class="list" role="listbox" aria-label="Marcas y modelos">
+      <div class="grp" role="group" aria-labelledby="pv-marcas"><div class="gh" id="pv-marcas" role="presentation">Marcas</div><div class="opt hover" role="option" aria-selected="false"><span class="m">Toyota</span></div></div>
+      <div class="grp" role="group" aria-labelledby="pv-modelos"><div class="gh" id="pv-modelos" role="presentation">Modelos</div><div class="opt" role="option" aria-selected="false"><span class="m">Toyota Corolla</span></div><div class="opt" role="option" aria-selected="false"><span class="m">Toyota Yaris</span></div><div class="opt" role="option" aria-selected="false"><span class="m">Toyota C-HR</span></div></div>
+    </div>
+    <p class="sr" role="status" aria-live="polite">4 resultados</p>
+    <button class="ghost" type="button">Cualquier marca</button>
+  </div>
+  <div class="pop" role="dialog" aria-label="Coche">
+    <span class="chip">Toyota<button type="button" aria-label="Quitar Toyota"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+    <div class="field focus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" name="model" aria-label="Modelo de Toyota" autocomplete="off" role="combobox" aria-expanded="true" placeholder="Modelo de Toyota…"></div>
+    <div class="list" role="listbox" aria-label="Modelos de Toyota">
+      <div class="grp" role="group" aria-labelledby="pv-mod-a"><div class="gh" id="pv-mod-a" role="presentation">Modelos</div><div class="opt hover" role="option" aria-selected="false"><span class="m">Corolla</span></div><div class="opt" role="option" aria-selected="false"><span class="m">Yaris</span></div><div class="opt" role="option" aria-selected="false"><span class="m">C-HR</span></div></div>
+    </div>
+    <button class="ghost" type="button">Cualquier marca</button>
+  </div>
+  <div class="pop" role="dialog" aria-label="Coche">
+    <span class="chip">Toyota<button type="button" aria-label="Quitar Toyota"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span>
+    <div class="field focus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" name="model" aria-label="Modelo de Toyota" autocomplete="off" role="combobox" aria-expanded="true" placeholder="Modelo de Toyota…"></div>
+    <div class="list" role="listbox" aria-label="Modelos de Toyota">
+      <div class="grp" role="group" aria-labelledby="pv-mod-b"><div class="gh" id="pv-mod-b" role="presentation">Modelos</div><div class="opt" role="option" aria-selected="true"><span class="m">Corolla</span><svg class="ck" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div><div class="opt" role="option" aria-selected="false"><span class="m">Yaris</span></div><div class="opt" role="option" aria-selected="false"><span class="m">C-HR</span></div></div>
+    </div>
+    <button class="ghost" type="button">Cualquier marca</button>
+  </div>
+</div>
+<div class="row">
+  <div class="sheet" role="dialog" aria-label="Buscar">
+    <span class="grab"></span>
+    <div class="head"><button class="close" type="button" aria-label="Cerrar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button><strong class="title">Buscar</strong><button class="clear" type="button">Borrar</button></div>
+    <div class="body">
+      <div class="sec"><span class="lbl">Dónde</span><div class="field"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" name="place" aria-label="Ciudad o código postal" autocomplete="off" role="combobox" aria-expanded="false" value="Madrid"><button class="clr" type="button" aria-label="Borrar texto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div><div class="radios fill tall" role="radiogroup" aria-label="Radio"><button class="r" type="button" role="radio" aria-checked="false">10 km</button><button class="r" type="button" role="radio" aria-checked="false">25 km</button><button class="r" type="button" role="radio" aria-checked="true">50 km</button><button class="r" type="button" role="radio" aria-checked="false">100 km</button><button class="r" type="button" role="radio" aria-checked="false">200 km</button></div></div>
+      <div class="sec"><span class="lbl">Coche</span><span class="chip">Toyota<button type="button" aria-label="Quitar Toyota"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span><div class="field"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" name="model" aria-label="Modelo de Toyota" autocomplete="off" role="combobox" aria-expanded="false" placeholder="Modelo de Toyota…"></div></div>
+      <div class="sec"><span class="lbl">Precio</span><div class="range"><span class="fillbar"></span><button class="knob" type="button" role="slider" aria-label="Precio mínimo" aria-valuetext="0 €" style="left:0%"></button><button class="knob" type="button" role="slider" aria-label="Precio máximo" aria-valuetext="20.000 €" style="left:66%"></button></div><div class="pair"><span class="box"><span>Mínimo</span><strong>0 €</strong></span><span class="box"><span>Máximo</span><strong>20.000 €</strong></span></div></div>
+    </div>
+    <div class="foot"><button class="see" type="button">Ver coches</button></div>
+  </div>
+</div>
+</body>
+</html>

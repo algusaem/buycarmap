@@ -2,7 +2,7 @@
 
 Key: SRC
 Status: Implemented
-Last updated: 2026-10-11
+Last updated: 2026-10-13
 
 ---
 
@@ -34,7 +34,7 @@ boundary behave.
 - [x] SRC-4 · unit — A listing missing optional attributes still produces a usable card rather than blanks or undefined values
 - [x] SRC-5 · unit — The one shared filter set is translated into each source's own parameter names
 - [x] SRC-6 · unit — A filter value a source has no equivalent for is dropped, never passed through raw
-- [x] SRC-7 · unit — A model name that matches nothing in a source falls back to filtering by brand alone
+- [x] SRC-7 · unit — A model name is matched against a source's options ignoring case and accents; one that still matches nothing falls back to filtering by brand alone (amended 2026-10-14, ENTRY — redesign-entry.md, owner decision)
 - [x] SRC-8 · unit — A search always sends coordinates to Wallapop, even when the user has chosen no location
 - [x] SRC-9 · node — Each proxy adds the headers its upstream refuses to answer without
 - [x] SRC-10 · node — A proxy called without its required parameter answers 400 and does not contact the upstream
@@ -54,6 +54,7 @@ boundary behave.
   Sevilla's entry in `lib/geo/cities.ts`.
 - **SRC-12** — Upstream connection fails; GET /api/wallapop/search?keywords=golf → 502 with the body `{ error: "Wallapop request failed" }`, never a thrown 500.
 - **SRC-14** — /api/cochesnet/models returns [{ id: 4321, label: "Serie 3" }]; resolveCochesNetModelId(103, "Serie 3") twice → 1 upstream call; make 104 with a first 503 then success → first call undefined, second 4321, 2 calls in total.
+- **SRC-7** — Model name «León»; coches.net's models answer `[{ id: 1, label: "Leon" }]` → resolves to id 1 (amended 2026-10-14, ENTRY — redesign-entry.md, owner decision).
 
 ## Data model
 
@@ -221,6 +222,24 @@ meta.next_page
 
 `reserved.flag` replaced an older `flags.{sold,reserved,banned,expired}` object.
 
+**Fuel.** `type_attributes.engine` is an English display word, not the `engine`
+filter code the request sends. A live probe on 2026-10-13, one search per
+`engine` value, returned exactly one word per value:
+
+| `engine` sent | `type_attributes.engine` returned |
+| --- | --- |
+| `gasoline` | «Gasoline» |
+| `gasoil` | «Diesel» |
+| `hybride` | «Hybrid» |
+| `hybride_plugin` | «Hybrid Plug-in» |
+| `electric-hybrid` | «Electric» |
+| `lpg` | «LPG» |
+| `cng` | «CNG» |
+
+Which fuel group each word belongs to is
+[redesign-map.md](redesign-map.md) › Worked examples › Fuel vocabulary; the
+fixture's fuel is checked against this list offline (SRC-15).
+
 #### Normalisation
 
 [`lib/wallapop/normalize.ts`](../../lib/wallapop/normalize.ts) maps items into
@@ -374,6 +393,22 @@ items[]
 meta.totalPages
 ```
 
+**Fuel.** `fuelType` is a Spanish display word, next to its numeric
+`fuelTypeId`. A live probe on 2026-10-13, one search per `fuelTypeIds` value,
+returned exactly one word per id:
+
+| `fuelTypeId` | `fuelType` |
+| --- | --- |
+| 1 | «Diésel» |
+| 2 | «Gasolina» |
+| 3 | «Eléctrico» |
+| 4 | «Híbrido» |
+| 5 | «Híbrido enchufable» |
+| 6 | «Gas licuado (GLP)» |
+| 7 | «Gas natural (CNG)» |
+
+The fixture's fuel is checked against this list offline (SRC-15).
+
 #### Normalisation
 
 [`lib/cochesnet/normalize.ts`](../../lib/cochesnet/normalize.ts):
@@ -503,6 +538,12 @@ ads[]
   isReserved
 pagination.{ page, resultsPerPage, totalAds, totalPages }
 ```
+
+**Fuel.** The `combustible` tag's text, in lower case. A live probe on
+2026-10-13, one search per `fuels` token, returned exactly one text per
+token: `gasolina` «gasolina», `diesel` «diesel», `electrico` «eléctrico»,
+`hibrido` «híbrido». The fixture's fuel is checked against this list offline
+(SRC-15).
 
 #### Normalisation
 

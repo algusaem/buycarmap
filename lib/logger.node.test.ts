@@ -88,6 +88,20 @@ describe("createLogger redaction", () => {
     expect(session.userAgent).toBe("[Redacted]");
   });
 
+  it("PLAT-15: redacts an alert's place name, nested or top-level", () => {
+    const dest = makeDestination();
+    const log = createLogger(dest);
+
+    log.info({ placeName: "Getafe", alert: { placeName: "Madrid", label: "Corolla" } }, "x");
+
+    expect(dest.lines.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(dest.lines[0]) as Record<string, unknown>;
+    expect(parsed.placeName).toBe("[Redacted]");
+    const alert = parsed.alert as Record<string, unknown>;
+    expect(alert.placeName).toBe("[Redacted]");
+    expect(alert.label).toBe("Corolla");
+  });
+
   it("PLAT-15: leaves an unrelated field untouched", () => {
     const dest = makeDestination();
     const log = createLogger(dest);

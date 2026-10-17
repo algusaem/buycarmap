@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Sentry from "@sentry/nextjs";
-import { authClient } from "@/lib/auth/auth-client";
 import {
   listMySessions,
   revokeMySession,
@@ -9,30 +8,38 @@ import {
   type MySession,
 } from "@/server/account/actions";
 
-// BAUTH-4 (docs/specs/core-better-auth.md): owns the request lifecycle for
-// the "Active sessions" section on /account (CLAUDE.md › Stack today —
-// client request lifecycles live in lib/hooks/*, components only consume
-// them). Mirrors useFavorites.ts's shape for the "signed-in only" fetch, and
-// useLocationSearch.ts's version-ref shape for guarding against an
-// out-of-order response — needed here because `refresh()` (after a revoke)
-// has to be callable on demand, not just once per mount.
+// BAUTH-4 (docs/specs/core-better-auth.md): owns the request lifecycle of
+// the «Sesiones» dialog on /account (CLAUDE.md › Stack today — client request
+// lifecycles live in lib/hooks/*, components only consume them). The list is
+// read again each time the dialog opens (docs/specs/redesign-pages.md,
+// PAGES-49): the dialog's content mounts on each opening, and this reads on
+// mount. Only the signed-in /account page opens it, and `listMySessions`
+// itself answers nothing to a signed-out caller: a list with no session,
+// not even this one, means this session ended elsewhere, and reads as the
+// failed read with its «Reintentar» (docs/specs/redesign-pages.md, Edge cases). The version ref drops an
+// out-of-order response, as useLocationSearch.ts does — needed because a
+// retry and the re-read after a revoke can overlap the first read.
 
 export type MySessionsStatus = "loading" | "error" | "ready";
 
 export function useMySessions() {
-  const { data: session, isPending } = authClient.useSession();
-  const authStatus = isPending ? "loading" : session ? "authenticated" : "unauthenticated";
   const [sessions, setSessions] = useState<MySession[]>([]);
   const [status, setStatus] = useState<MySessionsStatus>("loading");
+  const [retrying, setRetrying] = useState(false);
   const versionRef = useRef(0);
 
-  const load = useCallback(async () => {
+  /** Reads the list; `quiet` keeps what is on screen while it does (after a revoke, on a retry). */
+  const read = useCallback(async (quiet: boolean) => {
     const version = ++versionRef.current;
-    setStatus("loading");
+    if (!quiet) setStatus("loading");
 
     try {
       const result = await listMySessions();
       if (versionRef.current !== version) return;
+      if (result.length === 0) {
+        setStatus("error");
+        return;
+      }
       setSessions(result);
       setStatus("ready");
     } catch (error) {
@@ -42,33 +49,39 @@ export function useMySessions() {
     }
   }, []);
 
+  /**
+   * «Reintentar» (PAGES-50): the read again, with the failed read kept on
+   * screen and `retrying` true until it answers. No placeholder state in
+   * between: a third state that the answer could replace before it even
+   * mounted would leave the placeholders stuck.
+   */
+  const reload = useCallback(async () => {
+    setRetrying(true);
+    await read(true);
+    setRetrying(false);
+  }, [read]);
+
   useEffect(() => {
-    if (authStatus !== "authenticated") return;
-    load();
-    // No cleanup to cancel the in-flight request on: `load`'s own version
+    read(false);
+    // No cleanup to cancel the in-flight request on: `read`'s own version
     // check already drops a response from a request that is no longer the
-    // latest, the same way unmounting and remounting while signed in would.
-  }, [authStatus, load]);
+    // latest.
+  }, [read]);
 
   const revokeSession = useCallback(
     async (sessionId: string): Promise<AccountResult> => {
       const result = await revokeMySession(sessionId);
-      if (result.success) await load();
+      if (result.success) await read(true);
       return result;
     },
-    [load],
+    [read],
   );
 
   const revokeOthers = useCallback(async (): Promise<AccountResult> => {
     const result = await revokeOtherMySessions();
-    if (result.success) await load();
+    if (result.success) await read(true);
     return result;
-  }, [load]);
+  }, [read]);
 
-  return {
-    sessions: authStatus === "authenticated" ? sessions : [],
-    status: authStatus === "authenticated" ? status : "loading",
-    revokeSession,
-    revokeOthers,
-  };
+  return { sessions, status, retrying, reload, revokeSession, revokeOthers };
 }
