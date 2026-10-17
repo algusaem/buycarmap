@@ -92,11 +92,14 @@ vi.mock("@/components/map/ListingsMap", () => ({
     activeId,
     desktop,
     onActivate,
+    onMapInteract,
   }: {
     listings: { id: string }[];
     activeId?: string;
     desktop?: boolean;
     onActivate?: (id: string) => void;
+    // MAPUI-62: the map itself was tapped or a pan started — never a pin tap.
+    onMapInteract?: () => void;
   }) => (
     <div
       data-testid="listings-map"
@@ -104,6 +107,11 @@ vi.mock("@/components/map/ListingsMap", () => ({
       data-active-id={activeId ?? ""}
       data-desktop={String(desktop)}
     >
+      {onMapInteract && (
+        <button type="button" onClick={() => onMapInteract()}>
+          tap map
+        </button>
+      )}
       {onActivate && listings[0] && (
         <button type="button" onClick={() => onActivate(listings[0].id)}>
           tap pin
@@ -555,8 +563,8 @@ describe("MapView — MAPUI-39 opening Crear alerta closes an open pin preview",
 // phone layout and this test would prove nothing about MAPUI-24. The sheet's
 // resting position is already "middle" (MAPUI-23), so the test first
 // collapses it to "peeked" via its handle (two clicks: middle -> full ->
-// peeked — the handle only toggles between those two) to start from a
-// position the pin tap actually has to move.
+// peeked — each press moves it one step up, and full wraps to peeked,
+// MAPUI-58) to start from a position the pin tap actually has to move.
 describe("MapView — MAPUI-24 tapping a pin on the phone", () => {
   it("MAPUI-24: tapping a pin moves the results sheet to its middle position showing that car's card first", async () => {
     stubPhoneWidth();
@@ -745,6 +753,83 @@ describe("MapView — MAPUI-53 the tab bar and the full sheet", () => {
     // alone (TabBar.tsx), never to useHideOnScrollDown's scroll tracking —
     // so neither scroll, however they are read, ever hides it here.
     expect(tabBar).toHaveAttribute("aria-hidden", "false");
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-61, #133): dragging is never the only
+// way to reach a position — the handle alone must still cycle through all
+// three, and MAPUI-53's tab-bar rule must hold however the sheet got there.
+describe("MapView — MAPUI-61 the handle alone reaches every position", () => {
+  it("MAPUI-61: pressing the handle alone cycles middle -> full -> peeked -> middle, hiding the tab bar only at full", async () => {
+    server.use(...onlyWallapop);
+    stubPhoneWidth();
+
+    renderWithI18n(
+      <>
+        <MapView initialQuery="case-handle-cycle" />
+        <TabBar />
+      </>,
+      { locale: "es" },
+    );
+    await screen.findByText(WALLAPOP_TITLE);
+
+    const handle = screen.getByRole("button", { name: "Lista de resultados" });
+    const sheet = screen.getByTestId("results-sheet");
+    const tabBar = screen.getByTestId("bottom-nav");
+    expect(sheet).toHaveAttribute("data-position", "middle");
+    expect(tabBar).toHaveAttribute("aria-hidden", "false");
+
+    await userEvent.click(handle);
+    expect(sheet).toHaveAttribute("data-position", "full");
+    expect(tabBar).toHaveAttribute("aria-hidden", "true");
+
+    await userEvent.click(handle);
+    expect(sheet).toHaveAttribute("data-position", "peeked");
+    expect(tabBar).toHaveAttribute("aria-hidden", "false");
+
+    await userEvent.click(handle);
+    expect(sheet).toHaveAttribute("data-position", "middle");
+    expect(tabBar).toHaveAttribute("aria-hidden", "false");
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-62, #133).
+describe("MapView — MAPUI-62 a map tap or pan lowers the sheet from middle to peeked", () => {
+  it("MAPUI-62: a map interaction moves the sheet from middle to peeked, changes nothing at peeked, and a pin tap still reaches middle with that car first", async () => {
+    server.use(...audiThenSeat);
+    stubPhoneWidth();
+
+    renderWithI18n(<MapView initialQuery="case-map-tap" />, { locale: "es" });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    const sheet = screen.getByTestId("results-sheet");
+    expect(sheet).toHaveAttribute("data-position", "middle");
+
+    const tapMap = screen.getByRole("button", { name: "tap map" });
+    await userEvent.click(tapMap);
+    expect(sheet).toHaveAttribute("data-position", "peeked");
+
+    // At peeked, a further map interaction changes nothing.
+    await userEvent.click(tapMap);
+    expect(sheet).toHaveAttribute("data-position", "peeked");
+
+    // A pin tap still reaches middle with that car first (MAPUI-24), and
+    // never lowers the sheet.
+    await userEvent.click(screen.getByRole("button", { name: "tap pin wallapop-def456" }));
+    expect(sheet).toHaveAttribute("data-position", "middle");
+    const cards = within(sheet).getAllByRole("article");
+    expect(cards).toHaveLength(1);
+    expect(within(cards[0]).getByText(SEAT_TITLE)).toBeInTheDocument();
+  });
+
+  it("MAPUI-62: at desktop width the map gets no map-interaction handler", async () => {
+    server.use(...audiThenSeat);
+
+    renderWithI18n(<MapView initialQuery="case-desktop-map-tap" />, { locale: "es" });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    expect(screen.getByTestId("listings-map")).toHaveAttribute("data-desktop", "true");
+    expect(screen.queryByRole("button", { name: "tap map" })).not.toBeInTheDocument();
   });
 });
 

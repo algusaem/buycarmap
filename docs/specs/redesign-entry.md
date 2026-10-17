@@ -2,7 +2,7 @@
 
 Key: ENTRY
 Status: Implemented
-Last updated: 2026-10-15
+Last updated: 2026-10-17
 
 ---
 
@@ -73,6 +73,8 @@ Landing
   «Guardados», «Alertas» and «Cuenta», none marked current. Its header shows the wordmark and the
   language control, with no avatar and no «Entrar». Signed out it shows no tab bar and keeps «Entrar»
   (amends HEAD-7 and MAPUI-52).
+- [x] ENTRY-31 · e2e — Signed in at phone width, the landing's last element can be
+  scrolled fully clear of the tab bar (bug fix, found 2026-10-17, #133; HEAD-19 for the other pages).
 
 Sign in
 
@@ -339,6 +341,11 @@ them. `/login` is measured at 1024×600 (not displayed) and 1024×900 (displayed
 Centring, worked: at 1024px wide, with a 15px scrollbar on the page's scrolling area, its client
 width is 1009px and its centre is at 504.5px; an element is centred when its content's centre is
 between 503.5px and 505.5px. With no scrollbar, the centre is at 512px.
+
+**ENTRY-31 (bug fix)** — signed in at phone width on `/`, scrolled to the end: before the fix the
+last element's bottom was at 812px while the tab bar's top was at 747px, so it sat under the bar.
+Correct result: the last element's bottom is at or above the tab bar's top (≤ 747px at that
+viewport).
 
 ## Data model
 

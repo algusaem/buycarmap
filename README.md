@@ -556,6 +556,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `lib/map/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `lib/hooks/useLandingSearch.ts` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
+| `lib/hooks/useResultsSheetDrag.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/useSaved*.ts` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
 | `lib/hooks/useRemovalFocus.ts` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
 | `lib/hooks/useOpenAlert.ts` | [docs/specs/redesign-alerts.md](docs/specs/redesign-alerts.md) |

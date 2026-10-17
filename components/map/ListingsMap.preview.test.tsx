@@ -456,3 +456,29 @@ describe("MAPUI-27: ListingsMap — a grouped pin's preview", () => {
     ).toBeInTheDocument();
   });
 });
+
+// docs/specs/redesign-map.md (MAPUI-62, #133): the real Leaflet container is
+// needed here because a pin's own click handler stops the event reaching the
+// map's - a mocked MapContainer (ListingsMap.test.tsx) renders no such
+// propagation to prove the pin case against.
+describe("MAPUI-62: ListingsMap - reporting a map interaction", () => {
+  it("MAPUI-62: clicking the map container calls onMapInteract once", () => {
+    const onMapInteract = vi.fn();
+    const { container } = renderMap({ onMapInteract });
+
+    const mapContainer = container.querySelector(".leaflet-container");
+    if (!mapContainer) throw new Error("the Leaflet container was not rendered");
+    fireEvent.click(mapContainer);
+
+    expect(onMapInteract).toHaveBeenCalledTimes(1);
+  });
+
+  it("MAPUI-62: clicking a pin never calls onMapInteract", async () => {
+    const onMapInteract = vi.fn();
+    renderMap({ onMapInteract });
+
+    await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
+
+    expect(onMapInteract).not.toHaveBeenCalled();
+  });
+});

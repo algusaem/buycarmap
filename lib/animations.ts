@@ -40,6 +40,9 @@ export const crossFade = {
   transition: { duration: duration.fast },
 };
 
+/** A dragged bottom sheet springing to where it rests: back in place, or to a new position. */
+export const sheetSpring = { type: "spring", stiffness: 500, damping: 40 } as const;
+
 /**
  * Whether the OS asks for reduced motion, for the scrolls Motion does not
  * drive (a jump to a pin's card): they land at once instead of gliding.
