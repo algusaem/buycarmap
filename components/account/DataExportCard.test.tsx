@@ -91,19 +91,19 @@ describe("DataExportCard", () => {
 
     await userEvent.click(button());
 
-    await waitFor(() => expect(button()).toBeDisabled());
+    await waitFor(() => expect(button()).toHaveAttribute("aria-disabled", "true"));
     expect(button()).toHaveAttribute("aria-busy", "true");
     expect(button()).toHaveTextContent("Download my data");
     expect(button().querySelector("svg")).not.toBeNull();
 
-    // A disabled button blocks pointer events; skip that check so the second
-    // click really reaches the button.
+    // Skip user-event's pointer-events check so the second click really
+    // reaches the busy button, which ignores it.
     await userEvent.setup({ pointerEventsCheck: 0 }).click(button());
     expect(exportMyData).toHaveBeenCalledTimes(1);
 
     resolveExport?.({ success: true, data: EXPORT_JSON });
 
-    await waitFor(() => expect(button()).toBeEnabled());
+    await waitFor(() => expect(button()).not.toHaveAttribute("aria-disabled"));
     expect(button()).not.toHaveAttribute("aria-busy", "true");
     expect(downloads).toHaveLength(1);
     expect(exportMyData).toHaveBeenCalledTimes(1);
@@ -122,7 +122,7 @@ describe("DataExportCard", () => {
     );
     expect(downloads).toHaveLength(0);
     expect(URL.createObjectURL).not.toHaveBeenCalled();
-    await waitFor(() => expect(button()).toBeEnabled());
+    await waitFor(() => expect(button()).not.toHaveAttribute("aria-disabled"));
   });
 
   it("EXPORT-17: the button is named, works with Enter and with Space, and the section has no axe violations", async () => {
@@ -134,7 +134,7 @@ describe("DataExportCard", () => {
     button().focus();
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(downloads).toHaveLength(1));
-    await waitFor(() => expect(button()).toBeEnabled());
+    await waitFor(() => expect(button()).not.toHaveAttribute("aria-disabled"));
 
     button().focus();
     await userEvent.keyboard(" ");

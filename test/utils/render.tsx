@@ -16,6 +16,10 @@ export interface RenderWithI18nOptions extends Omit<RenderOptions, "wrapper"> {
   searchParams?: string;
   /** Called on every URL write, so a test can assert what a control wrote. */
   onUrlUpdate?: OnUrlUpdateFunction;
+  /** The `NextIntlClientProvider` timezone, so a worked example that depends
+   * on local time (a month boundary) renders in the zone its input assumes.
+   * Defaults to UTC, this provider's existing default. */
+  timeZone?: string;
 }
 
 // Renders with the English locale by default so tests can query by stable
@@ -28,11 +32,21 @@ export interface RenderWithI18nOptions extends Omit<RenderOptions, "wrapper"> {
 // adapter would, rather than the URL being frozen to its initial value.
 export function renderWithI18n(
   ui: ReactNode,
-  { locale = "en", searchParams, onUrlUpdate, ...options }: RenderWithI18nOptions = {},
+  {
+    locale = "en",
+    searchParams,
+    onUrlUpdate,
+    timeZone = "UTC",
+    ...options
+  }: RenderWithI18nOptions = {},
 ) {
   return render(ui, {
     wrapper: ({ children }) => (
-      <NextIntlClientProvider locale={locale} messages={MESSAGES_BY_LOCALE[locale]} timeZone="UTC">
+      <NextIntlClientProvider
+        locale={locale}
+        messages={MESSAGES_BY_LOCALE[locale]}
+        timeZone={timeZone}
+      >
         <NuqsTestingAdapter hasMemory searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
           {children}
         </NuqsTestingAdapter>

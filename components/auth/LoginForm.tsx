@@ -8,18 +8,19 @@ import * as motion from "motion/react-client";
 import { signIn, verifySignInBackupCode, verifySignInTotp } from "@/server/auth/actions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BusyButton } from "@/components/ui/BusyButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldMessage } from "./FieldMessage";
 import { PasswordInput } from "./PasswordInput";
 import { OAuthButtons } from "./OAuthButtons";
+import { AccessPanel } from "./AccessLayout";
 import { useTranslations, useMessages } from "next-intl";
 import { translateAuthError } from "@/lib/i18n/errors";
 import type { Translations } from "@/lib/i18n/types";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { safeRedirectTarget } from "@/lib/auth/safe-redirect";
+import { settleAction } from "@/lib/auth/settle-action";
 import { crossFade } from "@/lib/animations";
 import { loginSchema, type LoginInput } from "@/server/auth/schema";
 
@@ -103,6 +104,7 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
+    mode: "onBlur",
   });
 
   // Run at the start of every submit handler, whether it reaches the server
@@ -137,14 +139,19 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
     formData.set("code", code);
 
     const verify = /^\d{6}$/.test(code) ? verifySignInTotp : verifySignInBackupCode;
-    const result = await verify(formData);
+    const result = await settleAction(() => verify(formData));
 
     if (!result.success) {
+      // A request that never answered is the generic alert (PAGES-4).
+      if ("thrown" in result) {
+        setFormError(t("authErrors.generic"));
+        return;
+      }
       if ("error" in result && result.error === AUTH_ERROR.rateLimited) {
         setFormError(t("authErrors.rateLimited"));
         return;
       }
-      setError("totp", { message: AUTH_ERROR.totpInvalid });
+      setError("totp", { message: AUTH_ERROR.totpInvalid }, { shouldFocus: true });
       return;
     }
 
@@ -157,7 +164,7 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
     formData.set("email", data.email);
     formData.set("password", data.password);
 
-    const result = await signIn(formData);
+    const result = await settleAction(() => signIn(formData));
 
     if ("twoFactorRequired" in result) {
       // The password was right and a code is needed. Reveal the field rather
@@ -171,12 +178,11 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
       // generic message here is the whole point, not a shortcut. Rate
       // limiting is the one case worth naming, since it tells the user to
       // wait rather than to keep guessing, and reveals nothing about the
-      // account.
-      setFormError(
-        result.error === AUTH_ERROR.rateLimited
-          ? t("authErrors.rateLimited")
-          : t("auth.invalidCredentials"),
-      );
+      // account. A request that never answered is the generic alert
+      // (PAGES-4), not a wrong password.
+      if ("thrown" in result) setFormError(t("authErrors.generic"));
+      else if (result.error === AUTH_ERROR.rateLimited) setFormError(t("authErrors.rateLimited"));
+      else setFormError(t("auth.invalidCredentials"));
       return;
     }
 
@@ -205,15 +211,15 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
   const onInvalidSubmit = () => startAttempt();
 
   return (
-    <div className="mt-1.5 flex w-full flex-col gap-4.5 3xl:mt-0 3xl:w-126.5 3xl:shrink-0 3xl:rounded-panel 3xl:border 3xl:border-line 3xl:bg-surface 3xl:p-8">
-      <FieldMessage show={!!oauthError && !oauthErrorDismissed} role="alert">
-        {isOAuthLinkBlocked ? t("authErrors.oauthLinkBlocked") : t("authErrors.generic")}
-      </FieldMessage>
-
-      <h2 className="m-0 hidden font-display text-form-title font-extrabold uppercase 3xl:block">
-        {t("auth.signIn")}
-      </h2>
-
+    <AccessPanel
+      title={t("auth.signIn")}
+      className="mt-1.5 3xl:mt-0"
+      notice={
+        <FieldMessage show={!!oauthError && !oauthErrorDismissed} role="alert">
+          {isOAuthLinkBlocked ? t("authErrors.oauthLinkBlocked") : t("authErrors.generic")}
+        </FieldMessage>
+      }
+    >
       <form onSubmit={handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col gap-4.5">
         <div className="flex flex-col gap-2">
           <Label htmlFor="email" className="text-field-label font-bold">
@@ -228,7 +234,7 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
             aria-describedby={errors.email ? emailErrorId : undefined}
             {...register("email")}
           />
-          <FieldMessage show={!!errors.email} id={emailErrorId} aria-live="polite">
+          <FieldMessage show={!!errors.email} id={emailErrorId} role="alert">
             {translateAuthError(messages, errors.email?.message)}
           </FieldMessage>
         </div>
@@ -296,24 +302,19 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
 
         {/* The board's signing-in state: disabled at 40%, busy, with the
             loader-circle 10px before the unchanged label. */}
-        <Button
+        <BusyButton
           type="submit"
           variant="primary"
           size="display"
-          disabled={isSubmitting || redirecting}
-          aria-busy={isSubmitting || redirecting}
-          className="gap-2.5 disabled:opacity-40"
+          busy={isSubmitting || redirecting}
         >
-          {(isSubmitting || redirecting) && (
-            <LoaderCircle aria-hidden="true" strokeWidth={2.6} className="size-4.5 animate-spin" />
-          )}
           {t("auth.signIn")}
-        </Button>
+        </BusyButton>
       </form>
 
       {/* Renders nothing — divider included — when no OAuth provider is
           configured, so the layout has no orphaned separator. */}
-      <OAuthButtons googleEnabled={isGoogleConfigured} callbackUrl={redirectTo} hidePhoneDivider />
+      <OAuthButtons googleEnabled={isGoogleConfigured} callbackUrl={redirectTo} />
 
       <p className="m-0 text-center text-label text-text-muted">
         {t("auth.noAccount")}{" "}
@@ -324,6 +325,6 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
           {t("auth.createOne")}
         </Link>
       </p>
-    </div>
+    </AccessPanel>
   );
 }

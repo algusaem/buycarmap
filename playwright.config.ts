@@ -27,6 +27,8 @@ const UPSTREAM_URL = `http://localhost:${UPSTREAM_PORT}`;
 // Throwaway, but at least 32 characters: lib/env.ts logs a security warning
 // below that length, and a warning on every e2e run trains people to ignore it.
 const E2E_FALLBACK_SECRET = "e2e-secret-at-least-32-characters-long";
+// e2e/fixtures/session.ts imports it, to sign the session cookies it sets.
+export { E2E_FALLBACK_SECRET };
 
 // Registration behaves completely differently depending on whether email is
 // configured: verify-first (no account until a link is clicked) when it is,

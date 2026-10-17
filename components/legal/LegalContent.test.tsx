@@ -1,8 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithI18n } from "@/test/utils/render";
+import { restoreMatchMedia, stubPhoneWidth } from "@/test/utils/viewport";
 import { LegalContent } from "./LegalContent";
 import esMessages from "@/messages/es.json";
+import enMessages from "@/messages/en.json";
 
 // I18nProvider (via renderWithI18n) calls useRouter, so the app router must be
 // mocked even though this component only reads translations.
@@ -16,8 +19,12 @@ describe("LegalContent", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Terms of Service" })).toBeInTheDocument();
     // First and last section headings render, so the sections list is mapped.
-    expect(screen.getByText("About the service")).toBeInTheDocument();
-    expect(screen.getByText("Contact")).toBeInTheDocument();
+    // amended 2026-10-16, PAGES-62
+    expect(
+      screen.getByRole("heading", { level: 2, name: "About the service" }),
+    ).toBeInTheDocument();
+    // amended 2026-10-16, PAGES-62
+    expect(screen.getByRole("heading", { level: 2, name: "Contact" })).toBeInTheDocument();
     expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
   });
 
@@ -25,7 +32,10 @@ describe("LegalContent", () => {
     renderWithI18n(<LegalContent doc="privacy" />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeInTheDocument();
-    expect(screen.getByText("Information we collect")).toBeInTheDocument();
+    // amended 2026-10-16, PAGES-62
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Information we collect" }),
+    ).toBeInTheDocument();
   });
 
   it("selects content by the doc prop and does not leak the other document", () => {
@@ -125,5 +135,217 @@ describe("LegalContent", () => {
     expect(bodyByHeading.Ubicación).toBe(
       "Para centrar el mapa en ti, podemos pedir a tu navegador tu ubicación. Se usa para centrar el mapa y buscar cerca de ti, así que nuestro servidor envía sus coordenadas a Wallapop junto con tu búsqueda. Nunca se guarda en nuestros servidores salvo que la guardes como parte de una alerta. Puedes no permitirlo y usaremos el centro de España.",
     );
+  });
+});
+
+// docs/specs/redesign-pages.md (PAGES-61, PAGES-62, PAGES-63, PAGES-74). The
+// design gives Spanish copy only (English is drafted with the implementation,
+// reviewed in the PR), so the new short titles «Privacidad» / «Términos» and
+// «En esta página» are asserted in Spanish, not against the existing
+// English-locale tests above, whose titles ("Privacy Policy" / "Terms of
+// Service") this spec does not fix an English replacement for.
+describe("PAGES-61: the legal pages' structure", () => {
+  it("PAGES-61: /terms's h1 is «Términos», followed by «Última actualización:», in Spanish", () => {
+    renderWithI18n(<LegalContent doc="terms" />, { locale: "es" });
+
+    expect(screen.getByRole("heading", { level: 1, name: "Términos" })).toBeInTheDocument();
+    expect(screen.getByText(/^Última actualización:/)).toBeInTheDocument();
+  });
+
+  it("PAGES-61: /privacy's h1 is «Privacidad», in Spanish", () => {
+    renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+    expect(screen.getByRole("heading", { level: 1, name: "Privacidad" })).toBeInTheDocument();
+  });
+
+  it("PAGES-61: shows no «Volver al inicio» link", () => {
+    renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+    expect(screen.queryByRole("link", { name: "Volver al inicio" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Volver al inicio")).not.toBeInTheDocument();
+  });
+
+  it("PAGES-61: each section's heading is an h2 that carries its own non-empty id", () => {
+    renderWithI18n(<LegalContent doc="privacy" />);
+
+    const headings = screen.getAllByRole("heading", { level: 2 });
+    // A guard on the guard: with no h2 found the loop below passes
+    // vacuously and this test would defend nothing at all.
+    expect(headings.length).toBeGreaterThan(0);
+    for (const heading of headings) {
+      expect(heading, `"${heading.textContent}" has an id attribute`).toHaveAttribute("id");
+      expect(heading.id, `"${heading.textContent}"'s id is not empty`).not.toBe("");
+    }
+  });
+});
+
+describe("PAGES-62: the desktop index", () => {
+  it("PAGES-62: shows a navigation region «En esta página» with one link per section, in the page's order, each to \"#\" + its heading's id", () => {
+    renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+    const nav = screen.getByRole("navigation", { name: "En esta página" });
+    const headings = screen.getAllByRole("heading", { level: 2 });
+    const links = within(nav).getAllByRole("link");
+
+    expect(links).toHaveLength(headings.length);
+    links.forEach((link, index) => {
+      expect(link).toHaveAttribute("href", `#${headings[index].id}`);
+      expect(link).toHaveTextContent(headings[index].textContent ?? "");
+    });
+  });
+
+  it("PAGES-62: on load only the first section is current", () => {
+    // jsdom lays nothing out: draw the headings 400px apart, the first 100px
+    // under the top of the scrolling box, past the reading line.
+    const rect = vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: Element,
+    ) {
+      const index = Array.from(document.querySelectorAll("h2[id]")).indexOf(this);
+      const top = index < 0 ? 0 : 100 + index * 400;
+      return {
+        top,
+        bottom: top,
+        left: 0,
+        right: 0,
+        width: 0,
+        height: 0,
+        x: 0,
+        y: top,
+        toJSON: () => ({}),
+      };
+    });
+    renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+    const nav = screen.getByRole("navigation", { name: "En esta página" });
+    const links = within(nav).getAllByRole("link");
+    const current = links.filter((link) => link.getAttribute("aria-current") === "location");
+
+    expect(current).toEqual([links[0]]);
+    rect.mockRestore();
+  });
+});
+
+describe("PAGES-63: the phone index", () => {
+  it("PAGES-63: the collapsed index is a button «En esta página» with aria-expanded false, that opens the list on press", async () => {
+    renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+    const toggle = screen.getByRole("button", { name: "En esta página" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("PAGES-63: pressing a section in the open index scrolls to its heading and folds the index", async () => {
+    const scrollIntoView = vi
+      .spyOn(Element.prototype, "scrollIntoView")
+      .mockImplementation(() => undefined);
+    renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+    const toggle = screen.getByRole("button", { name: "En esta página" });
+    await userEvent.click(toggle);
+    const firstHeading = screen.getAllByRole("heading", { level: 2 })[0];
+    const sectionLink = screen.getByRole("link", { name: firstHeading.textContent ?? "" });
+
+    await userEvent.click(sectionLink);
+
+    expect(scrollIntoView).toHaveBeenCalled();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    scrollIntoView.mockRestore();
+  });
+
+  describe("at phone width", () => {
+    afterEach(() => {
+      restoreMatchMedia();
+      window.history.replaceState(null, "", "/");
+    });
+
+    it("PAGES-63: pressing «Cookies» folds the index first, then scrolls to #cookies and names it in the address", async () => {
+      stubPhoneWidth();
+      const scrolled: { id: string; listShown: boolean }[] = [];
+      const scrollIntoView = vi
+        .spyOn(Element.prototype, "scrollIntoView")
+        .mockImplementation(function (this: Element) {
+          scrolled.push({
+            id: this.id,
+            listShown: screen.queryByRole("link", { name: "Cookies" }) !== null,
+          });
+        });
+      renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+      const toggle = screen.getByRole("button", { name: "En esta página" });
+      await userEvent.click(toggle);
+      await userEvent.click(await screen.findByRole("link", { name: "Cookies" }));
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await waitFor(() => expect(scrolled).toEqual([{ id: "cookies", listShown: false }]));
+      expect(window.location.hash).toBe("#cookies");
+
+      scrollIntoView.mockRestore();
+    });
+  });
+});
+
+interface LegalSection {
+  id?: string;
+  heading: string;
+}
+interface LegalMessages {
+  legal: {
+    privacy: { sections: LegalSection[] };
+    terms: { sections: LegalSection[] };
+  };
+}
+
+describe("PAGES-74: legal section ids", () => {
+  it("PAGES-74: every privacy and terms section has its own non-empty id, unique within its page", () => {
+    const en = enMessages as LegalMessages;
+
+    for (const doc of ["privacy", "terms"] as const) {
+      const ids = en.legal[doc].sections.map((section) => section.id);
+      expect(
+        ids.every((id) => typeof id === "string" && id.length > 0),
+        `${doc}'s sections all have a non-empty id: ${JSON.stringify(ids)}`,
+      ).toBe(true);
+      expect(new Set(ids).size, `${doc}'s ids are unique`).toBe(ids.length);
+    }
+  });
+
+  it("PAGES-74: each section's id is the same in messages/es.json and messages/en.json", () => {
+    const en = enMessages as LegalMessages;
+    const es = esMessages as LegalMessages;
+
+    for (const doc of ["privacy", "terms"] as const) {
+      expect(es.legal[doc].sections.map((section) => section.id)).toEqual(
+        en.legal[doc].sections.map((section) => section.id),
+      );
+    }
+  });
+
+  it.each(["privacy", "terms"] as const)(
+    "PAGES-74: the rendered %s h2 ids are the message file's ids, in order, the same in both locales",
+    (doc) => {
+      const es = esMessages as LegalMessages;
+      const expected = es.legal[doc].sections.map((section) => section.id);
+
+      for (const locale of ["es", "en"] as const) {
+        const { unmount } = renderWithI18n(<LegalContent doc={doc} />, { locale });
+        const ids = screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.id);
+        expect(ids, locale).toEqual(expected);
+        unmount();
+      }
+    },
+  );
+
+  it("PAGES-61: /privacy's intro follows «Última actualización:», in Spanish", () => {
+    renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+    const updated = screen.getByText(/^Última actualización:/);
+    const intro = screen.getByText(
+      "Esta política explica qué datos recopila BuyCarMap, por qué y qué puedes hacer al respecto. Intentamos recopilar los mínimos posibles.",
+    );
+    expect(updated.compareDocumentPosition(intro) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

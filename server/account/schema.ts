@@ -8,8 +8,8 @@ import {
 } from "@/server/auth/schema";
 
 // DATA-15 (docs/specs/core-data-model.md): the version the form rendered, for
-// optimistic locking. It is never a react-hook-form field — ProfileForm and
-// ChangePasswordForm append it to the submitted FormData directly instead of
+// optimistic locking. It is never a react-hook-form field — NameDialog and
+// PasswordDialog append it to the submitted FormData directly instead of
 // registering it as a controlled input — so it is kept off the schema the
 // client-side resolver uses (mixing a `z.coerce` field into a react-hook-form
 // generic does not type-check: the resolver's pre-parse input for it is
@@ -47,6 +47,16 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 // own input shapes.
 export const unlinkAccountSchema = z.object({ provider: z.string().min(1) });
 export const deleteAccountSchema = z.object({ password: currentPasswordField });
+
+// docs/specs/redesign-pages.md (PAGES-54): the deletion confirmation's form.
+// The typed word gates the button, not the parse; an account with no
+// password confirms with the word alone.
+export const deleteAccountFormSchema = deleteAccountSchema.extend({ confirmation: z.string() });
+export const deletePasswordlessAccountFormSchema = deleteAccountFormSchema.extend({
+  password: z.string(),
+});
+
+export type DeleteAccountFormInput = z.infer<typeof deleteAccountFormSchema>;
 
 // EXPORT-14 (docs/specs/account-data-export.md): the one field of an export
 // the browser reads back, to name the downloaded file after its UTC date.

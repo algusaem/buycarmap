@@ -1,6 +1,8 @@
 import type { useTranslations } from "next-intl";
 
 interface LegalSection {
+  /** The section's anchor: the same in every locale, never built from the heading (PAGES-74). */
+  id: string;
   heading: string;
   body: string;
 }
@@ -27,9 +29,6 @@ export interface Translations {
     exploreMap: string;
   };
   auth: {
-    headline: string;
-    headlineHighlight: string;
-    tagline: string;
     email: string;
     emailPlaceholder: string;
     password: string;
@@ -40,43 +39,37 @@ export interface Translations {
     continueWithGoogle: string;
     invalidCredentials: string;
     createAccount: string;
-    signUpDescription: string;
-    name: string;
-    namePlaceholder: string;
     confirmPassword: string;
     passwordPlaceholder: string;
     confirmPasswordPlaceholder: string;
     signUp: string;
-    creatingAccount: string;
     alreadyHaveAccount: string;
-    registrationFailed: string;
     accountCreated: string;
     legalNotice: string;
-    terms: string;
-    and: string;
-    privacyPolicy: string;
-    brandTagline: string;
-    return: string;
+    headline: string;
+    headlineHighlight: string;
+    tagline: string;
+    signInLink: string;
+    registerHeadline: string;
+    registerHeadlineHighlight: string;
   };
   forgotPassword: {
     title: string;
     description: string;
     submit: string;
-    submitting: string;
     backToLogin: string;
     successTitle: string;
     successDescription: string;
-    genericError: string;
+    headline: string;
+    headlineHighlight: string;
+    successHeadline: string;
+    successHeadlineHighlight: string;
   };
   verifyEmail: {
-    // Shown on /register after submitting, for taken and free addresses alike.
     pendingTitle: string;
     pendingDescription: string;
     title: string;
-    description: string;
     submit: string;
-    submitting: string;
-    success: string;
     successTitle: string;
     successDescription: string;
     signIn: string;
@@ -84,83 +77,93 @@ export interface Translations {
     invalidDescription: string;
     backToRegister: string;
     resend: string;
-    resending: string;
     resent: string;
+    pendingHeadline: string;
+    pendingHeadlineHighlight: string;
+    headline: string;
+    headlineHighlight: string;
+    line: string;
+    hint: string;
+    successHeadline: string;
+    successHeadlineHighlight: string;
+    invalidHeadline: string;
+    invalidHeadlineHighlight: string;
   };
   confirmEmail: {
     title: string;
-    description: string;
     submit: string;
-    submitting: string;
     successTitle: string;
     successDescription: string;
     backToAccount: string;
     invalidTitle: string;
     invalidDescription: string;
+    headline: string;
+    headlineHighlight: string;
+    line: string;
+    hint: string;
+    successHeadline: string;
+    successHeadlineHighlight: string;
+    invalidHeadline: string;
+    invalidHeadlineHighlight: string;
   };
   resetPassword: {
     title: string;
     description: string;
     newPassword: string;
-    newPasswordPlaceholder: string;
     confirmPassword: string;
     confirmPasswordPlaceholder: string;
     submit: string;
-    submitting: string;
     success: string;
     invalidTitle: string;
     invalidDescription: string;
     requestNewLink: string;
     backToLogin: string;
+    headline: string;
+    headlineHighlight: string;
+    invalidHeadline: string;
+    invalidHeadlineHighlight: string;
   };
   account: {
     title: string;
     description: string;
-    backToMap: string;
+    descriptionShort: string;
+    cancel: string;
+    loading: string;
+    summary: {
+      saved: string;
+      alerts: string;
+      since: string;
+    };
     profile: {
-      title: string;
-      description: string;
+      changeCta: string;
       name: string;
       namePlaceholder: string;
-      email: string;
-      emailHint: string;
       submit: string;
-      submitting: string;
       success: string;
     };
     email: {
       title: string;
-      description: string;
-      current: string;
+      line: string;
+      lineLocked: string;
       verified: string;
       unverified: string;
       verifyCta: string;
-      verifying: string;
       verifySent: string;
       newEmail: string;
       newEmailPlaceholder: string;
       currentPassword: string;
-      currentPasswordPlaceholder: string;
       submit: string;
-      submitting: string;
       submitted: string;
       notice: string;
     };
-    sessions: {
-      title: string;
-      description: string;
-      submit: string;
-      submitting: string;
-      warning: string;
-    };
     twoFactor: {
       title: string;
-      description: string;
+      line: string;
       enabled: string;
       disabled: string;
-      unavailable: string;
       enableCta: string;
-      starting: string;
+      manageCta: string;
+      setupCta: string;
       scanTitle: string;
       scanDescription: string;
       manualLabel: string;
@@ -169,8 +172,6 @@ export interface Translations {
       codePlaceholder: string;
       recoveryHint: string;
       confirm: string;
-      confirming: string;
-      cancel: string;
       enabledToast: string;
       recoveryTitle: string;
       recoveryDescription: string;
@@ -180,50 +181,64 @@ export interface Translations {
       copyFailed: string;
       recoveryDone: string;
       regenerateCta: string;
-      regenerating: string;
       regenerateHint: string;
       disableCta: string;
-      disabling: string;
       disableHint: string;
       disabledToast: string;
       currentPassword: string;
-      currentPasswordPlaceholder: string;
+    };
+    sessions: {
+      title: string;
+      open: string;
+      thisDevice: string;
+      otherDevice: string;
+      line: string;
+      current: string;
+      unknownDevice: string;
+      device: string;
+      signOutSession: string;
+      signOutSessionNamed: string;
+      signOutOthers: string;
+      signedOutOthers: string;
+      warning: string;
+      submit: string;
+      loadError: string;
+    };
+    export: {
+      title: string;
+      description: string;
+      submit: string;
     };
     providers: {
       title: string;
-      description: string;
+      connected: string;
+      line: string;
       none: string;
       unlink: string;
-      unlinking: string;
       unlinked: string;
       lastMethodHint: string;
     };
     security: {
       title: string;
-      description: string;
+      line: string;
+      changeCta: string;
       currentPassword: string;
-      currentPasswordPlaceholder: string;
       newPassword: string;
-      newPasswordPlaceholder: string;
       confirmPassword: string;
       confirmPasswordPlaceholder: string;
       submit: string;
-      submitting: string;
       success: string;
       signOutNotice: string;
     };
     danger: {
       title: string;
-      description: string;
-      warning: string;
+      line: string;
+      question: string;
       confirmLabel: string;
       confirmHint: string;
-      /** The word the user must type to arm the delete button, per locale. */
       confirmWord: string;
       password: string;
-      passwordPlaceholder: string;
       submit: string;
-      submitting: string;
       success: string;
     };
   };
@@ -276,7 +291,7 @@ export interface Translations {
     };
   };
   legal: {
-    backToHome: string;
+    onThisPage: string;
     lastUpdated: string;
     terms: LegalDocument;
     privacy: LegalDocument;
@@ -516,6 +531,12 @@ export interface Translations {
     pageTitle: string;
     pagePunchline: string;
     pageLine: string;
+  };
+  // The not-found page's headline and line (docs/specs/redesign-pages.md, PAGES-65).
+  notFound: {
+    question: string;
+    punchline: string;
+    line: string;
   };
 }
 

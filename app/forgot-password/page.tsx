@@ -1,22 +1,19 @@
-"use client";
-
-import { AuthBackground } from "@/components/auth/AuthBackground";
-import { BrandHeader } from "@/components/auth/BrandHeader";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import { AccessShell } from "@/components/auth/AccessLayout";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
-import { LegalNotice } from "@/components/auth/LegalNotice";
 
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: `${t("forgotPassword.title")} · ${t("meta.title")}` };
+}
+
+// docs/specs/redesign-pages.md (PAGES-20, PAGES-21; Contracts › Server): a
+// Server Component, with the form as the client part (RULES.md §9).
 export default function ForgotPasswordPage() {
   return (
-    <div className="relative flex flex-1 flex-col w-full overflow-y-auto bg-background">
-      <AuthBackground />
-
-      <div className="relative z-10 flex min-h-full items-center justify-center px-4 py-6">
-        <div className="w-full max-w-md space-y-6">
-          <BrandHeader />
-          <ForgotPasswordForm />
-          <LegalNotice />
-        </div>
-      </div>
-    </div>
+    <AccessShell>
+      <ForgotPasswordForm />
+    </AccessShell>
   );
 }

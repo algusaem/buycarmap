@@ -66,8 +66,9 @@ Out of scope, deliberately:
   `lib/geo/nominatim.test.ts` and by the place field's component tests in
   `components/map/search/LocationPopover.test.tsx`.
 - **Email copy and templates.** Covered in Wave C.
-- **The UI primitives** (`components/ui/*`). `button`, `card`, `input`, `label`
-  and `separator` are styling wrappers with no branches worth asserting;
+- **The UI primitives** (`components/ui/*`). `button`, `input`, `label` and
+  `separator` are styling wrappers with no branches worth asserting (`card` removed 2026-10-16,
+  PAGES — redesign-pages.md: no caller left);
   `toggle-chip` has behaviour and is already tested.
 - **Theme transitions.** There are none: the app has one dark theme, and the
   hook that animated a theme change is removed (Open questions 1).

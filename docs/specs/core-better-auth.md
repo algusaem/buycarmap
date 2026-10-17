@@ -42,7 +42,7 @@ This is phase 11 of ADR 0007: row 25.
   - It keeps AUTH-6's per-account lockout and today's per-IP limit, using `server/rate-limit/service.ts`.
   - It keeps the identical generic failure response.
   - A two-factor account gets the `twoFactorRedirect` step, not a session (AUTH-7).
-- [x] BAUTH-4 · node — `/account` lists the user's active sessions, with device, browser and last use, and can revoke one, or every other one.
+- [x] BAUTH-4 · node — `/account` lists the user's active sessions, with device, browser and last use, and can revoke one, or every other one. — the list is the «Sesiones» dialog or sheet, read again each time it opens, the device «X en Y» (PAGES-49, PAGES-52); the «Sesiones» card reads the sessions with the page query (PAGES-35, PAGES-60) (amended 2026-10-16, PAGES — redesign-pages.md).
 - [x] BAUTH-5 · node — `proxy.ts` checks for the session cookie with `getSessionCookie` from `better-auth/cookies`. It is a presence check for redirects only; authorization stays in `getCurrentUser()`, as `CLAUDE.md` › Authentication requires.
 
 ### Direct endpoint safety
@@ -72,14 +72,14 @@ This is phase 11 of ADR 0007: row 25.
   - a first sign-in with a provider for an address with no local account, whether through the OAuth callback or any other provider sign-in, creates the user and its provider account only when the provider reports the email as verified; ID-token sign-in is disabled, so nobody can claim an address through a provider that never verified it. Later sign-ins with that provider keep working. Amended 2026-10-04;
   - explicit linking from `/account` is not offered: no UI links a provider today, and `/link-social` is not on the allowlist. Amended 2026-10-04.
   - The tests drive the real OAuth callback, with the provider's token and userinfo endpoints faked through MSW.
-- [x] BAUTH-10 · component — Unlinking keeps AUTH-14: the only remaining way to sign in cannot be disconnected. The account page's connected-accounts list shows only Google (amended 2026-10-14, ENTRY — redesign-entry.md).
+- [x] BAUTH-10 · component — Unlinking keeps AUTH-14: the only remaining way to sign in cannot be disconnected. The account page's connected-accounts list shows only Google (amended 2026-10-14, ENTRY — redesign-entry.md). — the Google card shows «Conectada» only, never the Google email (PAGES-34) (amended 2026-10-16, PAGES — redesign-pages.md).
 
 ### Two-factor
 
 - [x] BAUTH-11 · node — Two-factor uses Better Auth's `twoFactor` plugin (owner's decision, 2026-10-04):
   - TOTP is SHA-1, 6 digits, 30 s and ±1 step (AUTH-9);
   - backup codes work once (AUTH-10);
-  - enrolment, confirmation, disabling and regenerating codes keep today's UI flow and copy.
+  - enrolment, confirmation, disabling and regenerating codes keep today's UI flow and copy — the codes show in the alertdialog of PAGES-45, once; «Ya los he guardado» is enabled after any press of «Copiar códigos», and Escape or a press outside does not close it; a wrong password in the two-factor dialog is a field error (PAGES-44, PAGES-48), no longer a toast (amended 2026-10-16, PAGES — redesign-pages.md).
 - [x] BAUTH-12 · node — AUTH-8, "a TOTP code cannot be reused inside its own window", is withdrawn: the plugin has no replay store. The owner accepted the loss on 2026-10-04. The auth spec marks AUTH-8 withdrawn, with the date and the reason, and its test is deleted.
 - [x] BAUTH-13 · node — Users who had two-factor on before the cutover have it switched off by the migration and receive one email, in their locale, asking them to enrol again. The rehearsal on a production copy reports how many users that is.
 

@@ -86,23 +86,22 @@ async function loginViaUi(page: Page, email: string, code?: string) {
 /** Runs enrolment through the UI and returns the secret and recovery codes. */
 async function enrolTwoFactor(page: Page) {
   await page.goto("/account");
-  // BAUTH-11 (docs/specs/core-better-auth.md): Better Auth's own
-  // `enableTwoFactor` always requires a password, so the "set up" button
-  // only activates once one is typed. Scoped by id, not label text: the
-  // delete-account password field on the same page shares the same label.
-  await page.locator("#two-factor-setup-password").fill(PASSWORD);
+  // docs/specs/redesign-pages.md (PAGES-44; BAUTH-11 amended): the form is in
+  // the «Dos pasos» dialog, which the card's «Activar» opens. Better Auth's
+  // own `enableTwoFactor` always requires a password, asked for first.
+  await page
+    .getByRole("region", { name: /two-factor|dos pasos/i })
+    .getByRole("button", { name: /^(turn on|activar)$/i })
+    .click();
+  await page.locator("#two-factor-password").fill(PASSWORD);
   await page.getByRole("button", { name: /set up two-factor|configurar dos pasos/i }).click();
 
   // The manual-entry key is on screen for anyone who cannot scan — which also
   // makes it the natural way for a test to learn the secret, with no database
-  // access and no reliance on internals.
-  const secret = (
-    await page
-      .locator("code")
-      .filter({ hasText: /^[A-Z2-7]+$/ })
-      .first()
-      .innerText()
-  ).trim();
+  // access and no reliance on internals. A read-only field (PAGES-44).
+  const key = page.locator("#two-factor-secret");
+  await expect(key).toHaveValue(/^[A-Z2-7]+$/);
+  const secret = (await key.inputValue()).trim();
 
   await page
     .getByLabel(/enter the 6-digit code|código de 6/i)

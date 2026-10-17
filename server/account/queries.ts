@@ -1,29 +1,35 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUserWithSessionId } from "@/lib/auth/session";
 import { asUserId } from "@/lib/ids";
-import { findAccountOverview } from "./service";
+import { findAccountOverview, toListedSession } from "./service";
 
 /**
- * The signed-in user's account, for the account page.
+ * The signed-in user's account, for the account page, with the session
+ * behind this request marked `current` among the user's own, for «esta» and
+ * «Este dispositivo» (docs/specs/redesign-pages.md, PAGES-35) — the user and
+ * that session from one lookup.
  *
  * Middleware already redirects unauthenticated visitors, but this is the check
- * that actually matters: middleware only decodes the JWT, while
- * `getCurrentUser` runs the session callback and honours revocation.
+ * that actually matters: middleware only decodes the JWT, while the session
+ * lookup runs the session callback and honours revocation.
  */
 export async function getAccountOverview() {
-  const user = await getCurrentUser();
+  const current = await getCurrentUserWithSessionId();
 
-  if (!user) {
+  if (!current) {
     redirect("/login?callbackUrl=/account");
   }
 
-  // `password` is null for OAuth-only accounts, which changes which forms
-  // apply. Only the presence flag crosses to the client, never the hash.
-  const record = await findAccountOverview(asUserId(user.id));
+  // Only whether there is a password crosses to the client, never the hash
+  // (findAccountOverview, PAGES-60).
+  const record = await findAccountOverview(asUserId(current.user.id));
 
   if (!record) {
     redirect("/login");
   }
 
-  return record;
+  return {
+    ...record,
+    sessions: record.sessions.map((session) => toListedSession(session, current.sessionId)),
+  };
 }

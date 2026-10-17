@@ -245,8 +245,9 @@ A night with a single light: neutrals do the work, lime is the light, violet mar
   option's box. Content on violet is always `on-violet` (4.6:1).
 
 ### Tertiary
-- **Danger** (`danger`): only what cannot be undone (delete account) and the hover or focus of an
-  undo action («Quitar filtros»). Never a large fill.
+- **Danger** (`danger`): only what cannot be undone (delete account), with one reversible exception,
+  «Desactivar dos pasos», a security downgrade that asks for the password and a code (amended
+  2026-10-16, PAGES); and the hover or focus of an undo action («Quitar filtros»). Never a large fill.
 
 ### Neutral
 - **Night** (`bg`): the whole app's background. Never pure black inside the app.
@@ -412,6 +413,10 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   panels use `radius-panel`.
   [AccountCard](docs/design/system/components/AccountCard/README.md),
   [AlertCard](docs/design/system/components/AlertCard/README.md).
+- **The account edit dialog:** each AccountCard's button opens its form in Crear alerta's centred
+  380px dialog over the page dimmed to 72 % on desktop, and in a bottom sheet on the phone; the
+  48px primary over a 44px ghost «Cancelar»; it cannot close while its request runs.
+  [AccountCard › Editar](docs/design/system/components/AccountCard/README.md).
 
 ### Inputs / Fields
 - **Style:** 52px, `radius-field`, `bg` fill, 1px `line` border, 16px text, placeholders in
@@ -441,8 +446,8 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   One header per kind of page: the map (the search group in the centre; on the right the language,
   heart and bell icon links and the avatar, or «Entrar» signed out), the pages — Guardados, Alertas,
   Cuenta and the signed-in landing (Mapa · Guardados · Alertas and the avatar), the signed-out
-  landing («Entrar», «Crear cuenta») and the sign-in and legal pages («Volver al mapa»). The phone map
-  has no header.
+  landing («Entrar», «Crear cuenta») and the sign-in and legal pages («Volver al mapa»). The not-found page takes the sign-in header
+  signed out and the pages header with nothing current signed in. The phone map has no header.
   [HeaderNav](docs/design/system/components/HeaderNav/README.md),
   [Wordmark](docs/design/system/components/Wordmark/README.md).
 - **Avatar:** desktop only, a 42px `violet` circle with the user's initial in Unbounded, linking to
@@ -458,12 +463,16 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   icon over an 11px label; the current one has a `violet` icon and its label in `text` at weight 800
   (violet text on `surface` fails 4.5:1), with `aria-current="page"`, and «Cuenta» shows the user's initial. Signed out, on the map, two tabs: Mapa
   and Entrar. It is on the map, Guardados, Alertas, an alert's page and Cuenta, and the signed-in
-  landing, with no tab marked, never at desktop width.
+  landing and the signed-in not-found page, with no tab marked, never at desktop width.
   On the map it hides only while the results sheet is full; on the pages it hides while scrolling down
   and comes back on scrolling up. [BottomNav](docs/design/system/components/BottomNav/README.md).
+- **Legal index:** the legal pages' «En esta página»: from `lg` a sticky 260px column beside the
+  text, the section on screen in `text` with a 2px `lime` bar and `aria-current="location"`; on a
+  phone a `surface` field after the date that opens the same list inside it.
+  [LegalToc](docs/design/system/components/LegalToc/README.md).
 - **Footer:** one discreet 12px `text-muted` line — «Privacidad · Términos · Ilustraciones de
-  Storyset» — on the landing, sign-in, register and legal pages only; never on the map screens, saved
-  cars, alerts or account. The Storyset credit is required by its licence.
+  Storyset» — on the landing, sign-in, register, the confirm, password-recovery and new-password pages, and the
+  legal pages only; never on the map screens, saved cars, alerts, account or the not-found page. The Storyset credit is required by its licence.
   [Footer](docs/design/system/components/Footer/README.md).
 
 ### Map

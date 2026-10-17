@@ -112,7 +112,8 @@ describe("LoginForm", () => {
     const emailInput = screen.getByLabelText("Email");
     expect(emailInput).toHaveAttribute("aria-invalid", "true");
     expect(emailInput.getAttribute("aria-describedby")).toBe(error.id);
-    expect(error).toHaveAttribute("aria-live", "polite");
+    expect(error).toHaveAttribute("role", "alert");
+    expect(error).not.toHaveAttribute("aria-live");
     expect(error.querySelector("svg[aria-hidden='true']")).not.toBeNull();
   });
 
@@ -617,7 +618,7 @@ describe("ENTRY-14: LoginForm — the loading state", () => {
     const button = screen.getByRole("button", { name: "Entrar" });
     await userEvent.click(button);
 
-    await waitFor(() => expect(button).toBeDisabled());
+    await waitFor(() => expect(button).toHaveAttribute("aria-disabled", "true"));
     // ENTRY-14: the label stays "Entrar" while pending — a spinner shows
     // beside it instead of replacing it with a separate "signing in" string.
     expect(button).toHaveAccessibleName("Entrar");
@@ -639,7 +640,7 @@ describe("ENTRY-14: LoginForm — the loading state", () => {
     await userEvent.click(button);
 
     await waitFor(() => expect(location.href).toBe("/"));
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
   });
 
   // bfcache: a browser back into this page after a successful sign-in
@@ -655,13 +656,13 @@ describe("ENTRY-14: LoginForm — the loading state", () => {
     await userEvent.click(button);
 
     await waitFor(() => expect(location.href).toBe("/"));
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
 
     act(() => {
       window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
     });
 
-    expect(button).not.toBeDisabled();
+    expect(button).not.toHaveAttribute("aria-disabled");
   });
 });
 
@@ -854,7 +855,23 @@ describe("ENTRY-11: LoginForm — the stale alert clears on the next attempt", (
     await userEvent.clear(passwordField());
     await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    // amended 2026-10-16, ENTRY-22 (redesign-entry.md): a field error carries
+    // role="alert", so the one alert left is the empty password's own, and
+    // the stale form alert is gone.
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent("La contraseña es obligatoria");
+  });
+
+  it("ENTRY-22: an empty email's field error is an alert too", async () => {
+    renderWithI18n(<LoginForm isGoogleConfigured={false} />, { locale: "es" });
+
+    await userEvent.type(passwordField(), "a-password");
+    await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
+
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent("El email es obligatorio");
   });
 });
 
@@ -909,5 +926,64 @@ describe("ENTRY-11/ENTRY-15/ENTRY-13: LoginForm — alert placement", () => {
     expect(
       errorText.compareDocumentPosition(codeField) & Node.DOCUMENT_POSITION_PRECEDING,
     ).toBeTruthy();
+  });
+});
+
+describe("PAGES-4: a sign-in request that throws", () => {
+  beforeEach(() => {
+    signIn.mockReset();
+    verifySignInTotp.mockReset();
+    verifySignInBackupCode.mockReset();
+    searchParams = new URLSearchParams();
+    stubLocation();
+  });
+
+  async function submitCredentials() {
+    await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "secret123");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  }
+
+  it("PAGES-4: a thrown signIn is the generic alert, not «invalid credentials»", async () => {
+    signIn.mockRejectedValue(new Error("network down"));
+    renderWithI18n(<LoginForm isGoogleConfigured={false} />);
+
+    await submitCredentials();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong. Please try again.",
+    );
+    expect(screen.getByRole("button", { name: "Sign in" })).not.toHaveAttribute("aria-disabled");
+    expect(location.href).toBe("");
+  });
+
+  it("PAGES-4: a thrown code check is the generic alert, not a wrong code", async () => {
+    signIn.mockResolvedValueOnce({ success: false, twoFactorRequired: true });
+    verifySignInTotp.mockRejectedValue(new Error("network down"));
+    renderWithI18n(<LoginForm isGoogleConfigured={false} />);
+    await submitCredentials();
+    const code = await screen.findByLabelText(/enter the 6-digit code/i);
+
+    await userEvent.type(code, "123456");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong. Please try again.",
+    );
+    expect(code).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("ENTRY-22: a code the server refuses is the error under the code field, which takes the focus", async () => {
+    signIn.mockResolvedValueOnce({ success: false, twoFactorRequired: true });
+    verifySignInTotp.mockResolvedValue({ success: false, error: "totpInvalid" });
+    renderWithI18n(<LoginForm isGoogleConfigured={false} />);
+    await submitCredentials();
+    const code = await screen.findByLabelText(/enter the 6-digit code/i);
+
+    await userEvent.type(code, "123456");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await waitFor(() => expect(code).toHaveAttribute("aria-invalid", "true"));
+    expect(code).toHaveFocus();
   });
 });

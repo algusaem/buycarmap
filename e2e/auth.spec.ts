@@ -94,9 +94,10 @@ async function expectSignedOut(page: Page, isMobile: boolean) {
   await expect(page.getByTestId("header-phone").getByRole("link", { name: SIGN_IN })).toBeVisible();
 }
 
-async function registerViaUi(page: Page, email: string, name = "E2E User") {
+// amended 2026-10-16, PAGES-9/PAGES-10: /register dropped the name field —
+// it is set later from «Cambiar nombre», not collected at signup.
+async function registerViaUi(page: Page, email: string) {
   await page.goto("/register");
-  await page.getByLabel(/name|nombre/i).fill(name);
   await page.getByLabel(/email|correo/i).fill(email);
   const passwords = page.locator('input[type="password"]');
   await passwords.nth(0).fill(PASSWORD);
@@ -181,26 +182,41 @@ test.describe("client-side validation", () => {
     const password = page.locator('input[type="password"]').nth(0);
 
     await password.fill("password");
-    await expect(page.getByText(/very weak|muy débil/i)).toBeVisible();
+    // amended 2026-10-16, PAGES-5: the label and level now sit on one line,
+    // the level word in its own <strong> — `.first()` picks whichever of the
+    // two (the line or the word alone) Playwright's text match resolves to.
+    await expect(page.getByText(/very weak|muy débil/i).first()).toBeVisible();
 
     await password.fill(PASSWORD);
-    await expect(page.getByText(/strong|muy segura/i)).toBeVisible();
+    // messages/{en,es}.json's top score is "strong"/"muy buena", not "muy segura".
+    await expect(page.getByText(/strong|muy buena/i).first()).toBeVisible();
   });
+
+  // amended 2026-10-16, PAGES-16/PAGES-19/PAGES-24: the expired-link panel's
+  // own title ("This link is no longer valid"/"ya no es válido") is the
+  // `AccessPanel` title, shown only from 1440px wide (AccessLayout.tsx:
+  // `hidden ... 3xl:block`) — narrower than both Playwright projects'
+  // viewports, so it is never visible here. The headline above it ("Link
+  // expired?"/"¿Enlace caducado?") is the same for all three pages and is
+  // always visible, so that is what proves the expired-link state renders.
+  const LINK_EXPIRED_HEADLINE = /link expired\?|enlace caducado/i;
 
   test("reset-password without a token offers a way forward", async ({ page }) => {
     await page.goto("/reset-password");
 
     // No dead ends: the page must route the user to a fresh link.
-    await expect(page.getByText(/no longer valid|ya no es válido/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: LINK_EXPIRED_HEADLINE })).toBeVisible();
+    // amended 2026-10-16, PAGES-24: «Pedir otro enlace», not «Solicitar un
+    // enlace nuevo» (messages/es.json's resetPassword.requestNewLink).
     await expect(
-      page.getByRole("link", { name: /request a new link|solicitar un enlace/i }),
+      page.getByRole("link", { name: /request a new link|pedir otro enlace/i }),
     ).toBeVisible();
   });
 
   test("verify-email without a token offers a way forward", async ({ page }) => {
     await page.goto("/verify-email");
 
-    await expect(page.getByText(/no longer valid|ya no es válido/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: LINK_EXPIRED_HEADLINE })).toBeVisible();
     await expect(
       page.getByRole("link", { name: /back to sign up|volver al registro/i }),
     ).toBeVisible();
@@ -209,7 +225,7 @@ test.describe("client-side validation", () => {
   test("confirm-email without a token offers a way forward", async ({ page }) => {
     await page.goto("/confirm-email");
 
-    await expect(page.getByText(/no longer valid|ya no es válido/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: LINK_EXPIRED_HEADLINE })).toBeVisible();
     await expect(
       page.getByRole("link", { name: /back to your account|volver a tu cuenta/i }),
     ).toBeVisible();
@@ -246,15 +262,17 @@ test.describe("authenticated flows (real database)", () => {
 
   dbTest("register signs the user in, persists across reload, and signs out", async ({ page }) => {
     const email = e2eEmail("register");
-    const name = "E2E User";
 
-    await registerViaUi(page, email, name);
+    await registerViaUi(page, email);
 
     // Auto sign-in after registration → session-driven header.
     await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
     await expect(navSignIn(page)).toHaveCount(0);
-    // The header is this user's: the avatar carries their name's initial (HEAD-9).
-    await expect(accountLink(page)).toHaveText(name.charAt(0));
+    // amended 2026-10-16, PAGES-9/PAGES-10: register no longer collects a
+    // name, so the avatar falls back to the email's initial
+    // (components/nav/Avatar.tsx's `initialOf`, NAV-15) — `e2eEmail` always
+    // starts with "e2e-", so "E".
+    await expect(accountLink(page)).toHaveText("E");
 
     // The account was actually written to the database.
     expect(await userExists(email)).toBe(true);
@@ -313,39 +331,56 @@ test.describe("authenticated flows (real database)", () => {
   const CONFLICT_MESSAGE_EN = /changed in another tab or device/i;
   const CONFLICT_MESSAGE_ES = /cambiado en otra pestaña o dispositivo/i;
 
-  dbTest(
-    "DATA-16: a stale save on /account is rejected as a conflict, and the first save wins",
-    async ({ page, context }) => {
-      const email = e2eEmail("conflict");
-      await seedUser(email, PASSWORD, "Ana");
+  // The dialog is matched on its Spanish copy, so the browser asks for Spanish
+  // (Playwright negotiates "en-US" otherwise; e2e/pages-account.spec.ts).
+  test.describe("DATA-16 in Spanish", () => {
+    test.use({ locale: "es-ES" });
 
-      await loginViaUi(page, email, PASSWORD);
-      await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
+    dbTest(
+      "DATA-16: a stale save on /account is rejected as a conflict, and the first save wins",
+      async ({ page, context }) => {
+        const email = e2eEmail("conflict");
+        await seedUser(email, PASSWORD, "Ana");
 
-      const second = await context.newPage();
-      await page.goto("/account");
-      await second.goto("/account");
+        await loginViaUi(page, email, PASSWORD);
+        await expect(navSavedCars(page)).toBeVisible({ timeout: 15_000 });
 
-      const nameField1 = page.getByLabel(/^name$|^nombre$/i);
-      const nameField2 = second.getByLabel(/^name$|^nombre$/i);
-      await expect(nameField1).toHaveValue("Ana");
-      await expect(nameField2).toHaveValue("Ana");
+        const second = await context.newPage();
+        await page.goto("/account");
+        await second.goto("/account");
 
-      await nameField1.fill("Ana María");
-      await page.getByRole("button", { name: /save changes|guardar cambios/i }).click();
-      await expect(page.getByText(/profile updated|perfil actualizado/i)).toBeVisible();
+        // amended 2026-10-16, PAGES-40: «Cambiar nombre» moved the name field
+        // off the page and into its own dialog («Cambiar nombre», field
+        // «Nombre», «Guardar cambios») — the conflict itself amends DATA-16
+        // the same way (a form alert in the dialog, not a toast). It is
+        // matched on the Spanish copy the spec quotes.
+        await page.getByRole("button", { name: "Cambiar nombre" }).click();
+        const dialog1 = page.getByRole("dialog", { name: "Cambiar nombre" });
+        await expect(dialog1.getByLabel("Nombre")).toHaveValue("Ana");
 
-      await nameField2.fill("Anita");
-      await second.getByRole("button", { name: /save changes|guardar cambios/i }).click();
+        await second.getByRole("button", { name: "Cambiar nombre" }).click();
+        const dialog2 = second.getByRole("dialog", { name: "Cambiar nombre" });
+        await expect(dialog2.getByLabel("Nombre")).toHaveValue("Ana");
 
-      await expect(
-        second.getByText(
-          new RegExp(`${CONFLICT_MESSAGE_EN.source}|${CONFLICT_MESSAGE_ES.source}`, "i"),
-        ),
-      ).toBeVisible();
+        await dialog1.getByLabel("Nombre").fill("Ana María");
+        await dialog1.getByRole("button", { name: "Guardar cambios" }).click();
+        await expect(page.getByText(/profile updated|perfil actualizado/i)).toBeVisible();
 
-      await page.reload();
-      await expect(page.getByLabel(/^name$|^nombre$/i)).toHaveValue("Ana María");
-    },
-  );
+        await dialog2.getByLabel("Nombre").fill("Anita");
+        await dialog2.getByRole("button", { name: "Guardar cambios" }).click();
+
+        await expect(
+          dialog2.getByText(
+            new RegExp(`${CONFLICT_MESSAGE_EN.source}|${CONFLICT_MESSAGE_ES.source}`, "i"),
+          ),
+        ).toBeVisible();
+
+        await page.reload();
+        await page.getByRole("button", { name: "Cambiar nombre" }).click();
+        await expect(
+          page.getByRole("dialog", { name: "Cambiar nombre" }).getByLabel("Nombre"),
+        ).toHaveValue("Ana María");
+      },
+    );
+  });
 });

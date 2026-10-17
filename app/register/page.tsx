@@ -1,25 +1,24 @@
-import { AuthBackground } from "@/components/auth/AuthBackground";
-import { BrandHeader } from "@/components/auth/BrandHeader";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import { AccessShell } from "@/components/auth/AccessLayout";
 import { RegisterForm } from "@/components/auth/RegisterForm";
-import { LegalNotice } from "@/components/auth/LegalNotice";
-import { Footer } from "@/components/Footer";
 import { isGoogleConfigured } from "@/lib/app-config";
 
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: `${t("auth.createAccount")} · ${t("meta.title")}` };
+}
+
+// docs/specs/redesign-pages.md (PAGES-1, PAGES-7, PAGES-9 to PAGES-12):
+// /register on the access composition (components/auth/AccessLayout.tsx).
+// The form and its «check your inbox» state are RegisterForm's, which swaps
+// them; the page only frames them. No illustration under 1440px: the form is
+// taller than /login's, and under ENTRY-29's rule less than 150px of drawing
+// fits (the spec's Decisions).
 export default function RegisterPage() {
   return (
-    <>
-      <div className="relative flex flex-1 flex-col w-full overflow-y-auto bg-background">
-        <AuthBackground />
-
-        <div className="relative z-10 flex min-h-full items-center justify-center px-4 py-6">
-          <div className="w-full max-w-md space-y-6">
-            <BrandHeader />
-            <RegisterForm isGoogleConfigured={isGoogleConfigured} />
-            <LegalNotice />
-          </div>
-        </div>
-      </div>
-      <Footer />
-    </>
+    <AccessShell>
+      <RegisterForm isGoogleConfigured={isGoogleConfigured} />
+    </AccessShell>
   );
 }

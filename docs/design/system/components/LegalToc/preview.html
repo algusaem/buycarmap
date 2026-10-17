@@ -1,0 +1,28 @@
+<!-- @dsCard group="Navegación" height=440 subtitle="Índice de las páginas legales: escritorio con el apartado en pantalla, y móvil plegado y abierto" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>LegalToc</title>
+<link href="https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:24px;background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;gap:56px;align-items:flex-start;flex-wrap:wrap}
+.toc{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--text-muted)}
+.label{font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px}
+.toc a,.list a{text-decoration:none;padding:7px 0 7px 14px;color:var(--text-muted)}
+.toc a[aria-current="location"],.list a[aria-current="location"]{color:var(--text);border-left:2px solid var(--lime);padding-left:12px}
+.toc a:focus-visible,.list a:focus-visible,.fold:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.mobile{width:350px;display:flex;flex-direction:column;gap:16px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-field);overflow:hidden}
+.fold{all:unset;cursor:pointer;box-sizing:border-box;width:100%;padding:12px 16px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.list{display:flex;flex-direction:column;padding:4px 16px 10px;border-top:1px solid var(--line-soft);font-size:14px;font-weight:600}
+</style>
+</head>
+<body>
+<aside class="toc"><span class="label">En esta página</span><a href="#">Información que recopilamos</a><a href="#">Cómo usamos tus datos</a><a href="#">Ubicación</a><a href="#" aria-current="location">Cookies</a><a href="#">Servicios de terceros</a><a href="#">Conservación de datos</a><a href="#">Tus derechos</a><a href="#">Contacto</a></aside>
+<div class="mobile">
+  <div class="box"><button class="fold" type="button" aria-expanded="false">En esta página<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>
+  <div class="box"><button class="fold" type="button" aria-expanded="true">En esta página<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg></button><nav class="list" aria-label="En esta página"><a href="#" aria-current="location">Información que recopilamos</a><a href="#">Cómo usamos tus datos</a><a href="#">Ubicación</a><a href="#">Cookies</a><a href="#">Servicios de terceros</a><a href="#">Conservación de datos</a><a href="#">Tus derechos</a><a href="#">Contacto</a></nav></div>
+</div>
+</body>
+</html>

@@ -1,94 +1,58 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
-import * as motion from "motion/react-client";
-import { AiOutlineLoading3Quarters } from "react-icons/ai";
-import { CircleCheck } from "lucide-react";
-import { fadeInUp } from "@/lib/animations";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslations, useMessages } from "next-intl";
-import { translateAuthError } from "@/lib/i18n/errors";
-import type { Translations } from "@/lib/i18n/types";
 import { verifyRegistration } from "@/server/registration/actions";
+import { AccessLink, AccessState, type LinkExpiredProps } from "./AccessLayout";
+import { TokenConfirmation } from "./TokenConfirmation";
 
 interface VerifyRegistrationFormProps {
   token: string;
 }
 
+// docs/specs/redesign-pages.md (PAGES-13 to PAGES-16): /verify-email with a
+// token. «Confirmar mi cuenta», then the confirmed state with «Entrar», or the expired-link state when the token is rejected
+// (TokenConfirmation). No email address is shown: that would mean looking the
+// token up at render (the spec's Decisions).
 export function VerifyRegistrationForm({ token }: VerifyRegistrationFormProps) {
   const t = useTranslations();
-  const messages = useMessages() as Translations;
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
-
-  // A button rather than confirming on page load: corporate mail scanners
-  // fetch every link in an inbox, and an account-creating GET would let a
-  // scanner burn the token before the recipient ever opens the page.
-  const onConfirm = async () => {
-    setIsSubmitting(true);
-
-    const formData = new FormData();
-    formData.append("token", token);
-
-    const result = await verifyRegistration(formData);
-
-    if (!result.success) {
-      setIsSubmitting(false);
-      toast.error(translateAuthError(messages, result.error));
-      return;
-    }
-
-    setConfirmed(true);
-    toast.success(t("verifyEmail.success"));
-  };
 
   return (
-    <motion.div {...fadeInUp}>
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="space-y-1 pb-4">
-          <CardTitle className="text-2xl font-bold">
-            {confirmed ? t("verifyEmail.successTitle") : t("verifyEmail.title")}
-          </CardTitle>
-          <CardDescription>
-            {confirmed ? t("verifyEmail.successDescription") : t("verifyEmail.description")}
-          </CardDescription>
-        </CardHeader>
+    <TokenConfirmation
+      token={token}
+      action={verifyRegistration}
+      copy="verifyEmail"
+      confirmed={
+        <Button asChild variant="primary" size="display">
+          <Link href="/login">{t("verifyEmail.signIn")}</Link>
+        </Button>
+      }
+      expired={<VerifyLinkExpired focusHeading />}
+    />
+  );
+}
 
-        <CardContent>
-          {confirmed && (
-            <div className="flex flex-col items-center gap-4 py-2 text-center" aria-live="polite">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 ring-1 ring-accent/20">
-                <CircleCheck className="h-6 w-6 text-accent" />
-              </div>
-              <Button asChild className="w-full" size="lg">
-                <Link href="/login">{t("verifyEmail.signIn")}</Link>
-              </Button>
-            </div>
-          )}
+/**
+ * PAGES-16: the expired-link state, the same for a link with no token
+ * (app/verify-email/page.tsx) and a token the server rejected.
+ */
+export function VerifyLinkExpired({ focusHeading = false }: LinkExpiredProps) {
+  const t = useTranslations();
 
-          {!confirmed && (
-            <Button
-              type="button"
-              className="w-full"
-              size="lg"
-              disabled={isSubmitting}
-              onClick={onConfirm}
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <AiOutlineLoading3Quarters className="h-4 w-4 animate-spin" />
-                  {t("verifyEmail.submitting")}
-                </span>
-              ) : (
-                t("verifyEmail.submit")
-              )}
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
+  return (
+    <AccessState
+      question={t("verifyEmail.invalidHeadline")}
+      punchline={t("verifyEmail.invalidHeadlineHighlight")}
+      line={t("verifyEmail.invalidDescription")}
+      title={t("verifyEmail.invalidTitle")}
+      focusHeading={focusHeading}
+      fadeIn={focusHeading}
+    >
+      <Button asChild variant="primary" size="display">
+        <Link href="/register">{t("verifyEmail.backToRegister")}</Link>
+      </Button>
+      <AccessLink href="/login">{t("auth.signIn")}</AccessLink>
+    </AccessState>
   );
 }

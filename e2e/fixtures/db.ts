@@ -97,6 +97,48 @@ export interface SeedFavorite {
   year?: number;
 }
 
+/** One session row to write straight into `sessions`, with its own last-used instant. */
+export interface SeedSession {
+  userAgent: string | null;
+  updatedAt: Date;
+}
+
+/**
+ * Writes `sessions` for the account directly into Postgres
+ * (docs/specs/redesign-pages.md, PAGES-28, PAGES-35, PAGES-39), each with its
+ * own `updated_at` ("last used"), since the order and the "Sesiones" card's
+ * line both depend on it, and signing in several times through the UI gives
+ * no control over which session is used last. `expires` is set a century
+ * out so cleanup never races it. Global teardown removes the rows with the
+ * account, by cascade.
+ */
+export async function seedSessions(email: string, sessions: SeedSession[]): Promise<void> {
+  await withClient(async (client) => {
+    const result = await client.query("SELECT id FROM users WHERE email = $1", [email]);
+    const userId = result.rows[0].id as string;
+    for (const session of sessions) {
+      await insertSession(client, userId, randomUUID(), session);
+    }
+  });
+}
+
+/**
+ * One `sessions` row, as Better Auth writes it, open until 2100 so cleanup
+ * never races its expiry: seedSessions' and seedGoogleOnlySession's.
+ */
+async function insertSession(
+  client: pg.Client,
+  userId: string,
+  token: string,
+  session: SeedSession,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO sessions(id, session_token, user_id, expires, user_agent, created_at, updated_at)
+     VALUES ($1, $2, $3, '2100-01-01T00:00:00Z', $4, now(), $5)`,
+    [randomUUID(), token, userId, session.userAgent, session.updatedAt],
+  );
+}
+
 /**
  * Saves `cars` for the account directly in Postgres (docs/specs/redesign-saved.md,
  * SAVED-3 to SAVED-29). Two hundred saves through the UI would take minutes, and
@@ -361,4 +403,32 @@ export async function seedAlertMatches(alertId: string, matches: SeedAlertMatch[
       );
     }
   });
+}
+
+/**
+ * A Google-only account — no `credential` row, so no password — with Google
+ * linked and one session already open, written straight into Postgres
+ * (docs/specs/redesign-pages.md, PAGES-28, PAGES-58: the Google-only /account).
+ * Signing in through Google itself cannot run in e2e, so the session row is
+ * made here, as Better Auth would make it, and its token handed back for
+ * session.ts's signInWithSessionToken to put in the browser. Its address is
+ * confirmed, as Google's always is (BAUTH-9). Global teardown removes the
+ * rows with the account, by cascade.
+ */
+export async function seedGoogleOnlySession(email: string, name = "Seeded User"): Promise<string> {
+  const id = randomUUID();
+  const token = randomUUID();
+  await withClient(async (client) => {
+    await client.query(
+      "INSERT INTO users(id, email, name, email_confirmed, updated_at) VALUES ($1, $2, $3, true, now())",
+      [id, email, name],
+    );
+    await client.query(
+      `INSERT INTO accounts(id, user_id, type, provider, provider_account_id, updated_at)
+       VALUES ($1, $2, 'oauth', 'google', $3, now())`,
+      [randomUUID(), id, `e2e-google-${id}`],
+    );
+    await insertSession(client, id, token, { userAgent: "Playwright", updatedAt: new Date() });
+  });
+  return token;
 }

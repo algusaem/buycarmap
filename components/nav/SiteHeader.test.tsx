@@ -555,6 +555,73 @@ describe("SiteHeader — language in the user's language", () => {
 // MAPUI-54): at phone width /alerts/[id]'s header shows «Volver», a 40px
 // round link to /alerts, before the wordmark, and the language control;
 // /alerts' shows no «Volver».
+// docs/specs/redesign-pages.md (PAGES-66; amends HEAD-6 to HEAD-8). An
+// unmatched pathname — the not-found page — is not one of the known access
+// routes above (SIGN_IN_LEGAL_ROUTES), so it takes a header that depends on
+// the session instead of the fixed access header every one of those routes
+// keeps regardless of who is signed in.
+describe("SiteHeader — the not-found page (PAGES-66)", () => {
+  it("PAGES-66: signed out on an unknown address, the desktop region offers only the wordmark, the language group and Back to map", () => {
+    pathname.mockReturnValue("/esto-no-existe");
+    useSession.mockReturnValue(SIGNED_OUT);
+    renderWithI18n(<SiteHeader />);
+
+    const region = desktop();
+    expect(region.getByRole("link", { name: "BuyCarMap" })).toBeInTheDocument();
+    expect(region.getByRole("group", { name: "Language" })).toBeInTheDocument();
+    expect(region.getByRole("link", { name: "Back to map" })).toHaveAttribute("href", "/map");
+    expect(region.queryByRole("link", { name: "Saved" })).not.toBeInTheDocument();
+    expect(region.queryByRole("link", { name: "Account" })).not.toBeInTheDocument();
+  });
+
+  it("PAGES-66: signed out on an unknown address, the phone region's right-hand item is Map", () => {
+    pathname.mockReturnValue("/esto-no-existe");
+    useSession.mockReturnValue(SIGNED_OUT);
+    renderWithI18n(<SiteHeader />);
+
+    expect(phone().getByRole("link", { name: "Map" })).toHaveAttribute("href", "/map");
+  });
+
+  it("PAGES-66: signed in on an unknown address, the desktop region offers Map, Saved, Alerts and the avatar, with no current destination", () => {
+    pathname.mockReturnValue("/esto-no-existe");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<SiteHeader />);
+
+    const region = desktop();
+    expect(region.getByRole("link", { name: "Map" })).toHaveAttribute("href", "/map");
+    expect(region.getByRole("link", { name: "Saved" })).toHaveAttribute("href", "/favorites");
+    expect(region.getByRole("link", { name: "Alerts" })).toHaveAttribute("href", "/alerts");
+    expect(region.getByRole("link", { name: "Account" })).toHaveAttribute("href", "/account");
+    const current = region
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page");
+    expect(current).toHaveLength(0);
+  });
+
+  it("PAGES-66: while the session resolves on an unknown address, neither header shows: the pending boxes stand in", () => {
+    pathname.mockReturnValue("/esto-no-existe");
+    useSession.mockReturnValue({ data: null, isPending: true });
+    renderWithI18n(<SiteHeader />);
+
+    const region = desktop();
+    expect(region.getByRole("link", { name: "BuyCarMap" })).toBeInTheDocument();
+    expect(region.queryByRole("link", { name: "Back to map" })).not.toBeInTheDocument();
+    expect(region.queryByRole("link", { name: "Saved" })).not.toBeInTheDocument();
+    expect(region.queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
+    expect(phone().queryByRole("link", { name: "Map" })).not.toBeInTheDocument();
+  });
+
+  it("PAGES-66: a known access route (e.g. /register) keeps the access header regardless of session, unlike an unknown address", () => {
+    pathname.mockReturnValue("/register");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<SiteHeader />);
+
+    const region = desktop();
+    expect(region.getByRole("link", { name: "Back to map" })).toHaveAttribute("href", "/map");
+    expect(region.queryByRole("link", { name: "Saved" })).not.toBeInTheDocument();
+  });
+});
+
 describe("SiteHeader — the alert page's «Volver» at phone width", () => {
   it("ALERTUI-22: /alerts/<id> shows «Volver» to /alerts before the wordmark, and the language control", () => {
     pathname.mockReturnValue("/alerts/0199a000-0000-7000-8000-00000000c001");

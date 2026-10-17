@@ -1,32 +1,30 @@
-import { AuthBackground } from "@/components/auth/AuthBackground";
-import { BrandHeader } from "@/components/auth/BrandHeader";
-import { InvalidResetLink } from "@/components/auth/InvalidResetLink";
-import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
-import { LegalNotice } from "@/components/auth/LegalNotice";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import { AccessShell } from "@/components/auth/AccessLayout";
+import { ResetLinkExpired, ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: `${t("resetPassword.title")} · ${t("meta.title")}` };
+}
 
 interface ResetPasswordPageProps {
   // Next 16 delivers search params as a Promise.
   searchParams: Promise<{ token?: string }>;
 }
 
+// docs/specs/redesign-pages.md (PAGES-22 to PAGES-24).
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
   const { token } = await searchParams;
 
-  // Only presence is checked here. Whether the token is real, unexpired and
-  // unused is decided by the server action on submit — validating it during
-  // render would turn this page into an oracle for probing tokens without
-  // ever consuming one.
+  // Only presence is checked here (PAGES-14). Whether the token is real,
+  // unexpired and unused is decided by the server action on submit —
+  // validating it during render would turn this page into an oracle for
+  // probing tokens without ever consuming one.
   return (
-    <div className="relative flex flex-1 flex-col w-full overflow-y-auto bg-background">
-      <AuthBackground />
-
-      <div className="relative z-10 flex min-h-full items-center justify-center px-4 py-6">
-        <div className="w-full max-w-md space-y-6">
-          <BrandHeader />
-          {token ? <ResetPasswordForm token={token} /> : <InvalidResetLink />}
-          <LegalNotice />
-        </div>
-      </div>
-    </div>
+    <AccessShell>
+      {token && <ResetPasswordForm token={token} />}
+      {!token && <ResetLinkExpired />}
+    </AccessShell>
   );
 }

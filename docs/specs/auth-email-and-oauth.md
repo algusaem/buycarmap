@@ -16,7 +16,7 @@ Fifteen load-bearing properties. These are not everything auth does — that is
 several hundred tests — but they are the claims where a silent regression would
 be a security incident rather than a bug.
 
-- [x] AUTH-1 · node — Registering reveals nothing about whether an address already has an account
+- [x] AUTH-1 · node — Registering reveals nothing about whether an address already has an account — the pending state is PAGES-11's, still identical for a free and a taken address, and the resend toast stays neutral (amended 2026-10-16, PAGES — redesign-pages.md).
 - [x] AUTH-2 · node — No account exists until the address is confirmed from the inbox
 - [x] AUTH-3 · unit — A password that fails the strength policy is rejected
 - [x] AUTH-4 · unit — A breach-service outage does not block sign-up
@@ -28,8 +28,8 @@ be a security incident rather than a bug.
 - [x] AUTH-10 · node — A recovery code works exactly once
 - [x] AUTH-11 · node — A password reset leaves two-factor enrolment intact
 - [x] AUTH-12 · node — OAuth cannot auto-link a new provider to an account with two-factor enabled
-- [x] AUTH-13 · node — An email change requires the current password and is confirmed from the new address
-- [x] AUTH-14 · component — The only remaining way to sign in cannot be disconnected
+- [x] AUTH-13 · node — An email change requires the current password and is confirmed from the new address — the form is the «Cambiar correo» dialog or sheet, with the same neutral notice and «Cerrar» (PAGES-41) (amended 2026-10-16, PAGES — redesign-pages.md).
+- [x] AUTH-14 · component — The only remaining way to sign in cannot be disconnected — the last-method line is the Google card's (PAGES-34); its worked example's text loses its second sentence, «Es tu única forma de iniciar sesión.» with no instruction to set a password (amended 2026-10-16, PAGES — redesign-pages.md).
 - [x] AUTH-15 · node — Expired tokens are pruned from every token table
 - [x] AUTH-16 · node — Confirming a registration, or registering without email, creates the user and its credential account together or not at all; a failure between the two leaves neither row, so the link (or a new registration) can be retried and the account then signs in
 
@@ -45,7 +45,7 @@ be a security incident rather than a bug.
 - **AUTH-11** — Valid reset token "a-raw-reset-token" for user-1, new password "harbour-lentil-quilt" → the credential account's password is updated and every session of user-1 is revoked; no two-factor field is touched.
 - **AUTH-12** — ada@example.com with 2FA enabled and no linked accounts; OAuth signIn via google (providerAccountId g-1) → false; with no existing user → true.
 - **AUTH-13** — user-1 ada@example.com; requestEmailChange("new@example.com", "the-current-password") → the link goes to new@example.com, never ada@example.com; a wrong current password → { success: false, error: "currentPasswordIncorrect" }, no email.
-- **AUTH-14** — providers ["google"], hasPassword false → Disconnect disabled, text "This is your only way to sign in. Set a password before disconnecting it."
+- **AUTH-14** — providers ["google"], hasPassword false → Disconnect disabled, text "This is your only way to sign in." (amended 2026-10-16, PAGES — redesign-pages.md: the instruction to set a password is dropped).
 - **AUTH-16** — Pending registration confirmed; `account.create` fails once right after `user.create` → `{ success: false, error: "generic" }`, no `User` row for that email, the pending registration kept; retrying the same link → `{ success: true, email }`, and signing in with the chosen password works. Before this fix, the second click reported success but sign-in failed, because the account had no credential row. `registerWithoutEmail` fails the same way: `account.create` fails right after `user.create` → no `User` row, the address still free; before the fix, re-registering that address returned `emailTaken` with no way to complete it — after the fix it succeeds.
 
 ## Data model
@@ -255,8 +255,8 @@ confirms the current address, set moves the account to that one.
 
 Login is deliberately **not** gated on verification. Blocking would need a
 rejection message that still does not reveal whether the account exists, and
-would strand every account created before this shipped. `EmailForm` nudges
-instead, with a badge and a re-send button.
+would strand every account created before this shipped. The «Correo» card
+(`EmailCard`) nudges instead, with a badge and a re-send button.
 
 ### Registration enumeration: closed by verify-first signup
 

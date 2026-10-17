@@ -41,8 +41,8 @@ authorization, its rate limit and its failure paths.
 - [x] EXPORT-11 · node — A caller with no session gets `{ success: false, error: "unauthorized" }`, and no user data is read and no rate-limit budget is consumed
 - [x] EXPORT-12 · node — A caller who has spent the per-user budget gets `{ success: false, error: "rateLimited" }` and no user data is read; the budget is keyed on the caller's user id
 - [x] EXPORT-13 · node — When a database read fails, the caller gets `{ success: false, error: "generic" }` and no partial export
-- [x] EXPORT-14 · component — The "Download my data" section on `/account` renders one button; activating it calls `exportMyData` once and downloads the returned string as an `application/json` file named `buycarmap-data-<YYYY-MM-DD>.json`, the date being the UTC date of `exportedAt`, with no success toast
-- [x] EXPORT-15 · component — While the export runs, the button is disabled and busy, shows a spinner and keeps its label, and a second activation starts no second export
+- [x] EXPORT-14 · component — The "Download my data" section on `/account` renders one button; activating it calls `exportMyData` once and downloads the returned string as an `application/json` file named `buycarmap-data-<YYYY-MM-DD>.json`, the date being the UTC date of `exportedAt`, with no success toast — the button sits in the «Tus datos» card (PAGES-36) (amended 2026-10-16, PAGES — redesign-pages.md).
+- [x] EXPORT-15 · component — While the export runs, the button is disabled and busy, shows a spinner and keeps its label, and a second activation starts no second export — "disabled" is `aria-disabled` with a press ignored, not the native `disabled`, so the button keeps the focus (amended 2026-10-16, PAGES — redesign-pages.md)
 - [x] EXPORT-16 · component — When `exportMyData` fails, the translated error code is shown as an error toast, no file is downloaded, and the button is usable again
 - [x] EXPORT-17 · component — The button has an accessible name, is activated from the keyboard with Enter and with Space, and the section has no axe violations
 - [x] EXPORT-18 · e2e — A signed-in user on `/account` activates "Download my data" and receives a file named `buycarmap-data-<YYYY-MM-DD>.json` whose parsed `profile.email` is their own address
@@ -281,13 +281,13 @@ consumed with the key `export-data:user:<userId>`, the same shape as
 
 ### Component
 
-A client component in `components/account/` rendered by `app/account/page.tsx`
-between `SessionsCard` and `DeleteAccountForm`, with the same `Card` structure
-as its siblings and no new styles. It calls `exportMyData()`, builds a `Blob`
-of type `application/json` from `data`, and downloads it under
+`DataExportCard`, a client component in `components/account/`: the «Tus datos»
+`AccountCard` on `/account`, between «Sesiones» and «Eliminar cuenta»
+([PAGES-36](redesign-pages.md)). It calls `exportMyData()`, builds a `Blob` of
+type `application/json` from `data`, and downloads it under
 `buycarmap-data-${exportedAt.slice(0, 10)}.json`. On failure it shows
-`toast.error(translateAuthError(messages, result.error))`, the error pattern of
-`SessionsCard`, `ConnectedAccounts` and `DeleteAccountForm`.
+`toast.error(translateAuthError(messages, result.error))`, the error toast of an
+action with no form (FRONT-15).
 
 ### i18n
 

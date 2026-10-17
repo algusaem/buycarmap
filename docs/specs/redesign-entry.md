@@ -89,7 +89,8 @@ Sign in
   The same links are on the phone page.
 - [x] ENTRY-10 · component — The password field has a show/hide button at its right end, named
   «Mostrar contraseña» while the password is hidden and «Ocultar contraseña» while it is shown.
-  Pressing it switches the field between hidden and shown text and keeps what was typed.
+  Pressing it switches the field between hidden and shown text and keeps what was typed. — now holds
+  on every F7 password field (PAGES-6) (amended 2026-10-16, PAGES — redesign-pages.md).
 - [x] ENTRY-11 · component — A wrong email or password shows «Email o contraseña incorrectos» inside
   the form, above «Entrar», as an alert. The fields keep what was typed, and no toast appears. An
   unknown email and a wrong password show the same message (AUTH enumeration resistance, kept).
@@ -101,7 +102,9 @@ Sign in
   as typed. Six digits are checked as an app code, anything else as a recovery code (kept). A wrong
   code shows «Ese código no es válido. Revisa tu app e inténtalo de nuevo.» under the code field.
 - [x] ENTRY-14 · component — While signing in, «Entrar» is disabled and shows a spinner beside its
-  label, which does not change.
+  label, which does not change. — "disabled" is PAGES' busy: `aria-disabled` and `aria-busy` with a
+  press ignored, not the native `disabled`, so the button keeps the focus (amended 2026-10-16,
+  PAGES — redesign-pages.md).
 - [x] ENTRY-15 · component — An OAuth error in the URL (`?error=`) shows, at the top of the form, as an
   alert: «Ya existe una cuenta con este email. Inicia sesión con tu email y contraseña.» for
   `account_not_linked` and `unable_to_link_account`, and «Algo ha ido mal. Inténtalo de nuevo.» for any
@@ -132,7 +135,9 @@ Both pages
   «El email es obligatorio», «Introduce un email válido», «La contraseña es obligatoria», each with
   the circle-alert icon, tied to the field by `aria-describedby` and `aria-invalid`; the border does
   not change and the password eye stays centred on the field. The same pattern applies to every
-  password field.
+  password field. — now holds on every F7 password field (PAGES-6) (amended 2026-10-16, PAGES —
+  redesign-pages.md). — each field error carries `role="alert"`, on `/login` too (amended
+  2026-10-16, PAGES — redesign-pages.md).
 
 Laptop width and the illustrations (added 2026-10-14)
 

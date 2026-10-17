@@ -45,7 +45,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             )}
           </Button>
         </div>
-        <FieldMessage show={!!error} id={errorId} aria-live="polite" className="mt-2">
+        <FieldMessage show={!!error} id={errorId} role="alert" className="mt-2">
           {error}
         </FieldMessage>
       </div>

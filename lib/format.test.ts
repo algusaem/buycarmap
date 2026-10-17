@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { formatAmount, formatDate, formatMileage, formatPrice, parseDeviceLabel } from "./format";
+import {
+  formatAmount,
+  formatDate,
+  formatDeviceLabel,
+  formatMileage,
+  formatMonth,
+  formatPrice,
+  parseDeviceLabel,
+} from "./format";
+import esMessages from "@/messages/es.json";
 
 // FRONT-11 (docs/specs/core-frontend.md) worked examples. Each expected
 // string was independently derived by running the equivalent
@@ -59,10 +68,15 @@ describe("formatPrice — one format for every price (MAPUI-57)", () => {
     const formatters = Object.keys(await import("./format")).sort();
     // Amended 2026-10-15 (FRONT-11, ALERTUI-10 — redesign-alerts.md): formatDate
     // comes back for «Creada el …», an absolute date, not a price formatter.
+    // Amended 2026-10-16 (PAGES-31, PAGES-52 — redesign-pages.md): formatMonth
+    // («en BuyCarMap desde marzo») and formatDeviceLabel («Chrome en Windows»)
+    // join it, a month and a device, not price formatters.
     expect(formatters).toEqual([
       "formatAmount",
       "formatDate",
+      "formatDeviceLabel",
       "formatMileage",
+      "formatMonth",
       "formatPrice",
       "formatRelativeTime",
       "parseDeviceLabel",
@@ -86,7 +100,7 @@ describe("formatAmount", () => {
   });
 });
 
-// BAUTH-4 (docs/specs/core-better-auth.md): the "Active sessions" list on
+// BAUTH-4 (docs/specs/core-better-auth.md): the «Sesiones» dialog on
 // /account reads both fields off a real `User-Agent` string.
 describe("parseDeviceLabel", () => {
   it("BAUTH-4: reads Chrome on Windows", () => {
@@ -154,5 +168,83 @@ describe("ALERTUI-10: formatDate — «Creada el …»", () => {
     expect(formatDate(new Date("2026-12-31T23:30:00.000Z"), "es", "UTC", now)).toBe(
       "31 de diciembre",
     );
+  });
+});
+
+// docs/specs/redesign-pages.md (PAGES-31, worked example "Summary line"):
+// «en BuyCarMap desde <mes>», the month User.createdAt falls in, with the
+// year appended only when it is not `now`'s (in the same time zone). Today is
+// 2026-10-16. `formatMonth` is the function the spec's Contracts section says
+// lives "beside formatDate".
+describe("PAGES-31: formatMonth — «en BuyCarMap desde <mes>»", () => {
+  const NOW = new Date("2026-10-16T12:00:00.000Z");
+
+  it.each([
+    ["2026-03-10T10:00:00.000Z", "UTC", "marzo"],
+    ["2025-03-10T10:00:00.000Z", "UTC", "marzo de 2025"],
+    ["2025-03-31T23:30:00.000Z", "UTC", "marzo de 2025"],
+    // Europe/Madrid is UTC+2 in summer: 2025-03-31T23:30:00Z is 01:30 on 1 April there.
+    ["2025-03-31T23:30:00.000Z", "Europe/Madrid", "abril de 2025"],
+    ["2025-12-31T23:30:00.000Z", "UTC", "diciembre de 2025"],
+    // Europe/Madrid is UTC+1 in winter: 2025-12-31T23:30:00Z is 00:30 on 1 January 2026
+    // there — the current year, so no year is appended.
+    ["2025-12-31T23:30:00.000Z", "Europe/Madrid", "enero"],
+  ])("PAGES-31: %s in %s reads «%s»", (createdAt, timeZone, expected) => {
+    expect(formatMonth(new Date(createdAt), "es", timeZone, NOW)).toBe(expected);
+  });
+
+  // The English copy is drafted for the PR (the spec's i18n keys): the
+  // month alone in the same year, then the month and the year.
+  it("PAGES-31: in English, the same year reads the month alone", () => {
+    expect(formatMonth(new Date("2026-03-10T10:00:00Z"), "en", "UTC", NOW)).toBe("March");
+  });
+
+  it("PAGES-31: in English, another year reads «March 2025»", () => {
+    expect(formatMonth(new Date("2025-03-10T10:00:00Z"), "en", "UTC", NOW)).toBe("March 2025");
+  });
+});
+
+// docs/specs/redesign-pages.md (PAGES-52, worked example "Device"):
+// «<navegador> en <sistema>» when both are known, the one known alone
+// otherwise, and the caller's own fallback when neither is — the account
+// cards' and the sessions dialog's device line, amending today's "·" join
+// (the old SessionsCard's deviceLabelText). The join is the caller's
+// translated `account.sessions.device`, here the Spanish message itself.
+describe("PAGES-52: formatDeviceLabel — «<navegador> en <sistema>»", () => {
+  const UNKNOWN = "Dispositivo desconocido";
+  const JOIN = ({ browser, os }: { browser: string; os: string }) =>
+    esMessages.account.sessions.device.replace("{browser}", browser).replace("{os}", os);
+
+  it("PAGES-52: Chrome on Windows reads «Chrome en Windows»", () => {
+    expect(
+      formatDeviceLabel(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
+        JOIN,
+        UNKNOWN,
+      ),
+    ).toBe("Chrome en Windows");
+  });
+
+  it("PAGES-52: Safari on an iPhone reads «Safari en iOS» — the user agent gives the system, not the device", () => {
+    expect(
+      formatDeviceLabel(
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1",
+        JOIN,
+        UNKNOWN,
+      ),
+    ).toBe("Safari en iOS");
+  });
+
+  it("PAGES-52: Firefox with the system unknown reads «Firefox» alone", () => {
+    expect(formatDeviceLabel("Firefox/121.0", JOIN, UNKNOWN)).toBe("Firefox");
+  });
+
+  it("PAGES-52: a system with no known browser reads the system alone", () => {
+    expect(formatDeviceLabel("Mozilla/5.0 (X11; Linux x86_64)", JOIN, UNKNOWN)).toBe("Linux");
+  });
+
+  it("PAGES-52: neither known, or an empty string, reads the caller's own fallback", () => {
+    expect(formatDeviceLabel("", JOIN, UNKNOWN)).toBe(UNKNOWN);
+    expect(formatDeviceLabel("some-internal-script/1.0", JOIN, UNKNOWN)).toBe(UNKNOWN);
   });
 });

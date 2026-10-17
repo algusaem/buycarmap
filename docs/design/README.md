@@ -30,12 +30,17 @@ violet accent, the illustrations and every F0 screen — and is not kept in sync
 ## The canvas
 
 Page "Pantallas", every screen in journey order, each artboard a desktop screen (1440 × 900)
-beside its phone screen (390 × 844); the landing, sign in, saved cars and alerts also carry a laptop screen (1024 × 900):
+beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, register, account and the legal pages also carry a laptop screen (1024 × 900):
 
 - `R3-landing.dc.html`, `R3-login.dc.html` — the landing and sign in.
 - `F0-registro.dc.html`, `F0-confirmar.dc.html`, `F0-contrasena.dc.html`,
   `F0-nueva-contrasena.dc.html` — register, confirm the account, request and set a new password,
   each with a phone variant of its follow-up state (check your inbox, account ready, expired link).
+- `F7-registro-estados.dc.html`, `F7-confirmar-estados.dc.html`, `F7-contrasena-estados.dc.html` —
+  check your inbox after registering (with resend), inline errors, the strength meter's issues and
+  hint, and register on a laptop; account ready on desktop, the confirm form on the phone, the
+  expired confirmation link, and confirming a new email address (form, done, expired link); the
+  missing widths of request and set a new password, and a rejected new password.
 - `R2Base.dc.html` — the map screen. `R3-mapa-detalle.dc.html` imports it and adds a car's preview
   and the phone filters sheet, so keep both.
 - `F3-mapa-filtros.dc.html`, `F3-mapa-crear-alerta.dc.html`, `F3-crear-alerta-estados.dc.html` — the
@@ -57,8 +62,15 @@ beside its phone screen (390 × 844); the landing, sign in, saved cars and alert
   and several matches at one point, alerts on a laptop and loading (desktop); an alert's page on
   desktop and its delete dialog; on the phone, an alert with no place, a long list scrolled, a
   saved match and both pages loading; and no alerts.
-- `F0-cuenta.dc.html` — account. `F0-legal.dc.html` — privacy and terms.
-  `F0-estado-error-pagina.dc.html` — any page that failed to load.
+- `F0-cuenta.dc.html` — account. `F7-cuenta-editar.dc.html`, `F7-cuenta-dos-pasos.dc.html`,
+  `F7-cuenta-sesiones-google.dc.html`, `F7-cuenta-eliminar-y-mas.dc.html` — editing each card in a
+  dialog (desktop) or sheet (phone): name, email, password and the unverified email; two-factor
+  setup, recovery codes and managing it; sessions and the Google card states; deleting the account,
+  the data export busy, a Google-only account, loading and a laptop.
+- `F0-legal.dc.html` — privacy and terms. `F7-legal-estados.dc.html` — the phone table of contents
+  open, the current section while reading, terms and a laptop.
+- `F0-estado-error-pagina.dc.html` — any page that failed to load. `F7-no-existe.dc.html` — a page
+  that does not exist, signed in and out, and the page error signed out.
 
 Page "UI Kit": `UIKit.dc.html`, every reusable piece in its states (colours, type, buttons,
 search pill and the filter row, the search pill popovers and the phone «Buscar» sheet, the
@@ -105,6 +117,7 @@ screen structure, icons and accessibility. `system/tokens.json` holds every toke
 - [FilterSheet](system/components/FilterSheet/README.md)
 - [CreateAlert](system/components/CreateAlert/README.md)
 - [Cover](system/components/Cover/README.md)
+- [LegalToc](system/components/LegalToc/README.md)
 
 ## Relation to `DESIGN.md`
 

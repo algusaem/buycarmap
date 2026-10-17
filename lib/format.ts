@@ -99,12 +99,12 @@ export interface DeviceLabel {
 }
 
 // BAUTH-4 (docs/specs/core-better-auth.md): a tiny, dependency-free `User-Agent`
-// reader for the "Active sessions" list on /account — just enough to show
-// "Chrome on Windows" rather than a raw UA string. Both fields are proper
-// nouns (brand/OS names), so neither goes through next-intl — the same
-// reasoning that leaves "Google"/"GitHub" untranslated elsewhere. `null`
-// means "could not tell"; the caller falls back to a translated
-// "unknown device" string in that case.
+// reader for the sessions on /account — just enough to show "Chrome on
+// Windows" rather than a raw UA string (formatDeviceLabel, below, joins the
+// two). Both fields are proper nouns (brand/OS names), so neither goes
+// through next-intl — the same reasoning that leaves "Google"/"GitHub"
+// untranslated elsewhere. `null` means "could not tell"; the caller falls
+// back to a translated "unknown device" string in that case.
 export function parseDeviceLabel(userAgent: string): DeviceLabel {
   if (!userAgent) return { browser: null, os: null };
 
@@ -147,4 +147,48 @@ export function formatDate(value: Date, locale: string, timeZone: string, now: D
   return format(date, sameYear ? patterns.sameYear : patterns.otherYear, {
     locale: dateFnsLocale(locale),
   });
+}
+
+/** «en BuyCarMap desde …»'s month, with the year when it is not the current one, per locale. */
+const MONTH_PATTERNS = {
+  es: { sameYear: "MMMM", otherYear: "MMMM 'de' yyyy" },
+  en: { sameYear: "MMMM", otherYear: "MMMM yyyy" },
+} as const;
+
+/**
+ * docs/specs/redesign-pages.md (PAGES-31, worked example "Summary line"): the
+ * month `value` falls in, in `locale` and in `timeZone` (next-intl's), with
+ * the year only when it differs from `now`'s year in that time zone
+ * («marzo», «marzo de 2025»), beside formatDate.
+ */
+export function formatMonth(value: Date, locale: string, timeZone: string, now: Date): string {
+  const date = new TZDate(value, timeZone);
+  const patterns = locale === "es" ? MONTH_PATTERNS.es : MONTH_PATTERNS.en;
+  const sameYear = date.getFullYear() === new TZDate(now, timeZone).getFullYear();
+  return format(date, sameYear ? patterns.sameYear : patterns.otherYear, {
+    locale: dateFnsLocale(locale),
+  });
+}
+
+/** Both halves of a device, known. */
+interface KnownDevice {
+  browser: string;
+  os: string;
+}
+
+/**
+ * docs/specs/redesign-pages.md (PAGES-52, worked example "Device"): a
+ * session's device — `join`'s «<navegador> en <sistema>» (the caller's
+ * translated `account.sessions.device`) when parseDeviceLabel knows both, the
+ * one it knows alone otherwise, and `unknown` (the caller's translated
+ * «Dispositivo desconocido») when it knows neither.
+ */
+export function formatDeviceLabel(
+  userAgent: string,
+  join: (device: KnownDevice) => string,
+  unknown: string,
+): string {
+  const { browser, os } = parseDeviceLabel(userAgent);
+  if (browser && os) return join({ browser, os });
+  return browser ?? os ?? unknown;
 }

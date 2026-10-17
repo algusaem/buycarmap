@@ -47,7 +47,7 @@ describe("SignOutButton", () => {
 
     await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
     expect(push).not.toHaveBeenCalled();
-    expect(button).not.toBeDisabled();
+    expect(button).not.toHaveAttribute("aria-disabled");
 
     // Usable again: a second click still calls signOut, rather than the
     // control being stuck in whatever state the failed attempt left it in.

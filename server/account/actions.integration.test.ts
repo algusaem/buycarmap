@@ -9,10 +9,20 @@ import { createAlert } from "@/test/factories/alert";
 // the "revoke every other session" delete. Resolving to null here is the
 // same as "no real Better Auth session cookie in this test" — exactly what
 // the pre-existing session rows created directly below simulate.
-vi.mock("@/lib/auth/session", () => ({
-  getCurrentUser: vi.fn(),
-  getCurrentSessionId: vi.fn(async () => null),
-}));
+// /account's page query (getAccountOverview) finds the user and this session
+// in one lookup: it reads the same signed-in user as getCurrentUser, through a
+// session no seeded row has.
+vi.mock("@/lib/auth/session", () => {
+  const getCurrentUser = vi.fn();
+  return {
+    getCurrentUser,
+    getCurrentSessionId: vi.fn(async () => null),
+    getCurrentUserWithSessionId: vi.fn(async () => {
+      const user = await getCurrentUser();
+      return user ? { user, sessionId: "no-seeded-session" } : null;
+    }),
+  };
+});
 vi.mock("@/lib/auth/hash", () => ({
   hashPassword: vi.fn(async (p: string) => `hashed:${p}`),
   verifyPassword: vi.fn(),
@@ -220,7 +230,9 @@ describe("changePassword", () => {
     });
     vi.mocked(verifyPassword).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
-    expect(await changePassword(changeRequest())).toEqual({ success: true });
+    // The row's new version, 1 asserted and moved on by one (docs/specs/redesign-pages.md,
+    // Contracts › Server, decided 2026-10-16).
+    expect(await changePassword(changeRequest())).toEqual({ success: true, version: 2 });
 
     expect(await credentialPassword(user.id)).toBe(`hashed:${NEW_PASSWORD}`);
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
@@ -249,7 +261,8 @@ describe("DATA-15: optimistic locking on updateProfile and changePassword", () =
     const user = await signedInAsNewUser({ name: "Ana", version: 3 });
 
     const first = await updateProfile(formData({ name: "Ana María", version: "3" }));
-    expect(first).toEqual({ success: true });
+    // 3 asserted, moved on to 4: the action answers the new version (redesign-pages.md, Contracts).
+    expect(first).toEqual({ success: true, version: 4 });
     const afterFirst = await prisma.user.findUnique({ where: { id: user.id } });
     expect(afterFirst?.version).toBe(4);
 
@@ -593,6 +606,28 @@ describe("BAUTH-4: listMySessions", () => {
       lastUsedAt: expect.anything(),
     });
   });
+
+  it("PAGES-49: an expired session is not listed (decided 2026-10-16, owner)", async () => {
+    const user = await signedInAsNewUser();
+    const live = await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-live",
+        expires: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+    await prisma.session.create({
+      data: {
+        user: { connect: { id: user.id } },
+        sessionToken: "session-token-expired",
+        expires: new Date(Date.now() - 60 * 60 * 1000),
+      },
+    });
+
+    const sessions = await listMySessions();
+
+    expect(sessions.map((session) => session.id)).toEqual([live.id]);
+  });
 });
 
 describe("BAUTH-4: revokeMySession", () => {
@@ -665,7 +700,7 @@ describe("BAUTH-19 worked examples", () => {
     });
 
     const record = await getAccountOverview();
-    expect(record.password).not.toBeNull();
+    expect(record.hasPassword).toBe(true);
 
     expect(await deleteAccount(formData({}))).toEqual({
       success: false,

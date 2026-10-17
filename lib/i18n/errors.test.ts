@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Translations } from "./types";
-import { AUTH_ERROR } from "@/lib/auth/errors";
+import { AUTH_ERROR, refusalCode } from "@/lib/auth/errors";
 import * as errorsModule from "./errors";
-import { translateAuthError, translateError } from "./errors";
+import { translateAuthError, translateError, translateRefusal } from "./errors";
 
 // FRONT-8 (docs/specs/core-frontend.md) deletes the hand-rolled locale
 // objects (`lib/i18n/locales/*.ts`); copy now lives in `messages/en.json`
@@ -130,5 +130,36 @@ describe("FRONT-12: resolving through next-intl's message files", () => {
     const messages = readEnMessages();
 
     expect(translateAuthError(messages, "conflict")).toBe(messages.authErrors.conflict);
+  });
+});
+
+// docs/specs/redesign-pages.md (PAGES-4, PAGES-71): a refusal always says
+// something, so one with no code reads as `generic`.
+describe("translateRefusal", () => {
+  it("PAGES-4: resolves a refusal's code to its copy", () => {
+    expect(translateRefusal(es, AUTH_ERROR.rateLimited)).toBe(
+      "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+    );
+  });
+
+  it("PAGES-4: a refusal with no code reads as generic", () => {
+    expect(translateRefusal(es, undefined)).toBe("Algo ha ido mal. Inténtalo de nuevo.");
+    expect(translateRefusal(en, undefined)).toBe("Something went wrong. Please try again.");
+  });
+
+  it("PAGES-4: an unknown code reads as generic too", () => {
+    expect(translateRefusal(en, "somethingNobodyDefined")).toBe(
+      "Something went wrong. Please try again.",
+    );
+  });
+});
+
+describe("refusalCode", () => {
+  it("PAGES-4: keeps a refusal's own code", () => {
+    expect(refusalCode(AUTH_ERROR.totpInvalid)).toBe("totpInvalid");
+  });
+
+  it("PAGES-4: a refusal with no code is generic", () => {
+    expect(refusalCode(undefined)).toBe("generic");
   });
 });

@@ -78,7 +78,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prism
 with the **`@prisma/adapter-pg`** driver adapter · Better Auth (Postgres sessions) ·
 React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
 `components/ui/*`, plus Popover, Dialog and Slider used directly by the map, the create-alert
-dialog, the saved car sheet and the delete-alert confirmation (ADR 0020) · TanStack Virtual (the saved cars list, ADR 0021) · Motion · Sonner · Leaflet + react-leaflet ·
+dialog, the saved car sheet, the delete-alert confirmation and the account dialogs (ADR 0020) · TanStack Virtual (the saved cars list, ADR 0021) · Motion · Sonner · Leaflet + react-leaflet ·
 Lucide React and React Icons · next-intl (i18n) · nuqs (URL state) · date-fns
 and `@date-fns/tz` (formatting).
 
@@ -427,8 +427,8 @@ coded.**
 - **Icons**: never raw SVGs. Lucide React for UI icons, React Icons for brand icons. Size with
   Tailwind (`h-4 w-4`).
 - **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }
-  from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `fadeInDown`,
-  `dropdownReveal`, `sheetSlideUp`, `crossFade`, `fadeIn(delay)`)
+  from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `dropdownReveal`,
+  `sheetSlideUp`, `crossFade`)
   instead of re-declaring `initial`/`animate` inline.
 
 <!-- BEGIN:nextjs-agent-rules -->

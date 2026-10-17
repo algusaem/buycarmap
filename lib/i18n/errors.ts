@@ -14,6 +14,15 @@ export function translateAuthError(t: Translations, code: string | undefined): s
   return messages[code] ?? t.authErrors.generic;
 }
 
+/**
+ * A refusal's copy (docs/specs/redesign-pages.md, PAGES-4, PAGES-71): unlike
+ * a field, a refusal always says something, so one that carries no code
+ * reads as `generic`.
+ */
+export function translateRefusal(t: Translations, code: string | undefined): string {
+  return translateAuthError(t, code) ?? t.authErrors.generic;
+}
+
 // The namespaces translateError is allowed to index into dynamically. Kept
 // as a closed list, rather than widening Translations with an index
 // signature, so every other property on Translations still narrows to its

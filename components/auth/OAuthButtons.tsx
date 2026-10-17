@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useTranslations } from "next-intl";
 import { authClient } from "@/lib/auth/auth-client";
-import { cn } from "@/lib/utils";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 
 interface OAuthButtonsProps {
@@ -16,18 +15,12 @@ interface OAuthButtonsProps {
   googleEnabled: boolean;
   /** Where to land after a successful provider round-trip. */
   callbackUrl?: string;
-  /** docs/specs/redesign-entry.md (ENTRY-19, ENTRY-25): /login hides the "o"
-   * divider and the Google mark below 1440px wide — /register keeps them at
-   * every width and from 1024px until its own F7 pass, so this defaults to
-   * false rather than changing that page's look here. */
-  hidePhoneDivider?: boolean;
 }
 
-export function OAuthButtons({
-  googleEnabled,
-  callbackUrl = "/",
-  hidePhoneDivider = false,
-}: OAuthButtonsProps) {
+// docs/specs/redesign-entry.md (ENTRY-19, ENTRY-25) and
+// docs/specs/redesign-pages.md (PAGES-1): /login and /register hide the «o»
+// divider and the Google mark below 1440px wide.
+export function OAuthButtons({ googleEnabled, callbackUrl = "/" }: OAuthButtonsProps) {
   const t = useTranslations();
   const [pending, setPending] = useState(false);
 
@@ -60,14 +53,8 @@ export function OAuthButtons({
     <>
       {/* GoogleButton README: «o» at 13px in text-muted between two 1px
           `line` rules, 12px apart. Just "or": the buttons say "Continue with
-          …" themselves. /login spaces it with its own 18px gap; /register's
-          card still relies on these margins until its F7 pass. */}
-      <div
-        className={cn(
-          "flex items-center gap-3 text-small text-text-muted",
-          hidePhoneDivider ? "hidden 3xl:flex" : "my-6",
-        )}
-      >
+          …" themselves. Spaced by the panel's own 18px gap. */}
+      <div className="hidden items-center gap-3 text-small text-text-muted 3xl:flex">
         <Separator className="flex-1 bg-line" />
         {t("common.or")}
         <Separator className="flex-1 bg-line" />
@@ -77,7 +64,7 @@ export function OAuthButtons({
         isPending={pending}
         disabled={pending}
         onClick={onSignIn}
-        markFromDesktop={hidePhoneDivider}
+        markFromDesktop
       />
     </>
   );

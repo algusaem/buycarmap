@@ -3,12 +3,27 @@
 // whole contract; these functions are its only reading.
 
 /** The kind of header a route draws (spec › Decisions: one per kind of page). */
-export type HeaderKind = "map" | "pages" | "landing" | "access" | "legal";
+export type HeaderKind = "map" | "pages" | "landing" | "access" | "legal" | "notFound";
 
 /** The three sections of the pages header and the bottom nav. */
 export type Section = "map" | "saved" | "alerts";
 
 const LEGAL_ROUTES = new Set(["/privacy", "/terms"]);
+
+/**
+ * The sign-in, sign-up and recovery pages, and the development pages
+ * `/palette` and `/typography`, which have no drawn header of their own.
+ */
+const ACCESS_ROUTES = new Set([
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/confirm-email",
+  "/palette",
+  "/typography",
+]);
 
 function isAlertsRoute(pathname: string) {
   return pathname === "/alerts" || pathname.startsWith("/alerts/");
@@ -20,15 +35,20 @@ function isSectionPage(pathname: string) {
 }
 
 /**
- * Every route without a drawn header of its own (`/palette`, `/typography`,
- * error and not-found pages) takes the sign-in header (spec › Edge cases).
+ * A known route takes its own header, and an error page the header of the
+ * route that failed. An address no route matches is the not-found page, whose
+ * header follows the session, not the path: the access header signed out, the
+ * pages header with nothing current signed in (docs/specs/redesign-pages.md,
+ * PAGES-66; amends HEAD-6 to HEAD-8). `/alerts/[id]`'s 404 is not one: its
+ * path is Alertas', which stays current.
  */
 export function headerKind(pathname: string): HeaderKind {
   if (pathname === "/map") return "map";
   if (pathname === "/") return "landing";
   if (isSectionPage(pathname)) return "pages";
   if (LEGAL_ROUTES.has(pathname)) return "legal";
-  return "access";
+  if (ACCESS_ROUTES.has(pathname)) return "access";
+  return "notFound";
 }
 
 /** The section marked current (HEAD-4): none on `/account`, where the avatar is. */
@@ -71,9 +91,11 @@ export function currentTab(pathname: string): Tab | undefined {
 /**
  * Where the tab bar shows: the map, for everyone, and the signed-in section
  * pages and landing (docs/specs/redesign-entry.md, ENTRY-8, amending
- * MAPUI-52: the landing was the one signed-in page without it).
+ * MAPUI-52: the landing was the one signed-in page without it), and the
+ * signed-in not-found page, with no tab current (PAGES-66).
  */
 export function showsTabBar(pathname: string, signedIn: boolean) {
   if (pathname === "/map") return true;
-  return signedIn && (isSectionPage(pathname) || pathname === "/");
+  if (!signedIn) return false;
+  return isSectionPage(pathname) || pathname === "/" || headerKind(pathname) === "notFound";
 }

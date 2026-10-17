@@ -407,6 +407,36 @@ describe("MAPUI-52: TabBar — accessibility", () => {
   });
 });
 
+// docs/specs/redesign-pages.md (PAGES-66; amends HEAD-6 to HEAD-8). An
+// unmatched pathname (the not-found page) shows the tab bar when signed in,
+// with none of its tabs current — unlike every known route without a tab bar
+// of its own (e.g. /login, /privacy), which stays tab-bar-free regardless of
+// session (HEAD-8: "the tab bar does not apply", above).
+describe("TabBar — the not-found page (PAGES-66)", () => {
+  it("PAGES-66: signed in on an unknown address, shows Map, Saved, Alerts and Account, with none current", () => {
+    pathname.mockReturnValue("/esto-no-existe");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<TabBar />);
+
+    expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("href", "/map");
+    expect(screen.getByRole("link", { name: "Saved" })).toHaveAttribute("href", "/favorites");
+    expect(screen.getByRole("link", { name: "Alerts" })).toHaveAttribute("href", "/alerts");
+    expect(screen.getByRole("link", { name: "Account" })).toHaveAttribute("href", "/account");
+    const current = screen
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page");
+    expect(current).toHaveLength(0);
+  });
+
+  it("PAGES-66: signed out on an unknown address, shows no tab bar", () => {
+    pathname.mockReturnValue("/esto-no-existe");
+    useSession.mockReturnValue(SIGNED_OUT);
+    const { container } = renderWithI18n(<TabBar />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
 describe("HEAD-17: the tab bar clears the safe area", () => {
   it(// jsdom computes no CSS, so this only proves the string-level contract:
   // the nav carries the token's class, and the token is the inset. HEAD-17

@@ -358,12 +358,13 @@ Spanish or English in components.
 | `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row and panel), `phone/` (the phone search, sheets and results sheet) |
 | `components/alerts/` | The alerts pages (`AlertsPage`, `AlertPage`), the AlertCard, the alert map and the phone zone map, the delete confirmation, the loading and error states, and the create-alert dialog |
 | `components/nav/` | The headers, the phone tab bar and the language control |
+| `components/account/` | The account page: its cards, the dialog-or-sheet frame and each card's form in it, the loading placeholders |
 | `components/favorites/` | The saved cars page: the list column, the Guardados card, the phone row and car sheet, the sort chips and the loading placeholders |
 | `components/ui/` | Radix-wrapped primitives |
 | `components/landing/` | The landing body and its map preview |
 | `lib/hooks/` | Every request lifecycle |
 | `lib/wallapop/`, `lib/cochesnet/`, `lib/milanuncios/` | One module per source: client, normalize, taxonomy |
-| `lib/auth/` | Session, password policy, tokens, two-factor, the redirect guard (`safe-redirect.ts`) |
+| `lib/auth/` | Session, password policy, tokens, two-factor, the redirect guard (`safe-redirect.ts`), and `settle-action.ts`, which turns a Server Action that throws into the `generic` refusal on the access and account pages |
 | `lib/i18n/` | Locale resolution, translations, error-code copy |
 | `lib/geo/` | Static cities, Nominatim geocoding, browser geolocation |
 | `lib/db/` | The Prisma client module, the only one outside `server/**/service.ts` that reaches the database, apart from the LAYOUT-7 exception, `lib/auth/auth.ts` (see [specs/core-layout.md](specs/core-layout.md)) |
@@ -821,22 +822,97 @@ are their stored snapshots, so neither page calls an upstream.
 - [`lib/hooks/useMatchFavorites.ts`](../lib/hooks/useMatchFavorites.ts) — a match's saved state,
   from `useFavorites` and `useFavoriteToggle`, as `/map` reconciles its results.
 - [`lib/hooks/useAlertDelete.ts`](../lib/hooks/useAlertDelete.ts) — the delete behind its
-  confirmation (`DeleteAlertConfirm`: a centred `alertdialog` on desktop, `PhoneBottomSheet` on
-  the phone), one request at a time; a delete on an alert's page replaces it with `/alerts`.
+  confirmation (`DeleteAlertConfirm`, in `ResponsiveDialog`: a centred `alertdialog` on desktop,
+  `PhoneBottomSheet` on the phone), one request at a time; a delete on an alert's page replaces it with `/alerts`.
 - [`lib/hooks/useAlertLabels.ts`](../lib/hooks/useAlertLabels.ts) — the criteria
   (`alertCriteria` and `alertZone` in `lib/search/alert-summary.ts`), the match count and
   «Creada el …» (`formatDate` in `lib/format.ts`, in next-intl's time zone).
 
 Their toasts are centred over the list column (`data-toast-anchor="alerts"`, ALERTUI-37).
 
+### The access pages
+
+`/login`, `/register`, `/verify-email`, `/confirm-email`, `/forgot-password` and `/reset-password`
+share one composition, [`components/auth/AccessLayout.tsx`](../components/auth/AccessLayout.tsx)
+([`specs/redesign-entry.md`](specs/redesign-entry.md), ENTRY-19 to ENTRY-30;
+[`specs/redesign-pages.md`](specs/redesign-pages.md), PAGES-1, PAGES-7, PAGES-75): `AccessShell`
+(the scrolling page, `<main>` and the footer), `AccessBody` (one state, cross-fading into the next
+under `AnimatePresence`), `AccessHeadline`, `AccessPanel` (the panel from 1440px wide, the bare
+content under it), `AccessArrow` and `AccessState` (a state with actions and no fields). The pages
+are Server Components that read only whether `token` is present (PAGES-14); each form is the client
+part and swaps its own states (form, «check your inbox», confirmed, expired link) with no toast,
+moving the focus to the new state's headline (PAGES-76, `lib/focus.ts`). `/verify-email` and
+`/confirm-email` share one request lifecycle,
+[`lib/hooks/useTokenConfirmation.ts`](../lib/hooks/useTokenConfirmation.ts).
+
+### The account page
+
+`/account` ([`specs/redesign-pages.md`](specs/redesign-pages.md), PAGES-25 to PAGES-60, PAGES-71
+to PAGES-73) is a summary of cards, each with one action that opens its form in a dialog on
+desktop and a bottom sheet on the phone. The page reads on the server in one query,
+`getAccountOverview()` (`findAccountOverview` in `server/account/service.ts`), whose fields
+PAGES-60 lists, with this request's own session marked `current` among them: the user and that
+session come from one lookup (`getCurrentUserWithSessionId` in `lib/auth/session.ts`).
+
+- [`components/account/AccountPage.tsx`](../components/account/AccountPage.tsx) — the heading, the
+  grid of cards (`AccountCard`, `OwnCard`, `EmailCard`, `GoogleCard`, `DataExportCard`) and the
+  dialogs. [`lib/hooks/useAccountPage.ts`](../lib/hooks/useAccountPage.ts) keeps what the dialogs
+  change — the name, two-factor, the providers, the version DATA-15 asserts, as the actions answer
+  it — and which dialog is open, so the cards follow without a reload; the sessions line re-reads
+  with `router.refresh()`.
+- [`components/account/AccountDialog.tsx`](../components/account/AccountDialog.tsx) — the frame of
+  every form, in `ResponsiveDialog` (`components/ui/ResponsiveDialog.tsx`, shared with
+  `DeleteAlertConfirm`): the centred dialog on desktop, `PhoneBottomSheet` on the phone. Its
+  `run` holds it open while a request runs (PAGES-72) and reads a thrown request as the `generic`
+  refusal (`lib/auth/settle-action.ts`); its body mounts afresh on every opening; the focus starts
+  on the first field unless the dialog names another control, and goes back to the card's button.
+  `DialogActions` is every form's footer.
+- `NameDialog`, `EmailDialog`, `PasswordDialog`, `TwoFactorDialog` (with `TwoFactorSetup` and
+  `RecoveryCodesPanel`, the codes taking the same dialog over as an `alertdialog`),
+  `SessionsDialog` and `DeleteAccountDialog` — each form calls its Server Action directly
+  (React Hook Form where the form has a schema), with a server refusal under its field or as a
+  form alert, never a toast (PAGES-71).
+- [`lib/hooks/useMySessions.ts`](../lib/hooks/useMySessions.ts) — the «Sesiones» dialog's list,
+  read again each time it opens; [`lib/hooks/useAccountLabels.ts`](../lib/hooks/useAccountLabels.ts)
+  — the summary line, the sessions line and the device, from `formatMonth`, `formatDeviceLabel`
+  and `formatRelativeTime` in `lib/format.ts`, in next-intl's time zone.
+- `app/account/loading.tsx` (`AccountPlaceholder`, in the page's own frame and heading,
+  `AccountHeading`) and `app/account/error.tsx` (`components/ui/PageStateError.tsx`, shared with the
+  root `app/error.tsx`: `PageError` in the saved cars' list column, beside an empty map drawn for
+  the eye only).
+
+### The legal pages, the not-found page and the root error
+
+`/privacy` and `/terms` ([`specs/redesign-pages.md`](specs/redesign-pages.md), PAGES-61 to PAGES-64,
+PAGES-74) are one template,
+[`components/legal/LegalContent.tsx`](../components/legal/LegalContent.tsx): the page's scrolling
+box, with the footer inside it after the text, and from `lg` a grid of the index and the reading
+column (PAGES-64). Each section's `h2` carries the `id` stored beside it in the
+message files, the same in both locales. The index,
+[`components/legal/LegalToc.tsx`](../components/legal/LegalToc.tsx), is one list for both widths:
+a sticky column from `lg`, a field folded after the date on a phone.
+[`lib/hooks/useLegalToc.ts`](../lib/hooks/useLegalToc.ts) marks the section on screen from the
+scrolling box's scroll, opens and folds the phone index, and jumps to a heading, after the phone
+list has left so the page no longer shifts under the jump.
+
+`app/not-found.tsx` (every unmatched address and every `notFound()`, PAGES-65) and `app/error.tsx`
+(the error boundary of every route with no error file of its own, PAGES-68) share
+[`components/ui/PageStateLayout.tsx`](../components/ui/PageStateLayout.tsx): the state in the saved
+cars' column width, beside an empty map drawn for the eye only. The not-found page's header and tab
+bar follow the session, not the path (see [Navigation](#navigation)).
+
 ### UI primitives
 
-`components/ui/` wraps Radix primitives: `button`, `card`, `input`, `label`,
+`components/ui/` wraps Radix primitives: `button`, `input`, `label`,
 `separator`, plus `toggle-chip` and `checkbox-select`, which have behaviour of their own,
-`Headline` (the question-and-punchline headline, used by the landing, `/login` and
-`EmptyState`), and the shared states `EmptyState` (the headline, its line and its actions),
-`PageError` (the page-error state, used by the error files of `/map`, `/favorites`, `/alerts` and
-`/alerts/[id]`) and the map's card placeholders (`CardPlaceholder` and `SheetCardPlaceholder`, in
+`Headline` (the question-and-punchline headline, used by the landing, the access pages and
+`EmptyState`), `BusyButton` (a button's busy state: `aria-disabled` and `aria-busy`, a press ignored, so
+the focus stays on it, and the spinner left of the unchanged label), `ResponsiveDialog` (the
+centred dialog on desktop and bottom sheet on the phone of the account forms and the alerts'
+delete confirmation), and the shared states `EmptyState` (the headline, its line and its actions),
+`PageError` (the page-error state, used by the error files of `/map`, `/favorites`, `/alerts`,
+`/alerts/[id]`, `/account` and the root `app/error.tsx`), `PageStateLayout` (the frame of the
+not-found page and the root error) and the map's card placeholders (`CardPlaceholder` and `SheetCardPlaceholder`, in
 `components/ui/CardGridSkeleton.tsx`). The popovers and sheets use Radix Popover and Dialog
 directly, and the price range Radix Slider.
 
@@ -863,8 +939,11 @@ example table is the whole contract of what each page offers; the look is
   [`components/nav/SiteHeader.tsx`](../components/nav/SiteHeader.tsx): the map header (`/map`), the
   pages header (`/favorites`, `/alerts`, `/alerts/[id]`, `/account`, and the signed-in landing), the
   landing header (`/` signed out), and the sign-in/legal header (the sign-in, account-recovery and
-  legal pages, and every page with no drawn header). Each header's content is fixed rather than one
-  bar growing conditionals per page.
+  legal pages, and the development pages `/palette` and `/typography`). An address no route matches
+  is the not-found page, whose header follows the session: the sign-in header signed out, the pages
+  header with nothing current signed in, and then the tab bar too, with no tab current
+  ([`specs/redesign-pages.md`](specs/redesign-pages.md), PAGES-66). Each header's content is fixed
+  rather than one bar growing conditionals per page.
 - **Desktop and phone regions switch at `lg` in CSS**, not through a media-query hook, which would
   flash on hydration because the server cannot know the viewport. jsdom has no layout engine, so
   what each viewport shows is proved in e2e.
@@ -877,7 +956,8 @@ example table is the whole contract of what each page offers; the look is
   The phone map has no header, so it has none.
 - **The phone tab bar** ([`components/nav/TabBar.tsx`](../components/nav/TabBar.tsx),
   [`specs/redesign-map.md`](specs/redesign-map.md) MAPUI-52, MAPUI-53) shows at phone width only, on
-  the map (signed in or out) and on the signed-in pages, and the signed-in landing (ENTRY-8). It
+  the map (signed in or out) and on the signed-in pages, the signed-in landing (ENTRY-8) and the
+  signed-in not-found page (PAGES-66). It
   runs the full width of the screen,
   padded at the bottom by the safe-area inset; the root layout's viewport opts into the safe area
   with `viewport-fit=cover` (HEAD-17). On the map it hides only while the results sheet is full,
@@ -974,7 +1054,7 @@ Motion (`motion/react-client`, with `AnimatePresence` from `motion/react`) rathe
 than CSS animations for React components.
 
 **Reuse the presets in [`lib/animations.ts`](../lib/animations.ts)** —
-`fadeInUp`, `fadeInDown`, `dropdownReveal`, `sheetSlideUp`, `crossFade`, `fadeIn(delay)`
+`fadeInUp`, `dropdownReveal`, `sheetSlideUp`, `crossFade`
 — instead of re-declaring `initial`/`animate` inline.
 
 Animate only `transform` and `opacity`. Never animate layout properties, and
@@ -1286,7 +1366,11 @@ seeded by a direct insert (`seedFavorites` in `e2e/fixtures/db.ts`) rather than 
 two hundred saves would take minutes, and the order depends on each row's `created_at`, which only
 an insert can set. The alert pages (`e2e/alerts-ui.spec.ts`, the ALERTUI criteria that need a
 signed-in user's alerts) are seeded the same way, by `seedAlerts` and `seedAlertMatches`, up to
-200 matches per alert.
+200 matches per alert. The account pages (`e2e/pages-account.spec.ts`) seed extra sessions with
+`seedSessions` and a Google-only account, which the `/login` form cannot sign in, with
+`seedGoogleOnlySession`, whose session cookie `signInWithSessionToken` (`e2e/fixtures/session.ts`)
+signs with `BETTER_AUTH_SECRET` — or, unset, the fallback secret `playwright.config.ts` hands
+the dev server, which it exports and the fixture imports, so there is one copy.
 
 **The alert-queue tests are the only database-backed ones with no browser in
 them.** They drive `FOR UPDATE SKIP LOCKED` through two overlapping `pg`

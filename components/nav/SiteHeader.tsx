@@ -12,7 +12,8 @@ import { PagesHeader } from "./PagesHeader";
 // docs/specs/redesign-navigation.md (HEAD): picks the header by route and
 // session, exactly as the spec's worked-example table does. The session comes
 // from `authClient.useSession()`, so a session that ends on screen re-renders
-// the signed-out header without a reload (HEAD-12).
+// the signed-out header without a reload (HEAD-12). The not-found page is the
+// one route whose header the session alone picks (PAGES-66).
 interface SessionUser {
   name?: string | null;
   email: string;
@@ -49,7 +50,17 @@ export function SiteHeader() {
       {kind === "landing" && session.status !== "signedIn" && (
         <LandingHeader pending={session.status === "pending"} />
       )}
-      {(kind === "access" || kind === "legal") && <AccessHeader legal={kind === "legal"} />}
+      {kind === "notFound" && session.status === "signedIn" && (
+        <PagesHeader session={session} current={undefined} onAccount={false} open={false} />
+      )}
+      {/* While the session resolves, the not-found page offers neither
+          header: the landing's pending boxes stand in (PAGES-66, HEAD-11). */}
+      {kind === "notFound" && session.status === "pending" && <LandingHeader pending />}
+      {(kind === "access" ||
+        kind === "legal" ||
+        (kind === "notFound" && session.status === "signedOut")) && (
+        <AccessHeader legal={kind === "legal"} />
+      )}
     </header>
   );
 }

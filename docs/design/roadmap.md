@@ -33,7 +33,7 @@ the phase's spec.
 | F4 Landing and sign in | [redesign-entry.md](../specs/redesign-entry.md) (ENTRY) | Implemented 2026-10-15 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | `/` landing and `/login` |
 | F5 Saved cars | [redesign-saved.md](../specs/redesign-saved.md) (SAVED) | Implemented 2026-10-15 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | `/favorites` |
 | F6 Alerts | [redesign-alerts.md](../specs/redesign-alerts.md) (ALERTUI) | Implemented 2026-10-16 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | `/alerts` and `/alerts/[id]` |
-| F7 Remaining pages | — | Not started | Register, account, password, legal, error pages |
+| F7 Remaining pages | [redesign-pages.md](../specs/redesign-pages.md) (PAGES) | Implemented 2026-10-17 on `claude/app-structural-redesign-c4a34d`, screenshots approved by the owner; not merged yet | Register, account, password, legal, error pages |
 
 Order matters: F1 before everything (every phase uses its tokens and primitives); F2 before F3–F7
 (every screen sits under a header); F3 before F5 and F6 (they reuse its map, pins, preview card and
@@ -81,9 +81,15 @@ amends `alerts.md` (ALERT), `redesign-map.md` (MAPUI), `redesign-saved.md` (SAVE
 (EXPORT). Showing which matches are new is issue #122.
 
 **F7 Remaining pages.** Design: `F0-registro`, `F0-confirmar`, `F0-contrasena`,
-`F0-nueva-contrasena`, `F0-cuenta`, `F0-legal`, `F0-estado-error-pagina`. Pieces: PasswordField,
-AccountCard, the legal table of contents, the page error state. Governs: `auth-email-and-oauth.md`
-(AUTH), `account-data-export.md` (EXPORT), and the error pages' criteria in `core-frontend.md` (FRONT).
+`F0-nueva-contrasena`, `F0-cuenta`, `F0-legal`, `F0-estado-error-pagina`, and their state boards
+`F7-registro-estados`, `F7-confirmar-estados`, `F7-contrasena-estados`, `F7-cuenta-editar`,
+`F7-cuenta-dos-pasos`, `F7-cuenta-sesiones-google`, `F7-cuenta-eliminar-y-mas`, `F7-legal-estados`,
+`F7-no-existe`. Pieces: PasswordField, AccountCard, the legal table of contents (LegalToc), the page
+error state. Governs: `auth-email-and-oauth.md` (AUTH), `account-data-export.md` (EXPORT), and the
+error pages' criteria in `core-frontend.md` (FRONT), through `redesign-pages.md` (PAGES), which amends
+`auth-email-and-oauth.md` (AUTH), `core-better-auth.md` (BAUTH), `account-data-export.md` (EXPORT),
+`core-data-model.md` (DATA), `core-frontend.md` (FRONT), `core-platform.md` (PLAT),
+`redesign-navigation.md` (HEAD), `redesign-entry.md` (ENTRY) and `redesign-foundation.md` (LOOK).
 
 ## After the redesign
 

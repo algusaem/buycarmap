@@ -21,7 +21,10 @@ interface FieldMessageProps {
  * form-level message (LoginForm's email/totp/form errors and OAuth banner,
  * PasswordInput's error), so the icon, spacing and animation never drift
  * between them. Mounted unconditionally by its caller; `show` drives the
- * appear/disappear through `AnimatePresence`.
+ * appear/disappear through `AnimatePresence`. A message already shown when
+ * it mounts (the deletion warning, docs/specs/redesign-pages.md PAGES-54,
+ * PAGES-58) belongs to the state that mounted it and draws at full opacity
+ * at once, rather than fading on its own after a sheet that slides in.
  */
 export function FieldMessage({
   show,
@@ -32,7 +35,7 @@ export function FieldMessage({
   children,
 }: FieldMessageProps) {
   return (
-    <AnimatePresence>
+    <AnimatePresence initial={false}>
       {show && (
         <motion.p
           key="field-message"

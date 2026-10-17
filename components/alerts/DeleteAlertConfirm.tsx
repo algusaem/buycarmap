@@ -2,13 +2,10 @@
 
 import { type RefObject, useRef } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { PhoneBottomSheet } from "@/components/map/phone/SheetChrome";
+import { ResponsiveDialog } from "@/components/ui/ResponsiveDialog";
 import { Button } from "@/components/ui/button";
-import { crossFade } from "@/lib/animations";
 
 // docs/specs/redesign-alerts.md (ALERTUI-33 to ALERTUI-35);
 // F6-alerta-escritorio and F6-alerta-estados; Button/README.md › Peligro.
@@ -46,75 +43,26 @@ export function DeleteAlertConfirm({
   onConfirm,
 }: DeleteAlertConfirmProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const focusCancel = (event: Event) => {
-    event.preventDefault();
-    cancelRef.current?.focus();
-  };
-  const body = (
-    <ConfirmBody
-      name={name}
-      deleting={deleting}
-      cancelRef={cancelRef}
-      onCancel={onCancel}
-      onConfirm={onConfirm}
-    />
-  );
-
-  if (isPhone) {
-    return (
-      <PhoneBottomSheet
-        open={open}
-        onClose={onCancel}
-        returnFocusRef={returnFocusRef}
-        overlayClassName="bg-bg/72"
-        className="gap-3.5 px-5 pb-sheet-bottom"
-        entrance="slide"
-        role="alertdialog"
-        onOpenAutoFocus={focusCancel}
-        // A drag refused while the delete runs would leave the sheet where it was let go.
-        dragDisabled={deleting}
-      >
-        {body}
-      </PhoneBottomSheet>
-    );
-  }
 
   return (
-    <DialogPrimitive.Root
+    <ResponsiveDialog
       open={open}
-      onOpenChange={(next) => {
-        if (!next) onCancel();
-      }}
+      onClose={onCancel}
+      isPhone={isPhone}
+      returnFocusRef={returnFocusRef}
+      role="alertdialog"
+      initialFocusRef={cancelRef}
+      // A drag refused while the delete runs would leave the sheet where it was let go.
+      dragDisabled={deleting}
     >
-      <AnimatePresence>
-        {open && (
-          <DialogPrimitive.Portal forceMount>
-            <DialogPrimitive.Overlay forceMount asChild>
-              <motion.div {...crossFade} className="fixed inset-0 z-50 bg-bg/72" />
-            </DialogPrimitive.Overlay>
-            <DialogPrimitive.Content
-              forceMount
-              asChild
-              role="alertdialog"
-              aria-describedby={undefined}
-              onOpenAutoFocus={focusCancel}
-              onCloseAutoFocus={(event) => {
-                if (!returnFocusRef.current) return;
-                event.preventDefault();
-                returnFocusRef.current.focus();
-              }}
-            >
-              <motion.div
-                {...crossFade}
-                className="fixed top-1/2 left-1/2 z-50 flex w-95 -translate-x-1/2 -translate-y-1/2 flex-col gap-3.5 rounded-card border border-line bg-surface p-5 font-sans text-text shadow-float"
-              >
-                {body}
-              </motion.div>
-            </DialogPrimitive.Content>
-          </DialogPrimitive.Portal>
-        )}
-      </AnimatePresence>
-    </DialogPrimitive.Root>
+      <ConfirmBody
+        name={name}
+        deleting={deleting}
+        cancelRef={cancelRef}
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+      />
+    </ResponsiveDialog>
   );
 }
 

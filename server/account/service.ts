@@ -20,8 +20,54 @@ function credentialPassword(accounts: { provider: string; password: string | nul
 }
 
 /**
- * What the account page renders. `password` is null for OAuth-only accounts,
- * which changes which forms apply; only its presence crosses to the client.
+ * A user's live sessions, newest-used first: the one filter and order behind
+ * the «Sesiones» card's count and line (findAccountOverview) and its dialog's
+ * list (findMySessions), so the two never disagree. An expired session is
+ * neither counted nor listed (docs/specs/redesign-pages.md, PAGES-35, PAGES-49;
+ * decided 2026-10-16, owner).
+ */
+function liveSessions() {
+  return {
+    where: { expires: { gt: new Date() } },
+    orderBy: { updatedAt: "desc" as const },
+  };
+}
+
+/** A session as /account shows it, on the «Sesiones» card and in its dialog. */
+export interface ListedSession {
+  id: string;
+  // "" rather than null for a row with no recorded device — a session
+  // created outside a real browser request (an older row, or a test). The UI
+  // renders this the same way as an unrecognised device, never a blank cell.
+  userAgent: string;
+  lastUsedAt: Date;
+  /** The session behind this very request: «esta», «Este dispositivo» (PAGES-35, PAGES-49). */
+  current: boolean;
+}
+
+/** One session row as ListedSession, marked `current` when it is the request's own. */
+export function toListedSession(
+  session: { id: string; userAgent: string | null; updatedAt: Date },
+  currentSessionId: SessionId | null,
+): ListedSession {
+  return {
+    id: session.id,
+    userAgent: session.userAgent ?? "",
+    lastUsedAt: session.updatedAt,
+    current: session.id === currentSessionId,
+  };
+}
+
+/**
+ * What the account page renders (docs/specs/redesign-pages.md, PAGES-60), in
+ * one query: the profile and `createdAt`, whether there is a password (never
+ * the hash, which stays here: an OAuth-only account has none, which changes
+ * which cards apply), the linked providers other than `credential`, the
+ * counts of the user's saved cars and alerts with soft-deleted ones left out,
+ * and the sessions with only their id, user agent and last use (never the
+ * token), the live ones newest-used first (liveSessions), as findMySessions
+ * reads them minus the IP.
+ * Every relation is read through the one user row `userId` selects.
  * `emailConfirmed` is Better Auth's own "email verified" flag (BAUTH-19).
  */
 export async function findAccountOverview(userId: UserId) {
@@ -33,38 +79,44 @@ export async function findAccountOverview(userId: UserId) {
       emailConfirmed: true,
       twoFactorEnabled: true,
       version: true,
+      createdAt: true,
       accounts: { select: { provider: true, password: true } },
+      _count: { select: { favorites: { where: notDeleted }, alerts: { where: notDeleted } } },
+      sessions: { ...liveSessions(), select: { id: true, userAgent: true, updatedAt: true } },
     },
   });
   if (!user) return null;
 
-  const { accounts, ...overview } = user;
+  const { accounts, _count, ...overview } = user;
   return {
     ...overview,
-    password: credentialPassword(accounts),
+    hasPassword: credentialPassword(accounts) !== null,
     // The "credential" row is Better Auth's own sign-in plumbing, never a
-    // provider the user connected, so it must never reach the "connected
-    // accounts" list or its count (security review BLOCKER).
-    accounts: accounts
-      .filter((account) => account.provider !== "credential")
-      .map(({ provider }) => ({ provider })),
+    // provider the user connected, so it must never reach the Google card
+    // (security review BLOCKER).
+    providers: accounts
+      .map((account) => account.provider)
+      .filter((provider) => provider !== "credential"),
+    favoritesCount: _count.favorites,
+    alertsCount: _count.alerts,
   };
 }
 
 /**
- * Asserts `version` (optimistic locking, DATA-15) and bumps it. Returns
- * whether a row matched: `false` on a conflict.
+ * Asserts `version` (optimistic locking, DATA-15) and bumps it. Returns the
+ * row's new version, or `null` on a conflict: the update matched exactly
+ * `version` and moved it on by one.
  */
 export async function updateUserName(
   userId: UserId,
   name: string | null,
   version: number,
-): Promise<boolean> {
+): Promise<number | null> {
   const { count } = await prisma.user.updateMany({
     where: { id: userId, version },
     data: { name, version: { increment: 1 }, updatedById: userId },
   });
-  return count === 1;
+  return count === 1 ? version + 1 : null;
 }
 
 export async function findPasswordAndEmail(userId: UserId) {
@@ -80,7 +132,8 @@ export async function findPasswordAndEmail(userId: UserId) {
  * Asserts `version` (optimistic locking, DATA-15), bumps it, sets the new
  * hash on the credential account and drops the other sessions — all in one
  * transaction, and the sessions are dropped only when the password actually
- * changed, never on a conflict. Returns whether a row matched.
+ * changed, never on a conflict. Returns the row's new version, or `null` on
+ * a conflict, as updateUserName does.
  */
 export async function replacePassword(
   userId: UserId,
@@ -92,13 +145,13 @@ export async function replacePassword(
   // on the request, e.g. a test calling this action directly) excludes
   // nothing, so every session is revoked.
   keepSessionId: SessionId | null = null,
-): Promise<boolean> {
+): Promise<number | null> {
   return prisma.$transaction(async (tx) => {
     const { count } = await tx.user.updateMany({
       where: { id: userId, version },
       data: { version: { increment: 1 }, updatedById: userId },
     });
-    if (count === 0) return false;
+    if (count === 0) return null;
     // BAUTH-19: the credential account is the only place the password lives;
     // Better Auth's sign-in reads it there.
     await tx.account.updateMany({
@@ -108,7 +161,7 @@ export async function replacePassword(
     await tx.session.deleteMany({
       where: { userId, ...(keepSessionId ? { id: { not: keepSessionId } } : {}) },
     });
-    return true;
+    return version + 1;
   });
 }
 
@@ -163,12 +216,16 @@ export async function deleteUser(userId: UserId): Promise<void> {
   });
 }
 
-/** BAUTH-4: the signed-in user's own sessions, newest-used first. */
+/**
+ * BAUTH-4: the signed-in user's own sessions, newest-used first. An expired
+ * session is not listed (docs/specs/redesign-pages.md, PAGES-49).
+ */
 export async function findMySessions(userId: UserId) {
+  const live = liveSessions();
   return prisma.session.findMany({
-    where: { userId },
+    where: { userId, ...live.where },
     select: { id: true, userAgent: true, ipAddress: true, updatedAt: true },
-    orderBy: { updatedAt: "desc" },
+    orderBy: live.orderBy,
   });
 }
 

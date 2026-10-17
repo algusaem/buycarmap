@@ -249,7 +249,7 @@ Storyset". `next-themes` leaves `package.json` and the lockfile, and FRONT-27 dr
 about the stored theme. The toast and the select dropdown got their own design in the UI Kit and the
 design system (`docs/design/system/components/Toast`, `Select`), derived from the map preview card,
 accepted by the owner and published (2026-10-12). The select keeps a single style — checkboxes —
-even where one value is the usual choice, so the control never changes shape between fields. The card container needs no new piece: `components/ui/card.tsx` holds the account
+even where one value is the usual choice, so the control never changes shape between fields. The card container needs no new piece: the shared card primitive (removed 2026-10-16, F7 — redesign-pages.md: no caller left) holds the account
 blocks and the sign-in forms, which the design already draws as AccountCard and the auth panels, so
 the primitive takes that look (`surface`, `line`, `radius-card`). The sign-in panels use the
 larger `radius-panel` (28px); they get it with their layout in F4 and F7.

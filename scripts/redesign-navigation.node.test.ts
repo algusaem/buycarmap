@@ -25,12 +25,14 @@ describe("HEAD-17: the root layout's viewport opts into the safe area", () => {
 });
 
 describe("HEAD-13: the account page offers sign-out", () => {
-  it("HEAD-13: app/account/page.tsx imports and renders SignOutButton", () => {
-    const content = readFileSync(join(ROOT, "app/account/page.tsx"), "utf-8");
+  // docs/specs/redesign-pages.md (PAGES-25, PAGES-26; HEAD-13 kept with the
+  // new layout): the account page's client component places «Cerrar sesión»
+  // on the heading's row or after the last card, by width, so it is the file
+  // that renders it.
+  it("HEAD-13: components/account/AccountPage.tsx imports and renders SignOutButton", () => {
+    const content = readFileSync(join(ROOT, "components/account/AccountPage.tsx"), "utf-8");
 
-    expect(content).toMatch(
-      /import\s*\{\s*SignOutButton\s*\}\s*from\s*["']@\/components\/account\/SignOutButton["']/,
-    );
+    expect(content).toMatch(/import\s*\{\s*SignOutButton\s*\}\s*from\s*["']\.\/SignOutButton["']/);
     expect(content).toContain("<SignOutButton");
   });
 });

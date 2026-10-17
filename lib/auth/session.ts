@@ -46,6 +46,20 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 }
 
 /**
+ * The signed-in user and the id of the session behind this request, from one
+ * session lookup, or null: for a page that needs both, as /account does to
+ * mark «esta» among the user's sessions (docs/specs/redesign-pages.md,
+ * PAGES-35). The same lookup as getCurrentUser, so revocation holds alike.
+ */
+export async function getCurrentUserWithSessionId(): Promise<{
+  user: SessionUser;
+  sessionId: SessionId;
+} | null> {
+  const session = await getCurrentSession();
+  return session ? { user: session.user, sessionId: asSessionId(session.session.id) } : null;
+}
+
+/**
  * The signed-in session's own id, or null. BAUTH-2: changing a password
  * revokes every *other* session, not this device's own — the action needs
  * this id to exclude it from that delete.

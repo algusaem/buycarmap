@@ -48,7 +48,10 @@ layout (F3–F7).
   current.
 - [x] HEAD-6 · component — The sign-in, account-recovery and legal pages (`/login`, `/register`,
   `/forgot-password`, `/reset-password`, `/verify-email`, `/confirm-email`, `/privacy`, `/terms`) show
-  the wordmark, the language control and «Volver al mapa» linking to `/map`, signed in or not.
+  the wordmark, the language control and «Volver al mapa» linking to `/map`, signed in or not. — the
+  not-found page takes the pages header and the tab bar signed in, except `/alerts/[id]`'s 404, which
+  keeps «Alertas» current, and an error page takes its route's header (PAGES-66, PAGES-68) (amended
+  2026-10-16, PAGES — redesign-pages.md)
 - [x] HEAD-7 · component — At phone width each header shows the wordmark, the language control and
   one item on the right: «Entrar» on
   the signed-out landing, «Mapa» on the sign-in and account-recovery pages, and «Volver» on the legal
@@ -58,12 +61,16 @@ layout (F3–F7).
   (amended 2026-10-13, MAPUI — redesign-map.md; amended 2026-10-14, ENTRY — redesign-entry.md)
   — `/alerts/[id]` also shows «Volver», a 40px round link to `/alerts` named «Volver», before the
   wordmark (ALERTUI-22) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
+  — the not-found page takes the access header signed out, «Volver al mapa» at desktop width, «Mapa»
+  at phone width (PAGES-66) (amended 2026-10-16, PAGES — redesign-pages.md)
 - [x] HEAD-8 · component — At phone width, signed in, `/favorites`, `/alerts`, `/alerts/[id]` and
   `/account` show the bottom nav with «Mapa», «Guardados» and «Alertas» links, the current section
   marked as in HEAD-4 and none marked on `/account`; it is absent at desktop width, when signed out,
   and on every other page. — the bottom nav becomes the full-width tab bar: signed in it adds
   «Cuenta» and also shows on the map, and signed out the map shows it with «Mapa» and «Entrar»
   (MAPUI-52) (amended 2026-10-13, MAPUI — redesign-map.md)
+  — signed in, the not-found page shows the tab bar with no tab current, except `/alerts/[id]`'s 404,
+  which keeps «Alertas» current (PAGES-66) (amended 2026-10-16, PAGES — redesign-pages.md)
 - [x] HEAD-9 · component — The avatar shows the upper-case first letter of the user's name, or of
   their email when they have no name, and its accessible name is «Cuenta» ("Account" in English).
 - [x] HEAD-10 · component — The language control is a group named «Idioma» with one button per
@@ -74,7 +81,9 @@ layout (F3–F7).
 - [x] HEAD-12 · component — A session that ends while a signed-in header is on screen switches it to
   the signed-out header of the same page, without a reload.
 - [x] HEAD-13 · component — The account page offers «Cerrar sesión»; using it ends the session and
-  returns the user to `/`.
+  returns the user to `/`. — kept, with the new layout: «Cerrar sesión» on the heading's row at
+  desktop width, after the last card at phone width (PAGES-25, PAGES-26) (amended 2026-10-16, PAGES —
+  redesign-pages.md).
 - [x] HEAD-14 · component — No page renders a navigation menu sheet, a hamburger trigger or an
   account dropdown.
 - [x] HEAD-15 · e2e — Every header control and every bottom-nav link at phone width has a hit area of
@@ -87,7 +96,8 @@ layout (F3–F7).
   24px float becomes a full-width tab bar padded by the safe-area inset (MAPUI-52)
   (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] HEAD-18 · e2e — Signed in at phone width, the last control of `/account` («Cerrar sesión») can
-  be scrolled fully clear of the bottom nav and is clickable.
+  be scrolled fully clear of the bottom nav and is clickable. — kept, with the new layout (PAGES-26)
+  (amended 2026-10-16, PAGES — redesign-pages.md).
 - [x] HEAD-19 · e2e — Signed in at phone width, `/favorites` and `/alerts` scroll when their content is
   taller than the screen, and their last element can be scrolled fully clear of the bottom nav (bug
   fix, found 2026-10-12). — So does `/alerts/[id]`, whose last element is «Eliminar alerta», after
@@ -150,8 +160,9 @@ NAV-10) — and that a session ending mid-page stops offering them (HEAD-12).
 - Phones with a home indicator (HEAD-17): the tab bar is padded by the safe area.
 - No phone header shows the avatar: every signed-in page, the landing included, has «Cuenta» in the
   tab bar (MAPUI-54, ENTRY-8). (amended 2026-10-14, ENTRY — redesign-entry.md)
-- Pages with no drawn header (`/palette`, `/typography`, the error and not-found pages) take the
-  sign-in/legal header (HEAD-6's shape).
+- Pages with no drawn header (`/palette`, `/typography`) take the sign-in/legal header (HEAD-6's
+  shape); the not-found page takes the pages header signed in (PAGES-66) and an error page its
+  route's header (PAGES-68). (amended 2026-10-16, PAGES — redesign-pages.md)
 
 ## Out of scope
 
