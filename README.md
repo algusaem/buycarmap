@@ -1,26 +1,58 @@
 # BuyCarMap
 
-Second-hand car listings from several Spanish marketplaces, merged into one
-search and plotted on a map. Filter by location, price, make/model, fuel,
-gearbox, maximum mileage, minimum year and recency; browse the results as a card
-list and a map that stay in sync. Horsepower is no longer offered; old links that
-carry it still work.
+Second-hand car listings from Wallapop, coches.net and Milanuncios, merged into one search and
+plotted on a map of Spain.
 
-Live sources are **Wallapop**, **coches.net** and **Milanuncios** — none of them
-offer a public API, so each is wired into the server-side search
-(`server/search/service.ts`, ADR 0016) and normalised into one shared listing
-shape. If a source is down, the others still render. Milanuncios answers 405 to
-requests from Vercel, so production gets no Milanuncios listings
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-map-dark.webp">
+  <img src="docs/images/hero-map-light.webp" width="100%" alt="The BuyCarMap map screen on a desktop monitor, a tablet and a phone: car listings from Wallapop, coches.net and Milanuncios as cards with lime prices beside a dark map of Spain with a price pin for each car">
+</picture>
+
+## Highlights
+
+- **One search, three marketplaces.** Wallapop, coches.net and Milanuncios are searched together
+  and merged into one result list; if a source is down, the others still render.
+- **One set of filters for every source**: location and radius, price, make and model, fuel,
+  gearbox, maximum mileage, minimum year and recency. Horsepower is no longer offered; old links
+  that carry it still work.
+- **A card list and a map that stay in sync**, with a price pin for each car.
+- **Saved cars**: keep the listings you like, with their own map, at `/favorites`.
+- **Email alerts**: save a search and get a digest when new cars match it, with one-click
+  unsubscribe.
+- **Accounts**: email and password with verification and reset, two-factor authentication,
+  optional Google sign-in, and a download of your own data.
+- **Spanish and English**, Spanish by default.
+
+None of the three offers a public API: each is wired into the server-side search
+(`server/search/service.ts`, ADR 0016) and normalised into one shared listing shape. Milanuncios
+answers 405 to requests from Vercel, so production gets no Milanuncios listings
 ([#52](https://github.com/algusaem/buycarmap/issues/52)); the code stays.
 
-![The map view: listings from three sources beside a map of Spain](docs/images/map.png)
+## Design
+
+BuyCarMap 2.0 is built on a documented design system — colour and type tokens, components and a UI
+kit — kept in [`docs/design/`](docs/design/README.md). Every screen was designed first, on a canvas,
+and only once the design was approved was it specified and built. [The 2.0 redesign](docs/design/redesign-2.0.md)
+tells the story and shows each screen before and after.
+
+## Contents
+
+- [Quickstart](#quickstart) · [Stack](#stack)
+- [Getting started](#getting-started): [prerequisites](#prerequisites),
+  [environment](#the-minimum-env), [worktrees](#working-in-a-worktree), [commands](#commands),
+  [production setup](#production-setup-upstash-qstash), [git hooks](#git-hooks),
+  [Claude commands](#claude-commands-and-checks), [troubleshooting](#when-something-is-wrong)
+- [Documentation](#documentation): [what lives where](#what-lives-where), [index](#index),
+  [specs](#specs), [decisions](#decisions)
+- [Contributing](#contributing) · [What CI enforces](#what-ci-enforces)
+- [Ownership map](#ownership-map)
 
 ## Quickstart
 
 ```bash
 pnpm install
 cp .env.example .env      # fill in BETTER_AUTH_SECRET; DATABASE_URL's default already points at Compose
-pnpm db:up                 # start the local Postgres (needs Docker Desktop running)
+pnpm db:up                # start the local Postgres (needs Docker Desktop running)
 pnpm exec prisma generate
 pnpm db:branch && pnpm db:seed
 pnpm dev
@@ -35,15 +67,16 @@ step — see [Getting started](#getting-started), which also covers why
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL on Neon via Prisma 7
-· NextAuth 4 · Tailwind CSS 4 with Radix primitives · Leaflet · Vitest ·
-Playwright.
+Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL on Neon via Prisma 7 · Better Auth
+(sessions in Postgres) · next-intl · nuqs · React Hook Form + Zod 4 · Tailwind CSS 4 with Radix
+primitives · Motion · Leaflet + react-leaflet · Upstash Redis and QStash · Resend + react-email ·
+Pino · Sentry · Vitest · Playwright.
 
 ## Getting started
 
 From a fresh clone to a running app is the [Quickstart](#quickstart) above:
 roughly ten minutes, most of it waiting for `pnpm install`. This section is what
-the four commands do not tell you.
+those commands do not tell you.
 
 ### Prerequisites
 
@@ -188,8 +221,8 @@ Husky installs the hooks on `pnpm install` (the `prepare` script). See
 checked against.
 
 **Pre-commit**: three steps — lint-staged (`biome check --write` on the staged files), then
-`vitest related --run --project unit` on the staged `.ts`/`.tsx`, then `gitleaks git --pre-commit
---staged`.
+`vitest related --run --project unit --project node` on the staged `.ts`/`.tsx`, then
+`gitleaks git --pre-commit --staged`.
 
 **Commit-msg**: commitlint checks the message is a Conventional Commit (`commitlint.config.mjs`).
 
@@ -361,12 +394,15 @@ solo project is ceremony.
 
 #### Spec index
 
+<details>
+<summary>All specs, with their key and status</summary>
+
 | Spec | Key | Status | Area |
 | --- | --- | --- | --- |
-| [data-sources.md](docs/specs/data-sources.md) | SRC | Implemented | Three source integrations, proxy routes, upstream contracts |
+| [data-sources.md](docs/specs/data-sources.md) | SRC | Implemented | Three source integrations and their upstream contracts |
 | [map-and-search.md](docs/specs/map-and-search.md) | MAP | Implemented | Search lifecycle, filters, listings, map |
 | [favorites.md](docs/specs/favorites.md) | FAV | Implemented | Saving listings, favorites page |
-| [cross-cutting.md](docs/specs/cross-cutting.md) | CORE | Implemented | Language, geography, theme |
+| [cross-cutting.md](docs/specs/cross-cutting.md) | CORE | Implemented | Language and geography (its theme criterion is withdrawn: the app is dark only) |
 | [auth-email-and-oauth.md](docs/specs/auth-email-and-oauth.md) | AUTH | Implemented | Auth, email, OAuth, 2FA |
 | [alerts.md](docs/specs/alerts.md) | ALERT | Implemented | Saved criteria, background polling, match emails |
 | [navbar.md](docs/specs/navbar.md) | NAV | Implemented | The pre-2.0 navigation bar; replaced by redesign-navigation.md (HEAD), kept criteria still hold |
@@ -383,8 +419,15 @@ solo project is ceremony.
 | [core-tooling.md](docs/specs/core-tooling.md) | TOOLING | Implemented | Migration phase 3: the verification contract and repository tooling |
 | [core-docs.md](docs/specs/core-docs.md) | DOCS | Implemented | Migration phase 4: the core spec format and docs tree |
 | [core-layout.md](docs/specs/core-layout.md) | LAYOUT | Implemented | Migration phase 5: the server layer and the dependency rules |
-| [core-better-auth.md](docs/specs/core-better-auth.md) | BAUTH | In progress | Migration phase 11: Better Auth, server-side sessions, the permissions layer |
-| [core-environments.md](docs/specs/core-environments.md) | ENV | Approved | Migration phase 12: environments, regions and processor DPAs |
+| [core-platform.md](docs/specs/core-platform.md) | PLAT | Implemented | Migration phase 6: env, database, errors, logging and headers |
+| [core-testing.md](docs/specs/core-testing.md) | TEST | Implemented | Migration phase 7: local database, integration tests and seeds |
+| [core-data-model.md](docs/specs/core-data-model.md) | DATA | Implemented | Migration phase 8: data model conventions |
+| [core-frontend.md](docs/specs/core-frontend.md) | FRONT | Implemented | Migration phase 9: data flow, i18n, URL state, feedback and design tooling |
+| [core-integrations.md](docs/specs/core-integrations.md) | INT | Implemented | Migration phase 10: rate limiting, background work and email |
+| [core-better-auth.md](docs/specs/core-better-auth.md) | BAUTH | Implemented | Migration phase 11: Better Auth, server-side sessions, the permissions layer |
+| [core-environments.md](docs/specs/core-environments.md) | ENV | Implemented | Migration phase 12: environments, regions and processor DPAs |
+
+</details>
 
 ### Decisions
 
@@ -404,24 +447,85 @@ Each one answers three questions and nothing else:
 A decision with no plausible alternative did not need writing down. If you cannot
 name what it beat, it is a fact, and facts belong in the doc for that area.
 
+<details>
+<summary>All decisions, oldest first</summary>
+
 | Decision | Summary |
 | --- | --- |
-| [0001 — No data-fetching library](docs/decisions/0001-no-data-fetching-library.md) | Hooks own their own request lifecycles |
+| [0001 — No data-fetching library](docs/decisions/0001-no-data-fetching-library.md) | Hooks own their own request lifecycles; superseded by 0016 for the search request shape |
 | [0002 — pnpm](docs/decisions/0002-pnpm.md) | pnpm 11, with an explicit build-script allowlist (the allowlist's keys: 0009) |
-| [0003 — Proxy routes for every source](docs/decisions/0003-proxy-routes.md) | The browser never calls an upstream marketplace |
-| [0004 — JWT sessions](docs/decisions/0004-jwt-sessions.md) | Stateless sessions plus a revocation clock |
-| [0005 — Rate limiting in Postgres](docs/decisions/0005-postgres-rate-limiting.md) | Not in memory, because serverless has no memory to speak of |
-| [0006 — Scheduling the alert runner](docs/decisions/0006-alert-scheduling.md) | A GitHub Actions cron draining a Postgres queue |
+| [0003 — Proxy routes for every source](docs/decisions/0003-proxy-routes.md) | The browser never calls an upstream marketplace; superseded by 0016, which deleted the routes |
+| [0004 — JWT sessions](docs/decisions/0004-jwt-sessions.md) | Stateless sessions plus a revocation clock; superseded by 0018 |
+| [0005 — Rate limiting in Postgres](docs/decisions/0005-postgres-rate-limiting.md) | Not in memory, because serverless has no memory to speak of; superseded by 0017 |
+| [0006 — Scheduling the alert runner](docs/decisions/0006-alert-scheduling.md) | A GitHub Actions cron draining a Postgres queue; superseded by 0017 |
 | [0007 — Adopt the shared rules and checks](docs/decisions/0007-adopt-core-rules.md) | `RULES.md`, `STACK.md` and the core checks; the legacy deviations and the phase that removes each |
 | [0008 — The build-script allowlist under pnpm 11](docs/decisions/0008-pnpm-11-allow-builds.md) | `allowBuilds` for pnpm 11 next to `onlyBuiltDependencies` for pnpm 10; supersedes that paragraph of 0002 (superseded by 0009) |
 | [0009 — One build-script allowlist once pnpm is pinned](docs/decisions/0009-pnpm-pinned-allow-builds.md) | `packageManager` pins pnpm 11; `allowBuilds` is the only allowlist; supersedes 0008 |
 | [0010 — The TODO ban is a lint script, not a Biome rule](docs/decisions/0010-todo-check-script.md) | `scripts/todo-check.mjs` runs in `pnpm lint`, finding comments through TypeScript's syntactic classification |
 | [0011 — Keep criterion ids, spec:check and extra spec sections](docs/decisions/0011-spec-ids-and-sections.md) | The core spec sections plus optional Contracts, Decisions and rationale and Open questions; `KEY-n` checklist items still tied to test titles by `spec:check` |
 | [0012 — Root layout and server layer](docs/decisions/0012-root-layout-and-server-layer.md) | The root layout stays permanently instead of moving into `src/`; the server-layer dependency rules, the `schema.ts` and route-handler exceptions, and the NextAuth exception until phase 11 |
+| [0013 — Platform runtime](docs/decisions/0013-platform-runtime.md) | Env, database, errors, logging and headers; a per-request CSP nonce built in `proxy.ts` |
+| [0014 — Local database and integration tests](docs/decisions/0014-local-database-and-integration-tests.md) | Docker Compose Postgres with one database per git branch; real Postgres through Testcontainers for the integration tests |
+| [0015 — Data model conventions](docs/decisions/0015-data-model-conventions.md) | Every model re-keyed to `uuid(7)`, with the snake_case renames in the same migration |
+| [0016 — Server search action, and the frontend's move onto the core](docs/decisions/0016-server-search-and-next-intl.md) | One server-side fan-out (`searchRound`) behind a Server Action; next-intl |
+| [0017 — Upstash Redis, QStash and react-email](docs/decisions/0017-upstash-qstash-react-email.md) | Rate limiting on Upstash Redis, the alert schedule on QStash, email templates in react-email |
+| [0018 — Better Auth and the permissions layer](docs/decisions/0018-better-auth.md) | Better Auth with sessions in Postgres, replacing NextAuth 4 and its JWT sessions |
 | [0019 — Environments, regions and the base branch](docs/decisions/0019-environments.md) | No staging; one shared seed-only `preview` Neon branch; the full E2E suite stays local plus a preview smoke; `master` kept permanently |
 | [0020 — Radix popover, dialog and slider for the map and search redesign](docs/decisions/0020-radix-popover-dialog-slider.md) | `@radix-ui/react-popover`, `-dialog` and `-slider` for the F3 popovers, phone sheets and price range; the preview card stays a Leaflet popup |
 | [0021 — TanStack Virtual for the saved cars list](docs/decisions/0021-react-virtual.md) | `@tanstack/react-virtual` mounts only the visible saved cars; pin, Back, Tab and removal are rebuilt on top of it |
 | [0022 — No unsaved-changes warning on the access forms and the account dialogs](docs/decisions/0022-access-forms-no-unsaved-guard.md) | Three fields at most, or one short task per dialog: leaving or closing with something typed warns of nothing; departs from `STACK.md` §14 and `RULES.md` §19 for those forms |
+
+</details>
+
+## Contributing
+
+The loop, end to end. Claude drives it; you are not expected to run the commands
+yourself. Asking for a feature is what starts it. It stops and waits for your
+approval at step 2, and wherever `RULES.md` §1 says to ask — see the trigger
+table in `CLAUDE.md`.
+
+1. **Spec.** `/spec <feature>` drafts one from
+   [`docs/specs/_template.md`](docs/specs/_template.md). Status `Draft`. No code
+   yet. Get it reviewed on the acceptance criteria — those are the part that
+   becomes code.
+2. **Approve it.** Status `Approved`. This is the only checkpoint where being
+   wrong is still cheap.
+3. **Failing tests.** `/spec-tests` writes one per acceptance criterion, each
+   titled with its id:
+
+   ```ts
+   it("FAV-3: removes a listing from favorites when the button is toggled off", async () => {
+   ```
+
+   Confirm each fails *for the right reason*. A test that fails on a missing
+   import proves nothing about the behaviour it claims to cover.
+4. **Implement** until green. An existing test changes only after a spec change
+   (`RULES.md` §3, §4); a test that looks wrong is raised, never edited.
+5. **Close the loop.** Tick each criterion's box when its test is green, and set
+   Status `Implemented`; run
+   `/check-all`, which runs every `check-*` review in a fresh subagent and drafts
+   the commit message; `/check-pr` writes the PR text.
+
+Changing behaviour later means editing the spec *first*, then step 3 onward.
+
+### What CI enforces
+
+[`.github/workflows/test.yml`](.github/workflows/test.yml) runs on every push to master and
+every pull request; [`pr-title.yml`](.github/workflows/pr-title.yml) runs on pull requests only:
+
+| Step | Fails when |
+| --- | --- |
+| `pnpm check` | Biome, `depcruise`, knip, `spec:check`, `docs:check` or `todo:check` fail; `tsc` or type-coverage fail; a test fails or coverage drops below the ratchet; the build fails |
+| `gitleaks` | A secret is committed |
+| PR title | The title is not a Conventional Commit |
+
+Pull requests also run Playwright. A nightly job runs the contract tests against
+the real upstream APIs, which is the alarm for a source changing shape.
+
+**`pnpm test:e2e:db` is not in CI.** Those round trips need a branch database and
+a `NEON_API_KEY` secret, so they are a local pre-merge check — a green CI says
+nothing about persistence. The job-by-job table is in
+[CI](docs/ARCHITECTURE.md#ci).
 
 ## Ownership map
 
@@ -583,53 +687,3 @@ Do not point a gap at a loosely related file to make it look covered.
 | `.claude/agents/**` | [STACK.md](STACK.md) |
 | `.claude/review-protocol.md` | [README.md](README.md) |
 | `.claude/settings.json` | [README.md](README.md) |
-
-## Contributing
-
-The loop, end to end. Claude drives it; you are not expected to run the commands
-yourself. Asking for a feature is what starts it. It stops and waits for your
-approval at step 2, and wherever `RULES.md` §1 says to ask — see the trigger
-table in `CLAUDE.md`.
-
-1. **Spec.** `/spec <feature>` drafts one from
-   [`docs/specs/_template.md`](docs/specs/_template.md). Status `Draft`. No code
-   yet. Get it reviewed on the acceptance criteria — those are the part that
-   becomes code.
-2. **Approve it.** Status `Approved`. This is the only checkpoint where being
-   wrong is still cheap.
-3. **Failing tests.** `/spec-tests` writes one per acceptance criterion, each
-   titled with its id:
-
-   ```ts
-   it("FAV-3: removes a listing from favorites when the button is toggled off", async () => {
-   ```
-
-   Confirm each fails *for the right reason*. A test that fails on a missing
-   import proves nothing about the behaviour it claims to cover.
-4. **Implement** until green. An existing test changes only after a spec change
-   (`RULES.md` §3, §4); a test that looks wrong is raised, never edited.
-5. **Close the loop.** Tick each criterion's box when its test is green, and set
-   Status `Implemented`; run
-   `/check-all`, which runs every `check-*` review in a fresh subagent and drafts
-   the commit message; `/check-pr` writes the PR text.
-
-Changing behaviour later means editing the spec *first*, then step 3 onward.
-
-### What CI enforces
-
-[`.github/workflows/test.yml`](.github/workflows/test.yml) runs on every push to master and
-every pull request; [`pr-title.yml`](.github/workflows/pr-title.yml) runs on pull requests only:
-
-| Step | Fails when |
-| --- | --- |
-| `pnpm check` | Biome, `depcruise`, knip, `spec:check`, `docs:check` or `todo:check` fail; `tsc` or type-coverage fail; a test fails or coverage drops below the ratchet; the build fails |
-| `gitleaks` | A secret is committed |
-| PR title | The title is not a Conventional Commit |
-
-Pull requests also run Playwright. A nightly job runs the contract tests against
-the real upstream APIs, which is the alarm for a source changing shape.
-
-**`pnpm test:e2e:db` is not in CI.** Those round trips need a branch database and
-a `NEON_API_KEY` secret, so they are a local pre-merge check — a green CI says
-nothing about persistence. The job-by-job table is in
-[CI](docs/ARCHITECTURE.md#ci).

@@ -380,7 +380,8 @@ Spanish or English in components.
 ## Data model
 
 Fifteen models in [`prisma/schema.prisma`](../prisma/schema.prisma), on Neon
-Postgres, reached through Prisma 7's `@prisma/adapter-pg` driver adapter. Which
+Postgres, reached through Prisma 7's driver adapters: `@prisma/adapter-neon` on Vercel and
+`@prisma/adapter-pg` elsewhere (see Environments › `DATABASE_URL`). Which
 fields hold personal data, and for how long, is in
 [`privacy/data-inventory.md`](privacy/data-inventory.md).
 

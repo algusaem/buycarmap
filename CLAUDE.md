@@ -75,7 +75,7 @@ file is a rule; the explanations live in `docs/`.
 ## Stack today
 
 Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL (Neon) via Prisma 7
-with the **`@prisma/adapter-pg`** driver adapter · Better Auth (Postgres sessions) ·
+with the **`@prisma/adapter-neon`** (on Vercel) and **`@prisma/adapter-pg`** (elsewhere) driver adapters · Better Auth (Postgres sessions) ·
 React Hook Form + Zod 4 · Tailwind CSS 4 · Radix primitives wrapped in
 `components/ui/*`, plus Popover, Dialog and Slider used directly by the map, the create-alert
 dialog, the saved car sheet, the delete-alert confirmation and the account dialogs (ADR 0020) · TanStack Virtual (the saved cars list, ADR 0021) · Motion · Sonner · Leaflet + react-leaflet ·
@@ -85,8 +85,10 @@ and `@date-fns/tz` (formatting).
 Where this differs from `STACK.md` it is a deviation the adoption ADR accepts until its phase,
 or an installed dependency the ADR approves or accepts until its phase (see its dependency list). Constraints that hold until then, and that a plausible-looking change will break:
 
-- Prisma connects through `@prisma/adapter-pg` with a plain `DATABASE_URL`, not the Neon
-  serverless driver. Do not change this outside phase 6 (ADR 0007 row 12).
+- `lib/db/prisma.ts` picks the driver adapter by environment: `PrismaNeon` (Neon's serverless
+  driver) over the pooled `DATABASE_URL` when `VERCEL` is set — every Vercel deployment — and
+  `PrismaPg` with a plain connection everywhere else, local and tests included. Keep both: a
+  change that drops one breaks either the deployments or the local database.
 - The Prisma client is generated to `app/generated/prisma` — gitignored, and
   required before `pnpm typecheck` and before tests will even import.
 - Hooks in `lib/hooks/*` own every client request lifecycle (ADR 0007 row 19, resolved;

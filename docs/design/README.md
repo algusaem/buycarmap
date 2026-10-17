@@ -1,8 +1,20 @@
 # Design — BuyCarMap 2.0
 
 The approved redesign of BuyCarMap (2026-10-11): what every screen should look like, and the system
-it is built from. Nothing here is implemented yet; it is the reference the redesign specs and code
-will be written against.
+it is built from. All seven phases are implemented ([roadmap](roadmap.md)); it stays the reference the
+redesign specs and code are checked against.
+
+## At a glance
+
+How the old interface became this one, screen by screen: [The 2.0 redesign](redesign-2.0.md).
+
+![The colour tokens: background, text, lime and violet as large swatches, then the surfaces, lines, text and danger colours, then the map and photo placeholder colours, each with its token name and hex value](images/design-palette.webp)
+
+![The type scale: Unbounded display styles from the 72 px hero down to the price, beside the Rethink Sans text styles from the 19 px lead down to the 11 px overline, each with its size, line height and weight](images/design-type.webp)
+
+![A sheet of components rendered from their previews: the search pill, buttons, chips, price pins, listing cards, alert cards, toasts, the bottom navigation and the password field](images/design-components.webp)
+
+![Sections of the UI Kit board: the headers, navigation and form fields, listing cards, alerts, account cards, toasts and the fuel selector](images/design-ui-kit.webp)
 
 ## Where it lives
 
