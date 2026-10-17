@@ -2,7 +2,7 @@
 
 Key: HEAD
 Status: Implemented
-Last updated: 2026-10-15
+Last updated: 2026-10-17
 
 ---
 
@@ -102,6 +102,10 @@ layout (F3–F7).
   taller than the screen, and their last element can be scrolled fully clear of the bottom nav (bug
   fix, found 2026-10-12). — So does `/alerts/[id]`, whose last element is «Eliminar alerta», after
   its virtualised rows (ALERTUI-31) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
+- [x] HEAD-20 · node + e2e — The root layout's shell is as tall as the visible viewport, measured
+  with the dynamic viewport height (`100dvh`), with `100vh` kept only as the fallback for browsers
+  without dynamic viewport units. So on a phone whose browser shows its own toolbars, no part of any
+  page, its tab bar or the map's results sheet sits under them (bug fix, found 2026-10-17, #133).
 
 ## Worked examples
 
@@ -131,6 +135,15 @@ page's container reports scrollHeight 3,546 against clientHeight 780 with `overf
 the screen is unreachable (the same on `/alerts`, 3,566px). Correct result: scrolling 600px moves the
 content up 600px, and at the end of the scroll the last element sits entirely above the tab bar
 (amended 2026-10-13, MAPUI — redesign-map.md).
+
+**HEAD-20 (bug fix)** — on an iPhone in Chrome, on production, with the browser's top and bottom
+toolbars showing (owner report, 2026-10-17): today `<body>` is `100vh` tall, which on iOS is the
+height with the toolbars hidden, and the document never scrolls (`overflow-hidden`), so the toolbars
+never hide and the bottom strip of every page — its last controls, the tab bar's clearance, the
+results sheet's lower edge — stays under the bottom toolbar. Correct result: the shell is the visible
+height (`100dvh`), so everything sits between the toolbars. Desktop and phone emulators draw no
+browser toolbars, where `100dvh` equals `100vh`: the test asserts the computed height comes from the
+dynamic unit, and the toolbars themselves can only be checked on a real iPhone.
 
 **HEAD-10** — locale `es`: «ES» pressed, «EN» not; press «EN» → cookie `locale=en`, `setLocale("en")`
 called once.

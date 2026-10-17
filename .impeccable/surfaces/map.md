@@ -77,8 +77,11 @@ UI Kit). Where this brief and the design disagree, the design wins and this brie
 - Popovers and the filters dropdown anchor under their trigger, one open at a time, closing on a press
   outside or Escape with focus returned. The preview is anchored to its pin and moves with the map;
   it takes focus on open, and opening «Crear alerta» closes it.
-- The phone results sheet: peeked, middle, full; the handle «Lista de resultados» toggles full and
-  peeked. The tab bar hides only while the sheet is full.
+- The phone results sheet: peeked, middle, full. Each press of the handle «Lista de resultados»
+  moves it one position up (peeked → middle → full, then back to peeked). It also drags from the
+  handle strip and the heading, never from the list, and settles on the nearest position, or one
+  position on a fast flick. At middle, tapping or panning the map lowers it to peeked; a pin does
+  not. The tab bar hides only while the sheet is full.
 - Everything that appears or disappears animates with Motion, honouring reduced motion.
 
 ## 7. Constraints and open decisions

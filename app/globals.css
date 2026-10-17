@@ -32,6 +32,15 @@
   text-box: trim-both cap alphabetic;
 }
 
+/* The root layout's shell (app/layout.tsx): as tall as the visible viewport,
+   between a phone browser's own toolbars (`100dvh`), with `100vh` only as the
+   fallback where dynamic viewport units are missing (HEAD-20,
+   docs/specs/redesign-navigation.md). */
+@utility h-viewport {
+  height: 100vh;
+  height: 100dvh;
+}
+
 @theme inline {
   /* Utility names the existing components use, aliased to the design tokens
      (LOOK-2, docs/specs/redesign-foundation.md). */

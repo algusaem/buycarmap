@@ -345,7 +345,10 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
       renderWithI18n(<Wrapper />, { locale: "es" });
 
       await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
-      await screen.findByText("Audi A3 2.0 TDI");
+      const opened = await screen.findByRole("article", { name: "Vista previa del coche" });
+      // As in the mid-fade reopen above: wait for the enter animation's first
+      // frame, or the exit from opacity 0 is instant and nothing is mid-exit.
+      await waitFor(() => expect(Number(opened.style.opacity)).toBeGreaterThan(0));
 
       await userEvent.keyboard("{Escape}");
       expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
@@ -454,5 +457,31 @@ describe("MAPUI-27: ListingsMap — a grouped pin's preview", () => {
     expect(
       await screen.findByRole("article", { name: "2 coches · desde 9.500 €" }),
     ).toBeInTheDocument();
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-62, #133): the real Leaflet container is
+// needed here because a pin's own click handler stops the event reaching the
+// map's - a mocked MapContainer (ListingsMap.test.tsx) renders no such
+// propagation to prove the pin case against.
+describe("MAPUI-62: ListingsMap - reporting a map interaction", () => {
+  it("MAPUI-62: clicking the map container calls onMapInteract once", () => {
+    const onMapInteract = vi.fn();
+    const { container } = renderMap({ onMapInteract });
+
+    const mapContainer = container.querySelector(".leaflet-container");
+    if (!mapContainer) throw new Error("the Leaflet container was not rendered");
+    fireEvent.click(mapContainer);
+
+    expect(onMapInteract).toHaveBeenCalledTimes(1);
+  });
+
+  it("MAPUI-62: clicking a pin never calls onMapInteract", async () => {
+    const onMapInteract = vi.fn();
+    renderMap({ onMapInteract });
+
+    await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
+
+    expect(onMapInteract).not.toHaveBeenCalled();
   });
 });

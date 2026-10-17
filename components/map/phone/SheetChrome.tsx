@@ -14,7 +14,8 @@ import * as motion from "motion/react-client";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { crossFade, sheetSlideUp } from "@/lib/animations";
+import { crossFade, sheetSlideUp, sheetSpring } from "@/lib/animations";
+import { FLICK_VELOCITY } from "@/lib/map/sheet-position";
 import { cn } from "@/lib/utils";
 
 // docs/design/system/components/SearchPopover/README.md (la hoja «BUSCAR») and
@@ -74,16 +75,15 @@ interface PhoneBottomSheetProps {
 // docs/specs/redesign-saved.md (SAVED-37 to SAVED-39, worked example "Drag to
 // close"); BottomSheet/README.md › Arrastrar para cerrar. How far down the
 // handle must go, in px, or how fast the release must move down, in px/s, for
-// the sheet to close; anything less springs it back.
+// the sheet to close; anything less springs it back. The speed is the results
+// sheet's flick threshold (FLICK_VELOCITY, MAPUI-60).
 const DRAG_CLOSE_OFFSET = 100;
-const DRAG_CLOSE_VELOCITY = 800;
 /** How much the sheet gives when pulled up past where it sits. */
 const DRAG_TOP_ELASTIC = 0.1;
-const SPRING_BACK = { type: "spring", stiffness: 500, damping: 40 } as const;
 
 /** Whether letting go of the handle closes the sheet (SAVED-39). */
 export function shouldDragClose(offsetY: number, velocityY: number): boolean {
-  return offsetY > DRAG_CLOSE_OFFSET || velocityY > DRAG_CLOSE_VELOCITY;
+  return offsetY > DRAG_CLOSE_OFFSET || velocityY > FLICK_VELOCITY;
 }
 
 /**
@@ -192,7 +192,7 @@ function SheetPanel({
       y.set(0);
       return;
     }
-    animate(y, 0, SPRING_BACK);
+    animate(y, 0, sheetSpring);
   }
 
   return (

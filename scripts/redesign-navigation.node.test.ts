@@ -121,3 +121,31 @@ describe("HEAD-14: the withdrawn NAV ids are retired", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// docs/specs/redesign-navigation.md (HEAD-20, bug fix, #133): the root
+// layout's shell is the dynamic viewport height, 100vh kept only as the
+// fallback for browsers with no dynamic viewport units.
+describe("HEAD-20: the root layout shell uses the dynamic viewport height", () => {
+  it("HEAD-20: app/layout.tsx's body carries h-viewport and not h-screen", () => {
+    const content = readFileSync(join(ROOT, "app/layout.tsx"), "utf-8");
+
+    expect(content).toContain("h-viewport");
+    expect(content).not.toMatch(/\bh-screen\b/);
+  });
+
+  it("HEAD-20: app/globals.css defines the h-viewport utility as 100vh, then 100dvh", () => {
+    const content = readFileSync(join(ROOT, "app/globals.css"), "utf-8");
+
+    const match = content.match(/@utility h-viewport \{([^}]*)\}/);
+    expect(match, "no @utility h-viewport block found in app/globals.css").not.toBeNull();
+    const body = match?.[1] ?? "";
+    const vhIndex = body.indexOf("height: 100vh");
+    const dvhIndex = body.indexOf("height: 100dvh");
+
+    expect(vhIndex, "the utility has no height: 100vh fallback").toBeGreaterThanOrEqual(0);
+    expect(dvhIndex, "the utility has no height: 100dvh rule").toBeGreaterThanOrEqual(0);
+    expect(vhIndex, "100vh must come before 100dvh so dvh wins where supported").toBeLessThan(
+      dvhIndex,
+    );
+  });
+});

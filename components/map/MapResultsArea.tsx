@@ -20,7 +20,7 @@ const ListingsMap = dynamic(
   { ssr: false },
 );
 
-// docs/specs/redesign-map.md (MAPUI-20, MAPUI-23, MAPUI-27 to MAPUI-33). The
+// docs/specs/redesign-map.md (MAPUI-20, MAPUI-23, MAPUI-27 to MAPUI-33, MAPUI-62). The
 // list-and-map column MapView wires up: the phone search summary floating
 // over the map, the results sheet (the list column at desktop width), and
 // the map section with its pins and desktop status pill. The page's UI state
@@ -69,7 +69,7 @@ export function MapResultsArea({
   return (
     // `isolate` keeps the sheet's and the floating search's z-indexes inside this area, under the
     // tab bar and the dialogs portalled to the body.
-    <div className="relative isolate flex min-h-0 flex-1 overflow-hidden">
+    <div className="relative isolate flex min-h-0 flex-1 overflow-clip">
       {/* Phone: the search summary and the filters row, floating over the map, clear of the notch and the rounded corners (MAPUI-20). */}
       <div className="absolute top-float-top right-float-right left-float-left z-500 lg:hidden">
         <PhoneSearchBar
@@ -132,6 +132,7 @@ export function MapResultsArea({
           previewId={page.previewId}
           onActivate={page.activatePin}
           onPreviewClose={page.closePreview}
+          onMapInteract={isPhone ? page.lowerSheetOnMapInteract : undefined}
           desktop={!isPhone}
           favoriteIds={favoriteIds}
           onToggleFavorite={onToggleFavorite}

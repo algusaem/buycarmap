@@ -56,7 +56,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} className={`dark ${rethinkSans.variable} ${unbounded.variable}`}>
-      <body className="flex h-screen flex-col overflow-hidden font-sans antialiased">
+      <body className="flex h-viewport flex-col overflow-hidden font-sans antialiased">
         <AuthProvider>
           <MotionProvider>
             <NextIntlClientProvider locale={locale} messages={messages}>
