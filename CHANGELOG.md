@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.4.0...buycarmap-v0.5.0) (2026-10-17)
+
+
+### Features
+
+* redesign every page with the new BuyCarMap look ([#129](https://github.com/algusaem/buycarmap/issues/129)) ([8d84526](https://github.com/algusaem/buycarmap/commit/8d84526a9b99fba79e86c5c592ef04bb12c45951))
+
 ## [0.4.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.3.1...buycarmap-v0.4.0) (2026-10-11)
 
 
