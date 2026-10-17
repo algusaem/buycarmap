@@ -163,17 +163,18 @@ describe("BAUTH-9: the real OAuth callback — a brand-new address", () => {
 
   it("BAUTH-21: a provider sign-in leaves the NextAuth-only accounts columns null", async () => {
     const email = "no-legacy-columns@example.test";
-    server.use(...githubHandlers({ email, verified: true, login: "no-legacy-columns" }));
+    // Google, not GitHub: GitHub sign-in is gone (ENTRY-18; amended 2026-10-17, BAUTH-21).
+    server.use(...googleHandlers({ email, verified: true }));
 
-    const first = await runGithubCallback("first-code", await startGithubSignIn());
+    const first = await runGoogleCallback("first-code", await startGoogleSignIn());
 
     expect(first.status).toBe(302);
     expect(hasSessionCookie(first)).toBe(true);
 
-    // The MSW token response carries token_type "bearer"; Better Auth must not persist it.
+    // The MSW token response carries token_type "Bearer"; Better Auth must not persist it.
     const rows = await prisma.$queryRaw<
       { expires_at: number | null; token_type: string | null; session_state: string | null }[]
-    >`SELECT expires_at, token_type, session_state FROM accounts WHERE provider = 'github'`;
+    >`SELECT expires_at, token_type, session_state FROM accounts WHERE provider = 'google'`;
 
     expect(rows).toEqual([{ expires_at: null, token_type: null, session_state: null }]);
   });
