@@ -307,7 +307,12 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
       renderMap();
       const pin = screen.getByRole("button", { name: AUDI_PIN });
       await userEvent.click(pin);
-      await screen.findByText("Audi A3 2.0 TDI");
+      const opened = await screen.findByRole("article", { name: "Vista previa del coche" });
+      // An exit from opacity 0 is instant in Motion (0 to 0 is nothing to
+      // animate), so the preview would close before it can be reopened
+      // mid-fade. Wait for the enter animation to have reached its first
+      // frame before pressing Escape and triggering the exit.
+      await waitFor(() => expect(Number(opened.style.opacity)).toBeGreaterThan(0));
 
       await userEvent.keyboard("{Escape}");
       expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
