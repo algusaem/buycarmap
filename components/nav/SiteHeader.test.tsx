@@ -622,13 +622,13 @@ describe("SiteHeader — the not-found page (PAGES-66)", () => {
   });
 });
 
-// docs/specs/redesign-navigation.md (HEAD-20, owner decision 2026-10-17,
+// docs/specs/redesign-navigation.md (HEAD-21, owner decision 2026-10-17,
 // #134): no header draws a bottom border any more. The map header, the pages
 // header and the phone headers of the signed-in section pages stand apart
 // from the page by the `surface` background instead; the landing, sign-in,
 // account-recovery and legal headers, which already draw no divider, keep
 // the page background.
-describe("SiteHeader — HEAD-20 the surface background replaces the bottom border", () => {
+describe("SiteHeader — HEAD-21 the surface background replaces the bottom border", () => {
   function expectSurfaceNoBorder(region: HTMLElement) {
     expect(Array.from(region.classList)).toContain("bg-surface");
     expect(Array.from(region.classList).some((cls) => cls.startsWith("border-b"))).toBe(false);
@@ -639,7 +639,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expect(Array.from(region.classList).some((cls) => cls.startsWith("border-b"))).toBe(false);
   }
 
-  it("HEAD-20: /map signed in, the desktop region takes the surface background and draws no bottom border", () => {
+  it("HEAD-21: /map signed in, the desktop region takes the surface background and draws no bottom border", () => {
     pathname.mockReturnValue("/map");
     useSession.mockReturnValue(SIGNED_IN);
     renderWithI18n(<SiteHeader />);
@@ -647,7 +647,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expectSurfaceNoBorder(screen.getByTestId("header-desktop"));
   });
 
-  it("HEAD-20: /favorites signed in, both the desktop and the phone region take the surface background and draw no bottom border", () => {
+  it("HEAD-21: /favorites signed in, both the desktop and the phone region take the surface background and draw no bottom border", () => {
     pathname.mockReturnValue("/favorites");
     useSession.mockReturnValue(SIGNED_IN);
     renderWithI18n(<SiteHeader />);
@@ -656,7 +656,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expectSurfaceNoBorder(screen.getByTestId("header-phone"));
   });
 
-  it("HEAD-20: /account signed in, the phone region takes the surface background and draws no bottom border", () => {
+  it("HEAD-21: /account signed in, the phone region takes the surface background and draws no bottom border", () => {
     pathname.mockReturnValue("/account");
     useSession.mockReturnValue(SIGNED_IN);
     renderWithI18n(<SiteHeader />);
@@ -664,7 +664,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expectSurfaceNoBorder(screen.getByTestId("header-phone"));
   });
 
-  it("HEAD-20: /alerts/<id> signed in, the phone region takes the surface background and draws no bottom border", () => {
+  it("HEAD-21: /alerts/<id> signed in, the phone region takes the surface background and draws no bottom border", () => {
     pathname.mockReturnValue("/alerts/0199a000-0000-7000-8000-00000000c001");
     useSession.mockReturnValue(SIGNED_IN);
     renderWithI18n(<SiteHeader />);
@@ -672,7 +672,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expectSurfaceNoBorder(screen.getByTestId("header-phone"));
   });
 
-  it("HEAD-20: /alerts signed in, the phone region takes the surface background and draws no bottom border", () => {
+  it("HEAD-21: /alerts signed in, the phone region takes the surface background and draws no bottom border", () => {
     pathname.mockReturnValue("/alerts");
     useSession.mockReturnValue(SIGNED_IN);
     renderWithI18n(<SiteHeader />);
@@ -680,7 +680,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expectSurfaceNoBorder(screen.getByTestId("header-phone"));
   });
 
-  it("HEAD-20: /privacy signed out keeps the page background, with no surface fill and no bottom border", () => {
+  it("HEAD-21: /privacy signed out keeps the page background, with no surface fill and no bottom border", () => {
     pathname.mockReturnValue("/privacy");
     useSession.mockReturnValue(SIGNED_OUT);
     renderWithI18n(<SiteHeader />);
@@ -688,7 +688,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expectPageBackgroundNoBorder(screen.getByTestId("header-desktop"));
   });
 
-  it("HEAD-20: /forgot-password signed out keeps the page background, with no surface fill and no bottom border", () => {
+  it("HEAD-21: /forgot-password signed out keeps the page background, with no surface fill and no bottom border", () => {
     pathname.mockReturnValue("/forgot-password");
     useSession.mockReturnValue(SIGNED_OUT);
     renderWithI18n(<SiteHeader />);
@@ -696,7 +696,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expectPageBackgroundNoBorder(screen.getByTestId("header-desktop"));
   });
 
-  it("HEAD-20: / signed in, the landing's open PagesHeader keeps the page background, with no surface fill and no bottom border", () => {
+  it("HEAD-21: / signed in, the landing's open PagesHeader keeps the page background, with no surface fill and no bottom border", () => {
     pathname.mockReturnValue("/");
     useSession.mockReturnValue(SIGNED_IN);
     renderWithI18n(<SiteHeader />);
@@ -705,7 +705,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expectPageBackgroundNoBorder(screen.getByTestId("header-phone"));
   });
 
-  it("HEAD-20: / signed out keeps the page background, with no surface fill and no bottom border", () => {
+  it("HEAD-21: / signed out keeps the page background, with no surface fill and no bottom border", () => {
     pathname.mockReturnValue("/");
     useSession.mockReturnValue(SIGNED_OUT);
     renderWithI18n(<SiteHeader />);
@@ -713,7 +713,7 @@ describe("SiteHeader — HEAD-20 the surface background replaces the bottom bord
     expectPageBackgroundNoBorder(screen.getByTestId("header-desktop"));
   });
 
-  it("HEAD-20: /login keeps the page background, with no surface fill and no bottom border", () => {
+  it("HEAD-21: /login keeps the page background, with no surface fill and no bottom border", () => {
     pathname.mockReturnValue("/login");
     useSession.mockReturnValue(SIGNED_OUT);
     renderWithI18n(<SiteHeader />);

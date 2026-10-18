@@ -339,7 +339,7 @@ Two frames are drawn for every screen: desktop at 1440 × 900 and phone at 390 �
   32px (`space-8`) side padding; the map's band and body, the landing and sign in 48px (`space-12`).
 - **Rhythm.** 4, 8, 12, 16, 20, 24, 32 and 48px (`space-1` to `space-12`); 20px between columns of the
   saved and alerts grids; the desktop map's grid 24px between columns and 40px between rows
-  (MAPUI-60), 24px for block padding and between groups.
+  (MAPUI-65), 24px for block padding and between groups.
 - **Map screens.** Desktop: a 151px two-row `surface` band — the search pill with «Crear alerta»,
   then «Filtros» and the quick filters — and under it the list and the map in two halves 48px apart,
   the map a rounded card aligned with the list's heading; the list in two columns, three from 1920px.
@@ -385,7 +385,7 @@ a divider inside a control (the pill's segments, the band's divider before the q
 
 Focus is drawn the same way everywhere: a 2px `lime` outline offset by 3px — except the car cards
 (the map's list, Guardados, an alert's matches), where the photo's lime ring is the focus
-indicator while the card's link has focus (MAPUI-61).
+indicator while the card's link has focus (MAPUI-66).
 
 ## Components
 

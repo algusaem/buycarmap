@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { crossFade } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
-// docs/specs/redesign-map.md (MAPUI-13, MAPUI-59, MAPUI-62). «Filtros»'s
+// docs/specs/redesign-map.md (MAPUI-13, MAPUI-64, MAPUI-67). «Filtros»'s
 // violet badge, shared by the desktop row (FilterRow.tsx) and the phone band
 // (PhoneSearchBar.tsx): none shows no badge, and the badge fades in and out.
 // It is always `aria-hidden`, and while a criterion is active it also renders

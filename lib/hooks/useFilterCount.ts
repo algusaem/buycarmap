@@ -3,7 +3,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { filterChips } from "@/lib/search/filter-chips";
 import type { SearchInput } from "@/lib/search/schema";
 
-// docs/specs/redesign-map.md (MAPUI-13, MAPUI-59, MAPUI-62). «Filtros»'s
+// docs/specs/redesign-map.md (MAPUI-13, MAPUI-64, MAPUI-67). «Filtros»'s
 // active-criteria count, shared by the desktop row (FilterRow.tsx) and the
 // phone band (PhoneSearchBar.tsx): lib/search/filter-chips.ts's filterChips
 // length, plus the sr-only description's id (`useId`) that FiltersBadge

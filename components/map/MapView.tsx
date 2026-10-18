@@ -83,10 +83,10 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
 
   // The page's main landmark, as in the route's error state (app/map/error.tsx).
   // `data-toast-anchor`: every toast here sits under the header band (12px,
-  // MAPUI-59, SAVED-24), centred over the results list (app/globals.css).
+  // MAPUI-64, SAVED-24), centred over the results list (app/globals.css).
   return (
     <main data-toast-anchor="map" className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
-      {/* Desktop: the search pill and «Crear alerta» in the map header's first row, «Filtros» and the quick filters in its second (MAPUI-1, MAPUI-13, MAPUI-19, MAPUI-39, MAPUI-58). */}
+      {/* Desktop: the search pill and «Crear alerta» in the map header's first row, «Filtros» and the quick filters in its second (MAPUI-1, MAPUI-13, MAPUI-19, MAPUI-39, MAPUI-63). */}
       <HeaderSearch
         filters={filters}
         createAlertOpen={page.alertOpen === "popover"}

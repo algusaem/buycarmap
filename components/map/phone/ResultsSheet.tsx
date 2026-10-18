@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 // that toggles between full and peeked, `aria-expanded` only when full.
 //
 // From `lg` the same element is the list column beside the map (`docked`,
-// MAPUI-60, MAPUI-61): half of the row MapResultsArea lays out, the 30px
+// MAPUI-65, MAPUI-66): half of the row MapResultsArea lays out, the 30px
 // heading, 24px under the header band, then every card, whatever the
 // position, two columns 24px apart with 40px between rows, three from 1920px
 // (`4xl`); no handle or «Crear alerta» (the header has its own). The list's
@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 // cards, and 6px over the first row (taken from the heading's gap) keep its
 // top whole too — room enough for a focused card's outline.
 //
-// The phone map sits under the `surface` band across the top (MAPUI-62), and
+// The phone map sits under the `surface` band across the top (MAPUI-67), and
 // so does this sheet. The middle position is 520px tall (BottomSheet README)
 // but never taller than the room between the tab bar and 12px under that
 // band. Full reaches the band.

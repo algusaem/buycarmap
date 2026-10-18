@@ -13,7 +13,7 @@ import {
 import type { SearchInput } from "@/lib/search/schema";
 import { cn } from "@/lib/utils";
 
-// docs/specs/redesign-map.md (MAPUI-58); docs/design/system/components/Chip/
+// docs/specs/redesign-map.md (MAPUI-63); docs/design/system/components/Chip/
 // README.md. The quick filters row: a group (a fieldset, the native element
 // for role="group"; `min-w-0` undoes its min-content width, so it can scroll
 // sideways on a phone) named «Filtros rápidos» holding the five 34px toggles

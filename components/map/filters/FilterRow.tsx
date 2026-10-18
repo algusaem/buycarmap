@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { FiltersBadge } from "./FiltersBadge";
 import { QuickFilters } from "./QuickFilters";
 
-// docs/specs/redesign-map.md (MAPUI-13, MAPUI-19, MAPUI-58, MAPUI-59);
+// docs/specs/redesign-map.md (MAPUI-13, MAPUI-19, MAPUI-63, MAPUI-64);
 // docs/design/system/components/Chip/README.md. The desktop map header's
 // second row: «Filtros», 34px like the toggles beside it, with a violet badge
 // counting the active criteria (lib/search/filter-chips.ts's filterChips;
@@ -21,7 +21,7 @@ import { QuickFilters } from "./QuickFilters";
 // The filters panel (FilterPanel) is a dropdown anchored under «Filtros»
 // (MAPUI-19): it arrives through `panel` and is open while `panelOpen`. On a
 // phone «Filtros» is the round button beside the summary instead
-// (PhoneSearchBar, MAPUI-62).
+// (PhoneSearchBar, MAPUI-67).
 export interface FilterRowProps {
   input: SearchInput;
   onOpenFilters: () => void;

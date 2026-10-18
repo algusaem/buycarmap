@@ -119,7 +119,7 @@ Out of scope, deliberately:
   are in [`DESIGN.md`](../../DESIGN.md) › Components › Navigation.
 - **Search.** The search field lived in `ListingsHeader`, not the navbar. From F3 it is the map
   header's search pill and the phone's floating search (the phone's floating search became the top
-  band on 2026-10-17, MAPUI-62), specified by [redesign-map.md](redesign-map.md).
+  band on 2026-10-17, MAPUI-67), specified by [redesign-map.md](redesign-map.md).
 
 ## Contracts
 

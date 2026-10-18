@@ -81,7 +81,7 @@ interface CarPhotoProps {
   badge?: boolean;
   /** The car icon's size over the tint when there is no photo. */
   iconClassName?: string;
-  /** The surrounding link's focus ring (MAPUI-61): shown on `group-focus-visible/card`. */
+  /** The surrounding link's focus ring (MAPUI-66): shown on `group-focus-visible/card`. */
   focusRing?: boolean;
 }
 
@@ -271,7 +271,7 @@ export function CarCard({
         href={listing.url}
         target="_blank"
         rel="noopener noreferrer"
-        // MAPUI-61: the photo's lime ring below is this link's focus
+        // MAPUI-66: the photo's lime ring below is this link's focus
         // indicator — it shows on `group-focus-visible/card` independent of
         // `active` (which follows hover too, MAPUI-28), so the global
         // focus-visible outline is suppressed here unconditionally.

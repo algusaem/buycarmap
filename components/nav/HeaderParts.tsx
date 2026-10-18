@@ -42,7 +42,7 @@ interface RegionProps {
   children: ReactNode;
 }
 
-/** Desktop: 80px tall, 32px sides on the `surface` background (HEAD-20); open pages 48px on the page background. */
+/** Desktop: 80px tall, 32px sides on the `surface` background (HEAD-21); open pages 48px on the page background. */
 export function DesktopRegion({ open, children }: RegionProps) {
   return (
     <div
@@ -57,7 +57,7 @@ export function DesktopRegion({ open, children }: RegionProps) {
   );
 }
 
-/** Phone: 64px tall, 20px sides; the `surface` background on the section pages only (HEAD-20). */
+/** Phone: 64px tall, 20px sides; the `surface` background on the section pages only (HEAD-21). */
 export function PhoneRegion({ open, children }: RegionProps) {
   return (
     <div

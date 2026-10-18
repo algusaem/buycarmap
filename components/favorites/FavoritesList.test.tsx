@@ -456,7 +456,7 @@ describe("SAVED-11: list and map", () => {
 
   // docs/specs/redesign-saved.md (SAVED-11, amended 2026-10-18, #134): a
   // card focused with the keyboard showed both the photo's lime ring and the
-  // global focus outline around the whole card (MAPUI-61's bug fix also
+  // global focus outline around the whole card (MAPUI-66's bug fix also
   // applies here). The photo's ring is the link's own focus indicator, on
   // `group-focus-visible/card`, so the global outline is always suppressed.
   it("SAVED-11: a focused card's link shows only the photo's lime ring, not a second focus outline", () => {

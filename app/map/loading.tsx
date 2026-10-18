@@ -8,7 +8,7 @@ import { SheetCardPlaceholder } from "@/components/ui/CardGridSkeleton";
 import { DEFAULT_RADIUS_KM } from "@/lib/search/schema";
 import { phoneSummary } from "@/lib/search/phone-summary";
 
-// docs/specs/redesign-map.md (MAPUI-30, MAPUI-34, MAPUI-60, MAPUI-62);
+// docs/specs/redesign-map.md (MAPUI-30, MAPUI-34, MAPUI-65, MAPUI-67);
 // docs/design/canvas/F0-estado-cargando.dc.html. /map's own loading state.
 // At desktop width (`lg` and up) it is the list-column skeleton — the
 // placeholder cards the results list shows while its first page loads — in

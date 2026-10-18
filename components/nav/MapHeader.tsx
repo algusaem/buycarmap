@@ -9,13 +9,13 @@ import { type HeaderSession, MainNav, TextLink } from "./HeaderParts";
 import { LanguageControl } from "./LanguageControl";
 import { Wordmark } from "./Wordmark";
 
-// HeaderNav README › Mapa (HEAD-1, HEAD-2, HEAD-20); docs/specs/redesign-map.md
-// (MAPUI-59). One `surface` band with no border, 48px from each side, in two
+// HeaderNav README › Mapa (HEAD-1, HEAD-2, HEAD-21); docs/specs/redesign-map.md
+// (MAPUI-64). One `surface` band with no border, 48px from each side, in two
 // rows. Row one, 24px under the top, is a `1fr auto 1fr` grid: the wordmark
 // at the start and only navigation on the right, 10px apart; the centre
 // column is the search group's (the 48px search pill and «Crear alerta»,
 // MAPUI-1). Row two, 28px under the pill and 17px above the band's bottom,
-// holds «Filtros» and the quick filters (MAPUI-58), centred. The map page
+// holds «Filtros» and the quick filters (MAPUI-63), centred. The map page
 // owns that state, so the two cells are handed to it through
 // `setMapHeaderSlot` and `setMapFiltersSlot` and the page portals its parts
 // in. Row two keeps its 34px while empty, so the band does not jump when the

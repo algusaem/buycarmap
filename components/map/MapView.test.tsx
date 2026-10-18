@@ -777,8 +777,8 @@ describe("MapView — MAPUI-27 a pin at desktop width", () => {
   });
 });
 
-describe("MapView — MAPUI-58 a quick filter on a phone", () => {
-  it("MAPUI-58: on a phone, pressing Diesel in the top band searches again with engine=gasoil", async () => {
+describe("MapView — MAPUI-63 a quick filter on a phone", () => {
+  it("MAPUI-63: on a phone, pressing Diesel in the top band searches again with engine=gasoil", async () => {
     stubPhoneWidth();
     server.use(...onlyWallapop);
     renderWithI18n(<MapView initialQuery="case-quick-filter-diesel" />);
@@ -803,7 +803,7 @@ describe("MapView — MAPUI-58 a quick filter on a phone", () => {
     }
   });
 
-  it("MAPUI-58: on a phone, after pressing Diesel in the band the filters dialog shows Diesel chosen and the badge reads 1", async () => {
+  it("MAPUI-63: on a phone, after pressing Diesel in the band the filters dialog shows Diesel chosen and the badge reads 1", async () => {
     stubPhoneWidth();
     server.use(...onlyWallapop);
     renderWithI18n(<MapView initialQuery="case-quick-filter-diesel-dialog" />);
@@ -823,7 +823,7 @@ describe("MapView — MAPUI-58 a quick filter on a phone", () => {
     );
   });
 
-  it("MAPUI-58: on a phone, choosing Manual in the filters dialog presses Manual in the band", async () => {
+  it("MAPUI-63: on a phone, choosing Manual in the filters dialog presses Manual in the band", async () => {
     stubPhoneWidth();
     server.use(...onlyWallapop);
     renderWithI18n(<MapView initialQuery="case-quick-filter-phone-gearbox" />);
@@ -841,12 +841,12 @@ describe("MapView — MAPUI-58 a quick filter on a phone", () => {
   });
 });
 
-// docs/specs/redesign-map.md (MAPUI-58). The desktop quick filters live in
+// docs/specs/redesign-map.md (MAPUI-63). The desktop quick filters live in
 // the map header's second row (lib/hooks/useMapHeaderSlot.ts's filters
 // slot), portalled there by HeaderSearch/FilterRow — so, like the header's
 // own MAPUI-39 case above, these hand MapView a detached slot for both cells
 // rather than rendering the whole layout.
-describe("MapView — MAPUI-58 the desktop quick filters", () => {
+describe("MapView — MAPUI-63 the desktop quick filters", () => {
   let headerSlot: HTMLDivElement;
   let filtersSlot: HTMLDivElement;
 
@@ -863,7 +863,7 @@ describe("MapView — MAPUI-58 the desktop quick filters", () => {
     filtersSlot.remove();
   });
 
-  it("MAPUI-58: at desktop width, pressing Diesel in the header band searches again at once with engine=gasoil", async () => {
+  it("MAPUI-63: at desktop width, pressing Diesel in the header band searches again at once with engine=gasoil", async () => {
     server.use(...onlyWallapop);
     renderWithI18n(<MapView initialQuery="case-quick-filter-desktop-diesel" />);
     await screen.findByText(WALLAPOP_TITLE);
@@ -891,7 +891,7 @@ describe("MapView — MAPUI-58 the desktop quick filters", () => {
     }
   });
 
-  it("MAPUI-58: after pressing Diesel in the header band, the filters panel shows Diesel chosen and «Filters» reads 1", async () => {
+  it("MAPUI-63: after pressing Diesel in the header band, the filters panel shows Diesel chosen and «Filters» reads 1", async () => {
     server.use(...onlyWallapop);
     renderWithI18n(<MapView initialQuery="case-quick-filter-desktop-panel" />);
     await screen.findByText(WALLAPOP_TITLE);
@@ -910,7 +910,7 @@ describe("MapView — MAPUI-58 the desktop quick filters", () => {
     );
   });
 
-  it("MAPUI-58: choosing «Manual» in the desktop filters panel presses «Manual» in the header band and releases «Automatic»", async () => {
+  it("MAPUI-63: choosing «Manual» in the desktop filters panel presses «Manual» in the header band and releases «Automatic»", async () => {
     server.use(...onlyWallapop);
     renderWithI18n(<MapView initialQuery="case-quick-filter-desktop-gearbox" />, {
       searchParams: "gearbox=automatic",
@@ -936,7 +936,7 @@ describe("MapView — MAPUI-58 the desktop quick filters", () => {
     );
   });
 
-  it("MAPUI-58: at desktop width, pressing the pressed «Automatic» clears the gearbox", async () => {
+  it("MAPUI-63: at desktop width, pressing the pressed «Automatic» clears the gearbox", async () => {
     server.use(...onlyWallapop);
     renderWithI18n(<MapView initialQuery="case-quick-filter-desktop-clear-gearbox" />, {
       searchParams: "gearbox=automatic",
@@ -1148,7 +1148,7 @@ describe("MapView — MAPUI-31 the empty state with no filter (worked example)",
 });
 
 /**
- * The phone «Filters», which opens the full-screen filters dialog (MAPUI-62):
+ * The phone «Filters», which opens the full-screen filters dialog (MAPUI-67):
  * the round button carries the real accessible name itself. The desktop one,
  * also in the DOM, is Radix's popover trigger, which carries `data-state`;
  * the phone one is a plain button. Rendered at the default English locale so

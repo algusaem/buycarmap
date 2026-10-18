@@ -5,13 +5,13 @@ import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { QuickFilters } from "./QuickFilters";
 
-// docs/specs/redesign-map.md (MAPUI-58). The toggle semantics themselves are
+// docs/specs/redesign-map.md (MAPUI-63). The toggle semantics themselves are
 // lib/search/quick-filters.ts's job, tested in isolation there; this file is
 // about the five buttons rendering in order, their pressed state and wiring
 // clicks to `onApply`.
 
-describe("MAPUI-58: QuickFilters — rendering", () => {
-  it("MAPUI-58: renders the five quick filters, in order, inside a group, each a toggle button", () => {
+describe("MAPUI-63: QuickFilters — rendering", () => {
+  it("MAPUI-63: renders the five quick filters, in order, inside a group, each a toggle button", () => {
     renderWithI18n(<QuickFilters input={{}} onApply={vi.fn()} />);
 
     const group = screen.getByRole("group", { name: "Quick filters" });
@@ -29,8 +29,8 @@ describe("MAPUI-58: QuickFilters — rendering", () => {
   });
 });
 
-describe("MAPUI-58: QuickFilters — pressed state", () => {
-  it("MAPUI-58: with engine=gasoil and gearbox=automatic, exactly Diesel and Automatic are pressed", () => {
+describe("MAPUI-63: QuickFilters — pressed state", () => {
+  it("MAPUI-63: with engine=gasoil and gearbox=automatic, exactly Diesel and Automatic are pressed", () => {
     renderWithI18n(
       <QuickFilters input={{ engine: ["gasoil"], gearbox: ["automatic"] }} onApply={vi.fn()} />,
     );
@@ -48,7 +48,7 @@ describe("MAPUI-58: QuickFilters — pressed state", () => {
     );
   });
 
-  it("MAPUI-58/LOOK-12: the pressed Diesel reads font-extrabold, the unpressed Petrol font-semibold", () => {
+  it("MAPUI-63/LOOK-12: the pressed Diesel reads font-extrabold, the unpressed Petrol font-semibold", () => {
     renderWithI18n(<QuickFilters input={{ engine: ["gasoil"] }} onApply={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: "Diesel" })).toHaveClass("font-extrabold");
@@ -56,8 +56,8 @@ describe("MAPUI-58: QuickFilters — pressed state", () => {
   });
 });
 
-describe("MAPUI-58: QuickFilters — applying a patch at once", () => {
-  it("MAPUI-58: clicking Manual on engine=gasoil, gearbox=automatic applies gearbox=manual", async () => {
+describe("MAPUI-63: QuickFilters — applying a patch at once", () => {
+  it("MAPUI-63: clicking Manual on engine=gasoil, gearbox=automatic applies gearbox=manual", async () => {
     const onApply = vi.fn();
     renderWithI18n(
       <QuickFilters input={{ engine: ["gasoil"], gearbox: ["automatic"] }} onApply={onApply} />,
@@ -69,7 +69,7 @@ describe("MAPUI-58: QuickFilters — applying a patch at once", () => {
     expect(onApply).toHaveBeenCalledWith({ gearbox: ["manual"] });
   });
 
-  it("MAPUI-58: clicking the pressed Diesel on engine=gasoil, gearbox=automatic clears the fuel", async () => {
+  it("MAPUI-63: clicking the pressed Diesel on engine=gasoil, gearbox=automatic clears the fuel", async () => {
     const onApply = vi.fn();
     renderWithI18n(
       <QuickFilters input={{ engine: ["gasoil"], gearbox: ["automatic"] }} onApply={onApply} />,
@@ -81,7 +81,7 @@ describe("MAPUI-58: QuickFilters — applying a patch at once", () => {
     expect(onApply.mock.calls[0][0]).toStrictEqual({ engine: undefined });
   });
 
-  it("MAPUI-58: clicking the km toggle on maxKm=150000 sets the maximum mileage to 100000", async () => {
+  it("MAPUI-63: clicking the km toggle on maxKm=150000 sets the maximum mileage to 100000", async () => {
     const onApply = vi.fn();
     renderWithI18n(<QuickFilters input={{ maxKm: 150000 }} onApply={onApply} />);
 

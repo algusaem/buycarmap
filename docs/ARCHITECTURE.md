@@ -86,7 +86,7 @@ field. Two paths write it:
   **debounces the search by 400 ms** (MAP-11), so a drag on the price range fires one
   fan-out, not a dozen.
 - `apply()` patches and searches at once, with no pause: the phone sheets' «Ver
-  coches», a quick filter (MAPUI-58) and the panel's «Borrar» (MAPUI-19, MAPUI-21,
+  coches», a quick filter (MAPUI-63) and the panel's «Borrar» (MAPUI-19, MAPUI-21,
   MAPUI-22).
 
 Which desktop popover is open is one piece of state in the hook

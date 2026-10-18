@@ -5,7 +5,7 @@ La tarjeta de coche: foto protagonista (una sola: el carrusel va en un issue apa
 - Foto `radius-card`, proporción 20:19 en el mapa y 20:17 en Guardados. Sin foto, el tinte del coche (`photo-tint-1` a `photo-tint-8`, uno por coche) con el icono de coche de Lucide (60px en el mapa, 56px en Guardados, trazo 1,1) en `photo-icon`.
 - Encima de la foto: insignia de fuente arriba a la izquierda y corazón de 34px arriba a la derecha, los dos sobre `scrim`.
 - Guardado: el corazón pasa a `violet`, relleno y con trazo en `on-violet`, y su `aria-label` cambia a «Quitar de guardados».
-- Activa (su pin está abierto en el mapa): contorno de 2px `lime` en la foto. El mismo contorno es el indicador de foco cuando el enlace de la tarjeta tiene el foco del teclado; la tarjeta no dibuja otro contorno alrededor (MAPUI-61).
+- Activa (su pin está abierto en el mapa): contorno de 2px `lime` en la foto. El mismo contorno es el indicador de foco cuando el enlace de la tarjeta tiene el foco del teclado; la tarjeta no dibuja otro contorno alrededor (MAPUI-66).
 - Texto bajo la foto, a 12px, con 3px entre líneas: nombre (`card-title`) y ciudad a la derecha en `meta`; metadatos en `meta`; precio con `price`, sin espacio entre letras, 6px más abajo.
 - Metadatos en el mapa: año · km · combustible. El combustible sale solo cuando se reconoce («Diésel» para `gasoil`); si falta o no se reconoce, «año · km». En Guardados, año · km.
 - En Guardados la fila del precio lleva a la derecha «Ver anuncio» (14px peso 700, icono `arrow-up-right` de 15px a 6px del texto, siempre en una línea: no se parte ni se encoge), que abre el portal en pestaña nueva.

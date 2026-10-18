@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 
-// docs/specs/redesign-map.md (MAPUI-61, bug fix #134): the shared assertion
+// docs/specs/redesign-map.md (MAPUI-66, bug fix #134): the shared assertion
 // for a card link's focus indicator — the photo's lime ring on
 // `group-focus-visible/card`, with the global `focus-visible` outline
 // suppressed on the link itself (`outline-hidden`, not `outline-none`, so

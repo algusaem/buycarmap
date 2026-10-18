@@ -684,7 +684,7 @@ describe("ALERTUI-17: the list and the map in sync", () => {
 
   // docs/specs/redesign-alerts.md (ALERTUI-17, amended 2026-10-18, #134): a
   // match card focused with the keyboard showed both the photo's lime ring
-  // and the global focus outline around the whole card (MAPUI-61's bug fix
+  // and the global focus outline around the whole card (MAPUI-66's bug fix
   // also applies here). The photo's ring is the link's own focus indicator,
   // on `group-focus-visible/card`, so the global outline is always
   // suppressed.

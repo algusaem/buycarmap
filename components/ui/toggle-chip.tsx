@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 // Two sizes, both weight 800 pressed and 600 unpressed — the state is
 // carried by fill and weight, not colour alone (LOOK-12), the same for every
 // size. `default`, the filters panel's: 14px. `quick`, the quick filters'
-// (docs/specs/redesign-map.md MAPUI-58): 34px tall, 13px, the state also
+// (docs/specs/redesign-map.md MAPUI-63): 34px tall, 13px, the state also
 // carried by the fill and the border.
 const SIZES = {
   default: "px-4 py-2.25 text-sm",

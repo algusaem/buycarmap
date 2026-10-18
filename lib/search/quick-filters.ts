@@ -2,7 +2,7 @@ import { groupsFromEngine, toEngineValues } from "@/lib/search/fuel-groups";
 import { chosenGearbox } from "@/lib/search/panel";
 import type { SearchInput } from "@/lib/search/schema";
 
-// docs/specs/redesign-map.md (MAPUI-58), worked example «Quick filters». The
+// docs/specs/redesign-map.md (MAPUI-63), worked example «Quick filters». The
 // five quick filters under the map's search, each a toggle over the same
 // criteria the filters panel edits:
 // - «Gasolina» and «Diésel» add or remove their own fuel value, leaving the

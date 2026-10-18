@@ -1,6 +1,6 @@
 import { createExternalStore, useExternalStore } from "@/lib/hooks/createExternalStore";
 
-// docs/specs/redesign-map.md (MAPUI-1, MAPUI-59). The desktop map header
+// docs/specs/redesign-map.md (MAPUI-1, MAPUI-64). The desktop map header
 // (components/nav/MapHeader.tsx), which the root layout renders, holds two
 // cells whose state belongs to the map page (components/map/MapView.tsx):
 // row one's centre, for the search pill and «Crear alerta», and row two, for

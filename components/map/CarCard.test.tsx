@@ -132,15 +132,15 @@ describe("MAPUI-36: CarCard — the heart's accessible name", () => {
   });
 });
 
-// docs/specs/redesign-map.md (MAPUI-61, bug fix #134): a card focused with
+// docs/specs/redesign-map.md (MAPUI-66, bug fix #134): a card focused with
 // the keyboard showed both the photo's lime ring and the global focus
 // outline around the whole card, and a card with no `onActiveChange` (which
 // `active` alone used to gate) got no ring at all. The photo's ring is now
 // its own focus indicator, on `group-focus-visible/card`, independent of
 // `active` — so the link's outline is always suppressed and every card gets
 // the ring, whether or not it tracks active state.
-describe("MAPUI-61: CarCard — one outline on a focused card", () => {
-  it("MAPUI-61: the link suppresses its outline and the photo carries the focus-visible ring class", () => {
+describe("MAPUI-66: CarCard — one outline on a focused card", () => {
+  it("MAPUI-66: the link suppresses its outline and the photo carries the focus-visible ring class", () => {
     renderWithI18n(<CarCard listing={listing} saved={false} />);
     const link = screen.getByRole("link", { name: /Audi A3 2\.0 TDI/ });
 

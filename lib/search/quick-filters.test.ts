@@ -7,8 +7,8 @@ import {
 } from "@/lib/search/quick-filters";
 import type { SearchInput } from "@/lib/search/schema";
 
-// docs/specs/redesign-map.md (MAPUI-58), worked example "Quick filters
-// (MAPUI-58)". Each `it` is one row of that table: `toggleQuickFilter` must
+// docs/specs/redesign-map.md (MAPUI-63), worked example "Quick filters
+// (MAPUI-63)". Each `it` is one row of that table: `toggleQuickFilter` must
 // return exactly the patch that turns "Search before" into "Search after",
 // and once that patch is applied, `isQuickFilterOn` must read the "Pressed
 // after" column for all five keys.
@@ -20,8 +20,8 @@ function expectPressed(input: SearchInput, pressed: QuickFilterKey[]) {
   }
 }
 
-describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () => {
-  it("MAPUI-58: no criterion, pressing Diésel adds engine=gasoil", () => {
+describe("MAPUI-63: toggleQuickFilter and isQuickFilterOn (worked example)", () => {
+  it("MAPUI-63: no criterion, pressing Diésel adds engine=gasoil", () => {
     const before: SearchInput = {};
 
     const patch = toggleQuickFilter(before, "gasoil");
@@ -30,7 +30,7 @@ describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, ["gasoil"]);
   });
 
-  it("MAPUI-58: engine=gasoil, pressing Gasolina adds it beside the existing fuel", () => {
+  it("MAPUI-63: engine=gasoil, pressing Gasolina adds it beside the existing fuel", () => {
     const before: SearchInput = { engine: ["gasoil"] };
 
     const patch = toggleQuickFilter(before, "gasoline");
@@ -39,7 +39,7 @@ describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, ["gasoline", "gasoil"]);
   });
 
-  it("MAPUI-58: engine=gasoil,electric-hybrid, pressing Diésel removes only gasoil", () => {
+  it("MAPUI-63: engine=gasoil,electric-hybrid, pressing Diésel removes only gasoil", () => {
     const before: SearchInput = { engine: ["gasoil", "electric-hybrid"] };
 
     const patch = toggleQuickFilter(before, "gasoil");
@@ -48,7 +48,7 @@ describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, []);
   });
 
-  it("MAPUI-58: no criterion, pressing Manual sets the gearbox to manual", () => {
+  it("MAPUI-63: no criterion, pressing Manual sets the gearbox to manual", () => {
     const before: SearchInput = {};
 
     const patch = toggleQuickFilter(before, "manual");
@@ -57,7 +57,7 @@ describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, ["manual"]);
   });
 
-  it("MAPUI-58: gearbox=manual, pressing Automático replaces the whole gearbox criterion", () => {
+  it("MAPUI-63: gearbox=manual, pressing Automático replaces the whole gearbox criterion", () => {
     const before: SearchInput = { gearbox: ["manual"] };
 
     const patch = toggleQuickFilter(before, "automatic");
@@ -66,7 +66,7 @@ describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, ["automatic"]);
   });
 
-  it("MAPUI-58: gearbox=automatic, pressing the pressed Automático clears the gearbox", () => {
+  it("MAPUI-63: gearbox=automatic, pressing the pressed Automático clears the gearbox", () => {
     const before: SearchInput = { gearbox: ["automatic"] };
 
     const patch = toggleQuickFilter(before, "automatic");
@@ -77,13 +77,13 @@ describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, []);
   });
 
-  it("MAPUI-58: gearbox=manual,automatic (old link) reads as no gearbox pressed", () => {
+  it("MAPUI-63: gearbox=manual,automatic (old link) reads as no gearbox pressed", () => {
     const input: SearchInput = { gearbox: ["manual", "automatic"] };
 
     expectPressed(input, []);
   });
 
-  it("MAPUI-58: gearbox=manual,semiautomatic (old link) reads Manual pressed, as the panel does, and pressing it clears the gearbox", () => {
+  it("MAPUI-63: gearbox=manual,semiautomatic (old link) reads Manual pressed, as the panel does, and pressing it clears the gearbox", () => {
     const before: SearchInput = { gearbox: ["manual", "semiautomatic"] };
 
     expect(isQuickFilterOn(before, "manual")).toBe(true);
@@ -95,13 +95,13 @@ describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, []);
   });
 
-  it("MAPUI-58: maxKm=150000 reads as no quick filter pressed", () => {
+  it("MAPUI-63: maxKm=150000 reads as no quick filter pressed", () => {
     const input: SearchInput = { maxKm: 150000 };
 
     expectPressed(input, []);
   });
 
-  it("MAPUI-58: no criterion, pressing Hasta 100.000 km sets the maximum mileage", () => {
+  it("MAPUI-63: no criterion, pressing Hasta 100.000 km sets the maximum mileage", () => {
     const before: SearchInput = {};
 
     const patch = toggleQuickFilter(before, "maxKm100k");
@@ -110,7 +110,7 @@ describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, ["maxKm100k"]);
   });
 
-  it("MAPUI-58: maxKm=150000, pressing Hasta 100.000 km overrides it to 100000", () => {
+  it("MAPUI-63: maxKm=150000, pressing Hasta 100.000 km overrides it to 100000", () => {
     const before: SearchInput = { maxKm: 150000 };
 
     const patch = toggleQuickFilter(before, "maxKm100k");
@@ -119,7 +119,7 @@ describe("MAPUI-58: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, ["maxKm100k"]);
   });
 
-  it("MAPUI-58: maxKm=100000, pressing the pressed Hasta 100.000 km clears the maximum mileage", () => {
+  it("MAPUI-63: maxKm=100000, pressing the pressed Hasta 100.000 km clears the maximum mileage", () => {
     const before: SearchInput = { maxKm: 100000 };
 
     const patch = toggleQuickFilter(before, "maxKm100k");

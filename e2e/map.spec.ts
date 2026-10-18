@@ -63,7 +63,7 @@ const DESKTOP_1440 = { width: 1440, height: 900 };
 const DESKTOP_2560 = { width: 2560, height: 1440 };
 const PHONE_390 = { width: 390, height: 844 };
 
-/** Sets the viewport, mocks the three sources, and waits for the fan-out's Audi card (MAPUI-59 to MAPUI-62). */
+/** Sets the viewport, mocks the three sources, and waits for the fan-out's Audi card (MAPUI-64 to MAPUI-67). */
 async function gotoMap(page: Page, size: { width: number; height: number }) {
   await page.setViewportSize(size);
   await mockListingSources(page);
@@ -161,7 +161,7 @@ test.describe("MAPUI-49: desktop search writes to the URL and Back restores it",
     const beforeMaxPrice = page.url();
 
     // Inside the search pill: the quick filter «Hasta 100.000 km» below it
-    // also starts with «Hasta» (MAPUI-58).
+    // also starts with «Hasta» (MAPUI-63).
     await page
       .getByRole("search")
       .getByRole("button", { name: /^(cualquiera|any)$|^(hasta|desde|up to|from) /i })
@@ -345,12 +345,12 @@ test.describe("SAVED-37, SAVED-38: the phone BUSCAR sheet closes when dragged do
 });
 
 // No chip remove button («Quitar»/«Remove …») remains anywhere on /map
-// (MAPUI-13, MAPUI-58): declared once, above its first use, and reused by
-// both the MAPUI-51 and the MAPUI-62 checks below.
+// (MAPUI-13, MAPUI-63): declared once, above its first use, and reused by
+// both the MAPUI-51 and the MAPUI-67 checks below.
 const REMOVE_BUTTON_NAME = /^(quitar|remove) /i;
 
 test.describe("MAPUI-51: phone touch targets", () => {
-  // docs/specs/redesign-map.md (MAPUI-13, MAPUI-51, MAPUI-58). No chip remove
+  // docs/specs/redesign-map.md (MAPUI-13, MAPUI-51, MAPUI-63). No chip remove
   // buttons exist; the summary, the «Filters» button and each quick filter
   // take their place in the 44px floor check. `assertTouchTargets` measures
   // every link and button it finds in `main`.
@@ -365,7 +365,7 @@ test.describe("MAPUI-51: phone touch targets", () => {
 
     expect(
       await page.getByRole("button", { name: REMOVE_BUTTON_NAME }).count(),
-      "no chip remove buttons remain (MAPUI-13, MAPUI-58)",
+      "no chip remove buttons remain (MAPUI-13, MAPUI-63)",
     ).toBe(0);
 
     await assertTouchTargets(page.getByRole("main"), "/map phone controls");
@@ -404,20 +404,20 @@ test.describe("MAPUI-51: phone touch targets", () => {
   });
 });
 
-// docs/specs/redesign-map.md (MAPUI-59 to MAPUI-62, design A7 accepted
+// docs/specs/redesign-map.md (MAPUI-64 to MAPUI-67, design A7 accepted
 // 2026-10-17, #134): the header band, the quick filters' desktop row, the
 // desktop list/map layout, the list's clipped outline and the phone band.
 // These measure the accepted design's exact numbers (worked examples
-// "Desktop layout (MAPUI-59, MAPUI-60)" and "The desktop list's clipped
-// outline (MAPUI-61)").
+// "Desktop layout (MAPUI-64, MAPUI-65)" and "The desktop list's clipped
+// outline (MAPUI-66)").
 
 const FILTERS_NAME = /^(filtros|filters)$/i;
 const MAX_KM_QUICK_NAME = /^(hasta\s*100\.000\s*km|up to\s*100,000\s*km)$/i;
 const MAP_REGION_NAME = /^(mapa|map)$/i;
 const SUMMARY_NAME = /toda españa|cualquier marca|all of spain|any make/i;
 
-test.describe("MAPUI-59: the desktop header band", () => {
-  test("MAPUI-59: the band is 151px tall with no bottom border, and its two rows sit where the design measures them", async ({
+test.describe("MAPUI-64: the desktop header band", () => {
+  test("MAPUI-64: the band is 151px tall with no bottom border, and its two rows sit where the design measures them", async ({
     page,
     isMobile,
   }) => {
@@ -470,7 +470,7 @@ test.describe("MAPUI-59: the desktop header band", () => {
     expectWithin(navBox.x + navBox.width, 1392, "nav right edge");
   });
 
-  test("MAPUI-59: at 2560×1440 the band is 151px with the pill at 24–72 and row two at 100–134, centred", async ({
+  test("MAPUI-64: at 2560×1440 the band is 151px with the pill at 24–72 and row two at 100–134, centred", async ({
     page,
     isMobile,
   }) => {
@@ -510,8 +510,8 @@ test.describe("MAPUI-59: the desktop header band", () => {
   });
 });
 
-test.describe("MAPUI-60: the desktop list and map share the width", () => {
-  test("MAPUI-60: at 1440x900 the heading, the map card and the first two rows of cards sit where the design measures them", async ({
+test.describe("MAPUI-65: the desktop list and map share the width", () => {
+  test("MAPUI-65: at 1440x900 the heading, the map card and the first two rows of cards sit where the design measures them", async ({
     page,
     isMobile,
   }) => {
@@ -545,7 +545,7 @@ test.describe("MAPUI-60: the desktop list and map share the width", () => {
     );
   });
 
-  test("MAPUI-60: at 1920x1080 three cards share the first row's top", async ({
+  test("MAPUI-65: at 1920x1080 three cards share the first row's top", async ({
     page,
     isMobile,
   }) => {
@@ -560,7 +560,7 @@ test.describe("MAPUI-60: the desktop list and map share the width", () => {
     expectWithin(firstCard.y, thirdCard.y, "card 3 shares the first row's top");
   });
 
-  test("MAPUI-60: at 1919×1080 the grid keeps two columns", async ({ page, isMobile }) => {
+  test("MAPUI-65: at 1919×1080 the grid keeps two columns", async ({ page, isMobile }) => {
     test.skip(isMobile, "desktop-only layout");
     await gotoMap(page, { width: 1919, height: 1080 });
 
@@ -573,7 +573,7 @@ test.describe("MAPUI-60: the desktop list and map share the width", () => {
     ).toBeGreaterThanOrEqual(firstCard.y + firstCard.height);
   });
 
-  test("MAPUI-60: at 2560x1440 the map card and the heading sit where the design measures them", async ({
+  test("MAPUI-65: at 2560x1440 the map card and the heading sit where the design measures them", async ({
     page,
     isMobile,
   }) => {
@@ -599,8 +599,8 @@ test.describe("MAPUI-60: the desktop list and map share the width", () => {
   });
 });
 
-test.describe("MAPUI-61: the desktop list's outline is never clipped (bug fix, #134)", () => {
-  test("MAPUI-61: the list's scroll container sits clear of the cards on every side, with the scrollbar away from them", async ({
+test.describe("MAPUI-66: the desktop list's outline is never clipped (bug fix, #134)", () => {
+  test("MAPUI-66: the list's scroll container sits clear of the cards on every side, with the scrollbar away from them", async ({
     page,
     isMobile,
   }) => {
@@ -652,7 +652,7 @@ test.describe("MAPUI-61: the desktop list's outline is never clipped (bug fix, #
     ).toBeLessThanOrEqual(mapBox.x);
   });
 
-  test("MAPUI-61: at 1440×900, focusing the first card's link with the keyboard draws the photo's lime ring and no outline around the card", async ({
+  test("MAPUI-66: at 1440×900, focusing the first card's link with the keyboard draws the photo's lime ring and no outline around the card", async ({
     page,
     isMobile,
   }) => {
@@ -694,7 +694,7 @@ test.describe("MAPUI-61: the desktop list's outline is never clipped (bug fix, #
 
     // Hovering a different card must not touch the keyboard-focused card's
     // ring: `active` (hover) and `group-focus-visible/card` (focus) are
-    // independent (MAPUI-61).
+    // independent (MAPUI-66).
     const secondBox = await box(secondCard);
     await page.mouse.move(secondBox.x + secondBox.width / 2, secondBox.y + secondBox.height / 2);
 
@@ -712,10 +712,10 @@ test.describe("MAPUI-61: the desktop list's outline is never clipped (bug fix, #
   });
 });
 
-// docs/specs/redesign-map.md (MAPUI-58): the quick filters apply at once,
+// docs/specs/redesign-map.md (MAPUI-63): the quick filters apply at once,
 // writing to the URL and pressing themselves, at every width.
-test.describe("MAPUI-58: the quick filters write to the URL", () => {
-  test("MAPUI-58: at 1440×900, pressing «Diésel» in the header band writes engine=gasoil to the URL, presses it and shows the «Filtros» badge 1; pressing it again removes engine and releases it", async ({
+test.describe("MAPUI-63: the quick filters write to the URL", () => {
+  test("MAPUI-63: at 1440×900, pressing «Diésel» in the header band writes engine=gasoil to the URL, presses it and shows the «Filtros» badge 1; pressing it again removes engine and releases it", async ({
     page,
     isMobile,
   }) => {
@@ -730,7 +730,7 @@ test.describe("MAPUI-58: the quick filters write to the URL", () => {
     await expect(page).toHaveURL(/engine=gasoil/);
     await expect(diesel).toHaveAttribute("aria-pressed", "true");
     // Locates the visible badge itself, not the button's full text: the
-    // sr-only aria-describedby span (MAPUI-59) carries its own "1" too.
+    // sr-only aria-describedby span (MAPUI-64) carries its own "1" too.
     const filtersButton = band.getByRole("button", { name: FILTERS_NAME });
     await expect(filtersButton.getByText("1", { exact: true })).toBeVisible();
 
@@ -739,7 +739,7 @@ test.describe("MAPUI-58: the quick filters write to the URL", () => {
     await expect(diesel).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("MAPUI-58: on a 390×844 phone at /map?maxKm=150000, «Hasta 100.000 km» starts released; pressing it writes maxKm=100000 and presses it; pressing again removes maxKm", async ({
+  test("MAPUI-63: on a 390×844 phone at /map?maxKm=150000, «Hasta 100.000 km» starts released; pressing it writes maxKm=100000 and presses it; pressing again removes maxKm", async ({
     page,
     isMobile,
   }) => {
@@ -763,15 +763,15 @@ test.describe("MAPUI-58: the quick filters write to the URL", () => {
   });
 });
 
-test.describe("MAPUI-62: the phone map band", () => {
-  test("MAPUI-62: the band holds the summary, Filters and the quick filters, draws no bottom border, and the map starts under it", async ({
+test.describe("MAPUI-67: the phone map band", () => {
+  test("MAPUI-67: the band holds the summary, Filters and the quick filters, draws no bottom border, and the map starts under it", async ({
     page,
     isMobile,
   }) => {
     test.skip(!isMobile, "phone-only band");
     await gotoMap(page, PHONE_390);
 
-    // The band (MapResultsArea.tsx's "phone-map-band" div) MAPUI-62 asks for:
+    // The band (MapResultsArea.tsx's "phone-map-band" div) MAPUI-67 asks for:
     // a solid `surface` band with no border, holding the summary, «Filters»
     // and the quick filters, with the map starting under it rather than
     // behind it.
@@ -791,11 +791,11 @@ test.describe("MAPUI-62: the phone map band", () => {
 
     expect(
       await page.getByRole("button", { name: REMOVE_BUTTON_NAME }).count(),
-      "no chip remove buttons remain (MAPUI-13, MAPUI-58)",
+      "no chip remove buttons remain (MAPUI-13, MAPUI-63)",
     ).toBe(0);
   });
 
-  test("MAPUI-62: on a 390×844 phone, the results sheet at its full position starts at or below the band's bottom", async ({
+  test("MAPUI-67: on a 390×844 phone, the results sheet at its full position starts at or below the band's bottom", async ({
     page,
     isMobile,
   }) => {
@@ -817,7 +817,7 @@ test.describe("MAPUI-62: the phone map band", () => {
     ).toBeGreaterThanOrEqual(bandBox.y + bandBox.height - 0.5);
   });
 
-  test("MAPUI-62: at 320×568 the quick filters scroll sideways inside the band and the page does not", async ({
+  test("MAPUI-67: at 320×568 the quick filters scroll sideways inside the band and the page does not", async ({
     page,
     isMobile,
   }) => {
@@ -838,7 +838,7 @@ test.describe("MAPUI-62: the phone map band", () => {
     expect(pageScrollWidth, "the page itself does not scroll sideways").toBe(320);
   });
 
-  test("MAPUI-62: at 375×667 the results sheet in its middle position starts at or below the band's bottom", async ({
+  test("MAPUI-67: at 375×667 the results sheet in its middle position starts at or below the band's bottom", async ({
     page,
     isMobile,
   }) => {

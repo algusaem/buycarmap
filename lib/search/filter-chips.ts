@@ -4,7 +4,7 @@ import { type FuelGroup, groupsFromEngine } from "@/lib/search/fuel-groups";
 import { chosenGearbox } from "@/lib/search/panel";
 import type { SearchInput } from "@/lib/search/schema";
 
-// docs/specs/redesign-map.md (MAPUI-13, MAPUI-62). One chip text per active
+// docs/specs/redesign-map.md (MAPUI-13, MAPUI-67). One chip text per active
 // panel criterion, read off the shared `SearchInput`. «Filtros»'s badge, in
 // the desktop header's second row and the phone band, is this array's length.
 // The text comes from the messages (`filters.*`, `search.*`) in the locale of

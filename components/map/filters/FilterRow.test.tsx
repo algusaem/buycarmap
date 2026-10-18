@@ -9,7 +9,7 @@ import { FilterRow } from "./FilterRow";
 
 // docs/specs/redesign-map.md (MAPUI-13). The row shows «Filtros» with its
 // badge (counting the active criteria, lib/search/filter-chips.ts's
-// filterChips), a divider and the quick filters (MAPUI-58, tested in
+// filterChips), a divider and the quick filters (MAPUI-63, tested in
 // isolation in QuickFilters.test.tsx and lib/search/quick-filters.test.ts);
 // it renders no removable chips.
 

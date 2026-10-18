@@ -177,7 +177,7 @@ The alert map (desktop, `/alerts` and `/alerts/[id]`)
   - on `/alerts`, a pin whose match is not among the four the open card shows opens its preview and
     outlines no card — the photo's lime ring shows while a card's link has keyboard focus, whatever
     the pointer does and whether or not the car has a pin; the link draws no second outline
-    (MAPUI-61, amended 2026-10-18, #134).
+    (MAPUI-66, amended 2026-10-18, #134).
 
 The saved state of a match
 

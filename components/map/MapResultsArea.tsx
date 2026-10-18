@@ -20,7 +20,7 @@ const ListingsMap = dynamic(
 );
 
 // docs/specs/redesign-map.md (MAPUI-20, MAPUI-23, MAPUI-27 to MAPUI-33,
-// MAPUI-60, MAPUI-62). The list-and-map area MapView wires up: on a phone,
+// MAPUI-65, MAPUI-67). The list-and-map area MapView wires up: on a phone,
 // the `surface` band across the top with the search summary, «Filtros» and
 // the quick filters, its top padding clear of the notch, and under it the map
 // with the results sheet over it; from `lg`, a row 48px from each side whose
@@ -73,7 +73,7 @@ export function MapResultsArea({
     // `isolate` keeps the sheet's z-index inside this area, under the tab bar and the dialogs
     // portalled to the body.
     <div className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-      {/* Phone: the band with the search summary, «Filtros» and the quick filters, clear of the notch and the rounded corners (MAPUI-20, MAPUI-62). */}
+      {/* Phone: the band with the search summary, «Filtros» and the quick filters, clear of the notch and the rounded corners (MAPUI-20, MAPUI-67). */}
       <div data-testid="phone-map-band" className="shrink-0 bg-surface pt-band-top pb-3 lg:hidden">
         <PhoneSearchBar
           placeSummary={summary.placeSummary}
@@ -88,7 +88,7 @@ export function MapResultsArea({
         />
       </div>
 
-      {/* Under the band on a phone; the list-and-map row on desktop (MAPUI-60). */}
+      {/* Under the band on a phone; the list-and-map row on desktop (MAPUI-65). */}
       <div className="relative flex min-h-0 flex-1 lg:gap-12 lg:px-12">
         {/* The list column on desktop, the results sheet over the map on a phone (MAPUI-23, MAPUI-33). */}
         <ResultsSheet

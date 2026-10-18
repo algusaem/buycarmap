@@ -121,7 +121,7 @@ List and map
   - activating a pin opens its preview as MAPUI-27 describes, with the heart named «Quitar de
     guardados». The pin is marked active and its card outlined. A grouped pin outlines every card of
     its group — the photo's lime ring shows while a card's link has keyboard focus, whatever the
-    pointer does and whether or not the car has a pin; the link draws no second outline (MAPUI-61,
+    pointer does and whether or not the car has a pin; the link draws no second outline (MAPUI-66,
     amended 2026-10-18, #134).
 - [x] SAVED-12 · component — The map has one pin per saved car with coordinates. Cars at the same
   point share one pin, «N coches · desde <precio más bajo>», whose preview stacks its cars in price
@@ -241,9 +241,9 @@ The toast
   - **on `/map` at desktop width**, its top 12px below the bottom of the filter row under the header,
     its centre over the results list's centre: x = 415px at 1440×900, where the list is 830px wide,
     and x = 256px at 1024×900, where it is half the width («Alerta creada», in the DB suite as
-    FRONT-23's trigger); — the filter row is now inside the header band (MAPUI-59), so the toast's
+    FRONT-23's trigger); — the filter row is now inside the header band (MAPUI-64), so the toast's
     top is 12px below the band's bottom (163px), and its centre is over the half-width list: x =
-    372px at 1440×900 and x = 268px at 1024×900 (amended 2026-10-17, MAPUI-59, MAPUI-60 —
+    372px at 1440×900 and x = 268px at 1024×900 (amended 2026-10-17, MAPUI-64, MAPUI-65 —
     redesign-map.md);
   - **on `/alerts` and `/alerts/[id]` at desktop width**, its top 12px below the header's bottom,
     its centre over the list column's centre: x = 415px at 1440×900 and 1280×900, x = 273px at
@@ -416,7 +416,7 @@ worked example: the removal sets only `deletedAt`, and the restore bumps `versio
 
 The widths come from the `R3-favoritos` markup, read with the padding inside the column, as `/map`'s
 list was built (`components/map/phone/ResultsSheet.tsx`: `lg:w-1/2`, `xl:w-207.5`, 830px) (until
-2026-10-17; /map's list is now half the width, MAPUI-60). The 1440
+2026-10-17; /map's list is now half the width, MAPUI-65). The 1440
 board's `main` is 830px with `padding: 30px 32px`, so 766px of cards; less two 20px gaps, over three,
 gives 242px. The 1024 board's is 546px, so 482px of cards; less one 20px gap, over two, gives 231px.
 The boards' notes give 263px cards and a 414px map at 1024: those are the column read without the
@@ -630,7 +630,7 @@ gives Spanish only. English is drafted here and reviewed in the pull request, as
   - MAPUI-42: the «Alerta creada» toast, and every other toast on `/map`, sits 12px below the
     filter row, centred over the results list at desktop width, and its close button is «Cerrar
     aviso» (SAVED-24, SAVED-36) — under the header band instead, 12px below its bottom (163px),
-    since the filter row moved into it (SAVED-24 as amended, MAPUI-59) (amended 2026-10-17);
+    since the filter row moved into it (SAVED-24 as amended, MAPUI-64) (amended 2026-10-17);
   - MAPUI-52: the current tab's label is in the text colour, at weight 800, and its icon stays
     violet, «Cuenta»'s filled circle included (SAVED-33).
 - **`core-frontend.md` (FRONT):**
@@ -760,7 +760,7 @@ rule holds on `/map` too, so it amends MAPUI-26.
 both widths, which the markup's column with its padding inside does not fit. The widths follow the
 markup, read as `/map`'s list was built: 830px with the padding inside from 1280px, three columns;
 546px with the padding inside from 1024px to 1279px, two columns (SAVED-3, viewport table) (until
-2026-10-17; /map's list is now half the width, MAPUI-60).
+2026-10-17; /map's list is now half the width, MAPUI-65).
 
 **The current tab's label in the text colour** (owner decision, 2026-10-15). Violet `#7C4DFF` on
 `surface` `#18181B` measures 3.68:1 at 11px bold, under WCAG's 4.5:1 for text, and axe fails it at

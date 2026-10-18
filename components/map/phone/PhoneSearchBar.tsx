@@ -8,7 +8,7 @@ import { QuickFilters } from "@/components/map/filters/QuickFilters";
 import { useFilterCount } from "@/lib/hooks/useFilterCount";
 import type { SearchInput } from "@/lib/search/schema";
 
-// docs/specs/redesign-map.md (MAPUI-20, MAPUI-22, MAPUI-58, MAPUI-62);
+// docs/specs/redesign-map.md (MAPUI-20, MAPUI-22, MAPUI-63, MAPUI-67);
 // docs/design/system/components/SearchPill/README.md (Móvil en el mapa) and
 // Chip/README.md. The content of the `surface` band across the top of the
 // phone map. Row one: the 56px search summary, with the magnifier and the
@@ -36,7 +36,7 @@ export interface PhoneSearchBarProps {
   input: SearchInput;
   onOpenSearch: () => void;
   onOpenFilters: () => void;
-  /** A quick filter's patch, applied at once (MAPUI-22, MAPUI-58). */
+  /** A quick filter's patch, applied at once (MAPUI-22, MAPUI-63). */
   onApplyQuick: (patch: Partial<SearchInput>) => void;
   /** Whether the filters dialog is open, for «Filtros»'s `aria-expanded`. */
   filtersOpen?: boolean;
