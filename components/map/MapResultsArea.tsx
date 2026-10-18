@@ -20,7 +20,7 @@ const ListingsMap = dynamic(
 );
 
 // docs/specs/redesign-map.md (MAPUI-20, MAPUI-23, MAPUI-27 to MAPUI-33,
-// MAPUI-65, MAPUI-67). The list-and-map area MapView wires up: on a phone,
+// MAPUI-62, MAPUI-65, MAPUI-67). The list-and-map area MapView wires up: on a phone,
 // the `surface` band across the top with the search summary, «Filtros» and
 // the quick filters, its top padding clear of the notch, and under it the map
 // with the results sheet over it; from `lg`, a row 48px from each side whose
@@ -72,7 +72,7 @@ export function MapResultsArea({
   return (
     // `isolate` keeps the sheet's z-index inside this area, under the tab bar and the dialogs
     // portalled to the body.
-    <div className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="relative isolate flex min-h-0 flex-1 flex-col overflow-clip">
       {/* Phone: the band with the search summary, «Filtros» and the quick filters, clear of the notch and the rounded corners (MAPUI-20, MAPUI-67). */}
       <div data-testid="phone-map-band" className="shrink-0 bg-surface pt-band-top pb-3 lg:hidden">
         <PhoneSearchBar
@@ -137,6 +137,7 @@ export function MapResultsArea({
             previewId={page.previewId}
             onActivate={page.activatePin}
             onPreviewClose={page.closePreview}
+            onMapInteract={isPhone ? page.lowerSheetOnMapInteract : undefined}
             desktop={!isPhone}
             favoriteIds={favoriteIds}
             onToggleFavorite={onToggleFavorite}

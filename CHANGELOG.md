@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.4.0...buycarmap-v0.5.0) (2026-10-18)
+
+
+### Features
+
+* drag the phone map sheet and keep pages clear of browser toolbars ([#136](https://github.com/algusaem/buycarmap/issues/136)) ([e88f2c9](https://github.com/algusaem/buycarmap/commit/e88f2c9c6582c2c5d873f926f4fdfdadefd851e6)), closes [#133](https://github.com/algusaem/buycarmap/issues/133) [#126](https://github.com/algusaem/buycarmap/issues/126)
+* redesign every page with the new BuyCarMap look ([#129](https://github.com/algusaem/buycarmap/issues/129)) ([8d84526](https://github.com/algusaem/buycarmap/commit/8d84526a9b99fba79e86c5c592ef04bb12c45951))
+
 ## [0.4.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.3.1...buycarmap-v0.4.0) (2026-10-11)
 
 

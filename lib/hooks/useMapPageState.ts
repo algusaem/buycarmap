@@ -7,7 +7,7 @@ import { useSignInGate } from "@/lib/hooks/useSignInGate";
 import { cardDomId } from "@/lib/map/card-dom-id";
 
 // docs/specs/redesign-map.md (MAPUI-21 to MAPUI-24, MAPUI-27, MAPUI-28,
-// MAPUI-39, MAPUI-46, MAPUI-53). The map page's own UI state, apart from the
+// MAPUI-39, MAPUI-46, MAPUI-53, MAPUI-62). The map page's own UI state, apart from the
 // search itself (useSearchFilters, useListingsSearch): which phone sheet is
 // open, where the results sheet rests, which pin and card are active, and
 // whether «Crear alerta» is open — with the handlers that keep them in step.
@@ -121,6 +121,14 @@ export function useMapPageState(listings: CarListing[], isPhone: boolean) {
     closePhoneFilters: () => setPhoneFiltersOpen(false),
     sheetPosition,
     setSheetPosition,
+    /**
+     * A tap on the map itself or the start of a pan, at phone width: the
+     * sheet at middle goes down to peeked; at peeked or full nothing changes
+     * (MAPUI-62). A pin tap is not one: it keeps MAPUI-24 (activatePin).
+     */
+    lowerSheetOnMapInteract: () => {
+      if (sheetPosition === "middle") setSheetPosition("peeked");
+    },
     /** The phone sheet's cards, the tapped pin's car first; the desktop list keeps the search's order. */
     sheetListings: isPhone ? withFirst(listings, firstId) : listings,
     /** The pin to mark: the hovered or focused card's, else the one whose preview is open (MAPUI-27, MAPUI-28). */

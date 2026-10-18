@@ -708,7 +708,8 @@ MapView
 
 **Layout switches at `lg` in CSS; behaviour reads a media query.** The phone results sheet
 slices its cards by position, a phone pin moves the sheet instead of opening the preview, and the
-phone map has no zoom control. Those are behaviours, not styles, so
+phone map has no zoom control, and a tap or pan on the phone map lowers the middle sheet to
+peeked (MAPUI-62, [`specs/redesign-map.md`](specs/redesign-map.md)). Those are behaviours, not styles, so
 [`lib/hooks/useIsPhone.ts`](../lib/hooks/useIsPhone.ts) tells `MapView` which applies; the
 server, and jsdom, take the desktop branch.
 
@@ -1050,8 +1051,8 @@ Motion (`motion/react-client`, with `AnimatePresence` from `motion/react`) rathe
 than CSS animations for React components.
 
 **Reuse the presets in [`lib/animations.ts`](../lib/animations.ts)** —
-`fadeInUp`, `dropdownReveal`, `sheetSlideUp`, `crossFade`
-— instead of re-declaring `initial`/`animate` inline.
+`fadeInUp`, `dropdownReveal`, `sheetSlideUp`, `crossFade`, `sheetSpring` (a dragged bottom
+sheet springing to rest) — instead of re-declaring `initial`/`animate` inline.
 
 Animate only `transform` and `opacity`. Never animate layout properties, and
 never `transition: all`. Honour `prefers-reduced-motion`.

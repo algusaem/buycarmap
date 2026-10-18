@@ -1,7 +1,7 @@
 "use client";
 
 import L, { type PopupEvent } from "leaflet";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { type MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { CarListing } from "@/interfaces/listing";
@@ -135,6 +135,25 @@ function ClosePopupOnPreviewClear({ previewId, openPinRef }: ClosePopupOnPreview
     }
   }, [previewId, openPinRef]);
 
+  return null;
+}
+
+// MAPUI-62: the map itself was clicked or tapped, or a pan started. A pin's
+// click never reaches the map (Leaflet's markers do not bubble their mouse
+// events to it), so a pin tap never counts. The latest callback is read
+// through a ref, so the listeners are bound once, not on every render.
+interface MapInteractionsProps {
+  onMapInteract: () => void;
+}
+
+function MapInteractions({ onMapInteract }: MapInteractionsProps) {
+  const callbackRef = useRef(onMapInteract);
+  callbackRef.current = onMapInteract;
+  const handlers = useMemo(
+    () => ({ click: () => callbackRef.current(), dragstart: () => callbackRef.current() }),
+    [],
+  );
+  useMapEvents(handlers);
   return null;
 }
 
@@ -413,6 +432,8 @@ interface ListingsMapProps {
   /** A pin was activated, with the first car it holds. */
   onActivate?: (listingId: string) => void;
   onPreviewClose?: () => void;
+  /** The map itself was clicked/tapped or a pan started — never a pin click (MAPUI-62). */
+  onMapInteract?: () => void;
   /** Desktop: a pin opens the preview card and the zoom buttons show. Phone: neither (MAPUI-24, MAPUI-29). */
   desktop?: boolean;
   favoriteIds?: ReadonlySet<string>;
@@ -428,6 +449,7 @@ export function ListingsMap({
   previewId,
   onActivate,
   onPreviewClose,
+  onMapInteract,
   desktop = true,
   favoriteIds,
   onToggleFavorite,
@@ -470,6 +492,7 @@ export function ListingsMap({
           resetWhenEmpty={resetWhenEmpty && resultsGeneration !== undefined}
         />
         <ClosePopupOnPreviewClear previewId={previewId} openPinRef={openPinRef} />
+        {onMapInteract && <MapInteractions onMapInteract={onMapInteract} />}
         {groups.map((group) => (
           <PricePin
             key={group.key}

@@ -175,8 +175,10 @@ Phone
     accepted 2026-10-14).
 
   The sheet sits on top of the tab bar. Its title is the results heading of MAPUI-33, and under it
-  sits «Crear alerta» (MAPUI-39). The handle is a button named «Lista de resultados» that toggles between full
-  and peeked, with `aria-expanded` true only when full. (amended 2026-10-13)
+  sits «Crear alerta» (MAPUI-39). The handle is a button named «Lista de resultados»; each press
+  moves the sheet one position up: peeked → middle → full, and from full back to peeked, with
+  `aria-expanded` true only when full (amended 2026-10-13; amended 2026-10-17, MAPUI-58, owner
+  decision and design accepted 2026-10-17, #133).
 - [x] MAPUI-24 · component — At phone width, tapping a pin moves the results sheet to its middle
   position showing that car's card first, or the group's first car for a grouped pin.
 
@@ -406,6 +408,30 @@ Fuel filter, type-ahead messages and price format
 - [x] MAPUI-57 · unit — Every price has one format, with a thousands point, four-digit amounts
   included: «9.500 €», «14.500 €». The cards, the preview, the pins, the chips and the pill all
   format through `formatPrice`, and `lib/format.ts` has no second price formatter (amends FRONT-11).
+
+Phone results sheet: drag and map tap (added 2026-10-17, #133; design accepted 2026-10-17,
+`docs/design/system/components/BottomSheet/README.md`)
+
+- [x] MAPUI-58 · component — Pressing the results sheet's handle (Enter, Space or a click) moves the
+  sheet one position up: peeked → middle, middle → full, full → peeked (amends MAPUI-23).
+- [x] MAPUI-59 · component + e2e — At phone width, the results sheet can be dragged up and down from
+  its handle strip and from its header (the results heading). On release it settles on the position
+  (peeked, middle or full) whose top edge is nearest to where the sheet's top edge was released. A
+  drag that starts in the list does not move the sheet; at full the list keeps its own scroll.
+- [x] MAPUI-60 · unit + e2e — A drag released faster than 800px/s moves the sheet exactly one
+  position in the drag's direction from where the drag started, whatever the nearest position is;
+  at peeked a fast downward release and at full a fast upward release leave it where it is. Under
+  reduced motion the sheet settles without animation.
+- [x] MAPUI-61 · component — Dragging is never the only way: every position stays reachable with the
+  handle alone (MAPUI-58) and the keyboard. The tab bar still hides only while the sheet is full
+  (MAPUI-53), whether the sheet got there by dragging or by the handle.
+- [x] MAPUI-62 · component — At phone width with the sheet at middle, tapping the map or starting to
+  pan it moves the sheet to peeked. At peeked a map tap or pan changes nothing. Tapping a pin keeps
+  MAPUI-24 (sheet to middle with that car first) and never lowers the sheet; taps on the floating
+  search, the filters row and the map's own controls do not count as map taps. — the floating
+  search is now the top band, so taps on the band (the search summary, «Filtros» and the quick
+  filters) do not count as map taps: the band sits above the map, not over it (amended 2026-10-18,
+  MAPUI-67, #134)
 
 Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #134)
 
@@ -667,6 +693,31 @@ barato», and already has an alert with the same criteria hash:
 - **Correct result:** the tab bar stays. It hides only when the sheet reaches full, and comes back when
   it leaves full.
 
+**Phone results sheet (MAPUI-58 to MAPUI-62, #133).** The positions' top edges are whatever the
+layout measures (the design gives no fixed heights); call them P (peeked), M (middle) and F (full),
+with P below M below F. The test measures them and derives the expectation from them.
+
+| Start | Gesture | Result |
+| --- | --- | --- |
+| peeked | press the handle | middle |
+| middle | press the handle | full |
+| full | press the handle | peeked |
+| middle | drag the header up, release slowly with the top edge nearer F than M | full |
+| middle | drag the handle down, release slowly with the top edge nearer M than P | middle |
+| full | drag the handle down, release slowly with the top edge nearer P than M | peeked |
+| middle | drag the header up a little and release faster than 800px/s | full |
+| middle | drag the handle down a little and release faster than 800px/s | peeked |
+| full | drag the handle down a little and release faster than 800px/s | middle |
+| middle | drag the header up a little and release at exactly 800px/s | settles on the nearest position |
+| peeked | drag the handle down and release fast | peeked |
+| middle | drag on the card | middle, nothing moves (MAPUI-23 shows one card) |
+| full | drag inside the list | full, the list scrolls |
+| middle | tap the map | peeked |
+| middle | pan the map | peeked |
+| peeked | tap the map | peeked |
+| peeked | tap a pin | middle, that car's card first (MAPUI-24) |
+| middle | tap the floating search — the floating search is now the top band, so tap the band's search summary (amended 2026-10-18, MAPUI-67, #134) | middle, the search opens |
+
 ## Data model
 
 None. Alerts keep their `AlertCriteria.criteria` JSON and `Alert.label`. The create path only learns
@@ -762,7 +813,8 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
   2026-10-15, ALERTUI — redesign-alerts.md: in scope in F6, which stores the name on the alert,
   ALERTUI-46.)
 - Dragging the phone results sheet between its positions. The handle toggles them (MAPUI-23); the
-  drag is tracked in [#126](https://github.com/algusaem/buycarmap/issues/126).
+  drag is tracked in [#126](https://github.com/algusaem/buycarmap/issues/126). (Amended 2026-10-17:
+  in scope, MAPUI-58 to MAPUI-62, #133.)
 
 ## Contracts
 

@@ -792,7 +792,7 @@ is 100px or a release faster than 800px/s: far enough not to close by accident, 
 thumb movement. With reduced motion the spring back is instant. The phone filters panel is a
 full-screen dialog with no handle, so it keeps its «×» (MAPUI-22): without it, it would have no
 visible way to discard. Dragging the results sheet between its positions stays out of scope
-([#126](https://github.com/algusaem/buycarmap/issues/126)).
+([#126](https://github.com/algusaem/buycarmap/issues/126)). (Amended 2026-10-17: in scope in redesign-map.md, MAPUI-58 to MAPUI-62, #133.)
 
 **Raw SQL in the e2e fixture** (owner approval, 2026-10-15, `RULES.md` §11). `seedFavorites` in
 `e2e/fixtures/db.ts` writes its rows with a raw `INSERT`, because `created_at` can only be set by a

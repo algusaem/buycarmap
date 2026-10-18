@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect, type JSHandle, type Locator, type Page } from "@playwright/test";
 
 /** An element's box, as Playwright measures it. */
 export interface Box {
@@ -23,17 +23,28 @@ export function expectWithin(actual: number, expected: number, label: string) {
   ).toBeLessThanOrEqual(1);
 }
 
+/**
+ * The nearest ancestor of `item` that scrolls: overflow-y auto or scroll, with
+ * more content than room (the list column on desktop). With none, the page's
+ * own scrolling element.
+ */
+export async function scrollableAncestor(item: Locator): Promise<JSHandle<Element>> {
+  return item.evaluateHandle((element) => {
+    for (let node = element.parentElement; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) {
+        return node;
+      }
+    }
+    return document.scrollingElement ?? document.documentElement;
+  });
+}
+
 /** Scrolls the nearest scrolling ancestor of `item` (the list column on desktop, the page on a phone) by `pixels`. */
 async function scrollBy(item: Locator, pixels: number) {
-  await item.evaluate((element, delta) => {
-    let node: HTMLElement | null = element.parentElement;
-    while (node) {
-      const style = getComputedStyle(node);
-      if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) break;
-      node = node.parentElement;
-    }
-    (node ?? document.scrollingElement ?? document.documentElement).scrollBy(0, delta);
-  }, pixels);
+  const scroller = await scrollableAncestor(item);
+  await scroller.evaluate((element, delta) => element.scrollBy(0, delta), pixels);
+  await scroller.dispose();
 }
 
 /** Scrolls the list until the item named `title` is mounted, then brings it to the top of the view. */
@@ -108,17 +119,12 @@ export function carTitle(n: number): string {
 
 /** Scrolls the nearest scrolling ancestor of `item` to its middle or its end. */
 export async function scrollTo(item: Locator, where: "middle" | "end") {
-  await item.evaluate((element, position) => {
-    let node: HTMLElement | null = element.parentElement;
-    while (node) {
-      const style = getComputedStyle(node);
-      if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) break;
-      node = node.parentElement;
-    }
-    const scroller = node ?? document.scrollingElement ?? document.documentElement;
-    const top = position === "middle" ? scroller.scrollHeight / 2 : scroller.scrollHeight;
-    scroller.scrollTo(0, top);
+  const scroller = await scrollableAncestor(item);
+  await scroller.evaluate((element, position) => {
+    const top = position === "middle" ? element.scrollHeight / 2 : element.scrollHeight;
+    element.scrollTo(0, top);
   }, where);
+  await scroller.dispose();
 }
 
 /** The box once it stops moving: a toast slides in, a card list settles. */
