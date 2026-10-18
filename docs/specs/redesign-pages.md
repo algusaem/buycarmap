@@ -589,6 +589,13 @@ The other access pages have no laptop board: from 1024px to 1439px they take `/r
 | `/terms` | «Términos · Buy Car Map» |
 | the not-found page | «Esto no existe · Buy Car Map» |
 
+**PAGES-63 (bug fix, #137).** At phone width on `/privacy`, open «En esta página» and press
+«Cookies» while the page is busy. Before the fix the page scrolled to `#cookies` one frame after the
+index's exit finished, which could land before the folded list had left the page: at the moment of
+the scroll the «Cookies» link was still shown. Correct result: when the page scrolls to `#cookies`,
+the list is already gone (`aria-expanded="false"`, no «Cookies» link in the index), and the address
+names `#cookies`.
+
 ## Data model
 
 No change: no new model, column, index or migration, and no seed change. `/account` reads what the

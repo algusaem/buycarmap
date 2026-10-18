@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithI18n } from "@/test/utils/render";
@@ -284,6 +284,74 @@ describe("PAGES-63: the phone index", () => {
       expect(window.location.hash).toBe("#cookies");
 
       scrollIntoView.mockRestore();
+    });
+
+    it("PAGES-63 (bug fix, #137): on a busy page, pressing «Cookies» scrolls only once the folded list is gone", async () => {
+      stubPhoneWidth();
+      const scrolled: { id: string; listShown: boolean }[] = [];
+      const scrollIntoView = vi
+        .spyOn(Element.prototype, "scrollIntoView")
+        .mockImplementation(function (this: Element) {
+          scrolled.push({
+            id: this.id,
+            listShown: screen.queryByRole("link", { name: "Cookies" }) !== null,
+          });
+        });
+      onTestFinished(() => scrollIntoView.mockRestore());
+      renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+      const toggle = screen.getByRole("button", { name: "En esta página" });
+      await userEvent.click(toggle);
+      const cookies = await screen.findByRole("link", { name: "Cookies" });
+      // A busy page: the press takes longer than a frame, so the next frame is
+      // already due when its handlers finish, and a frame callback runs before
+      // React's next render. jsdom only gets there when its 60 Hz timer happens
+      // to line up with the press; running each callback as soon as the
+      // current task ends gives that ordering on every run.
+      const frameAlreadyDue = vi
+        .spyOn(window, "requestAnimationFrame")
+        .mockImplementation((callback) => {
+          queueMicrotask(() => callback(performance.now()));
+          return 0;
+        });
+      onTestFinished(() => frameAlreadyDue.mockRestore());
+      await userEvent.click(cookies);
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await waitFor(() => expect(scrolled).toEqual([{ id: "cookies", listShown: false }]));
+      expect(window.location.hash).toBe("#cookies");
+    });
+
+    it("PAGES-63: pressing «Cookies» a second time after reopening the index scrolls to #cookies again", async () => {
+      stubPhoneWidth();
+      const scrolled: { id: string; listShown: boolean }[] = [];
+      const scrollIntoView = vi
+        .spyOn(Element.prototype, "scrollIntoView")
+        .mockImplementation(function (this: Element) {
+          scrolled.push({
+            id: this.id,
+            listShown: screen.queryByRole("link", { name: "Cookies" }) !== null,
+          });
+        });
+      onTestFinished(() => scrollIntoView.mockRestore());
+      renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+      const toggle = screen.getByRole("button", { name: "En esta página" });
+      await userEvent.click(toggle);
+      await userEvent.click(await screen.findByRole("link", { name: "Cookies" }));
+      await waitFor(() => expect(scrolled).toHaveLength(1));
+
+      await userEvent.click(toggle);
+      await userEvent.click(await screen.findByRole("link", { name: "Cookies" }));
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await waitFor(() =>
+        expect(scrolled).toEqual([
+          { id: "cookies", listShown: false },
+          { id: "cookies", listShown: false },
+        ]),
+      );
+      expect(window.location.hash).toBe("#cookies");
     });
   });
 });
