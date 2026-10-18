@@ -2,7 +2,7 @@
 
 Key: MAPUI
 Status: Implemented
-Last updated: 2026-10-17
+Last updated: 2026-10-18
 
 ---
 
@@ -13,7 +13,8 @@ screen, and today's screen contradicts it almost everywhere a buyer touches it.
 
 - **The search.** Today it is a free-text box plus a panel of fifteen controls behind one toggle. The
   design asks three questions in a search pill in the header: where, which car and how much. The
-  remaining filters live in one panel, and a row of chips shows what is applied.
+  remaining filters live in one panel, and a row of chips shows what is applied. — the quick
+  filters and the «Filtros» badge replace the row of chips (MAPUI-63) (amended 2026-10-17, #134)
 - **Choosing a car.** Today a buyer picks a brand from a dropdown, then a model from a second
   dropdown that only appears afterwards. The design asks them to type.
 - **The results.** The map draws a lime dot per car with a Leaflet popup, and two cars of the same
@@ -30,7 +31,8 @@ In scope:
 
 - **Desktop search:** the search pill and its three popovers, the filters row, and the filters panel
   on desktop.
-- **Phone search:** the floating search, the search sheet, and the full-screen filters.
+- **Phone search:** the floating search, the search sheet, and the full-screen filters. — the
+  floating search is now the top band (MAPUI-67) (amended 2026-10-17, #134)
 - **The map:** price pins and grouping, the preview card, zoom, and the phone results sheet.
 - **States:** loading, empty and error, and the route's own loading and error files.
 - **The shared car card:** the card used on the map, on saved cars and on alert matches.
@@ -44,7 +46,8 @@ Search pill and its popovers (desktop)
 
 - [x] MAPUI-1 · component — At desktop width the map header's centre shows the search pill: segments
   «Dónde», «Coche» and «Precio», each with its value as in the worked examples, then the «Buscar»
-  button. «Crear alerta» follows the pill.
+  button. «Crear alerta» follows the pill. — the pill is 48px tall and the header becomes a band of
+  two rows (MAPUI-64) (amended 2026-10-17, design A7 accepted 2026-10-17, #134)
 - [x] MAPUI-2 · component — Pressing a segment opens its popover and sets that segment's
   `aria-expanded` to true. At most one popover is open. Pressing outside it or Escape closes it;
   Escape returns focus to the segment.
@@ -97,7 +100,10 @@ Filters row and panel
   «Filtros» with no badge. At every width the row stays on one line: when the chips do not fit, they
   scroll sideways behind «Filtros», which stays fixed at the start (design accepted 2026-10-14).
   Removing a chip with the keyboard moves focus to the next chip's remove button, the previous one
-  when it was the last, and «Filtros» when none is left.
+  when it was the last, and «Filtros» when none is left. — replaced by the quick filters (MAPUI-63):
+  the row shows «Filtros» with its badge, a divider and the quick filters, and no removable chips;
+  the badge still counts the active criteria as the worked example «Chip texts» does (amended
+  2026-10-17, design A7 accepted 2026-10-17, #134)
 - [x] MAPUI-14 · component — The filters panel has exactly the sections Precio, Combustible, Cambio,
   Kilómetros y año (the maximum mileage and the minimum year, with the visible labels «Kilómetros, hasta»
   and «Año, desde»), Publicado, and Marca y modelo (the «Coche»
@@ -140,6 +146,11 @@ Phone
     with no place;
   - beside it, the violet filters button, then the filters row.
 
+  — not floating any more: a solid `surface` band across the top holds the summary with a 44px round
+  «Filtros» button beside it (sliders icon, the violet badge at its corner), and under them the quick
+  filters (MAPUI-63), scrolling sideways; the map starts under the band (MAPUI-67) (amended
+  2026-10-17, design A7 accepted 2026-10-17, #134)
+
   It shows no zoom control and no app header (keeps HEAD-7), and the tab bar of MAPUI-52 runs along
   the bottom.
 - [x] MAPUI-21 · component — Tapping the summary opens the «BUSCAR» sheet with «Dónde», «Coche» and
@@ -152,7 +163,9 @@ Phone
   - «Borrar» empties the sheet's fields, applied only on «Ver coches».
 - [x] MAPUI-22 · component — The violet button opens the full-screen filters panel, with the same
   sections as MAPUI-14 and the apply, discard and «Borrar» behaviour of MAPUI-21. Removing a chip
-  from the filters row applies at once.
+  from the filters row applies at once. — the violet button becomes the round «Filtros» button of
+  the band, outlined in `line` with its violet badge, and a quick filter applies at once (MAPUI-63)
+  (amended 2026-10-17, #134)
 - [x] MAPUI-23 · component — On a phone the results live in a sheet over the map with three
   positions:
   - peeked, showing the title only;
@@ -207,6 +220,8 @@ States
   `role="status"` (amends FRONT-14). At phone width the loading state is the map screen itself: the
   floating search and the filters row over the map, and the results sheet in its middle position with
   the heading «BUSCANDO COCHES…» and one placeholder card (`F0-estado-cargando`; amended 2026-10-14).
+  — the floating search and the filters row are now the top band with the summary, «Filtros» and the
+  quick filters (MAPUI-67) (amended 2026-10-17, #134)
 - [x] MAPUI-31 · component — A search with no results shows:
   - «¿Nada por aquí?» over «Amplía el radio»;
   - the line «Con estos filtros no hay coches en 50 km. Prueba más lejos o quita algún filtro.»;
@@ -305,7 +320,9 @@ Crear alerta
   `createAlert` with a `timeFilter` or `keywords` are hashed and stored without them, the same as
   the criteria without them. (amended 2026-10-13) — at desktop width the toast's top is 12px below
   the filter row and its centre is over the results list's, and its close button is «Cerrar aviso»,
-  as every toast in the app (amended 2026-10-15, SAVED-24 and SAVED-36 — redesign-saved.md) —
+  as every toast in the app (amended 2026-10-15, SAVED-24 and SAVED-36 — redesign-saved.md) — the
+  toast's top is 12px under the header band instead, at 163px (SAVED-24 as amended, MAPUI-64)
+  (amended 2026-10-17, #134) —
   `createAlert` also receives the place chosen in «Dónde» as its place name, «Madrid» from
   `locationName=Madrid`, and none with no place; the place name is stored on the alert, never in
   its criteria or their hash (amended 2026-10-15, ALERTUI-46 to ALERTUI-48 — redesign-alerts.md)
@@ -342,7 +359,8 @@ Flows
   the criteria to the URL. Choosing and then closing the sheet leaves the URL as it was.
 - [x] MAPUI-51 · e2e — At phone width every map control has a hit area of at least 44 × 44px: the
   summary, the filters button, the chips' remove buttons, the sheet handle, the pins and the tabs
-  (extends HEAD-15).
+  (extends HEAD-15). — the quick filters replace the chips' remove buttons (MAPUI-63) (amended
+  2026-10-17, #134)
 
 Phone tab bar
 
@@ -410,7 +428,54 @@ Phone results sheet: drag and map tap (added 2026-10-17, #133; design accepted 2
 - [x] MAPUI-62 · component — At phone width with the sheet at middle, tapping the map or starting to
   pan it moves the sheet to peeked. At peeked a map tap or pan changes nothing. Tapping a pin keeps
   MAPUI-24 (sheet to middle with that car first) and never lowers the sheet; taps on the floating
-  search, the filters row and the map's own controls do not count as map taps.
+  search, the filters row and the map's own controls do not count as map taps. — the floating
+  search is now the top band, so taps on the band (the search summary, «Filtros» and the quick
+  filters) do not count as map taps: the band sits above the map, not over it (amended 2026-10-18,
+  MAPUI-67, #134)
+
+Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #134)
+
+- [x] MAPUI-63 · component — Under the search, at every width, the map shows the quick filters, in this
+  order: «Gasolina», «Diésel», «Manual», «Automático» and «Hasta 100.000 km». Each is a toggle button
+  (`aria-pressed`) that reads the current search and applies at once, re-searching:
+  - «Gasolina» and «Diésel» add or remove their fuel (MAPUI-15) and leave the other fuels as they are;
+  - «Manual» and «Automático» are pressed when the gearbox is exactly that one (MAPUI-16); pressing
+    one sets the gearbox to it, so at most one of them is pressed; pressing the pressed one clears the
+    gearbox criterion;
+  - «Hasta 100.000 km» is pressed when the maximum mileage is exactly 100.000 km; pressing it sets
+    it, and pressing it again clears the maximum mileage.
+
+  A pressed quick filter has the violet fill; an unpressed one the line border. Pressed also reads in
+  the weight, 800 against 600, as LOOK-12, and «Manual» and «Automático» read pressed by the panel's
+  own rule (MAPUI-16, MAPUI-18) (amended 2026-10-17, #134). On desktop they follow
+  «Filtros» and a divider; on a phone «Filtros» is the round button beside the summary (MAPUI-67).
+  The filters panel and the quick filters always show the same criteria.
+- [x] MAPUI-64 · e2e — At 1440 × 900 on `/map`, the header is one `surface` band with no bottom border
+  (HEAD-21), 48px from each side, 151px tall:
+  - row one: the wordmark, the 48px-tall search pill with «Crear alerta» centred, the navigation;
+    the pill's top is 24px under the window's top;
+  - row two, 28px under the pill: «Filtros», a divider and the quick filters, 34px tall, centred on the
+    window, 17px above the band's bottom — «Filtros» in the band is named «Filtros» and described as
+    «N filtros activos» while criteria are active, as on the phone (MAPUI-67); its badge is not part of
+    the name (amended 2026-10-17, #134).
+- [x] MAPUI-65 · e2e — At desktop width, under the band, the list and the map share the width between
+  48px side margins in two equal halves 48px apart. The results heading is 24px under the band. The
+  map is a card with the `card` radius (22px) and no border, its top level with the heading's top and
+  its bottom 24px above the window's bottom. The cards sit in a grid with 24px between columns and
+  40px between rows: two columns below 1920px wide, three from 1920px (Airbnb's measured layout;
+  owner, 2026-10-17: «puedes comprobar que lo tenemos igual?»).
+- [x] MAPUI-66 · e2e — At desktop width the active card's 2px lime outline (MAPUI-27, MAPUI-28) is
+  drawn whole on every card of the list, the first row and both outer columns included, and the
+  list's scrollbar sits at the list's outer edge, not against the cards (bug fix, found 2026-10-17).
+  — a card focused with the keyboard shows exactly one outline: the photo's lime ring shows while
+  the card's link has keyboard focus, whatever the pointer does and whether or not the car has a
+  pin, on every car card (the map's list, Guardados SAVED-11, an alert's matches ALERTUI-17), and no
+  second outline around the card (bug fix, found 2026-10-18) (amended 2026-10-18, #134)
+- [x] MAPUI-67 · component — At phone width the map's top is a `surface` band with no border: the
+  search summary (MAPUI-20) with the 44px round «Filtros» button beside it, which carries the violet
+  badge while any criterion is active and is named «Filtros» and, while criteria are active, is
+  described as «N filtros activos» («1 filtro activo») (amended 2026-10-17, #134), then the quick
+  filters scrolling sideways. The map, its pins and the results sheet are under the band, never behind it.
 
 ## Worked examples
 
@@ -430,7 +495,55 @@ row, whose text comes from SearchPill's guide.
 **Popover exclusivity (MAPUI-2), bug found in F4 (2026-10-14).** With «Dónde» open, pressing
 «Coche» closed both; correct: «Coche» opens and «Dónde» closes.
 
-**Chip texts (MAPUI-13).**
+**Quick filters (MAPUI-63).**
+
+| Search before | Pressed | Search after | Pressed after |
+| --- | --- | --- | --- |
+| no criterion | «Diésel» | `engine=gasoil` | «Diésel» |
+| `engine=gasoil` | «Gasolina» | `engine=gasoil,gasoline` | «Gasolina», «Diésel» |
+| `engine=gasoil,electric-hybrid` | «Diésel» | `engine=electric-hybrid` | none |
+| no criterion | «Manual» | `gearbox=manual` | «Manual» |
+| `gearbox=manual` | «Automático» | `gearbox=automatic` | «Automático» |
+| `gearbox=automatic` | «Automático» | no gearbox | none |
+| `gearbox=manual,automatic` (old link) | nothing | unchanged; reads and sends no gearbox (MAPUI-16) | none |
+| `gearbox=manual,semiautomatic` (old link) | «Manual» | no gearbox | none |
+| `maxKm=150000` | nothing | `maxKm=150000` | none |
+| no criterion | «Hasta 100.000 km» | `maxKm=100000` | «Hasta 100.000 km» |
+| `maxKm=150000` | «Hasta 100.000 km» | `maxKm=100000` | «Hasta 100.000 km» |
+| `maxKm=100000` | «Hasta 100.000 km» | no maximum mileage | none |
+
+With nothing pressed, `gearbox=manual,semiautomatic` (old link) reads «Manual» pressed: exactly one
+of `manual` and `automatic` is set (MAPUI-16), and `semiautomatic` has no control (MAPUI-18).
+
+**Desktop layout (MAPUI-64, MAPUI-65).** Measured on the accepted design.
+
+| Window | Band | Pill | Row two | Heading top | List | Map card | Columns |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1440 × 900 | 0–151 | 24–72 | 100–134 | 175 | 48–696 | 744–1392 × 175–876 | 2 |
+| 2560 × 1440 | 0–151 | 24–72 | 100–134 | 175 | 48–1256 | 1304–2512 × 175–1416 | 3 |
+
+**The desktop list's clipped outline (MAPUI-66, bug fix #134).** Measured on production at 1440 × 900.
+
+- **Input:** `/map`, results loaded, the pointer over the first card of the list.
+- **Before the fix:** the card's left and top edges are the scroll container's (both 32px from the
+  left, both 224px from the top), so the scroll container clips the outline's top and left sides, and
+  the right side on the last column. The scrollbar sits against the last column, with the column's
+  32px right padding outside it.
+- **Correct result:** the outline shows on all four sides of every card, and the scrollbar is at the
+  list's outer edge with the side padding between it and the cards.
+
+**Two outlines on a focused card (MAPUI-66, bug fix #134).**
+
+- **Input:** 1440 × 900, `/map`, results loaded, Tab until the first card's link has focus.
+- **Before the fix:** the photo shows its 2px lime ring and the link also draws the global focus
+  outline (2px lime at 3px offset) around the whole card — two lime outlines.
+- **Correct result:** the photo's lime ring shows while the card's link has keyboard focus,
+  whatever the pointer does and whether or not the car has a pin, on every car card (the map's
+  list, Guardados SAVED-11, an alert's matches ALERTUI-17); the link draws no second outline.
+  Moving the pointer over another card keeps the ring on the focused one.
+
+**Chip texts (MAPUI-13).** The chips are gone (MAPUI-63); the texts still name the criteria the
+«Filtros» badge counts.
 - `engine=gasoil`: one chip, «Diésel». `engine=gasoline,gasoil`: two chips, «Gasolina» and «Diésel».
 - `engine=hybride,hybride_plugin`: one chip, «Híbrido».
 - `gearbox=automatic`: «Automático».
@@ -603,7 +716,7 @@ with P below M below F. The test measures them and derives the expectation from 
 | middle | pan the map | peeked |
 | peeked | tap the map | peeked |
 | peeked | tap a pin | middle, that car's card first (MAPUI-24) |
-| middle | tap the floating search | middle, the search opens |
+| middle | tap the floating search — the floating search is now the top band, so tap the band's search summary (amended 2026-10-18, MAPUI-67, #134) | middle, the search opens |
 
 ## Data model
 
@@ -822,7 +935,8 @@ kept and marked:
 
 On desktop the popovers are small and the map and list stay visible beside them, so each choice shows
 its effect immediately. That is what makes a popover worth having instead of a form. The pause MAP-11
-already sets keeps a burst of clicks to one search.
+already sets keeps a burst of clicks to one search. The quick filters skip the MAP-11 pause: one press
+is one search (MAPUI-63, 2026-10-17).
 
 On a phone the sheets cover the results, so applying every tap would run searches nobody can see.
 «Ver coches» is the moment the buyer looks again. Closing therefore discards: a sheet that half-applied

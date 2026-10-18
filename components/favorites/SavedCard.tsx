@@ -77,13 +77,18 @@ export function SavedCard({
         href={listing.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex flex-col gap-3 rounded-card"
+        // SAVED-11: the photo's lime ring below is this link's focus
+        // indicator — it shows on `group-focus-visible/card` independent of
+        // `active` (which follows hover too, MAPUI-28), so the global
+        // focus-visible outline is suppressed here unconditionally.
+        className="group/card flex flex-col gap-3 rounded-card focus-visible:outline-hidden"
       >
         <CarPhoto
           listing={listing}
           alt=""
           sizes="(min-width: 1280px) 242px, 231px"
           iconClassName="size-14"
+          focusRing
           className={cn(
             "aspect-20/17 rounded-card transition-[box-shadow]",
             active && "ring-2 ring-lime",

@@ -23,8 +23,8 @@ interface SavedColumnProps {
 
 /**
  * The list column: 22px 20px of padding on a phone, over the tab bar's
- * clearance; from `lg` 30px 32px, 546px wide, and 830px from `xl`, as /map's
- * list (SAVED-3). It is the one scrolling element, so the header and the map
+ * clearance; from `lg` 30px 32px, 546px wide, and 830px from `xl`
+ * (SAVED-3). It is the one scrolling element, so the header and the map
  * never move (SAVED-4). `scroll-auto`: a jump to a pin's card or a restored
  * scroll lands at once, unless asked to glide (lib/hooks/useSavedList.ts).
  */

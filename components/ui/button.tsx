@@ -50,6 +50,8 @@ const buttonVariants = cva(
         "48": "h-12 px-5.5 text-[15px]",
         // 44px: padding 0 18px, 14px.
         "44": "h-11 px-4.5 text-sm",
+        // 40px: padding 0 16px, 14px (desktop text button, SearchPill's «Crear alerta»).
+        "40": "h-10 px-4 text-sm",
         // 42px: padding 0 16px, 14px.
         "42": `h-10.5 px-4 text-sm ${HIT_AREA}`,
         // Small by padding: 11px 20px at 15px, and 10px 16px at 14px.

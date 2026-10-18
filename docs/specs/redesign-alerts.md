@@ -2,7 +2,7 @@
 
 Key: ALERTUI
 Status: Implemented
-Last updated: 2026-10-16
+Last updated: 2026-10-18
 
 ---
 
@@ -175,7 +175,9 @@ The alert map (desktop, `/alerts` and `/alerts/[id]`)
   - activating a pin opens its preview as MAPUI-27 describes, marks the pin active and outlines its
     card, or every card of its group for a grouped pin;
   - on `/alerts`, a pin whose match is not among the four the open card shows opens its preview and
-    outlines no card.
+    outlines no card — the photo's lime ring shows while a card's link has keyboard focus, whatever
+    the pointer does and whether or not the car has a pin; the link draws no second outline
+    (MAPUI-66, amended 2026-10-18, #134).
 
 The saved state of a match
 

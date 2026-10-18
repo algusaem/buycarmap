@@ -37,19 +37,19 @@ export type HeaderSession =
   | { status: "signedIn"; name: string | null | undefined; email: string };
 
 interface RegionProps {
-  /** The landing and sign-in pages: no divider (and 48px sides on desktop). */
+  /** The landing and sign-in pages: the page background (and 48px sides on desktop). */
   open: boolean;
   children: ReactNode;
 }
 
-/** Desktop: 80px tall, 32px sides and a line-soft divider; open pages 48px and no divider. */
+/** Desktop: 80px tall, 32px sides on the `surface` background (HEAD-21); open pages 48px on the page background. */
 export function DesktopRegion({ open, children }: RegionProps) {
   return (
     <div
       data-testid="header-desktop"
       className={cn(
         "hidden h-20 items-center justify-between lg:flex",
-        open ? "px-12" : "border-b border-line-soft px-8",
+        open ? "px-12" : "bg-surface px-8",
       )}
     >
       {children}
@@ -57,15 +57,12 @@ export function DesktopRegion({ open, children }: RegionProps) {
   );
 }
 
-/** Phone: 64px tall, 20px sides; a line-soft divider on the section pages only. */
+/** Phone: 64px tall, 20px sides; the `surface` background on the section pages only (HEAD-21). */
 export function PhoneRegion({ open, children }: RegionProps) {
   return (
     <div
       data-testid="header-phone"
-      className={cn(
-        "flex h-16 items-center justify-between px-5 lg:hidden",
-        !open && "border-b border-line-soft",
-      )}
+      className={cn("flex h-16 items-center justify-between px-5 lg:hidden", !open && "bg-surface")}
     >
       {children}
     </div>

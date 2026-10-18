@@ -20,6 +20,7 @@ import { closeListboxFirst } from "./Combobox";
 interface PillVariantStyles {
   formPadding: string;
   segmentPadding: string;
+  segmentBox: string;
   labelLeading: string;
   valueTypography: string;
   submitClassName: string;
@@ -36,19 +37,21 @@ interface PillVariantStyles {
 // one lookup, keyed by the `variant` prop itself.
 const VARIANT = {
   map: {
-    formPadding: "py-1.5 pr-1.5 pl-2",
+    formPadding: "h-12 py-1.25 pr-1.25 pl-2",
     segmentPadding: "px-5.5",
-    labelLeading: "leading-normal",
-    valueTypography: "text-body-15",
-    submitClassName: "size-11.5",
+    segmentBox: "h-9 justify-center",
+    labelLeading: "leading-font",
+    valueTypography: "text-body-15 leading-font",
+    submitClassName: "size-9",
     searchIconStrokeWidth: 2.4,
     searchIconClassName: "size-4.5",
-    sideOffset: 15,
+    sideOffset: 14,
     avoidCollisions: true,
   },
   landing: {
     formPadding: "py-2 pr-2 pl-2.5",
     segmentPadding: "px-6.5",
+    segmentBox: "py-1.5",
     labelLeading: "leading-font",
     valueTypography: "text-body leading-font",
     submitClassName: "h-13.5 gap-1.75 px-6 text-base font-extrabold",
@@ -63,8 +66,8 @@ const VARIANT = {
 
 // docs/specs/redesign-map.md (MAPUI-1, MAPUI-2, MAPUI-12);
 // docs/design/system/components/SearchPill/README.md (Cabecera del mapa). The
-// desktop map header's centre: a `surface` pill with three segments (Dónde,
-// Coche, Precio) split by `line` dividers and the round lime «Buscar».
+// desktop map header's centre: a 48px `surface` pill with three segments (Dónde,
+// Coche, Precio) split by `line` dividers and the round 36px lime «Buscar».
 //
 // Each segment is the trigger of its popover. Which one is open is the
 // caller's single `openSegment` (lib/hooks/useSearchFilters.ts's
@@ -82,7 +85,7 @@ const VARIANT = {
 // popover closes an open list first, then the popover (closeListboxFirst).
 //
 // «Crear alerta» follows the pill, 10px apart (HeaderNav README › Mapa): a
-// secondary 44px button with the bell-plus icon, which opens the create-alert
+// secondary 40px button with the bell-plus icon, which opens the create-alert
 // dialog anchored 8px under it and aligned to its right edge
 // (docs/design/system/components/CreateAlert/README.md, MAPUI-39). The
 // dialog's body arrives through `createAlert` and draws its own card.
@@ -210,7 +213,7 @@ export function SearchPill({
           open={createAlertOpen && createAlert != null}
           onOpenChange={onCreateAlertOpenChange}
           trigger={
-            <Button type="button" variant="secondary" size="44" className="px-4">
+            <Button type="button" variant="secondary" size="40">
               <BellPlus aria-hidden="true" strokeWidth={2.2} className="size-4.5" />
               {t("createAlert.open")}
             </Button>
@@ -265,8 +268,9 @@ function Segment({
           aria-describedby={labelId}
           onKeyDown={handleKeyDown}
           className={cn(
-            "relative flex cursor-pointer flex-col whitespace-nowrap py-1.5 text-left font-sans",
+            "relative flex cursor-pointer flex-col whitespace-nowrap text-left font-sans",
             styles.segmentPadding,
+            styles.segmentBox,
             divided && "border-r border-line",
           )}
         >

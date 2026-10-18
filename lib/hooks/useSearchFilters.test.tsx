@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { NuqsTestingAdapter, withNuqsTestingAdapter } from "nuqs/adapters/testing";
-import type { ChipKey } from "@/lib/search/filter-chips";
 import type { SearchInput } from "@/lib/search/schema";
 
 // Geolocation is a dependency of the mount sequence, not a thing these tests
@@ -431,35 +430,6 @@ describe("useSearchFilters deep link (MAPUI-18)", () => {
 
     expect(search).toHaveBeenCalledWith(FULL_SEARCH);
   });
-});
-
-describe("useSearchFilters removeChip (MAPUI-13, MAPUI-22)", () => {
-  const removals: [ChipKey, Partial<SearchInput>][] = [
-    ["engine:hybrid", { engine: ["gasoil", "cng"] }],
-    ["engine:gasoil", { engine: ["hybride", "hybride_plugin", "cng"] }],
-    ["price", { minPrice: undefined, maxPrice: undefined }],
-    ["minPrice", { minPrice: undefined }],
-    ["maxPrice", { maxPrice: undefined }],
-    ["gearbox", { gearbox: ["semiautomatic"] }],
-    ["maxKm", { maxKm: undefined }],
-    ["minYear", { minYear: undefined }],
-    ["timeFilter", { timeFilter: undefined }],
-    ["brand", { brand: undefined, model: undefined }],
-  ];
-
-  it.each(removals)(
-    "MAPUI-13: removing the %s chip clears only that criterion and searches at once",
-    async (key, cleared) => {
-      const { search, result } = await renderFromFullUrl();
-      search.mockClear();
-
-      act(() => result.current.removeChip(key));
-
-      // No timer advanced: a removed chip skips the MAP-11 pause.
-      expect(search).toHaveBeenCalledTimes(1);
-      expect(search).toHaveBeenLastCalledWith({ ...FULL_SEARCH, ...cleared });
-    },
-  );
 });
 
 describe("useSearchFilters clearAll (MAPUI-18, MAPUI-19, MAPUI-31)", () => {

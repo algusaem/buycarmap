@@ -49,10 +49,9 @@ const twMerge = extendTailwindMerge({
       spacing: [
         "tab-clearance",
         "sheet-bottom",
-        "float-top",
-        "float-left",
-        "float-right",
-        "sheet-full-top",
+        "band-top",
+        "band-left",
+        "band-right",
         "sheet-above-tabs",
         "sheet-middle",
         "sheet-footer",

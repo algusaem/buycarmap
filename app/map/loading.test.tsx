@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import Loading from "./loading";
 
 // docs/specs/redesign-map.md (MAPUI-30, MAPUI-34); docs/design/canvas/
 // F0-estado-cargando.dc.html. At desktop width, "/map"'s own loading state is
-// still today's list-column skeleton (FRONT-14 pattern). Below lg it now
-// mirrors the map screen itself: the floating search and filters row over a
-// plain map surface, and the results sheet in its middle position with the
-// loading heading and one placeholder card.
+// the list-column skeleton (FRONT-14 pattern). Below lg it
+// mirrors the map screen itself: the band with the search summary, «Filtros»
+// and the quick filters over a plain map surface, and the results sheet in its
+// middle position with the loading heading and one placeholder card.
 
 describe("MAPUI-30: /map loading.tsx", () => {
   it("MAPUI-30: has no accessibility violations", async () => {
@@ -69,5 +69,16 @@ describe("MAPUI-30: /map loading.tsx", () => {
     const desktopColumn = screen.getByTestId("map-loading-desktop");
     expect(desktopColumn.className).toContain("hidden");
     expect(desktopColumn.className).toContain("lg:block");
+  });
+
+  it("MAPUI-30: the phone loading frame shows the quick filters, none pressed", () => {
+    renderWithI18n(<Loading />, { locale: "es" });
+
+    const quickFilters = screen.getByRole("group", { name: "Filtros rápidos" });
+    const buttons = within(quickFilters).getAllByRole("button");
+    expect(buttons).toHaveLength(5);
+    for (const button of buttons) {
+      expect(button).toHaveAttribute("aria-pressed", "false");
+    }
   });
 });

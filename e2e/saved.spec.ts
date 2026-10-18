@@ -372,6 +372,46 @@ dbTest(
   },
 );
 
+// --- SAVED-11: the photo's focus ring ---
+
+dbTest(
+  "SAVED-11: at 1440×900 a keyboard-focused saved card shows only its photo ring",
+  async ({ page }) => {
+    await openSaved(page, "saved11-focus", [SORT_CARS.A], DESKTOP_1440);
+    const card = cards(page).first();
+    await expect(card).toBeVisible({ timeout: 15_000 });
+    const link = card.getByRole("link").first();
+    const photo = card.locator("a > div").first();
+
+    // Tabs from the top of the page until the card's link takes focus,
+    // rather than hard-coding how many stops precede it.
+    for (let tabs = 0; tabs < 20; tabs++) {
+      await page.keyboard.press("Tab");
+      if (await link.evaluate((element) => element === document.activeElement)) break;
+    }
+    await expect(link).toBeFocused();
+
+    // The ring's own box-shadow transition (SavedCard.tsx's
+    // transition-[box-shadow]) can still be mid-flight right after focus
+    // lands, so this polls rather than reading the computed style once.
+    await expect
+      .poll(() => photo.evaluate((element) => getComputedStyle(element).boxShadow))
+      .toContain("rgb(198, 255, 61)");
+    // `outline-hidden` (RULES.md §19, #134) keeps a transparent outline for
+    // forced-colors mode rather than `outline-style: none`, so this accepts
+    // either: no outline drawn is `outlineStyle === "none"` or a fully
+    // transparent `outlineColor`.
+    const outline = await link.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { style: style.outlineStyle, color: style.outlineColor };
+    });
+    expect(
+      outline.style === "none" || outline.color === "rgba(0, 0, 0, 0)",
+      "no outline draws around the card's link",
+    ).toBe(true);
+  },
+);
+
 // --- SAVED-23: the phone's touch targets ---
 
 dbTest(
@@ -531,11 +571,11 @@ test.describe("SAVED-24: the toast's place", () => {
   }
 
   for (const { viewport, centre } of [
-    { viewport: DESKTOP_1440, centre: 415 },
-    { viewport: DESKTOP_1024, centre: 256 },
+    { viewport: DESKTOP_1440, centre: 372 },
+    { viewport: DESKTOP_1024, centre: 268 },
   ]) {
     dbTest(
-      `SAVED-24: on /map at ${viewport.width}×${viewport.height} «Alerta creada» sits 12px below the filter row, centred at x = ${centre}px over the results list`,
+      `SAVED-24: on /map at ${viewport.width}×${viewport.height} «Alerta creada» sits 12px below the header band, centred at x = ${centre}px over the results list`,
       async ({ page }) => {
         const email = e2eEmail(`saved24-map-${viewport.width}`);
         await seedUser(email, PASSWORD);
@@ -553,9 +593,9 @@ test.describe("SAVED-24: the toast's place", () => {
 
         await expect(toastBox(page)).toContainText(/Alerta creada|Alert created/);
         const toast = await settledBox(toastBox(page));
-        const filterRow = await box(page.getByTestId("filter-row"));
+        const band = await box(page.locator('[data-testid="header-desktop"]:visible'));
         const results = await box(page.getByTestId("results-sheet"));
-        expectWithin(toast.y, filterRow.y + filterRow.height + 12, "toast's top");
+        expectWithin(toast.y, band.y + band.height + 12, "toast's top");
         expectWithin(toast.x + toast.width / 2, centre, "toast's centre");
         expectWithin(
           toast.x + toast.width / 2,

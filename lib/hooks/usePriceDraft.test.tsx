@@ -133,7 +133,7 @@ describe("usePriceDraft — the criterion changing outside", () => {
     act(() => result.current.setMax(45000));
     rerender({ maxPrice: 45000 });
 
-    // Then the criterion is cleared elsewhere (a removed chip, «Borrar»).
+    // Then the criterion is cleared elsewhere (the pill's price popover, «Borrar»).
     rerender({ maxPrice: undefined });
     expect(result.current.draft).toEqual({ min: undefined, max: undefined });
 
