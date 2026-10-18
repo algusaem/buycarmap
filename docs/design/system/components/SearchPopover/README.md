@@ -40,7 +40,7 @@ Un solo campo que busca mientras escribes, «Marca o modelo…».
 
 ## Móvil: la hoja «BUSCAR»
 
-- Tocar la fila del buscador (el resumen) abre la hoja. `surface`, borde superior `line`, `radius-sheet` arriba, pegada abajo y con el asa (`handle`, 40 × 5) arriba al centro. Detrás, el mapa oscurecido.
+- Tocar el resumen del buscador (en la banda de arriba del mapa) abre la hoja. `surface`, borde superior `line`, `radius-sheet` arriba, pegada abajo y con el asa (`handle`, 40 × 5) arriba al centro. Detrás, el mapa oscurecido.
 - **Cabecera** de 70px, padding lateral 20px y divisor `line-soft`: a la izquierda, sin `x` a la vista, el sitio de «Cerrar», que queda oculto para lectores de pantalla y solo aparece ahí con el foco del teclado (botón de icono de 40px con borde `line` y la `x` de 14px); en medio «BUSCAR» en Unbounded 16 peso 800, a la derecha «Borrar» (botón de texto de 14px peso 700, subrayado).
 - **Cuerpo**: padding 22px 20px y 26px entre secciones, cada una con su `section-label`: «Dónde» (el campo y los chips de radio, de 44px de alto, que se reparten el ancho), «Coche» (el mismo campo que en escritorio, con el chip de la marca cuando la hay) y «Precio» (el rango y las cajas).
 - **Pie**: padding 14px 20px 28px con divisor `line-soft` arriba, y «VER COCHES»: principal de 56px a todo el ancho con `button-display`.

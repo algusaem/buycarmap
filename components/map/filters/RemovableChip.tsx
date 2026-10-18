@@ -1,6 +1,5 @@
 "use client";
 
-import type { Ref } from "react";
 import * as motion from "motion/react-client";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -10,18 +9,15 @@ import { cn } from "@/lib/utils";
 // docs/design/system/components/Chip/README.md (Filtros activos): a violet
 // chip, on-violet text at 14px weight 800, 36px tall with 16px of left
 // padding, and its 44 × 44 remove button overlapping the chip's edge by 4px,
-// named «Quitar <texto>». The filters row's active criteria (MAPUI-13) and the
-// type-ahead's chosen brand (MAPUI-7, MAPUI-9). It fades in and out inside the
-// caller's AnimatePresence.
+// named «Quitar <texto>». The type-ahead's chosen brand (MAPUI-7, MAPUI-9). It
+// fades in and out inside the caller's AnimatePresence.
 interface RemovableChipProps {
   label: string;
   onRemove: () => void;
   className?: string;
-  /** The remove button, so a caller can give it the focus back after removal (FilterRow). */
-  buttonRef?: Ref<HTMLButtonElement>;
 }
 
-export function RemovableChip({ label, onRemove, className, buttonRef }: RemovableChipProps) {
+export function RemovableChip({ label, onRemove, className }: RemovableChipProps) {
   const t = useTranslations();
 
   return (
@@ -34,7 +30,6 @@ export function RemovableChip({ label, onRemove, className, buttonRef }: Removab
     >
       {label}
       <button
-        ref={buttonRef}
         type="button"
         aria-label={t("search.remove", { label })}
         onClick={onRemove}

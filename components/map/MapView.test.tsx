@@ -16,7 +16,7 @@ import { triggerIntersection } from "@/test/mocks/intersection-observer";
 import { makeFavoriteInput } from "@/test/fixtures/favorite-listings";
 import { listFavorites } from "@/server/favorites/actions";
 import { searchListings } from "@/server/search/actions";
-import { setMapHeaderSlot } from "@/lib/hooks/useMapHeaderSlot";
+import { setMapFiltersSlot, setMapHeaderSlot } from "@/lib/hooks/useMapHeaderSlot";
 import { createAlert } from "@/server/alerts/actions";
 import { SiteHeader } from "@/components/nav/SiteHeader";
 import { TabBar } from "@/components/nav/TabBar";
@@ -159,6 +159,7 @@ beforeEach(() => {
 afterEach(() => {
   window.matchMedia = realMatchMedia;
   setMapHeaderSlot(null);
+  setMapFiltersSlot(null);
 });
 
 describe("MapView results", () => {
@@ -861,6 +862,182 @@ describe("MapView — MAPUI-27 a pin at desktop width", () => {
   });
 });
 
+describe("MapView — MAPUI-63 a quick filter on a phone", () => {
+  it("MAPUI-63: on a phone, pressing Diesel in the top band searches again with engine=gasoil", async () => {
+    stubPhoneWidth();
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-quick-filter-diesel" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    // A quick filter applies at once, not through the panel's debounced path
+    // (MAP-11): fake timers prove the search follows the click's microtasks
+    // alone, with no 400ms wait.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+      await user.click(screen.getByRole("button", { name: "Diesel" }));
+      await act(async () => {
+        // Empty on purpose: just flushing the microtasks the click above
+        // queued before asserting on the search.
+      });
+
+      expect(lastSearch()).toMatchObject({ engine: ["gasoil"] });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("MAPUI-63: on a phone, after pressing Diesel in the band the filters dialog shows Diesel chosen and the badge reads 1", async () => {
+    stubPhoneWidth();
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-quick-filter-diesel-dialog" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(screen.getByRole("button", { name: "Diesel" }));
+    await waitFor(() => expect(lastSearch()).toMatchObject({ engine: ["gasoil"] }));
+
+    const filtersButton = phoneFiltersButton();
+    expect(within(filtersButton).getByText("1", { exact: true })).toBeInTheDocument();
+    await userEvent.click(filtersButton);
+
+    const dialog = await screen.findByRole("dialog", { name: "FILTERS" });
+    expect(within(dialog).getByRole("button", { name: "Diesel" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("MAPUI-63: on a phone, choosing Manual in the filters dialog presses Manual in the band", async () => {
+    stubPhoneWidth();
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-quick-filter-phone-gearbox" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(phoneFiltersButton());
+    const dialog = await screen.findByRole("dialog", { name: "FILTERS" });
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Manual" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Show cars" }));
+
+    await waitFor(() => expect(lastSearch()).toMatchObject({ gearbox: ["manual"] }));
+    expect(screen.getByRole("button", { name: "Manual" })).toHaveAttribute("aria-pressed", "true");
+    const filtersButton = phoneFiltersButton();
+    expect(within(filtersButton).getByText("1", { exact: true })).toBeInTheDocument();
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-63). The desktop quick filters live in
+// the map header's second row (lib/hooks/useMapHeaderSlot.ts's filters
+// slot), portalled there by HeaderSearch/FilterRow — so, like the header's
+// own MAPUI-39 case above, these hand MapView a detached slot for both cells
+// rather than rendering the whole layout.
+describe("MapView — MAPUI-63 the desktop quick filters", () => {
+  let headerSlot: HTMLDivElement;
+  let filtersSlot: HTMLDivElement;
+
+  beforeEach(() => {
+    headerSlot = document.createElement("div");
+    filtersSlot = document.createElement("div");
+    document.body.append(headerSlot, filtersSlot);
+    setMapHeaderSlot(headerSlot);
+    setMapFiltersSlot(filtersSlot);
+  });
+
+  afterEach(() => {
+    headerSlot.remove();
+    filtersSlot.remove();
+  });
+
+  it("MAPUI-63: at desktop width, pressing Diesel in the header band searches again at once with engine=gasoil", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-quick-filter-desktop-diesel" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    // Below the 400ms MAP-11 debounce (lib/hooks/useSearchFilters.ts): a
+    // quick filter applies at once, not through the panel's debounced path.
+    // Fake timers prove the search follows the click's microtasks alone.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+      await user.click(within(filtersSlot).getByRole("button", { name: "Diesel" }));
+      await act(async () => {
+        // Empty on purpose: just flushing the microtasks the click above
+        // queued before asserting on the search.
+      });
+
+      expect(lastSearch()).toMatchObject({ engine: ["gasoil"] });
+      expect(within(filtersSlot).getByRole("button", { name: "Diesel" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("MAPUI-63: after pressing Diesel in the header band, the filters panel shows Diesel chosen and «Filters» reads 1", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-quick-filter-desktop-panel" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(within(filtersSlot).getByRole("button", { name: "Diesel" }));
+    await waitFor(() => expect(lastSearch()).toMatchObject({ engine: ["gasoil"] }));
+
+    const filtersButton = within(filtersSlot).getByRole("button", { name: "Filters" });
+    expect(within(filtersButton).getByText("1", { exact: true })).toBeInTheDocument();
+    await userEvent.click(filtersButton);
+
+    const dropdown = await screen.findByRole("dialog", { name: "Filters" });
+    expect(within(dropdown).getByRole("button", { name: "Diesel" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("MAPUI-63: choosing «Manual» in the desktop filters panel presses «Manual» in the header band and releases «Automatic»", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-quick-filter-desktop-gearbox" />, {
+      searchParams: "gearbox=automatic",
+    });
+    await screen.findByText(WALLAPOP_TITLE);
+    expect(within(filtersSlot).getByRole("button", { name: "Automatic" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await userEvent.click(within(filtersSlot).getByRole("button", { name: "Filters" }));
+    const dropdown = await screen.findByRole("dialog", { name: "Filters" });
+    await userEvent.click(within(dropdown).getByRole("radio", { name: "Manual" }));
+
+    await waitFor(() => expect(lastSearch()).toMatchObject({ gearbox: ["manual"] }));
+    expect(within(filtersSlot).getByRole("button", { name: "Manual" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(within(filtersSlot).getByRole("button", { name: "Automatic" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("MAPUI-63: at desktop width, pressing the pressed «Automatic» clears the gearbox", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-quick-filter-desktop-clear-gearbox" />, {
+      searchParams: "gearbox=automatic",
+    });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(within(filtersSlot).getByRole("button", { name: "Automatic" }));
+
+    await waitFor(() => expect(lastSearch()?.gearbox).toBeUndefined());
+    expect(within(filtersSlot).getByRole("button", { name: "Automatic" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+});
+
 describe("MapView — MAPUI-24 the tapped car first", () => {
   it("MAPUI-24: tapping the second car's pin shows that car as the middle sheet's card", async () => {
     server.use(...audiThenSeat);
@@ -1056,15 +1233,18 @@ describe("MapView — MAPUI-31 the empty state with no filter (worked example)",
 });
 
 /**
- * The phone «Filtros», which opens the full-screen filters dialog. The
- * desktop one, also in the DOM, is Radix's popover trigger, which carries
- * `data-state`; the phone one is a plain button.
+ * The phone «Filters», which opens the full-screen filters dialog (MAPUI-67):
+ * the round button carries the real accessible name itself. The desktop one,
+ * also in the DOM, is Radix's popover trigger, which carries `data-state`;
+ * the phone one is a plain button. Rendered at the default English locale so
+ * "Filters" is the exact name (map.filters), as the test below asserts
+ * literally.
  */
 function phoneFiltersButton(): HTMLElement {
   const button = screen
-    .getAllByRole("button", { name: /^Filtros/ })
+    .getAllByRole("button", { name: "Filters" })
     .find((candidate) => !candidate.hasAttribute("data-state"));
-  if (!button) throw new Error("The phone «Filtros» did not render.");
+  if (!button) throw new Error("The phone «Filters» did not render.");
   return button;
 }
 
@@ -1084,17 +1264,17 @@ describe("MapView — the phone dialogs give the focus back to their opener", ()
     expect(opener).toHaveFocus();
   });
 
-  it("MAPUI-22: «Filtros» announces its dialog, and closing the dialog focuses «Filtros» again", async () => {
+  it("MAPUI-22: «Filters» announces its dialog, and closing the dialog focuses «Filters» again", async () => {
     server.use(...onlyWallapop);
     stubPhoneWidth();
-    renderWithI18n(<MapView initialQuery="case-focus-filters" />, { locale: "es" });
+    renderWithI18n(<MapView initialQuery="case-focus-filters" />);
     await screen.findByText(WALLAPOP_TITLE);
     const opener = phoneFiltersButton();
     expect(opener).toHaveAttribute("aria-haspopup", "dialog");
     expect(opener).toHaveAttribute("aria-expanded", "false");
 
     await userEvent.click(opener);
-    expect(await screen.findByRole("dialog", { name: "FILTROS" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "FILTERS" })).toBeInTheDocument();
     expect(opener).toHaveAttribute("aria-expanded", "true");
     await userEvent.keyboard("{Escape}");
 

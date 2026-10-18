@@ -86,7 +86,7 @@ field. Two paths write it:
   **debounces the search by 400 ms** (MAP-11), so a drag on the price range fires one
   fan-out, not a dozen.
 - `apply()` patches and searches at once, with no pause: the phone sheets' «Ver
-  coches», a removed chip and the panel's «Borrar» (MAPUI-13, MAPUI-19, MAPUI-21,
+  coches», a quick filter (MAPUI-63) and the panel's «Borrar» (MAPUI-19, MAPUI-21,
   MAPUI-22).
 
 Which desktop popover is open is one piece of state in the hook
@@ -114,8 +114,8 @@ radius live in the URL through [nuqs](https://nuqs.dev) parsers in
 plus `filtersToUrlState`/`urlStateToFilters` to convert to and from the hook's
 `FilterValues`), so a filtered search deep-links and a reload restores it. The
 URL is only written at the same points the hook already calls `search()` —
-the debounce firing, an explicit `triggerSearch()`, or `apply()` («Ver coches», a removed
-chip, «Borrar»; `clearAll()` goes through it) — each as
+the debounce firing, an explicit `triggerSearch()`, or `apply()` («Ver coches», a quick
+filter, «Borrar»; `clearAll()` goes through it) — each as
 a pushed history entry, not on every keystroke; a `useEffect` watching the
 nuqs-backed state resyncs and re-searches when the URL changes from outside
 the hook's own writes (Back/Forward, or a hand-edited URL). The root layout
@@ -355,7 +355,7 @@ Spanish or English in components.
 | `app/` | Routes, layouts, proxy route handlers |
 | `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/auth.ts` — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
-| `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row and panel), `phone/` (the phone search, sheets and results sheet) |
+| `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row, the quick filters and the panel), `phone/` (the phone search, sheets and results sheet) |
 | `components/alerts/` | The alerts pages (`AlertsPage`, `AlertPage`), the AlertCard, the alert map and the phone zone map, the delete confirmation, the loading and error states, and the create-alert dialog |
 | `components/nav/` | The headers, the phone tab bar and the language control |
 | `components/account/` | The account page: its cards, the dialog-or-sheet frame and each card's form in it, the loading placeholders |
@@ -371,7 +371,7 @@ Spanish or English in components.
 | `lib/favorites/` | The saved cars' pure sort and its URL parser (`sort.ts`) |
 | `lib/listings/` | The pure search-merge logic: interleaving, the radius, model and fuel post-filters, the page-state advance |
 | `lib/map/` | Pure map helpers: grouping listings into price pins, the results heading, the results state and the radius to widen to (`results-state.ts`), a card's DOM id (`card-dom-id.ts`), price-pin CSS classes (`pin-classes.ts`) |
-| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server, and the search UI's pure helpers: what the filters panel offers and clears (`panel.ts`), case- and accent-blind comparison (`fold.ts`), the phone summary (`phone-summary.ts`), the radii (`radii.ts`), the type-ahead's matching, the fuel groups, the chips and the alert summary |
+| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server, and the search UI's pure helpers: what the filters panel offers and clears (`panel.ts`), case- and accent-blind comparison (`fold.ts`), the phone summary (`phone-summary.ts`), the radii (`radii.ts`), the type-ahead's matching, the fuel groups, the chips, the quick filters and the alert summary |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Tooling: branch databases, spec, docs and TODO checks — dependency-free except the TODO check, which loads `typescript` |
 
@@ -687,15 +687,15 @@ What each piece does is specified in [`specs/redesign-map.md`](specs/redesign-ma
 
 ```
 MapView
-├─ HeaderSearch            portalled into MapHeader's centre (lib/hooks/useMapHeaderSlot.ts)
-│  └─ SearchPill           «Dónde» · «Coche» · «Precio», then «Crear alerta»
-│     ├─ LocationPopover   PlaceField (Nominatim), RadiusChoice, «Toda España»
-│     ├─ CarPopover        CarTypeahead: brands, then models through useCarModels
-│     ├─ PricePopover      PriceRange (Radix Slider and boxes), shortcuts
-│     └─ CreateAlert       the inline card, in the pill's own popover
-├─ FilterRow               «Filtros» and the chips; FilterPanel is its desktop dropdown
-├─ MapResultsArea          the list-and-map column
-│  ├─ PhoneSearchBar       phone only: the summary, the filters button, FilterRow
+├─ HeaderSearch            portalled into MapHeader's two rows (lib/hooks/useMapHeaderSlot.ts)
+│  ├─ SearchPill           row one: «Dónde» · «Coche» · «Precio», then «Crear alerta»
+│  │  ├─ LocationPopover   PlaceField (Nominatim), RadiusChoice, «Toda España»
+│  │  ├─ CarPopover        CarTypeahead: brands, then models through useCarModels
+│  │  ├─ PricePopover      PriceRange (Radix Slider and boxes), shortcuts
+│  │  └─ CreateAlert       the inline card, in the pill's own popover
+│  └─ FilterRow            row two: «Filtros», QuickFilters; FilterPanel is its desktop dropdown
+├─ MapResultsArea          the list-and-map area
+│  ├─ PhoneSearchBar       phone only, in the band on top: the summary, «Filtros», QuickFilters
 │  ├─ ResultsSheet         the list column on desktop, the results sheet on a phone
 │  │  ├─ CarCard ×n        one link, the heart beside it
 │  │  └─ ResultsStatus     placeholders, no results, search error
@@ -734,7 +734,8 @@ that need the fade still in flight — see [Environment gotchas](#environment-go
 **The brand list** the type-ahead matches is `components/map/search-filter-options.ts`. The
 filter choices and the chip texts come from `lib/search/fuel-groups.ts` and
 `lib/search/filter-chips.ts`, whose labels are i18n keys; what the panel offers and what «Borrar»
-clears is `lib/search/panel.ts`, shared with the chips and the search hook.
+clears is `lib/search/panel.ts`, shared with the criterion texts the «Filtros» badge counts, the
+alert chips, the quick filters and the search hook.
 
 **State lives in hooks.** [`lib/hooks/useMapPageState.ts`](../lib/hooks/useMapPageState.ts) holds
 the map page's own UI state (which phone sheet is open, the results sheet's position, the active
@@ -789,8 +790,8 @@ hooks:
 Its loading and error files draw the same frame
 ([`components/favorites/SavedLayout.tsx`](../components/favorites/SavedLayout.tsx)) with
 placeholders or the page error. Every toast in the app is placed by `app/globals.css` from the
-page's `data-toast-anchor` (`saved` here, `map` on `/map`): under the header, or `/map`'s filter
-row, and centred over the list column (SAVED-24). A page with no `data-toast-anchor` has its
+page's `data-toast-anchor` (`saved` here, `map` on `/map`): under the header (on `/map`, its
+two-row band), and centred over the list column (SAVED-24). A page with no `data-toast-anchor` has its
 toast under the header, centred on the viewport.
 
 ### The alerts pages

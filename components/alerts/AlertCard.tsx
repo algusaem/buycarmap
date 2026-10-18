@@ -303,7 +303,11 @@ function AlertMatchCard({ listing, active, onActiveChange }: AlertMatchCardProps
       rel="noopener noreferrer"
       data-active={active || undefined}
       {...activeHandlers(onActiveChange)}
-      className="flex min-w-0 flex-col gap-1 rounded-field"
+      // ALERTUI-17: the photo's lime ring below is this link's focus
+      // indicator — it shows on `group-focus-visible/card` independent of
+      // `active` (which follows hover too, MAPUI-28), so the global
+      // focus-visible outline is suppressed here unconditionally.
+      className="group/card flex min-w-0 flex-col gap-1 rounded-field focus-visible:outline-hidden"
     >
       <CarPhoto
         listing={listing}
@@ -311,6 +315,7 @@ function AlertMatchCard({ listing, active, onActiveChange }: AlertMatchCardProps
         sizes="(min-width: 1280px) 171px, 213px"
         badge={false}
         iconClassName="size-9"
+        focusRing
         className={cn("h-27.5 rounded-field transition-[box-shadow]", active && "ring-2 ring-lime")}
       />
       <span className="mt-1 truncate text-xs font-bold text-text-muted">

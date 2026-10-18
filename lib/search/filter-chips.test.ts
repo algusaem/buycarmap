@@ -5,10 +5,10 @@ import { filterChips, placeLabel, priceLabel } from "./filter-chips";
 
 // docs/specs/redesign-map.md (MAPUI-13, worked examples under "Chip texts").
 // `filterChips` is `SearchInput` in, chip list out — the filters row's badge
-// count is this array's length, read by the component (FilterRow), not by
-// this module. Prices come from `formatPrice` and mileages from
-// `formatMileage`, whose space before "€" and "km" is U+00A0 (MAPUI-57,
-// FRONT-11).
+// count is this array's length, read by the components (FilterRow,
+// PhoneSearchBar, through lib/hooks/useFilterCount.ts), not by this module.
+// Prices come from `formatPrice` and mileages from `formatMileage`, whose
+// space before "€" and "km" is U+00A0 (MAPUI-57, FRONT-11).
 
 describe("MAPUI-13: filterChips — fuel", () => {
   it("MAPUI-13: engine=gasoil gives one chip, Diésel", () => {

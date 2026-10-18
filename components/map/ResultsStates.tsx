@@ -5,15 +5,17 @@ import { AnimatePresence } from "motion/react";
 import * as motion from "motion/react-client";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { RESULTS_GRID_CLASS } from "@/components/map/results-grid";
 import {
   CardPlaceholder,
   DEFAULT_COUNT,
   SheetCardPlaceholder,
 } from "@/components/ui/CardGridSkeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/button";
 import { crossFade } from "@/lib/animations";
 import type { ResultsState } from "@/lib/map/results-state";
+import { cn } from "@/lib/utils";
 
 // docs/specs/redesign-map.md (MAPUI-30 to MAPUI-32);
 // docs/design/system/components/EmptyState/README.md and StatusPill/README.md.
@@ -43,7 +45,7 @@ export function ResultsSkeleton({ label }: ResultsSkeletonProps) {
       <div className="lg:hidden">
         <SheetCardPlaceholder />
       </div>
-      <div className="grid grid-cols-1 gap-x-5 gap-y-7 max-lg:hidden lg:grid-cols-2 xl:grid-cols-3">
+      <div className={cn(RESULTS_GRID_CLASS, "max-lg:hidden")}>
         {Array.from({ length: DEFAULT_COUNT }, (_, index) => `placeholder-${index}`).map((key) => (
           <CardPlaceholder key={key} />
         ))}

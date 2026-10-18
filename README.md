@@ -554,9 +554,12 @@ Do not point a gap at a loosely related file to make it look covered.
 | `components/map/search/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `components/map/filters/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `components/map/phone/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
+| `components/map/results-grid.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/map/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `lib/hooks/useLandingSearch.ts` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
+| `lib/hooks/useMapHeaderSlot.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
+| `lib/hooks/useFilterCount.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/useResultsSheetDrag.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/useSaved*.ts` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
 | `lib/hooks/useRemovalFocus.ts` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
@@ -636,6 +639,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `plop-templates/**` | [README.md](README.md) |
 | `lib/listings/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `lib/search/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
+| `lib/search/quick-filters.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `app/map/page.tsx` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/map/loading.tsx` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `app/map/error.tsx` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
