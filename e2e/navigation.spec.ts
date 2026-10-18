@@ -1,6 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
 import { e2eEmail, seedUser } from "./fixtures/db";
+import { scrollableAncestor } from "./fixtures/measure";
 
 // docs/specs/redesign-navigation.md. Replaces e2e/navbar.spec.ts (NAV-2 moves
 // here as HEAD-15). These are the criteria jsdom cannot reach: Tailwind's
@@ -341,4 +342,104 @@ test.describe("HEAD-19: favorites and alerts scroll past the bottom nav", () => 
       },
     );
   }
+});
+
+// docs/specs/redesign-navigation.md (HEAD-20, bug fix, #133), worked example
+// "HEAD-20 (bug fix)": emulators draw no browser toolbars, so 100dvh and
+// 100vh measure the same here; what the browser can show is that the shell
+// carries the utility and that the rule it applies resolves to the dynamic
+// unit (the 100vh fallback is overridden wherever 100dvh is understood).
+test.describe("HEAD-20: the root shell uses the dynamic viewport height", () => {
+  test("HEAD-20: at phone width the body carries h-viewport and its CSS rule's height is 100dvh", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE);
+    await page.goto("/");
+
+    await expect(page.locator("body")).toHaveClass(/(^|\s)h-viewport(\s|$)/);
+    // Every loaded rule, nested ones too (Tailwind puts utilities in a layer).
+    const heights = await page.evaluate(() => {
+      const pending = Array.from(document.styleSheets).flatMap((sheet) =>
+        Array.from(sheet.cssRules),
+      );
+      const found: string[] = [];
+      for (let rule = pending.pop(); rule; rule = pending.pop()) {
+        if (rule instanceof CSSStyleRule && rule.selectorText === ".h-viewport") {
+          found.push(rule.style.height);
+        }
+        if (rule instanceof CSSGroupingRule) pending.push(...Array.from(rule.cssRules));
+      }
+      return found;
+    });
+    expect(heights.length, "a .h-viewport rule is loaded").toBeGreaterThan(0);
+    expect(heights.every((height) => height === "100dvh")).toBe(true);
+  });
+});
+
+test.describe("ENTRY-31: the signed-in landing's footer clears the tab bar", () => {
+  dbTest(
+    "ENTRY-31 (dbTest): signed in at phone width, / scrolls and its last element clears the tab bar",
+    async ({ page }) => {
+      const email = e2eEmail("nav-scroll-landing");
+      await seedUser(email, PASSWORD);
+
+      await page.setViewportSize(MOBILE);
+      await signIn(page, email);
+      await page.goto("/");
+
+      // Same settle as HEAD-19's favorites/alerts rows: let Next's
+      // post-navigation scroll/focus handling run before the marker below is
+      // injected.
+      await page.waitForLoadState("networkidle");
+      await page.waitForTimeout(500);
+
+      // The landing has no single scrolling-root test id (unlike
+      // [data-testid="saved-list"]): its own scrolling box is app/page.tsx's
+      // wrapper around <main>, found here instead of guessed at.
+      const rootHandle = await page.evaluateHandle(() => {
+        const main = document.querySelector("main");
+        if (!main) throw new Error("landing <main> not found");
+        const root = main.parentElement;
+        if (!root) throw new Error("landing scrolling root not found");
+        return root;
+      });
+      await rootHandle.evaluate((root) => {
+        const filler = document.createElement("div");
+        filler.id = "__e2e_filler";
+        filler.style.height = "3000px";
+        root.appendChild(filler);
+        const marker = document.createElement("div");
+        marker.id = "__e2e_marker";
+        marker.style.height = "1px";
+        root.appendChild(marker);
+      });
+
+      const marker = page.locator("#__e2e_marker");
+
+      // The nearest scrollable ancestor of the marker — today's bug (HEAD-20)
+      // pins the body with overflow-hidden, so nothing above the marker may
+      // be able to scroll it at all.
+      const scrollable = await scrollableAncestor(marker);
+
+      await scrollable.evaluate((el) => {
+        el.scrollTop = el.scrollHeight;
+      });
+      const maxScrollTop = await scrollable.evaluate((el) => el.scrollHeight - el.clientHeight - 1);
+      await expect
+        .poll(() => scrollable.evaluate((el) => el.scrollTop), { timeout: 5_000 })
+        .toBeGreaterThanOrEqual(maxScrollTop);
+
+      const boxAtEnd = await marker.boundingBox();
+      if (!boxAtEnd) throw new Error("marker has no box after scrolling to the end");
+
+      const tabBar = page.getByTestId("bottom-nav");
+      const navBox = await tabBar.boundingBox();
+      if (!navBox) throw new Error("tab bar has no box");
+
+      expect(
+        boxAtEnd.y + boxAtEnd.height,
+        "the landing's last element should clear the tab bar",
+      ).toBeLessThanOrEqual(navBox.y);
+    },
+  );
 });

@@ -430,7 +430,7 @@ coded.**
   Tailwind (`h-4 w-4`).
 - **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }
   from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `dropdownReveal`,
-  `sheetSlideUp`, `crossFade`)
+  `sheetSlideUp`, `crossFade`, `sheetSpring` for a dragged bottom sheet springing to rest)
   instead of re-declaring `initial`/`animate` inline.
 
 <!-- BEGIN:nextjs-agent-rules -->

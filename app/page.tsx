@@ -22,8 +22,11 @@ export default function Home() {
   // main gives up the illustration's slot first when the screen is short
   // (Landing.tsx), so the illustration never makes the page scroll. This box
   // is the `landing` size container whose height drops that slot.
+  // Signed in at phone width, the tab bar covers its bottom, so the box ends
+  // with the clearance the other pages give it (TAB_BAR_CLEARANCE,
+  // components/nav/tab-bar-clearance.ts; ENTRY-31, HEAD-19).
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-auto lg:justify-center-safe lg:@container-size/landing 3xl:justify-start">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-auto max-lg:with-tab-bar:pb-tab-clearance lg:justify-center-safe lg:@container-size/landing 3xl:justify-start">
       <main className="flex flex-1 flex-col lg:max-3xl:min-h-0 lg:max-3xl:flex-initial lg:max-3xl:landing-illus-hidden:min-h-auto">
         <Landing />
       </main>
