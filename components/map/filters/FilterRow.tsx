@@ -1,184 +1,106 @@
 "use client";
 
-import { type ComponentProps, type ReactNode, type Ref, useRef } from "react";
-import { flushSync } from "react-dom";
-import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
+import type { ComponentProps, ReactNode } from "react";
 import { SlidersHorizontal } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { AnimatedPopover } from "@/components/map/search/AnimatedPopover";
 import { closeListboxFirst } from "@/components/map/search/Combobox";
-import { crossFade } from "@/lib/animations";
-import { type ChipKey, filterChips } from "@/lib/search/filter-chips";
+import { useFilterCount } from "@/lib/hooks/useFilterCount";
 import type { SearchInput } from "@/lib/search/schema";
 import { cn } from "@/lib/utils";
-import { RemovableChip } from "./RemovableChip";
+import { FiltersBadge } from "./FiltersBadge";
+import { QuickFilters } from "./QuickFilters";
 
-// docs/specs/redesign-map.md (MAPUI-13); docs/design/system/components/Chip/
-// README.md. «Filtros», with a violet badge counting the active chips, then
-// one violet chip per lib/search/filter-chips.ts's filterChips(input), each
-// with its 44px remove button (RemovableChip). With nothing active, «Filtros»
-// has no badge. The badge and the chips fade in and out.
+// docs/specs/redesign-map.md (MAPUI-13, MAPUI-19, MAPUI-58, MAPUI-59);
+// docs/design/system/components/Chip/README.md. The desktop map header's
+// second row: «Filtros», 34px like the toggles beside it, with a violet badge
+// counting the active criteria (lib/search/filter-chips.ts's filterChips;
+// none shows no badge, and the badge fades in and out), a 1px divider, then
+// the quick filters (QuickFilters), whose patches go to `onApplyQuick`.
 //
-// On desktop the filters panel (FilterPanel) is a dropdown anchored under
-// «Filtros» (MAPUI-19): it arrives through `panel` and is open while
-// `panelOpen`. Over the phone map (`overMap`), «Filtros» takes the `surface`
-// fill and the row scrolls sideways instead of wrapping; there it opens the
-// full-screen filters dialog, so it is a plain button announcing that dialog
-// (`aria-haspopup`, `aria-expanded` while `panelOpen`), and `filtersRef`
-// lets the dialog give the focus back to it on close. The sideways scroller
-// clips at its padding box, so it pads 8px above and below (taken back with
-// a negative margin): room for the 2px focus ring at 3px off «Filtros» and
-// off the remove buttons, which reach 4px past their chips.
+// The filters panel (FilterPanel) is a dropdown anchored under «Filtros»
+// (MAPUI-19): it arrives through `panel` and is open while `panelOpen`. On a
+// phone «Filtros» is the round button beside the summary instead
+// (PhoneSearchBar, MAPUI-62).
 export interface FilterRowProps {
   input: SearchInput;
-  onRemove: (key: ChipKey) => void;
   onOpenFilters: () => void;
-  panel?: ReactNode;
-  panelOpen?: boolean;
-  onClosePanel?: () => void;
-  overMap?: boolean;
-  /** Over the phone map: «Filtros», where focus returns when the filters dialog closes. */
-  filtersRef?: Ref<HTMLButtonElement>;
-}
-
-/** A ref callback that updates every given ref with the same node. */
-function mergeRefs<T>(...refs: Array<Ref<T> | undefined>): (node: T | null) => void {
-  return (node) => {
-    for (const ref of refs) {
-      if (!ref) continue;
-      if (typeof ref === "function") ref(node);
-      else (ref as { current: T | null }).current = node;
-    }
-  };
+  onApplyQuick: (patch: Partial<SearchInput>) => void;
+  panel: ReactNode;
+  panelOpen: boolean;
+  onClosePanel: () => void;
 }
 
 export function FilterRow({
   input,
-  onRemove,
   onOpenFilters,
+  onApplyQuick,
   panel,
-  panelOpen = false,
+  panelOpen,
   onClosePanel,
-  overMap = false,
-  filtersRef,
 }: FilterRowProps) {
   const t = useTranslations();
-  const locale = useLocale();
-  const chips = filterChips(input, { t, locale });
-
-  const chipButtonRefs = useRef(new Map<ChipKey, HTMLButtonElement | null>());
-  const filtersButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Where focus goes once the removed chip's button is gone: the key of the
-  // chip now standing where it stood, or "filters" when none is left. Found
-  // before the removal, from this render's own chips; focused right after —
-  // `flushSync` forces `onRemove`'s state update (lib/hooks/useSearchFilters.ts)
-  // through a synchronous render first, so the target's own node (an
-  // existing chip's, usually, not a freshly mounted one a ref callback could
-  // catch) is already there to find in `chipButtonRefs` by the time this
-  // reads it.
-  function handleRemove(key: ChipKey) {
-    const keys = chips.map((chip) => chip.key);
-    const index = keys.indexOf(key);
-    const remaining = keys.filter((current) => current !== key);
-    const target =
-      remaining.length === 0 ? "filters" : remaining[Math.min(index, remaining.length - 1)];
-    flushSync(() => onRemove(key));
-    if (target === "filters") filtersButtonRef.current?.focus();
-    else chipButtonRefs.current.get(target)?.focus();
-  }
+  const { count, descriptionId, describedBy } = useFilterCount(input);
 
   return (
     <div className="flex min-w-0 items-center gap-2">
-      {overMap && (
-        <FiltersButton
-          ref={mergeRefs(filtersRef, filtersButtonRef)}
-          count={chips.length}
-          overMap
-          aria-haspopup="dialog"
-          aria-expanded={panelOpen}
-          onClick={onOpenFilters}
-        />
-      )}
-      {!overMap && (
-        <AnimatedPopover
-          open={panelOpen && panel != null}
-          onOpenChange={(open) => (open ? onOpenFilters() : onClosePanel?.())}
-          trigger={<FiltersButton ref={filtersButtonRef} count={chips.length} />}
-          content={panel}
-          ariaLabel={t("map.filters")}
-          onEscapeKeyDown={closeListboxFirst}
-          align="start"
-          sideOffset={8}
-          collisionPadding={16}
-          className="z-50 flex max-h-filters-max w-115 flex-col overflow-hidden rounded-card border border-line bg-surface font-sans text-text shadow-float"
-        />
-      )}
-      {/* The chips' own scroller, kept apart from «Filtros» so it stays fixed
-          at the start while the chips slide behind it (MAPUI-13). The
-          vertical padding, taken back with a negative margin, leaves room at
-          every width for the focus ring and the 44px remove buttons that
-          overflow-x-auto would otherwise clip vertically too. */}
-      <div className="-my-2 flex min-w-0 items-center gap-2 overflow-x-auto py-2">
-        <AnimatePresence initial={false}>
-          {chips.map((chip) => (
-            <RemovableChip
-              key={chip.key}
-              label={chip.label}
-              onRemove={() => handleRemove(chip.key)}
-              buttonRef={(node) => {
-                chipButtonRefs.current.set(chip.key, node);
-              }}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
+      <AnimatedPopover
+        open={panelOpen}
+        onOpenChange={(open) => (open ? onOpenFilters() : onClosePanel())}
+        trigger={
+          <FiltersButton count={count} descriptionId={descriptionId} describedBy={describedBy} />
+        }
+        content={panel}
+        ariaLabel={t("map.filters")}
+        onEscapeKeyDown={closeListboxFirst}
+        align="start"
+        sideOffset={8}
+        collisionPadding={16}
+        className="z-50 flex max-h-filters-max w-115 flex-col overflow-hidden rounded-card border border-line bg-surface font-sans text-text shadow-float"
+      />
+      <span aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-line" />
+      <QuickFilters input={input} onApply={onApplyQuick} />
     </div>
   );
 }
 
 interface FiltersButtonProps extends ComponentProps<"button"> {
-  /** The active chips, counted in the violet badge; none shows no badge. */
+  /** The active criteria, counted in the violet badge; none shows no badge. */
   count: number;
-  overMap?: boolean;
+  descriptionId: string;
+  describedBy: string | undefined;
 }
 
-/** «Filtros» with its badge: the desktop dropdown's trigger, or over the phone map the filters dialog's opener. */
-function FiltersButton({ count, overMap = false, className, ...props }: FiltersButtonProps) {
+/** «Filtros» with its badge, the desktop dropdown's trigger. Named
+ * `map.filters` alone, as the phone's own button is (PhoneSearchBar.tsx):
+ * the visible «Filtros» text is kept, but the name is pinned with
+ * `aria-label` because an unlabelled button's name would otherwise also
+ * pick up the sr-only description's text. The badge is `aria-hidden` and an
+ * `aria-describedby` sr-only span carries the count to assistive tech
+ * instead. */
+function FiltersButton({
+  count,
+  descriptionId,
+  describedBy,
+  className,
+  ...props
+}: FiltersButtonProps) {
   const t = useTranslations();
 
   return (
     <button
       type="button"
       {...props}
+      aria-label={t("map.filters")}
+      aria-describedby={describedBy}
       className={cn(
-        "flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-pill border border-line px-4 py-2.5 font-sans text-sm font-bold text-text",
-        // Fixed at the start of the row while the chips scroll past it
-        // (MAPUI-13): the page background over the map's own bg-surface so
-        // the chips read as passing behind it either way.
-        overMap
-          ? // Over the phone map it also keeps a 44px-tall hit area without
-            // changing its drawn height (MAPUI-51), the same pseudo-element
-            // technique as ToggleChip.
-            "relative bg-surface before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2"
-          : "bg-bg",
+        "flex h-8.5 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-pill border border-line px-3.5 font-sans text-small font-bold text-text",
         className,
       )}
     >
       <SlidersHorizontal aria-hidden="true" className="size-4" />
       {t("map.filters")}
-      <AnimatePresence initial={false}>
-        {count > 0 && (
-          <motion.span
-            key="badge"
-            {...crossFade}
-            className="rounded-pill bg-violet px-2 py-px text-xs font-extrabold text-on-violet"
-          >
-            {count}
-          </motion.span>
-        )}
-      </AnimatePresence>
+      <FiltersBadge count={count} descriptionId={descriptionId} />
     </button>
   );
 }

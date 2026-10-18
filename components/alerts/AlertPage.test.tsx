@@ -13,6 +13,7 @@ import {
   renderAlert,
   zonePaths,
 } from "@/test/utils/alerts";
+import { expectPhotoFocusRing } from "@/test/utils/focus-ring";
 import { stubLayoutBox } from "@/test/utils/viewport";
 import {
   ALERT_COPY,
@@ -299,6 +300,18 @@ describe("ALERTUI-14 to ALERTUI-17 on /alerts/[id]", () => {
     expect(isOutlined(cardOf(serie3Title(1)))).toBe(true);
     expect(isOutlined(cardOf(serie3Title(2)))).toBe(true);
     expect(isOutlined(cardOf(serie3Title(3)))).toBe(false);
+  });
+
+  // docs/specs/redesign-alerts.md (ALERTUI-17, amended 2026-10-18, #134):
+  // /alerts/[id] renders its matches with SavedCard (components/favorites/
+  // SavedCard.tsx), via SavedList; the photo's ring is that link's own focus
+  // indicator, on `group-focus-visible/card`, so the global outline is
+  // always suppressed (SAVED-11's bug fix applies here too).
+  it("ALERTUI-17: a focused match card shows only its photo ring", () => {
+    renderAlert(alertWithMatches("corolla"));
+    const [link] = listingLinks(cardOf("Toyota Corolla 125H"));
+
+    expectPhotoFocusRing(link);
   });
 });
 

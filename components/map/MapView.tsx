@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { CreateAlert } from "@/components/alerts/CreateAlert";
 import { FilterPanel } from "@/components/map/filters/FilterPanel";
-import { FilterRow } from "@/components/map/filters/FilterRow";
 import { MapResultsArea } from "@/components/map/MapResultsArea";
 import { SearchSheet } from "@/components/map/phone/SearchSheet";
 import { HeaderSearch } from "@/components/map/search/HeaderSearch";
@@ -45,7 +44,6 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   const isPhone = useIsPhone();
   const page = useMapPageState(listings, isPhone);
 
-  const closeDesktopFilters = () => filters.setFiltersOpen(false);
   const summary = phoneSummary(input, place, filters.distanceInKm, { t, locale });
 
   async function handleToggleFavorite(listing: CarListing, next: boolean) {
@@ -84,11 +82,11 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   };
 
   // The page's main landmark, as in the route's error state (app/map/error.tsx).
-  // `data-toast-anchor`: every toast here sits under the filter row, centred
-  // over the results list (SAVED-24, app/globals.css).
+  // `data-toast-anchor`: every toast here sits under the header band (12px,
+  // MAPUI-59, SAVED-24), centred over the results list (app/globals.css).
   return (
     <main data-toast-anchor="map" className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
-      {/* Desktop: the search pill and «Crear alerta» in the map header's centre (MAPUI-1, MAPUI-39). */}
+      {/* Desktop: the search pill and «Crear alerta» in the map header's first row, «Filtros» and the quick filters in its second (MAPUI-1, MAPUI-13, MAPUI-19, MAPUI-39, MAPUI-58). */}
       <HeaderSearch
         filters={filters}
         createAlertOpen={page.alertOpen === "popover"}
@@ -98,36 +96,13 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
         }
       />
 
-      {/* Desktop: the filters row under the header (MAPUI-13, MAPUI-19). */}
-      <div
-        data-testid="filter-row"
-        className="hidden h-16.5 min-w-0 shrink-0 items-center border-b border-line-soft px-8 lg:flex"
-      >
-        <FilterRow
-          input={input}
-          onRemove={filters.removeChip}
-          onOpenFilters={() => filters.setFiltersOpen(true)}
-          panelOpen={filters.isOpen}
-          onClosePanel={closeDesktopFilters}
-          panel={
-            <FilterPanel
-              mode="desktop"
-              input={input}
-              onChange={filters.updateInput}
-              onClear={filters.clearAll}
-              onCloseDesktop={closeDesktopFilters}
-            />
-          }
-        />
-      </div>
-
       <MapResultsArea
         isPhone={isPhone}
         page={page}
         results={results}
         summary={summary}
         input={input}
-        onRemoveChip={filters.removeChip}
+        onApplyQuick={(patch) => filters.applyInput(patch)}
         heading={heading}
         state={state}
         widenTo={widenTo}

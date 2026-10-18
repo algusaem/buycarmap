@@ -252,11 +252,13 @@ A night with a single light: neutrals do the work, lime is the light, violet mar
 ### Neutral
 - **Night** (`bg`): the whole app's background. Never pure black inside the app.
 - **Surface** (`surface`): raised pieces — the search pill, map preview, bottom sheet, forms, alert and
-  account cards, toasts; inactive chips only on the phone map.
+  account cards, toasts, and the headers — the map's two-row band and the phone map's top band among
+  them — which stand apart from `bg` by this tone; on those bands the search pill and the phone
+  summary are told apart by their 1px `line` border.
 - **Surface strong** (`surface-strong`): one step above surface — the hovered select option, the
   skeleton's price bar.
-- **Line** (`line`) and **soft line** (`line-soft`): 1px borders of controls, and header and section
-  dividers.
+- **Line** (`line`) and **soft line** (`line-soft`): 1px borders of controls, and section dividers.
+  Headers draw no divider: they stand apart from the page by the `surface` tone.
 - **Text** (`text`): off-white main text, never pure white. **Muted text** (`text-muted`): subtitles,
   car metadata, labels, placeholders and the empty checkbox border (7.6:1 on `bg`). **Legal text**
   (`text-legal`): the body of the legal pages.
@@ -308,7 +310,8 @@ Frontend › Typography); there is no monospace face.
 - **Body** (Rethink Sans 400, 16px, line-height 1.5): running text and fields (16px so iOS does not
   zoom). **Legal body** is 17px, line-height 1.65, in `text-legal`.
 - **Card title** (Rethink Sans 700, 16px): a car's name on cards.
-- **Label** (Rethink Sans 700, 14px): buttons, chips, navigation links. **Field label** 13px 700.
+- **Label** (Rethink Sans 700, 14px): buttons, chips, navigation links; the map's quick filters and
+  its band «Filtros» are 13px. **Field label** 13px 700.
 - **Meta and small** (Rethink Sans 400, 14px and 13px): car metadata separated by « · », in
   `text-muted`.
 - **Caption** (Rethink Sans 700, 12px): the source badge and small badges.
@@ -330,16 +333,18 @@ sans family.
 
 Two frames are drawn for every screen: desktop at 1440 × 900 and phone at 390 × 844.
 
-- **Margins.** Content and headers sit 20px (`space-5`) from the phone's sides; anything floating
-  over the phone map (the search summary and the filters row) sits 16px (`space-4`) from the
-  edges; the tab bar runs full width along the bottom. On desktop the
-  header and content take 32px (`space-8`) side padding, the landing and sign in 48px (`space-12`).
+- **Margins.** Content and headers sit 20px (`space-5`) from the phone's sides; the phone map's top
+  band (the search summary, «Filtros» and the quick filters) keeps 16px (`space-4`) from the
+  edges; the tab bar runs full width along the bottom. On desktop the pages' header and content take
+  32px (`space-8`) side padding; the map's band and body, the landing and sign in 48px (`space-12`).
 - **Rhythm.** 4, 8, 12, 16, 20, 24, 32 and 48px (`space-1` to `space-12`); 20px between columns of the
-  car grid, 24px for block padding and between groups.
-- **Map screens.** Desktop: an 80px header with the search pill, the filters row («Filtros» first,
-  then only the active filters as chips), a three-column grid on the left and the map on the right.
-  Phone: the map full screen, the search summary and the filters row floating on top, the results in a
-  bottom sheet over the tab bar. List and map stay in sync on every screen
+  saved and alerts grids; the desktop map's grid 24px between columns and 40px between rows
+  (MAPUI-60), 24px for block padding and between groups.
+- **Map screens.** Desktop: a 151px two-row `surface` band — the search pill with «Crear alerta»,
+  then «Filtros» and the quick filters — and under it the list and the map in two halves 48px apart,
+  the map a rounded card aligned with the list's heading; the list in two columns, three from 1920px.
+  Phone: a solid `surface` band with the search summary, the round «Filtros» and the quick filters,
+  the map under it, the results in a bottom sheet over the tab bar. List and map stay in sync on every screen
   with a map (Mapa, Guardados, Alertas).
 - **Pages.** Saved cars and alerts are never without a map on desktop (a list beside it, 546px wide
   from 1024px and 830px from 1280px);
@@ -374,9 +379,13 @@ search pill, pins, badges. Containers step down by size: forms and the landing m
 `radius-panel` (28px), the bottom sheet `radius-sheet` (26px), the map preview `radius-preview`
 (24px), cards and car photos `radius-card` (22px), the phone thumbnail `radius-thumb` (18px), fields
 and small photos `radius-field` (16px), select options `radius-option` (12px), skeleton bars
-`radius-skeleton` / `radius-skeleton-sm` (8 / 6px). Borders are 1px `line`; dividers `line-soft`.
+`radius-skeleton` / `radius-skeleton-sm` (8 / 6px). Borders are 1px `line`; dividers `line-soft`;
+a divider inside a control (the pill's segments, the band's divider before the quick filters) is
+`line`.
 
-Focus is drawn the same way everywhere: a 2px `lime` outline offset by 3px.
+Focus is drawn the same way everywhere: a 2px `lime` outline offset by 3px — except the car cards
+(the map's list, Guardados, an alert's matches), where the photo's lime ring is the focus
+indicator while the card's link has focus (MAPUI-61).
 
 ## Components
 
@@ -388,7 +397,8 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 - **Shape:** full pill; the label never wraps onto a second line.
 - **Primary:** `lime` with `on-lime`, weight 800; one per task, two per view at most when the tasks
   differ. Heights 56 (full width, `button-display`), 54, 52, 48 and 42px.
-- **Secondary:** 1px `line` border, `text`, weight 700 (48 or 44px). **Ghost:** text only; the undo
+- **Secondary:** 1px `line` border, `text`, weight 700 (48, 44 or 40px — «Crear alerta» in the map's
+  band is 40px; «Filtros» in the band is 34px at 13px). **Ghost:** text only; the undo
   ghost («Quitar filtros») turns `danger` on hover and focus. **Danger:** `danger` text and a `danger`
   border at 60 %, always with confirmation. **Icon:** 42px round with a `line` border and a required
   `aria-label`; saved turns it `violet`. Anything drawn under 44px keeps a 44 × 44px hit area on a
@@ -398,9 +408,12 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 ### Chips
 - **Style:** a button with `aria-pressed`; unpressed is a 1px `line` border at weight 600, pressed is
   a `violet` fill with `on-violet` text at weight 800 — fill and weight change, not colour alone.
-- **Removable active-filter chip:** in the filters row, one per active filter, a 36px `violet` chip
-  with `on-violet` text at weight 800 and a 14px `x` in a 44 × 44 icon button named «Quitar
-  <filtro>»; removing it removes that filter.
+- **Quick-filter chip:** on the map, «Gasolina», «Diésel», «Manual», «Automático» and «Hasta
+  100.000 km», 34px and 13px, with the same weights, 600 unpressed and 800 pressed; they apply at
+  once.
+- **Removable chip:** only for the brand chosen in «Coche», a 36px `violet` chip with `on-violet`
+  text at weight 800 and a 14px `x` in a 44 × 44 icon button named «Quitar <marca>»; the map has no
+  removable filter chips.
 - **Single-choice radio chip groups:** the radius chips, the price shortcuts and «Cambio» are native
   radios in a `radiogroup`, drawn as chips (chosen: `violet` fill, `on-violet` text, weight 800;
   otherwise a `line` border at weight 600) or, for «Cambio», as a segmented `surface` pill whose
@@ -435,13 +448,14 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 
 ### Toast
 - `surface`, 1px `line`, `radius-card`, `shadow-float`, 380px at most, 12px under the header (under
-  the filter row on the desktop map), centred over the list column where a map sits beside a list and
+  the header band on the desktop map), centred over the list column where a map sits beside a list and
   on the viewport elsewhere; each page sets it with `data-toast-anchor`. A 18px icon
   (`lime` success, `danger` failure), 15px text, an optional `lime` ghost action and a 32px close button
   with an `aria-label`. Never for a form error. [Toast](docs/design/system/components/Toast/README.md).
 
 ### Navigation
-- **Header:** the wordmark left, navigation right; 80px on desktop, 64px on a phone; the current page
+- **Header:** the wordmark left, navigation right; 80px on desktop (the map's band 151px), 64px on a
+  phone; the current page
   is an inverted pill (`text` fill, `bg` text) with `aria-current="page"`, links turn `lime` on hover.
   One header per kind of page: the map (the search group in the centre; on the right the language,
   heart and bell icon links and the avatar, or «Entrar» signed out), the pages — Guardados, Alertas,
@@ -515,8 +529,8 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 - **Do** keep `bg` and `surface` as the bulk of every screen, and use `text` and `text-muted` for text.
 - **Do** use lime only for what is happening now, with `on-lime` on top, and violet only for what is
   yours, with `on-violet` on top.
-- **Do** mark state with more than colour: a pressed chip changes fill and weight; the active pin
-  changes fill, size and halo.
+- **Do** mark state with more than colour: a pressed chip changes fill and weight (the quick
+  filters too, 600 to 800); the active pin changes fill, size and halo.
 - **Do** set display type in Unbounded uppercase and everything else in Rethink Sans.
 - **Do** make every pressable thing a pill and keep a 44px minimum target on a phone.
 - **Do** use Lucide icons at 2px stroke in the colour of the surrounding text.

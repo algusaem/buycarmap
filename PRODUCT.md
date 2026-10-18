@@ -34,7 +34,7 @@ Built today:
 - Favorites: save listings, manage them at `/favorites`, reconciled into search results.
 - Car alerts: saved search criteria (deduplicated across users), a queue drained every five minutes, email digests, `/alerts` and `/alerts/[id]`, one-click unsubscribe.
 
-Being redesigned ("BuyCarMap 2.0", approved 2026-10-11, in `docs/design/`): every screen moves to a map-first structure — a list and a map side by side on desktop, a full-screen map with a three-position bottom sheet on the phone (dragging it is tracked in [#126](https://github.com/algusaem/buycarmap/issues/126)), the map also on saved cars and alerts. The redesign drops the light theme and keeps Google as the only OAuth provider. Left out of it, each tracked as its own issue: an exact vector map style, a photo carousel, search-as-I-move-the-map, a total result count, "near me", new-match markers on alerts, and redesigned emails.
+Being redesigned ("BuyCarMap 2.0", approved 2026-10-11, in `docs/design/`): every screen moves to a map-first structure — a list and a map side by side on desktop; on the phone, the map under a top band with the search summary and the quick filters, and a three-position bottom sheet (dragging it is tracked in [#126](https://github.com/algusaem/buycarmap/issues/126)), the map also on saved cars and alerts. The redesign drops the light theme and keeps Google as the only OAuth provider. Left out of it, each tracked as its own issue: an exact vector map style, a photo carousel, search-as-I-move-the-map, a total result count, "near me", new-match markers on alerts, and redesigned emails.
 
 Constraints:
 

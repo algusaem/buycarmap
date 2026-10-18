@@ -243,19 +243,16 @@
   --spacing-sheet-bottom: calc(2.125rem + env(safe-area-inset-bottom));
 
   /* The phone map's measures with the safe area (tokens.json › spacing): the
-     floating search's insets (MAPUI-20), the results sheet's full-top padding,
-     its offset over the tab bar and its middle height (MAPUI-23), the sheets'
-     footer padding and a headline's question-to-punchline gap. `sheet-middle` is 520px or the room
-     between the tab bar (4rem) and the floating search (8.875rem). */
-  --spacing-float-top: calc(1.25rem + env(safe-area-inset-top));
-  --spacing-float-left: calc(1rem + env(safe-area-inset-left));
-  --spacing-float-right: calc(1rem + env(safe-area-inset-right));
-  --spacing-sheet-full-top: calc(0.625rem + env(safe-area-inset-top));
+     insets of the `surface` band across its top (MAPUI-20, MAPUI-62), the
+     results sheet's offset over the tab bar and its middle height (MAPUI-23),
+     the sheets' footer padding and a headline's question-to-punchline gap. The
+     results sheet sits under the band, so `sheet-middle` is 520px or the room
+     between the tab bar (4rem) and 12px under the band. */
+  --spacing-band-top: calc(1.25rem + env(safe-area-inset-top));
+  --spacing-band-left: calc(1rem + env(safe-area-inset-left));
+  --spacing-band-right: calc(1rem + env(safe-area-inset-right));
   --spacing-sheet-above-tabs: calc(4rem + env(safe-area-inset-bottom));
-  --spacing-sheet-middle: min(
-    32.5rem,
-    calc(100% - 4rem - env(safe-area-inset-bottom) - 8.875rem - env(safe-area-inset-top))
-  );
+  --spacing-sheet-middle: min(32.5rem, calc(100% - 4rem - env(safe-area-inset-bottom) - 0.75rem));
   --spacing-sheet-footer: calc(1.75rem + env(safe-area-inset-bottom));
   --spacing-sheet-full-bottom: calc(1.5rem + env(safe-area-inset-bottom));
   --spacing-headline-gap: 0.22em;
@@ -278,6 +275,9 @@
      below it they use the 1024 boards' one centred column (ENTRY-23 to
      ENTRY-25). */
   --breakpoint-3xl: 90rem;
+  /* 1920px: where /map's results list takes three columns of cards instead
+     of two (docs/specs/redesign-map.md MAPUI-60). */
+  --breakpoint-4xl: 120rem;
 
   /* `font`'s line-height for text that otherwise keeps a wrapper's own
      line-height (SearchPill.tsx's landing variant, MapPreview.tsx's example
@@ -396,13 +396,15 @@
 
 /* Where the one global toaster puts a toast (SAVED-24, docs/specs/
    redesign-saved.md; Toast/README.md), read by components/Toaster.tsx: its top
-   12px under the header (64px on a phone, 80px from `lg`), or under /map's 66px
-   filter row; at most 380px wide and 16px clear of each side; centred on the
-   viewport, or, from `lg`, over the list column of the pages that name
-   themselves with `data-toast-anchor` — /map's half-width list (830px from
-   `xl`), and /favorites' and the alerts pages' 546px one (830px from `xl`;
-   ALERTUI-37, docs/specs/redesign-alerts.md). The phone /map has no
-   header, so its toast sits 12px under the safe area. */
+   12px under the header (64px on a phone, 80px from `lg`), or 12px under
+   /map's header band, 151px tall (MAPUI-59); at most
+   380px wide and 16px clear of each side; centred on the viewport, or, from
+   `lg`, over the list column of the pages that name themselves with
+   `data-toast-anchor` — /map's list, the left of two equal halves between
+   48px margins and 48px apart (MAPUI-60), so centred at a quarter of the
+   window plus 12px, and /favorites' and the alerts pages' 546px one (830px
+   from `xl`; ALERTUI-37, docs/specs/redesign-alerts.md). The phone /map has
+   no app header, so its toast sits 12px under the safe area. */
 :root {
   --toast-top: 4.75rem;
   --toast-centre: 50%;
@@ -419,8 +421,8 @@
   }
 
   :root:has([data-toast-anchor="map"]) {
-    --toast-top: 9.875rem;
-    --toast-centre: 25%;
+    --toast-top: 10.1875rem;
+    --toast-centre: calc(25% + 0.75rem);
   }
 
   :root:has([data-toast-anchor="saved"]),
@@ -430,7 +432,8 @@
 }
 
 @media (width >= 80rem) {
-  :root:has([data-toast-anchor]) {
+  :root:has([data-toast-anchor="saved"]),
+  :root:has([data-toast-anchor="alerts"]) {
     --toast-centre: 25.9375rem;
   }
 }

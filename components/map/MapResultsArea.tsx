@@ -9,7 +9,6 @@ import type { CarListing } from "@/interfaces/listing";
 import type { useListingsSearch } from "@/lib/hooks/useListingsSearch";
 import type { MapPageState } from "@/lib/hooks/useMapPageState";
 import type { ResultsState } from "@/lib/map/results-state";
-import type { ChipKey } from "@/lib/search/filter-chips";
 import type { PhoneSummary } from "@/lib/search/phone-summary";
 import type { SearchInput } from "@/lib/search/schema";
 
@@ -20,12 +19,16 @@ const ListingsMap = dynamic(
   { ssr: false },
 );
 
-// docs/specs/redesign-map.md (MAPUI-20, MAPUI-23, MAPUI-27 to MAPUI-33). The
-// list-and-map column MapView wires up: the phone search summary floating
-// over the map, the results sheet (the list column at desktop width), and
-// the map section with its pins and desktop status pill. The page's UI state
-// arrives as `page` (lib/hooks/useMapPageState.ts) and the search's as
-// `results` (lib/hooks/useListingsSearch.ts).
+// docs/specs/redesign-map.md (MAPUI-20, MAPUI-23, MAPUI-27 to MAPUI-33,
+// MAPUI-60, MAPUI-62). The list-and-map area MapView wires up: on a phone,
+// the `surface` band across the top with the search summary, «Filtros» and
+// the quick filters, its top padding clear of the notch, and under it the map
+// with the results sheet over it; from `lg`, a row 48px from each side whose
+// two equal halves, 48px apart, are the results sheet as the list column and
+// the map, a `card`-radius card 24px clear of the header band and of the
+// window's bottom. The page's UI state arrives as `page`
+// (lib/hooks/useMapPageState.ts) and the search's as `results`
+// (lib/hooks/useListingsSearch.ts).
 
 interface MapResultsAreaProps {
   isPhone: boolean;
@@ -33,7 +36,7 @@ interface MapResultsAreaProps {
   results: ReturnType<typeof useListingsSearch>;
   summary: PhoneSummary;
   input: SearchInput;
-  onRemoveChip: (key: ChipKey) => void;
+  onApplyQuick: (patch: Partial<SearchInput>) => void;
   heading: string;
   state: ResultsState;
   widenTo: number | undefined;
@@ -52,7 +55,7 @@ export function MapResultsArea({
   results,
   summary,
   input,
-  onRemoveChip,
+  onApplyQuick,
   heading,
   state,
   widenTo,
@@ -67,82 +70,85 @@ export function MapResultsArea({
   const t = useTranslations();
 
   return (
-    // `isolate` keeps the sheet's and the floating search's z-indexes inside this area, under the
-    // tab bar and the dialogs portalled to the body.
-    <div className="relative isolate flex min-h-0 flex-1 overflow-hidden">
-      {/* Phone: the search summary and the filters row, floating over the map, clear of the notch and the rounded corners (MAPUI-20). */}
-      <div className="absolute top-float-top right-float-right left-float-left z-500 lg:hidden">
+    // `isolate` keeps the sheet's z-index inside this area, under the tab bar and the dialogs
+    // portalled to the body.
+    <div className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+      {/* Phone: the band with the search summary, «Filtros» and the quick filters, clear of the notch and the rounded corners (MAPUI-20, MAPUI-62). */}
+      <div data-testid="phone-map-band" className="shrink-0 bg-surface pt-band-top pb-3 lg:hidden">
         <PhoneSearchBar
           placeSummary={summary.placeSummary}
           carPriceSummary={summary.carPriceSummary}
           input={input}
           onOpenSearch={page.openSearchSheet}
           onOpenFilters={page.openPhoneFilters}
-          onRemoveChip={onRemoveChip}
+          onApplyQuick={onApplyQuick}
           filtersOpen={page.phoneFiltersOpen}
           searchRef={page.searchOpenerRef}
           filtersRef={page.filtersOpenerRef}
         />
       </div>
 
-      {/* The list column on desktop, the results sheet over the map on a phone (MAPUI-23, MAPUI-33). */}
-      <ResultsSheet
-        heading={heading}
-        position={page.sheetPosition}
-        onPositionChange={page.setSheetPosition}
-        listings={page.sheetListings}
-        onCreateAlert={() => page.openAlert("sheet")}
-        createAlertRef={page.alertOpenerRef}
-        docked={!isPhone}
-        favoriteIds={favoriteIds}
-        onToggleFavorite={onToggleFavorite}
-        activeId={page.activeId}
-        onActiveChange={page.setHoverId}
-        status={
-          state !== "ready" && (
-            <ResultsStatus
-              state={state}
-              widenTo={widenTo}
-              radiusKm={distanceInKm}
-              hasFilters={hasFilters}
-              onRetry={results.retry}
-              onWiden={onWiden}
-              onClearFilters={onClearFilters}
-              onAllSpain={onAllSpain}
-            />
-          )
-        }
-        footer={
-          results.hasMore && (
-            <div ref={results.sentinelRef} className="mt-6 flex justify-center py-4">
-              <LoadingMore loading={results.isLoadingMore} />
-            </div>
-          )
-        }
-      />
-
-      <section
-        aria-label={t("nav.map")}
-        className="absolute inset-0 lg:relative lg:flex-1 lg:border-l lg:border-line-soft"
-      >
-        <ListingsMap
-          listings={results.listings}
-          resultsGeneration={results.resultsGeneration}
-          activeId={page.activeId}
-          previewId={page.previewId}
-          onActivate={page.activatePin}
-          onPreviewClose={page.closePreview}
-          desktop={!isPhone}
+      {/* Under the band on a phone; the list-and-map row on desktop (MAPUI-60). */}
+      <div className="relative flex min-h-0 flex-1 lg:gap-12 lg:px-12">
+        {/* The list column on desktop, the results sheet over the map on a phone (MAPUI-23, MAPUI-33). */}
+        <ResultsSheet
+          heading={heading}
+          position={page.sheetPosition}
+          onPositionChange={page.setSheetPosition}
+          listings={page.sheetListings}
+          onCreateAlert={() => page.openAlert("sheet")}
+          createAlertRef={page.alertOpenerRef}
+          docked={!isPhone}
           favoriteIds={favoriteIds}
           onToggleFavorite={onToggleFavorite}
+          activeId={page.activeId}
+          onActiveChange={page.setHoverId}
+          status={
+            state !== "ready" && (
+              <ResultsStatus
+                state={state}
+                widenTo={widenTo}
+                radiusKm={distanceInKm}
+                hasFilters={hasFilters}
+                onRetry={results.retry}
+                onWiden={onWiden}
+                onClearFilters={onClearFilters}
+                onAllSpain={onAllSpain}
+              />
+            )
+          }
+          footer={
+            results.hasMore && (
+              <div ref={results.sentinelRef} className="mt-6 flex justify-center py-4">
+                <LoadingMore loading={results.isLoadingMore} />
+              </div>
+            )
+          }
         />
-        <StatusPill
-          state={state}
-          radiusKm={distanceInKm}
-          canWiden={widenTo !== undefined}
-          hasFilters={hasFilters}
-        />
-      </section>
+
+        <section
+          aria-label={t("nav.map")}
+          className="absolute inset-0 lg:relative lg:my-6 lg:min-w-0 lg:flex-1 lg:overflow-hidden lg:rounded-card"
+        >
+          <ListingsMap
+            listings={results.listings}
+            resultsGeneration={results.resultsGeneration}
+            activeId={page.activeId}
+            previewId={page.previewId}
+            onActivate={page.activatePin}
+            onPreviewClose={page.closePreview}
+            desktop={!isPhone}
+            favoriteIds={favoriteIds}
+            onToggleFavorite={onToggleFavorite}
+          />
+          <StatusPill
+            state={state}
+            radiusKm={distanceInKm}
+            canWiden={widenTo !== undefined}
+            hasFilters={hasFilters}
+          />
+        </section>
+      </div>
     </div>
   );
 }

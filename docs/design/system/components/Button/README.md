@@ -11,7 +11,7 @@ Píldoras `radius-pill`. El principal va en `lime` con texto `on-lime`, para lo 
   - 42px, «Ver anuncio» de la vista previa: padding 0 16px, 14px.
   - Pequeño, por padding: 11px 20px a 15px («Crear cuenta» en la cabecera de la landing) y 10px 16px a 14px («Nueva alerta»).
 - **Secundario**: borde 1px `line`, texto `text`, peso 700. 48px a 15px con padding 0 20px («Volver al mapa» en un error de página) y a ancho completo («Guardar» o «Quitar de guardados» en la hoja del coche, con el corazón de 16px a 8px); 44px a 14px con padding 0 18px (botones de AccountCard); 10px 16px a 14px («Cerrar sesión»).
-  - Con icono: «Filtros», 10px 16px a 14px, icono de ajustes de tres mandos de 16px, 8px de hueco y la insignia `violet` con el número.
+  - Con icono: «Filtros», 34px, padding 0 14px a 13px, icono de ajustes de 16px, 8px de hueco y la insignia `violet` con el número (en el móvil, el botón redondo de 44px de [Chip](../Chip/README.md)); «Crear alerta», 40px, padding 0 16px a 14px, con bell-plus de 18px y 8px de hueco.
 - **Fantasma**: solo texto, peso 700, en `text`.
   - Navegación de cabecera: 15px, padding 10px 16px («Entrar», «Mapa»).
   - Deshacer sin drama: «Quitar filtros», 48px a 15px con padding 0 14px. Al pasar el ratón o con foco, el texto pasa a `danger`.

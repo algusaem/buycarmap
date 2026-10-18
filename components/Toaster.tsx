@@ -32,7 +32,7 @@ const ERROR_ICON = (
  * Sonner's default is English.
  *
  * Where it sits (SAVED-24, docs/specs/redesign-saved.md; Toast/README.md):
- * 12px under the header, or under `/map`'s filter row at desktop width, and
+ * 12px under the header, or under `/map`'s header band at desktop width, and
  * centred over the list column on the pages that have one beside a map, on
  * the viewport elsewhere. The page names itself with `data-toast-anchor`, and
  * app/globals.css turns that into `--toast-top` and `--toast-centre`, so this

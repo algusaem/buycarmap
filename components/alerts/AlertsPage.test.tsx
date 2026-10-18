@@ -20,6 +20,7 @@ import {
   renderAlerts,
   zonePaths,
 } from "@/test/utils/alerts";
+import { expectPhotoFocusRing } from "@/test/utils/focus-ring";
 import { stubLayoutBox } from "@/test/utils/viewport";
 import {
   ALERT_COPY,
@@ -679,6 +680,19 @@ describe("ALERTUI-17: the list and the map in sync", () => {
     listingLinks(openCard("Corolla híbrido"))[1].focus();
 
     await waitFor(() => expect(pin).toHaveAttribute("data-active", "true"));
+  });
+
+  // docs/specs/redesign-alerts.md (ALERTUI-17, amended 2026-10-18, #134): a
+  // match card focused with the keyboard showed both the photo's lime ring
+  // and the global focus outline around the whole card (MAPUI-61's bug fix
+  // also applies here). The photo's ring is the link's own focus indicator,
+  // on `group-focus-visible/card`, so the global outline is always
+  // suppressed.
+  it("ALERTUI-17: a focused match card's link shows only the photo's lime ring, not a second focus outline", () => {
+    renderAlerts();
+    const [link] = listingLinks(openCard("Corolla híbrido"));
+
+    expectPhotoFocusRing(link);
   });
 
   it("ALERTUI-17: activating a pin opens its preview, marks the pin and outlines its card only", async () => {

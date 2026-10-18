@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { axe } from "vitest-axe";
 import { Toaster } from "@/components/Toaster";
 import { withAnimations } from "@/test/utils/animations";
+import { expectPhotoFocusRing } from "@/test/utils/focus-ring";
 import { renderWithI18n } from "@/test/utils/render";
 import { card, cardOrder, cards, renderSaved, rowOrder } from "@/test/utils/saved";
 import { restoreMatchMedia, stubLayoutBox, stubSwitchableWidth } from "@/test/utils/viewport";
@@ -451,6 +452,18 @@ describe("SAVED-11: list and map", () => {
     within(card("B")).getByRole("link").focus();
 
     await waitFor(() => expect(pin).toHaveAttribute("data-active", "true"));
+  });
+
+  // docs/specs/redesign-saved.md (SAVED-11, amended 2026-10-18, #134): a
+  // card focused with the keyboard showed both the photo's lime ring and the
+  // global focus outline around the whole card (MAPUI-61's bug fix also
+  // applies here). The photo's ring is the link's own focus indicator, on
+  // `group-focus-visible/card`, so the global outline is always suppressed.
+  it("SAVED-11: a focused card's link shows only the photo's lime ring, not a second focus outline", () => {
+    renderSaved();
+    const link = within(card("B")).getByRole("link");
+
+    expectPhotoFocusRing(link);
   });
 
   it("SAVED-11: activating a pin opens its preview with the heart «Quitar de guardados», marks the pin and outlines its card", async () => {

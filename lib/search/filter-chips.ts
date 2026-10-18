@@ -4,19 +4,20 @@ import { type FuelGroup, groupsFromEngine } from "@/lib/search/fuel-groups";
 import { chosenGearbox } from "@/lib/search/panel";
 import type { SearchInput } from "@/lib/search/schema";
 
-// docs/specs/redesign-map.md (MAPUI-13). One chip per active panel criterion,
-// read off the shared `SearchInput`. The filters row's badge is this array's
-// length. The text comes from the messages (`filters.*`, `search.*`) in the
-// locale of `copy`.
+// docs/specs/redesign-map.md (MAPUI-13, MAPUI-62). One chip text per active
+// panel criterion, read off the shared `SearchInput`. «Filtros»'s badge, in
+// the desktop header's second row and the phone band, is this array's length.
+// The text comes from the messages (`filters.*`, `search.*`) in the locale of
+// `copy`.
 //
 // Order: fuels, price, gearbox, mileage, year, recency, then the car — the
 // worked example's «Diésel», «Hasta 20.000 €», «Automático», «Últimas 24 h».
-// The key names what removing the chip clears: `engine:<group>`, `maxPrice`,
+// The key names the criterion: `engine:<group>`, `maxPrice`,
 // `minPrice` or `price` (both), `gearbox`, `maxKm`, `minYear`, `timeFilter`
 // and `brand` (the brand and the model).
-export type FuelChipKey = `engine:${FuelGroup}`;
+type FuelChipKey = `engine:${FuelGroup}`;
 
-export type ChipKey =
+type ChipKey =
   | FuelChipKey
   | "price"
   | "minPrice"
@@ -34,8 +35,9 @@ export interface FilterChip {
 
 /**
  * The messages a lone minimum or maximum is written with: `label` for the
- * pill and the chips («Hasta 20.000 €»), `summary` for the phone search
- * summary's second line («hasta 20.000 €», MAPUI-20).
+ * pill, the alert summary and «Filtros»'s badge count («Hasta 20.000 €»),
+ * `summary` for the phone search summary's second line («hasta 20.000 €»,
+ * MAPUI-20).
  */
 const PRICE_WORDING = {
   label: { upTo: "search.priceUpTo", from: "search.priceFrom" },
@@ -45,8 +47,8 @@ const PRICE_WORDING = {
 export type PriceWording = keyof typeof PRICE_WORDING;
 
 /**
- * The price as the pill and the chips write it (MAPUI-1): «Hasta 20.000 €»,
- * «Desde 3.000 €» or «3.000 – 20.000 €»; undefined with no price.
+ * The price as the pill and the alert summary write it (MAPUI-1): «Hasta
+ * 20.000 €», «Desde 3.000 €» or «3.000 – 20.000 €»; undefined with no price.
  */
 export function priceLabel(
   input: Pick<SearchInput, "minPrice" | "maxPrice">,

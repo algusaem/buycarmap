@@ -8,7 +8,7 @@ import { useState } from "react";
 // «1.2.3x») never reaches `setDraft` to begin with, so there is nothing left
 // here to refuse — parsing is the only gate (the schema accepts every whole
 // number of 0 or more). The draft follows the criterion when it changes
-// outside (a removed chip, «Borrar»).
+// outside (a quick filter, «Borrar»).
 export function useCriterionDraft(
   value: number | undefined,
   onCommit: (value: number | undefined) => void,

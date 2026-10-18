@@ -2,7 +2,7 @@
 
 Key: HEAD
 Status: Implemented
-Last updated: 2026-10-15
+Last updated: 2026-10-17
 
 ---
 
@@ -32,7 +32,8 @@ layout (F3–F7).
   linking to `/`, then on the right the language control, a «Guardados» icon link to `/favorites`, an
   «Alertas» icon link to `/alerts` and the avatar linking to `/account`, and no section links. — the
   header's centre gains the search pill and «Crear alerta» (MAPUI-1, MAPUI-39)
-  (amended 2026-10-13, MAPUI — redesign-map.md)
+  (amended 2026-10-13, MAPUI — redesign-map.md) — the header becomes a two-row band with «Filtros»
+  and the quick filters on the second row (MAPUI-59) (amended 2026-10-17, MAPUI — redesign-map.md)
 - [x] HEAD-2 · component — At desktop width, signed out, `/map` shows the wordmark, the language
   control and «Entrar» linking to `/login`, and no link to saved cars, alerts or the account. — the
   header's centre gains the search pill and «Crear alerta» (MAPUI-1, MAPUI-39, MAPUI-46)
@@ -102,6 +103,10 @@ layout (F3–F7).
   taller than the screen, and their last element can be scrolled fully clear of the bottom nav (bug
   fix, found 2026-10-12). — So does `/alerts/[id]`, whose last element is «Eliminar alerta», after
   its virtualised rows (ALERTUI-31) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
+- [x] HEAD-20 · component — No header draws a bottom border. The map header, the pages header and the
+  phone headers of `/favorites`, `/alerts`, `/alerts/[id]` and `/account` stand apart from the page
+  by the `surface` background instead; the landing, sign-in, account-recovery and legal headers,
+  which draw no divider today, keep the page background (owner decision, 2026-10-17, #134).
 
 ## Worked examples
 
@@ -168,7 +173,8 @@ NAV-10) — and that a session ending mid-page stops offering them (HEAD-12).
 
 - The search pill in the map header and «Crear alerta» beside it (F3). Today no screen lets a user
   create an alert at all; building that action belongs to F3, with the map's search.
-- The phone map's own controls — the floating search, chips and bottom sheet (F3).
+- The phone map's own controls — the top band, the quick filters and the bottom sheet (F3, amended
+  2026-10-17 by MAPUI-62).
 - The landing and sign-in page layouts below the header (F4), the account page's cards (F7) — this
   phase only adds «Cerrar sesión» there.
 - Showing the user's photo in the avatar: the design draws an initial only.

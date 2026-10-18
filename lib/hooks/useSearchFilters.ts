@@ -3,14 +3,7 @@ import { parseAsString, useQueryStates } from "nuqs";
 import type { SearchInput } from "@/lib/search/schema";
 import type { SelectedLocation } from "@/interfaces/location";
 import { initUserGeolocation, waitForGeolocation } from "@/lib/geo/user-location";
-import type { ChipKey, FuelChipKey } from "@/lib/search/filter-chips";
-import { FUEL_GROUPS } from "@/lib/search/fuel-groups";
-import {
-  hasPanelCriteria,
-  isOfferedGearbox,
-  OFFERED_GEARBOXES,
-  panelCriteria,
-} from "@/lib/search/panel";
+import { hasPanelCriteria, OFFERED_GEARBOXES, panelCriteria } from "@/lib/search/panel";
 import {
   EMPTY_URL_FILTERS,
   KEYWORDS_PARAM,
@@ -104,47 +97,6 @@ function fromInputPatch(patch: Partial<SearchInput>): Partial<FilterValues> {
  * which belong to «Dónde».
  */
 const PANEL_CLEARED = fromInputPatch(panelCriteria({}));
-
-function isFuelChip(key: ChipKey): key is FuelChipKey {
-  return key.startsWith("engine:");
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled chip key: ${String(value)}`);
-}
-
-/** What removing a filters-row chip clears (MAPUI-13); the keys are lib/search/filter-chips.ts's. */
-function chipRemoval(key: ChipKey, f: FilterValues): Partial<FilterValues> {
-  if (isFuelChip(key)) {
-    const group = FUEL_GROUPS.find((definition) => `engine:${definition.group}` === key);
-    if (!group) return {};
-    return { engine: f.engine.filter((value) => !group.values.includes(value)) };
-  }
-  switch (key) {
-    case "price":
-      return { minPrice: undefined, maxPrice: undefined };
-    case "minPrice":
-      return { minPrice: undefined };
-    case "maxPrice":
-      return { maxPrice: undefined };
-    case "gearbox":
-      // The chip is «Manual» or «Automático» (MAPUI-16); a value the UI no
-      // longer offers stays (MAPUI-18).
-      return {
-        gearbox: f.gearbox.filter((value) => !isOfferedGearbox(value)),
-      };
-    case "maxKm":
-      return { maxKm: undefined };
-    case "minYear":
-      return { minYear: undefined };
-    case "timeFilter":
-      return { timeFilter: "" };
-    case "brand":
-      return { brand: "", model: "" };
-    default:
-      return assertNever(key);
-  }
-}
 
 const DEBOUNCE_MS = 400;
 
@@ -286,8 +238,8 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
   }, []);
 
   // Applies a patch and searches at once, skipping the MAP-11 pause: the
-  // phone's «Ver coches» (MAPUI-21, MAPUI-22), a removed chip (MAPUI-13,
-  // MAPUI-22) and «Borrar» / «Quitar filtros» (MAPUI-19, MAPUI-31).
+  // phone's «Ver coches» (MAPUI-21, MAPUI-22), a quick filter (MAPUI-22,
+  // MAPUI-58) and «Borrar» / «Quitar filtros» (MAPUI-19, MAPUI-31).
   const apply = useCallback(
     (patch: Partial<FilterValues>) => {
       clearTimeout(debounceRef.current);
@@ -309,9 +261,9 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
   );
 
   /**
-   * The phone sheets' «Ver coches» (MAPUI-21, MAPUI-22): the edited criteria
-   * and, from «BUSCAR», the place — `null` for «Toda España», left out to keep
-   * the current one.
+   * The phone sheets' «Ver coches» (MAPUI-21, MAPUI-22) and quick filters
+   * (MAPUI-58): the edited criteria and, from «BUSCAR», the place — `null` for
+   * «Toda España», left out to keep the current one.
    */
   const applyInput = useCallback(
     (patch: Partial<SearchInput>, location?: SelectedLocation | null) => {
@@ -333,12 +285,6 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
     apply(PANEL_CLEARED);
   }, [apply, dropKeywords]);
 
-  /** Removing a filters-row chip (MAPUI-13, MAPUI-22). */
-  const removeChip = useCallback(
-    (key: ChipKey) => apply(chipRemoval(key, filtersRef.current)),
-    [apply],
-  );
-
   const setBrand = useCallback((brand: string) => update({ brand, model: "" }), [update]);
   const setModel = useCallback((model: string) => update({ model }), [update]);
   const setLocation = useCallback(
@@ -351,7 +297,7 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
 
   return {
     ...filters,
-    /** The filters as the shared `SearchInput`, for the pill, the chips and the panel. */
+    /** The filters as the shared `SearchInput`, for the pill, the quick filters and the panel. */
     input,
     /**
      * Whether a filter is active beyond the place and its radius — a panel
@@ -370,7 +316,6 @@ export function useSearchFilters(search: (params: SearchInput) => void, getKeywo
     updateInput,
     applyInput,
     clearAll,
-    removeChip,
     setBrand,
     setModel,
     setLocation,

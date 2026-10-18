@@ -6,6 +6,7 @@ import * as motion from "motion/react-client";
 import { BellPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { CarCard, savedProps } from "@/components/map/CarCard";
+import { RESULTS_GRID_CLASS } from "@/components/map/results-grid";
 import { Button } from "@/components/ui/button";
 import type { CarListing } from "@/interfaces/listing";
 import { crossFade } from "@/lib/animations";
@@ -20,16 +21,21 @@ import { cn } from "@/lib/utils";
 // full the list, up to the top while the tab bar hides. The handle is a button
 // that toggles between full and peeked, `aria-expanded` only when full.
 //
-// From `lg` the same element is the list column beside the map (`docked`):
-// the results heading at 30px over every card, whatever the position, and no
-// handle or «Crear alerta» (the header has its own).
+// From `lg` the same element is the list column beside the map (`docked`,
+// MAPUI-60, MAPUI-61): half of the row MapResultsArea lays out, the 30px
+// heading, 24px under the header band, then every card, whatever the
+// position, two columns 24px apart with 40px between rows, three from 1920px
+// (`4xl`); no handle or «Crear alerta» (the header has its own). The list's
+// scroller reaches into the row's 48px left margin and halfway into the 48px
+// gap before the map, and pads back to the cards: the active card's 2px lime
+// outline is never clipped at the sides, its scrollbar sits 24px clear of the
+// cards, and 6px over the first row (taken from the heading's gap) keep its
+// top whole too — room enough for a focused card's outline.
 //
-// The middle position is 520px tall (BottomSheet README) but never taller than
-// the room under the floating search (MAPUI-20): that search ends 130px below
-// the safe area's top (20px offset, the 58px summary row, 10px gap, the 42px
-// filters row), and the sheet keeps 12px clear of it, so on a 667px-tall
-// phone the middle sheet is 461px. Full reaches the top, its content clear
-// of the notch.
+// The phone map sits under the `surface` band across the top (MAPUI-62), and
+// so does this sheet. The middle position is 520px tall (BottomSheet README)
+// but never taller than the room between the tab bar and 12px under that
+// band. Full reaches the band.
 
 export interface ResultsSheetProps {
   heading: string;
@@ -96,11 +102,11 @@ export function ResultsSheet({
       className={cn(
         // Phone: a `surface` sheet over the map, resting on the tab bar.
         "absolute inset-x-0 z-1000 flex flex-col gap-3.5 rounded-t-sheet border-t border-line bg-surface px-5 pt-2.5",
-        position === "full" ? "top-0 bottom-0 pt-sheet-full-top" : "bottom-sheet-above-tabs",
+        position === "full" ? "top-0 bottom-0" : "bottom-sheet-above-tabs",
         position === "middle" && "h-sheet-middle",
         position === "peeked" && "pb-3.5",
         // Desktop: the list column beside the map.
-        "lg:static lg:z-auto lg:h-full lg:w-1/2 lg:shrink-0 lg:gap-5.5 lg:rounded-none lg:border-t-0 lg:bg-transparent lg:px-8 lg:pt-6.5 lg:pb-0 xl:w-207.5",
+        "lg:static lg:z-auto lg:h-full lg:min-w-0 lg:flex-1 lg:gap-4 lg:rounded-none lg:border-t-0 lg:bg-transparent lg:px-0 lg:pt-6 lg:pb-0",
       )}
     >
       <button
@@ -135,7 +141,7 @@ export function ResultsSheet({
             key="body"
             {...crossFade}
             className={cn(
-              "min-h-0 flex-1 overscroll-contain",
+              "min-h-0 flex-1 overscroll-contain lg:-mr-6 lg:-ml-12 lg:pt-1.5 lg:pr-6 lg:pl-12",
               // MAPUI-23: at full, clears the home indicator (and, once the
               // tab bar hides, the room it left) instead of the plain pb-6
               // the other positions and the desktop list column keep.
@@ -148,7 +154,7 @@ export function ResultsSheet({
               <motion.div key={bodyKey(Boolean(status), showsWholeList)} {...crossFade}>
                 {status}
                 {!status && (
-                  <div className="grid grid-cols-1 gap-x-5 gap-y-7 lg:grid-cols-2 xl:grid-cols-3">
+                  <div className={RESULTS_GRID_CLASS}>
                     {cards.map((listing) => (
                       <CarCard
                         key={listing.id}
