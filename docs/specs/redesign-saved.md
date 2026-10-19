@@ -145,11 +145,14 @@ Removing a saved car (desktop)
   - the toast «Quitado de guardados» appears with «Deshacer».
 
   A single car's preview closes with its pin. A grouped preview stays open with the cars left
-  (Decisions › Values not drawn).
+  (Decisions › Values not drawn). — the card leaves with no fade (MOTION-9) (amended 2026-10-18,
+  MOTION — motion.md)
 - [x] SAVED-15 · component — «Deshacer» calls `saveFavorite` with that car. The car comes back at once:
   - in its place under the sort in force, also when the sort changed after the removal;
   - with its pin;
   - with its heart saved.
+
+  — the car comes back with no fade (MOTION-9) (amended 2026-10-18, MOTION — motion.md)
 - [x] SAVED-16 · component — A removal the server refuses, or that throws, puts the car back in its
   place and its pin back. The «Quitado de guardados» toast gives way to the error toast (FRONT-15): the
   refusal code's `favoriteErrors.*` copy, or «Algo ha salido mal. Inténtalo de nuevo.» when it throws.
@@ -182,6 +185,9 @@ The phone
 - [x] SAVED-21 · component — The car sheet fades and slides in and out with Motion. It closes with
   a drag down from its handle (SAVED-37), the visually hidden «Cerrar», Escape or a press outside it,
   and focus returns to its row (amended 2026-10-15, owner: no visible close on phone sheets; drag down to close).
+  — the sheet fades and slides only when a pointer opens or closes it; from the keyboard (Escape,
+  «Cerrar» or a row activated with Enter or Space) it appears and leaves at once (MOTION-12)
+  (amended 2026-10-18, MOTION — motion.md)
 - [x] SAVED-22 · component — «Quitar de guardados» in the car sheet does three things:
   - it closes the sheet;
   - it removes the row at once;

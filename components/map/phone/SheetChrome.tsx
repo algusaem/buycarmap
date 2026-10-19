@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, ReactNode, Ref, RefObject } from "react";
+import type { ComponentProps, PointerEvent, ReactNode, Ref, RefObject } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   AnimatePresence,
@@ -14,7 +14,10 @@ import * as motion from "motion/react-client";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { crossFade, sheetSlideUp, sheetSpring } from "@/lib/animations";
+import { usePresenceMotion } from "@/lib/hooks/usePresenceMotion";
+import { useReleaseSampling } from "@/lib/hooks/useReleaseSampling";
 import { FLICK_VELOCITY } from "@/lib/map/sheet-position";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +27,10 @@ import { cn } from "@/lib/utils";
 // «BUSCAR» sheet, which closes by dragging its handle down), the Unbounded title (the
 // dialog's `h2`, over the sections' `h3`s) and the underlined «Borrar», and a
 // footer with the 56px «Ver coches». Also the bottom-sheet frame the «BUSCAR»
-// sheet and Crear alerta's phone sheet share (PhoneBottomSheet).
+// sheet and Crear alerta's phone sheet share (PhoneBottomSheet). A sheet opened
+// from the keyboard appears at once, and one closed with Escape or a close
+// control pressed with a key leaves at once; a pointer keeps the fade or the
+// slide both ways (MOTION-12).
 
 /**
  * A phone dialog's `onCloseAutoFocus`: the focus goes back to the control
@@ -76,7 +82,8 @@ interface PhoneBottomSheetProps {
 // close"); BottomSheet/README.md › Arrastrar para cerrar. How far down the
 // handle must go, in px, or how fast the release must move down, in px/s, for
 // the sheet to close; anything less springs it back. The speed is the results
-// sheet's flick threshold (FLICK_VELOCITY, MAPUI-60).
+// sheet's flick threshold (FLICK_VELOCITY, MAPUI-60), measured the same way,
+// from the pointer events (samplePress, MOTION-20).
 const DRAG_CLOSE_OFFSET = 100;
 /** How much the sheet gives when pulled up past where it sits. */
 const DRAG_TOP_ELASTIC = 0.1;
@@ -124,7 +131,7 @@ export function PhoneBottomSheet({
           <DialogPrimitive.Portal forceMount>
             {!fullScreen && (
               <DialogPrimitive.Overlay forceMount asChild>
-                <motion.div {...crossFade} className={cn("fixed inset-0 z-50", overlayClassName)} />
+                <PresenceFade className={cn("fixed inset-0 z-50", overlayClassName)} />
               </DialogPrimitive.Overlay>
             )}
             <DialogPrimitive.Content
@@ -139,7 +146,7 @@ export function PhoneBottomSheet({
             >
               <SheetPanel
                 ref={contentRef}
-                {...SHEET_MOTION[entrance]}
+                preset={SHEET_MOTION[entrance]}
                 draggable={!fullScreen}
                 dragDisabled={dragDisabled}
                 onDragClose={onClose}
@@ -155,6 +162,8 @@ export function PhoneBottomSheet({
 }
 
 type SheetPanelProps = Omit<ComponentProps<typeof motion.div>, "children"> & {
+  /** How it comes in and goes (SHEET_MOTION), instant from the keyboard (usePresenceMotion). */
+  preset: (typeof SHEET_MOTION)[keyof typeof SHEET_MOTION];
   /** A bottom sheet: the handle on top, which drags the sheet down to close it. */
   draggable: boolean;
   /** The handle is drawn but the sheet stays put. */
@@ -169,9 +178,12 @@ type SheetPanelProps = Omit<ComponentProps<typeof motion.div>, "children"> & {
  * strip only (`dragListener={false}`), so the sheet's own scroll is never
  * taken over: down it follows the finger, up it barely gives. On release it
  * closes past the threshold (shouldDragClose), or springs back, at once with
- * reduced motion.
+ * reduced motion. The release's speed is read from the handle's own pointer
+ * events (samplePress), never from Motion's drag velocity, which reads 0 on a
+ * flick drawn in one frame on an idle page (MOTION-20).
  */
 function SheetPanel({
+  preset,
   draggable,
   dragDisabled = false,
   onDragClose,
@@ -182,9 +194,18 @@ function SheetPanel({
   const dragControls = useDragControls();
   const y = useMotionValue(0);
   const reduceMotion = useReducedMotion();
+  const presence = usePresenceMotion(preset);
+  // The press/release sampling (MOTION-20) the handle drives, shared with the results sheet.
+  const { releaseVelocityRef, start: startSampling } = useReleaseSampling();
 
-  function onDragEnd(_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) {
-    if (shouldDragClose(info.offset.y, info.velocity.y)) {
+  function startDrag(event: PointerEvent) {
+    dragControls.start(event);
+    startSampling(event);
+  }
+
+  // Motion calls it after the frame is drawn, so the press's pointerup has already set releaseVelocityRef.
+  function onDragEnd(_event: globalThis.PointerEvent | MouseEvent | TouchEvent, info: PanInfo) {
+    if (shouldDragClose(info.offset.y, releaseVelocityRef.current)) {
       onDragClose();
       return;
     }
@@ -197,6 +218,7 @@ function SheetPanel({
 
   return (
     <motion.div
+      {...presence}
       {...props}
       style={{ ...style, y }}
       drag={draggable && !dragDisabled ? "y" : false}
@@ -214,7 +236,7 @@ function SheetPanel({
         <div
           data-sheet-handle=""
           aria-hidden="true"
-          onPointerDown={(event) => dragControls.start(event)}
+          onPointerDown={startDrag}
           className="relative z-10 -mt-2.5 -mb-2 flex shrink-0 cursor-grab touch-none justify-center self-stretch pt-2.5 pb-2 active:cursor-grabbing"
         >
           <span className="h-1.25 w-10 rounded-pill bg-handle" />

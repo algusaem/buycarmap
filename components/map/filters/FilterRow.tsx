@@ -15,7 +15,8 @@ import { QuickFilters } from "./QuickFilters";
 // docs/design/system/components/Chip/README.md. The desktop map header's
 // second row: «Filtros», 34px like the toggles beside it, with a violet badge
 // counting the active criteria (lib/search/filter-chips.ts's filterChips;
-// none shows no badge, and the badge fades in and out), a 1px divider, then
+// none shows no badge, and the badge fades in and out after a pointer but
+// appears and leaves at once after a key, MOTION-23), a 1px divider, then
 // the quick filters (QuickFilters), whose patches go to `onApplyQuick`.
 //
 // The filters panel (FilterPanel) is a dropdown anchored under «Filtros»
@@ -77,7 +78,8 @@ interface FiltersButtonProps extends ComponentProps<"button"> {
  * `aria-label` because an unlabelled button's name would otherwise also
  * pick up the sr-only description's text. The badge is `aria-hidden` and an
  * `aria-describedby` sr-only span carries the count to assistive tech
- * instead. */
+ * instead. Hover turns its border text-muted and a press scales it to 0.97
+ * (MOTION-6). */
 function FiltersButton({
   count,
   descriptionId,
@@ -94,7 +96,7 @@ function FiltersButton({
       aria-label={t("map.filters")}
       aria-describedby={describedBy}
       className={cn(
-        "flex h-8.5 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-pill border border-line px-3.5 font-sans text-small font-bold text-text",
+        "flex h-8.5 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-pill border border-line px-3.5 font-sans text-small font-bold text-text transition-[border-color,scale] hover:border-text-muted active:scale-97 motion-reduce:active:scale-none",
         className,
       )}
     >

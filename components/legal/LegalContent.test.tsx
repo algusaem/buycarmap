@@ -1,11 +1,18 @@
-import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { restoreMatchMedia, stubPhoneWidth } from "@/test/utils/viewport";
 import { LegalContent } from "./LegalContent";
 import esMessages from "@/messages/es.json";
 import enMessages from "@/messages/en.json";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 // I18nProvider (via renderWithI18n) calls useRouter, so the app router must be
 // mocked even though this component only reads translations.
@@ -356,6 +363,66 @@ describe("PAGES-63: the phone index", () => {
   });
 });
 
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-15: the phone index
+// folds at once when a section is chosen with Enter or Space, and the page
+// still jumps to that section (PAGES-63). Chosen with a pointer, it folds
+// over the state transition first, then jumps.
+describe("MOTION-15: LegalContent — the phone index folds at once from the keyboard, but still over the state transition for a pointer", () => {
+  afterEach(() => {
+    restoreMatchMedia();
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("MOTION-15: Enter on a section link folds the index and jumps to its heading in the same tick, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      stubPhoneWidth();
+      const scrollIntoView = vi
+        .spyOn(Element.prototype, "scrollIntoView")
+        .mockImplementation(() => undefined);
+      renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+      const toggle = screen.getByRole("button", { name: "En esta página" });
+      await userEvent.click(toggle);
+      const cookies = await screen.findByRole("link", { name: "Cookies" });
+      cookies.focus();
+
+      await userEvent.keyboard("{Enter}");
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByRole("link", { name: "Cookies" })).not.toBeInTheDocument();
+      expect(scrollIntoView).toHaveBeenCalled();
+      expect(window.location.hash).toBe("#cookies");
+
+      scrollIntoView.mockRestore();
+    });
+  });
+
+  it("MOTION-15: a click on a section link still folds the index first — it is still mounted right after the click, and the jump waits for its exit", async () => {
+    await withAnimations(async () => {
+      stubPhoneWidth();
+      const scrollIntoView = vi
+        .spyOn(Element.prototype, "scrollIntoView")
+        .mockImplementation(() => undefined);
+      renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+      const toggle = screen.getByRole("button", { name: "En esta página" });
+      await userEvent.click(toggle);
+      const cookies = await screen.findByRole("link", { name: "Cookies" });
+
+      await userEvent.click(cookies);
+
+      expect(screen.getByRole("link", { name: "Cookies" })).toBeInTheDocument();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(screen.queryByRole("link", { name: "Cookies" })).not.toBeInTheDocument(),
+      );
+      expect(scrollIntoView).toHaveBeenCalled();
+
+      scrollIntoView.mockRestore();
+    });
+  });
+});
+
 interface LegalSection {
   id?: string;
   heading: string;
@@ -366,6 +433,20 @@ interface LegalMessages {
     terms: { sections: LegalSection[] };
   };
 }
+
+// docs/specs/motion.md (MOTION-17): the «En esta página» toggle gains a hover
+// and a press state, in the state transition.
+describe("MOTION-17: LegalContent — hover and press on the index toggle", () => {
+  it("MOTION-17: «En esta página» carries hover:bg-surface-strong and active:scale-97, off under reduced motion", () => {
+    renderWithI18n(<LegalContent doc="privacy" />, { locale: "es" });
+
+    const className = screen.getByRole("button", { name: "En esta página" }).className;
+    expect(className).toContain("hover:bg-surface-strong");
+    expect(className).toContain("active:scale-97");
+    expect(className).toContain("motion-reduce:active:scale-none");
+    expect(className).toMatch(/transition-\[[^\]]+\]/);
+  });
+});
 
 describe("PAGES-74: legal section ids", () => {
   it("PAGES-74: every privacy and terms section has its own non-empty id, unique within its page", () => {

@@ -1,30 +1,21 @@
 "use client";
 
 import { useId } from "react";
-import { AnimatePresence, useIsPresent } from "motion/react";
-import * as motion from "motion/react-client";
 import { useTranslations } from "next-intl";
 import { RemovableChip } from "@/components/map/filters/RemovableChip";
 import { BRANDS } from "@/components/map/search-filter-options";
-import { crossFade } from "@/lib/animations";
 import { type CarChoice, useCarTypeahead } from "@/lib/hooks/useCarTypeahead";
 import type { Translate } from "@/lib/i18n/types";
-import { cn } from "@/lib/utils";
-import {
-  AnimatedListbox,
-  ComboOption,
-  ListStatus,
-  NoMatch,
-  SearchField,
-  SectionLabel,
-} from "./Combobox";
+import { ComboOption, Listbox, ListStatus, NoMatch, SearchField, SectionLabel } from "./Combobox";
 
 // docs/specs/redesign-map.md (MAPUI-6 to MAPUI-10, MAPUI-56, Contracts › Brand
 // list): the «Coche» type-ahead, in its popover, the «BUSCAR» sheet and the
 // filters panel's «Marca y modelo». Its state and choices are
 // lib/hooks/useCarTypeahead.ts; this draws them: the chosen brand's chip, the
 // field, the «Marcas» and «Modelos» groups (the brand step lists its models
-// alone), the no-match line and the polite status.
+// alone), the no-match line and the polite status. The list, its groups, the
+// no-match line and the brand chip appear and leave at once (MOTION-13,
+// MOTION-18).
 
 export interface CarTypeaheadProps {
   brand: string;
@@ -46,16 +37,9 @@ export function CarTypeahead(props: CarTypeaheadProps) {
 
   return (
     <div ref={navigation.containerRef} className="flex flex-col gap-3">
-      <AnimatePresence initial={false}>
-        {brandStep && (
-          <RemovableChip
-            key={chosenBrand}
-            label={chosenBrand}
-            onRemove={typeahead.clearBrand}
-            className="self-start"
-          />
-        )}
-      </AnimatePresence>
+      {brandStep && (
+        <RemovableChip label={chosenBrand} onRemove={typeahead.clearBrand} className="self-start" />
+      )}
       <SearchField
         ref={typeahead.inputRef}
         name="car"
@@ -69,22 +53,19 @@ export function CarTypeahead(props: CarTypeaheadProps) {
         onClearText={typeahead.resetField}
         onKeyDown={navigation.onKeyDown}
       />
-      <AnimatePresence initial={false}>
-        {listed && (
-          <CarListbox
-            key="cars"
-            id={listboxId}
-            grouped={!brandStep}
-            brandChoices={typeahead.brandChoices}
-            modelChoices={typeahead.modelChoices}
-            highlighted={highlighted}
-            optionId={navigation.optionId}
-            onHighlight={navigation.setHighlighted}
-            onChoose={typeahead.choose}
-          />
-        )}
-        {noMatch && <NoMatch key="no-brand">{t("search.noBrand")}</NoMatch>}
-      </AnimatePresence>
+      {listed && (
+        <CarListbox
+          id={listboxId}
+          grouped={!brandStep}
+          brandChoices={typeahead.brandChoices}
+          modelChoices={typeahead.modelChoices}
+          highlighted={highlighted}
+          optionId={navigation.optionId}
+          onHighlight={navigation.setHighlighted}
+          onChoose={typeahead.choose}
+        />
+      )}
+      {noMatch && <NoMatch>{t("search.noBrand")}</NoMatch>}
       <ListStatus>{statusText}</ListStatus>
     </div>
   );
@@ -104,15 +85,12 @@ interface ChoiceOptionsProps {
   /** «Marca Modelo» for the models of the mixed list; the brand step names its models alone. */
   withBrand: boolean;
   highlighted: number;
-  /** False while the listbox fades out: the options render inert (ComboOption). */
-  interactive: boolean;
   optionId: (index: number) => string;
   onHighlight: (index: number) => void;
   onChoose: (choice: CarChoice) => void;
 }
 
-interface CarListboxProps
-  extends Omit<ChoiceOptionsProps, "choices" | "offset" | "withBrand" | "interactive"> {
+interface CarListboxProps extends Omit<ChoiceOptionsProps, "choices" | "offset" | "withBrand"> {
   id: string;
   /** «Marcas» and «Modelos» while typing; the brand step lists its models alone. */
   grouped: boolean;
@@ -122,39 +100,29 @@ interface CarListboxProps
 
 function CarListbox({ id, grouped, brandChoices, modelChoices, ...rest }: CarListboxProps) {
   const t = useTranslations();
-  const isPresent = useIsPresent();
-  const shared = { ...rest, interactive: isPresent };
 
   return (
-    <AnimatedListbox id={id} label={listboxLabel(t, grouped)} className="gap-3">
-      {grouped && (
-        <AnimatePresence initial={false}>
-          {brandChoices.length > 0 && (
-            <ChoiceGroup
-              key="brands"
-              label={t("search.brands")}
-              choices={brandChoices}
-              offset={0}
-              withBrand={false}
-              {...shared}
-            />
-          )}
-          {modelChoices.length > 0 && (
-            <ChoiceGroup
-              key="models"
-              label={t("search.models")}
-              choices={modelChoices}
-              offset={brandChoices.length}
-              withBrand
-              {...shared}
-            />
-          )}
-        </AnimatePresence>
+    <Listbox id={id} label={listboxLabel(t, grouped)} className="gap-3">
+      {grouped && brandChoices.length > 0 && (
+        <ChoiceGroup
+          label={t("search.brands")}
+          choices={brandChoices}
+          offset={0}
+          withBrand={false}
+          {...rest}
+        />
       )}
-      {!grouped && (
-        <ChoiceOptions choices={modelChoices} offset={0} withBrand={false} {...shared} />
+      {grouped && modelChoices.length > 0 && (
+        <ChoiceGroup
+          label={t("search.models")}
+          choices={modelChoices}
+          offset={brandChoices.length}
+          withBrand
+          {...rest}
+        />
       )}
-    </AnimatedListbox>
+      {!grouped && <ChoiceOptions choices={modelChoices} offset={0} withBrand={false} {...rest} />}
+    </Listbox>
   );
 }
 
@@ -167,7 +135,6 @@ function ChoiceOptions({
   offset,
   withBrand,
   highlighted,
-  interactive,
   optionId,
   onHighlight,
   onChoose,
@@ -183,7 +150,6 @@ function ChoiceOptions({
           label={choiceLabel(t, choice, withBrand)}
           selected={choice.selected}
           highlighted={highlighted === offset + index}
-          interactive={interactive}
           onChoose={() => onChoose(choice)}
           onHighlight={() => onHighlight(offset + index)}
         />
@@ -203,30 +169,16 @@ interface ChoiceGroupProps extends ChoiceOptionsProps {
   label: string;
 }
 
-/**
- * «Marcas» or «Modelos»: a titled group of options, fading in and out inside
- * the listbox's AnimatePresence. A group fading out is inert like a fading
- * listbox, so its options neither count as options nor choose.
- */
-function ChoiceGroup({ label, interactive, ...options }: ChoiceGroupProps) {
+/** «Marcas» or «Modelos»: a titled group of options, shown and removed at once (MOTION-13). */
+function ChoiceGroup({ label, ...options }: ChoiceGroupProps) {
   const labelId = useId();
-  const isPresent = useIsPresent();
 
   return (
-    <motion.fieldset
-      aria-labelledby={labelId}
-      aria-hidden={isPresent ? undefined : "true"}
-      inert={isPresent ? undefined : true}
-      className={cn(
-        "m-0 flex min-w-0 flex-col gap-1 border-0 p-0",
-        !isPresent && "pointer-events-none",
-      )}
-      {...crossFade}
-    >
+    <fieldset aria-labelledby={labelId} className="m-0 flex min-w-0 flex-col gap-1 border-0 p-0">
       <span className="px-3.5">
         <SectionLabel id={labelId}>{label}</SectionLabel>
       </span>
-      <ChoiceOptions {...options} interactive={interactive && isPresent} />
-    </motion.fieldset>
+      <ChoiceOptions {...options} />
+    </fieldset>
   );
 }

@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 // border; unpressed is a 1px line border. The pressed border is transparent
 // rather than removed so the chip keeps its size when toggled. The
 // pseudo-element keeps a 44px-tall hit area (RULES §19) without changing the
-// drawn size.
+// drawn size. An unpressed chip turns its border to text-muted on hover, and
+// every chip scales to 0.97 while pressed, off under reduced motion (MOTION-5).
 //
 // Two sizes, both weight 800 pressed and 600 unpressed — the state is
 // carried by fill and weight, not colour alone (LOOK-12), the same for every
@@ -36,12 +37,12 @@ export function ToggleChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "relative cursor-pointer whitespace-nowrap rounded-pill border font-sans text-text transition-[background-color,border-color,color]",
+        "relative cursor-pointer whitespace-nowrap rounded-pill border font-sans text-text transition-[background-color,border-color,color,scale] active:scale-97 motion-reduce:active:scale-none",
         "before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2",
         SIZES[size],
         active
           ? "border-transparent bg-violet font-extrabold text-on-violet"
-          : "border-line font-semibold",
+          : "border-line font-semibold hover:border-text-muted",
       )}
       {...props}
     >

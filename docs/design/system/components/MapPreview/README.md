@@ -15,4 +15,5 @@ La ficha rápida que se abre encima del mapa al pulsar un pin, en Mapa, Guardado
 
 ## Movimiento
 
-- Aparece con un fundido (`crossFade`) y desaparece con el mismo fundido al revés, cerrándose como se cierre: con su botón, con Escape, pulsando fuera o al abrir «Crear alerta».
+- Abierta con el ratón, aparece y desaparece con un fundido de 180ms (`crossFade`). Abierta desde un pin con Intro o Espacio, o cerrada con Escape, aparece y desaparece al instante (MOTION-11).
+- **Hover y pulsación** (en la transición de estado de 120ms, curva `ease-out`): el botón de cerrar se rellena de `surface-strong`; «Ver anuncio» se aclara un poco; el corazón pasa a `lime` y, ya guardado, se oscurece un poco (brillo 92 %) para que su contenido mantenga el contraste. Todos se encogen a 0,97 mientras se pulsan, salvo con movimiento reducido.

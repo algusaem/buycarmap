@@ -76,8 +76,9 @@ Where this brief and the design disagree, the design wins and this brief is corr
 - `callbackUrl` is resolved against this site's own origin, not pattern-matched, so a backslash
   path (`/\evil.example`) can no longer reach another site — it goes to `/`, like any other
   off-site target (ENTRY-17, security fix).
-- Everything that appears or disappears (the alert, the two-factor field) animates with Motion,
-  honouring reduced motion.
+- The alerts fade over 180ms when a pointer caused them and appear and leave at once when a key
+  did, Enter submitting the form included; the two-factor field fades in
+  (`docs/specs/motion.md`, MOTION-23). Reduced motion is honoured.
 
 ## 7. Constraints and open decisions
 

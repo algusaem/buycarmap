@@ -50,7 +50,9 @@ Search pill and its popovers (desktop)
   two rows (MAPUI-64) (amended 2026-10-17, design A7 accepted 2026-10-17, #134)
 - [x] MAPUI-2 · component — Pressing a segment opens its popover and sets that segment's
   `aria-expanded` to true. At most one popover is open. Pressing outside it or Escape closes it;
-  Escape returns focus to the segment.
+  Escape returns focus to the segment. — opened with Enter or Space, the popover appears at once;
+  Escape closes it at once; a pointer opens and closes it over 180ms (MOTION-10) (amended
+  2026-10-18, MOTION — motion.md)
 - [x] MAPUI-3 · component — In «Dónde», typing two or more characters lists the places Nominatim
   returns, each with its region on a second line when it has one, and announces «N resultados» in a
   polite status. Choosing one applies that place with the radius in force (50 km by default) (amends
@@ -199,7 +201,9 @@ Map
   - it marks the pin active;
   - it outlines that car's card in the list and scrolls it into view.
 
-  The preview fades in and fades out, however it closes (design accepted 2026-10-14). Opening another
+  The preview fades in and fades out, however it closes (design accepted 2026-10-14) — it fades only
+  when a pointer opens or closes it; opened with Enter or Space on a pin, or closed with Escape, it
+  appears or disappears at once (amended 2026-10-18, MOTION — motion.md). Opening another
   pin while a preview is open closes the first and opens the second, which stays open. When the
   previewed car leaves the results, its preview closes and its pin is no longer active; if the car
   comes back in a later search, its pin is not active and its card not outlined until it is
@@ -413,7 +417,9 @@ Phone results sheet: drag and map tap (added 2026-10-17, #133; design accepted 2
 `docs/design/system/components/BottomSheet/README.md`)
 
 - [x] MAPUI-58 · component — Pressing the results sheet's handle (Enter, Space or a click) moves the
-  sheet one position up: peeked → middle, middle → full, full → peeked (amends MAPUI-23).
+  sheet one position up: peeked → middle, middle → full, full → peeked (amends MAPUI-23). — Enter or
+  Space moves the sheet at once; a pointer press still springs it (MOTION-14) (amended 2026-10-18,
+  MOTION — motion.md)
 - [x] MAPUI-59 · component + e2e — At phone width, the results sheet can be dragged up and down from
   its handle strip and from its header (the results heading). On release it settles on the position
   (peeked, middle or full) whose top edge is nearest to where the sheet's top edge was released. A
@@ -478,6 +484,17 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
   filters scrolling sideways. The map, its pins and the results sheet are under the band, never behind it.
 
 ## Worked examples
+
+**A fast flick on an idle page (MAPUI-60, bug fix #135).**
+
+- **Input:** phone 390 × 844, `/map`, the results sheet at middle and nothing else animating; a 60px drag up on the handle, drawn within a single animation frame, then released.
+- **Before the fix:** the release speed was read from the animation library, which stamps the press with the last frame it drew; with the page idle that frame is old, the speed reads 0px/s, and the sheet settles back to middle.
+- **Correct result:** the release speed is measured from the pointer events themselves — the distance from the newest sample at least 100ms older than the release (or the press, when none is that old) to the release, over the time between them — so it reads above 800px/s and the sheet moves one position, to full. When that reference would be the press and the next sample is more than 200ms after it, the next sample is the reference instead (see the next example).
+
+**A flick after a hold (MAPUI-60, owner 2026-10-18).**
+
+- **Input:** phone 390 × 844, `/map`, the results sheet at middle; the handle is pressed at 0ms and held still, then moved 30px up at 500ms and 60px up at 516ms, and released at 520ms at 60px.
+- **Correct result:** the press is more than 200ms before the first move, so the reference is the move at 500ms: 30px over 20ms, 1500px/s, above 800px/s, and the sheet moves one position, to full. Measured from the press it would read 60px over 520ms, about 115px/s, and the sheet would settle back to middle, which is wrong.
 
 **Pill segment values (MAPUI-1).** Every row below is drawn in the design except the empty «Dónde»
 row, whose text comes from SearchPill's guide.

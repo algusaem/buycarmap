@@ -11,7 +11,7 @@ import { formatAmount } from "@/lib/format";
 // `radius-field`, padding 10px 14px; the visible label at 11px `text-muted`
 // over the value at 16px, so a phone never zooms into it. The caller owns the
 // value: `onValueChange` reports each edit, `onCommit` the box losing focus
-// and Enter.
+// and Enter. While not focused, hover turns the border text-muted (MOTION-5).
 //
 // `type="text"` (MAPUI-11), not `type="number"`: a `grouped` box reads with
 // the thousands point while not focused (`formatAmount`), which a number
@@ -97,7 +97,7 @@ export function NumberBox({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col rounded-field border border-line bg-surface px-3.5 py-2.5 transition-[border-color] focus-within:border-lime has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-3 has-[input:focus-visible]:outline-lime">
+    <div className="flex min-w-0 flex-1 flex-col rounded-field border border-line bg-surface px-3.5 py-2.5 transition-[border-color] not-focus-within:hover:border-text-muted focus-within:border-lime has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-3 has-[input:focus-visible]:outline-lime">
       <label htmlFor={id} className="font-sans text-box-label text-text-muted">
         {label}
       </label>

@@ -11,3 +11,4 @@ En móvil, la barra de pestañas de abajo, a todo el ancho: Mapa · Guardados ·
 - En el mapa se esconde solo cuando la hoja inferior está completa y vuelve al bajarla; desplazar el mapa o la lista de la hoja no la esconde. En las páginas se esconde al desplazar hacia abajo y vuelve al desplazar hacia arriba.
 - Las hojas modales (la del coche, la de confirmar, Crear alerta, Buscar) y los filtros a pantalla completa van por encima: la barra queda debajo de la pantalla oscurecida.
 - En escritorio no existe: esas secciones van en la cabecera (HeaderNav).
+- **Hover y pulsación** (en la transición de estado de 120ms, curva `ease-out`): una pestaña se rellena de `surface-strong` al pasar el ratón y se encoge a 0,97 mientras se pulsa, salvo con movimiento reducido.

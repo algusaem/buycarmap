@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { axe } from "vitest-axe";
@@ -9,6 +9,12 @@ import { withAnimations } from "@/test/utils/animations";
 import { renderWithI18n } from "@/test/utils/render";
 import { makeNominatimResult } from "@/test/fixtures/nominatim";
 import { LocationPopover, type LocationPopoverProps } from "./LocationPopover";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 // docs/specs/redesign-map.md (MAPUI-3, MAPUI-4, MAPUI-5). Network through MSW
 // (test/msw/handlers.ts already defaults Nominatim to one result); a case
@@ -188,15 +194,6 @@ describe("MAPUI-5: LocationPopover — Toda España", () => {
 // lines join with no space in its accessible name.
 const madridOption = () => screen.findByRole("option", { name: "MadridComunidad de Madrid" });
 
-/**
- * Presses an option the way a pointer does: mousedown, then the click the
- * option chooses on (ComboOption), both dispatched synchronously.
- */
-function pressOption(option: HTMLElement) {
-  fireEvent.mouseDown(option);
-  fireEvent.click(option);
-}
-
 /** A search that never resolves, so the caller stays in its loading state. */
 function holdNominatimPending() {
   server.use(
@@ -310,88 +307,94 @@ describe("LocationSearch suggestions accessibility", () => {
     expect(screen.getByRole("status").textContent).toBe("Loading…");
   });
 
-  it("MAP-20: while the previous options animate out, they are not a listbox and a click selects nothing", async () => {
-    // The other tests in this file run with Motion's animations skipped
-    // (test/setup.jsdom.ts), so an exiting element is unmounted at once and
-    // there is nothing mid-fade to assert against. This is the one test that
-    // needs the exit to actually still be in flight — a frozen clock cannot
-    // stand in for `withAnimations` here, because PlaceField's exit timing in
-    // jsdom rides a real `setTimeout`, not a fakeable rAF/performance clock.
+  // docs/specs/motion.md (MOTION-13, amends this case and the three below):
+  // the type-ahead list is driven by typing and the arrow keys, so it never
+  // animates — its options are gone at once, with nothing left mid-fade to
+  // press.
+  it("MOTION-13: typing that finds a result shows the listbox and its option with no inline opacity below 1, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<LocationPopover {...BASE} />);
+
+      await userEvent.type(screen.getByRole("combobox"), "Madrid");
+
+      const option = await madridOption();
+      const listbox = screen.getByRole("listbox");
+      for (const el of [listbox, option]) {
+        const opacity = el.style.opacity;
+        expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+      }
+    });
+  });
+
+  it("MOTION-13: a pointerdown before the results arrive still shows them with no inline opacity below 1", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<LocationPopover {...BASE} />);
+
+      await userEvent.type(screen.getByRole("combobox"), "Madrid");
+      window.dispatchEvent(new PointerEvent("pointerdown"));
+
+      const option = await madridOption();
+      const listbox = screen.getByRole("listbox");
+      for (const el of [listbox, option]) {
+        const opacity = el.style.opacity;
+        expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+      }
+    });
+  });
+
+  it("MOTION-13: once the previous options are replaced by a new search, they are gone at once — no fading option left to press", async () => {
     await withAnimations(async () => {
       const onSelect = vi.fn();
       renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />);
 
       await userEvent.type(screen.getByRole("combobox"), "Madrid");
       const option = await madridOption();
-
-      // An exit from opacity 0 is instant in Motion (0 to 0 is nothing to
-      // animate), so the options would vanish before this test can observe
-      // them mid-fade. Wait for the enter animation to have reached its
-      // first frame before typing again and triggering the exit.
-      await waitFor(() =>
-        expect(Number(screen.getByRole("listbox").style.opacity)).toBeGreaterThan(0),
-      );
 
       holdNominatimPending();
       await userEvent.type(screen.getByRole("combobox"), " y");
 
+      expect(option).not.toBeInTheDocument();
       expect(screen.queryByRole("listbox")).toBeNull();
-
-      // `option` still points at the fading node: same element, mid-exit.
-      expect(option).toBeInTheDocument();
-      pressOption(option);
-
+      expect(screen.queryByRole("option")).toBeNull();
       expect(onSelect).not.toHaveBeenCalled();
     });
   });
 
-  it("MAP-20: after clicking outside, the fading options are not a listbox and a click selects nothing", async () => {
+  it("MOTION-13: after clicking outside, the options are gone at once — no fading option left to press", async () => {
     await withAnimations(async () => {
       const onSelect = vi.fn();
       renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />);
 
       await userEvent.type(screen.getByRole("combobox"), "Madrid");
       const option = await madridOption();
-      // As above: let the enter animation start, so the exit has something to fade.
-      await waitFor(() =>
-        expect(Number(screen.getByRole("listbox").style.opacity)).toBeGreaterThan(0),
-      );
 
-      fireEvent.mouseDown(document.body);
+      await userEvent.click(document.body);
 
+      expect(option).not.toBeInTheDocument();
       expect(screen.queryByRole("listbox")).toBeNull();
-      // `option` still points at the fading node: same element, mid-exit.
-      expect(option).toBeInTheDocument();
-      pressOption(option);
-
+      expect(screen.queryByRole("option")).toBeNull();
       expect(onSelect).not.toHaveBeenCalled();
     });
   });
 
-  it("MAP-20: after Escape, the fading options are not a listbox and a click selects nothing", async () => {
+  it("MOTION-13: after Escape, the options are gone at once — no fading option left to press", async () => {
     await withAnimations(async () => {
       const onSelect = vi.fn();
       renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />);
 
       await userEvent.type(screen.getByRole("combobox"), "Madrid");
       const option = await madridOption();
-      // As above: let the enter animation start, so the exit has something to fade.
-      await waitFor(() =>
-        expect(Number(screen.getByRole("listbox").style.opacity)).toBeGreaterThan(0),
-      );
 
       await userEvent.keyboard("{Escape}");
 
+      expect(option).not.toBeInTheDocument();
       expect(screen.queryByRole("listbox")).toBeNull();
-      // `option` still points at the fading node: same element, mid-exit.
-      expect(option).toBeInTheDocument();
-      pressOption(option);
-
+      expect(screen.queryByRole("option")).toBeNull();
       expect(onSelect).not.toHaveBeenCalled();
     });
   });
 
-  it("MAP-20: after selecting an option, the fading dropdown is not a listbox", async () => {
+  it("MOTION-13: after selecting an option, the dropdown is gone at once", async () => {
     await withAnimations(async () => {
       function ControlledLocationPopover() {
         const [value, setValue] = useState<LocationPopoverProps["value"]>(null);
@@ -402,14 +405,11 @@ describe("LocationSearch suggestions accessibility", () => {
       await userEvent.type(screen.getByRole("combobox"), "Madrid");
       const option = await madridOption();
 
-      // An option selects on click. Dispatched synchronously, so the 0.3s
-      // exit cannot finish before the check below, however loaded the run is.
-      fireEvent.click(option);
+      await userEvent.click(option);
 
-      // The dropdown is still fading out: the same node is still in the
-      // document, no longer a listbox, until its exit animation finishes.
+      expect(option).not.toBeInTheDocument();
       expect(screen.queryByRole("listbox")).toBeNull();
-      expect(option).toBeInTheDocument();
+      expect(screen.queryByRole("option")).toBeNull();
     });
   });
 

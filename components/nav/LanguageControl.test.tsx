@@ -135,3 +135,20 @@ describe("LanguageControl — ALERT-50 (moved from LanguageSwitcher.test.tsx and
     expect(toast.error).not.toHaveBeenCalled();
   });
 });
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-6: the language
+// buttons gain a hover state on pointer devices and a press state. The hover
+// turns them `text`, not lime: DESIGN.md keeps the accent off the control.
+describe("MOTION-6: LanguageControl — hover and press", () => {
+  it("MOTION-6: each locale button carries hover:text-text, never the lime accent, and active:scale-97, off under reduced motion", () => {
+    renderInLocale("en");
+
+    for (const name of ["Spanish", "English"]) {
+      const className = screen.getByRole("button", { name }).className;
+      expect(className).toContain("hover:text-text");
+      expect(className).not.toContain("hover:text-lime");
+      expect(className).toContain("active:scale-97");
+      expect(className).toContain("motion-reduce:active:scale-none");
+    }
+  });
+});

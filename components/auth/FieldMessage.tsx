@@ -4,6 +4,7 @@ import * as motion from "motion/react-client";
 import { CircleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { crossFade } from "@/lib/animations";
+import { usePresenceMotion } from "@/lib/hooks/usePresenceMotion";
 
 interface FieldMessageProps {
   /** Whether the message is shown — `false`/`null` is "hidden", animated out. */
@@ -24,7 +25,9 @@ interface FieldMessageProps {
  * appear/disappear through `AnimatePresence`. A message already shown when
  * it mounts (the deletion warning, docs/specs/redesign-pages.md PAGES-54,
  * PAGES-58) belongs to the state that mounted it and draws at full opacity
- * at once, rather than fading on its own after a sheet that slides in.
+ * at once, rather than fading on its own after a sheet that slides in. A
+ * message a key caused (Enter submitting the form) appears and leaves at
+ * once; one a pointer caused fades (MOTION-23, usePresenceMotion).
  */
 export function FieldMessage({
   show,
@@ -37,21 +40,34 @@ export function FieldMessage({
   return (
     <AnimatePresence initial={false}>
       {show && (
-        <motion.p
-          key="field-message"
-          id={id}
-          role={role}
-          aria-live={ariaLive}
-          {...crossFade}
-          className={cn(
-            "m-0 flex items-start gap-2.5 text-meta font-semibold text-text",
-            className,
-          )}
-        >
-          <CircleAlert aria-hidden="true" className="mt-px size-4.5 shrink-0 text-danger" />
+        <Message key="field-message" id={id} role={role} aria-live={ariaLive} className={className}>
           {children}
-        </motion.p>
+        </Message>
       )}
     </AnimatePresence>
+  );
+}
+
+/** The drawn message, inside FieldMessage's AnimatePresence. */
+function Message({
+  id,
+  className,
+  "aria-live": ariaLive,
+  role,
+  children,
+}: Omit<FieldMessageProps, "show">) {
+  const fade = usePresenceMotion(crossFade);
+
+  return (
+    <motion.p
+      id={id}
+      role={role}
+      aria-live={ariaLive}
+      {...fade}
+      className={cn("m-0 flex items-start gap-2.5 text-meta font-semibold text-text", className)}
+    >
+      <CircleAlert aria-hidden="true" className="mt-px size-4.5 shrink-0 text-danger" />
+      {children}
+    </motion.p>
   );
 }

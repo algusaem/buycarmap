@@ -16,28 +16,31 @@ const HIT_AREA = "before:absolute before:size-11";
 // The look follows docs/design/system/components/Button/README.md: every
 // button is a pill that never wraps its label. Transitions list their
 // properties (never `transition-all`); `color` is left out so the undo
-// button's hover/focus colour is immediate (LOOK-10).
+// button's hover/focus colour is immediate (LOOK-10). Hover and press move in
+// the 120ms state transition app/globals.css sets (MOTION-1, MOTION-4); the
+// press scale is off under reduced motion.
 const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-pill font-sans transition-[background-color,border-color] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-pill font-sans transition-[background-color,border-color,filter,scale] active:scale-97 motion-reduce:active:scale-none disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         // Principal: lime / on-lime, weight 800.
-        primary: "bg-lime font-extrabold text-on-lime",
+        primary: "bg-lime font-extrabold text-on-lime hover:brightness-108",
         // Secundario: 1px line border, text, weight 700.
-        secondary: "border border-line font-bold text-text",
+        secondary:
+          "border border-line font-bold text-text hover:border-text-muted hover:bg-surface",
         // Fantasma: text only, weight 700.
-        ghost: "font-bold text-text",
+        ghost: "font-bold text-text hover:bg-surface-strong",
         // Deshacer: a ghost whose text turns danger on hover and focus.
         undo: "font-bold text-text hover:text-danger focus-visible:text-danger",
-        // Peligro: danger text and a danger border at 60 %.
-        danger: "border border-danger/60 font-bold text-danger",
+        // Peligro: danger text and a danger border at 60 %, full danger on hover.
+        danger: "border border-danger/60 font-bold text-danger hover:border-danger",
         // De icono: round, 1px line border.
-        icon: "border border-line text-text",
+        icon: "border border-line text-text hover:bg-surface-strong",
         // Legacy names still used by callers, mapped onto the looks above.
-        default: "bg-lime font-extrabold text-on-lime",
-        outline: "border border-line font-bold text-text",
-        destructive: "border border-danger/60 font-bold text-danger",
+        default: "bg-lime font-extrabold text-on-lime hover:brightness-108",
+        outline: "border border-line font-bold text-text hover:border-text-muted hover:bg-surface",
+        destructive: "border border-danger/60 font-bold text-danger hover:border-danger",
       },
       size: {
         // 56px full width, button-display: Unbounded uppercase 15px.

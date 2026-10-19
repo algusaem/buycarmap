@@ -1054,6 +1054,42 @@ than CSS animations for React components.
 `fadeInUp`, `dropdownReveal`, `sheetSlideUp`, `crossFade`, `sheetSpring` (a dragged bottom
 sheet springing to rest) — instead of re-declaring `initial`/`animate` inline.
 
+One timing system drives both Motion and CSS
+([`docs/specs/motion.md`](specs/motion.md), MOTION-1, MOTION-2). `app/globals.css` retimes
+Tailwind's default transition to 120ms on the ease-out curve `cubic-bezier(0.23, 1, 0.32, 1)`,
+so every `transition-*` class runs at it, and defines the named durations `fast`, `base` and
+`sheet`. `lib/animations.ts` exports the same values as `motionDuration` (0.12, 0.18, 0.24 s)
+and `easeOut`, and every preset reads them: `dropdownReveal` and `crossFade` at `base`,
+`sheetSlideUp` and `fadeInUp` at `sheet`.
+
+**Keyboard opens and closes at once** (MOTION-10 to MOTION-15).
+[`lib/input-modality.ts`](../lib/input-modality.ts) records whether the last input on the page
+was a key or a pointer press (`lastInputWasKeyboard()`), from two capture listeners on
+`window`. [`lib/hooks/usePresenceMotion.ts`](../lib/hooks/usePresenceMotion.ts) turns a preset
+into one that skips its entrance when a key opened the element and its exit when a key closed
+it; the popovers (`PopoverCard`), the dialogs and phone sheets (`components/ui/PresenceFade.tsx`,
+`SheetChrome`'s `SheetPanel`), the select dropdown (`components/ui/checkbox-select.tsx`, through
+`PresenceFade` with its `preset` prop set to `dropdownReveal`), the map preview (`MapPreview`),
+the legal index (`LegalToc`), the «Filtros» count badge (`FiltersBadge`) and the validation
+notices (`FieldMessage`, Crear alerta's `Notice`) use it (MOTION-18, MOTION-23).
+`useResultsSheetDrag` jumps instead of springing after a key, and the tab bar (`TabBar`, through
+[`lib/hooks/useChangedByKey.ts`](../lib/hooks/useChangedByKey.ts)) hides or comes back at once
+when a key moved the sheet.
+
+**Release speed of a drag** (MOTION-20). The results sheet (`useResultsSheetDrag`) and the
+phone bottom sheets (`SheetChrome`'s `SheetPanel`) read a release's speed from the pointer
+events themselves, through [`lib/sheet-release-velocity.ts`](../lib/sheet-release-velocity.ts)
+(`samplePress`, `releaseVelocity`) and the shared
+[`lib/hooks/useReleaseSampling.ts`](../lib/hooks/useReleaseSampling.ts) hook that owns each
+handle's press and its unmount cleanup, never from Motion's drag velocity, which reads 0 on a
+flick drawn in one frame on an idle page. The rule is in the MAPUI-60 worked examples in
+[`docs/specs/redesign-map.md`](specs/redesign-map.md).
+
+**Surfaces that never animate**: which ones is MOTION-8, MOTION-9, MOTION-13, MOTION-18,
+MOTION-19 and MOTION-22 in [`docs/specs/motion.md`](specs/motion.md). The mechanism: their
+items render and leave with no `AnimatePresence`, and those elements carry no `transition-*`
+class.
+
 Animate only `transform` and `opacity`. Never animate layout properties, and
 never `transition: all`. Honour `prefers-reduced-motion`.
 
@@ -1061,8 +1097,8 @@ The app root sets `MotionConfig reducedMotion="user"` in `components/MotionProvi
 the client boundary that wraps every page, so this applies everywhere
 (FRONT-29, [`docs/specs/core-frontend.md`](specs/core-frontend.md)).
 
-`dropdownReveal` (fade with a 4 px vertical offset in and out, `duration.fast`)
-and `crossFade` (fade, `duration.fast`) are the owner-approved presets for
+`dropdownReveal` (fade with a 4 px vertical offset in and out, `motionDuration.base`)
+and `crossFade` (fade, `motionDuration.base`) are the owner-approved presets for
 popover content (2026-09-28).
 
 ### Internationalisation
@@ -1296,7 +1332,14 @@ Spain-centre fallback is what you get), matchMedia and canvas. All are stubbed i
 Motion runs with instant animations in jsdom by default (`test/setup.jsdom.ts`); most tests assert
 end states, and animations are exercised by E2E. A test that needs an exit still in flight — a
 fading preview card, a closing popover — wraps its own body in `withAnimations`
-(`test/utils/animations.ts`), which turns real animations back on for exactly that call.
+(`test/utils/animations.ts`), which turns real animations back on for exactly that call; the same
+wrapper also proves that something does *not* animate, by asserting no inline opacity below 1 or
+the element gone in the same tick, with animations on.
+
+**`lib/input-modality.ts`'s last input is page-wide module state.** A key pressed in one test
+makes the next test's open or close instant, whatever that next test presses. Files that compare
+keyboard and pointer behaviour reset it with
+`beforeEach(() => window.dispatchEvent(new PointerEvent("pointerdown")))`.
 
 **Leaflet runs in jsdom for exactly one test file.** Most component tests mock `react-leaflet`;
 `components/map/ListingsMap.preview.test.tsx` renders the real library instead, for the preview

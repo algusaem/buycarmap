@@ -211,7 +211,11 @@ export function savedProps(
   return { saved, onToggleSaved: () => onToggleFavorite(listing, !saved) };
 }
 
-/** «Guardar» / «Quitar de guardados» (MAPUI-36): scrim when not saved, violet and filled once saved. */
+/**
+ * «Guardar» / «Quitar de guardados» (MAPUI-36): scrim when not saved, violet and filled once saved.
+ * Hover turns the heart lime (once saved, darkens it slightly instead, so its
+ * on-violet content keeps its contrast) and a press scales it to 0.97 (MOTION-6).
+ */
 export function HeartButton({ saved, onToggle, className }: HeartButtonProps) {
   const t = useTranslations();
 
@@ -221,8 +225,10 @@ export function HeartButton({ saved, onToggle, className }: HeartButtonProps) {
       onClick={onToggle}
       aria-label={saved ? t("map.removeFavorite") : t("map.addFavorite")}
       className={cn(
-        "flex size-8.5 cursor-pointer items-center justify-center rounded-pill transition-[background-color] before:absolute before:size-11",
-        saved ? "bg-violet text-on-violet" : "bg-scrim text-text",
+        "flex size-8.5 cursor-pointer items-center justify-center rounded-pill transition-[background-color,color,filter,scale] before:absolute before:size-11 active:scale-97 motion-reduce:active:scale-none",
+        saved
+          ? "bg-violet text-on-violet hover:brightness-92"
+          : "bg-scrim text-text hover:text-lime",
         className,
       )}
     >
@@ -284,7 +290,8 @@ export function CarCard({
           focusRing
           className={cn(
             // 250px in the phone sheet, 20:19 in the desktop grid (BottomSheet and ListingCard READMEs).
-            "h-62.5 rounded-card transition-[box-shadow] lg:aspect-20/19 lg:h-auto",
+            // The active ring turns on and off at once (MOTION-9).
+            "h-62.5 rounded-card lg:aspect-20/19 lg:h-auto",
             active && "ring-2 ring-lime",
           )}
         />

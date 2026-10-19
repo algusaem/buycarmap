@@ -15,3 +15,4 @@ El buscador de toda la app: una píldora `surface` con borde `line` y tres segme
   - Tocar la tarjeta abre la hoja «BUSCAR» del mapa sobre la landing; «Ver coches» lleva a `/map` con lo elegido.
 - Es un `role="search"`; el botón de icono lleva `aria-label="Buscar"`.
 - Los valores nunca parten línea; si no caben, se cortan con «…».
+- **Hover y pulsación** (en la transición de estado de 120ms, curva `ease-out`): cada segmento pasa su valor a `lime` al pasar el ratón; «Buscar» se aclara un poco. Los dos se encogen a 0,97 mientras se pulsan, salvo con movimiento reducido. La tarjeta del buscador en la landing móvil pasa su borde a `text-muted` al pasar el ratón y se encoge a 0,97 al pulsarla.

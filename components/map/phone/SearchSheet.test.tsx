@@ -1,11 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { useState } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { axe } from "vitest-axe";
 import { server } from "@/test/msw/server";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { SearchSheet, type SearchSheetProps } from "./SearchSheet";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 // «Coche»'s models come from the listCarModels Server Action, mocked at that
 // boundary as in components/map/search/CarPopover.test.tsx.
@@ -159,6 +167,80 @@ describe("MAPUI-56: SearchSheet — no-match messages", () => {
       ),
     );
     expect(screen.queryByRole("listbox")).toBeNull();
+  });
+});
+
+// docs/specs/motion.md (MOTION-12): the «BUSCAR» sheet, a phone sheet that
+// fades, appears at once when opened from the keyboard and disappears at once
+// with Escape; opened with a pointer, it still fades in over 180ms.
+describe("MOTION-12: SearchSheet — the fading sheet opens and closes at once from the keyboard, but still fades for a pointer", () => {
+  function Harness() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>
+          Abrir búsqueda
+        </button>
+        <SearchSheet {...BASE} open={open} onClose={() => setOpen(false)} />
+      </>
+    );
+  }
+
+  it("MOTION-12: Enter on its opener shows the sheet with no inline opacity below 1, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      screen.getByRole("button", { name: "Abrir búsqueda" }).focus();
+
+      await userEvent.keyboard("{Enter}");
+
+      const sheet = await screen.findByRole("dialog", { name: "BUSCAR" });
+      const opacity = sheet.style.opacity;
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-12: Escape closes the sheet in the same tick, with no exit animation to wait for", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      screen.getByRole("button", { name: "Abrir búsqueda" }).focus();
+      await userEvent.keyboard("{Enter}");
+      await screen.findByRole("dialog", { name: "BUSCAR" });
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    });
+  });
+
+  it("MOTION-12: a click on its opener still fades the sheet in, with an inline opacity below 1 right after", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+
+      await userEvent.click(screen.getByRole("button", { name: "Abrir búsqueda" }));
+
+      const sheet = await screen.findByRole("dialog", { name: "BUSCAR" });
+      expect(Number(sheet.style.opacity)).toBeLessThan(1);
+    });
+  });
+
+  it("MOTION-12: a press outside still plays the close animation — the sheet is still mounted right after", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      await userEvent.click(screen.getByRole("button", { name: "Abrir búsqueda" }));
+      await screen.findByRole("dialog", { name: "BUSCAR" });
+
+      // The modal dialog sets the rest of the page's pointer-events to none,
+      // which userEvent's realistic click refuses to click through; fireEvent
+      // dispatches the outside press directly, as ResponsiveDialog.test.tsx's
+      // pointer-close twin does.
+      fireEvent.pointerDown(document.body);
+      fireEvent.pointerUp(document.body);
+      fireEvent.click(document.body);
+
+      expect(screen.getByRole("dialog", { name: "BUSCAR", hidden: true })).toBeInTheDocument();
+      // The press did close it: the fade ends and the sheet leaves.
+      await waitFor(() => expect(screen.queryByRole("dialog", { hidden: true })).toBeNull());
+    });
   });
 });
 

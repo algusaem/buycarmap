@@ -3,8 +3,6 @@
 import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { SavedCarSheet } from "@/components/favorites/SavedCarSheet";
@@ -16,7 +14,6 @@ import { MapPill } from "@/components/map/ResultsStates";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { CarListing } from "@/interfaces/listing";
-import { crossFade } from "@/lib/animations";
 import { useIsPhone } from "@/lib/hooks/useIsPhone";
 import { useRemovalFocus } from "@/lib/hooks/useRemovalFocus";
 import { useSavedCars } from "@/lib/hooks/useSavedCars";
@@ -38,7 +35,9 @@ const ListingsMap = dynamic(
 // Removing a car takes it out at once and offers «Deshacer» in a toast; the
 // failures come back from lib/hooks/useSavedCars.ts as copy and are toasted
 // here (FRONT-15). Leaving the page dismisses its removal toasts, so
-// «Deshacer» is never offered where its outcome could not be shown.
+// «Deshacer» is never offered where its outcome could not be shown. The list
+// never animates (MOTION-9): a removed car, an undone one, the sort chips and
+// the switch between the list and the empty state all change at once.
 //
 // The composition switches by media query, not by CSS alone: the virtualiser
 // needs a row and a column count. Until the client has read those queries
@@ -81,9 +80,8 @@ export function FavoritesList({ favorites }: FavoritesListProps) {
   async function handleUndo(listing: CarListing) {
     const { applied, failure } = undo(listing);
     if (applied) {
-      // SAVED-15, SAVED-22: the car fades in where it lands, and a removal
-      // that emptied the list no longer sends the focus to the empty state.
-      list.markArriving(listing.id);
+      // SAVED-22: a removal that emptied the list no longer sends the focus
+      // to the empty state.
       removalFocus.cancelEmptyFocus();
     }
     const message = await failure;
@@ -101,13 +99,11 @@ export function FavoritesList({ favorites }: FavoritesListProps) {
   /** Removes a car at once (SAVED-14, SAVED-22); false when nothing happened (FAV-18: the session is still resolving). */
   function handleRemove(listing: CarListing): boolean {
     const index = shown.findIndex((car) => car.id === listing.id);
-    // A car no longer shown (a second press while it fades out) has nothing to remove.
+    // A car no longer shown (a second press that reaches it after its removal) has nothing to remove.
     if (index === -1) return false;
     const neighbour = shown[index + 1] ?? shown[index - 1];
     const { applied, failure } = remove(listing);
     if (!applied) return false;
-    // The last car leaves with the whole list, which fades into the empty state.
-    if (neighbour) list.markLeaving(listing, index);
     removalFocus.focusAfterRemoval(neighbour);
     const removedToast = toast.success(t("favorites.removed"), {
       duration: REMOVAL_TOAST_MS,
@@ -125,53 +121,36 @@ export function FavoritesList({ favorites }: FavoritesListProps) {
   return (
     <div className="flex min-h-0 flex-1">
       <SavedColumn ref={list.scrollerRef} onScroll={list.recordScroll}>
-        <SavedHeading
-          chips={
-            <AnimatePresence mode="wait" initial={false}>
-              {!isPhone && !empty && (
-                <motion.div key="chips" {...crossFade}>
-                  <SortChips sort={sort} onChange={setSort} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          }
-        />
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={empty ? "empty" : "list"} {...crossFade}>
-            {empty && (
-              <div className="pt-4.5 lg:pt-14">
-                <EmptyState
-                  question={t("favorites.emptyTitle")}
-                  punchline={t("favorites.emptyPunchline")}
-                  line={isPhone ? t("favorites.emptyLinePhone") : t("favorites.emptyLine")}
-                  headingRef={removalFocus.emptyHeadingRef}
-                >
-                  <Button asChild variant="primary" size="48">
-                    <Link href="/map">{t("favorites.emptyCta")}</Link>
-                  </Button>
-                </EmptyState>
-              </div>
-            )}
-            {!empty && (
-              <SavedList
-                listRef={list.listRef}
-                virtualizer={list.virtualizer}
-                scrollMargin={list.scrollMargin}
-                listings={shown}
-                columns={columns}
-                activeIds={pins.activeIds}
-                onActiveChange={pins.setHoverId}
-                savedIds={savedIds}
-                onToggleSaved={handleRemove}
-                onOpen={sheet.openSheet}
-                onRowFocus={list.focusRow}
-                leaving={list.leaving}
-                onLeft={list.leftList}
-                arriving={list.arriving}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
+        <SavedHeading chips={!isPhone && !empty && <SortChips sort={sort} onChange={setSort} />} />
+        {empty && (
+          <div className="pt-4.5 lg:pt-14">
+            <EmptyState
+              question={t("favorites.emptyTitle")}
+              punchline={t("favorites.emptyPunchline")}
+              line={isPhone ? t("favorites.emptyLinePhone") : t("favorites.emptyLine")}
+              headingRef={removalFocus.emptyHeadingRef}
+            >
+              <Button asChild variant="primary" size="48">
+                <Link href="/map">{t("favorites.emptyCta")}</Link>
+              </Button>
+            </EmptyState>
+          </div>
+        )}
+        {!empty && (
+          <SavedList
+            listRef={list.listRef}
+            virtualizer={list.virtualizer}
+            scrollMargin={list.scrollMargin}
+            listings={shown}
+            columns={columns}
+            activeIds={pins.activeIds}
+            onActiveChange={pins.setHoverId}
+            savedIds={savedIds}
+            onToggleSaved={handleRemove}
+            onOpen={sheet.openSheet}
+            onRowFocus={list.focusRow}
+          />
+        )}
       </SavedColumn>
 
       {!isPhone && (

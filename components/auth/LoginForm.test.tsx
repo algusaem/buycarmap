@@ -987,3 +987,17 @@ describe("PAGES-4: a sign-in request that throws", () => {
     expect(code).toHaveFocus();
   });
 });
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-21: «Create one» gains
+// a hover to `text` and a press, in the state transition.
+describe("MOTION-21: LoginForm — hover and press on «Create one»", () => {
+  it("MOTION-21: the link carries transition-[color,scale], hover:text-text and active:scale-97, off under reduced motion", () => {
+    renderWithI18n(<LoginForm isGoogleConfigured={false} />);
+
+    const classes = screen.getByRole("link", { name: "Create one" }).className.split(/\s+/);
+    expect(classes).toContain("transition-[color,scale]");
+    expect(classes).toContain("hover:text-text");
+    expect(classes).toContain("active:scale-97");
+    expect(classes).toContain("motion-reduce:active:scale-none");
+  });
+});

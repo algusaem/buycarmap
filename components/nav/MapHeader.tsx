@@ -60,13 +60,13 @@ interface IconLinkProps {
   children: ReactNode;
 }
 
-/** The 42px round icon shortcut to a section (HeaderNav README › Mapa). */
+/** The 42px round icon shortcut to a section (HeaderNav README › Mapa): lime on hover, 0.97 while pressed (MOTION-6). */
 function IconLink({ href, label, children }: IconLinkProps) {
   return (
     <Link
       href={href}
       aria-label={label}
-      className="flex size-10.5 items-center justify-center rounded-pill border border-line text-text transition-colors hover:text-lime"
+      className="flex size-10.5 items-center justify-center rounded-pill border border-line text-text transition-[color,scale] hover:text-lime active:scale-97 motion-reduce:active:scale-none"
     >
       {children}
     </Link>

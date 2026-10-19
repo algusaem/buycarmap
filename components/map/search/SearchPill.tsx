@@ -96,6 +96,9 @@ const VARIANT = {
 // label. Its «Coche» shows the muted «Marca o modelo…» until a car is
 // chosen, where the map's reads «Cualquier marca» (MAPUI-1). The landing
 // has no «Crear alerta», so that variant leaves it out.
+//
+// Hover turns a segment's value lime and brightens «Buscar»; a press scales
+// either to 0.97, off under reduced motion (MOTION-6).
 export interface SearchPillProps {
   place: SelectedLocation | null;
   radiusKm: number;
@@ -195,7 +198,7 @@ export function SearchPill({
             type="submit"
             aria-label={landing ? undefined : t("search.submit")}
             className={cn(
-              "flex shrink-0 cursor-pointer items-center justify-center rounded-pill bg-lime text-on-lime",
+              "flex shrink-0 cursor-pointer items-center justify-center rounded-pill bg-lime text-on-lime transition-[filter,scale] hover:brightness-108 active:scale-97 motion-reduce:active:scale-none",
               styles.submitClassName,
             )}
           >
@@ -268,7 +271,7 @@ function Segment({
           aria-describedby={labelId}
           onKeyDown={handleKeyDown}
           className={cn(
-            "relative flex cursor-pointer flex-col whitespace-nowrap text-left font-sans",
+            "group relative flex cursor-pointer flex-col whitespace-nowrap text-left font-sans text-text transition-[color,scale] hover:text-lime active:scale-97 motion-reduce:active:scale-none",
             styles.segmentPadding,
             styles.segmentBox,
             divided && "border-r border-line",
@@ -283,9 +286,9 @@ function Segment({
           </span>
           <span
             className={cn(
-              "max-w-50 truncate font-semibold text-text",
+              "max-w-50 truncate font-semibold",
               styles.valueTypography,
-              muted && "text-text-muted",
+              muted && "text-text-muted transition-[color] group-hover:text-lime",
             )}
           >
             {value}

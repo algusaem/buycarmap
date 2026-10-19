@@ -8,7 +8,8 @@ import * as motion from "motion/react-client";
 import { Bell, Heart, LogIn, Map as MapIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { authClient } from "@/lib/auth/auth-client";
-import { crossFade } from "@/lib/animations";
+import { crossFade, instantTransition } from "@/lib/animations";
+import { useChangedByKey } from "@/lib/hooks/useChangedByKey";
 import { useHideOnScrollDown } from "@/lib/hooks/useHideOnScrollDown";
 import { useResultsSheetFull } from "@/lib/hooks/useResultsSheetFull";
 import { cn } from "@/lib/utils";
@@ -22,12 +23,15 @@ import { currentTab, showsTabBar } from "./nav-routes";
 // signed-in section pages. Each tab is an icon over its label; the current one
 // has a violet icon and its label in the text colour at weight 800 (violet text
 // on `surface` fails 4.5:1: MAPUI-52 amended, SAVED-33), the others muted and
-// weight 600, so the state is not carried by colour alone. It does not exist
-// from `lg`.
+// weight 600, so the state is not carried by colour alone. A tab fills with
+// `surface-strong` on hover and scales to 0.97 while pressed (MOTION-6). It
+// does not exist from `lg`.
 //
 // It hides while the map's results sheet is full (what the map page reports
 // through lib/hooks/useResultsSheetFull.ts) and while a page is being
 // scrolled down, and comes back when the sheet leaves full or on scrolling up.
+// It slides down and back up, at once when a key caused the change (Enter or
+// Space on the sheet's handle, or a key that scrolled the page, MOTION-23).
 
 interface TabLinkProps {
   href: string;
@@ -42,7 +46,7 @@ function TabLink({ href, label, current, icon }: TabLinkProps) {
       href={href}
       aria-current={current ? "page" : undefined}
       className={cn(
-        "flex h-16 min-w-11 flex-1 flex-col items-center justify-center gap-1 text-tab-label",
+        "flex h-16 min-w-11 flex-1 flex-col items-center justify-center gap-1 text-tab-label transition-[background-color,scale] hover:bg-surface-strong active:scale-97 motion-reduce:active:scale-none",
         current ? "font-extrabold text-violet" : "font-semibold text-text-muted",
       )}
     >
@@ -92,6 +96,8 @@ export function TabBar() {
   // on the signed-in section pages.
   const onMap = pathname === "/map";
   const hidden = onMap ? sheetFull : scrolledDown;
+  // Whether a key caused the last hide or return.
+  const hiddenByKey = useChangedByKey(hidden);
 
   return (
     <AnimatePresence>
@@ -101,7 +107,11 @@ export function TabBar() {
           data-testid="bottom-nav"
           data-tab-bar
           {...crossFade}
-          animate={{ ...crossFade.animate, y: hidden ? "100%" : "0%" }}
+          animate={{
+            ...crossFade.animate,
+            y: hidden ? "100%" : "0%",
+            transition: hiddenByKey ? instantTransition : crossFade.transition,
+          }}
           aria-label={t("nav.main")}
           aria-hidden={hidden}
           inert={hidden}

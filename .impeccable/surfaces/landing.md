@@ -75,8 +75,10 @@ brief and the design disagree, the design wins and this brief is corrected.
   over the landing; «Ver coches» goes to `/map` with what was chosen, and closing the sheet changes
   nothing (ENTRY-5).
 - The map-preview illustration is one link to `/map`, named «Ver el mapa» (ENTRY-7).
-- Everything that appears or disappears (the popovers, the phone sheet) animates with Motion,
-  honouring reduced motion, same as `/map`.
+- The popovers and the phone sheet move as on `/map` (`docs/specs/motion.md`): with a pointer the
+  popovers fade over 180ms and the sheet fades over 180ms, leaving the way they came; with a key or
+  Escape they appear and disappear at once. The type-ahead lists never animate. Reduced motion is
+  honoured.
 
 ## 7. Constraints and open decisions
 

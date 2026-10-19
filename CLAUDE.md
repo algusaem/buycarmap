@@ -431,7 +431,11 @@ coded.**
 - **Animations**: keep motion subtle. `import * as motion from "motion/react-client"`, `import { AnimatePresence }
   from "motion/react"`. Reuse the presets in `lib/animations.ts` (`fadeInUp`, `dropdownReveal`,
   `sheetSlideUp`, `crossFade`, `sheetSpring` for a dragged bottom sheet springing to rest)
-  instead of re-declaring `initial`/`animate` inline.
+  instead of re-declaring `initial`/`animate` inline. Durations and the curve come from
+  `motionDuration` and `easeOut` there, mirrored by the transition tokens in `app/globals.css`
+  (`docs/specs/motion.md`). Something a key opens or closes appears and leaves at once: wrap its
+  preset in `usePresenceMotion` (`lib/hooks/usePresenceMotion.ts`). The results, saved and
+  alerts lists and the type-ahead lists never animate.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

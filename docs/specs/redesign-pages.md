@@ -2,7 +2,7 @@
 
 Key: PAGES
 Status: Implemented
-Last updated: 2026-10-17
+Last updated: 2026-10-18
 
 ---
 
@@ -268,7 +268,9 @@ The dialogs and sheets
   definition: the handle, the centred title, no «×»). It fades in and out with Motion. «Cancelar» (or
   «Cerrar»), Escape and a press outside close it with nothing sent, and focus returns to the button
   that opened it (decided 2026-10-16, owner: a dialog on desktop and a sheet on the phone). The codes
-  dialog (PAGES-45) and a dialog whose request is running (PAGES-72) are the exceptions.
+  dialog (PAGES-45) and a dialog whose request is running (PAGES-72) are the exceptions. — it fades
+  only when a pointer opens or closes it; at once from the keyboard (MOTION-12) (amended 2026-10-18,
+  MOTION — motion.md)
 - [x] PAGES-39 · e2e — At 390×844 the account sheets close with a drag down from the handle of more
   than 100px and spring back from a slow 40px drag, as SAVED-37 and SAVED-38 say (database run).
 - [x] PAGES-40 · component — «Cambiar nombre» opens «Cambiar nombre» with «Nombre», holding the current
@@ -449,7 +451,9 @@ Deleting the account
 - [x] PAGES-63 · component — At phone width the index is a button «En esta página» after the date, with
   `aria-expanded="false"`. Pressing it opens the list inside the same field (`aria-expanded="true"`),
   with the section being read marked as on desktop. Pressing a section scrolls to its heading and
-  folds the index.
+  folds the index. — a section chosen with Enter or Space folds the index at once and still jumps to
+  it; chosen with a pointer, it folds over 180ms and then jumps (MOTION-15) (amended 2026-10-18,
+  MOTION — motion.md)
 - [x] PAGES-64 · e2e — At 1440×900 the index is 260px wide, 72px left of a reading column at most 720px
   wide; at 1024×900 the reading column is 596px. Scrolling the text keeps the index in place and moves
   the current mark to the section on screen. Opening `/privacy#<the Cookies id>` shows «Cookies» with

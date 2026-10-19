@@ -147,3 +147,28 @@ describe("MAPUI-66: CarCard — one outline on a focused card", () => {
     expectPhotoFocusRing(link);
   });
 });
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-6: the heart button
+// gains a hover state on pointer devices and a press state.
+describe("MOTION-6: CarCard — the heart's hover and press", () => {
+  it("MOTION-6: carries hover:text-lime and active:scale-97, off under reduced motion", () => {
+    renderWithI18n(<CarCard listing={listing} saved={false} />);
+
+    const className = screen.getByRole("button", { name: "Save" }).className;
+    expect(className).toContain("hover:text-lime");
+    expect(className).toContain("active:scale-97");
+    expect(className).toContain("motion-reduce:active:scale-none");
+  });
+});
+
+// docs/specs/motion.md (MOTION-9): the active ring on a card in the map's
+// list turns on and off with no transition — the photo's transition-[box-shadow]
+// animated it, so this amends the class to drop it.
+describe("MOTION-9: CarCard — the active ring has no transition", () => {
+  it("MOTION-9: the photo carries no transition class at all", () => {
+    renderWithI18n(<CarCard listing={listing} saved={false} active onActiveChange={vi.fn()} />);
+
+    const photo = screen.getByRole("link", { name: /Audi A3 2\.0 TDI/ }).querySelector("div");
+    expect(photo?.className ?? "").not.toMatch(/(^|\s)transition(-|\s|$)/);
+  });
+});

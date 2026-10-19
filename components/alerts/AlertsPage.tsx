@@ -1,10 +1,8 @@
 "use client";
 
-import { type ReactNode, startTransition, useCallback, useRef, useState } from "react";
+import { Fragment, startTransition, useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, PresenceContext, useIsPresent } from "motion/react";
-import * as motion from "motion/react-client";
 import { useTranslations } from "next-intl";
 import { FoldedAlertCard, OpenAlertCard, PhoneAlertCard } from "@/components/alerts/AlertCard";
 import { AlertMap } from "@/components/alerts/AlertMap";
@@ -17,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { AlertsPageData } from "@/interfaces/alert";
 import type { CarListing } from "@/interfaces/listing";
-import { crossFade } from "@/lib/animations";
 import { takeArrivalFocus, useAlertDelete } from "@/lib/hooks/useAlertDelete";
 import { useAlertLabels } from "@/lib/hooks/useAlertLabels";
 import { useIsPhone } from "@/lib/hooks/useIsPhone";
@@ -40,8 +37,8 @@ import { alertMapZone } from "@/lib/map/zone";
 // heading and one link per alert to its page, whatever `alert` says
 // (ALERTUI-13).
 //
-// A confirmed delete takes the alert out of the list at once, its card fading
-// out where it was, and the server's next data has it gone: the URL loses
+// A confirmed delete takes the alert out of the list at once, its card with it
+// (the list never animates, MOTION-9), and the server's next data has it gone: the URL loses
 // `alert`, or the route is read again. Until that data arrives the card open
 // in its place shows its matches' placeholders, and the map waits to fit it.
 // The focus goes to «Alertas» (ALERTUI-35). The failures come back from the
@@ -51,33 +48,6 @@ import { alertMapZone } from "@/lib/map/zone";
 // client has read it (the server render and hydration) the page draws its
 // loading placeholders, whose two compositions CSS picks between, so a phone
 // never paints the desktop cards first.
-
-/**
- * One alert's place in the list, keyed by its id: it fades out where it was
- * when the alert is deleted, `inert` and hidden from assistive tech while it
- * does, so no card is ever reachable twice (crossFade, as SavedList's leaving
- * cars). The card inside it fades in when it opens or folds (`variant`).
- */
-function ListedAlert({ variant, children }: { variant: string; children: ReactNode }) {
-  const present = useIsPresent();
-
-  return (
-    <motion.div {...crossFade} inert={!present} aria-hidden={present ? undefined : true}>
-      {/* Its own presence scope: under the list's `initial={false}` the card
-          that opens or folds would skip its fade, as SavedList's arriving cars would. */}
-      <PresenceContext.Provider value={null}>
-        <motion.div
-          key={variant}
-          initial={crossFade.initial}
-          animate={crossFade.animate}
-          transition={crossFade.transition}
-        >
-          {children}
-        </motion.div>
-      </PresenceContext.Provider>
-    </motion.div>
-  );
-}
 
 /** How an alert is drawn: the phone link, or on desktop the open card or a folded one. */
 function cardVariant(isPhone: boolean, isOpen: boolean): "phone" | "open" | "folded" {
@@ -159,55 +129,45 @@ export function AlertsPage({ alerts, openAlertId, matches }: AlertsPageData) {
       <SavedColumn ref={column.scrollerRef} onScroll={column.recordScroll}>
         <div className="flex flex-col gap-3.5 lg:gap-5">
           <AlertsHeading headingRef={heading} phone={isPhone} />
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={empty ? "empty" : "list"}
-              {...crossFade}
-              className="flex flex-col gap-3.5 lg:gap-5"
-            >
-              {empty && (
-                <div className="mt-4.5 lg:mt-14">
-                  <EmptyState
-                    question={t("alerts.emptyTitle")}
-                    punchline={t("alerts.emptyPunchline")}
-                    line={isPhone ? t("alerts.emptyLinePhone") : t("alerts.emptyLine")}
-                  >
-                    <Button asChild variant="primary" size="48">
-                      <Link href="/map">{t("alerts.emptyCta")}</Link>
-                    </Button>
-                  </EmptyState>
-                </div>
-              )}
-              <AnimatePresence initial={false}>
-                {!empty &&
-                  listed.map((alert) => {
-                    const variant = cardVariant(isPhone, alert.id === open?.id);
-                    return (
-                      <ListedAlert key={alert.id} variant={variant}>
-                        {variant === "phone" && <PhoneAlertCard alert={alert} />}
-                        {variant === "folded" && (
-                          <FoldedAlertCard alert={alert} onOpen={() => handleOpen(alert.id)} />
-                        )}
-                        {variant === "open" && (
-                          <OpenAlertCard
-                            alert={alert}
-                            matches={openMatches}
-                            pending={!synced}
-                            activeIds={pins.activeIds}
-                            onActiveChange={pins.setHoverId}
-                            onDelete={(opener) => {
-                              confirmNameRef.current = alert.label;
-                              remove.ask(alert.id, opener);
-                            }}
-                            articleRef={alert.id === pressedId ? focusOpened : undefined}
-                          />
-                        )}
-                      </ListedAlert>
-                    );
-                  })}
-              </AnimatePresence>
-            </motion.div>
-          </AnimatePresence>
+          {empty && (
+            <div className="mt-4.5 lg:mt-14">
+              <EmptyState
+                question={t("alerts.emptyTitle")}
+                punchline={t("alerts.emptyPunchline")}
+                line={isPhone ? t("alerts.emptyLinePhone") : t("alerts.emptyLine")}
+              >
+                <Button asChild variant="primary" size="48">
+                  <Link href="/map">{t("alerts.emptyCta")}</Link>
+                </Button>
+              </EmptyState>
+            </div>
+          )}
+          {!empty &&
+            listed.map((alert) => {
+              const variant = cardVariant(isPhone, alert.id === open?.id);
+              return (
+                <Fragment key={alert.id}>
+                  {variant === "phone" && <PhoneAlertCard alert={alert} />}
+                  {variant === "folded" && (
+                    <FoldedAlertCard alert={alert} onOpen={() => handleOpen(alert.id)} />
+                  )}
+                  {variant === "open" && (
+                    <OpenAlertCard
+                      alert={alert}
+                      matches={openMatches}
+                      pending={!synced}
+                      activeIds={pins.activeIds}
+                      onActiveChange={pins.setHoverId}
+                      onDelete={(opener) => {
+                        confirmNameRef.current = alert.label;
+                        remove.ask(alert.id, opener);
+                      }}
+                      articleRef={alert.id === pressedId ? focusOpened : undefined}
+                    />
+                  )}
+                </Fragment>
+              );
+            })}
         </div>
       </SavedColumn>
 

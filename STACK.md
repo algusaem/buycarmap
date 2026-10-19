@@ -456,7 +456,9 @@ Pages are dynamic, but data caches and module scope are still shared:
   inline `toFixed`.
 - Tables: sticky header, column visibility persisted per user, selection preserved across
   pagination, bulk actions behind confirmation. URL state via nuqs.
-- Motion for animation, honouring `prefers-reduced-motion`.
+- Motion for animation, honouring `prefers-reduced-motion`. Animate only with a purpose, fast
+  (UI under 300ms) and never on keyboard actions or surfaces used many times a day
+  (`RULES.md` §19 "Animation").
 - **WCAG 2.2 AA** — axe in Playwright on main flows. Keyboard operable, real labels,
   programmatic error association, colour never the sole carrier of meaning.
 

@@ -342,6 +342,24 @@ test.describe("SAVED-37, SAVED-38: the phone BUSCAR sheet closes when dragged do
     await page.mouse.up();
     await expect(sheet).toBeVisible();
   });
+
+  // docs/specs/motion.md (MOTION-20): the release speed is measured from the
+  // pointer events, so a flick drawn in one frame on an idle page still
+  // reads as fast.
+  test("MOTION-20: at 390×844, on an idle page, a fast 60px drag of the handle down, drawn in one frame, closes the BUSCAR sheet", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet");
+    const { sheet } = await openSearchSheet(page);
+    // Nothing animates for a while, so the last frame drawn is old.
+    await page.waitForTimeout(600);
+
+    // Under the 100px that closes by distance: only the speed can close it.
+    await dragDown(page, sheet.locator("[data-sheet-handle]"), 60, { fast: true });
+
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
 });
 
 // No chip remove button («Quitar»/«Remove …») remains anywhere on /map
@@ -1033,6 +1051,23 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     await settledOffset(sheet, "full");
   });
 
+  test("MAPUI-60: a fast 60px drag of the handle up from middle, shorter than half of M−F, ends at full", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only results sheet drag");
+    const { sheet, handle, strip, middle } = await openPhoneMap(page);
+    const offsets = await measureOffsets(sheet, handle, middle);
+    // Nothing animates for a while, so the last frame drawn is old (MOTION-20).
+    await page.waitForTimeout(600);
+
+    // Released slowly this would settle back at middle: only the speed moves it.
+    expect(60).toBeLessThan((offsets.middle - offsets.full) / 2);
+    await dragDown(page, strip, -60, { fast: true });
+
+    await settledOffset(sheet, "full");
+  });
+
   test("MAPUI-60: a fast 60px drag of the handle down from full, shorter than half of M−F, ends at middle", async ({
     page,
     isMobile,
@@ -1212,5 +1247,73 @@ test.describe("MAPUI-62: the map lowers the middle results sheet", () => {
 
     await expect(page.getByRole("dialog", { name: /^(buscar|search)$/i })).toBeVisible();
     await expect(sheet).toHaveAttribute("data-position", "middle");
+  });
+});
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-16: the desktop
+// «Filtros» dropdown, opened and closed with a pointer — Escape removes it
+// within two animation frames, and a reopen closed by an outside click is
+// still visible, fading, on the next frame, gone within 300ms (the worked
+// example «Filtros», MOTION-10/MOTION-16's second and third rows).
+test.describe("MOTION-16: the «Filtros» dropdown closes with Escape within two frames, and fades out over a pointer close", () => {
+  /** Waits two animation frames: what an instant close needs to be drawn, and far too little for a 180ms fade. */
+  async function twoFrames(page: Page) {
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }),
+    );
+  }
+
+  test("MOTION-16: Escape removes the dropdown within two animation frames", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "desktop-only filters dropdown");
+    await gotoMap(page, DESKTOP_1440);
+    const filtersButton = page.getByRole("button", { name: FILTERS_NAME }).first();
+    // Hidden elements included: a card still fading out is aria-hidden (PopoverCard).
+    const dropdown = page.getByRole("dialog", { name: FILTERS_NAME, includeHidden: true });
+
+    await filtersButton.click();
+    await expect(dropdown).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await twoFrames(page);
+
+    // Counted once, right after the two frames: a retrying assertion would also accept a fade.
+    expect(await dropdown.count()).toBe(0);
+  });
+
+  test("MOTION-16: reopened with a click and closed with a click outside, the dropdown is still visible with an opacity below 1 on the next frame, and gone within 300ms", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "desktop-only filters dropdown");
+    await gotoMap(page, DESKTOP_1440);
+    const filtersButton = page.getByRole("button", { name: FILTERS_NAME }).first();
+    // While it fades out the card is aria-hidden and inert (PopoverCard), so
+    // the closing dropdown is only found with the hidden elements included.
+    const dropdown = page.getByRole("dialog", { name: FILTERS_NAME, includeHidden: true });
+
+    await filtersButton.click();
+    await expect(dropdown).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dropdown).not.toBeAttached();
+
+    await filtersButton.click();
+    await expect(dropdown).toBeVisible();
+
+    // Outside the pill and the dropdown: the header band's padding.
+    await page.mouse.click(20, 20);
+    await twoFrames(page);
+
+    const opacityNextFrame = await dropdown.evaluate((el) =>
+      Number.parseFloat(getComputedStyle(el).opacity),
+    );
+    expect(opacityNextFrame).toBeLessThan(1);
+
+    await expect(dropdown).not.toBeAttached({ timeout: 300 });
   });
 });

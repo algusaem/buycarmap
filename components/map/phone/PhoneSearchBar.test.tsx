@@ -141,3 +141,16 @@ describe("PhoneSearchBar accessibility", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 });
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-6: the phone search
+// summary gains a press state alongside its existing hover.
+describe("MOTION-6: PhoneSearchBar — hover and press on the summary", () => {
+  it("MOTION-6: the summary carries hover:border-text-muted and active:scale-97, off under reduced motion", () => {
+    renderWithI18n(<PhoneSearchBar {...BASE} />);
+
+    const className = screen.getByRole("button", { name: /Toda España/ }).className;
+    expect(className).toContain("hover:border-text-muted");
+    expect(className).toContain("active:scale-97");
+    expect(className).toContain("motion-reduce:active:scale-none");
+  });
+});

@@ -1,10 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
+import { useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { makeFavoriteInput } from "@/test/fixtures/favorite-listings";
 import { ResultsSheet, type ResultsSheetProps } from "./ResultsSheet";
+import type { ResultsSheetPosition } from "@/lib/hooks/useMapPageState";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 const LISTINGS = [
   makeFavoriteInput({ id: "a", title: "Audi A3 2.0 TDI" }),
@@ -227,4 +236,200 @@ describe("MAPUI-23: ResultsSheet — accessibility", () => {
       expect(await axe(container)).toHaveNoViolations();
     },
   );
+});
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-8: the map's results
+// list never animates — the switch between a results state and the cards is
+// immediate, and a card appearing or leaving carries no fade.
+describe("MOTION-8: ResultsSheet — the list never animates", () => {
+  it("MOTION-8: switching from a loading status to the cards shows them in the same tick, with no inline opacity below 1", async () => {
+    await withAnimations(async () => {
+      const { rerender } = renderWithI18n(
+        <ResultsSheet {...BASE} position="full" status={<p aria-busy="true">Cargando…</p>} />,
+        { locale: "es" },
+      );
+
+      rerender(<ResultsSheet {...BASE} position="full" status={undefined} />);
+
+      const cards = screen.getAllByRole("article");
+      expect(cards).toHaveLength(2);
+      for (const card of cards) {
+        const opacity = card.style.opacity;
+        expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+      }
+    });
+  });
+
+  it("MOTION-8: a card removed from listings is gone in the same tick, with no exit to wait for", async () => {
+    await withAnimations(async () => {
+      const { rerender } = renderWithI18n(<ResultsSheet {...BASE} position="full" />, {
+        locale: "es",
+      });
+      expect(screen.getAllByRole("article")).toHaveLength(2);
+
+      rerender(<ResultsSheet {...BASE} position="full" listings={[LISTINGS[1]]} />);
+
+      expect(screen.getAllByRole("article")).toHaveLength(1);
+    });
+  });
+
+  it("MOTION-8: at middle, switching from a loading status to the card shows it with no inline opacity below 1, and full then shows both cards in the same tick", async () => {
+    await withAnimations(async () => {
+      const { rerender } = renderWithI18n(
+        <ResultsSheet {...BASE} position="middle" status={<p aria-busy="true">Cargando…</p>} />,
+        { locale: "es" },
+      );
+
+      rerender(<ResultsSheet {...BASE} position="middle" status={undefined} />);
+
+      // MAPUI-23: middle shows only the first card.
+      const middleCards = screen.getAllByRole("article");
+      expect(middleCards).toHaveLength(1);
+      for (const card of middleCards) {
+        const opacity = card.style.opacity;
+        expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+      }
+
+      rerender(<ResultsSheet {...BASE} position="full" status={undefined} />);
+
+      // MAPUI-23: full shows the whole list, in the same tick — no exit to wait for.
+      expect(screen.getAllByRole("article")).toHaveLength(2);
+    });
+  });
+});
+
+// docs/specs/motion.md (MOTION-14): Enter or Space on the handle moves the
+// sheet to its next position at once; a pointer press still springs it.
+describe("MOTION-14: ResultsSheet — the handle moves at once from the keyboard, but still springs for a pointer", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function Harness({ initial }: { initial: ResultsSheetPosition }) {
+    const [position, setPosition] = useState<ResultsSheetPosition>(initial);
+    return <ResultsSheet {...BASE} position={position} onPositionChange={setPosition} />;
+  }
+
+  /** Gives the sheet's offsets real numbers (jsdom's own getBoundingClientRect
+   * is always zero): full (the sheet's area) at 0, the middle probe at 400 and
+   * the peeked probe at 700, the boxes measureTops reads
+   * (lib/hooks/useResultsSheetDrag.ts). Every other box stays at 0. */
+  function stubOffsets() {
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: Element,
+    ) {
+      let top = 0;
+      if (this.classList.contains("h-sheet-middle")) top = 400;
+      else if (this.classList.contains("pb-3.5") && this.getAttribute("aria-hidden")) top = 700;
+      return {
+        top,
+        bottom: top,
+        left: 0,
+        right: 0,
+        width: 0,
+        height: 0,
+        x: 0,
+        y: top,
+        toJSON() {
+          return {};
+        },
+      } as DOMRect;
+    });
+  }
+
+  it("MOTION-14: Enter on the handle moves the sheet to its next position at once, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      stubOffsets();
+      renderWithI18n(<Harness initial="middle" />, { locale: "es" });
+      const handle = screen.getByRole("button", {
+        name: /^(results list|lista de resultados)$/i,
+      });
+      await nextFrames();
+
+      handle.focus();
+      await userEvent.keyboard("{Enter}");
+
+      // Full is offset 0: Motion draws a `y` of exactly 0 as `transform: none`.
+      const sheet = screen.getByTestId("results-sheet");
+      expect(sheet.style.transform).toMatch(/^(none|translateY\(0px\))$/);
+    });
+  });
+
+  it("MOTION-14: Space on the handle moves the sheet to its next position at once, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      stubOffsets();
+      renderWithI18n(<Harness initial="middle" />, { locale: "es" });
+      const handle = screen.getByRole("button", {
+        name: /^(results list|lista de resultados)$/i,
+      });
+      await nextFrames();
+
+      handle.focus();
+      await userEvent.keyboard(" ");
+
+      // Full is offset 0: Motion draws a `y` of exactly 0 as `transform: none`.
+      const sheet = screen.getByTestId("results-sheet");
+      expect(sheet.style.transform).toMatch(/^(none|translateY\(0px\))$/);
+    });
+  });
+
+  /** The sheet's drawn `y`, in px: Motion draws a `y` of exactly 0 as `transform: none`. */
+  function drawnOffset(sheet: HTMLElement): number {
+    const match = sheet.style.transform.match(/translateY\((-?[\d.]+)px\)/);
+    return match ? Number(match[1]) : 0;
+  }
+
+  it("MOTION-14: a pointer press still springs — from middle (400) to full (0) the sheet passes through an offset strictly between them", async () => {
+    await withAnimations(async () => {
+      stubOffsets();
+      renderWithI18n(<Harness initial="middle" />, { locale: "es" });
+      const handle = screen.getByRole("button", {
+        name: /^(results list|lista de resultados)$/i,
+      });
+      await nextFrames();
+      const sheet = screen.getByTestId("results-sheet");
+      expect(drawnOffset(sheet)).toBe(400);
+
+      await userEvent.click(handle);
+
+      // Sampled frame by frame until the spring's first step leaves middle.
+      let offset = drawnOffset(sheet);
+      for (let frame = 0; frame < 30 && offset === 400; frame += 1) {
+        await act(() => new Promise((resolve) => setTimeout(resolve, 16)));
+        offset = drawnOffset(sheet);
+      }
+      expect(offset).toBeGreaterThan(0);
+      expect(offset).toBeLessThan(400);
+    });
+  });
+
+  it("MOTION-14: Enter mid-spring stops the spring and jumps to the next position exactly — a press at middle (400) springs towards full (0), Enter then lands on peeked (700)", async () => {
+    await withAnimations(async () => {
+      stubOffsets();
+      renderWithI18n(<Harness initial="middle" />, { locale: "es" });
+      const handle = screen.getByRole("button", {
+        name: /^(results list|lista de resultados)$/i,
+      });
+      await nextFrames();
+      const sheet = screen.getByTestId("results-sheet");
+
+      // MAPUI-58: middle → full on the press; the spring is caught on its way.
+      await userEvent.click(handle);
+      let offset = drawnOffset(sheet);
+      for (let frame = 0; frame < 30 && offset === 400; frame += 1) {
+        await act(() => new Promise((resolve) => setTimeout(resolve, 16)));
+        offset = drawnOffset(sheet);
+      }
+      expect(offset).toBeGreaterThan(0);
+      expect(offset).toBeLessThan(400);
+
+      // MAPUI-58: full → peeked on Enter, drawn at once.
+      handle.focus();
+      await userEvent.keyboard("{Enter}");
+
+      expect(drawnOffset(sheet)).toBe(700);
+      await nextFrames();
+      expect(drawnOffset(sheet)).toBe(700);
+    });
+  });
 });

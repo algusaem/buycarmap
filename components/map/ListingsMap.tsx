@@ -44,12 +44,13 @@ function escapeHtml(text: string): string {
 // a zero-size point at the coordinates; the pill is centred on it and never
 // wraps. Its active state is the marker's `data-active`, toggled in place, so
 // Leaflet never swaps the element (and its focus and listeners) for a new one.
+// The active state turns on and off at once, with no transition (MOTION-9).
 function pinIcon(label: string) {
   return L.divIcon({
     className: "group/pin focus-visible:outline-none",
     iconSize: [0, 0],
     iconAnchor: [0, 0],
-    html: `<span class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-pointer border border-line bg-surface transition-[background-color,box-shadow] before:absolute before:top-1/2 before:left-1/2 before:size-11 before:-translate-x-1/2 before:-translate-y-1/2 ${PIN_BASE_CLASSES} group-data-[active=true]/pin:border-transparent group-data-[active=true]/pin:bg-lime group-data-[active=true]/pin:font-extrabold group-data-[active=true]/pin:text-on-lime group-data-[active=true]/pin:shadow-pin-active group-focus-visible/pin:outline-2 group-focus-visible/pin:outline-offset-3 group-focus-visible/pin:outline-lime">${escapeHtml(label)}</span>`,
+    html: `<span class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-pointer border border-line bg-surface before:absolute before:top-1/2 before:left-1/2 before:size-11 before:-translate-x-1/2 before:-translate-y-1/2 ${PIN_BASE_CLASSES} group-data-[active=true]/pin:border-transparent group-data-[active=true]/pin:bg-lime group-data-[active=true]/pin:font-extrabold group-data-[active=true]/pin:text-on-lime group-data-[active=true]/pin:shadow-pin-active group-focus-visible/pin:outline-2 group-focus-visible/pin:outline-offset-3 group-focus-visible/pin:outline-lime">${escapeHtml(label)}</span>`,
   });
 }
 
