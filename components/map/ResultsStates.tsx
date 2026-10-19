@@ -1,24 +1,25 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { RESULTS_GRID_CLASS } from "@/components/map/results-grid";
 import {
   CardPlaceholder,
   DEFAULT_COUNT,
   SheetCardPlaceholder,
 } from "@/components/ui/CardGridSkeleton";
-import { crossFade } from "@/lib/animations";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/button";
 import type { ResultsState } from "@/lib/map/results-state";
+import { cn } from "@/lib/utils";
 
 // docs/specs/redesign-map.md (MAPUI-30 to MAPUI-32);
 // docs/design/system/components/EmptyState/README.md and StatusPill/README.md.
 // The map results' loading, empty and error states, and the status pill over
-// the desktop map that says which one is showing.
+// the desktop map that says which one is showing. None of them animates: they
+// sit in the results list and over it, the surfaces a buyer sees most
+// (MOTION-8).
 
 interface ResultsSkeletonProps {
   /** The loading region's accessible name. `/map`'s own loading file
@@ -43,7 +44,7 @@ export function ResultsSkeleton({ label }: ResultsSkeletonProps) {
       <div className="lg:hidden">
         <SheetCardPlaceholder />
       </div>
-      <div className="grid grid-cols-1 gap-x-5 gap-y-7 max-lg:hidden lg:grid-cols-2 xl:grid-cols-3">
+      <div className={cn(RESULTS_GRID_CLASS, "max-lg:hidden")}>
         {Array.from({ length: DEFAULT_COUNT }, (_, index) => `placeholder-${index}`).map((key) => (
           <CardPlaceholder key={key} />
         ))}
@@ -66,18 +67,16 @@ interface ResultsStatusProps {
   onAllSpain: () => void;
 }
 
-/** What the list shows in place of the cards while it has none to show, cross-fading from one state to the next. */
+/** What the list shows in place of the cards while it has none to show, switching from one state to the next at once. */
 export function ResultsStatus({ state, onRetry, ...noResults }: ResultsStatusProps) {
   const t = useTranslations();
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div key={state} {...crossFade}>
-        {state === "loading" && <ResultsSkeleton label={t("mapStates.loading")} />}
-        {state === "error" && <SearchError onRetry={onRetry} />}
-        {state === "empty" && <NoResults {...noResults} />}
-      </motion.div>
-    </AnimatePresence>
+    <>
+      {state === "loading" && <ResultsSkeleton label={t("mapStates.loading")} />}
+      {state === "error" && <SearchError onRetry={onRetry} />}
+      {state === "empty" && <NoResults {...noResults} />}
+    </>
   );
 }
 
@@ -255,8 +254,8 @@ interface MapPillProps {
 }
 
 /**
- * The pill at the top left of a desktop map (StatusPill/README.md), cross-
- * fading from one text to the next: /map's status (StatusPill), the saved
+ * The pill at the top left of a desktop map (StatusPill/README.md), switching
+ * from one text to the next at once: /map's status (StatusPill), the saved
  * map's title, which is a status only while it says there is nothing to show
  * (docs/specs/redesign-saved.md, SAVED-13), and the alert map's name and zone
  * (docs/specs/redesign-alerts.md, ALERTUI-15).
@@ -271,23 +270,17 @@ export function MapPill({ text, accent, live }: MapPillProps) {
       // around the pill.
       className="pointer-events-none absolute top-4.5 right-4.5 left-4.5 z-1000 max-lg:hidden"
     >
-      <AnimatePresence mode="wait">
-        {text && (
-          <motion.span
-            key={`${text}${accent ?? ""}`}
-            {...crossFade}
-            className="pointer-events-auto block w-fit max-w-full truncate rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-bold text-text"
-          >
-            {text}
-            {accent && (
-              <>
-                {" · "}
-                <span className="text-lime">{accent}</span>
-              </>
-            )}
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {text && (
+        <span className="pointer-events-auto block w-fit max-w-full truncate rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-bold text-text">
+          {text}
+          {accent && (
+            <>
+              {" · "}
+              <span className="text-lime">{accent}</span>
+            </>
+          )}
+        </span>
+      )}
     </div>
   );
 }
@@ -296,18 +289,15 @@ interface LoadingMoreProps {
   loading: boolean;
 }
 
-/** «Cargando…» under the list while the next page loads (MAP-8), fading in and out. */
+/** «Cargando…» under the list while the next page loads (MAP-8), shown and removed at once. */
 export function LoadingMore({ loading }: LoadingMoreProps) {
   const t = useTranslations();
 
+  if (!loading) return null;
   return (
-    <AnimatePresence>
-      {loading && (
-        <motion.div key="loading-more" {...crossFade} className="flex items-center gap-2">
-          <Loader2 aria-hidden="true" className="size-4 animate-spin text-lime" />
-          <span className="text-sm text-text-muted">{t("map.loading")}</span>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <div className="flex items-center gap-2">
+      <Loader2 aria-hidden="true" className="size-4 animate-spin text-lime" />
+      <span className="text-sm text-text-muted">{t("map.loading")}</span>
+    </div>
   );
 }

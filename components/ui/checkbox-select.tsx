@@ -3,9 +3,9 @@
 import { useId, useState } from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { Check, ChevronDown } from "lucide-react";
 
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { dropdownReveal } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +38,10 @@ export interface CheckboxSelectProps {
  * The roles are set to the listbox pattern the design describes —
  * `listbox` with `aria-multiselectable` and `option` with `aria-selected` —
  * and choosing an option keeps the list open so several can be chosen.
+ *
+ * Opened or closed with a pointer, the list fades and moves 4px over 180ms;
+ * opened with Enter, Space or an arrow key, or closed with Escape, it appears
+ * and leaves at once (MOTION-18, docs/specs/motion.md).
  */
 export function CheckboxSelect({
   label,
@@ -76,7 +80,8 @@ export function CheckboxSelect({
           aria-labelledby={`${labelId} ${valueId}`}
           className={cn(
             "flex h-13 w-full cursor-pointer items-center justify-between gap-3 rounded-field border border-line bg-bg pr-3.5 pl-4 text-left font-sans text-base text-text",
-            "focus:border-lime data-[state=open]:border-lime",
+            // MOTION-5: text-muted on hover while not focused or open, in the state transition.
+            "transition-[border-color] not-focus:not-data-[state=open]:hover:border-text-muted focus:border-lime data-[state=open]:border-lime",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
@@ -102,7 +107,7 @@ export function CheckboxSelect({
                 sideOffset={6}
                 className="z-50 flex min-w-(--radix-dropdown-menu-trigger-width) flex-col gap-0.5 rounded-field border border-line bg-surface p-1.5 font-sans text-text shadow-float"
               >
-                <motion.div {...dropdownReveal}>
+                <PresenceFade preset={dropdownReveal}>
                   {options.map((option) => (
                     <CheckboxOption
                       key={option.value}
@@ -111,7 +116,7 @@ export function CheckboxSelect({
                       onToggle={toggle}
                     />
                   ))}
-                </motion.div>
+                </PresenceFade>
               </DropdownMenuPrimitive.Content>
             </DropdownMenuPrimitive.Portal>
           )}
@@ -137,7 +142,8 @@ function CheckboxOption({ option, selected, onToggle }: CheckboxOptionProps) {
       // Keeps the list open after a choice: this select picks several values.
       onSelect={(event) => event.preventDefault()}
       className={cn(
-        "flex h-11 cursor-pointer select-none items-center gap-3 rounded-option pr-3 pl-3.5 text-[15px] font-medium transition-[background-color]",
+        "flex h-11 cursor-pointer select-none items-center gap-3 rounded-option pr-3 pl-3.5 text-body-15 font-medium",
+        // MOTION-22: the arrow keys move the highlight at once, with no transition.
         "data-[highlighted]:bg-surface-strong",
         selected && "font-bold",
       )}

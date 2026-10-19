@@ -34,7 +34,7 @@ interface LegalTocState {
   toggle: () => void;
   /** Goes to a section: scrolls to its heading and folds the phone index. */
   select: (id: string) => void;
-  /** The phone list's exit is over: the page is its final height, so the deferred jump runs. */
+  /** The phone list's exit is over: the deferred jump runs once the list has left the page. */
   onListExitComplete: () => void;
 }
 
@@ -50,6 +50,7 @@ export function useLegalToc(firstId: string): LegalTocState {
   const isPhone = useIsPhone();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const pendingJump = useRef<string | undefined>(undefined);
+  const [jumpAfterFold, setJumpAfterFold] = useState<string | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(firstId);
 
@@ -99,9 +100,18 @@ export function useLegalToc(firstId: string): LegalTocState {
     const id = pendingJump.current;
     pendingJump.current = undefined;
     // The exit is over, but the list leaves the page on the render that
-    // follows: jump on the next frame, once the page is its final height.
-    if (id) requestAnimationFrame(() => jumpTo(id));
+    // follows. Setting state here lands in that same render, so the effect
+    // below jumps once it is committed: the list is gone and the page is its
+    // final height. A next-frame timer could fire before that render under
+    // load, and scroll with the list still drawn (#137).
+    if (id) setJumpAfterFold(id);
   }, []);
+
+  useEffect(() => {
+    if (!jumpAfterFold) return;
+    jumpTo(jumpAfterFold);
+    setJumpAfterFold(undefined);
+  }, [jumpAfterFold]);
 
   return {
     scrollerRef,

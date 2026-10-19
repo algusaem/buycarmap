@@ -118,8 +118,8 @@ Out of scope, deliberately:
   behaviour; the old bar was a 56px flex item in a `h-screen` shell. The BuyCarMap 2.0 header heights
   are in [`DESIGN.md`](../../DESIGN.md) › Components › Navigation.
 - **Search.** The search field lived in `ListingsHeader`, not the navbar. From F3 it is the map
-  header's search pill and the phone's floating search, specified by
-  [redesign-map.md](redesign-map.md).
+  header's search pill and the phone's floating search (the phone's floating search became the top
+  band on 2026-10-17, MAPUI-67), specified by [redesign-map.md](redesign-map.md).
 
 ## Contracts
 

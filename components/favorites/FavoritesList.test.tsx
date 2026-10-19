@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { axe } from "vitest-axe";
 import { Toaster } from "@/components/Toaster";
 import { withAnimations } from "@/test/utils/animations";
+import { expectPhotoFocusRing } from "@/test/utils/focus-ring";
 import { renderWithI18n } from "@/test/utils/render";
 import { card, cardOrder, cards, renderSaved, rowOrder } from "@/test/utils/saved";
 import { restoreMatchMedia, stubLayoutBox, stubSwitchableWidth } from "@/test/utils/viewport";
@@ -27,6 +28,12 @@ import {
 } from "@/test/fixtures/favorite-listings";
 import { removeFavorite, saveFavorite } from "@/server/favorites/actions";
 import { FavoritesList } from "./FavoritesList";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 // docs/specs/favorites.md (FAV-13, FAV-14) and docs/specs/redesign-saved.md
 // (SAVED) at desktop width, which is jsdom's default: test/setup.jsdom.ts
@@ -453,6 +460,18 @@ describe("SAVED-11: list and map", () => {
     await waitFor(() => expect(pin).toHaveAttribute("data-active", "true"));
   });
 
+  // docs/specs/redesign-saved.md (SAVED-11, amended 2026-10-18, #134): a
+  // card focused with the keyboard showed both the photo's lime ring and the
+  // global focus outline around the whole card (MAPUI-66's bug fix also
+  // applies here). The photo's ring is the link's own focus indicator, on
+  // `group-focus-visible/card`, so the global outline is always suppressed.
+  it("SAVED-11: a focused card's link shows only the photo's lime ring, not a second focus outline", () => {
+    renderSaved();
+    const link = within(card("B")).getByRole("link");
+
+    expectPhotoFocusRing(link);
+  });
+
   it("SAVED-11: activating a pin opens its preview with the heart «Quitar de guardados», marks the pin and outlines its card", async () => {
     renderSaved();
 
@@ -487,6 +506,19 @@ describe("SAVED-11: list and map", () => {
     expect(card("A")).toHaveAttribute("data-active", "true");
     expect(card("G")).toHaveAttribute("data-active", "true");
     expect(card("B")).not.toHaveAttribute("data-active", "true");
+  });
+});
+
+// docs/specs/motion.md (MOTION-9): the active ring on a card in Guardados
+// turns on and off with no transition.
+describe("MOTION-9: FavoritesList — the active ring has no transition", () => {
+  it("MOTION-9: an active card's photo carries no transition class at all", async () => {
+    renderSaved();
+
+    await openPreview(PIN.A);
+
+    const photo = within(card("A")).getByRole("link").querySelector("div");
+    expect(photo?.className ?? "").not.toMatch(/(^|\s)transition(-|\s|$)/);
   });
 });
 
@@ -636,71 +668,85 @@ describe("SAVED-14: removing a saved car (desktop)", () => {
   });
 });
 
-/** The removed cars still fading out where they were drawn. */
-function leavingEntries(): HTMLElement[] {
-  return Array.from(document.querySelectorAll<HTMLElement>("[data-leaving]"));
+// docs/specs/motion.md (MOTION-18): in an open grouped preview on Guardados,
+// a car that leaves does so with no fade.
+describe("MOTION-18: FavoritesList — a car leaving an open grouped preview has no fade", () => {
+  it("MOTION-18: removing the Audi from an open grouped preview removes its row in the same tick, even with animations enabled", async () => {
+    const audi = makeSortExampleCar("A");
+    const corolla = makeSortExampleCar("G", {
+      price: 19750,
+      location: "Madrid",
+      lat: audi.lat,
+      lng: audi.lng,
+    });
+    renderSaved([corolla, audi]);
+    await findPin("2 coches · desde 14.500 €");
+
+    await withAnimations(async () => {
+      const preview = await openPreview("2 coches · desde 14.500 €");
+      const audiTitle = within(preview).getByText("Audi A3 2.0 TDI");
+      const [audiHeart] = within(preview).getAllByRole("button", { name: REMOVE });
+
+      await userEvent.click(audiHeart);
+
+      expect(audiTitle).not.toBeInTheDocument();
+      const stillOpen = screen.getByRole("article", { name: "Vista previa del coche" });
+      expect(within(stillOpen).getByText("Toyota Corolla 125H")).toBeInTheDocument();
+      expect(within(stillOpen).queryByText("Audi A3 2.0 TDI")).toBeNull();
+    });
+  });
+});
+
+const AUDI = "Audi A3 2.0 TDI";
+
+/** No inline opacity below 1 on a car's card or the wrapper that holds it in its row. */
+function expectCardOpaque(title: string) {
+  const article = screen.getByText(title).closest("article");
+  expect(article, `the card of ${title}`).not.toBeNull();
+  for (const element of [article, article?.parentElement]) {
+    const opacity = element?.style.opacity ?? "";
+    expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+  }
 }
 
-/** The element a card fades on: its own wrapper in the list's row. */
-function fadeOf(letter: SortExampleLetter): HTMLElement {
-  const wrapper = card(letter).parentElement;
-  expect(wrapper, "the card's wrapper").not.toBeNull();
-  return wrapper as HTMLElement;
-}
-
-describe("SAVED-14, SAVED-15: a removed car fades out where it was, and an undone one fades in", () => {
-  it("SAVED-14: with «Precio», A's heart leaves A fading out, inert and hidden, while the list is D, E, B, F, C, G at once", async () => {
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-9: the saved list never
+// animates — a removed card leaves and an undone card comes back with no
+// fade (amends SAVED-14, SAVED-15, whose fade-based assertions this replaces;
+// worked example «Saved list»).
+describe("MOTION-9: FavoritesList — a removed or undone car moves with no fade (amends SAVED-14, SAVED-15)", () => {
+  it("MOTION-9: with «Precio», A's heart removes A at once — its title is gone and the list is D, E, B, F, C, G", async () => {
     renderSaved(sortExampleFavorites(), { searchParams: "?sort=price" });
 
     await withAnimations(async () => {
       await pressHeart("A");
 
-      const leaving = leavingEntries();
-      expect(leaving).toHaveLength(1);
-      expect(leaving[0]).toHaveTextContent("Audi A3 2.0 TDI");
-      expect(leaving[0]).toHaveAttribute("inert");
-      expect(leaving[0]).toHaveAttribute("aria-hidden", "true");
+      expect(screen.queryByText(AUDI)).toBeNull();
       expect(cardOrder()).toEqual(["D", "E", "B", "F", "C", "G"]);
-
-      await waitFor(() => expect(leavingEntries()).toEqual([]));
     });
   });
 
-  it("SAVED-15: «Deshacer» pressed while A still fades out drops its leaving entry — D, E, A, B, F, C, G", async () => {
-    renderSaved(sortExampleFavorites(), { searchParams: "?sort=price" });
-
-    await withAnimations(async () => {
-      await pressHeart("A");
-      const undo = await screen.findByRole("button", { name: UNDO });
-      expect(leavingEntries()).toHaveLength(1);
-
-      await userEvent.click(undo);
-
-      expect(
-        leavingEntries().filter((entry) => entry.textContent?.includes("Audi A3 2.0 TDI")),
-      ).toEqual([]);
-      expect(cardOrder()).toEqual(PRICE);
-    });
-  });
-
-  it("SAVED-15: the undone car fades in once — a sort that moves it to another row draws it at once", async () => {
+  it("MOTION-9: «Deshacer» brings A back at once, with no inline opacity below 1", async () => {
     renderSaved(sortExampleFavorites(), { searchParams: "?sort=price" });
 
     await withAnimations(async () => {
       await pressHeart("A");
       await userEvent.click(await screen.findByRole("button", { name: UNDO }));
 
-      // Back in its place, D, E, A, B, …, still fading in from transparent.
       expect(cardOrder()).toEqual(PRICE);
-      expect(Number(fadeOf("A").style.opacity)).toBeLessThan(1);
-      await waitFor(() => expect(fadeOf("A").style.opacity).toBe("1"));
+      expectCardOpaque(AUDI);
+    });
+  });
 
-      // Two cards a row (jsdom's matchMedia matches nothing): «Precio» puts A
-      // in the second row, «Km» (G, B, F, C, E, A, D) in the third, so A is
-      // drawn anew there, opaque from its first frame.
+  it("MOTION-9: a sort change after the undo still draws the car at once, in its new row", async () => {
+    renderSaved(sortExampleFavorites(), { searchParams: "?sort=price" });
+
+    await withAnimations(async () => {
+      await pressHeart("A");
+      await userEvent.click(await screen.findByRole("button", { name: UNDO }));
+
       await userEvent.click(chip("Km"));
       expect(cardOrder()).toEqual(KM);
-      expect(fadeOf("A").style.opacity).toBe("1");
+      expectCardOpaque(AUDI);
     });
   });
 });
@@ -850,7 +896,7 @@ describe("SAVED-18: where focus goes after a removal (desktop)", () => {
 
     await pressHeart("A");
 
-    // The list fades out before the empty state mounts (SAVED-31, RULES.md §17).
+    // The empty state replaces the list at once (SAVED-31, MOTION-19).
     await waitFor(() => expect(screen.getByRole("heading", { level: 2 })).toHaveFocus());
   });
 
@@ -899,11 +945,45 @@ describe("SAVED-31: the empty state (desktop)", () => {
 
     await pressHeart("A");
 
-    // The list fades out, then the empty state fades in (RULES.md §17).
+    // The empty state replaces the list at once (MOTION-19).
     await waitFor(() => expect(cards()).toEqual([]));
     expect(await screen.findByRole("heading", { level: 2 })).toHaveTextContent("¿Aún nada?");
     expect(await screen.findByText(REMOVED)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: UNDO })).toBeInTheDocument();
+  });
+});
+
+// docs/specs/motion.md (MOTION-19): switching between the list and its empty
+// state on Guardados happens at once, and so do the sort chips appearing and
+// leaving.
+describe("MOTION-19: FavoritesList — the list, the empty state and the sort chips switch at once", () => {
+  it("MOTION-19: removing the last car shows the empty state and drops the list and the sort chips in the same tick, even with animations enabled", async () => {
+    renderSaved([makeSortExampleCar("A")]);
+
+    await withAnimations(async () => {
+      await pressHeart("A");
+
+      expect(cards()).toEqual([]);
+      expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("¿Aún nada?");
+      for (const name of ["Recientes", "Precio", "Km"]) {
+        expect(screen.queryByRole("button", { name })).toBeNull();
+      }
+    });
+  });
+
+  it("MOTION-19: «Deshacer» brings the list and the sort chips back and drops the empty state in the same tick", async () => {
+    renderSaved([makeSortExampleCar("A")]);
+
+    await withAnimations(async () => {
+      await pressHeart("A");
+      await userEvent.click(await screen.findByRole("button", { name: UNDO }));
+
+      expect(cardOrder()).toEqual(["A"]);
+      expect(screen.queryByText("¿Aún nada?")).toBeNull();
+      for (const name of ["Recientes", "Precio", "Km"]) {
+        expect(screen.getByRole("button", { name })).toBeInTheDocument();
+      }
+    });
   });
 });
 

@@ -1,13 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { AnimatePresence, useIsPresent } from "motion/react";
 import { useLocale, useTranslations } from "next-intl";
 import type { SelectedLocation } from "@/interfaces/location";
 import type { GeocodingResult } from "@/lib/geo/nominatim";
 import { useLocationSearch } from "@/lib/hooks/useLocationSearch";
 import { useOptionNavigation } from "@/lib/hooks/useOptionNavigation";
-import { AnimatedListbox, ComboOption, ListStatus, NoMatch, SearchField } from "./Combobox";
+import { ComboOption, Listbox, ListStatus, NoMatch, SearchField } from "./Combobox";
 
 // docs/specs/redesign-map.md (MAPUI-3, MAPUI-56, amends MAP-20): «Dónde»'s
 // field, in the desktop popover and the «BUSCAR» sheet. Nominatim is searched
@@ -20,7 +19,8 @@ import { AnimatedListbox, ComboOption, ListStatus, NoMatch, SearchField } from "
 // Prueba otra vez.» takes that place instead — never the no-match line, which
 // would claim the place does not exist when the real problem is that
 // Nominatim could not be reached. Escape or a press outside closes the list
-// without choosing (lib/hooks/useOptionNavigation.ts).
+// without choosing (lib/hooks/useOptionNavigation.ts). The list and the
+// no-match lines appear and leave at once (MOTION-13).
 
 /**
  * The place and its region (Contracts › Location): the display name before
@@ -57,10 +57,8 @@ function PlaceListbox({
   onHighlight,
   onChoose,
 }: PlaceListboxProps) {
-  const isPresent = useIsPresent();
-
   return (
-    <AnimatedListbox id={id} label={label} className="gap-0.5">
+    <Listbox id={id} label={label} className="gap-0.5">
       {results.map((result, index) => {
         const { place, region } = splitPlace(result.displayName);
         return (
@@ -71,13 +69,12 @@ function PlaceListbox({
             secondary={region}
             selected={selectedPlaceId === result.placeId}
             highlighted={highlighted === index}
-            interactive={isPresent}
             onChoose={() => onChoose(result)}
             onHighlight={() => onHighlight(index)}
           />
         );
       })}
-    </AnimatedListbox>
+    </Listbox>
   );
 }
 
@@ -174,23 +171,20 @@ export function PlaceField({ value, onSelect }: PlaceFieldProps) {
         }}
         onKeyDown={navigation.onKeyDown}
       />
-      <AnimatePresence initial={false}>
-        {listed && (
-          <PlaceListbox
-            key="places"
-            id={listboxId}
-            label={t("search.places")}
-            results={results}
-            selectedPlaceId={value?.placeId}
-            highlighted={highlighted}
-            optionId={navigation.optionId}
-            onHighlight={setHighlighted}
-            onChoose={choose}
-          />
-        )}
-        {down && <NoMatch key="place-search-down">{t("search.placeSearchDown")}</NoMatch>}
-        {noMatch && <NoMatch key="no-place">{t("search.noPlace")}</NoMatch>}
-      </AnimatePresence>
+      {listed && (
+        <PlaceListbox
+          id={listboxId}
+          label={t("search.places")}
+          results={results}
+          selectedPlaceId={value?.placeId}
+          highlighted={highlighted}
+          optionId={navigation.optionId}
+          onHighlight={setHighlighted}
+          onChoose={choose}
+        />
+      )}
+      {down && <NoMatch>{t("search.placeSearchDown")}</NoMatch>}
+      {noMatch && <NoMatch>{t("search.noPlace")}</NoMatch>}
       <ListStatus>{statusText}</ListStatus>
     </div>
   );

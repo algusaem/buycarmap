@@ -383,9 +383,15 @@ test("LOOK-13/MAPUI-48: inputs and the checkbox select trigger are at least 52px
     expect(restStyle.fontSize, testId).toBe("16px");
     expect(restStyle.borderColor, testId).toBe("rgb(42, 42, 46)");
 
+    // The border turns lime within the 120ms state transition (LOOK-13, MOTION-3).
     await field.focus();
-    const focusedBorderColor = await field.evaluate((el) => getComputedStyle(el).borderColor);
-    expect(focusedBorderColor, testId).toBe("rgb(198, 255, 61)");
+    await expect
+      .poll(async () => field.evaluate((el) => getComputedStyle(el).borderColor), {
+        message: testId,
+        timeout: 300,
+        intervals: [20],
+      })
+      .toBe("rgb(198, 255, 61)");
   }
 });
 
@@ -461,4 +467,89 @@ test.describe("LOOK-17: the footer is present only on the pages the design names
     await page.goto("/alerts");
     await expect(page.getByRole("contentinfo")).toHaveCount(0);
   });
+});
+
+// docs/specs/motion.md (Key MOTION, Approved). jsdom computes no transitions
+// from app/globals.css, so the state timing (MOTION-1) and the hover/press
+// behaviour it drives (MOTION-4, MOTION-7) can only be measured here, on
+// /palette's stable primitives — the same reasoning LOOK-9..14 above already
+// follow for colour and size.
+test("MOTION-3: a button and an input compute the 120ms state transition with the ease-out curve", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/palette");
+
+  for (const testId of ["btn-secondary-48", "field-input"]) {
+    const style = await computed(page.getByTestId(testId), [
+      "transition-duration",
+      "transition-timing-function",
+    ]);
+    expect(style["transition-duration"], testId).toBe("0.12s");
+    expect(style["transition-timing-function"], testId).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+  }
+});
+
+test("MOTION-7: a secondary button's hover border and press scale move in the state transition, and reduced motion drops the press scale", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/palette");
+  const button = page.getByTestId("btn-secondary-48");
+
+  expect(await button.evaluate((el) => getComputedStyle(el).borderColor)).toBe("rgb(42, 42, 46)");
+
+  await button.hover();
+  await expect
+    .poll(async () => button.evaluate((el) => getComputedStyle(el).borderColor), { timeout: 200 })
+    .toBe("rgb(163, 160, 166)");
+
+  const box = await button.boundingBox();
+  if (!box) throw new Error("btn-secondary-48 did not lay out");
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await expect
+    .poll(async () => button.evaluate((el) => getComputedStyle(el).scale), {
+      timeout: 300,
+      intervals: [20],
+    })
+    .toMatch(/^0\.97( 0\.97)?$/);
+  await page.mouse.up();
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(200);
+  expect(await button.evaluate((el) => getComputedStyle(el).scale)).toBe("none");
+  await page.mouse.up();
+});
+
+// docs/specs/motion.md (MOTION-5): the hover border of a field and of the
+// select trigger applies only while they are not focused, so a focused one
+// keeps its lime border under the pointer.
+test("MOTION-5: at 1440×900 a focused field input and a focused checkbox select trigger keep their lime border while hovered", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/palette");
+
+  for (const testId of ["field-input", "field-checkbox-select-trigger"]) {
+    const field = page.getByTestId(testId);
+    await field.focus();
+    await expect
+      .poll(async () => field.evaluate((el) => getComputedStyle(el).borderColor), {
+        message: testId,
+        timeout: 300,
+        intervals: [20],
+      })
+      .toBe("rgb(198, 255, 61)");
+
+    await field.hover();
+    // Longer than the 120ms state transition: a hover border would have landed.
+    await page.waitForTimeout(250);
+
+    expect(await field.evaluate((el) => getComputedStyle(el).borderColor), testId).toBe(
+      "rgb(198, 255, 61)",
+    );
+  }
 });

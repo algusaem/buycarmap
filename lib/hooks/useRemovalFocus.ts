@@ -89,8 +89,8 @@ export function useRemovalFocus({
   });
 
   /**
-   * The empty state's heading, which mounts only once the list has faded out:
-   * it takes the focus as it mounts when the last car was just removed.
+   * The empty state's heading, which mounts in place of the list the moment
+   * the last car is removed (MOTION-19): it takes the focus as it mounts.
    */
   const emptyHeadingRef = useCallback(
     (heading: HTMLHeadingElement | null) => {
@@ -108,7 +108,13 @@ export function useRemovalFocus({
     focusAfterRemoval: (neighbour: CarListing | undefined) => {
       pendingFocusRef.current = neighbour ? { listingId: neighbour.id, scrolled: false } : "empty";
     },
-    /** A removal was undone: a car is back, so the empty state's heading no longer waits for the focus. */
+    /**
+     * A removal was undone: a car is back, so the empty state's heading no
+     * longer waits for the focus. The heading mounts with the removal itself
+     * and takes the focus then, so by the time «Deshacer» can be pressed
+     * nothing is usually left waiting; this keeps a heading that has not
+     * mounted yet from taking it later.
+     */
     cancelEmptyFocus: () => {
       if (pendingFocusRef.current === "empty") pendingFocusRef.current = null;
     },

@@ -10,7 +10,7 @@ En móvil, los resultados viven en una hoja `surface` que sube sobre el mapa, ap
 - Título en Unbounded 15px peso 800, en mayúsculas y centrado.
 - La tarjeta: foto de 250px `radius-card` con el icono de coche (70px) en `photo-icon` y la insignia de fuente sobre `scrim`; nombre y ciudad; metadatos subidos 10px; precio Unbounded 22px en `lime`, sin espacio entre letras.
 - **Arrastrar**: la hoja se arrastra hacia arriba y hacia abajo desde la franja del asa y desde el título («24 COCHES»), nunca desde la lista, que sigue con su scroll. Al soltar se queda en la más cercana de sus tres posiciones (asomada, media o completa); si se suelta con un gesto rápido (más de 800px/s, el mismo umbral que las hojas modales), sube o baja una sola posición en ese sentido. Con movimiento reducido salta sin animación. La barra inferior solo se esconde en completa. Arrastrar es un atajo, nunca la única forma: el asa y el teclado lo hacen todo.
-- **Tocar el mapa**: con la hoja en media, tocar el mapa o empezar a moverlo la baja a asomada. En asomada no cambia nada, y en completa la hoja tapa el mapa. Un pin no la baja: pulsarlo sigue llevando la hoja a media con ese coche el primero. El buscador flotante y la fila de filtros no cuentan como mapa.
+- **Tocar el mapa**: con la hoja en media, tocar el mapa o empezar a moverlo la baja a asomada. En asomada no cambia nada, y en completa la hoja tapa el mapa. Un pin no la baja: pulsarlo sigue llevando la hoja a media con ese coche el primero. La banda de arriba (el resumen de la búsqueda, «Filtros» y los filtros rápidos) no cuenta como mapa: está encima del mapa, no sobre él.
 
 ## Hojas modales
 
@@ -23,3 +23,4 @@ Suben desde abajo por encima de todo, la barra inferior incluida, sobre la panta
 - **Quitar de guardados** desde Guardados: la hoja se cierra, la fila sale de la lista y sale el aviso (Toast) «Quitado de guardados» con «Deshacer».
 - **Confirmar** (`role="alertdialog"`): el asa, el título centrado (Unbounded 15px peso 800, en mayúsculas, con el nombre de la alerta: «¿ELIMINAR «COROLLA HÍBRIDO»?») y a 4px los dos botones a todo el ancho: «Eliminar», el de peligro (44px, borde `danger` al 60 % y texto `danger`, ver Button), y «Cancelar», fantasma de 44px. En escritorio no es una hoja: el mismo contenido va en un diálogo centrado (Button › Peligro).
 - **Una coincidencia ya guardada**: la hoja del coche dice «Quitar de guardados», con el corazón relleno en `violet`, también desde la página de una alerta.
+- Movimiento: Abiertas o cerradas con el ratón o el dedo, suben y bajan en 240ms (o se funden en 180ms); con Intro, Espacio o Escape aparecen y desaparecen al instante. Intro o Espacio en el asa de la hoja de resultados la mueve de posición al instante.

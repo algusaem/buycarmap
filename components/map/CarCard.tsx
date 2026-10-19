@@ -81,6 +81,8 @@ interface CarPhotoProps {
   badge?: boolean;
   /** The car icon's size over the tint when there is no photo. */
   iconClassName?: string;
+  /** The surrounding link's focus ring (MAPUI-66): shown on `group-focus-visible/card`. */
+  focusRing?: boolean;
 }
 
 /** The listing's photo, or its tint with the car icon when it has none or it fails to load. */
@@ -91,6 +93,7 @@ export function CarPhoto({
   className,
   badge = true,
   iconClassName = "size-15",
+  focusRing = false,
 }: CarPhotoProps) {
   const [failed, setFailed] = useState(false);
   const showImage = listing.image !== "" && !failed;
@@ -100,6 +103,7 @@ export function CarPhoto({
       className={cn(
         "relative flex items-center justify-center overflow-hidden",
         tintFor(listing.id),
+        focusRing && "group-focus-visible/card:ring-2 group-focus-visible/card:ring-lime",
         className,
       )}
     >
@@ -207,7 +211,11 @@ export function savedProps(
   return { saved, onToggleSaved: () => onToggleFavorite(listing, !saved) };
 }
 
-/** «Guardar» / «Quitar de guardados» (MAPUI-36): scrim when not saved, violet and filled once saved. */
+/**
+ * «Guardar» / «Quitar de guardados» (MAPUI-36): scrim when not saved, violet and filled once saved.
+ * Hover turns the heart lime (once saved, darkens it slightly instead, so its
+ * on-violet content keeps its contrast) and a press scales it to 0.97 (MOTION-6).
+ */
 export function HeartButton({ saved, onToggle, className }: HeartButtonProps) {
   const t = useTranslations();
 
@@ -217,8 +225,10 @@ export function HeartButton({ saved, onToggle, className }: HeartButtonProps) {
       onClick={onToggle}
       aria-label={saved ? t("map.removeFavorite") : t("map.addFavorite")}
       className={cn(
-        "flex size-8.5 cursor-pointer items-center justify-center rounded-pill transition-[background-color] before:absolute before:size-11",
-        saved ? "bg-violet text-on-violet" : "bg-scrim text-text",
+        "flex size-8.5 cursor-pointer items-center justify-center rounded-pill transition-[background-color,color,filter,scale] before:absolute before:size-11 active:scale-97 motion-reduce:active:scale-none",
+        saved
+          ? "bg-violet text-on-violet hover:brightness-92"
+          : "bg-scrim text-text hover:text-lime",
         className,
       )}
     >
@@ -267,15 +277,21 @@ export function CarCard({
         href={listing.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex flex-col gap-3 rounded-card"
+        // MAPUI-66: the photo's lime ring below is this link's focus
+        // indicator — it shows on `group-focus-visible/card` independent of
+        // `active` (which follows hover too, MAPUI-28), so the global
+        // focus-visible outline is suppressed here unconditionally.
+        className="group/card flex flex-col gap-3 rounded-card focus-visible:outline-hidden"
       >
         <CarPhoto
           listing={listing}
           alt=""
           sizes="(min-width: 1024px) 16vw, 100vw"
+          focusRing
           className={cn(
             // 250px in the phone sheet, 20:19 in the desktop grid (BottomSheet and ListingCard READMEs).
-            "h-62.5 rounded-card transition-[box-shadow] lg:aspect-20/19 lg:h-auto",
+            // The active ring turns on and off at once (MOTION-9).
+            "h-62.5 rounded-card lg:aspect-20/19 lg:h-auto",
             active && "ring-2 ring-lime",
           )}
         />

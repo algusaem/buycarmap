@@ -86,7 +86,7 @@ field. Two paths write it:
   **debounces the search by 400 ms** (MAP-11), so a drag on the price range fires one
   fan-out, not a dozen.
 - `apply()` patches and searches at once, with no pause: the phone sheets' «Ver
-  coches», a removed chip and the panel's «Borrar» (MAPUI-13, MAPUI-19, MAPUI-21,
+  coches», a quick filter (MAPUI-63) and the panel's «Borrar» (MAPUI-19, MAPUI-21,
   MAPUI-22).
 
 Which desktop popover is open is one piece of state in the hook
@@ -114,8 +114,8 @@ radius live in the URL through [nuqs](https://nuqs.dev) parsers in
 plus `filtersToUrlState`/`urlStateToFilters` to convert to and from the hook's
 `FilterValues`), so a filtered search deep-links and a reload restores it. The
 URL is only written at the same points the hook already calls `search()` —
-the debounce firing, an explicit `triggerSearch()`, or `apply()` («Ver coches», a removed
-chip, «Borrar»; `clearAll()` goes through it) — each as
+the debounce firing, an explicit `triggerSearch()`, or `apply()` («Ver coches», a quick
+filter, «Borrar»; `clearAll()` goes through it) — each as
 a pushed history entry, not on every keystroke; a `useEffect` watching the
 nuqs-backed state resyncs and re-searches when the URL changes from outside
 the hook's own writes (Back/Forward, or a hand-edited URL). The root layout
@@ -355,7 +355,7 @@ Spanish or English in components.
 | `app/` | Routes, layouts, proxy route handlers |
 | `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/auth.ts` — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
-| `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row and panel), `phone/` (the phone search, sheets and results sheet) |
+| `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row, the quick filters and the panel), `phone/` (the phone search, sheets and results sheet) |
 | `components/alerts/` | The alerts pages (`AlertsPage`, `AlertPage`), the AlertCard, the alert map and the phone zone map, the delete confirmation, the loading and error states, and the create-alert dialog |
 | `components/nav/` | The headers, the phone tab bar and the language control |
 | `components/account/` | The account page: its cards, the dialog-or-sheet frame and each card's form in it, the loading placeholders |
@@ -371,7 +371,7 @@ Spanish or English in components.
 | `lib/favorites/` | The saved cars' pure sort and its URL parser (`sort.ts`) |
 | `lib/listings/` | The pure search-merge logic: interleaving, the radius, model and fuel post-filters, the page-state advance |
 | `lib/map/` | Pure map helpers: grouping listings into price pins, the results heading, the results state and the radius to widen to (`results-state.ts`), a card's DOM id (`card-dom-id.ts`), price-pin CSS classes (`pin-classes.ts`) |
-| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server, and the search UI's pure helpers: what the filters panel offers and clears (`panel.ts`), case- and accent-blind comparison (`fold.ts`), the phone summary (`phone-summary.ts`), the radii (`radii.ts`), the type-ahead's matching, the fuel groups, the chips and the alert summary |
+| `lib/search/` | The `SearchInput` Zod schema every source translates from, until phase 9 moves the search to the server, and the search UI's pure helpers: what the filters panel offers and clears (`panel.ts`), case- and accent-blind comparison (`fold.ts`), the phone summary (`phone-summary.ts`), the radii (`radii.ts`), the type-ahead's matching, the fuel groups, the chips, the quick filters and the alert summary |
 | `interfaces/` | Reusable typings — `CarListing`, `SelectedLocation`, `AlertSummary` |
 | `scripts/` | Tooling: branch databases, spec, docs and TODO checks — dependency-free except the TODO check, which loads `typescript` |
 
@@ -687,15 +687,15 @@ What each piece does is specified in [`specs/redesign-map.md`](specs/redesign-ma
 
 ```
 MapView
-├─ HeaderSearch            portalled into MapHeader's centre (lib/hooks/useMapHeaderSlot.ts)
-│  └─ SearchPill           «Dónde» · «Coche» · «Precio», then «Crear alerta»
-│     ├─ LocationPopover   PlaceField (Nominatim), RadiusChoice, «Toda España»
-│     ├─ CarPopover        CarTypeahead: brands, then models through useCarModels
-│     ├─ PricePopover      PriceRange (Radix Slider and boxes), shortcuts
-│     └─ CreateAlert       the inline card, in the pill's own popover
-├─ FilterRow               «Filtros» and the chips; FilterPanel is its desktop dropdown
-├─ MapResultsArea          the list-and-map column
-│  ├─ PhoneSearchBar       phone only: the summary, the filters button, FilterRow
+├─ HeaderSearch            portalled into MapHeader's two rows (lib/hooks/useMapHeaderSlot.ts)
+│  ├─ SearchPill           row one: «Dónde» · «Coche» · «Precio», then «Crear alerta»
+│  │  ├─ LocationPopover   PlaceField (Nominatim), RadiusChoice, «Toda España»
+│  │  ├─ CarPopover        CarTypeahead: brands, then models through useCarModels
+│  │  ├─ PricePopover      PriceRange (Radix Slider and boxes), shortcuts
+│  │  └─ CreateAlert       the inline card, in the pill's own popover
+│  └─ FilterRow            row two: «Filtros», QuickFilters; FilterPanel is its desktop dropdown
+├─ MapResultsArea          the list-and-map area
+│  ├─ PhoneSearchBar       phone only, in the band on top: the summary, «Filtros», QuickFilters
 │  ├─ ResultsSheet         the list column on desktop, the results sheet on a phone
 │  │  ├─ CarCard ×n        one link, the heart beside it
 │  │  └─ ResultsStatus     placeholders, no results, search error
@@ -734,7 +734,8 @@ that need the fade still in flight — see [Environment gotchas](#environment-go
 **The brand list** the type-ahead matches is `components/map/search-filter-options.ts`. The
 filter choices and the chip texts come from `lib/search/fuel-groups.ts` and
 `lib/search/filter-chips.ts`, whose labels are i18n keys; what the panel offers and what «Borrar»
-clears is `lib/search/panel.ts`, shared with the chips and the search hook.
+clears is `lib/search/panel.ts`, shared with the criterion texts the «Filtros» badge counts, the
+alert chips, the quick filters and the search hook.
 
 **State lives in hooks.** [`lib/hooks/useMapPageState.ts`](../lib/hooks/useMapPageState.ts) holds
 the map page's own UI state (which phone sheet is open, the results sheet's position, the active
@@ -789,8 +790,8 @@ hooks:
 Its loading and error files draw the same frame
 ([`components/favorites/SavedLayout.tsx`](../components/favorites/SavedLayout.tsx)) with
 placeholders or the page error. Every toast in the app is placed by `app/globals.css` from the
-page's `data-toast-anchor` (`saved` here, `map` on `/map`): under the header, or `/map`'s filter
-row, and centred over the list column (SAVED-24). A page with no `data-toast-anchor` has its
+page's `data-toast-anchor` (`saved` here, `map` on `/map`): under the header (on `/map`, its
+two-row band), and centred over the list column (SAVED-24). A page with no `data-toast-anchor` has its
 toast under the header, centred on the viewport.
 
 ### The alerts pages
@@ -1053,6 +1054,42 @@ than CSS animations for React components.
 `fadeInUp`, `dropdownReveal`, `sheetSlideUp`, `crossFade`, `sheetSpring` (a dragged bottom
 sheet springing to rest) — instead of re-declaring `initial`/`animate` inline.
 
+One timing system drives both Motion and CSS
+([`docs/specs/motion.md`](specs/motion.md), MOTION-1, MOTION-2). `app/globals.css` retimes
+Tailwind's default transition to 120ms on the ease-out curve `cubic-bezier(0.23, 1, 0.32, 1)`,
+so every `transition-*` class runs at it, and defines the named durations `fast`, `base` and
+`sheet`. `lib/animations.ts` exports the same values as `motionDuration` (0.12, 0.18, 0.24 s)
+and `easeOut`, and every preset reads them: `dropdownReveal` and `crossFade` at `base`,
+`sheetSlideUp` and `fadeInUp` at `sheet`.
+
+**Keyboard opens and closes at once** (MOTION-10 to MOTION-15).
+[`lib/input-modality.ts`](../lib/input-modality.ts) records whether the last input on the page
+was a key or a pointer press (`lastInputWasKeyboard()`), from two capture listeners on
+`window`. [`lib/hooks/usePresenceMotion.ts`](../lib/hooks/usePresenceMotion.ts) turns a preset
+into one that skips its entrance when a key opened the element and its exit when a key closed
+it; the popovers (`PopoverCard`), the dialogs and phone sheets (`components/ui/PresenceFade.tsx`,
+`SheetChrome`'s `SheetPanel`), the select dropdown (`components/ui/checkbox-select.tsx`, through
+`PresenceFade` with its `preset` prop set to `dropdownReveal`), the map preview (`MapPreview`),
+the legal index (`LegalToc`), the «Filtros» count badge (`FiltersBadge`) and the validation
+notices (`FieldMessage`, Crear alerta's `Notice`) use it (MOTION-18, MOTION-23).
+`useResultsSheetDrag` jumps instead of springing after a key, and the tab bar (`TabBar`, through
+[`lib/hooks/useChangedByKey.ts`](../lib/hooks/useChangedByKey.ts)) hides or comes back at once
+when a key moved the sheet.
+
+**Release speed of a drag** (MOTION-20). The results sheet (`useResultsSheetDrag`) and the
+phone bottom sheets (`SheetChrome`'s `SheetPanel`) read a release's speed from the pointer
+events themselves, through [`lib/sheet-release-velocity.ts`](../lib/sheet-release-velocity.ts)
+(`samplePress`, `releaseVelocity`) and the shared
+[`lib/hooks/useReleaseSampling.ts`](../lib/hooks/useReleaseSampling.ts) hook that owns each
+handle's press and its unmount cleanup, never from Motion's drag velocity, which reads 0 on a
+flick drawn in one frame on an idle page. The rule is in the MAPUI-60 worked examples in
+[`docs/specs/redesign-map.md`](specs/redesign-map.md).
+
+**Surfaces that never animate**: which ones is MOTION-8, MOTION-9, MOTION-13, MOTION-18,
+MOTION-19 and MOTION-22 in [`docs/specs/motion.md`](specs/motion.md). The mechanism: their
+items render and leave with no `AnimatePresence`, and those elements carry no `transition-*`
+class.
+
 Animate only `transform` and `opacity`. Never animate layout properties, and
 never `transition: all`. Honour `prefers-reduced-motion`.
 
@@ -1060,8 +1097,8 @@ The app root sets `MotionConfig reducedMotion="user"` in `components/MotionProvi
 the client boundary that wraps every page, so this applies everywhere
 (FRONT-29, [`docs/specs/core-frontend.md`](specs/core-frontend.md)).
 
-`dropdownReveal` (fade with a 4 px vertical offset in and out, `duration.fast`)
-and `crossFade` (fade, `duration.fast`) are the owner-approved presets for
+`dropdownReveal` (fade with a 4 px vertical offset in and out, `motionDuration.base`)
+and `crossFade` (fade, `motionDuration.base`) are the owner-approved presets for
 popover content (2026-09-28).
 
 ### Internationalisation
@@ -1295,7 +1332,14 @@ Spain-centre fallback is what you get), matchMedia and canvas. All are stubbed i
 Motion runs with instant animations in jsdom by default (`test/setup.jsdom.ts`); most tests assert
 end states, and animations are exercised by E2E. A test that needs an exit still in flight — a
 fading preview card, a closing popover — wraps its own body in `withAnimations`
-(`test/utils/animations.ts`), which turns real animations back on for exactly that call.
+(`test/utils/animations.ts`), which turns real animations back on for exactly that call; the same
+wrapper also proves that something does *not* animate, by asserting no inline opacity below 1 or
+the element gone in the same tick, with animations on.
+
+**`lib/input-modality.ts`'s last input is page-wide module state.** A key pressed in one test
+makes the next test's open or close instant, whatever that next test presses. Files that compare
+keyboard and pointer behaviour reset it with
+`beforeEach(() => window.dispatchEvent(new PointerEvent("pointerdown")))`.
 
 **Leaflet runs in jsdom for exactly one test file.** Most component tests mock `react-leaflet`;
 `components/map/ListingsMap.preview.test.tsx` renders the real library instead, for the preview

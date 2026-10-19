@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { withAnimations } from "@/test/utils/animations";
 import type { CarListing } from "@/interfaces/listing";
 import { ListingsMap } from "./ListingsMap";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 // docs/specs/redesign-map.md (MAPUI-25, MAPUI-27). Unlike ListingsMap.test.tsx,
 // this file runs the real Leaflet and react-leaflet: opening, closing and the
@@ -261,13 +267,12 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
     });
   });
 
+  // MOTION-11 (docs/specs/motion.md): Escape closes the keyboard way, at
+  // once — the "Escape" row this it.each used to carry assumed an exit still
+  // playing after Escape, which is no longer true, so it moved to its own
+  // "closes at once" test below. Its pointer twins (an outside press, the
+  // close button pressed with a pointer) still animate and stay here.
   it.each([
-    [
-      "Escape",
-      async () => {
-        await userEvent.keyboard("{Escape}");
-      },
-    ],
     [
       "an outside press",
       async () => {
@@ -302,6 +307,10 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
     },
   );
 
+  // MOTION-11: Escape now closes at once (its own test below), so there is no
+  // exit left to cancel when it triggers the close — this reopens mid-fade
+  // from a pointer close instead (a click on the pin toggles it shut), which
+  // still animates and keeps the cancel-the-exit behaviour this test covers.
   it("MAPUI-27: reopening a pin mid-fade cancels the exit, leaving the preview open and focused", async () => {
     await withAnimations(async () => {
       renderMap();
@@ -314,7 +323,10 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
       // frame before pressing Escape and triggering the exit.
       await waitFor(() => expect(Number(opened.style.opacity)).toBeGreaterThan(0));
 
-      await userEvent.keyboard("{Escape}");
+      // Past jsdom's double-click window, so this press is not read as the
+      // second half of a double-click.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await userEvent.click(pin);
       expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
 
       await userEvent.click(pin);
@@ -344,13 +356,18 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
       }
       renderWithI18n(<Wrapper />, { locale: "es" });
 
-      await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
+      const pin = screen.getByRole("button", { name: AUDI_PIN });
+      await userEvent.click(pin);
       const opened = await screen.findByRole("article", { name: "Vista previa del coche" });
       // As in the mid-fade reopen above: wait for the enter animation's first
       // frame, or the exit from opacity 0 is instant and nothing is mid-exit.
       await waitFor(() => expect(Number(opened.style.opacity)).toBeGreaterThan(0));
 
-      await userEvent.keyboard("{Escape}");
+      // MOTION-11: Escape now closes at once, leaving nothing mid-exit for
+      // this unmount to interrupt — a pointer close (a click on the pin)
+      // still animates, which is what this test needs.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await userEvent.click(pin);
       expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole("button", { name: "Drop Audi" }));
@@ -359,6 +376,128 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
       expect(document.querySelector(".leaflet-popup")).toBeNull();
     });
   });
+});
+
+// docs/specs/motion.md (MOTION-11, amends MAPUI-27): a keyboard open or close
+// (Enter/Space, Escape) skips the fade; a pointer open or close still plays
+// it. The pointer side is already proven by the MAPUI-27 tests above (opacity
+// above 0 once opened, still mounted right after a pointer close) — these
+// four are what MOTION-11 adds or changes.
+describe("MOTION-11: ListingsMap — the preview opens and closes at once from the keyboard, but still fades for a pointer", () => {
+  it.each([
+    ["Enter", "{Enter}"],
+    ["Space", " "],
+  ])(
+    "MOTION-11: %s on a pin opens the preview with no inline opacity below 1, even with animations enabled",
+    async (_key, keys) => {
+      await withAnimations(async () => {
+        renderMap();
+        screen.getByRole("button", { name: AUDI_PIN }).focus();
+
+        await userEvent.keyboard(keys);
+
+        const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+        const opacity = card.style.opacity;
+        expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+      });
+    },
+  );
+
+  it("MOTION-11: Escape closes the preview in the same tick, with no exit animation to wait for", async () => {
+    await withAnimations(async () => {
+      renderMap();
+      const pin = screen.getByRole("button", { name: AUDI_PIN });
+      pin.focus();
+      await userEvent.keyboard("{Enter}");
+      await screen.findByRole("article", { name: "Vista previa del coche" });
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(
+        screen.queryByRole("article", { name: "Vista previa del coche" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("MOTION-11: a pointer open still fades in, with an inline opacity below 1 right after the click", async () => {
+    await withAnimations(async () => {
+      renderMap();
+
+      await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
+
+      const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+      expect(Number(card.style.opacity)).toBeLessThan(1);
+    });
+  });
+});
+
+// docs/specs/motion.md (Edge cases, MOTION-11): a close nobody triggered — the
+// open preview's car leaves the results — always happens at once, whatever
+// the last input: the preview leaves with its pin, and pins never animate.
+describe("MOTION-11: ListingsMap — a preview whose car leaves the results", () => {
+  it("MOTION-11: after a key press («a»), the preview is gone in the same tick when its car leaves the results", async () => {
+    await withAnimations(async () => {
+      const { rerender } = renderMap();
+      await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
+      await screen.findByRole("article", { name: "Vista previa del coche" });
+
+      fireEvent.keyDown(window, { key: "a" });
+      await act(async () => {
+        rerender(<ListingsMap listings={[SEAT]} />);
+      });
+
+      expect(preview()).not.toBeInTheDocument();
+    });
+  });
+
+  it("MOTION-11: even after pointer input, the preview is gone in the same tick when its car leaves the results", async () => {
+    await withAnimations(async () => {
+      const { rerender } = renderMap();
+      await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
+      await screen.findByRole("article", { name: "Vista previa del coche" });
+
+      await act(async () => {
+        rerender(<ListingsMap listings={[SEAT]} />);
+      });
+
+      expect(preview()).not.toBeInTheDocument();
+    });
+  });
+});
+
+// docs/specs/motion.md (MOTION-9): a price pin's active state turns on and
+// off with no transition.
+describe("MOTION-9: ListingsMap — the pin's active state has no transition", () => {
+  it("MOTION-9: the pin's span carries no transition- class", () => {
+    renderMap();
+
+    const pin = screen.getByRole("button", { name: AUDI_PIN });
+    const span = pin.querySelector("span");
+    expect(span?.className ?? "").not.toMatch(/\btransition-/);
+  });
+});
+
+// docs/specs/motion.md (MOTION-17): the preview's close button and «Ver
+// anuncio» gain a hover and a press state, in the state transition.
+describe("MOTION-17: ListingsMap — hover and press on the preview's close button and «Ver anuncio»", () => {
+  it.each([
+    ["the close button", "button", "Cerrar vista previa", "hover:bg-surface-strong"],
+    ["«Ver anuncio»", "link", /Ver anuncio/, "hover:brightness-108"],
+  ] as const)(
+    "MOTION-17: %s carries its hover class and active:scale-97, off under reduced motion",
+    async (_what, role, name, hover) => {
+      renderMap();
+      screen.getByRole("button", { name: AUDI_PIN }).focus();
+      await userEvent.keyboard("{Enter}");
+      const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+
+      const className = within(card).getByRole(role, { name }).className;
+      expect(className).toContain(hover);
+      expect(className).toContain("active:scale-97");
+      expect(className).toContain("motion-reduce:active:scale-none");
+      expect(className).toMatch(/transition-\[[^\]]+\]/);
+    },
+  );
 });
 
 describe("MAPUI-24: ListingsMap — a grouped pin", () => {

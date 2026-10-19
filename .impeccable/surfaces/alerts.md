@@ -75,8 +75,10 @@ this brief and the design disagree, the design wins and this brief is corrected.
   alert's page it scrolls its card into view.
 - Back restores the alert page's scroll; Tab walks every match in order to «Eliminar alerta».
 - The car sheet and the confirmation sheet slide up over the dimmed screen and close by dragging the
-  handle, Escape or a press outside, returning focus to their opener. Everything that appears or
-  disappears animates with Motion.
+  handle, Escape or a press outside, returning focus to their opener. Motion follows
+  `docs/specs/motion.md`: opened or closed with a pointer, the sheets slide over 240ms and the
+  dialogs fade over 180ms; with a key or Escape they appear and disappear at once. The alerts list,
+  its cards, its empty state, the card rings and the pins never animate.
 
 ## 7. Constraints and open decisions
 

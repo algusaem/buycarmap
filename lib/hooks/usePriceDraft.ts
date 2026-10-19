@@ -14,7 +14,8 @@ import { useRef, useState } from "react";
 //   above the maximum.
 //
 // `onApply` gets `undefined` for "no minimum" and "no maximum". The draft
-// follows the criterion when it changes outside (a removed chip, «Borrar»).
+// follows the criterion when it changes outside (the pill's price popover,
+// «Borrar»).
 
 export const PRICE_RANGE_MAX = 30000;
 export const PRICE_RANGE_STEP = 500;

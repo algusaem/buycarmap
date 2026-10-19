@@ -35,7 +35,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             variant="ghost"
             size="icon-sm"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-1 top-1/2 size-11 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-1 top-1/2 size-11 -translate-y-1/2 text-muted-foreground transition-[color,background-color,scale] hover:text-text"
             aria-label={showPassword ? t("password.hide") : t("password.show")}
           >
             {showPassword ? (

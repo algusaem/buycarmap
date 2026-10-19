@@ -45,7 +45,9 @@ design wins and this brief is corrected.
 
 ## 6. Interaction and layout
 
-- The index list appears and leaves with Motion; scrolling moves the current mark, never the index.
+- The phone index folds over 180ms when a pointer chooses a section and at once when a key does,
+  then the page jumps (`docs/specs/motion.md`, MOTION-15); scrolling moves the current mark, never
+  the index.
 - Every index link is a 44px target on a phone.
 
 ## 7. Constraints and open decisions

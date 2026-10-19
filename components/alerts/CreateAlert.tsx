@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneBottomSheet } from "@/components/map/phone/SheetChrome";
 import { crossFade } from "@/lib/animations";
+import { usePresenceMotion } from "@/lib/hooks/usePresenceMotion";
 import { authClient } from "@/lib/auth/auth-client";
 import { translateError } from "@/lib/i18n/errors";
 import type { Translations } from "@/lib/i18n/types";
@@ -258,11 +259,17 @@ interface NoticeProps {
   children: ReactNode;
 }
 
-/** The too-broad notice, the empty-name error and a refused create, in one style (`role="alert"`), fading in and out. */
+/**
+ * The too-broad notice, the empty-name error and a refused create, in one
+ * style (`role="alert"`), fading in and out, at once when a key caused the
+ * change (MOTION-23, usePresenceMotion).
+ */
 function Notice({ id, children }: NoticeProps) {
+  const fade = usePresenceMotion(crossFade);
+
   return (
     <motion.p
-      {...crossFade}
+      {...fade}
       id={id}
       role="alert"
       className="m-0 flex items-start gap-2 text-sm font-semibold text-text"

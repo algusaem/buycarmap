@@ -267,3 +267,19 @@ describe("ENTRY-5: LandingSearch — the phone card opens the BUSCAR sheet", () 
     });
   });
 });
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-21: the phone search
+// card gains the hover and press of the map's phone summary (MOTION-6), in
+// the state transition.
+describe("MOTION-21: LandingSearch — hover and press on the phone card", () => {
+  it("MOTION-21: the card carries transition-[border-color,scale], hover:border-text-muted and active:scale-97, off under reduced motion", () => {
+    renderWithI18n(<LandingSearch />, { locale: "es" });
+
+    const classes = screen.getByTestId("landing-search-phone").className.split(/\s+/);
+    expect(classes).toContain("cursor-pointer");
+    expect(classes).toContain("transition-[border-color,scale]");
+    expect(classes).toContain("hover:border-text-muted");
+    expect(classes).toContain("active:scale-97");
+    expect(classes).toContain("motion-reduce:active:scale-none");
+  });
+});

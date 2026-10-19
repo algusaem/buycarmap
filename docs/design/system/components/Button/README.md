@@ -11,7 +11,7 @@ Píldoras `radius-pill`. El principal va en `lime` con texto `on-lime`, para lo 
   - 42px, «Ver anuncio» de la vista previa: padding 0 16px, 14px.
   - Pequeño, por padding: 11px 20px a 15px («Crear cuenta» en la cabecera de la landing) y 10px 16px a 14px («Nueva alerta»).
 - **Secundario**: borde 1px `line`, texto `text`, peso 700. 48px a 15px con padding 0 20px («Volver al mapa» en un error de página) y a ancho completo («Guardar» o «Quitar de guardados» en la hoja del coche, con el corazón de 16px a 8px); 44px a 14px con padding 0 18px (botones de AccountCard); 10px 16px a 14px («Cerrar sesión»).
-  - Con icono: «Filtros», 10px 16px a 14px, icono de ajustes de tres mandos de 16px, 8px de hueco y la insignia `violet` con el número.
+  - Con icono: «Filtros», 34px, padding 0 14px a 13px, icono de ajustes de 16px, 8px de hueco y la insignia `violet` con el número (en el móvil, el botón redondo de 44px de [Chip](../Chip/README.md)); «Crear alerta», 40px, padding 0 16px a 14px, con bell-plus de 18px y 8px de hueco.
 - **Fantasma**: solo texto, peso 700, en `text`.
   - Navegación de cabecera: 15px, padding 10px 16px («Entrar», «Mapa»).
   - Deshacer sin drama: «Quitar filtros», 48px a 15px con padding 0 14px. Al pasar el ratón o con foco, el texto pasa a `danger`.
@@ -19,6 +19,7 @@ Píldoras `radius-pill`. El principal va en `lime` con texto `on-lime`, para lo 
   - **Confirmar en escritorio**: un diálogo centrado (`role="alertdialog"`) sobre la página oscurecida (`bg` al 72 %, como las hojas del móvil), con lo mismo que la hoja de confirmar: «¿ELIMINAR «COROLLA HÍBRIDO»?», con el nombre de la alerta (Unbounded 15px peso 800, centrado) y, a 4px, «Eliminar» (peligro) y «Cancelar» (fantasma de 44px), los dos a todo el ancho. `surface`, borde `line`, `radius-card`, `shadow-float`, 380px de ancho y padding 20px, como el desplegable de Crear alerta; sin asa. Se cierra con «Cancelar», con Escape o pulsando fuera, y el foco vuelve a «Eliminar alerta».
 - **De icono**: 42px redondo con borde `line` y `aria-label` obligatorio (Guardar, Favoritos). Guardado: relleno `violet` sin borde y el corazón relleno en `on-violet`. 40px para cerrar un panel (FilterSheet), con la `x` de 14px, y para el «Cerrar» de la hoja del coche y de la hoja «BUSCAR», que solo se ve con el foco del teclado; y «Volver» de la página de una alerta en móvil, un enlace de 40px con `chevron-left` de 18px.
 - **De texto**: «Borrar» del panel de filtros, 14px peso 700 subrayado.
-- **Enlaces de texto**: en `text`; al pasar el ratón, `lime`. «Créala» y «Entra», al pie de los formularios de acceso, ya van en `lime` peso 700 porque son la siguiente acción.
+- **Enlaces de texto**: en `text`; al pasar el ratón, `lime`. «Créala» y «Entra», al pie de los formularios de acceso, ya van en `lime` peso 700 porque son la siguiente acción. Al pasar el ratón, «Créala» pasa a `text`; se encoge a 0,97 mientras se pulsa, salvo con movimiento reducido.
 - El enlace a un portal externo lleva a la derecha el icono `arrow-up-right` de Lucide (15px, a 6px del texto; nunca el carácter «↗») y abre en pestaña nueva.
 - Foco visible: contorno 2px `lime` separado 3px.
+- **Hover y pulsación** (en la transición de estado de 120ms, curva `ease-out`): el principal se aclara un poco; el secundario pasa su borde a `text-muted` y se rellena de `surface`; el fantasma y el de icono se rellenan de `surface-strong`. Todos se encogen a 0,97 mientras se pulsan, salvo con movimiento reducido. «Quitar filtros» sigue cambiando de color al instante.

@@ -10,13 +10,14 @@ interface WordmarkProps {
 // docs/design/system/components/Wordmark/README.md: type only, «BUYCAR» in
 // text and «MAP» in lime, Unbounded 900, upper case, no letter-spacing, and
 // always a link to the landing. The brand name is not translated; the
-// upper case is CSS so the link's accessible name reads «BuyCarMap».
+// upper case is CSS so the link's accessible name reads «BuyCarMap». Like the
+// header links, it turns lime on hover and presses to 0.97 (MOTION-21).
 export function Wordmark({ size, className }: WordmarkProps) {
   return (
     <Link
       href="/"
       className={cn(
-        "font-display font-black uppercase leading-none text-text",
+        "font-display font-black uppercase leading-none text-text transition-[color,scale] hover:text-lime active:scale-97 motion-reduce:active:scale-none",
         size === "desktop" ? "text-xl" : "text-base",
         className,
       )}

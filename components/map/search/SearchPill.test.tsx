@@ -1,15 +1,22 @@
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { clearCarModelsCache } from "@/lib/hooks/useCarModels";
 import type { SearchPopover } from "@/lib/hooks/useSearchFilters";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { CarPopover } from "./CarPopover";
 import { LocationPopover } from "./LocationPopover";
 import { PricePopover } from "./PricePopover";
 import { SearchPill, type SearchPillProps } from "./SearchPill";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 // The «Coche» popover's models come from the listCarModels Server Action,
 // mocked at that boundary as in CarPopover.test.tsx.
@@ -347,5 +354,180 @@ describe("SearchPill accessibility — the open popovers", () => {
     expect(within(popover).getAllByRole("button").length).toBeGreaterThan(0);
 
     expect(await axe(document.body)).toHaveNoViolations();
+  });
+});
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-6: the segments and the
+// search button gain a hover state on pointer devices and a press state.
+describe("MOTION-6: SearchPill — hover and press on the segments and the search button", () => {
+  it("MOTION-6: a segment carries hover:text-lime and active:scale-97, off under reduced motion", () => {
+    renderWithI18n(<SearchPill {...BASE} />, { locale: "es" });
+
+    const className = screen.getByRole("button", { name: "Ciudad o código postal…" }).className;
+    expect(className).toContain("hover:text-lime");
+    expect(className).toContain("active:scale-97");
+    expect(className).toContain("motion-reduce:active:scale-none");
+  });
+
+  it("MOTION-6: the search button carries hover:brightness-108 and active:scale-97, off under reduced motion", () => {
+    renderWithI18n(<SearchPill {...BASE} />, { locale: "es" });
+
+    const className = screen.getByRole("button", { name: "Buscar" }).className;
+    expect(className).toContain("hover:brightness-108");
+    expect(className).toContain("active:scale-97");
+    expect(className).toContain("motion-reduce:active:scale-none");
+  });
+});
+
+// docs/specs/motion.md (MOTION-10): a segment's popover appears at once when
+// opened with Enter and disappears at once when closed with Escape; opened
+// or closed with a pointer, it still fades.
+describe("MOTION-10: SearchPill — a segment's popover opens and closes at once from the keyboard, but still animates for a pointer", () => {
+  function Harness({ initial = null }: { initial?: SearchPopover | null }) {
+    const [openSegment, setOpenSegment] = useState<SearchPopover | null>(initial);
+    return (
+      <SearchPill
+        {...BASE}
+        openSegment={openSegment}
+        setOpenSegment={setOpenSegment}
+        popovers={{
+          car: (
+            <CarPopover
+              brand=""
+              model=""
+              onSelectBrand={vi.fn()}
+              onSelectModel={vi.fn()}
+              onClear={vi.fn()}
+              onClose={() => setOpenSegment(null)}
+            />
+          ),
+        }}
+      />
+    );
+  }
+
+  it("MOTION-10: Enter on Coche opens its popover with no inline opacity below 1, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      screen.getByRole("button", { name: "Cualquier marca" }).focus();
+
+      await userEvent.keyboard("{Enter}");
+
+      const popover = await screen.findByRole("dialog", { name: "Coche" });
+      const opacity = popover.style.opacity;
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-10: Escape closes the popover in the same tick, with no exit animation to wait for", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      screen.getByRole("button", { name: "Cualquier marca" }).focus();
+      await userEvent.keyboard("{Enter}");
+      await screen.findByRole("dialog", { name: "Coche" });
+
+      await userEvent.keyboard("{Escape}");
+
+      // Not even mounted as a hidden, leaving element.
+      expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    });
+  });
+
+  it("MOTION-10: opened with a click and closed with Escape, the popover is gone in the same tick (worked example «Filtros», third row)", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      await userEvent.click(screen.getByRole("button", { name: "Cualquier marca" }));
+      await screen.findByRole("dialog", { name: "Coche" });
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    });
+  });
+
+  it("MOTION-10: a click on Coche still fades its popover in, with an inline opacity below 1 right after", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+
+      await userEvent.click(screen.getByRole("button", { name: "Cualquier marca" }));
+
+      const popover = await screen.findByRole("dialog", { name: "Coche" });
+      expect(Number(popover.style.opacity)).toBeLessThan(1);
+    });
+  });
+
+  it("MOTION-10: a click outside still plays the close animation — the popover is still mounted right after", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      await userEvent.click(screen.getByRole("button", { name: "Cualquier marca" }));
+      await screen.findByRole("dialog", { name: "Coche" });
+
+      // A synchronous outside press, so no await can let the 180ms exit finish
+      // before the assertion below.
+      fireEvent.pointerDown(document.body);
+      fireEvent.pointerUp(document.body);
+      fireEvent.click(document.body);
+
+      // Still in the document while its exit plays: aria-hidden and inert
+      // (PopoverCard.tsx), so it is found only by asking for hidden roles —
+      // and an aria-hidden node's computed accessible name is empty, so its
+      // identity is checked by the aria-label attribute instead of by name.
+      const popover = screen.getByRole("dialog", { hidden: true });
+      expect(popover).toHaveAttribute("aria-label", "Coche");
+    });
+  });
+});
+
+// docs/specs/motion.md (MOTION-10): the desktop «Crear alerta» popover
+// appears at once when opened with Enter and disappears at once when closed
+// with Escape; opened or closed with a pointer, it still fades.
+describe("MOTION-10: SearchPill — the «Crear alerta» popover opens and closes at once from the keyboard, but still animates for a pointer", () => {
+  function CreateAlertHarness() {
+    const [createAlertOpen, setCreateAlertOpen] = useState(false);
+    return (
+      <SearchPill
+        {...BASE}
+        createAlertOpen={createAlertOpen}
+        onCreateAlertOpenChange={setCreateAlertOpen}
+        createAlert={<p>Resumen</p>}
+      />
+    );
+  }
+
+  it("MOTION-10: Enter on «Crear alerta» opens its popover with no inline opacity below 1, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<CreateAlertHarness />, { locale: "es" });
+      screen.getByRole("button", { name: "Crear alerta" }).focus();
+
+      await userEvent.keyboard("{Enter}");
+
+      const popover = await screen.findByRole("dialog", { name: "Crear alerta" });
+      const opacity = popover.style.opacity;
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-10: Escape closes the «Crear alerta» popover in the same tick, with no exit animation to wait for", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<CreateAlertHarness />, { locale: "es" });
+      screen.getByRole("button", { name: "Crear alerta" }).focus();
+      await userEvent.keyboard("{Enter}");
+      await screen.findByRole("dialog", { name: "Crear alerta" });
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    });
+  });
+
+  it("MOTION-10: a click on «Crear alerta» still fades its popover in, with an inline opacity below 1 right after", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<CreateAlertHarness />, { locale: "es" });
+
+      await userEvent.click(screen.getByRole("button", { name: "Crear alerta" }));
+
+      const popover = await screen.findByRole("dialog", { name: "Crear alerta" });
+      expect(Number(popover.style.opacity)).toBeLessThan(1);
+    });
   });
 });

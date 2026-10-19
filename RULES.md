@@ -221,7 +221,9 @@ An approval covers the case it was given for, not the next one.
   `rgb`, arbitrary classes like `[#…]`). A new colour is added to the theme, after approval (§1).
 - Keep the existing visual patterns. No new styles without asking.
 - Every element that appears or disappears (modals, dropdowns, conditional lists…) is animated
-  with Motion (`AnimatePresence` + `motion.*`). Exception: toasts, which Sonner already animates.
+  with Motion (`AnimatePresence` + `motion.*`). Exceptions: toasts, which Sonner already animates;
+  surfaces used many times a day and anything a keyboard action opens, moves or closes, which are
+  never animated (§19 "Animation").
 - Respect `prefers-reduced-motion` (`MotionConfig reducedMotion="user"`).
 - Responsive design: check it on mobile and desktop.
 - Never absolute positioning unless strictly necessary.
@@ -289,7 +291,7 @@ Concise rules for building accessible, fast, delightful UIs, marked MUST / SHOUL
 ### Touch & Drag
 
 - MUST: Generous targets, clear affordances; avoid finicky interactions
-- MUST: Delay first tooltip; subsequent peers instant
+- MUST: Delay first tooltip; subsequent peers instant, with no delay and no animation
 - MUST: `overscroll-behavior: contain` in modals/drawers
 - MUST: During drag, disable text selection and set `inert` on dragged elements
 - MUST: If it looks clickable, it must be clickable
@@ -300,7 +302,15 @@ Concise rules for building accessible, fast, delightful UIs, marked MUST / SHOUL
 
 ### Animation
 
-- MUST: Elements that appear or disappear animate with Motion (§17); CSS transitions only for state changes (hover, focus, active)
+When and how much to animate follows Emil Kowalski's [You don't need animations](https://emilkowal.ski/ui/you-dont-need-animations).
+
+- MUST: Every animation has a purpose — it explains how something works, gives feedback (a subtle scale-down on press) or keeps a change from feeling abrupt (an element appearing)
+- MUST: Delight-only animations only on surfaces users rarely see; never on ones used daily
+- NEVER: Animate surfaces used many times a day (command menu, frequently used lists and their hover) — the best animation there is none
+- NEVER: Animate keyboard-initiated actions (shortcuts, arrow-key navigation, opening or closing by key)
+- MUST: UI animations stay under 300ms (a dropdown ~180ms, not 400ms); longer only on marketing pages
+- MUST: Elements enter and leave from the same direction (spatial consistency)
+- MUST: Elements that appear or disappear animate with Motion (§17), except on the surfaces above that are never animated; CSS transitions only for state changes (hover, focus, active)
 - MUST: Honor `prefers-reduced-motion` (§17)
 - MUST: Animate compositor-friendly props (`transform`, `opacity`) only
 - NEVER: Animate layout props (`top`, `left`, `width`, `height`)
