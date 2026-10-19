@@ -1,7 +1,15 @@
+import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { e2eEmail, seedUser } from "./fixtures/db";
 import { dragDown, sheetOffset } from "./fixtures/drag";
-import { box, expectWithin, hitArea, scrollableAncestor, settledBox } from "./fixtures/measure";
+import {
+  box,
+  expectWithin,
+  hitArea,
+  scrollableAncestor,
+  settledBox,
+  wholly,
+} from "./fixtures/measure";
 import { mockListingSources } from "./fixtures/network";
 
 test.beforeEach(async ({ page }) => {
@@ -15,26 +23,20 @@ test("renders interleaved listings from all sources on the map page", async ({ p
   // Each listing is a pin named by its title on both widths (MAPUI-25); a
   // phone's results sheet shows only the first card, so card text alone
   // cannot prove the fan-out there.
-  // The pin's marker is a zero-size point (ListingsMap.tsx), so the visible
-  // part is its price pill.
-  await expect(
-    page.getByRole("button", { name: /Audi A3 2\.0 TDI/ }).locator("span"),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: /BMW Serie 3 320d/ }).locator("span"),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: /SEAT León 1\.5 TSI/ }).locator("span"),
-  ).toBeVisible();
+  // Each pin is a button inside its MapLibre marker (ListingsMap.tsx).
+  const pins = page.locator(".maplibregl-marker");
+  await expect(pins.getByRole("button", { name: /Audi A3 2\.0 TDI/ })).toBeVisible();
+  await expect(pins.getByRole("button", { name: /BMW Serie 3 320d/ })).toBeVisible();
+  await expect(pins.getByRole("button", { name: /SEAT León 1\.5 TSI/ })).toBeVisible();
 });
 
-test("renders the Leaflet map surface", async ({ page, isMobile }) => {
+test("renders the MapLibre map surface", async ({ page, isMobile }) => {
   // This checks the desktop layout, the map beside the list. A phone keeps the
   // map on screen under the top band and the results sheet, which the
   // MAPUI-20 to MAPUI-24 cases cover.
   test.skip(!!isMobile, "map is behind an overlay on mobile");
   await page.goto("/map");
-  await expect(page.locator(".leaflet-container")).toBeVisible();
+  await expect(page.locator('[data-map="listings"] canvas.maplibregl-canvas')).toBeVisible();
 });
 
 test("keeps results after opening the filters panel", async ({ page }) => {
@@ -54,7 +56,7 @@ test("keeps results after opening the filters panel", async ({ page }) => {
 // the former e2e/map-search.spec.ts: this file's name matches the "mobile"
 // project's testMatch (playwright.config.ts), so these run under both
 // chromium and mobile without a config change. Desktop-only and phone-only
-// cases are gated with `isMobile`, the same way "renders the Leaflet map
+// cases are gated with `isMobile`, the same way "renders the MapLibre map
 // surface" above gates itself.
 
 const MOBILE = { width: 375, height: 812 };
@@ -97,13 +99,9 @@ async function assertTouchTargets(root: Locator, label: string) {
   expect(controls.length, `${label} controls found`).toBeGreaterThan(0);
 
   for (const control of controls) {
-    // A pin's own element is Leaflet's zero-size marker point (ListingsMap.tsx's
-    // pinIcon): it carries the role, the aria-label and the click, but no box
-    // of its own, so it reads as invisible. Its visible pill — the marker's
-    // only child — is what a finger actually lands on, so that is what gets
-    // measured instead of skipping the pin.
-    const isPin = await control.evaluate((el) => el.classList.contains("leaflet-marker-icon"));
-    const target = isPin ? control.locator("span").first() : control;
+    // A pin is a button inside its MapLibre marker (ListingsMap.tsx): its own
+    // box and its ::before hit area are what a finger lands on.
+    const target = control;
 
     if (!(await target.isVisible())) continue;
     const name = (await target.textContent())?.trim() || "(unnamed)";
@@ -208,11 +206,8 @@ test.describe("MAPUI-39: Crear alerta replaces the pin preview", () => {
 
       await signIn(page, email);
       await page.goto("/map");
-      // The pin's element is a zero-size point; its price pill takes the press.
-      await page
-        .getByRole("button", { name: /Audi A3 2\.0 TDI/ })
-        .locator("span")
-        .click();
+      // The pin is the button itself, its price as its text (MapLibre marker).
+      await page.getByRole("button", { name: /Audi A3 2\.0 TDI/ }).click();
       const preview = page.getByRole("article", { name: /vista previa del coche|car preview/i });
       await expect(preview).toBeVisible();
 
@@ -957,7 +952,7 @@ async function openPhoneMap(page: Page) {
   const sheet = page.getByTestId("results-sheet");
   const handle = sheet.getByRole("button", { name: SHEET_HANDLE });
   const strip = page.getByTestId("results-sheet-handle-strip");
-  await expect(page.locator(".leaflet-container")).toBeVisible();
+  await expect(page.locator('[data-map="listings"] canvas.maplibregl-canvas')).toBeVisible();
   await expect(sheet.getByRole("article").first()).toBeVisible();
   const middle = await expectSheetPlacedAtMiddle(page, sheet);
   return { sheet, handle, strip, middle };
@@ -1213,7 +1208,7 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
 test.describe("MAPUI-62: the map lowers the middle results sheet", () => {
   /**
    * A point on the bare map between the top band's lower edge and the
-   * middle sheet's top edge: inside the Leaflet container and on no pin.
+   * middle sheet's top edge: inside the MapLibre map and on no pin.
    */
   async function bareMapPoint(page: Page, sheet: Locator): Promise<{ x: number; y: number }> {
     const search = await box(page.getByTestId("phone-map-band"));
@@ -1225,7 +1220,7 @@ test.describe("MAPUI-62: the map lowers the middle results sheet", () => {
         for (let y = Math.round((from + to) / 2); y < to; y += 8) {
           for (let x = 24; x < width - 24; x += 16) {
             const hit = document.elementFromPoint(x, y);
-            if (hit?.closest(".leaflet-container") && !hit.closest(".leaflet-marker-icon")) {
+            if (hit?.closest(".maplibregl-map") && !hit.closest(".maplibregl-marker")) {
               return { x, y };
             }
           }
@@ -1343,5 +1338,397 @@ test.describe("MOTION-16: the «Filtros» dropdown closes with Escape within two
     expect(opacityNextFrame).toBeLessThan(1);
 
     await expect(dropdown).not.toBeAttached({ timeout: 300 });
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-27); docs/specs/motion.md
+// (MOTION-11); docs/specs/map-maplibre.md (MAPLIBRE-6, MAPLIBRE-8). The
+// desktop preview's open, close, focus and Escape lifecycle, in a real
+// browser on the real MapLibre map — ported from the removed
+// components/map/ListingsMap.preview.test.tsx, which ran real Leaflet in
+// jsdom. The cases that assert a callback, a re-render with new props or a
+// class stayed in components/map/ListingsMap.test.tsx against the stand-in.
+test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", () => {
+  const PREVIEW_NAME = /^(vista previa del coche|car preview)$/i;
+  const CLOSE_NAME = /^(cerrar vista previa|close preview)$/i;
+  const AUDI_PIN = /^Audi A3 2\.0 TDI, /;
+  const BMW_PIN = /^BMW Serie 3 320d, /;
+
+  /** Waits two animation frames: what an instant open or close needs to be drawn, and far too little for a 180ms fade. */
+  async function twoFrames(page: Page) {
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }),
+    );
+  }
+
+  /** /map at 1440×900 with the three stubbed cars, their pins drawn. */
+  async function openDesktopMap(page: Page) {
+    await gotoMap(page, DESKTOP_1440);
+    const mapEl = page.locator('[data-map="listings"]');
+    const pins = mapEl.locator(".maplibregl-marker");
+    await expect(pins).toHaveCount(3);
+    return {
+      mapEl,
+      audi: pins.getByRole("button", { name: AUDI_PIN }),
+      bmw: pins.getByRole("button", { name: BMW_PIN }),
+      // Hidden elements included: a card fading out is still the preview.
+      preview: page.locator(".maplibregl-popup").getByRole("article", {
+        name: PREVIEW_NAME,
+        includeHidden: true,
+      }),
+    };
+  }
+
+  /** A point on the bare map: on its canvas, on no pin, popup or control. */
+  async function bareMapPoint(page: Page, mapEl: Locator): Promise<{ x: number; y: number }> {
+    const mapBox = await box(mapEl);
+    const point = await page.evaluate(({ x, y, width, height }) => {
+      for (let top = y + 24; top < y + height - 24; top += 16) {
+        for (let left = x + 24; left < x + width - 24; left += 16) {
+          const hit = document.elementFromPoint(left, top);
+          if (hit?.classList.contains("maplibregl-canvas")) return { x: left, y: top };
+        }
+      }
+      return null;
+    }, mapBox);
+    if (!point) throw new Error("no bare map point");
+    return point;
+  }
+
+  for (const [key, press] of [
+    ["Enter", "Enter"],
+    ["Space", " "],
+  ] as const) {
+    test(`MAPUI-27: ${key} on a pin opens its preview, activates its car and moves focus into it`, async ({
+      page,
+      isMobile,
+    }) => {
+      test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+      const { audi, preview } = await openDesktopMap(page);
+
+      await audi.focus();
+      await page.keyboard.press(press);
+
+      await expect(preview).toBeVisible();
+      await expect(preview).toContainText("Audi A3 2.0 TDI");
+      await expect(audi).toHaveAttribute("data-active", "true");
+      await expect(preview.getByRole("button", { name: CLOSE_NAME })).toBeFocused();
+    });
+  }
+
+  test("MAPUI-27: Escape inside the preview closes it and returns focus to the pin", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.focus();
+    await page.keyboard.press("Enter");
+    await expect(preview.getByRole("button", { name: CLOSE_NAME })).toBeFocused();
+
+    await page.keyboard.press("Escape");
+
+    await expect(preview).toHaveCount(0);
+    await expect(audi).toBeFocused();
+    await expect(audi).toHaveAttribute("data-active", "false");
+  });
+
+  test("MAPUI-27: Escape on the pin closes its preview", async ({ page, isMobile }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.focus();
+    await page.keyboard.press("Enter");
+    await expect(preview).toBeVisible();
+
+    await audi.focus();
+    await page.keyboard.press("Escape");
+
+    await expect(preview).toHaveCount(0);
+    await expect(audi).toBeFocused();
+  });
+
+  test("MAPUI-27: the close button closes it and returns focus to the pin", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.click();
+    await expect(preview).toBeVisible();
+
+    await preview.getByRole("button", { name: CLOSE_NAME }).click();
+
+    await expect(preview).toHaveCount(0);
+    await expect(audi).toBeFocused();
+  });
+
+  test("MAPUI-27: a press on the map outside the preview closes it and returns focus to the pin", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { mapEl, audi, preview } = await openDesktopMap(page);
+    await audi.click();
+    await expect(preview).toBeVisible();
+
+    const point = await bareMapPoint(page, mapEl);
+    await page.mouse.click(point.x, point.y);
+
+    await expect(preview).toHaveCount(0);
+    await expect(audi).toBeFocused();
+  });
+
+  test("MAPUI-27: a press on the page outside the map closes it too", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.click();
+    await expect(preview).toBeVisible();
+
+    await page.getByRole("heading", { level: 1 }).click();
+
+    await expect(preview).toHaveCount(0);
+  });
+
+  test("MAPUI-27: a press inside the preview leaves it open", async ({ page, isMobile }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.click();
+    await expect(preview).toBeVisible();
+
+    await preview.getByText("Audi A3 2.0 TDI").click();
+    await twoFrames(page);
+
+    await expect(preview).toBeVisible();
+    expect(await preview.count()).toBe(1);
+  });
+
+  test("MAPLIBRE-6: a pin near the map's top edge opens a preview that sits fully inside the map", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { mapEl, bmw, preview } = await openDesktopMap(page);
+    const mapBox = await box(mapEl);
+
+    // A bare point low on the map, so the drag below has room to lift the map.
+    const start = await page.evaluate(({ x, y, width, height }) => {
+      for (let top = y + height - 40; top > y + 24; top -= 16) {
+        for (let left = x + 24; left < x + width - 24; left += 16) {
+          const hit = document.elementFromPoint(left, top);
+          if (hit?.classList.contains("maplibregl-canvas")) return { x: left, y: top };
+        }
+      }
+      return null;
+    }, mapBox);
+    if (!start) throw new Error("no bare map point");
+
+    // Drag the map until the BMW pin sits 40px under the map's top edge; the
+    // pause before releasing leaves the drag no speed to carry on with.
+    const pinBox = await box(bmw);
+    const lift = pinBox.y + pinBox.height / 2 - (mapBox.y + 40);
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x, start.y - lift, { steps: 20 });
+    await page.waitForTimeout(300);
+    await page.mouse.up();
+    await expect
+      .poll(async () => {
+        const pin = await box(bmw);
+        return pin.y + pin.height / 2 - mapBox.y;
+      })
+      .toBeLessThanOrEqual(60);
+
+    await bmw.click();
+    await expect(preview).toBeVisible();
+
+    await expect.poll(async () => wholly(await box(preview), mapBox)).toBe(true);
+  });
+
+  test("MAPUI-27: reopened and closed again, one Escape still closes it", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.focus();
+    await page.keyboard.press("Enter");
+    await expect(preview).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(audi).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(preview).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    await expect(preview).toHaveCount(0);
+    await expect(audi).toBeFocused();
+  });
+
+  test("MAPUI-27: opening another pin's preview leaves the focus in that preview, not on the first pin", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, bmw, preview } = await openDesktopMap(page);
+    await audi.focus();
+    await page.keyboard.press("Enter");
+    await expect(preview).toContainText("Audi A3 2.0 TDI");
+
+    await bmw.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(preview).toHaveCount(1);
+    await expect(preview).toContainText("BMW Serie 3 320d");
+    await expect(preview.getByRole("button", { name: CLOSE_NAME })).toBeFocused();
+    await expect(audi).not.toBeFocused();
+  });
+
+  test("MAPUI-27: pressing another pin fades the first out and opens the second, which survives the first's exit", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, bmw, preview } = await openDesktopMap(page);
+    await audi.click();
+    await expect(preview).toContainText("Audi A3 2.0 TDI");
+
+    await bmw.click();
+
+    await expect(preview).toHaveCount(1);
+    await expect(preview).toContainText("BMW Serie 3 320d");
+    // Past the first one's 180ms exit: the second is still open.
+    await page.waitForTimeout(400);
+    await expect(preview).toContainText("BMW Serie 3 320d");
+    await expect(bmw).toHaveAttribute("data-active", "true");
+  });
+
+  test("MAPUI-27: the close button keeps the card mounted until the exit finishes, then removes it", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.click();
+    await expect(preview).toBeVisible();
+    // Past the 180ms fade in, so the exit starts from a whole card.
+    await page.waitForTimeout(300);
+
+    await preview.getByRole("button", { name: CLOSE_NAME }).click();
+    await twoFrames(page);
+
+    const opacityNextFrame = await preview.evaluate((el) =>
+      Number.parseFloat(getComputedStyle(el).opacity),
+    );
+    expect(opacityNextFrame).toBeLessThan(1);
+    await expect(preview).toHaveCount(0, { timeout: 300 });
+  });
+
+  test("MAPUI-27: activating the pin of an open preview again closes it and leaves the pin inactive", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.focus();
+    await page.keyboard.press("Enter");
+    await expect(preview).toBeVisible();
+    await expect(audi).toHaveAttribute("data-active", "true");
+
+    await audi.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(preview).toHaveCount(0);
+    await expect(audi).toHaveAttribute("data-active", "false");
+  });
+
+  test("MOTION-11: Enter on a pin draws the preview whole within two frames, with no fade", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.focus();
+
+    await page.keyboard.press("Enter");
+    await twoFrames(page);
+
+    // Read once, right after the two frames: a retrying assertion would also accept a fade.
+    const opacity = await preview.evaluate((el) => Number.parseFloat(getComputedStyle(el).opacity));
+    expect(opacity).toBe(1);
+  });
+
+  test("MOTION-11: Escape removes the preview within two animation frames", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.focus();
+    await page.keyboard.press("Enter");
+    await expect(preview).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await twoFrames(page);
+
+    expect(await preview.count()).toBe(0);
+  });
+
+  test("MOTION-11: a pointer open still fades in, below full opacity as it appears", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+
+    // A single read right after the click can land after the 180ms fade has
+    // already finished on a slow runner (a CI flake, not a real bug). Sample
+    // the card's computed opacity on every animation frame for ~600ms
+    // instead, so the minimum sample — not one point in time racing the
+    // click — is what proves the fade happened.
+    const samplesPromise = page.evaluate(
+      () =>
+        new Promise<number[]>((resolve) => {
+          const samples: number[] = [];
+          const deadline = performance.now() + 600;
+          function tick() {
+            const card = document.querySelector(".maplibregl-popup article");
+            if (card) samples.push(Number.parseFloat(getComputedStyle(card).opacity));
+            if (performance.now() < deadline) requestAnimationFrame(tick);
+            else resolve(samples);
+          }
+          requestAnimationFrame(tick);
+        }),
+    );
+
+    await audi.click();
+    await preview.waitFor({ state: "attached" });
+
+    const samples = await samplesPromise;
+    expect(samples.length).toBeGreaterThan(0);
+    expect(Math.min(...samples)).toBeLessThan(1);
+    expect(samples[samples.length - 1]).toBe(1);
+  });
+
+  test("MAPUI-27: the open preview card has no serious or critical axe violation", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
+    const { audi, preview } = await openDesktopMap(page);
+    await audi.focus();
+    await page.keyboard.press("Enter");
+    await expect(preview).toBeVisible();
+
+    const { violations } = await new AxeBuilder({ page }).include(".maplibregl-popup").analyze();
+    const serious = violations.filter(
+      (violation) => violation.impact === "serious" || violation.impact === "critical",
+    );
+    expect(serious.map((violation) => violation.id)).toEqual([]);
   });
 });

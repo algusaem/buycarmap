@@ -1,6 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
 import { e2eEmail, seedUser, userExists } from "./fixtures/db";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // The app defaults to Spanish, so every user-facing matcher accepts EN or ES.
 const SIGN_IN = /sign in|entrar/i;

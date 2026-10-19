@@ -862,7 +862,7 @@ test.describe("SAVED-25 to SAVED-29: 200 saved cars", () => {
       const email = await openSaved(page, "saved29", numberedCars(200), DESKTOP_1440);
       await expect(cards(page).first()).toBeVisible({ timeout: 15_000 });
       const target = await scrollUntilMounted(page, cards(page), "Coche 150");
-      const pins = page.locator(".leaflet-marker-icon");
+      const pins = page.locator(".maplibregl-marker");
       await expect(pins).toHaveCount(200);
 
       await target.getByRole("button", { name: "Quitar de guardados" }).click();

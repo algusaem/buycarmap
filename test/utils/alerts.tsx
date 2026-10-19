@@ -8,6 +8,7 @@ import { Toaster } from "@/components/Toaster";
 import type { AlertsPageData, AlertWithMatches } from "@/interfaces/alert";
 import { adaAlerts, corollaMatches, ALERT_ID } from "@/test/fixtures/alert-listings";
 import { type RenderWithI18nOptions, renderWithI18n } from "@/test/utils/render";
+import { liveMapList, type MapLibreMap } from "@/test/utils/maplibre";
 import { rows } from "@/test/utils/saved";
 
 // The alerts pages as components/alerts/AlertsPage*.test.tsx and
@@ -118,16 +119,31 @@ export function isOutlined(element: HTMLElement): boolean {
   return element.closest("[data-active='true']") !== null;
 }
 
-/** The accessible names of every pin on the map, sorted. */
+/** The accessible names of every pin on the map, sorted: each pin is a button in a MapLibre marker. */
 export function pinNames(): string[] {
-  return Array.from(document.querySelectorAll<HTMLElement>(".leaflet-marker-icon"))
+  return Array.from(document.querySelectorAll<HTMLElement>(".maplibregl-marker button"))
     .map((pin) => pin.getAttribute("aria-label") ?? "")
     .sort();
 }
 
-/** The zone's shapes: Leaflet's paths in the overlay pane, under the markers. */
-export function zonePaths(): SVGPathElement[] {
-  return Array.from(document.querySelectorAll<SVGPathElement>(".leaflet-overlay-pane path"));
+/**
+ * The zone's shapes — the circle and the centre dot — as the GeoJSON features
+ * of the "zone" source (components/map/ZoneLayers.tsx) on `map`, or on every
+ * map alive. They are drawn on the canvas, under the pins (test/utils/maplibre.ts).
+ */
+export function zoneShapes(map?: MapLibreMap): ZoneFeature[] {
+  const maps = map ? [map] : liveMapList();
+  return maps.flatMap((each) => {
+    const source = each.getSource("zone") as { data: { features: ZoneFeature[] } } | undefined;
+    return source?.data.features ?? [];
+  });
+}
+
+/** A zone shape: the circle's polygon or the centre's point. */
+export interface ZoneFeature {
+  geometry:
+    | { type: "Polygon"; coordinates: number[][][] }
+    | { type: "Point"; coordinates: number[] };
 }
 
 /** The compact row (phone) of the car named `title`: the button that opens its car sheet, as on /favorites. */
@@ -255,8 +271,8 @@ export function describeAlertsRouteError(
 
       const map = await screen.findByRole("region", { name: "Mapa de la alerta" });
       expect(map).toHaveClass("hidden", "lg:flex");
-      expect(container.querySelector(".leaflet-marker-icon")).toBeNull();
-      expect(container.querySelector(".leaflet-overlay-pane path")).toBeNull();
+      expect(container.querySelector(".maplibregl-marker")).toBeNull();
+      expect(zoneShapes()).toEqual([]);
       // No pill: neither the loading one, the empty one nor an alert's.
       expect(within(map).queryByText("Cargando…")).toBeNull();
       expect(within(map).queryByText("Aquí verás la zona de cada alerta")).toBeNull();

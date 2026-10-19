@@ -193,18 +193,6 @@ describe("FRONT-29: the root layout renders MotionProvider", () => {
   });
 });
 
-describe("MAP-23: the map source keeps only the dark tile URL", () => {
-  it("MAP-23: the map source keeps only the dark tile URL", () => {
-    const listingsMap = readFileSync(join(ROOT, "components/map/ListingsMap.tsx"), "utf-8");
-
-    // The light CARTO basemap token found in the file today (rastertiles/voyager);
-    // hand-written here rather than imported, so the test does not fall back to
-    // trivially passing if the source is ever restructured.
-    expect(listingsMap).not.toContain("rastertiles/voyager");
-    expect(listingsMap).toContain("dark_all");
-  });
-});
-
 describe("LOOK-19: DESIGN.md and its sidecar reflect the current system", () => {
   // Normalised to LF so a Windows checkout with core.autocrlf parses the same.
   const design = readFileSync(join(ROOT, "DESIGN.md"), "utf-8").replace(/\r\n/g, "\n");

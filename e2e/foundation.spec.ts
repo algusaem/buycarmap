@@ -1,6 +1,13 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
 import { e2eEmail, seedUser } from "./fixtures/db";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // docs/specs/redesign-foundation.md (Key LOOK, Approved). jsdom computes no
 // styles from app/globals.css, so the primitives' real look can only be

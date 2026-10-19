@@ -1,6 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import { e2eEmail, seedUser } from "./fixtures/db";
 import { mockListingSources } from "./fixtures/network";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // FRONT-23 (amended 2026-10-12, LOOK — redesign-foundation.md, LOOK-14): the
 // toast takes its colours from the design tokens surface/line/text, in the

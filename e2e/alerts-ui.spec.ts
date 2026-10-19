@@ -1243,7 +1243,7 @@ test.describe("ALERTUI-51 to ALERTUI-55: 200 matches on desktop", () => {
       const { email } = await openLongAlert(page, "alertui55", 200, DESKTOP_1440);
       await expect(cards(page).first()).toBeVisible({ timeout: 15_000 });
       const target = await scrollUntilMounted(page, cards(page), "Coche 150");
-      const pins = page.locator(".leaflet-marker-icon");
+      const pins = page.locator(".maplibregl-marker");
       await expect(pins).toHaveCount(200);
 
       await target.getByRole("button", { name: "Guardar" }).click();

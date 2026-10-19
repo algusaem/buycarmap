@@ -370,6 +370,44 @@ describe("proxy Content-Security-Policy (PLAT-21)", () => {
   });
 });
 
+describe("proxy Content-Security-Policy (MAPLIBRE-11, docs/specs/map-maplibre.md)", () => {
+  beforeEach(() => {
+    signedOut();
+  });
+
+  function directive(csp: string, name: string): string | undefined {
+    return csp
+      .split(";")
+      .map((entry) => entry.trim())
+      .find((entry) => entry.startsWith(name));
+  }
+
+  it("MAPLIBRE-11: connect-src allows https://tiles.openfreemap.org (the style and the tiles)", async () => {
+    const response = await proxy(request("/"));
+    const csp = response.headers.get("content-security-policy") ?? "";
+
+    const connectSrc = directive(csp, "connect-src");
+    expect(connectSrc).toBeDefined();
+    expect(connectSrc).toContain("https://tiles.openfreemap.org");
+  });
+
+  it("MAPLIBRE-11: worker-src allows blob: (the map's web worker)", async () => {
+    const response = await proxy(request("/"));
+    const csp = response.headers.get("content-security-policy") ?? "";
+
+    const workerSrc = directive(csp, "worker-src");
+    expect(workerSrc).toBeDefined();
+    expect(workerSrc).toContain("blob:");
+  });
+
+  it("MAPLIBRE-11: no directive allows *.basemaps.cartocdn.com any more", async () => {
+    const response = await proxy(request("/"));
+    const csp = response.headers.get("content-security-policy") ?? "";
+
+    expect(csp).not.toContain("basemaps.cartocdn.com");
+  });
+});
+
 describe("proxy matcher coverage (PLAT-22)", () => {
   it.each(["/", "/map", "/api/health", "/favorites"])("PLAT-22: matches %s", (url) => {
     expect(unstable_doesMiddlewareMatch({ config, url: `http://localhost:3000${url}` })).toBe(true);

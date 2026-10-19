@@ -8,6 +8,13 @@ import {
   seedUser,
 } from "./fixtures/db";
 import { mockListingSources } from "./fixtures/network";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // The queue's safety property is the one thing Vitest cannot reach. Prisma is
 // mocked there, so a node test would assert that the right query was issued

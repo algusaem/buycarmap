@@ -1,6 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import { box, expectWithin } from "./fixtures/measure";
 import { e2eEmail, seedUser } from "./fixtures/db";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // docs/specs/redesign-pages.md (PAGES-64, PAGES-67). PAGES-7, PAGES-8,
 // PAGES-64, PAGES-70 and the signed-out half of PAGES-67 need no database
