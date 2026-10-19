@@ -26,6 +26,14 @@
       "x": 0,
       "y": 0
     },
+    "F0-saltar-contenido.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Saltar al contenido",
+      "w": 1970,
+      "x": 21026,
+      "y": 0
+    },
     "R3-login.dc.html": {
       "h": 980,
       "page": "r3",
@@ -43,7 +51,7 @@
       "y": 3180
     },
     "UIKit.dc.html": {
-      "h": 19501,
+      "h": 19751,
       "page": "kit",
       "title": "UI Kit",
       "w": 1970,
@@ -342,6 +350,7 @@
   "notes": {},
   "order": [
     "R3-landing.dc.html",
+    "F0-saltar-contenido.dc.html",
     "R3-login.dc.html",
     "F0-registro.dc.html",
     "F7-registro-estados.dc.html",

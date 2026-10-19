@@ -45,6 +45,8 @@ Page "Pantallas", every screen in journey order, each artboard a desktop screen 
 beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, register, account and the legal pages also carry a laptop screen (1024 × 900):
 
 - `R3-landing.dc.html`, `R3-login.dc.html` — the landing and sign in.
+- `F0-saltar-contenido.dc.html` — the «Saltar al contenido» skip link, focused over the landing
+  header: the first Tab on any page.
 - `F0-registro.dc.html`, `F0-confirmar.dc.html`, `F0-contrasena.dc.html`,
   `F0-nueva-contrasena.dc.html` — register, confirm the account, request and set a new password,
   each with a phone variant of its follow-up state (check your inbox, account ready, expired link).

@@ -414,6 +414,7 @@ solo project is ceremony.
 | [redesign-pages.md](docs/specs/redesign-pages.md) | PAGES | Implemented | BuyCarMap 2.0 F7: register, account confirmation, password recovery, the account page with its dialogs and sheets, the legal pages' index, the not-found page and the root error |
 | [redesign-foundation.md](docs/specs/redesign-foundation.md) | LOOK | Implemented | BuyCarMap 2.0 F1: tokens, dark only, fonts, primitives, footer, DESIGN.md |
 | [motion.md](docs/specs/motion.md) | MOTION | Implemented | One timing system, hover and press states, and no animation on daily lists or keyboard actions |
+| [a11y-checks.md](docs/specs/a11y-checks.md) | A11Y | Approved | Skip link, keyboard walk-throughs of every screen, NVDA screen-reader checks and WebKit projects (#127) |
 | [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Implemented | Downloading a copy of one's own data from `/account` |
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
 | [core-mastermind.md](docs/specs/core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |

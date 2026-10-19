@@ -1,0 +1,45 @@
+<!-- @dsCard group="Navegación" height=240 subtitle="«Saltar al contenido» con el foco, sobre la cabecera de la landing en escritorio y en móvil, en español e inglés" -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>SkipLink</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&amp;family=Rethink+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:var(--space-6) 0;background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;flex-direction:column;gap:var(--space-6)}
+header{position:relative;height:80px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-12)}
+.w{font-family:var(--font-display);font-size:20px;font-weight:900;color:var(--text);text-decoration:none}
+.w span{color:var(--lime)}
+a{color:var(--text)}
+nav{display:flex;align-items:center;gap:10px}
+.link{text-decoration:none;padding:10px 16px;font-size:15px;font-weight:700}
+.primary{text-decoration:none;padding:11px 20px;font-size:15px;font-weight:800;border-radius:var(--radius-pill);background:var(--lime);color:var(--on-lime)}
+.phones{display:flex;gap:var(--space-6);padding:0 var(--space-8);flex-wrap:wrap}
+.m{position:relative;width:390px;height:64px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-5)}
+.m .w{font-size:16px}
+.m .txt{font-size:14px;font-weight:700;text-decoration:none}
+.m .right{display:flex;align-items:center}
+.lang{display:flex;align-items:center;font-family:var(--font-sans);font-size:13px;font-weight:600}
+.lang button{all:unset;cursor:pointer;box-sizing:border-box;min-width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text-muted)}
+.lang button[aria-pressed="true"]{font-weight:800;color:var(--text)}
+.lang span{color:var(--text-muted)}
+.skip{position:absolute;top:16px;left:var(--space-12);z-index:100;box-sizing:border-box;height:48px;padding:0 20px;display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:var(--radius-pill);background:var(--surface);color:var(--text);font-size:15px;font-weight:700;text-decoration:none;white-space:nowrap;outline:2px solid var(--lime);outline-offset:3px}
+.m .skip{top:8px;left:var(--space-5)}
+</style>
+</head>
+<body>
+<header>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+  <a class="w" href="#" style="visibility:hidden">BUYCAR<span>MAP</span></a>
+  <nav>
+    <div class="lang" role="group" aria-label="Idioma"><button type="button" aria-pressed="true">ES</button><span aria-hidden="true">·</span><button type="button" aria-pressed="false">EN</button></div>
+    <a class="link" href="#">Entrar</a>
+    <a class="primary" href="#">Crear cuenta</a>
+  </nav>
+</header>
+<div class="phones">
+  <div class="m"><a class="skip" href="#contenido">Saltar al contenido</a><a class="w" href="#" style="visibility:hidden">BUYCAR<span>MAP</span></a><div class="right"><div class="lang" role="group" aria-label="Idioma"><button type="button" aria-pressed="true">ES</button><span aria-hidden="true">·</span><button type="button" aria-pressed="false">EN</button></div><a class="txt" href="#">Entrar</a></div></div>
+  <div class="m" lang="en"><a class="skip" href="#contenido">Skip to content</a><a class="w" href="#" style="visibility:hidden">BUYCAR<span>MAP</span></a><div class="right"><div class="lang" role="group" aria-label="Language"><button type="button" aria-pressed="false">ES</button><span aria-hidden="true">·</span><button type="button" aria-pressed="true">EN</button></div><a class="txt" href="#">Sign in</a></div></div>
+</div>
+</body>
+</html>
