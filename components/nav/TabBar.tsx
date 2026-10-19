@@ -27,7 +27,8 @@ import { currentTab, showsTabBar } from "./nav-routes";
 //
 // It hides while the map's results sheet is full (what the map page reports
 // through lib/hooks/useResultsSheetFull.ts) and while a page is being
-// scrolled down, and comes back when the sheet leaves full or on scrolling up.
+// scrolled down, and comes back when the sheet leaves full, on scrolling up, or
+// once the page's scroll reaches its end (#142).
 
 interface TabLinkProps {
   href: string;
