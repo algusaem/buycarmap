@@ -11,7 +11,7 @@ export const OFFERED_GEARBOXES = ["manual", "automatic"] as const;
 
 export type OfferedGearbox = (typeof OFFERED_GEARBOXES)[number];
 
-export function isOfferedGearbox(value: string): value is OfferedGearbox {
+function isOfferedGearbox(value: string): value is OfferedGearbox {
   return OFFERED_GEARBOXES.some((offered) => offered === value);
 }
 

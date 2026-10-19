@@ -7,7 +7,7 @@ El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chi
 - **Cabecera** de 70px, padding lateral 20px y divisor `line-soft`: a la izquierda cerrar (botón de icono de 40px con borde `line` y la `x` de 14px), en medio «FILTROS» en Unbounded 16 peso 800, a la derecha «Borrar» (botón de texto de 14px peso 700, subrayado).
 - **Cuerpo**: el mismo que en escritorio. Ocupa el alto que queda entre la cabecera y el pie y se desliza por dentro (scroll vertical con barra fina); el panel no crece más que la pantalla.
 - **Pie**: padding 14px 20px 28px con divisor `line-soft` arriba, y «VER COCHES»: principal de 56px a todo el ancho con `button-display`.
-- Lo elegido no se aplica al momento: la búsqueda y la fila de filtros activos cambian al pulsar «Ver coches», como en la hoja «BUSCAR» de [SearchPopover](../SearchPopover/README.md). Cerrar el panel descarta lo elegido; «Borrar» vacía el panel, que tampoco se aplica hasta «Ver coches».
+- Lo elegido no se aplica al momento: la búsqueda, la insignia de «Filtros» y los filtros rápidos cambian al pulsar «Ver coches», como en la hoja «BUSCAR» de [SearchPopover](../SearchPopover/README.md). Cerrar el panel descarta lo elegido; «Borrar» vacía el panel, que tampoco se aplica hasta «Ver coches».
 - Se cierra con su botón de cerrar o con «Ver coches».
 
 ## Escritorio: desplegable
@@ -16,8 +16,8 @@ El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chi
 - **Cabecera** de 70px, padding lateral 20px y divisor `line-soft`: «FILTROS» (Unbounded 16 peso 800) a la izquierda y «Borrar» a la derecha. Sin botón de cerrar.
 - **Cuerpo**: se desliza por dentro (scroll vertical con barra fina) cuando no cabe; la cabecera y el pie quedan fijos.
 - **Pie**: el mismo que en móvil, con «VER COCHES» de 56px.
-- Lo elegido se aplica al momento: la búsqueda y la fila de filtros activos cambian en cuanto se elige, y «Ver coches» solo cierra.
-- Con muchos filtros activos, la fila no se parte en dos líneas: «Filtros» queda fijo al principio y los chips se deslizan en horizontal por detrás de él, como en móvil (ver [Chip](../Chip/README.md)). El desplegable sigue anclado bajo «Filtros».
+- Lo elegido se aplica al momento: la búsqueda, la insignia de «Filtros» y los filtros rápidos cambian en cuanto se elige, y «Ver coches» solo cierra.
+- Con muchos filtros activos, la fila no cambia: «Filtros» lleva el número y los filtros rápidos que coinciden van pulsados, sin chips que quitar (ver [Chip](../Chip/README.md)). El desplegable sigue anclado bajo «Filtros», en la segunda fila de la cabecera.
 - Se cierra con «Ver coches», al pulsar fuera de la tarjeta o con Escape.
 
 ## Cuerpo (móvil y escritorio)
@@ -30,3 +30,4 @@ El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chi
 - **Publicado**: chips del panel, uno activo: «Cualquier momento», «Últimas 24 h», «Última semana», «Último mes».
 - **Marca y modelo**: un solo campo de 52px que busca mientras escribes, «Marca o modelo…», el mismo que Coche en [SearchPopover](../SearchPopover/README.md): fondo `bg`, borde `line`, `radius-field` y la lupa de 18px en `text-muted`.
 - Los mandos del rango son sliders con su valor en texto («20.000 €»); el segmentado es un grupo de radios.
+- Movimiento: el desplegable «Filtros» se funde y se mueve 4px en 180ms al abrirlo o cerrarlo con el ratón; con Intro, Espacio o Escape aparece y desaparece al instante.

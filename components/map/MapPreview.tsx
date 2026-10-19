@@ -1,13 +1,14 @@
 "use client";
 
 import { type MutableRefObject, useEffect, useRef, useState } from "react";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, type HTMLMotionProps } from "motion/react";
 import * as motion from "motion/react-client";
 import { ArrowUpRight, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { CarPhoto, HeartButton, listingMeta, savedProps } from "@/components/map/CarCard";
 import type { CarListing } from "@/interfaces/listing";
 import { crossFade } from "@/lib/animations";
+import { usePresenceMotion } from "@/lib/hooks/usePresenceMotion";
 import { formatPrice } from "@/lib/format";
 import type { PinGroup } from "@/lib/map/group-pins";
 import { cn } from "@/lib/utils";
@@ -64,17 +65,23 @@ export interface PreviewProps {
 // on its first control, the close button — on every open, a reopen included,
 // since the underlying React tree is never actually remounted (`reset`).
 //
-// It fades out too, however it closes: `closing` keeps the card mounted
+// It fades out too, when a person closes it: `closing` keeps the card mounted
 // through its exit, and only once that exit completes does this call
 // `onExitComplete` — PricePin's own `marker.closePopup()` (ListingsMap.tsx),
 // never a bare `map.closePopup()` that could close a different pin's popup —
 // which then tears the (real) Leaflet popup down and lets the existing
-// popupclose handler return focus to the pin.
+// popupclose handler return focus to the pin. Opened with Enter or Space on a
+// pin, or closed with Escape, it appears and leaves at once instead: the fade
+// is a pointer's only (MOTION-11). A close nobody triggered otherwise follows
+// the last input, except a preview whose car leaves the results (below),
+// which always goes at once.
 //
 // A car that leaves an open grouped preview (removed on /favorites, SAVED-14)
-// fades out on its own, and one that comes back (an undo) fades in; the cars
-// there when the preview opens are drawn at once, so /map's preview is as it
-// was.
+// leaves at once, with no fade, whatever the last input: it leaves with its
+// pin, and pins never animate (MOTION-18). A car cannot come back into an open
+// grouped preview — «Deshacer» sits outside it and closes it. The close
+// button fills with `surface-strong` and «Ver anuncio» brightens on hover;
+// both scale to 0.97 while pressed (MOTION-17).
 export function MapPreview({
   group,
   favoriteIds,
@@ -124,27 +131,31 @@ export function MapPreview({
   return (
     <AnimatePresence onExitComplete={() => closing && onExitComplete?.()}>
       {!closing && (
-        <motion.article
+        <PreviewFrame
           key="preview"
           ref={previewRef}
-          {...crossFade}
           aria-label={group.listings.length > 1 ? group.label : t("map.preview")}
           className="flex max-h-120 flex-col gap-4 overflow-y-auto overscroll-contain p-3 font-sans text-text"
         >
-          <AnimatePresence initial={false}>
-            {group.listings.map((listing, index) => (
-              <PreviewCar
-                key={listing.id}
-                listing={listing}
-                {...savedProps(listing, favoriteIds, onToggleFavorite)}
-                onClose={index === 0 ? () => setClosing(true) : undefined}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.article>
+          {group.listings.map((listing, index) => (
+            <PreviewCar
+              key={listing.id}
+              listing={listing}
+              {...savedProps(listing, favoriteIds, onToggleFavorite)}
+              onClose={index === 0 ? () => setClosing(true) : undefined}
+            />
+          ))}
+        </PreviewFrame>
       )}
     </AnimatePresence>
   );
+}
+
+/** The preview's own fade, instant from the keyboard (MOTION-11). */
+function PreviewFrame(props: HTMLMotionProps<"article">) {
+  const fade = usePresenceMotion(crossFade);
+
+  return <motion.article {...fade} {...props} />;
 }
 
 interface PreviewCarProps {
@@ -160,7 +171,7 @@ function PreviewCar({ listing, saved, onToggleSaved, onClose }: PreviewCarProps)
   const locale = useLocale();
 
   return (
-    <motion.div {...crossFade} className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-2.5">
       <div className="relative">
         <CarPhoto
           listing={listing}
@@ -173,7 +184,7 @@ function PreviewCar({ listing, saved, onToggleSaved, onClose }: PreviewCarProps)
             type="button"
             aria-label={t("map.closePreview")}
             onClick={onClose}
-            className="absolute top-2.5 right-2.5 flex size-8 cursor-pointer items-center justify-center rounded-pill bg-scrim text-text before:absolute before:size-11"
+            className="absolute top-2.5 right-2.5 flex size-8 cursor-pointer items-center justify-center rounded-pill bg-scrim text-text transition-[background-color,scale] before:absolute before:size-11 hover:bg-surface-strong active:scale-97 motion-reduce:active:scale-none"
           >
             <X aria-hidden="true" strokeWidth={2.4} className="size-4" />
           </button>
@@ -199,12 +210,12 @@ function PreviewCar({ listing, saved, onToggleSaved, onClose }: PreviewCarProps)
           href={listing.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex h-10.5 items-center gap-1.5 whitespace-nowrap rounded-pill bg-lime px-4 text-sm font-extrabold text-on-lime! no-underline"
+          className="flex h-10.5 items-center gap-1.5 whitespace-nowrap rounded-pill bg-lime px-4 text-sm font-extrabold text-on-lime! no-underline transition-[filter,scale] hover:brightness-108 active:scale-97 motion-reduce:active:scale-none"
         >
           {t("map.viewListing")}
           <ArrowUpRight aria-hidden="true" strokeWidth={2.4} className="size-4" />
         </a>
       </div>
-    </motion.div>
+    </div>
   );
 }

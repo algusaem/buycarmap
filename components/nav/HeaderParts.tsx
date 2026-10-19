@@ -14,7 +14,7 @@ import { SECTIONS, type Section } from "./nav-routes";
  * «Volver», the 40px round link of an alert's page (docs/specs/redesign-alerts.md,
  * ALERTUI-20, ALERTUI-22; HeaderNav/README.md): in the phone header before the
  * wordmark, and on desktop beside the page's name. 40px drawn, with the 44px
- * hit area of RULES.md §19.
+ * hit area of RULES.md §19. Lime on hover, 0.97 while pressed (MOTION-6).
  */
 export function BackLink({ href }: { href: string }) {
   const t = useTranslations();
@@ -23,7 +23,7 @@ export function BackLink({ href }: { href: string }) {
     <Link
       href={href}
       aria-label={t("nav.back")}
-      className="relative flex size-10 shrink-0 items-center justify-center rounded-full border border-line text-text transition-colors before:absolute before:size-11 hover:text-lime"
+      className="relative flex size-10 shrink-0 items-center justify-center rounded-full border border-line text-text transition-[color,scale] before:absolute before:size-11 hover:text-lime active:scale-97 motion-reduce:active:scale-none"
     >
       <ChevronLeft aria-hidden="true" strokeWidth={2.2} className="size-4.5" />
     </Link>
@@ -37,19 +37,19 @@ export type HeaderSession =
   | { status: "signedIn"; name: string | null | undefined; email: string };
 
 interface RegionProps {
-  /** The landing and sign-in pages: no divider (and 48px sides on desktop). */
+  /** The landing and sign-in pages: the page background (and 48px sides on desktop). */
   open: boolean;
   children: ReactNode;
 }
 
-/** Desktop: 80px tall, 32px sides and a line-soft divider; open pages 48px and no divider. */
+/** Desktop: 80px tall, 32px sides on the `surface` background (HEAD-21); open pages 48px on the page background. */
 export function DesktopRegion({ open, children }: RegionProps) {
   return (
     <div
       data-testid="header-desktop"
       className={cn(
         "hidden h-20 items-center justify-between lg:flex",
-        open ? "px-12" : "border-b border-line-soft px-8",
+        open ? "px-12" : "bg-surface px-8",
       )}
     >
       {children}
@@ -57,15 +57,12 @@ export function DesktopRegion({ open, children }: RegionProps) {
   );
 }
 
-/** Phone: 64px tall, 20px sides; a line-soft divider on the section pages only. */
+/** Phone: 64px tall, 20px sides; the `surface` background on the section pages only (HEAD-21). */
 export function PhoneRegion({ open, children }: RegionProps) {
   return (
     <div
       data-testid="header-phone"
-      className={cn(
-        "flex h-16 items-center justify-between px-5 lg:hidden",
-        !open && "border-b border-line-soft",
-      )}
+      className={cn("flex h-16 items-center justify-between px-5 lg:hidden", !open && "bg-surface")}
     >
       {children}
     </div>
@@ -97,6 +94,7 @@ interface TextLinkProps {
 /**
  * Desktop link: 15px weight 700, padding 10px 16px, lime on hover; the current
  * section is inverted (text fill, bg text) and `aria-current="page"` (HEAD-4).
+ * Every link scales to 0.97 while pressed (MOTION-6).
  */
 export function TextLink({ href, current = false, children }: TextLinkProps) {
   return (
@@ -104,7 +102,7 @@ export function TextLink({ href, current = false, children }: TextLinkProps) {
       href={href}
       aria-current={current ? "page" : undefined}
       className={cn(
-        "whitespace-nowrap rounded-pill px-4 py-2.5 text-body-15 font-bold transition-colors",
+        "whitespace-nowrap rounded-pill px-4 py-2.5 text-body-15 font-bold transition-[color,background-color,scale] active:scale-97 motion-reduce:active:scale-none",
         current ? "bg-text text-bg" : "text-text hover:text-lime",
       )}
     >
@@ -122,7 +120,7 @@ export function PhoneTextLink({ href, children }: Omit<TextLinkProps, "current">
   return (
     <Link
       href={href}
-      className="flex h-11 items-center justify-center whitespace-nowrap text-sm font-bold text-text transition-colors before:absolute before:size-11 hover:text-lime"
+      className="flex h-11 items-center justify-center whitespace-nowrap text-sm font-bold text-text transition-[color,scale] before:absolute before:size-11 hover:text-lime active:scale-97 motion-reduce:active:scale-none"
     >
       {children}
     </Link>

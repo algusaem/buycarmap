@@ -2,7 +2,6 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -11,19 +10,17 @@ import { defaultRangeExtractor, type Range, useVirtualizer } from "@tanstack/rea
 import type { CarListing } from "@/interfaces/listing";
 import { prefersReducedMotion } from "@/lib/animations";
 import type { SavedColumns } from "@/lib/hooks/useSavedColumns";
-import { NO_IDS } from "@/lib/hooks/useSavedPins";
 
 // docs/specs/redesign-saved.md (SAVED-14, SAVED-25 to SAVED-29); ADR 0021.
 // The saved cars' virtualised list: only the rows in view and a bounded margin
 // are mounted. A row is one line of cards on desktop (two or three) and one
 // compact row on the phone. What a plain list gives for free is rebuilt here:
 // a pin's card is scrolled to by its row (SAVED-26), the scroll is restored on
-// Back from the history entry's own record (SAVED-27), a removed car fades out
-// where it was drawn (a leaving entry, below), and a car an undo brings back
-// fades in where it lands (an arriving car). An alert's matches on
-// /alerts/[id] use the same list at both widths (docs/specs/redesign-alerts.md,
-// ALERTUI-29 to ALERTUI-31, ALERTUI-51 to ALERTUI-55); their heart toggles,
-// so none ever leaves or arrives.
+// Back from the history entry's own record (SAVED-27). A removed car leaves
+// and a car an undo brings back returns at once, with no fade (MOTION-9). An
+// alert's matches on /alerts/[id] use the same list at both widths
+// (docs/specs/redesign-alerts.md, ALERTUI-29 to ALERTUI-31, ALERTUI-51 to
+// ALERTUI-55).
 
 // Close to a row's real height, so the scrollbar barely moves as rows are
 // measured: a Guardados card is a 20:17 photo of 231–242px plus its text, a
@@ -145,22 +142,8 @@ export function useClientResolved(): boolean {
   );
 }
 
-/**
- * A removed car, drawn once more where it was while it fades out (SAVED-14).
- * It is not one of the shown cars: it is `inert` and `aria-hidden`, and the
- * cars after it move up under it at once, so no car is ever reachable twice.
- */
-export interface LeavingCar {
-  key: string;
-  listing: CarListing;
-  /** Its row's offset from the list's top, as the virtualiser drew it. */
-  top: number;
-  /** Its column in that row, from 0. */
-  column: number;
-}
-
 interface SavedListOptions {
-  /** The cars shown, in order. A car shown again drops its leaving entry. */
+  /** The cars shown, in order. */
   shown: readonly CarListing[];
   /** Cards per row (useSavedColumns): 1 on the phone, 2 from `lg`, 3 from `xl`. */
   columns: SavedColumns;
@@ -170,7 +153,6 @@ interface SavedListOptions {
 
 export function useSavedList({ shown, columns, phoneGap = GAP.phone }: SavedListOptions) {
   const count = shown.length;
-  const shownIds = useMemo(() => new Set(shown.map((listing) => listing.id)), [shown]);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
@@ -178,27 +160,9 @@ export function useSavedList({ shown, columns, phoneGap = GAP.phone }: SavedList
   // each side stay mounted, so Tab always finds the next car in the DOM even
   // before the scroll its focus caused has been read (SAVED-28).
   const [focusedRow, setFocusedRow] = useState<number | null>(null);
-  const [leaving, setLeaving] = useState<LeavingCar[]>([]);
-  const leavingSequence = useRef(0);
-  // The cars an undo just brought back, which fade in as they mount (below).
-  const [arriving, setArriving] = useState<ReadonlySet<string>>(NO_IDS);
   const resolved = useClientResolved();
   const width = columns === 1 ? "phone" : "desktop";
   const rowCount = Math.ceil(count / columns);
-
-  // A car shown again (an undo, a failed removal put back) drops its leaving
-  // entry, so it is never drawn twice and no stale entry fades out later.
-  // Cleared while rendering, React's way to follow a changed prop.
-  if (leaving.some((entry) => shownIds.has(entry.listing.id))) {
-    setLeaving(leaving.filter((entry) => !shownIds.has(entry.listing.id)));
-  }
-
-  // An arriving car fades in as it mounts, in the commit that brings it back.
-  // Once that commit is drawn the mark has done its work: a row the
-  // virtualiser mounts later, while scrolling, draws its car at once.
-  useLayoutEffect(() => {
-    if (arriving.size > 0) setArriving(NO_IDS);
-  }, [arriving]);
 
   // The rows kept around the focus count against SAVED-25's bound too, so they
   // are kept only while the focused row is near the view: inside the
@@ -304,42 +268,6 @@ export function useSavedList({ shown, columns, phoneGap = GAP.phone }: SavedList
     [virtualizer, columns],
   );
 
-  /**
-   * The car at `index` (in the shown order before its removal) was removed:
-   * if its row is drawn, it fades out there. A row out of view has nothing to
-   * fade.
-   */
-  const markLeaving = useCallback(
-    (listing: CarListing, index: number) => {
-      const row = Math.floor(index / columns);
-      const drawn = virtualizer.getVirtualItems().find((item) => item.index === row);
-      if (!drawn) return;
-      leavingSequence.current += 1;
-      const entry: LeavingCar = {
-        key: `${listing.id}:${leavingSequence.current}`,
-        listing,
-        top: drawn.start - scrollMargin,
-        column: index % columns,
-      };
-      // A car has one leaving entry at most: a newer removal replaces it.
-      setLeaving((current) => [
-        ...current.filter((other) => other.listing.id !== listing.id),
-        entry,
-      ]);
-    },
-    [virtualizer, columns, scrollMargin],
-  );
-
-  /** A leaving car's fade ended: it goes. */
-  const leftList = useCallback((key: string) => {
-    setLeaving((current) => current.filter((entry) => entry.key !== key));
-  }, []);
-
-  /** An undo brings this car back: it fades in where it lands (SAVED-15, SAVED-22). */
-  const markArriving = useCallback((listingId: string) => {
-    setArriving((current) => new Set([...current, listingId]));
-  }, []);
-
   return {
     /** False until the client's media queries have resolved (useClientResolved). */
     resolved,
@@ -349,11 +277,6 @@ export function useSavedList({ shown, columns, phoneGap = GAP.phone }: SavedList
     scrollMargin,
     recordScroll,
     scrollToCar,
-    leaving,
-    markLeaving,
-    leftList,
-    arriving,
-    markArriving,
     /** A row took the focus. */
     focusRow: setFocusedRow,
   };

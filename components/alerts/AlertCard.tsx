@@ -2,8 +2,6 @@
 
 import { type Ref, useId } from "react";
 import Link from "next/link";
-import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { useLocale, useTranslations } from "next-intl";
 import { activeHandlers, CarPhoto, listingMeta } from "@/components/map/CarCard";
 import { sourceLabel } from "@/components/map/SourceBadge";
@@ -12,7 +10,6 @@ import type { CarListing } from "@/interfaces/listing";
 import { formatPrice } from "@/lib/format";
 import { keys } from "@/components/favorites/SavedPlaceholders";
 import { Skeleton } from "@/components/ui/skeleton";
-import { crossFade } from "@/lib/animations";
 import { useAlertLabels } from "@/lib/hooks/useAlertLabels";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +19,8 @@ import { cn } from "@/lib/utils";
 // chips and its newest matches, the folded ones on one line, which open on a
 // press, and on the phone one link to the alert's page. `surface`, a `line`
 // border (`lime` when open), `radius-card`; 18px 20px of padding and 12px
-// between blocks on desktop, 16px and 10px on the phone.
+// between blocks on desktop, 16px and 10px on the phone. The alerts list never
+// animates: the placeholders give way to the matches at once (MOTION-9).
 
 /** How many matches the open card shows; past it, «Ver las N coincidencias» (ALERTUI-7). */
 const OPEN_CARD_MATCHES = 4;
@@ -145,7 +143,11 @@ interface FoldedAlertCardProps {
   onOpen: () => void;
 }
 
-/** A folded card: one button named by the alert, which opens it (ALERTUI-6, ALERTUI-11). */
+/**
+ * A folded card: one button named by the alert, which opens it (ALERTUI-6,
+ * ALERTUI-11). Its hover fill changes at once: the alerts list never animates
+ * (MOTION-19).
+ */
 export function FoldedAlertCard({ alert, onOpen }: FoldedAlertCardProps) {
   const labels = useAlertLabels();
   const ids = cardIds(useId());
@@ -158,7 +160,7 @@ export function FoldedAlertCard({ alert, onOpen }: FoldedAlertCardProps) {
       aria-labelledby={ids.name}
       aria-describedby={describedBy(alert, ids, parts)}
       onClick={onOpen}
-      className="flex w-full min-w-0 cursor-pointer flex-col gap-3 rounded-card border border-line bg-surface px-5 py-4.5 text-left text-text transition-[background-color] hover:bg-surface-strong"
+      className="flex w-full min-w-0 cursor-pointer flex-col gap-3 rounded-card border border-line bg-surface px-5 py-4.5 text-left text-text hover:bg-surface-strong"
     >
       <AlertNameRow alert={alert} ids={ids} />
       <CriteriaLine id={ids.criteria} parts={parts} className="text-sm" />
@@ -231,40 +233,33 @@ export function OpenAlertCard({
     >
       <AlertNameRow alert={alert} ids={ids} />
       <CriteriaChips parts={labels.criteria(alert)} />
-      {/* The placeholders give way to the matches with a cross-fade (RULES.md §17). */}
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={pending ? "pending" : "loaded"}
-          {...crossFade}
-          className="flex min-w-0 flex-col gap-3"
-        >
-          {pending && <MatchPlaceholders />}
-          {!pending && shown.length === 0 && (
-            <p className="m-0 text-body-15 text-text-muted">{t("alerts.noMatchesYet")}</p>
-          )}
-          {shown.length > 0 && (
-            <ul className="m-0 grid list-none grid-cols-2 gap-3.5 p-0 xl:grid-cols-4">
-              {shown.map((listing) => (
-                <li key={listing.id} className="min-w-0">
-                  <AlertMatchCard
-                    listing={listing}
-                    active={activeIds.has(listing.id)}
-                    onActiveChange={(active) => onActiveChange(active ? listing.id : null)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-          {!pending && alert.matchCount > OPEN_CARD_MATCHES && (
-            <Link
-              href={`/alerts/${alert.id}`}
-              className="flex min-h-6 items-center self-start text-sm font-bold text-text transition-colors hover:text-lime"
-            >
-              {t("alerts.viewAllMatches", { count: alert.matchCount })}
-            </Link>
-          )}
-        </motion.div>
-      </AnimatePresence>
+      <div className="flex min-w-0 flex-col gap-3">
+        {pending && <MatchPlaceholders />}
+        {!pending && shown.length === 0 && (
+          <p className="m-0 text-body-15 text-text-muted">{t("alerts.noMatchesYet")}</p>
+        )}
+        {shown.length > 0 && (
+          <ul className="m-0 grid list-none grid-cols-2 gap-3.5 p-0 xl:grid-cols-4">
+            {shown.map((listing) => (
+              <li key={listing.id} className="min-w-0">
+                <AlertMatchCard
+                  listing={listing}
+                  active={activeIds.has(listing.id)}
+                  onActiveChange={(active) => onActiveChange(active ? listing.id : null)}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+        {!pending && alert.matchCount > OPEN_CARD_MATCHES && (
+          <Link
+            href={`/alerts/${alert.id}`}
+            className="flex min-h-6 items-center self-start text-sm font-bold text-text transition-colors hover:text-lime"
+          >
+            {t("alerts.viewAllMatches", { count: alert.matchCount })}
+          </Link>
+        )}
+      </div>
       <span className="flex items-center justify-between gap-3 text-small text-text-muted">
         <span>{labels.createdOn(alert.createdAt)}</span>
         <button
@@ -303,7 +298,11 @@ function AlertMatchCard({ listing, active, onActiveChange }: AlertMatchCardProps
       rel="noopener noreferrer"
       data-active={active || undefined}
       {...activeHandlers(onActiveChange)}
-      className="flex min-w-0 flex-col gap-1 rounded-field"
+      // ALERTUI-17: the photo's lime ring below is this link's focus
+      // indicator — it shows on `group-focus-visible/card` independent of
+      // `active` (which follows hover too, MAPUI-28), so the global
+      // focus-visible outline is suppressed here unconditionally.
+      className="group/card flex min-w-0 flex-col gap-1 rounded-field focus-visible:outline-hidden"
     >
       <CarPhoto
         listing={listing}
@@ -311,7 +310,9 @@ function AlertMatchCard({ listing, active, onActiveChange }: AlertMatchCardProps
         sizes="(min-width: 1280px) 171px, 213px"
         badge={false}
         iconClassName="size-9"
-        className={cn("h-27.5 rounded-field transition-[box-shadow]", active && "ring-2 ring-lime")}
+        focusRing
+        // The active ring turns on and off at once (MOTION-9).
+        className={cn("h-27.5 rounded-field", active && "ring-2 ring-lime")}
       />
       <span className="mt-1 truncate text-xs font-bold text-text-muted">
         {sourceLabel(listing.source)}
@@ -334,7 +335,8 @@ interface PhoneAlertCardProps {
 /**
  * The phone card: one link to the alert's page, with no date, no match and no
  * «Eliminar» (ALERTUI-28). «En pausa» opens its criteria line, so the name
- * keeps the row beside the count at 390px (R3-alertas).
+ * keeps the row beside the count at 390px (R3-alertas). Its press fill changes
+ * at once (MOTION-19).
  */
 export function PhoneAlertCard({ alert }: PhoneAlertCardProps) {
   const labels = useAlertLabels();
@@ -347,7 +349,7 @@ export function PhoneAlertCard({ alert }: PhoneAlertCardProps) {
       href={`/alerts/${alert.id}`}
       aria-labelledby={ids.name}
       aria-describedby={describedBy(alert, ids, parts)}
-      className="flex min-h-11 min-w-0 flex-col gap-2.5 rounded-card border border-line bg-surface p-4 text-text transition-[background-color] active:bg-surface-strong"
+      className="flex min-h-11 min-w-0 flex-col gap-2.5 rounded-card border border-line bg-surface p-4 text-text active:bg-surface-strong"
     >
       <AlertNameRow alert={alert} ids={ids} phone />
       {(paused || parts.length > 0) && (

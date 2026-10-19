@@ -299,6 +299,8 @@ export interface Translations {
   map: {
     loading: string;
     filters: string;
+    filtersActive: string;
+    quickFilters: string;
     addFavorite: string;
     removeFavorite: string;
     markerLabel: string;

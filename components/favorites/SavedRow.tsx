@@ -41,7 +41,7 @@ export function SavedRow({ listing, tail, onOpen, onFocus }: SavedRowProps) {
       aria-describedby={meta !== "" ? `${id}-meta` : undefined}
       onClick={(event) => onOpen(listing, event.currentTarget)}
       onFocus={onFocus}
-      className="flex w-full min-w-0 cursor-pointer items-center gap-3.5 rounded-thumb text-left transition-[background-color] hover:bg-surface active:bg-surface"
+      className="flex w-full min-w-0 cursor-pointer items-center gap-3.5 rounded-thumb text-left hover:bg-surface active:bg-surface"
     >
       <CarPhoto
         listing={listing}

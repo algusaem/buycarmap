@@ -29,7 +29,10 @@ Inside `/check-all` this paragraph does not apply: there the agent running this 
 
 ## 3. Motion (`RULES.md` §17, §19 "Animation")
 
-- Every conditionally rendered modal, dropdown, popover, panel or list item wrapped in `AnimatePresence` + `motion.*` (toasts excepted). A conditional mount with no animation → BLOCKER.
+- Every conditionally rendered modal, dropdown, popover, panel or list item wrapped in `AnimatePresence` + `motion.*` (toasts excepted). A conditional mount with no animation → BLOCKER, unless it is one of the surfaces below that are never animated.
+- Never animated: anything a keyboard action opens, moves or closes (shortcuts, arrow-key navigation), and surfaces used many times a day (command menu, frequently used lists and their hover). An animation there → BLOCKER.
+- Every animation has a purpose (explains, gives feedback, keeps a change from feeling abrupt); delight-only animation on a daily-used surface → BLOCKER.
+- UI durations under 300ms (marketing pages excepted); elements enter and leave from the same direction; tooltips after the first open with no delay and no animation.
 - `MotionConfig reducedMotion="user"` present at the root.
 - Only `transform` / `opacity` animated, no `transition: all`, CSS transitions only for state changes (hover, focus, active).
 

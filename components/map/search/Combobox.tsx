@@ -1,17 +1,8 @@
 "use client";
 
-import type {
-  ComponentProps,
-  KeyboardEvent as ReactKeyboardEvent,
-  MouseEvent as ReactMouseEvent,
-  ReactNode,
-  Ref,
-} from "react";
-import { AnimatePresence, useIsPresent } from "motion/react";
-import * as motion from "motion/react-client";
+import type { ComponentProps, ReactNode, Ref } from "react";
 import { Check, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { crossFade } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
 // docs/design/system/components/SearchPopover/README.md: the pieces «Dónde»
@@ -21,7 +12,8 @@ import { cn } from "@/lib/utils";
 // - SearchField: 52px, `bg` fill, `line` border (`lime` with focus, plus the
 //   2px lime focus ring of LOOK-11 on the field), `radius-field`, the 18px
 //   magnifier in `text-muted` and the text at 16px. With text, a 44px «Borrar
-//   texto» button on the right.
+//   texto» button on the right, which turns `text` on hover and scales to
+//   0.97 while pressed (MOTION-17).
 // - ComboOption: a 44px option, 15px weight 500, `radius-option`; hovered or
 //   highlighted in `surface-strong`; chosen at weight 700 with an 18px violet
 //   check on the right, without filling the row.
@@ -29,6 +21,11 @@ import { cn } from "@/lib/utils";
 //   and the polite status that announces it, or the count, mounted from the
 //   start so its first announcement is not lost.
 // - SectionLabel: `section-label`, 12px weight 700, uppercase, `text-muted`.
+//
+// The type-ahead is driven by typing and the arrow keys, so none of it
+// animates: the listbox, its options and check marks, the no-match line and
+// the clear button appear and disappear at once (MOTION-13). The field's
+// border turns text-muted on hover while not focused (MOTION-5).
 
 /**
  * Radix's `onEscapeKeyDown` for a popover or dialog holding a combobox: while
@@ -69,7 +66,7 @@ export function SearchField({
   const t = useTranslations();
 
   return (
-    <div className="flex h-13 items-center gap-2.5 rounded-field border border-line bg-bg pr-1 pl-4 text-text-muted transition-[border-color] focus-within:border-lime has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-3 has-[input:focus-visible]:outline-lime">
+    <div className="flex h-13 items-center gap-2.5 rounded-field border border-line bg-bg pr-1 pl-4 text-text-muted transition-[border-color] not-focus-within:hover:border-text-muted focus-within:border-lime has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-3 has-[input:focus-visible]:outline-lime">
       <Search aria-hidden="true" strokeWidth={2.4} className="size-4.5 shrink-0" />
       <input
         ref={ref}
@@ -84,25 +81,21 @@ export function SearchField({
         className="h-full min-w-0 flex-1 bg-transparent font-sans text-base text-text outline-none placeholder:text-text-muted focus-visible:outline-none"
         {...inputProps}
       />
-      <AnimatePresence initial={false}>
-        {value !== "" && (
-          <motion.button
-            key="clear"
-            type="button"
-            aria-label={t("search.clearText")}
-            onClick={onClearText}
-            className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-pill text-text-muted"
-            {...crossFade}
-          >
-            <X aria-hidden="true" strokeWidth={2.4} className="size-4" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {value !== "" && (
+        <button
+          type="button"
+          aria-label={t("search.clearText")}
+          onClick={onClearText}
+          className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-pill text-text-muted transition-[color,scale] hover:text-text active:scale-97 motion-reduce:active:scale-none"
+        >
+          <X aria-hidden="true" strokeWidth={2.4} className="size-4" />
+        </button>
+      )}
     </div>
   );
 }
 
-interface AnimatedListboxProps {
+interface ListboxProps {
   id: string;
   label: string;
   className?: string;
@@ -110,30 +103,15 @@ interface AnimatedListboxProps {
 }
 
 /**
- * The listbox wrapper CarTypeahead's CarListbox and PlaceField's PlaceListbox
- * both animate out the same way: while present, this is the interactive
- * listbox; while AnimatePresence keeps it mounted to animate it out,
- * `useIsPresent()` flips and it renders inert — no role or id to claim the
- * listbox semantics, `aria-hidden` so screen readers skip it, and no
- * handlers, so a press on a still-fading option cannot choose it (MAP-20).
- * The caller reads the same `useIsPresent()` itself to pass each option's own
- * `interactive` prop (ComboOption).
+ * The listbox CarTypeahead's CarListbox and PlaceField's PlaceListbox share.
+ * It leaves at once (MOTION-13), so an option that has left is gone and
+ * cannot be chosen (MAP-20).
  */
-export function AnimatedListbox({ id, label, className, children }: AnimatedListboxProps) {
-  const isPresent = useIsPresent();
-
+export function Listbox({ id, label, className, children }: ListboxProps) {
   return (
-    <motion.div
-      id={isPresent ? id : undefined}
-      role={isPresent ? "listbox" : undefined}
-      aria-label={isPresent ? label : undefined}
-      aria-hidden={isPresent ? undefined : "true"}
-      inert={isPresent ? undefined : true}
-      className={cn("flex flex-col", !isPresent && "pointer-events-none", className)}
-      {...crossFade}
-    >
+    <div id={id} role="listbox" aria-label={label} className={cn("flex flex-col", className)}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -143,12 +121,6 @@ interface ComboOptionProps {
   secondary?: string;
   selected: boolean;
   highlighted: boolean;
-  /**
-   * False while its listbox animates out: the same look, with no role, id or
-   * handlers, so a fading option is not an option and a press on it chooses
-   * nothing (MAP-20).
-   */
-  interactive?: boolean;
   onChoose: () => void;
   onHighlight: () => void;
 }
@@ -159,37 +131,32 @@ export function ComboOption({
   secondary,
   selected,
   highlighted,
-  interactive = true,
   onChoose,
   onHighlight,
 }: ComboOptionProps) {
   return (
     <div
+      id={id}
+      role="option"
+      aria-selected={selected}
       tabIndex={-1}
       className={cn(
         "flex min-h-11 cursor-pointer items-center gap-3 rounded-option py-2 pr-3 pl-3.5 text-body-15 font-medium text-text",
         highlighted && "bg-surface-strong",
         selected && "font-bold",
       )}
-      {...(interactive
-        ? {
-            id,
-            role: "option" as const,
-            "aria-selected": selected,
-            // The field keeps the focus while an option is pressed.
-            onMouseDown: (event: ReactMouseEvent<HTMLDivElement>) => event.preventDefault(),
-            onClick: onChoose,
-            onKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => {
-              // The field drives the options from the keyboard; an option that
-              // received focus still answers Enter and Space.
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onChoose();
-              }
-            },
-            onMouseEnter: onHighlight,
-          }
-        : {})}
+      // The field keeps the focus while an option is pressed.
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onChoose}
+      onKeyDown={(event) => {
+        // The field drives the options from the keyboard; an option that
+        // received focus still answers Enter and Space.
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onChoose();
+        }
+      }}
+      onMouseEnter={onHighlight}
     >
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate">{label}</span>
@@ -199,13 +166,11 @@ export function ComboOption({
           </span>
         )}
       </span>
-      <AnimatePresence initial={false}>
-        {selected && (
-          <motion.span key="check" aria-hidden="true" className="flex shrink-0" {...crossFade}>
-            <Check strokeWidth={2.4} className="size-4.5 text-violet" />
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {selected && (
+        <span aria-hidden="true" className="flex shrink-0">
+          <Check strokeWidth={2.4} className="size-4.5 text-violet" />
+        </span>
+      )}
     </div>
   );
 }
@@ -217,9 +182,9 @@ interface NoMatchProps {
 /** The no-match line, in place of the list (MAPUI-56); the status announces it. */
 export function NoMatch({ children }: NoMatchProps) {
   return (
-    <motion.p aria-hidden="true" className="m-0 px-3.5 text-body-15 text-text-muted" {...crossFade}>
+    <p aria-hidden="true" className="m-0 px-3.5 text-body-15 text-text-muted">
       {children}
-    </motion.p>
+    </p>
   );
 }
 

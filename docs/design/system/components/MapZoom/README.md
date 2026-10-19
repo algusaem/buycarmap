@@ -8,4 +8,5 @@ Acercar y alejar el mapa en escritorio, abajo a la derecha (18px del borde, 24px
   - Reposo: sin relleno (se ve el `surface` de la columna) y el signo en `text`.
   - Al pasar el ratón: el fondo del botón pasa a `surface-strong` y el signo sigue en `text`.
   - Con foco: contorno 2px `lime` por dentro del botón.
+  - Pulsado: se encoge a 0,97 (en la transición de estado de 120ms, curva `ease-out`), salvo con movimiento reducido.
 - El mapa móvil no lo lleva.

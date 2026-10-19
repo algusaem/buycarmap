@@ -2,7 +2,7 @@
 
 Key: LOOK
 Status: Implemented
-Last updated: 2026-10-13
+Last updated: 2026-10-18
 
 ---
 
@@ -71,7 +71,8 @@ the design system, and the internal style-guide pages. No screen changes its str
 - [x] LOOK-13 · e2e — Inputs and the select trigger are at least 52px tall with a 16px font size
   (no iOS zoom), a `line` border at rest and a `lime` border when focused. — the select trigger is
   the checkbox select's trigger on `/palette`, the Radix select trigger being deleted (MAPUI-48)
-  (amended 2026-10-13, MAPUI — redesign-map.md)
+  (amended 2026-10-13, MAPUI — redesign-map.md) — the focus border reaches `lime` within the 120ms
+  state transition (MOTION-5), where it changed at once (amended 2026-10-18, MOTION — motion.md)
 - [x] LOOK-14 · e2e — A toast renders on `surface` with a `line` border, `radius-card`,
   `shadow-float` and `text` colour; its optional action is `lime` text and its close button has an
   accessible name (amends FRONT-23 to the single theme).
@@ -159,6 +160,8 @@ user may see or do.
   keep rendering in the new palette and family until their own phase rewrites them.
 - Reduced motion: the primitives' hover and focus changes are colour and outline transitions only
   (no `transition: all`), and Motion's `reducedMotion="user"` stays in the root provider (FRONT-29).
+  — the press scale (0.97, MOTION-4/5) is the one transform, and it is off under reduced motion
+  (MOTION-7) (amended 2026-10-18, MOTION — motion.md)
 - Contrast: lime and violet pairs meet AA (`on-lime` on `lime` > 15:1, `on-violet` on `violet`
   4.6:1, `text-muted` on `bg` 7.6:1); LOOK-18 proves it on the real pages.
 

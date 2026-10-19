@@ -20,6 +20,7 @@ import {
   renderAlerts,
   zonePaths,
 } from "@/test/utils/alerts";
+import { expectPhotoFocusRing } from "@/test/utils/focus-ring";
 import { stubLayoutBox } from "@/test/utils/viewport";
 import {
   ALERT_COPY,
@@ -39,6 +40,12 @@ import { FAVORITE_OK, FAVORITE_UNAUTHENTICATED } from "@/test/fixtures/favorites
 import { focusAlertsOnArrival, takeArrivalFocus } from "@/lib/hooks/useAlertDelete";
 import { deleteAlert } from "@/server/alerts/actions";
 import { listFavorites, removeFavorite, saveFavorite } from "@/server/favorites/actions";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 // docs/specs/redesign-alerts.md (ALERTUI) for /alerts at desktop width, which
 // is jsdom's default: test/setup.jsdom.ts stubs matchMedia to match nothing,
@@ -681,6 +688,31 @@ describe("ALERTUI-17: the list and the map in sync", () => {
     await waitFor(() => expect(pin).toHaveAttribute("data-active", "true"));
   });
 
+  // docs/specs/redesign-alerts.md (ALERTUI-17, amended 2026-10-18, #134): a
+  // match card focused with the keyboard showed both the photo's lime ring
+  // and the global focus outline around the whole card (MAPUI-66's bug fix
+  // also applies here). The photo's ring is the link's own focus indicator,
+  // on `group-focus-visible/card`, so the global outline is always
+  // suppressed.
+  it("ALERTUI-17: a focused match card's link shows only the photo's lime ring, not a second focus outline", () => {
+    renderAlerts();
+    const [link] = listingLinks(openCard("Corolla híbrido"));
+
+    expectPhotoFocusRing(link);
+  });
+
+  // docs/specs/motion.md (MOTION-9): the active ring on a match card turns
+  // on and off with no transition.
+  it("MOTION-9: an active match card's photo carries no transition class at all", async () => {
+    renderAlerts();
+    const [link] = listingLinks(openCard("Corolla híbrido"));
+
+    await userEvent.hover(link);
+
+    const photo = link.querySelector("div");
+    expect(photo?.className ?? "").not.toMatch(/(^|\s)transition(-|\s|$)/);
+  });
+
   it("ALERTUI-17: activating a pin opens its preview, marks the pin and outlines its card only", async () => {
     renderAlerts();
 
@@ -1005,6 +1037,62 @@ describe("ALERTUI-40: no alert", () => {
   });
 });
 
+// docs/specs/motion.md (MOTION-19): an alert card's hover and press change
+// with no transition, and the switch between the list and its empty state on
+// /alerts happens at once.
+describe("MOTION-19: AlertsPage — the cards and the empty state never animate", () => {
+  it("MOTION-19: a folded alert card carries no transition- class", () => {
+    renderAlerts();
+
+    const folded = screen.getByRole("button", { name: "Golf TDI" });
+    expect(folded.className).not.toMatch(/(^|\s)transition-/);
+  });
+
+  it("MOTION-19: deleting the last alert shows the empty state the moment its card leaves, with no card left behind", async () => {
+    let answer: ((result: Awaited<ReturnType<typeof deleteAlert>>) => void) | undefined;
+    vi.mocked(deleteAlert).mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+    );
+    await withAnimations(async () => {
+      const { rerenderWith } = renderAlerts(
+        adaPage({
+          alerts: [adaAlert("serie3")],
+          openAlertId: ALERT_ID.serie3,
+          matches: serie3Matches(),
+        }),
+      );
+      const { dialog } = await confirmFrom("Serie 3 diésel");
+      await userEvent.click(within(dialog).getByRole("button", { name: ALERT_COPY.deleteShort }));
+
+      await act(async () => {
+        answer?.(DELETE_OK);
+      });
+
+      // Right after the delete resolves, with nothing waited for.
+      expect(
+        screen.queryByRole("article", { name: "Serie 3 diésel", hidden: true }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText(ALERT_COPY.emptyPunchline)).toBeInTheDocument();
+      rerenderWith({ alerts: [], openAlertId: null, matches: [] });
+      expect(screen.getByText(ALERT_COPY.emptyPunchline)).toBeInTheDocument();
+    });
+  });
+
+  it("MOTION-19: alerts arriving on an empty page replace the empty state in the same tick", async () => {
+    await withAnimations(async () => {
+      const { rerenderWith } = renderAlerts({ alerts: [], openAlertId: null, matches: [] });
+      expect(screen.getByText(ALERT_COPY.emptyPunchline)).toBeInTheDocument();
+
+      rerenderWith(adaPage());
+
+      expect(screen.queryByText(ALERT_COPY.emptyPunchline)).not.toBeInTheDocument();
+      expect(openCard("Corolla híbrido")).toBeInTheDocument();
+    });
+  });
+});
+
 describe("ALERTUI-41: an open alert with no match", () => {
   it("ALERTUI-41: Clio barato open shows «Sin coincidencias», its chips, «Te avisaremos …» in place of the matches, no «Ver las …», and «Creada el …» with «Eliminar»", () => {
     renderAlerts(clioPage());
@@ -1085,12 +1173,12 @@ describe("ALERT-28, ALERT-29, ALERT-39, ALERT-40 and FRONT-14 on the redesigned 
   });
 });
 
-// docs/specs/redesign-alerts.md (ALERTUI-11, ALERTUI-35; RULES.md §17): a
-// deleted alert's card fades out where it was, hidden from assistive tech and
-// inert while it does, and the card that opens or folds fades in. No card is
-// ever reachable twice.
-describe("ALERTUI-35: the cards' motion", () => {
-  it("ALERTUI-35: a deleted alert's card fades out, aria-hidden and inert, while the alert is already gone from the list; then it is removed", async () => {
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-9: the alerts list
+// never animates — a deleted card and the card that opens or folds move with
+// no fade (amends ALERTUI-11, ALERTUI-35, whose fade-based assertions this
+// replaces). No card is ever reachable twice.
+describe("MOTION-9: the cards move with no fade (amends ALERTUI-11, ALERTUI-35)", () => {
+  it("MOTION-9: a deleted alert's card is removed at once, with no leaving entry fading behind it", async () => {
     await withAnimations(async () => {
       renderAlerts(clioPage(), { searchParams: `?alert=${ALERT_ID.clio}` });
       const { dialog } = await confirmFrom("Clio barato");
@@ -1098,18 +1186,11 @@ describe("ALERTUI-35: the cards' motion", () => {
       await userEvent.click(within(dialog).getByRole("button", { name: ALERT_COPY.deleteShort }));
 
       await waitFor(() => expect(listedAlertNames(NAMES)).not.toContain("Clio barato"));
-      const card = screen.getByText("Clio barato").closest("[aria-hidden='true']");
-      expect(card).not.toBeNull();
-      expect(card).toHaveAttribute("inert");
-      // Hidden ones counted too: the closing dialog hides the page while it fades.
-      expect(
-        screen.queryAllByRole("article", { name: "Corolla híbrido", hidden: true }),
-      ).toHaveLength(1);
-      await waitFor(() => expect(screen.queryByText("Clio barato")).not.toBeInTheDocument());
+      expect(screen.queryByText("Clio barato")).not.toBeInTheDocument();
     });
   });
 
-  it("ALERTUI-11: the card that opens fades in from transparent, and each alert has one card throughout", async () => {
+  it("MOTION-9: the card that opens shows at once, with no inline opacity below 1, and each alert has one card throughout", async () => {
     await withAnimations(async () => {
       const { rerenderWith } = renderAlerts();
 
@@ -1117,11 +1198,11 @@ describe("ALERTUI-35: the cards' motion", () => {
       rerenderWith(adaPage({ openAlertId: ALERT_ID.golf, matches: golfMatches() }));
 
       const golf = openCard("Golf TDI");
-      expect(golf.parentElement?.style.opacity).toBe("0");
+      const opacity = golf.parentElement?.style.opacity;
+      expect(opacity === "" || opacity === undefined || Number(opacity) >= 1).toBe(true);
       expect(screen.queryAllByRole("button", { name: "Golf TDI" })).toHaveLength(0);
       expect(screen.queryAllByRole("article", { name: "Corolla híbrido" })).toHaveLength(0);
       expect(screen.queryAllByRole("button", { name: "Corolla híbrido" })).toHaveLength(1);
-      await waitFor(() => expect(golf.parentElement?.style.opacity).toBe("1"));
     });
   });
 });
@@ -1192,7 +1273,9 @@ describe("ALERTUI-35: the open card until the server's next data", () => {
     expect(fitBounds).toHaveBeenCalledTimes(2);
   });
 
-  it("ALERTUI-35: the placeholders give way to the matches with a cross-fade — still fading out when the data arrives, then Golf's one match", async () => {
+  // docs/specs/motion.md (MOTION-9, amends this case): the switch is
+  // immediate now, with no cross-fade to wait for.
+  it("MOTION-9: the placeholders give way to the matches at once, with no cross-fade to wait for", async () => {
     await withAnimations(async () => {
       const { rerenderWith } = renderAlerts();
       const { dialog } = await confirmFrom("Corolla híbrido");
@@ -1200,7 +1283,7 @@ describe("ALERTUI-35: the open card until the server's next data", () => {
       await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
       // The closing dialog hides the page from assistive tech while it fades.
       await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
-      const placeholders = await screen.findByTestId("open-card-loading");
+      await screen.findByTestId("open-card-loading");
 
       rerenderWith(
         adaPage({
@@ -1210,13 +1293,8 @@ describe("ALERTUI-35: the open card until the server's next data", () => {
         }),
       );
 
-      // mode="wait": the placeholders fade out first, the matches after.
-      expect(placeholders).toBeInTheDocument();
-      expect(listingLinks(openCard("Golf TDI"))).toEqual([]);
-      await waitFor(() => expect(placeholders).not.toBeInTheDocument());
-      await waitFor(() => expect(listingLinks(openCard("Golf TDI"))).toHaveLength(1));
-      const loaded = listingLinks(openCard("Golf TDI"))[0].closest("ul")?.parentElement;
-      await waitFor(() => expect(loaded?.style.opacity).toBe("1"));
+      expect(screen.queryByTestId("open-card-loading")).not.toBeInTheDocument();
+      expect(listingLinks(openCard("Golf TDI"))).toHaveLength(1);
     });
   });
 
@@ -1239,7 +1317,7 @@ describe("ALERTUI-35: the open card until the server's next data", () => {
       }),
     );
 
-    // The matches replace the placeholders once those have faded out (mode="wait").
+    // The matches replace the placeholders at once.
     expect(
       await within(openCard("Serie 3 diésel")).findByRole("link", {
         name: "Ver las 12 coincidencias",

@@ -3,9 +3,8 @@
 import type { ReactNode, RefObject } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { PhoneBottomSheet } from "@/components/map/phone/SheetChrome";
-import { crossFade } from "@/lib/animations";
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { cn } from "@/lib/utils";
 
 // docs/specs/redesign-alerts.md (ALERTUI-33 to ALERTUI-35) and
@@ -16,7 +15,8 @@ import { cn } from "@/lib/utils";
 // fading in and out; on the phone the bottom sheet (PhoneBottomSheet: the
 // handle, the centred title, no «×»). Escape, a press outside and a drag down
 // call `onClose`, which carries the caller's own lock, and the focus goes back
-// to `returnFocusRef` when it closes.
+// to `returnFocusRef` when it closes. Opened or closed from the keyboard, it
+// appears and disappears at once (MOTION-12).
 
 interface ResponsiveDialogProps {
   open: boolean;
@@ -86,7 +86,7 @@ export function ResponsiveDialog({
         {open && (
           <DialogPrimitive.Portal forceMount>
             <DialogPrimitive.Overlay forceMount asChild>
-              <motion.div {...crossFade} className="fixed inset-0 z-50 bg-bg/72" />
+              <PresenceFade className="fixed inset-0 z-50 bg-bg/72" />
             </DialogPrimitive.Overlay>
             <DialogPrimitive.Content
               forceMount
@@ -100,15 +100,14 @@ export function ResponsiveDialog({
                 returnFocusRef.current.focus();
               }}
             >
-              <motion.div
-                {...crossFade}
+              <PresenceFade
                 className={cn(
                   "fixed top-1/2 left-1/2 z-50 flex w-95 -translate-x-1/2 -translate-y-1/2 flex-col gap-3.5 rounded-card border border-line bg-surface p-5 font-sans text-text shadow-float",
                   scrollable && "max-h-dialog-max overflow-y-auto overscroll-contain",
                 )}
               >
                 {children}
-              </motion.div>
+              </PresenceFade>
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         )}

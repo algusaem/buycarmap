@@ -413,6 +413,7 @@ solo project is ceremony.
 | [redesign-alerts.md](docs/specs/redesign-alerts.md) | ALERTUI | Implemented | BuyCarMap 2.0 F6: alerts with their zone map, the open alert in the URL, the alert page on desktop and phone, delete with confirmation, the stored place name, page states |
 | [redesign-pages.md](docs/specs/redesign-pages.md) | PAGES | Implemented | BuyCarMap 2.0 F7: register, account confirmation, password recovery, the account page with its dialogs and sheets, the legal pages' index, the not-found page and the root error |
 | [redesign-foundation.md](docs/specs/redesign-foundation.md) | LOOK | Implemented | BuyCarMap 2.0 F1: tokens, dark only, fonts, primitives, footer, DESIGN.md |
+| [motion.md](docs/specs/motion.md) | MOTION | Implemented | One timing system, hover and press states, and no animation on daily lists or keyboard actions |
 | [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Implemented | Downloading a copy of one's own data from `/account` |
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
 | [core-mastermind.md](docs/specs/core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
@@ -553,9 +554,12 @@ Do not point a gap at a loosely related file to make it look covered.
 | `components/map/search/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `components/map/filters/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `components/map/phone/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
+| `components/map/results-grid.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/map/**` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `lib/hooks/useLandingSearch.ts` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
+| `lib/hooks/useMapHeaderSlot.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
+| `lib/hooks/useFilterCount.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/useResultsSheetDrag.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `lib/hooks/useSaved*.ts` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
 | `lib/hooks/useRemovalFocus.ts` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
@@ -635,6 +639,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `plop-templates/**` | [README.md](README.md) |
 | `lib/listings/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `lib/search/**` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
+| `lib/search/quick-filters.ts` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `app/map/page.tsx` | [docs/specs/map-and-search.md](docs/specs/map-and-search.md) |
 | `app/map/loading.tsx` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
 | `app/map/error.tsx` | [docs/specs/redesign-map.md](docs/specs/redesign-map.md) |
@@ -667,6 +672,13 @@ Do not point a gap at a loosely related file to make it look covered.
 | `app/error.tsx` | [docs/specs/redesign-pages.md](docs/specs/redesign-pages.md) |
 | `components/*.tsx` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `lib/animations.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `lib/input-modality.ts` | [docs/specs/motion.md](docs/specs/motion.md) |
+| `lib/sheet-release-velocity.ts` | [docs/specs/motion.md](docs/specs/motion.md) |
+| `lib/hooks/useReleaseSampling.ts` | [docs/specs/motion.md](docs/specs/motion.md) |
+| `lib/hooks/usePresenceMotion.ts` | [docs/specs/motion.md](docs/specs/motion.md) |
+| `lib/hooks/useChangedByKey.ts` | [docs/specs/motion.md](docs/specs/motion.md) |
+| `components/ui/PresenceFade.tsx` | [docs/specs/motion.md](docs/specs/motion.md) |
+| `app/globals.motion.node.test.ts` | [docs/specs/motion.md](docs/specs/motion.md) |
 | `lib/utils.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `next.config.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `vitest.config.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |

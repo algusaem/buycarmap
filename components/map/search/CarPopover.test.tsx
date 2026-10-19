@@ -1,11 +1,18 @@
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { clearCarModelsCache } from "@/lib/hooks/useCarModels";
 import { withAnimations } from "@/test/utils/animations";
 import { renderWithI18n } from "@/test/utils/render";
 import { CarPopover, type CarPopoverProps } from "./CarPopover";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 // docs/specs/redesign-map.md (MAPUI-6 to MAPUI-10, worked example under
 // "Coche type-ahead"). listCarModels is a Server Action
@@ -293,30 +300,106 @@ describe("MAPUI-56: CarPopover — text no brand matches", () => {
   });
 });
 
-describe("MAPUI-2: CarPopover — the list fading out", () => {
-  it("MAPUI-2: after Escape, the fading options are not a listbox and a press chooses nothing", async () => {
+// docs/specs/motion.md (MOTION-13, amends MAPUI-2's case): the type-ahead
+// list never animates — its options are gone at once, with nothing left
+// mid-fade to press.
+describe("MOTION-13: CarPopover — the list never animates (amends MAPUI-2)", () => {
+  it("MOTION-13: after Escape, the options are gone at once — no fading option left to press", async () => {
     await withAnimations(async () => {
-      const onSelectBrand = vi.fn();
-      renderWithI18n(<CarPopover {...BASE} onSelectBrand={onSelectBrand} />, { locale: "es" });
+      renderWithI18n(<CarPopover {...BASE} />, { locale: "es" });
 
       await userEvent.type(screen.getByRole("combobox"), "Toy");
       const option = await screen.findByRole("option", { name: "Toyota" });
-      // An exit from opacity 0 is instant in Motion: let the enter animation
-      // start, so the exit has something to fade.
-      await waitFor(() =>
-        expect(Number(screen.getByRole("listbox").style.opacity)).toBeGreaterThan(0),
-      );
 
       await userEvent.keyboard("{Escape}");
 
+      expect(option).not.toBeInTheDocument();
       expect(screen.queryByRole("listbox")).toBeNull();
-      // `option` still points at the fading node: same element, mid-exit.
-      expect(option).toBeInTheDocument();
-      expect(option).not.toHaveAttribute("role");
-      fireEvent.mouseDown(option);
-      fireEvent.click(option);
+      expect(screen.queryByRole("option")).toBeNull();
+    });
+  });
+});
 
-      expect(onSelectBrand).not.toHaveBeenCalled();
+// docs/specs/motion.md (MOTION-18): the brand chip in «Coche» appears and
+// leaves with no fade, as the rest of the type-ahead does (MOTION-13).
+describe("MOTION-18: CarPopover — the brand chip appears and leaves with no fade", () => {
+  function ControlledCarPopover() {
+    const [brand, setBrand] = useState("");
+    const [model, setModel] = useState("");
+    return (
+      <CarPopover
+        {...BASE}
+        brand={brand}
+        model={model}
+        onSelectBrand={(next) => {
+          setBrand(next);
+          setModel("");
+        }}
+        onSelectModel={setModel}
+        onClear={() => {
+          setBrand("");
+          setModel("");
+        }}
+      />
+    );
+  }
+
+  it("MOTION-18: choosing Toyota with Enter shows its chip with no inline opacity below 1, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<ControlledCarPopover />, { locale: "es" });
+      await userEvent.type(screen.getByRole("combobox"), "Toy");
+      await screen.findByRole("option", { name: "Toyota" });
+
+      await userEvent.keyboard("{ArrowDown}{Enter}");
+
+      const chip = screen.getByRole("button", { name: "Quitar Toyota" }).parentElement;
+      expect(chip, "the brand chip").not.toBeNull();
+      const opacity = chip?.style.opacity ?? "";
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-18: «Quitar Toyota» activated with Enter removes the chip in the same tick", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<ControlledCarPopover />, { locale: "es" });
+      await userEvent.type(screen.getByRole("combobox"), "Toy");
+      await screen.findByRole("option", { name: "Toyota" });
+      await userEvent.keyboard("{ArrowDown}{Enter}");
+      const remove = screen.getByRole("button", { name: "Quitar Toyota" });
+      remove.focus();
+
+      await userEvent.keyboard("{Enter}");
+
+      expect(remove).not.toBeInTheDocument();
+    });
+  });
+
+  it("MOTION-18: choosing Toyota with a pointer click shows its chip with no inline opacity below 1, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<ControlledCarPopover />, { locale: "es" });
+      await userEvent.type(screen.getByRole("combobox"), "Toy");
+      const option = await screen.findByRole("option", { name: "Toyota" });
+
+      await userEvent.click(option);
+
+      const chip = screen.getByRole("button", { name: "Quitar Toyota" }).parentElement;
+      expect(chip, "the brand chip").not.toBeNull();
+      const opacity = chip?.style.opacity ?? "";
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-18: «Quitar Toyota» activated with a pointer click removes the chip in the same tick", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<ControlledCarPopover />, { locale: "es" });
+      await userEvent.type(screen.getByRole("combobox"), "Toy");
+      const option = await screen.findByRole("option", { name: "Toyota" });
+      await userEvent.click(option);
+      const remove = screen.getByRole("button", { name: "Quitar Toyota" });
+
+      await userEvent.click(remove);
+
+      expect(remove).not.toBeInTheDocument();
     });
   });
 });

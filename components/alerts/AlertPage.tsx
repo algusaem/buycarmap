@@ -111,9 +111,6 @@ export function AlertPage({ alert }: AlertPageProps) {
               rowTail="none"
               onOpen={sheet.openSheet}
               onRowFocus={list.focusRow}
-              leaving={list.leaving}
-              onLeft={list.leftList}
-              arriving={list.arriving}
             />
           )}
           <Button

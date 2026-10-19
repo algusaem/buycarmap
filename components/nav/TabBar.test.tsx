@@ -5,6 +5,7 @@ import { act, fireEvent, screen } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { setResultsSheetFull } from "@/lib/hooks/useResultsSheetFull";
+import { withAnimations } from "@/test/utils/animations";
 
 const pathname = vi.fn(() => "/map");
 vi.mock("next/navigation", () => ({
@@ -30,7 +31,10 @@ const SIGNED_IN = {
 };
 const SIGNED_OUT = { data: null, isPending: false };
 
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
 beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
   pathname.mockReturnValue("/map");
   useSession.mockReturnValue(SIGNED_IN);
   window.scrollY = 0;
@@ -511,5 +515,79 @@ describe("MAPUI-53: TabBar comes back at the end of a page's scroll (bug fix, #1
       "aria-hidden",
       "false",
     );
+  });
+});
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-6: the tabs gain a
+// hover state on pointer devices and a press state, in the state transition.
+describe("MOTION-6: TabBar — hover and press", () => {
+  it("MOTION-6: the Mapa tab carries hover:bg-surface-strong and active:scale-97, off under reduced motion", () => {
+    pathname.mockReturnValue("/map");
+    renderWithI18n(<TabBar />, { locale: "es" });
+
+    const className = screen.getByRole("link", { name: /Mapa/ }).className;
+    expect(className).toContain("hover:bg-surface-strong");
+    expect(className).toContain("active:scale-97");
+    expect(className).toContain("motion-reduce:active:scale-none");
+  });
+});
+
+/** Waits one animation frame: what a jump needs to be drawn, and far too little for the 180ms slide. */
+function oneFrame() {
+  return act(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      }),
+  );
+}
+
+// docs/specs/motion.md (MOTION-23): when the results sheet moves to full or
+// away from it by Enter or Space on its handle, the tab bar hides or comes
+// back at once; moved by a pointer, it still slides.
+describe("MOTION-23: TabBar — a key-caused hide or return is instant", () => {
+  it.each(["Enter", " "])(
+    "MOTION-23: after the %j key, the sheet going full puts the bar fully down within a frame",
+    async (key) => {
+      await withAnimations(async () => {
+        renderWithI18n(<TabBar />);
+        const nav = screen.getByRole("navigation");
+
+        fireEvent.keyDown(window, { key });
+        act(() => setResultsSheetFull(true));
+        await oneFrame();
+
+        expect(nav.style.transform).toBe("translateY(100%)");
+      });
+    },
+  );
+
+  it("MOTION-23: after a key, the sheet leaving full brings the bar fully back within a frame", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<TabBar />);
+      const nav = screen.getByRole("navigation");
+      fireEvent.keyDown(window, { key: "Enter" });
+      act(() => setResultsSheetFull(true));
+      await oneFrame();
+
+      fireEvent.keyDown(window, { key: "Enter" });
+      act(() => setResultsSheetFull(false));
+      await oneFrame();
+
+      expect(nav.style.transform).toBe("none");
+    });
+  });
+
+  it("MOTION-23: after a pointer press, the sheet going full still slides the bar — it is not down yet a frame later", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<TabBar />);
+      const nav = screen.getByRole("navigation");
+
+      window.dispatchEvent(new PointerEvent("pointerdown"));
+      act(() => setResultsSheetFull(true));
+      await oneFrame();
+
+      expect(nav.style.transform).not.toBe("translateY(100%)");
+    });
   });
 });

@@ -23,6 +23,12 @@ import {
 } from "@/test/fixtures/favorite-listings";
 import { removeFavorite, saveFavorite } from "@/server/favorites/actions";
 
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
+
 // docs/specs/redesign-saved.md (SAVED-2, SAVED-8, SAVED-18 to SAVED-22,
 // SAVED-31) at phone width: matchMedia reports `(width < 64rem)`, the query
 // useIsPhone (lib/hooks/useIsPhone.ts) reads, so the page renders the
@@ -171,6 +177,16 @@ describe("SAVED-19: the compact row", () => {
   });
 });
 
+// docs/specs/motion.md (MOTION-9): the saved phone list's hover rows turn on
+// and off with no transition.
+describe("MOTION-9: FavoritesList (phone) — the row's hover has no transition", () => {
+  it("MOTION-9: the row carries no transition class at all", () => {
+    renderSaved([makeSortExampleCar("A")]);
+
+    expect(row("A").className).not.toMatch(/(^|\s)transition(-|\s|$)/);
+  });
+});
+
 describe("SAVED-20: the car sheet", () => {
   it("SAVED-20: pressing a row opens a dialog named by the car, with «Cerrar», the photo and badge, name and city, «año · km · combustible», the price, «Quitar de guardados» and «Ver anuncio»", async () => {
     const audi = makeSortExampleCar("A");
@@ -239,6 +255,73 @@ describe("SAVED-21: opening and closing the car sheet", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(row("B")).toHaveFocus();
+  });
+});
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-12: the phone sheet
+// appears at once when opened from the keyboard, and disappears at once when
+// closed with Escape; opened or closed with a pointer, it still slides
+// (amends SAVED-21, whose pointer-close test above is the kept pointer twin).
+describe("MOTION-12: FavoritesList (phone) — the car sheet opens and closes at once from the keyboard", () => {
+  it("MOTION-12: Enter on a row opens the sheet with no inline transform left at its off-screen offset, even with animations enabled", async () => {
+    await withAnimations(async () => {
+      renderSaved();
+      row("B").focus();
+
+      await userEvent.keyboard("{Enter}");
+
+      const sheet = await screen.findByRole("dialog", { name: TITLE.B });
+      expect(sheet.style.transform).not.toContain("100%");
+    });
+  });
+
+  it("MOTION-12: Escape closes the sheet in the same tick, with no exit animation to wait for", async () => {
+    await withAnimations(async () => {
+      renderSaved();
+      await openSheet("B");
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+  it("MOTION-12: «Cerrar» activated with Enter closes the sheet in the same tick", async () => {
+    await withAnimations(async () => {
+      renderSaved();
+      row("B").focus();
+      await userEvent.keyboard("{Enter}");
+      const sheet = await screen.findByRole("dialog", { name: TITLE.B });
+      within(sheet).getByRole("button", { name: "Cerrar" }).focus();
+
+      await userEvent.keyboard("{Enter}");
+
+      expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    });
+  });
+
+  it("MOTION-12: «Cerrar» activated with Space closes the sheet in the same tick", async () => {
+    await withAnimations(async () => {
+      renderSaved();
+      row("B").focus();
+      await userEvent.keyboard("{Enter}");
+      const sheet = await screen.findByRole("dialog", { name: TITLE.B });
+      within(sheet).getByRole("button", { name: "Cerrar" }).focus();
+
+      await userEvent.keyboard(" ");
+
+      expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    });
+  });
+
+  it("MOTION-12: a press on a row still slides the sheet up — right after it, the sheet is mid-slide", async () => {
+    await withAnimations(async () => {
+      renderSaved();
+
+      const sheet = await openSheet("B");
+
+      expect(sheet.style.transform).toContain("translateY(");
+      expect(sheet.style.transform).not.toMatch(/^(none|translateY\(0px\))$/);
+    });
   });
 });
 

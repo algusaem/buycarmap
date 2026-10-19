@@ -175,6 +175,16 @@ describe("ALERTUI-28: the phone AlertCard", () => {
   });
 });
 
+// docs/specs/motion.md (MOTION-19): the phone alert card's press changes with
+// no transition.
+describe("MOTION-19: the phone AlertCard never animates", () => {
+  it("MOTION-19: the phone card carries no transition- class", () => {
+    renderAlerts();
+
+    expect(phoneCard(ALERT_ID.corolla).className).not.toMatch(/(^|\s)transition-/);
+  });
+});
+
 describe("ALERTUI-13: the phone ignores `alert`", () => {
   it("ALERTUI-13: /alerts?alert=<Golf's id> lists the four phone cards, none open, and leaves the URL as it is", async () => {
     const onUrlUpdate = vi.fn<OnUrlUpdateFunction>();

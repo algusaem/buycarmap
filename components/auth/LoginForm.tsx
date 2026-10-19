@@ -320,7 +320,7 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
         {t("auth.noAccount")}{" "}
         <Link
           href="/register"
-          className="inline-flex items-center justify-center font-bold text-lime underline before:absolute before:size-11 3xl:before:size-6"
+          className="inline-flex items-center justify-center font-bold text-lime underline transition-[color,scale] before:absolute before:size-11 hover:text-text active:scale-97 motion-reduce:active:scale-none 3xl:before:size-6"
         >
           {t("auth.createOne")}
         </Link>

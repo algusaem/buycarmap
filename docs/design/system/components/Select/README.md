@@ -8,4 +8,4 @@ El campo de elegir entre opciones (combustible). La marca y el modelo no van en 
 - Un solo estilo: el selector lleva siempre casillas, se elija una opción o varias (Combustible). Casilla de 20px a la izquierda, a 12px del texto: radio 6px, borde `text-muted` vacía, rellena de `violet` con un check `on-violet` de 14px y trazo 3,2 marcada.
 - El disparador muestra los valores elegidos separados por comas y los corta con «…» si no caben. Sin contador.
 - Teclado completo: flechas, Intro, Escape y escribir para saltar; lo da el primitivo de Radix.
-- Aparece y desaparece con Motion.
+- Abierto o cerrado con el ratón, el desplegable se funde y se mueve 4px en 180ms, y sale como entró; abierto con Intro, Espacio o una flecha, o cerrado con Escape, aparece y desaparece al instante (MOTION-18).

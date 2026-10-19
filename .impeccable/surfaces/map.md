@@ -32,21 +32,23 @@ UI Kit). Where this brief and the design disagree, the design wins and this brie
 - Visual authority: the approved BuyCarMap 2.0 world, "one light in the night" (`DESIGN.md`): near-black
   `bg` and `surface`, lime for what the buyer is doing or looking at now, violet for what is theirs
   and for chosen states, Unbounded uppercase for headings, counts and prices, Rethink Sans for the rest.
-- Structural thesis: the map is the product. Desktop puts a three-column card grid beside the map
-  under a header whose centre is the «Dónde · Coche · Precio» search pill; the phone keeps the map on
-  screen with the search summary floating on top and the results in a three-position sheet over the
+- Structural thesis: the map is the product. Desktop opens on a two-row `surface` band — in its first
+  row's centre the «Dónde · Coche · Precio» search pill with «Crear alerta» beside it, then «Filtros» and
+  the quick filters — and under it the list and the map in two halves, the map a rounded card; the cards
+  in two columns, three from 1920px. The phone keeps the map on screen under a solid band with the search
+  summary, the round «Filtros» and the quick filters, and the results in a three-position sheet over the
   tab bar.
 - Focal moment: a price pin and its card lighting up together in lime — hovering a card, or opening a
   pin's preview, marks the other.
 
 ## 4. Scope and boundaries
 
-- In scope: the search pill and its popovers, the filters row and panel, the phone search sheet and
-  full-screen filters, price pins and grouping, the preview card, zoom, the results sheet, the loading,
-  empty and error states, the shared car card, «Crear alerta» and the phone tab bar.
+- In scope: the header band with the search pill and its popovers, «Filtros», the quick filters and the
+  panel, the phone's top band, search sheet and full-screen filters, price pins and grouping, the preview
+  card, zoom, the results sheet, the loading, empty and error states, the shared car card, «Crear alerta»
+  and the phone tab bar.
 - Untouched here: the landing's search ([`landing.md`](landing.md)), the saved-cars and alerts page layouts (F5, F6), emails.
-- Anti-goals: no quick-filter chip row («Todos», «Diésel»…) — the row shows only active filters; no
-  sort control; no distance clustering; no photo carousel; no search-as-I-move-the-map; no
+- Anti-goals: no sort control; no distance clustering; no photo carousel; no search-as-I-move-the-map; no
   navigation menu sheet or hamburger.
 
 ## 5. States and ranges
@@ -72,8 +74,9 @@ UI Kit). Where this brief and the design disagree, the design wins and this brie
 ## 6. Interaction and layout
 
 - Desktop applies at once: every popover and panel choice updates the URL and re-searches after the
-  short pause; «Buscar» searches immediately. The phone applies on «Ver coches»; closing a sheet
-  discards it.
+  short pause; «Buscar» searches immediately. The quick filters apply at once at every width, with no
+  pause and no «Ver coches». The phone's search sheet and full-screen filters apply on «Ver coches»;
+  closing one discards it.
 - Popovers and the filters dropdown anchor under their trigger, one open at a time, closing on a press
   outside or Escape with focus returned. The preview is anchored to its pin and moves with the map;
   it takes focus on open, and opening «Crear alerta» closes it.
@@ -82,12 +85,16 @@ UI Kit). Where this brief and the design disagree, the design wins and this brie
   handle strip and the heading, never from the list, and settles on the nearest position, or one
   position on a fast flick. At middle, tapping or panning the map lowers it to peeked; a pin does
   not. The tab bar hides only while the sheet is full.
-- Everything that appears or disappears animates with Motion, honouring reduced motion.
+- Motion follows `docs/specs/motion.md`: opened or closed with a pointer, the popovers, the «Filtros»
+  dropdown and the preview fade over 180ms and the sheets slide over 240ms (or fade over 180ms),
+  leaving the way they came; opened with a key or closed with Escape, they appear and disappear at
+  once. The results list, the type-ahead lists, the card rings and the pins never animate. Reduced
+  motion is honoured.
 
 ## 7. Constraints and open decisions
 
-- WCAG 2.2 AA, full keyboard support and screen reader support; state never by colour alone (weight,
-  fill and the pin's halo change too); hit areas of at least 44 × 44px on a phone; inputs at 16px.
+- WCAG 2.2 AA, full keyboard support and screen reader support; state never by colour alone (chips change
+  weight and fill, the active pin gains its halo); hit areas of at least 44 × 44px on a phone; inputs at 16px.
 - All copy through next-intl keys; Spanish is the default locale and the design gives Spanish only.
 - Reuse the design system's components (`docs/design/system/components/`) and theme tokens from
   `app/globals.css`; no new colour, token or pattern without approval.

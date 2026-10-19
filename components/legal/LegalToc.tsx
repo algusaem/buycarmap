@@ -1,11 +1,12 @@
 "use client";
 
 import { useId, type MouseEvent } from "react";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, type HTMLMotionProps } from "motion/react";
 import * as motion from "motion/react-client";
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { dropdownReveal } from "@/lib/animations";
+import { usePresenceMotion } from "@/lib/hooks/usePresenceMotion";
 import { cn } from "@/lib/utils";
 
 interface TocSection {
@@ -32,7 +33,10 @@ interface LegalTocProps {
 // beside the text, under «En esta página» at 12px; on a phone a `surface`
 // field after the date whose button opens the same list inside it, under a
 // `line-soft` divider. The section on screen is in `text` with the 2px lime
-// bar and `aria-current="location"`; the others in `text-muted`.
+// bar and `aria-current="location"`; the others in `text-muted`. The phone
+// list folds over 180ms when a pointer chooses a section, and at once when a
+// key does (MOTION-15); either way its exit's end runs the jump. A list CSS
+// folds below `lg` (`foldWithCss`) leaves at once: nothing of it is seen.
 export function LegalToc({
   sections,
   current,
@@ -61,7 +65,7 @@ export function LegalToc({
         aria-expanded={open}
         aria-controls={listId}
         onClick={onToggle}
-        className="flex min-h-11 w-full touch-manipulation items-center justify-between rounded-field px-4 py-3 text-label font-bold text-text lg:hidden"
+        className="flex min-h-11 w-full touch-manipulation items-center justify-between rounded-field px-4 py-3 text-label font-bold text-text transition-[background-color,scale] hover:bg-surface-strong active:scale-97 motion-reduce:active:scale-none lg:hidden"
       >
         {t("onThisPage")}
         <ChevronDown
@@ -74,10 +78,10 @@ export function LegalToc({
       </p>
       <AnimatePresence initial={false} onExitComplete={onListExitComplete}>
         {showList && (
-          <motion.ul
+          <TocList
             key="toc"
             id={listId}
-            {...dropdownReveal}
+            instantExit={foldWithCss}
             className={cn(
               "flex flex-col border-t border-line-soft px-4 py-2 lg:gap-1.5 lg:border-0 lg:p-0",
               foldWithCss && "max-lg:hidden",
@@ -103,9 +107,21 @@ export function LegalToc({
                 </li>
               );
             })}
-          </motion.ul>
+          </TocList>
         )}
       </AnimatePresence>
     </nav>
   );
+}
+
+interface TocListProps extends HTMLMotionProps<"ul"> {
+  /** It leaves at once whatever the input: CSS hides it, so its fold is never seen. */
+  instantExit: boolean;
+}
+
+/** The list's fold, instant from the keyboard (usePresenceMotion). */
+function TocList({ instantExit, ...props }: TocListProps) {
+  const reveal = usePresenceMotion(dropdownReveal, instantExit);
+
+  return <motion.ul {...reveal} {...props} />;
 }

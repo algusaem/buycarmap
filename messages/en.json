@@ -371,6 +371,8 @@
   "map": {
     "loading": "Loading…",
     "filters": "Filters",
+    "filtersActive": "{count, plural, one {# active filter} other {# active filters}}",
+    "quickFilters": "Quick filters",
     "addFavorite": "Save",
     "removeFavorite": "Remove from saved",
     "markerLabel": "{title}, {price}",
