@@ -455,6 +455,69 @@ describe("HEAD-17: the tab bar clears the safe area", () => {
   });
 });
 
+// docs/specs/redesign-map.md (MAPUI-53, amended 2026-10-19, #142): the page
+// scroller here is 3000px of content in a 780px view, so its end is
+// scrollTop 3000 − 780 = 2220.
+describe("MAPUI-53: TabBar comes back at the end of a page's scroll (bug fix, #142)", () => {
+  function renderScrollablePage() {
+    pathname.mockReturnValue("/alerts/a1");
+    renderWithI18n(
+      <>
+        <div data-testid="scrollable" />
+        <TabBar />
+      </>,
+    );
+    const scrollable = screen.getByTestId("scrollable");
+    Object.defineProperty(scrollable, "scrollHeight", { value: 3000 });
+    Object.defineProperty(scrollable, "clientHeight", { value: 780 });
+    return scrollable;
+  }
+
+  function scrollTo(scrollable: HTMLElement, top: number) {
+    Object.defineProperty(scrollable, "scrollTop", {
+      value: top,
+      writable: true,
+      configurable: true,
+    });
+    fireEvent.scroll(scrollable);
+  }
+
+  it("MAPUI-53: scrolling down to the end of the scroll (scrollTop 2220 of 3000, 780 tall) shows it again", () => {
+    const scrollable = renderScrollablePage();
+
+    scrollTo(scrollable, 1000);
+    expect(screen.getByRole("navigation", { hidden: true })).toHaveAttribute("aria-hidden", "true");
+    scrollTo(scrollable, 2220);
+
+    expect(screen.getByRole("navigation", { hidden: true })).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+  });
+
+  it("MAPUI-53: scrolling down to 220px short of the end (scrollTop 2000) keeps it hidden", () => {
+    const scrollable = renderScrollablePage();
+
+    scrollTo(scrollable, 1000);
+    scrollTo(scrollable, 2000);
+
+    expect(screen.getByRole("navigation", { hidden: true })).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("MAPUI-53: scrolling up from the end (2220 to 2100) keeps it shown", () => {
+    const scrollable = renderScrollablePage();
+
+    scrollTo(scrollable, 1000);
+    scrollTo(scrollable, 2220);
+    scrollTo(scrollable, 2100);
+
+    expect(screen.getByRole("navigation", { hidden: true })).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+  });
+});
+
 // docs/specs/motion.md (Key MOTION, Approved), MOTION-6: the tabs gain a
 // hover state on pointer devices and a press state, in the state transition.
 describe("MOTION-6: TabBar — hover and press", () => {
