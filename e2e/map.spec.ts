@@ -1658,11 +1658,33 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
     test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
     const { audi, preview } = await openDesktopMap(page);
 
+    // A single read right after the click can land after the 180ms fade has
+    // already finished on a slow runner (a CI flake, not a real bug). Sample
+    // the card's computed opacity on every animation frame for ~600ms
+    // instead, so the minimum sample — not one point in time racing the
+    // click — is what proves the fade happened.
+    const samplesPromise = page.evaluate(
+      () =>
+        new Promise<number[]>((resolve) => {
+          const samples: number[] = [];
+          const deadline = performance.now() + 600;
+          function tick() {
+            const card = document.querySelector(".maplibregl-popup article");
+            if (card) samples.push(Number.parseFloat(getComputedStyle(card).opacity));
+            if (performance.now() < deadline) requestAnimationFrame(tick);
+            else resolve(samples);
+          }
+          requestAnimationFrame(tick);
+        }),
+    );
+
     await audi.click();
     await preview.waitFor({ state: "attached" });
 
-    const opacity = await preview.evaluate((el) => Number.parseFloat(getComputedStyle(el).opacity));
-    expect(opacity).toBeLessThan(1);
+    const samples = await samplesPromise;
+    expect(samples.length).toBeGreaterThan(0);
+    expect(Math.min(...samples)).toBeLessThan(1);
+    expect(samples[samples.length - 1]).toBe(1);
   });
 
   test("MAPUI-27: the open preview card has no serious or critical axe violation", async ({
