@@ -1,5 +1,7 @@
 # BuyCarMap
 
+[![Test](https://github.com/algusaem/buycarmap/actions/workflows/test.yml/badge.svg?branch=master&event=push)](https://github.com/algusaem/buycarmap/actions/workflows/test.yml?query=branch%3Amaster+event%3Apush)
+
 Second-hand car listings from Wallapop, coches.net and Milanuncios, merged into one search and
 plotted on a map of Spain.
 
