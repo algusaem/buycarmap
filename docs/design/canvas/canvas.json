@@ -130,6 +130,14 @@
       "x": 0,
       "y": 8480
     },
+    "F0-estado-mapa-no-disponible.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · sin WebGL",
+      "w": 1970,
+      "x": 4100,
+      "y": 7420
+    },
     "F0-estado-guardados-vacio.dc.html": {
       "h": 900,
       "page": "r3",
@@ -361,6 +369,7 @@
     "F0-estado-cargando.dc.html",
     "F0-estado-sin-resultados.dc.html",
     "F0-estado-error-busqueda.dc.html",
+    "F0-estado-mapa-no-disponible.dc.html",
     "R3-favoritos.dc.html",
     "F5-guardados-coche.dc.html",
     "F5-guardados-estados.dc.html",

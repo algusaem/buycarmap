@@ -61,7 +61,7 @@ describe("SAVED-30: the loading state", () => {
     const map = screen.getByRole("region", { name: "Mapa de tus guardados" });
     expect(map).toHaveClass("hidden", "lg:flex");
     expect(within(map).getByText("Tus guardados en el mapa")).toBeInTheDocument();
-    expect(container.querySelector(".leaflet-marker-icon")).toBeNull();
+    expect(container.querySelector(".maplibregl-marker")).toBeNull();
   });
 
   it("SAVED-30: holds a visually hidden «Cargando…» in a polite status, the page's only live region", () => {

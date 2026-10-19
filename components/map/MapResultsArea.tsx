@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { PhoneSearchBar } from "@/components/map/phone/PhoneSearchBar";
@@ -12,7 +13,7 @@ import type { ResultsState } from "@/lib/map/results-state";
 import type { PhoneSummary } from "@/lib/search/phone-summary";
 import type { SearchInput } from "@/lib/search/schema";
 
-// Leaflet cannot run server-side; `ssr: false` keeps it out of the server
+// MapLibre cannot run server-side; `ssr: false` keeps it out of the server
 // bundle (moved here from MapView.tsx with the one place that renders it).
 const ListingsMap = dynamic(
   () => import("@/components/map/ListingsMap").then((mod) => mod.ListingsMap),
@@ -68,6 +69,8 @@ export function MapResultsArea({
   onToggleFavorite,
 }: MapResultsAreaProps) {
   const t = useTranslations();
+  // No WebGL: the map's own «map unavailable» pill is the only one over it (MAPLIBRE-15).
+  const [mapUnavailable, setMapUnavailable] = useState(false);
 
   return (
     // `isolate` keeps the sheet's z-index inside this area, under the tab bar and the dialogs
@@ -141,13 +144,16 @@ export function MapResultsArea({
             desktop={!isPhone}
             favoriteIds={favoriteIds}
             onToggleFavorite={onToggleFavorite}
+            onUnavailableChange={setMapUnavailable}
           />
-          <StatusPill
-            state={state}
-            radiusKm={distanceInKm}
-            canWiden={widenTo !== undefined}
-            hasFilters={hasFilters}
-          />
+          {!mapUnavailable && (
+            <StatusPill
+              state={state}
+              radiusKm={distanceInKm}
+              canWiden={widenTo !== undefined}
+              hasFilters={hasFilters}
+            />
+          )}
         </section>
       </div>
     </div>

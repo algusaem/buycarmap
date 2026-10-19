@@ -713,23 +713,39 @@ peeked (MAPUI-62, [`specs/redesign-map.md`](specs/redesign-map.md)). Those are b
 [`lib/hooks/useIsPhone.ts`](../lib/hooks/useIsPhone.ts) tells `MapView` which applies; the
 server, and jsdom, take the desktop branch.
 
-**`ListingsMap` is loaded via `next/dynamic` with `ssr: false`.** Leaflet needs
-the DOM and will not survive server rendering. It loads the dark CARTO tiles,
-draws one price pin per point (`lib/map/group-pins.ts` groups the listings that share one), and
-fits bounds via a `FitBounds` child using `useMap()` — on a new search's first results only,
-not on every listings change (see `docs/specs/map-and-search.md` › Decisions › The map fits on a
-new search, not on a new page (MAP-25)). A pin is a `divIcon` whose HTML carries the theme's
-utility classes; its active state is a `data-active` attribute toggled on Leaflet's own element,
-because a new icon would make Leaflet replace the element and lose its focus and listeners. The
-desktop preview is the marker's Leaflet `Popup`, restyled with important utilities because
-`leaflet.css` is unlayered. The map's wrapper is `isolate`, so Leaflet's pane z-indexes stay
-below the header's popovers and the results sheet.
+**`ListingsMap` is loaded via `next/dynamic` with `ssr: false`.** MapLibre GL needs
+the DOM and WebGL and will not survive server rendering; loading it this way also keeps
+`maplibre-gl` off every page without a map (MAPLIBRE-10). The map, its style, its tile provider
+and its test hooks are specified in [`specs/map-maplibre.md`](specs/map-maplibre.md), and why
+MapLibre and OpenFreeMap replaced Leaflet and CARTO is
+[ADR 0023](decisions/0023-maplibre-openfreemap.md). How the pieces fit:
 
-Consequences for tests: most component tests mock `react-leaflet`.
-`components/map/ListingsMap.preview.test.tsx` is the exception — it renders real Leaflet and
-react-leaflet in jsdom for the preview popup's open/close lifecycle, relying on
-`test/utils/animations.ts`'s `withAnimations` to turn real exit animations back on for the cases
-that need the fade still in flight — see [Environment gotchas](#environment-gotchas).
+- [`lib/hooks/useMapLibre.ts`](../lib/hooks/useMapLibre.ts) owns one `maplibregl.Map` per
+  container, with no React wrapper library: it creates the map on mount with the style in
+  [`lib/map/style.ts`](../lib/map/style.ts), removes it on unmount, hands it out once its style
+  has loaded, and says when the browser cannot draw it (no WebGL, MAPLIBRE-15). It also points
+  MapLibre at its web worker as the bundler emits it (`setWorkerUrl`).
+- The parts drawn on the map reach it through `MapInstanceContext`
+  (`components/map/MapInstanceContext.tsx`): the pins, the preview, the zone
+  (`components/map/ZoneLayers.tsx`) and the zoom buttons (`components/map/MapZoom.tsx`).
+- A pin is a `maplibregl.Marker` whose element holds the pin's React `<button>`, rendered into it
+  with `createPortal`, so its accessible name, `data-active`, focus and keys stay React's
+  (`lib/map/group-pins.ts` groups the listings that share a point). The desktop preview is a
+  `maplibregl.Popup` whose content element holds `MapPreview`, portaled the same way, restyled with
+  important utilities because `maplibre-gl.css` is unlayered.
+- `FitBounds` fits a new search's first results only, not every listings change (see
+  `docs/specs/map-and-search.md` › Decisions › The map fits on a new search, not on a new page
+  (MAP-25)), at once rather than animated.
+
+The map's wrapper is `isolate`, so the map's own layers stay below the header's popovers and the
+results sheet.
+
+Consequences for tests: jsdom has no WebGL, so every component test that renders a map mocks
+`maplibre-gl` with the stand-in in [`test/utils/maplibre.ts`](../test/utils/maplibre.ts), which
+records what the code asks of the map and keeps the markers' and the popup's elements in the DOM.
+What only a drawn map proves — pixels, gestures, the preview's open and close in a real browser —
+is e2e's (`e2e/maplibre.spec.ts`, `e2e/map.spec.ts`). See
+[Environment gotchas](#environment-gotchas).
 
 **The brand list** the type-ahead matches is `components/map/search-filter-options.ts`. The
 filter choices and the chip texts come from `lib/search/fuel-groups.ts` and
@@ -799,7 +815,7 @@ toast under the header, centred on the viewport.
 `/alerts` and `/alerts/[id]` ([`specs/redesign-alerts.md`](specs/redesign-alerts.md), ALERTUI)
 draw the saved cars page's frame (`SavedLayout`): the list column, which alone scrolls, and from
 `lg` the alert map beside it, `ListingsMap` with the alert's zone (`components/map/ZoneLayers.tsx`,
-a react-leaflet `Circle` and centre dot under the pins) and the pill naming the alert. Both read
+a GeoJSON circle and centre dot drawn under the pins) and the pill naming the alert. Both read
 on the server: `listAlertsForPage(alert)` returns the user's alerts, newest first, and the
 matches of one of them, the open one, resolved from the URL's `alert` among the caller's own
 (`resolveOpenAlertId`, in `findAlertsPage` of `server/alerts/service.ts`); `getAlertWithMatches(id)`
@@ -1038,12 +1054,14 @@ and with it the stored preference: nothing reads or writes a theme in `localStor
 `dark:` variants in `button.tsx` and `input.tsx` key off it until those primitives are rewritten.
 
 Use the CSS variables (`var(--…)`) for colour rather than branching in JS. The Toaster, the map
-tiles and the Google button read the theme as a constant.
+and the Google button read the theme as a constant.
 
-Map tiles are the dark CARTO style only,
-`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`. It carries `?key=` with
-`NEXT_PUBLIC_CARTO_API_KEY` when it is set; without it CARTO serves an "API KEY REQUIRED" watermark
-tile instead of the map (MAP-23, [`docs/specs/map-and-search.md`](specs/map-and-search.md)).
+The map draws OpenFreeMap's vector tiles in the design's own style, `lib/map/style.ts`. A MapLibre
+paint property cannot read a CSS variable, so the style's colours are literals that mirror the
+`map-*` tokens, and `lib/map/style.test.ts` asserts each one against
+`docs/design/system/tokens.json` (MAPLIBRE-1, [`specs/map-maplibre.md`](specs/map-maplibre.md)).
+The alert zone's colours are read off the document's own tokens when it is drawn
+(`components/map/ZoneLayers.tsx`).
 
 ### Animation
 
@@ -1341,10 +1359,14 @@ makes the next test's open or close instant, whatever that next test presses. Fi
 keyboard and pointer behaviour reset it with
 `beforeEach(() => window.dispatchEvent(new PointerEvent("pointerdown")))`.
 
-**Leaflet runs in jsdom for exactly one test file.** Most component tests mock `react-leaflet`;
-`components/map/ListingsMap.preview.test.tsx` renders the real library instead, for the preview
-popup's open, close and focus lifecycle, which a mock would only repeat rather than prove. jsdom
-lays nothing out, so that file asserts no position or size.
+**MapLibre never runs in jsdom.** jsdom has no WebGL, so a test file that renders a map mocks
+the library: `vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"))`. The stand-in keeps
+the DOM MapLibre would keep — a marker's element in the canvas container, an open popup in the
+map's container, a click in the canvas container reported as the map's own `click`, a pin's
+included — and its methods live on the prototypes, so `vi.spyOn(MapLibreMap.prototype,
+"fitBounds")` sees every call. It draws and lays out nothing, so no component test asserts a
+position, a size or a pixel; those are e2e's, where every page gets OpenFreeMap stubbed
+(`e2e/fixtures/map-tiles.ts`, also called by `mockListingSources`) so no run reaches it.
 
 ### End-to-end
 
@@ -1653,9 +1675,10 @@ injection and form exfiltration.
 full-route cache, one proxy run per request. [ADR 0013](decisions/0013-platform-runtime.md)
 records the trade and what it cost the build's static page count.
 
-Two hosts are allowed, and both trace to a real browser-side dependency:
-`*.basemaps.cartocdn.com` for map tiles (`img-src`) and
-`nominatim.openstreetmap.org` for geocoding (`connect-src`). Listing photos are
+Two hosts are allowed, and both trace to a real browser-side dependency, both in `connect-src`:
+`tiles.openfreemap.org` for the map's tiles and their TileJSON, and
+`nominatim.openstreetmap.org` for geocoding. `worker-src 'self' blob:` lets the map start its web
+worker (MAPLIBRE-11, [`specs/map-maplibre.md`](specs/map-maplibre.md)). Listing photos are
 *not* listed because `next/image` proxies them through `/_next/image` on this
 origin. Sentry's browser events go through the `/monitoring` tunnel route
 instead of `*.sentry.io`, so the CSP needs no Sentry host.
@@ -1728,7 +1751,6 @@ Optional — each disables a feature rather than blocking startup:
 | `QSTASH_CURRENT_SIGNING_KEY` + `QSTASH_NEXT_SIGNING_KEY` | The alert run endpoint refuses every request (no valid `Upstash-Signature` can ever verify), so alerts never fire |
 | `DIRECT_URL` | Prisma's migration commands (`prisma.config.ts`) use `DATABASE_URL` instead — fine locally, but that must be an unpooled connection on Vercel, where `DATABASE_URL` is the pooled (`-pooler`) host |
 | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | Sentry stays uninitialised; nothing is sent |
-| `NEXT_PUBLIC_CARTO_API_KEY` | Map tiles show CARTO's "API KEY REQUIRED" watermark instead of the map |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Sentry build-time source-map upload is skipped |
 | `SKIP_ENV_VALIDATION` | Tooling only — see above. Never set for `pnpm dev`/`build`/`start` |
 | `LOCAL_DATABASE_ADMIN_URL` | Tooling only, never read by the app. Overrides the admin connection `pnpm db:branch` uses to create and drop databases in the local Compose Postgres; the default matches `docker-compose.yml` |

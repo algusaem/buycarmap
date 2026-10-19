@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/alerts",
 }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
-vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
 
 // FRONT-14 (docs/specs/core-frontend.md): /alerts' loading state, amended
 // 2026-10-15 by docs/specs/redesign-alerts.md (ALERTUI-38): it mirrors the
@@ -19,6 +19,7 @@ vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
 // /favorites' loading state does (app/favorites/loading.test.tsx); jsdom
 // applies no CSS, so each composition is found by its breakpoint classes.
 import Loading from "./loading";
+import { zoneShapes } from "@/test/utils/alerts";
 
 /** The aria-hidden placeholders directly inside a composition. */
 function placeholders(composition: HTMLElement): Element[] {
@@ -65,8 +66,8 @@ describe("ALERTUI-38: /alerts' loading state", () => {
     expect(map).toHaveClass("hidden", "lg:flex");
     const pill = within(map).getByRole("status");
     expect(pill).toHaveTextContent(ALERT_COPY.loading);
-    expect(container.querySelector(".leaflet-marker-icon")).toBeNull();
-    expect(container.querySelector(".leaflet-overlay-pane path")).toBeNull();
+    expect(container.querySelector(".maplibregl-marker")).toBeNull();
+    expect(zoneShapes()).toEqual([]);
   });
 
   it("ALERTUI-38: at phone width shows the heading and four phone-card placeholders, with a visually hidden «Cargando…» in a polite status inside the busy region", () => {

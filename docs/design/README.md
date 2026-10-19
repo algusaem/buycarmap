@@ -62,7 +62,8 @@ beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, 
   with each search pill segment open (Dónde, Coche, Precio) on desktop; on the phone, the map with
   the search row and the «Buscar» sheet it opens.
 - `F0-estado-cargando.dc.html`, `F0-estado-sin-resultados.dc.html`,
-  `F0-estado-error-busqueda.dc.html` — the map loading, with no results and with a failed search.
+  `F0-estado-error-busqueda.dc.html`, `F0-estado-mapa-no-disponible.dc.html` — the map loading,
+  with no results, with a failed search and in a browser without WebGL.
 - `R3-favoritos.dc.html`, `F5-guardados-coche.dc.html`, `F5-guardados-estados.dc.html`,
   `F0-estado-guardados-vacio.dc.html` — saved cars, with a car open (the preview on desktop, the car sheet
   on the phone), on a laptop, scrolled down a long list, with several cars at one point on the map,

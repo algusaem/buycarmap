@@ -1,22 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MapLibreMap } from "maplibre-gl";
 import { NextIntlClientProvider } from "next-intl";
 import messages from "@/messages/es.json";
+import { MapInstanceContext } from "./MapInstanceContext";
 import { MapZoom } from "./MapZoom";
 
 // docs/design/system/components/MapZoom/README.md: hovering either button
-// takes its background to surface-strong.
-vi.mock("react-leaflet", () => ({
-  useMap: () => ({ zoomIn: vi.fn(), zoomOut: vi.fn() }),
-}));
+// takes its background to surface-strong. The map it zooms is the stand-in
+// in test/utils/maplibre.ts: jsdom has no WebGL.
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
+
+function renderZoom() {
+  const map = new MapLibreMap({ container: document.createElement("div") });
+  return render(
+    <NextIntlClientProvider locale="es" messages={messages}>
+      <MapInstanceContext.Provider value={map}>
+        <MapZoom />
+      </MapInstanceContext.Provider>
+    </NextIntlClientProvider>,
+  );
+}
 
 describe("MAPUI-29: MapZoom — hover state", () => {
   it("MAPUI-29: both buttons take surface-strong on hover, and the wrapper does not clip the focus ring", () => {
-    render(
-      <NextIntlClientProvider locale="es" messages={messages}>
-        <MapZoom />
-      </NextIntlClientProvider>,
-    );
+    renderZoom();
 
     expect(screen.getByRole("button", { name: "Acercar" }).className).toContain(
       "hover:bg-surface-strong",
@@ -34,11 +42,7 @@ describe("MAPUI-29: MapZoom — hover state", () => {
 // a press state alongside their existing hover.
 describe("MOTION-6: MapZoom — press state", () => {
   it("MOTION-6: both buttons carry active:scale-97, off under reduced motion", () => {
-    render(
-      <NextIntlClientProvider locale="es" messages={messages}>
-        <MapZoom />
-      </NextIntlClientProvider>,
-    );
+    renderZoom();
 
     for (const name of ["Acercar", "Alejar"]) {
       const className = screen.getByRole("button", { name }).className;

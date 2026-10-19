@@ -851,8 +851,8 @@ The error codes are unchanged: `unauthenticated`, `invalidCriteria`, `criteriaTo
 `alertCriteriaSchema`, which the create-alert dialog and `createAlert` both parse with, so they share
 one rule (amends `docs/specs/core-layout.md`, which moved it to `service.ts`).
 
-**The preview card** is the marker's Leaflet popup, not a Radix popover, so it is positioned with the
-map and moves with it. Its content animates with Motion and receives focus on open (MAPUI-27).
+**The preview card** is the marker's MapLibre popup (Leaflet's until MAPLIBRE, map-maplibre.md), not a
+Radix popover, so it is positioned with the map and moves with it. Its content animates with Motion and receives focus on open (MAPUI-27).
 
 **Type scale.** The design system's type scale (`docs/design/system/tokens.json` › `type`) is exposed
 as theme tokens, one per entry there and with its values unchanged (owner approval, 2026-10-13). The

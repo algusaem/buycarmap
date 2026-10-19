@@ -84,6 +84,6 @@ this brief and the design disagree, the design wins and this brief is corrected.
 
 - WCAG 2.2 AA under axe at desktop and phone width; hit areas of at least 44 × 44px on a phone.
 - All copy through next-intl keys; Spanish is the default locale and the design gives Spanish only.
-- Theme tokens from `app/globals.css` only; the zone's colours are theme classes on Leaflet's paths;
+- Theme tokens from `app/globals.css` only; the zone's colours are the theme's tokens, read into MapLibre's layers;
   the toast's place is set per page through `data-toast-anchor`.
 - Not for the builder to invent: any copy, value or state the design and the spec do not give.

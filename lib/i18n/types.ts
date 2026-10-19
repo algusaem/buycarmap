@@ -311,6 +311,8 @@ export interface Translations {
     closePreview: string;
     pinGroup: string;
     sheetHandle: string;
+    unavailable: string;
+    toggleAttribution: string;
   };
   // docs/specs/redesign-map.md › Contracts › i18n keys (MAPUI).
   search: {

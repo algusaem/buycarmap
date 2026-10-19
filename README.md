@@ -69,7 +69,7 @@ step — see [Getting started](#getting-started), which also covers why
 
 Next.js 16 (App Router) · React 19 · TypeScript · PostgreSQL on Neon via Prisma 7 · Better Auth
 (sessions in Postgres) · next-intl · nuqs · React Hook Form + Zod 4 · Tailwind CSS 4 with Radix
-primitives · Motion · Leaflet + react-leaflet · Upstash Redis and QStash · Resend + react-email ·
+primitives · Motion · MapLibre GL (OpenFreeMap tiles) · Upstash Redis and QStash · Resend + react-email ·
 Pino · Sentry · Vitest · Playwright.
 
 ## Getting started
@@ -414,6 +414,7 @@ solo project is ceremony.
 | [redesign-pages.md](docs/specs/redesign-pages.md) | PAGES | Implemented | BuyCarMap 2.0 F7: register, account confirmation, password recovery, the account page with its dialogs and sheets, the legal pages' index, the not-found page and the root error |
 | [redesign-foundation.md](docs/specs/redesign-foundation.md) | LOOK | Implemented | BuyCarMap 2.0 F1: tokens, dark only, fonts, primitives, footer, DESIGN.md |
 | [motion.md](docs/specs/motion.md) | MOTION | Implemented | One timing system, hover and press states, and no animation on daily lists or keyboard actions |
+| [map-maplibre.md](docs/specs/map-maplibre.md) | MAPLIBRE | Implemented | The design's own map style: MapLibre GL over OpenFreeMap vector tiles, replacing Leaflet and CARTO |
 | [account-data-export.md](docs/specs/account-data-export.md) | EXPORT | Implemented | Downloading a copy of one's own data from `/account` |
 | [core-rules-and-checks.md](docs/specs/core-rules-and-checks.md) | RULESET | Implemented | Migration phase 1: the core rules and checks |
 | [core-mastermind.md](docs/specs/core-mastermind.md) | MASTER | Implemented | Migration phase 2: mastermind delegation |
@@ -475,6 +476,7 @@ name what it beat, it is a fact, and facts belong in the doc for that area.
 | [0020 — Radix popover, dialog and slider for the map and search redesign](docs/decisions/0020-radix-popover-dialog-slider.md) | `@radix-ui/react-popover`, `-dialog` and `-slider` for the F3 popovers, phone sheets and price range; the preview card stays a Leaflet popup |
 | [0021 — TanStack Virtual for the saved cars list](docs/decisions/0021-react-virtual.md) | `@tanstack/react-virtual` mounts only the visible saved cars; pin, Back, Tab and removal are rebuilt on top of it |
 | [0022 — No unsaved-changes warning on the access forms and the account dialogs](docs/decisions/0022-access-forms-no-unsaved-guard.md) | Three fields at most, or one short task per dialog: leaving or closing with something typed warns of nothing; departs from `STACK.md` §14 and `RULES.md` §19 for those forms |
+| [0023 — MapLibre GL and OpenFreeMap vector tiles for the map](docs/decisions/0023-maplibre-openfreemap.md) | Vector tiles styled with the `map-*` tokens replace Leaflet over CARTO's raster tiles; free, keyless, no SLA, Protomaps as the fallback |
 
 </details>
 
@@ -574,6 +576,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `lib/hooks/useTokenConfirmation.ts` | [docs/specs/redesign-pages.md](docs/specs/redesign-pages.md) |
 | `lib/focus.ts` | [docs/specs/redesign-pages.md](docs/specs/redesign-pages.md) |
 | `lib/map/zone.ts` | [docs/specs/redesign-alerts.md](docs/specs/redesign-alerts.md) |
+| `lib/map/style.ts` | [docs/specs/map-maplibre.md](docs/specs/map-maplibre.md) |
 | `components/map/ZoneLayers.tsx` | [docs/specs/redesign-alerts.md](docs/specs/redesign-alerts.md) |
 | `lib/favorites/**` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
 | `app/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |

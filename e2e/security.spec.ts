@@ -1,6 +1,13 @@
 import { test, expect, type Page, type Response } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
 import { e2eEmail, seedUser } from "./fixtures/db";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // PLAT-21 (e2e half) and PLAT-23 (docs/specs/core-platform.md, amended
 // 2026-10-12, LOOK — redesign-foundation.md): the CSP moves from a static

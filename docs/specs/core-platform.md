@@ -24,7 +24,7 @@ This is phase 6 of ADR 0007: rows 11–15.
 
 ### Env
 
-- [x] PLAT-1 · unit — `lib/env.ts` is built with `@t3-oss/env-nextjs` `createEnv`. It declares every variable the application reads, server-side ones under `server` and none under `client` except `NEXT_PUBLIC_SENTRY_DSN` and `NEXT_PUBLIC_CARTO_API_KEY` (MAP-23, `docs/specs/map-and-search.md`). The required ones stay required: `DATABASE_URL` and `NEXTAUTH_SECRET`. Everything that is optional today stays optional.
+- [x] PLAT-1 · unit — `lib/env.ts` is built with `@t3-oss/env-nextjs` `createEnv`. It declares every variable the application reads, server-side ones under `server` and none under `client` except `NEXT_PUBLIC_SENTRY_DSN` (amended 2026-10-19, MAPLIBRE — map-maplibre.md: `NEXT_PUBLIC_CARTO_API_KEY` leaves with the CARTO tiles). The required ones stay required: `DATABASE_URL` and `NEXTAUTH_SECRET`. Everything that is optional today stays optional.
 - [x] PLAT-2 · unit — The module no longer imports `dotenv` and never calls `console`. The two production warnings it prints today (email not configured, two-factor not configured) become Pino `warn` logs emitted once, from `lib/logger.ts`, the first time the mailer or the two-factor setup runs without its variables.
 - [x] PLAT-3 · unit — `next.config.ts` imports `lib/env.ts`, so `pnpm build` fails with the variable's name when a required variable is missing or malformed. `SKIP_ENV_VALIDATION=1` skips it, and only `pnpm lint` and CI's lint job set it.
 - [x] PLAT-4 · unit — No file under `app/`, `components/`, `lib/`, `server/` or `proxy.ts`, nor `next.config.ts` or `instrumentation*.ts`, reads `process.env` except `lib/env.ts` and the literal `process.env.NEXT_RUNTIME` checks in `instrumentation.ts`, which Next.js only strips from the Edge bundle in that literal form. Tooling that runs outside Next — `prisma.config.ts`, `playwright.config.ts`, `vitest.config.ts`, `scripts/**`, `e2e/**` — is exempt. A test reads the tree and fails on any other hit.
@@ -152,7 +152,7 @@ No change. No migration.
 - **Migrations on previews and a staging database**: phase 12.
 - **`loading.tsx`/`error.tsx` on the routes other than PLAT-14's**: issue #43.
 - **Sentry tracing, profiling and session replay.** The free plan's quota goes to errors.
-- **Removing `'unsafe-inline'` from `style-src`.** Leaflet and Motion set inline styles.
+- **Removing `'unsafe-inline'` from `style-src`.** MapLibre and Motion set inline styles.
 - **Rate-limiting the health routes.** They do no work beyond one `SELECT 1`.
 
 ## Contracts

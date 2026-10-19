@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import L from "leaflet";
+import { MapLibreMap } from "maplibre-gl";
 import type { OnUrlUpdateFunction } from "nuqs/adapters/testing";
 import { toast } from "sonner";
 import { axe } from "vitest-axe";
@@ -40,9 +40,10 @@ beforeEach(() => {
 // stubs matchMedia to match nothing, so useIsPhone reports desktop. The phone
 // composition is FavoritesList.phone.test.tsx's.
 //
-// The saved map is the real ListingsMap on the real Leaflet, as in
-// components/map/ListingsMap.preview.test.tsx: its pins, their active state
-// and the preview's open and close are Leaflet's own events. jsdom lays
+// The saved map is the real ListingsMap on the MapLibre stand-in
+// (test/utils/maplibre.ts), as in components/map/ListingsMap.test.tsx: its
+// pins are buttons in the markers' elements, and the preview opens in a popup
+// holding the real card. jsdom lays
 // nothing out, so nothing here asserts a position or a size (SAVED-3,
 // SAVED-4 and SAVED-24 are e2e/saved.spec.ts's). The toasts are the real
 // Sonner under the app's one Toaster, so «Deshacer» is pressed as a buyer
@@ -75,7 +76,7 @@ vi.mock("@/server/favorites/actions", () => ({
   listFavorites: vi.fn(),
 }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
-vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
 // FAV-13: the search Server Actions (server/search/actions.ts) are the only
 // way the browser reaches a listing source (ADR 0016). The factory runs only
 // if something the page imports loads them, so `loaded` staying false proves
@@ -129,7 +130,7 @@ const UNEXPECTED = SAVED_COPY.unexpected;
 
 /** The accessible names of every pin on the map, sorted. */
 function pinNames(): string[] {
-  return Array.from(document.querySelectorAll<HTMLElement>(".leaflet-marker-icon"))
+  return Array.from(document.querySelectorAll<HTMLElement>(".maplibregl-marker button"))
     .map((pin) => pin.getAttribute("aria-label") ?? "")
     .sort();
 }
@@ -557,7 +558,7 @@ describe("SAVED-12: the saved map's pins", () => {
   });
 
   it("SAVED-12: the map fits the pins once on load, and neither a removal nor an undo moves it", async () => {
-    const fitBounds = vi.spyOn(L.Map.prototype, "fitBounds");
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     renderSaved();
     await findPin(PIN.A);
     expect(fitBounds).toHaveBeenCalledTimes(1);

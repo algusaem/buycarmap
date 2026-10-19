@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import L from "leaflet";
+import { MapLibreMap } from "maplibre-gl";
 import type { OnUrlUpdateFunction } from "nuqs/adapters/testing";
 import { toast } from "sonner";
 import { axe } from "vitest-axe";
@@ -18,8 +18,9 @@ import {
   openCard,
   pinNames,
   renderAlerts,
-  zonePaths,
+  zoneShapes,
 } from "@/test/utils/alerts";
+import { failNextMap, fittedContains, GPUInitializationError, mapIn } from "@/test/utils/maplibre";
 import { expectPhotoFocusRing } from "@/test/utils/focus-ring";
 import { stubLayoutBox } from "@/test/utils/viewport";
 import {
@@ -52,10 +53,11 @@ beforeEach(() => {
 // so useIsPhone reports desktop. The phone composition is
 // AlertsPage.phone.test.tsx's.
 //
-// The alert map is the real ListingsMap on the real Leaflet, as in
-// components/favorites/FavoritesList.test.tsx: its pins, the zone's circle and
-// dot (SVG paths in the overlay pane, under the markers), and the preview's
-// open and close are Leaflet's own. jsdom lays nothing out, so nothing here
+// The alert map is the real ListingsMap on the MapLibre stand-in
+// (test/utils/maplibre.ts), as in components/favorites/FavoritesList.test.tsx:
+// its pins (buttons in the markers' elements), the zone's circle and dot (the
+// "zone" source's features, drawn on the canvas under the markers) and the
+// preview's popup. jsdom lays nothing out, so nothing here
 // asserts a position or a size (ALERTUI-3, ALERTUI-4 and ALERTUI-37 are
 // e2e/alerts-ui.spec.ts's). Which alert is open is resolved on the server
 // (ALERTUI-12, ALERTUI-44): a press writes the URL, and the page is then
@@ -91,7 +93,7 @@ vi.mock("@/server/alerts/actions", () => ({
   createAlert: vi.fn(),
 }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
-vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
 // ALERT-39: the matches are snapshots. The search Server Actions are the only
 // way the browser reaches a source (ADR 0016); the factory runs only if
 // something the page imports loads them.
@@ -411,7 +413,7 @@ describe("ALERTUI-11: opening a folded card", () => {
   });
 
   it("ALERTUI-11: pressing Golf TDI writes it open; with the server's next data it is open, Corolla híbrido folded, and the map shows Golf's zone, pill and pin, fitted once more", async () => {
-    const fitBounds = vi.spyOn(L.Map.prototype, "fitBounds");
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     const onUrlUpdate = vi.fn<OnUrlUpdateFunction>();
     const { rerenderWith } = renderAlerts(adaPage(), { onUrlUpdate });
     await findPin(pinName("Toyota Corolla 125H", "16.200"));
@@ -430,7 +432,7 @@ describe("ALERTUI-11: opening a folded card", () => {
     expect(foldedCard("Corolla híbrido")).toHaveAttribute("aria-expanded", "false");
     await waitFor(() => expect(pinNames()).toEqual([pinName("Volkswagen Golf 2.0 TDI", "13.900")]));
     expect(normalized(mapRegion().textContent)).toContain("Golf TDI · Valencia · 25 km");
-    expect(zonePaths()).toHaveLength(2);
+    expect(zoneShapes()).toHaveLength(2);
     await waitFor(() => expect(fitBounds).toHaveBeenCalledTimes(2));
   });
 });
@@ -470,30 +472,35 @@ describe("ALERTUI-12: the open alert from the URL", () => {
 });
 
 describe("ALERTUI-14: the zone", () => {
-  it("ALERTUI-14: with a place, the map draws a circle of the criteria radius at the criteria point and a centre dot, both aria-hidden, under the pins", async () => {
-    const addLayer = vi.spyOn(L.Map.prototype, "addLayer");
+  it("ALERTUI-14: with a place, the map draws a circle of the criteria radius at the criteria point and a centre dot, hidden from assistive tech, under the pins", async () => {
     renderAlerts();
     await findPin(pinName("Toyota Corolla 125H", "16.200"));
 
-    await waitFor(() => expect(zonePaths()).toHaveLength(2));
-    for (const path of zonePaths()) {
-      expect(path).toHaveAttribute("aria-hidden", "true");
-      // The overlay pane sits under the marker pane, where the pins are.
-      expect(path.closest(".leaflet-overlay-pane")).not.toBeNull();
-    }
-    const circles = addLayer.mock.calls
-      .map(([layer]) => layer)
-      .filter((layer): layer is L.Circle => layer instanceof L.Circle);
-    const zone = circles.find((circle) => circle.getRadius() === 50_000);
-    expect(zone, "a 50 km circle").toBeDefined();
-    expect(zone?.getLatLng()).toEqual(L.latLng(40.4168, -3.7038));
+    await waitFor(() => expect(zoneShapes()).toHaveLength(2));
+    // Map layers drawn on the canvas — under the markers' elements, where the
+    // pins are, and with no element for assistive tech to read, as
+    // aria-hidden made Leaflet's paths.
+    expect(mapIn(mapRegion()).layers.map((layer) => layer.id)).toEqual([
+      "zone-fill",
+      "zone-line",
+      "zone-centre",
+    ]);
+    const [circle, centre] = zoneShapes();
+    // Madrid, 50 km: the ring's first vertex is due north, 50 / 6371 rad =
+    // 0.449661° of latitude away (lib/map/zone.test.ts works it by hand).
+    expect(circle.geometry.type).toBe("Polygon");
+    const ring = circle.geometry.type === "Polygon" ? circle.geometry.coordinates[0] : [];
+    expect(ring).toHaveLength(65);
+    expect(ring[0][0]).toBeCloseTo(-3.7038, 6);
+    expect(ring[0][1]).toBeCloseTo(40.8665, 4);
+    expect(centre.geometry).toEqual({ type: "Point", coordinates: [-3.7038, 40.4168] });
   });
 
   it("ALERTUI-14: with no place, no circle and no centre dot — Serie 3 diésel", async () => {
     renderAlerts(serie3Page());
     await findPin(`2 coches · desde 17.900${NBSP}€`);
 
-    expect(zonePaths()).toHaveLength(0);
+    expect(zoneShapes()).toHaveLength(0);
   });
 });
 
@@ -585,52 +592,48 @@ describe("ALERTUI-16: the pins", () => {
   });
 
   it("ALERTUI-16: the map fits the zone and every pin together once — a pin in Barcelona and Madrid's 50 km circle both inside the bounds", async () => {
-    const fitBounds = vi.spyOn(L.Map.prototype, "fitBounds");
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     const [first, ...rest] = corollaMatches();
     const barcelona = { ...first, lat: 41.3874, lng: 2.1686 };
     renderAlerts(adaPage({ matches: [barcelona, ...rest] }));
     await findPin(pinName("Toyota Corolla 125H", "16.200"));
 
     await waitFor(() => expect(fitBounds).toHaveBeenCalledTimes(1));
-    const fitted = fitBounds.mock.calls[0][0];
-    const bounds =
-      fitted instanceof L.LatLngBounds ? fitted : L.latLngBounds(fitted as L.LatLngExpression[]);
-    expect(bounds.contains([41.3874, 2.1686])).toBe(true);
-    for (const match of rest) expect(bounds.contains([match.lat, match.lng])).toBe(true);
+    const bounds = fitBounds.mock.calls[0][0];
+    expect(fittedContains(bounds, 41.3874, 2.1686)).toBe(true);
+    for (const match of rest) expect(fittedContains(bounds, match.lat, match.lng)).toBe(true);
     // 50 km is 50 / 111.32 ≈ 0.449° of latitude, and 50 / (111.32 × cos 40.4168°)
     // ≈ 0.590° of longitude at Madrid: the circle's edges, a little inside.
-    expect(bounds.contains([40.4168 + 0.44, -3.7038])).toBe(true);
-    expect(bounds.contains([40.4168 - 0.44, -3.7038])).toBe(true);
-    expect(bounds.contains([40.4168, -3.7038 - 0.58])).toBe(true);
-    expect(bounds.contains([40.4168, -3.7038 + 0.58])).toBe(true);
+    expect(fittedContains(bounds, 40.4168 + 0.44, -3.7038)).toBe(true);
+    expect(fittedContains(bounds, 40.4168 - 0.44, -3.7038)).toBe(true);
+    expect(fittedContains(bounds, 40.4168, -3.7038 - 0.58)).toBe(true);
+    expect(fittedContains(bounds, 40.4168, -3.7038 + 0.58)).toBe(true);
   });
 
   it("ALERTUI-16: with no zone the map fits every pin — Serie 3 diésel", async () => {
-    const fitBounds = vi.spyOn(L.Map.prototype, "fitBounds");
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     renderAlerts(serie3Page());
     await findPin(`2 coches · desde 17.900${NBSP}€`);
 
     await waitFor(() => expect(fitBounds).toHaveBeenCalledTimes(1));
-    const fitted = fitBounds.mock.calls[0][0];
-    const bounds =
-      fitted instanceof L.LatLngBounds ? fitted : L.latLngBounds(fitted as L.LatLngExpression[]);
+    const bounds = fitBounds.mock.calls[0][0];
     // Serie 3's twelve points (test/fixtures/alert-listings.ts): the shared
     // 37.3891, -5.9845 of the first two, then 37 + n × 0.1, -6 + n × 0.1 for
     // n = 3 to 12, from 37.3, -5.7 to 38.2, -4.8.
-    for (const point of [
+    for (const [lat, lng] of [
       [37.3891, -5.9845],
       [37.3, -5.7],
       [37.7, -5.3],
       [38.2, -4.8],
-    ] satisfies L.LatLngTuple[]) {
-      expect(bounds.contains(point), point.join(", ")).toBe(true);
+    ]) {
+      expect(fittedContains(bounds, lat, lng), `${lat}, ${lng}`).toBe(true);
     }
     // No zone to add: Madrid stays outside.
-    expect(bounds.contains([40.4168, -3.7038])).toBe(false);
+    expect(fittedContains(bounds, 40.4168, -3.7038)).toBe(false);
   });
 
   it("ALERTUI-16: hovering a card does not move the map again", async () => {
-    const fitBounds = vi.spyOn(L.Map.prototype, "fitBounds");
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     renderAlerts();
     await findPin(pinName("Toyota Corolla 125H", "16.200"));
     await waitFor(() => expect(fitBounds).toHaveBeenCalledTimes(1));
@@ -641,7 +644,7 @@ describe("ALERTUI-16: the pins", () => {
   });
 
   it("ALERTUI-16: with no zone and no pin the map keeps its default view — Clio barato with no point and no match", async () => {
-    const fitBounds = vi.spyOn(L.Map.prototype, "fitBounds");
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     const { criteria } = adaAlert("clio");
     const { latitude: _lat, longitude: _lng, ...noPoint } = criteria;
     renderAlerts(
@@ -994,6 +997,23 @@ describe("ALERTUI-36: a delete that fails", () => {
   });
 });
 
+// docs/specs/map-maplibre.md (MAPLIBRE-15); StatusPill/README.md: one pill at a time.
+describe("MAPLIBRE-15: without WebGL, one map pill at a time", () => {
+  it("MAPLIBRE-15: «El mapa no está disponible en este navegador» replaces «Aquí verás la zona de cada alerta» over the map", async () => {
+    failNextMap(new GPUInitializationError("no WebGL"));
+    renderAlerts({ alerts: [], openAlertId: null, matches: [] });
+    const map = await screen.findByRole("region", { name: ALERT_COPY.mapLabel });
+
+    expect(
+      await within(map).findByRole("status", {
+        name: "El mapa no está disponible en este navegador",
+      }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(within(map).queryByText(ALERT_COPY.mapEmpty)).toBeNull());
+    expect(within(map).getAllByRole("status")).toHaveLength(1);
+  });
+});
+
 describe("ALERTUI-40: no alert", () => {
   it("ALERTUI-40: shows «Alertas», «¿Sin alertas?» over «Crea una» (h2), the desktop line, «Nueva alerta», the page's line and «Buscar coches» to /map", () => {
     renderAlerts({ alerts: [], openAlertId: null, matches: [] });
@@ -1015,7 +1035,7 @@ describe("ALERTUI-40: no alert", () => {
     const pill = within(map).getByText(ALERT_COPY.mapEmpty);
     expect(pill.closest('[role="status"]')).not.toBeNull();
     expect(pinNames()).toEqual([]);
-    expect(zonePaths()).toHaveLength(0);
+    expect(zoneShapes()).toHaveLength(0);
   });
 
   it("ALERTUI-40: deleting the last alert brings the same state", async () => {
@@ -1213,7 +1233,7 @@ describe("MOTION-9: the cards move with no fade (amends ALERTUI-11, ALERTUI-35)"
 // «Ver las …» — and the map fits it once, when its matches arrive.
 describe("ALERTUI-35: the open card until the server's next data", () => {
   it("ALERTUI-35: deleting Corolla híbrido opens Golf TDI with placeholders; with the server's data its one match shows, and the map fits once, around Golf's pin", async () => {
-    const fitBounds = vi.spyOn(L.Map.prototype, "fitBounds");
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     const { rerenderWith } = renderAlerts();
     await findPin(pinName("Toyota Corolla 125H", "16.200"));
     const { dialog } = await confirmFrom("Corolla híbrido");
@@ -1237,18 +1257,16 @@ describe("ALERTUI-35: the open card until the server's next data", () => {
 
     await waitFor(() => expect(pinNames()).toEqual([pinName("Volkswagen Golf 2.0 TDI", "13.900")]));
     await waitFor(() => expect(fitBounds).toHaveBeenCalledTimes(fitsBefore + 1));
-    const fitted = fitBounds.mock.lastCall?.[0];
-    const bounds =
-      fitted instanceof L.LatLngBounds ? fitted : L.latLngBounds(fitted as L.LatLngExpression[]);
+    const [bounds] = fitBounds.mock.calls[fitsBefore];
     // Golf's one match, in Valencia: 39.47, -0.38.
-    expect(bounds.contains([39.47, -0.38])).toBe(true);
+    expect(fittedContains(bounds, 39.47, -0.38)).toBe(true);
     expect(within(openCard("Golf TDI")).queryByTestId("open-card-loading")).not.toBeInTheDocument();
     expect(listingLinks(openCard("Golf TDI"))).toHaveLength(1);
     expect(fitBounds).toHaveBeenCalledTimes(fitsBefore + 1);
   });
 
   it("ALERTUI-16: after deleting Corolla híbrido the map fits once more only when Golf TDI's data arrives — not on Golf's zone alone before", async () => {
-    const fitBounds = vi.spyOn(L.Map.prototype, "fitBounds");
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     const { rerenderWith } = renderAlerts();
     await findPin(pinName("Toyota Corolla 125H", "16.200"));
     await waitFor(() => expect(fitBounds).toHaveBeenCalledTimes(1));
@@ -1258,7 +1276,7 @@ describe("ALERTUI-35: the open card until the server's next data", () => {
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
 
     expect(fitBounds).toHaveBeenCalledTimes(1);
-    expect(zonePaths()).toHaveLength(0);
+    expect(zoneShapes()).toHaveLength(0);
 
     rerenderWith(
       adaPage({
@@ -1269,7 +1287,7 @@ describe("ALERTUI-35: the open card until the server's next data", () => {
     );
 
     await waitFor(() => expect(fitBounds).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(zonePaths()).toHaveLength(2));
+    await waitFor(() => expect(zoneShapes()).toHaveLength(2));
     expect(fitBounds).toHaveBeenCalledTimes(2);
   });
 
@@ -1437,22 +1455,24 @@ describe("ALERTUI-57: the focus on the card a press opens", () => {
 });
 
 describe("ALERTUI-16: the default view after an alert with a zone", () => {
-  it("ALERTUI-16: Corolla híbrido open (Madrid, 50 km), then Clio barato with no point and no match: the map goes back to its default view, [40.4168, -3.7038] at zoom 6", async () => {
-    const setView = vi.spyOn(L.Map.prototype, "setView");
-    const fitBounds = vi.spyOn(L.Map.prototype, "fitBounds");
+  it("ALERTUI-16: Corolla híbrido open (Madrid, 50 km), then Clio barato with no point and no match: the map goes back to its default view, [40.4168, -3.7038] at MapLibre zoom 5 (Leaflet's 6, MAPLIBRE-3)", async () => {
+    const jumpTo = vi.spyOn(MapLibreMap.prototype, "jumpTo");
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     const { latitude: _lat, longitude: _lng, ...noPoint } = adaAlert("clio").criteria;
     const alerts = [adaAlert("corolla"), adaAlert("clio", { criteria: noPoint })];
     const onUrlUpdate = vi.fn<OnUrlUpdateFunction>();
     const { rerenderWith } = renderAlerts(adaPage({ alerts }), { onUrlUpdate });
     await findPin(pinName("Toyota Corolla 125H", "16.200"));
     await waitFor(() => expect(fitBounds).toHaveBeenCalledTimes(1));
-    setView.mockClear();
+    jumpTo.mockClear();
 
     await userEvent.click(foldedCard("Clio barato"));
     await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled());
     rerenderWith(adaPage({ alerts, openAlertId: ALERT_ID.clio, matches: [] }));
 
-    await waitFor(() => expect(setView).toHaveBeenCalledWith([40.4168, -3.7038], 6));
+    await waitFor(() =>
+      expect(jumpTo).toHaveBeenCalledWith({ center: [-3.7038, 40.4168], zoom: 5 }),
+    );
     expect(fitBounds).toHaveBeenCalledTimes(1);
   });
 });

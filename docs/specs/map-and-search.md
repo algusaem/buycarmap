@@ -51,7 +51,7 @@ MAP-24 was amended in and implemented test-first on 2026-10-09.
 - [x] MAP-20 · unit — While the location search is loading or has no results, no listbox is rendered: the combobox reports `aria-expanded="false"` with no `aria-controls`, and the loading or no-results text is announced through a polite status region that stays mounted. With results, `aria-controls="location-listbox"` and `aria-expanded="true"` point at the listbox of options. After the "Madrid" options show, typing more starts a new search: while it loads, no listbox is rendered (the previous options are not shown), `aria-expanded="false"`, and the status region reads "Loading…". While that new search loads, ArrowDown then Enter selects nothing — hidden options are not selectable. A response for an earlier query that arrives after a later query was typed is discarded: the listbox shows only the latest query's options, and while the latest search is pending it stays hidden. While options animate out — after a new query, Escape, a click outside, or a selection — they are no longer a listbox and cannot be selected; a click on a fading option selects nothing. A late response for "Madr" that arrives after the query was shortened to "M" is discarded: results stay empty and nothing is loading. — the combobox moves into the search pill's «Dónde» popover and the phone search sheet, where choosing a place applies it with the radius in force (MAPUI-3) (amended 2026-10-13, MAPUI — redesign-map.md) — the type-ahead options appear and leave at once (MOTION-13), so no option is ever fading; the rule stands only as «an option that has left cannot be selected» (amended 2026-10-18, MOTION — motion.md)
 - [x] MAP-21 · unit — If the map unmounts before the browser's geolocation resolves, the search is not repeated when it does.
 - [x] MAP-22 · unit — If the location search unmounts before its 400 ms debounce fires, no geocoding request is sent.
-- [x] MAP-23 · unit — Only the dark map tile URL remains (the light basemap and the theme that chose between them are gone), and it carries the CARTO Basemaps key from `NEXT_PUBLIC_CARTO_API_KEY` as the URL-encoded `key` query parameter; with no key configured the tile URL carries no `key` parameter. (amended 2026-10-12, LOOK — redesign-foundation.md)
+- [x] MAP-23 · unit — Withdrawn 2026-10-19 by MAPLIBRE (map-maplibre.md): the map draws OpenFreeMap's vector tiles in its own style, with no tile URL left to build and no key. Was: Only the dark map tile URL remains (the light basemap and the theme that chose between them are gone), and it carries the CARTO Basemaps key from `NEXT_PUBLIC_CARTO_API_KEY` as the URL-encoded `key` query parameter; with no key configured the tile URL carries no `key` parameter. (amended 2026-10-12, LOOK — redesign-foundation.md)
 - [x] MAP-24 · unit — Within one search, a Wallapop `next_page` cursor that was already requested — the same cursor handed back again (c1 → c1) or an earlier one coming round again (c1 → c2 → c1) — is treated as Wallapop being exhausted: that round reports no next Wallapop cursor and `hasMore.Wallapop` false, the page that carried the repeat keeps its listings, and the other sources keep paging, so neither the first search nor the sentinel loops forever
 - [x] MAP-25 · unit — The map fits its viewport to the results when a search's first results arrive, and only then: appending the next page, or toggling a favourite, leaves the viewport where the user left it. A search whose first results are empty leaves the viewport alone. — on a phone the results sit in a sheet over a map that is always on screen, so there is no mobile map to open and fit (MAPUI-23) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] MAP-26 · unit — A next page that arrives after a newer search has committed its results is discarded: the newer search's list is not extended with it, and its next page continues the newer search, not the older one (issue #74).
@@ -398,7 +398,9 @@ brand. Model ids are only meaningful within a brand — `server/search/service.t
 resolves them per `makeId` — so a model left over from the previous brand is
 either meaningless or, worse, silently matches something unintended.
 
-### Tiles carry a CARTO key (MAP-23)
+### Tiles carry a CARTO key (MAP-23, withdrawn)
+
+Withdrawn by MAPLIBRE ([map-maplibre.md](map-maplibre.md)): the map no longer requests CARTO's tiles, so there is no key to carry. What follows records why the key existed.
 
 CARTO's basemap CDN stopped serving keyless tiles under its Basemaps terms of 29 September 2026:
 a request without `?key=` gets a 200 with an "API KEY REQUIRED" watermark tile, so nothing errors
@@ -445,7 +447,7 @@ Consequences accepted deliberately:
   which fitted to every listing loaded so far on mount.
 - **An empty first page does not fit**, as before: there are no bounds to fit to.
 
-Why `unit` is enough: with `react-leaflet` mocked (Leaflet cannot run in jsdom — `docs/ARCHITECTURE.md`
+Why `unit` is enough: with `maplibre-gl` mocked (MapLibre cannot run in jsdom — `docs/ARCHITECTURE.md`
 › Testing), the test can count `fitBounds` calls across re-renders, and "no call" is exactly the
 property — a viewport nothing refits stays where the user put it. Dragging the real map is not
 needed to prove it.

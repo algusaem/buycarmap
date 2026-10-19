@@ -15,29 +15,22 @@ import { cn } from "@/lib/utils";
 
 export interface PreviewController {
   /**
-   * Starts the exit animation instead of closing the popup outright.
-   * PricePin's Escape and outside-press handlers call it in place of
-   * `event.popup.close()` / `marker.closePopup()`, so every close path —
-   * the button included — plays the same fade-out before `map.closePopup()`
-   * actually tears the popup down (MAPUI-27).
+   * Starts the exit animation instead of closing the preview outright.
+   * PricePin's Escape, outside-press and toggle handlers call it, so every
+   * close path — the button included — plays the same exit before PricePin
+   * takes the popup off the map (MAPUI-27).
    */
   requestClose: () => void;
   /**
-   * Called from PricePin's `popupopen` handler, on every open including a
-   * reopen. react-leaflet's div-overlay (`@react-leaflet/core`'s
-   * `createDivOverlayComponent`) portals `children` into the popup's own
-   * content node for as long as that node exists, open or closed — Leaflet
-   * detaches the node from the map rather than React ever unmounting this
-   * component, so without this, `closing` would stay true from the previous
-   * close and a reopened popup would show nothing. Also bumps `openCount` (see
-   * below), so the focus-on-open effect fires again even when `closing` was
-   * already `false` — a click on the pin mid-fade cancels the exit instead of
-   * closing it a second time (MAPUI-27).
+   * Cancels an exit in flight: PricePin calls it when its pin is activated
+   * again mid-fade, so that press reopens the preview instead of closing it a
+   * second time (MAPUI-27). It also bumps `openCount` (see below), so the
+   * focus-on-open effect fires again and the card takes the focus back.
    */
   reset: () => void;
-  /** Whether this preview is mid-exit (its fade is playing, the real Leaflet
-   * popup not yet closed). PricePin's click handler reads this to tell a
-   * toggle-close from a click that should cancel an in-flight close. */
+  /** Whether this preview is mid-exit (its fade is playing, its popup not yet
+   * removed). PricePin's click handler reads this to tell a toggle-close from
+   * a press that should cancel an in-flight close. */
   isClosing: () => boolean;
 }
 
@@ -48,10 +41,9 @@ export interface PreviewProps {
   /** Set, on mount, to this instance's open/close control (see `PreviewController`). */
   previewControlRef?: MutableRefObject<PreviewController | null>;
   /**
-   * Called once this card's own exit animation finishes. PricePin closes
-   * only its own marker's popup here — never a bare `map.closePopup()`,
-   * which would risk tearing down whichever popup Leaflet last opened
-   * instead of this one (MAPUI-27).
+   * Called once this card's own exit animation finishes. PricePin removes
+   * its own popup here, and only its own: another pin's preview may be
+   * opening as this one leaves (MAPUI-27).
    */
   onExitComplete?: () => void;
 }
@@ -60,17 +52,19 @@ export interface PreviewProps {
 // The preview card a pin opens on desktop: the photo with the source badge
 // and the close button, the name and city, «año · km · combustible», then the
 // price with «Guardar» and «Ver anuncio» (new tab). A grouped pin lists its
-// cars in price order, scrolling, and is named by its pin's label. It fades
-// in (Leaflet's own popup fade is off, see ListingsMap) and takes the focus
-// on its first control, the close button — on every open, a reopen included,
-// since the underlying React tree is never actually remounted (`reset`).
+// cars in price order, scrolling, and is named by its pin's label.
+//
+// PricePin (ListingsMap.tsx) mounts this card each time its preview opens,
+// portaled with React's `createPortal` into the content element of a
+// MapLibre `Popup` it adds to the map for as long as the preview is open,
+// and unmounts it when the preview closes. The card fades in and takes the
+// focus on its first control, the close button, as it mounts — and again
+// when a press mid-fade cancels its exit (`reset`).
 //
 // It fades out too, when a person closes it: `closing` keeps the card mounted
 // through its exit, and only once that exit completes does this call
-// `onExitComplete` — PricePin's own `marker.closePopup()` (ListingsMap.tsx),
-// never a bare `map.closePopup()` that could close a different pin's popup —
-// which then tears the (real) Leaflet popup down and lets the existing
-// popupclose handler return focus to the pin. Opened with Enter or Space on a
+// `onExitComplete` — PricePin's own close, which removes this pin's popup
+// (never another pin's) and returns focus to the pin. Opened with Enter or Space on a
 // pin, or closed with Escape, it appears and leaves at once instead: the fade
 // is a pointer's only (MOTION-11). A close nobody triggered otherwise follows
 // the last input, except a preview whose car leaves the results (below),
@@ -92,15 +86,15 @@ export function MapPreview({
   const t = useTranslations();
   const previewRef = useRef<HTMLElement>(null);
   const [closing, setClosing] = useState(false);
-  // Bumped by `reset()` on every open, a reopen included, so the focus
-  // effect below reruns even when `closing` was already `false` — a click
-  // on the pin mid-fade cancels the exit (MAPUI-27).
+  // Bumped by `reset()`, so the focus effect below reruns even when
+  // `closing` was already `false` — a click on the pin mid-fade cancels the
+  // exit (MAPUI-27).
   const [openCount, setOpenCount] = useState(0);
   const closingRef = useRef(false);
   closingRef.current = closing;
 
-  // Runs on mount and every time `reset()` brings `closing` back to false —
-  // i.e. on every open, a reopen included. `openCount` only has to change,
+  // Runs on mount — every open — and every time `reset()` brings `closing`
+  // back to false. `openCount` only has to change,
   // not be read, to force that rerun when `closing` was already `false`
   // (reopening mid-fade); referencing it keeps the lint rule that enforces
   // the dependency list from the deliberate list to the otherwise-flagged

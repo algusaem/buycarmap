@@ -11,6 +11,13 @@ import { deriveCodeForStep, stepForTime } from "../test/two-factor-totp";
 import { dragDown, sheetOffset } from "./fixtures/drag";
 import { box, expectWithin, hitArea } from "./fixtures/measure";
 import { signIn, signInWithSessionToken } from "./fixtures/session";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // docs/specs/redesign-pages.md (PAGES-28, PAGES-39, PAGES-58, PAGES-59): what
 // only a browser can show on /account — the grid by viewport, dragging the

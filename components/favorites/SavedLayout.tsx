@@ -71,7 +71,7 @@ interface SavedMapFrameProps {
 
 /**
  * The map's region, «Mapa de tus guardados», filling the width beside the list
- * from `lg` (SAVED-1). `isolate`: Leaflet's panes and the pill (z-1000) stack
+ * from `lg` (SAVED-1). `isolate`: the map's layers and the pill (z-1000) stack
  * inside it, under a dialog's overlay, as /map's map does (MapResultsArea).
  */
 export function SavedMapFrame({ label, children }: SavedMapFrameProps) {

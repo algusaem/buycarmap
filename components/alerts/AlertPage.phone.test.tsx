@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import L from "leaflet";
 import { toast } from "sonner";
 import { TabBar } from "@/components/nav/TabBar";
 import { renderWithI18n } from "@/test/utils/render";
-import { byWholeText, matchRow, renderAlert, zonePaths } from "@/test/utils/alerts";
+import { byWholeText, matchRow, renderAlert, zoneShapes } from "@/test/utils/alerts";
+import { mapIn } from "@/test/utils/maplibre";
 import { rows } from "@/test/utils/saved";
 import { restoreMatchMedia, stubLayoutBox, stubPhoneWidth } from "@/test/utils/viewport";
 import {
@@ -45,7 +45,8 @@ vi.mock("@/server/favorites/actions", () => ({
 }));
 vi.mock("@/server/alerts/actions", () => ({ deleteAlert: vi.fn(), createAlert: vi.fn() }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
-vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
+// jsdom has no WebGL: the zone map's MapLibre is the stand-in in test/utils/maplibre.ts.
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
 
 stubLayoutBox({ width: 390 });
 
@@ -128,10 +129,11 @@ describe("ALERTUI-22: /alerts/[id] at phone width", () => {
     renderAlert(alertWithMatches("corolla"));
     const zone = screen.getByRole("region", { name: ALERT_COPY.zoneLabel });
 
-    await waitFor(() => expect(zonePaths()).toHaveLength(2));
-    for (const path of zonePaths()) expect(zone.contains(path)).toBe(true);
+    await waitFor(() => expect(zoneShapes()).toHaveLength(2));
+    // Both shapes are on the map inside the zone region.
+    expect(zoneShapes(mapIn(zone))).toHaveLength(2);
     expect(byWholeText(zone, `Madrid · 50${NBSP}km`)).toHaveClass("text-lime");
-    expect(zone.querySelector(".leaflet-marker-icon")).toBeNull();
+    expect(zone.querySelector(".maplibregl-marker")).toBeNull();
   });
 
   it("ALERTUI-22: the Clio's zone pill reads the radius alone, «50 km»", async () => {
@@ -153,7 +155,7 @@ describe("ALERTUI-23: an alert with no place on the phone", () => {
     renderAlert(alertWithMatches("serie3"));
 
     expect(screen.queryByRole("region", { name: ALERT_COPY.zoneLabel })).not.toBeInTheDocument();
-    expect(zonePaths()).toHaveLength(0);
+    expect(zoneShapes()).toHaveLength(0);
     const created = screen.getByText("Creada el 14 de septiembre");
     const count = screen.getByRole("heading", { level: 2, name: "12 coincidencias" });
     expect(follows(created, count)).toBe(true);
@@ -162,28 +164,26 @@ describe("ALERTUI-23: an alert with no place on the phone", () => {
 
 describe("ALERTUI-24: the phone zone map is static", () => {
   it("ALERTUI-24: dragging, scroll-wheel, double-click, touch, box and keyboard zoom are off, with no zoom control and no focusable element", async () => {
-    const addLayer = vi.spyOn(L.Map.prototype, "addLayer");
     renderAlert(alertWithMatches("corolla"));
     const zone = screen.getByRole("region", { name: ALERT_COPY.zoneLabel });
-    await waitFor(() => expect(zonePaths()).toHaveLength(2));
+    await waitFor(() => expect(zoneShapes()).toHaveLength(2));
 
-    const map = addLayer.mock.contexts.find(
-      (context): context is L.Map => context instanceof L.Map,
-    );
-    expect(map, "the zone's Leaflet map").toBeDefined();
-    const handlers = map as L.Map;
-    expect(handlers.dragging.enabled()).toBe(false);
-    expect(handlers.scrollWheelZoom.enabled()).toBe(false);
-    expect(handlers.doubleClickZoom.enabled()).toBe(false);
-    expect(handlers.touchZoom.enabled()).toBe(false);
-    expect(handlers.boxZoom.enabled()).toBe(false);
-    expect(handlers.keyboard.enabled()).toBe(false);
-    expect(zone.querySelector(".leaflet-control-zoom")).toBeNull();
+    // MapLibre's `interactive: false` turns every handler off at once:
+    // dragging, the scroll wheel, double-click, touch, box and keyboard zoom.
+    const map = mapIn(zone);
+    expect(map.options.interactive).toBe(false);
+    // No control of the map's own: no zoom control, no attribution control.
+    expect(map.controls).toEqual([]);
     expect(within(zone).queryByRole("button", { name: "Acercar" })).toBeNull();
     const focusable = zone.querySelectorAll(
       'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     expect(Array.from(focusable)).toEqual([]);
+    // MAPLIBRE-5: OpenFreeMap's credit, as plain text with no link.
+    expect(
+      within(zone).getByText("OpenFreeMap © OpenMapTiles Data from OpenStreetMap").tagName,
+    ).toBe("SPAN");
+    expect(zone.querySelector("a")).toBeNull();
   });
 });
 

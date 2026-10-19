@@ -347,7 +347,7 @@ describe("docs tree and spec format", () => {
       "Google",
       "Have I Been Pwned",
       "OpenStreetMap Nominatim",
-      "CARTO",
+      "OpenFreeMap",
       "Wallapop",
       "coches.net",
       "Milanuncios",

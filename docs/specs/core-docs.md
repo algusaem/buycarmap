@@ -163,7 +163,7 @@ and links the issue.
 - Google, as the OAuth provider (amended 2026-10-14, ENTRY — redesign-entry.md).
 - Have I Been Pwned: a 5-character SHA-1 prefix.
 - OpenStreetMap Nominatim: the typed location query.
-- CARTO: map tiles.
+- OpenFreeMap: map tiles (in CARTO's place since MAPLIBRE-13, map-maplibre.md).
 - Wallapop, coches.net and Milanuncios: search filters and the chosen coordinates.
 - GitHub Actions: the alert cron, which receives no user fields.
 

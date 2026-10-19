@@ -29,7 +29,7 @@ describe("env module", () => {
     expect(source).toMatch(/\bcreateEnv\s*\(/);
   });
 
-  it("PLAT-1: the client block declares only NEXT_PUBLIC_SENTRY_DSN and NEXT_PUBLIC_CARTO_API_KEY", () => {
+  it("PLAT-1: the client block declares only NEXT_PUBLIC_SENTRY_DSN", () => {
     const source = read("lib/env.ts");
 
     const clientBlock = source.match(/client:\s*\{([\s\S]*?)\}/);
@@ -39,7 +39,7 @@ describe("env module", () => {
     const keys = [...(clientBlock?.[1] ?? "").matchAll(/^\s*([A-Z0-9_]+)\s*:/gm)].map(
       (match) => match[1],
     );
-    expect(keys).toEqual(["NEXT_PUBLIC_SENTRY_DSN", "NEXT_PUBLIC_CARTO_API_KEY"]);
+    expect(keys).toEqual(["NEXT_PUBLIC_SENTRY_DSN"]);
   });
 
   it("PLAT-1: DATABASE_URL and BETTER_AUTH_SECRET stay required (not .optional())", () => {
