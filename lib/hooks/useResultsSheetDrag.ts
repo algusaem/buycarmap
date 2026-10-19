@@ -1,6 +1,13 @@
 "use client";
 
-import { type PointerEvent, useCallback, useLayoutEffect, useRef, useState } from "react";
+import {
+  type PointerEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { animate, useDragControls, useMotionValue, useReducedMotion } from "motion/react";
 import { sheetSpring } from "@/lib/animations";
 import type { ResultsSheetPosition } from "@/lib/hooks/useMapPageState";
@@ -38,6 +45,12 @@ interface UseResultsSheetDragOptions {
   onPositionChange: (position: ResultsSheetPosition) => void;
   /** At desktop width the sheet is the list column: no offset, no drag. */
   docked: boolean;
+}
+
+/** Where a press began: the finger's clientY and the sheet's top edge, both in px from the screen top. */
+interface PressOrigin {
+  pointerY: number;
+  sheetTop: number;
 }
 
 function sameOffsets(a: SheetTops | null, b: SheetTops | null): boolean {
@@ -81,6 +94,11 @@ export function useResultsSheetDrag({
   const draggingRef = useRef(false);
   // The position `y` was last put at, and whether it has been put anywhere yet.
   const placedAtRef = useRef<ResultsSheetPosition | null>(null);
+  // Where the press began, and where its finger last was (its release, once let go): MAPUI-59.
+  const pressOriginRef = useRef<PressOrigin | null>(null);
+  const pointerYRef = useRef(0);
+  // Stops following the press's finger, if it is still followed.
+  const stopFollowingRef = useRef<(() => void) | null>(null);
   const [offsets, setOffsets] = useState<SheetTops | null>(null);
   // The same as draggingRef, for what the sheet draws while a finger moves it.
   const [dragging, setDragging] = useState(false);
@@ -166,7 +184,48 @@ export function useResultsSheetDrag({
     settleBackRef.current();
   });
 
-  // Motion calls it after the frame is drawn, so the press's pointerup has already set releaseVelocityRef.
+  useEffect(
+    () => () => {
+      stopFollowingRef.current?.();
+      stopFollowingRef.current = null;
+    },
+    [],
+  );
+
+  /**
+   * Follows the press's finger (`pointerId`) on the window until it is let go
+   * or cancelled, keeping pointerYRef at its latest clientY: on a release, the
+   * point where it left the screen; on a cancel, which carries no position,
+   * its last move's.
+   */
+  function followPointer(pointerId: number) {
+    stopFollowingRef.current?.();
+    function stop() {
+      window.removeEventListener("pointermove", track, { capture: true });
+      window.removeEventListener("pointerup", end, { capture: true });
+      window.removeEventListener("pointercancel", end, { capture: true });
+      stopFollowingRef.current = null;
+    }
+    function track(event: globalThis.PointerEvent) {
+      if (event.pointerId !== pointerId) return;
+      pointerYRef.current = event.clientY;
+    }
+    function end(event: globalThis.PointerEvent) {
+      if (event.pointerId !== pointerId) return;
+      if (event.type === "pointerup") pointerYRef.current = event.clientY;
+      stop();
+    }
+    window.addEventListener("pointermove", track, { capture: true });
+    window.addEventListener("pointerup", end, { capture: true });
+    window.addEventListener("pointercancel", end, { capture: true });
+    stopFollowingRef.current = stop;
+  }
+
+  // Motion calls it after the frame is drawn, so the press's pointerup has
+  // already set releaseVelocityRef and pointerYRef. The release point is the
+  // sheet's top at the press plus the finger's travel, kept between full and
+  // peeked — never the edge last drawn, which lags the finger when the
+  // browser skips frames (MAPUI-59, worked example «Release point»).
   function onDragEnd() {
     draggingRef.current = false;
     setDragging(false);
@@ -176,14 +235,16 @@ export function useResultsSheetDrag({
       middleProbeRef.current,
       peekedProbeRef.current,
     );
-    const sheet = sheetRef.current;
-    if (!tops || !sheet) {
+    const origin = pressOriginRef.current;
+    if (!tops || !origin) {
       settleBack();
       return;
     }
+    const travel = pointerYRef.current - origin.pointerY;
+    const releaseTop = Math.min(Math.max(origin.sheetTop + travel, tops.full), tops.peeked);
     const next = settleSheetPosition({
       start: position,
-      releaseTop: sheet.getBoundingClientRect().top,
+      releaseTop,
       velocityY: releaseVelocityRef.current,
       tops,
     });
@@ -226,6 +287,12 @@ export function useResultsSheetDrag({
       if (!event.isPrimary || pressRef.current) return;
       draggedRef.current = false;
       dragEndedAtRef.current = null;
+      const sheet = sheetRef.current;
+      pressOriginRef.current = sheet
+        ? { pointerY: event.clientY, sheetTop: sheet.getBoundingClientRect().top }
+        : null;
+      pointerYRef.current = event.clientY;
+      followPointer(event.pointerId);
       dragControls.start(event);
       // The press stops a running spring; one that ends without a drag puts
       // the sheet back at its position (a drag's own release is onDragEnd's).

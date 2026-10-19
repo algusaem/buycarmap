@@ -885,19 +885,47 @@ interface SheetOffsets {
   peeked: number;
 }
 
-/** The sheet's offset once it stops moving, with `data-position` at `position`. */
+/** Drawn frames the sheet must hold still for to count as settled (MAPUI-59, worked example «Release point»). */
+const SETTLED_FRAMES = 5;
+/** How long the sheet may take to settle before the test fails, in ms. */
+const SETTLE_TIMEOUT_MS = 5000;
+
+/**
+ * The sheet's offset once it stops moving, with `data-position` at `position`:
+ * watched on consecutive drawn frames (requestAnimationFrame) inside the page,
+ * it counts as settled once it has moved less than 0.5px for SETTLED_FRAMES
+ * frames in a row, never after a stretch of wall-clock time, which a browser
+ * skipping frames can fill without drawing the sheet's last moves.
+ */
 async function settledOffset(sheet: Locator, position: keyof SheetOffsets): Promise<number> {
   await expect(sheet).toHaveAttribute("data-position", position);
-  let previous = Number.NaN;
-  await expect
-    .poll(async () => {
-      const current = await sheetOffset(sheet);
-      const still = Math.abs(current - previous) < 0.5;
-      previous = current;
-      return still;
-    })
-    .toBe(true);
-  return previous;
+  return sheet.evaluate(
+    (element, { frames, timeoutMs }) =>
+      new Promise<number>((resolve, reject) => {
+        const offset = () => new DOMMatrix(getComputedStyle(element).transform).m42;
+        const startedAt = performance.now();
+        let previous = offset();
+        let still = 0;
+        function check() {
+          const current = offset();
+          still = Math.abs(current - previous) < 0.5 ? still + 1 : 0;
+          previous = current;
+          if (still >= frames) {
+            resolve(current);
+            return;
+          }
+          if (performance.now() - startedAt > timeoutMs) {
+            reject(
+              new Error(`the sheet did not hold still for ${frames} frames in ${timeoutMs}ms`),
+            );
+            return;
+          }
+          requestAnimationFrame(check);
+        }
+        requestAnimationFrame(check);
+      }),
+    { frames: SETTLED_FRAMES, timeoutMs: SETTLE_TIMEOUT_MS },
+  );
 }
 
 // `data-position` is "middle" from the server render on, and until the page
