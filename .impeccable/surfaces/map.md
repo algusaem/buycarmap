@@ -85,7 +85,11 @@ UI Kit). Where this brief and the design disagree, the design wins and this brie
   handle strip and the heading, never from the list, and settles on the nearest position, or one
   position on a fast flick. At middle, tapping or panning the map lowers it to peeked; a pin does
   not. The tab bar hides only while the sheet is full.
-- Everything that appears or disappears animates with Motion, honouring reduced motion.
+- Motion follows `docs/specs/motion.md`: opened or closed with a pointer, the popovers, the «Filtros»
+  dropdown and the preview fade over 180ms and the sheets slide over 240ms (or fade over 180ms),
+  leaving the way they came; opened with a key or closed with Escape, they appear and disappear at
+  once. The results list, the type-ahead lists, the card rings and the pins never animate. Reduced
+  motion is honoured.
 
 ## 7. Constraints and open decisions
 

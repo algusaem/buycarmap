@@ -15,3 +15,4 @@ La cabecera de cada pantalla: el Wordmark a la izquierda y la navegación a la d
 - **Página de una alerta** (escritorio): la cabecera de las páginas con «Alertas» marcada. «Volver» no va en la cabecera sino en la columna, delante del título: el mismo enlace redondo de 40px que en móvil, a 16px del nombre.
 - **Página de una alerta** (móvil): delante del Wordmark, a 12px, «Volver»: un enlace redondo de 40px con borde 1px `line`, el icono `chevron-left` de Lucide de 18px (trazo 2,2) en `text` y `aria-label="Volver"`; lleva a Alertas.
 - Los enlaces pasan a `lime` al pasar el ratón.
+- **Hover y pulsación** (en la transición de estado de 120ms, curva `ease-out`): el avatar se oscurece un poco (brillo 92 %) para que su contenido mantenga el contraste; los enlaces de icono, «Volver», los enlaces de texto y el Wordmark pasan a `lime`; los botones del idioma pasan a `text`, nunca al acento. Todos se encogen a 0,97 mientras se pulsan, salvo con movimiento reducido.

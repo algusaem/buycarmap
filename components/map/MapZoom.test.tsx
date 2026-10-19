@@ -29,3 +29,21 @@ describe("MAPUI-29: MapZoom — hover state", () => {
     );
   });
 });
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-6: the zoom buttons gain
+// a press state alongside their existing hover.
+describe("MOTION-6: MapZoom — press state", () => {
+  it("MOTION-6: both buttons carry active:scale-97, off under reduced motion", () => {
+    render(
+      <NextIntlClientProvider locale="es" messages={messages}>
+        <MapZoom />
+      </NextIntlClientProvider>,
+    );
+
+    for (const name of ["Acercar", "Alejar"]) {
+      const className = screen.getByRole("button", { name }).className;
+      expect(className).toContain("active:scale-97");
+      expect(className).toContain("motion-reduce:active:scale-none");
+    }
+  });
+});

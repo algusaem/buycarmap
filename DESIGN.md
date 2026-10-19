@@ -150,11 +150,16 @@ components:
     rounded: "{rounded.radius-pill}"
     height: "44px"
     padding: "0 18px"
+  button-secondary-hover:
+    backgroundColor: "{colors.surface}"
+    borderColor: "{colors.text-muted}"
   button-ghost:
     backgroundColor: "transparent"
     textColor: "{colors.text}"
     rounded: "{rounded.radius-pill}"
     padding: "10px 16px"
+  button-ghost-hover:
+    backgroundColor: "{colors.surface-strong}"
   button-ghost-undo-hover:
     textColor: "{colors.danger}"
   button-danger:
@@ -163,16 +168,22 @@ components:
     rounded: "{rounded.radius-pill}"
     height: "44px"
     padding: "0 18px"
+  button-danger-hover:
+    borderColor: "{colors.danger}"
   button-icon:
     backgroundColor: "transparent"
     textColor: "{colors.text}"
     rounded: "{rounded.radius-pill}"
     size: "42px"
+  button-icon-hover:
+    backgroundColor: "{colors.surface-strong}"
   chip:
     backgroundColor: "transparent"
     textColor: "{colors.text}"
     rounded: "{rounded.radius-pill}"
     padding: "9px 16px"
+  chip-hover:
+    borderColor: "{colors.text-muted}"
   chip-pressed:
     backgroundColor: "{colors.violet}"
     textColor: "{colors.on-violet}"
@@ -184,6 +195,8 @@ components:
     typography: "{typography.body}"
     rounded: "{rounded.radius-field}"
     height: "52px"
+  input-hover:
+    borderColor: "{colors.text-muted}"
   card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
@@ -235,32 +248,39 @@ A night with a single light: neutrals do the work, lime is the light, violet mar
 ### Primary
 - **Lime** (`lime`): the one accent — what you are doing or looking at now. Prices, the «MAP» of the
   wordmark, the punchline of a headline, primary buttons, the active pin and its card, the open
-  alert's border, the legal index bar, the «Créala» / «Entra» links, link hover, the focus ring and a
-  toast's action. Content on lime is always `on-lime`.
+  alert's border, the legal index bar, the «Créala» / «Entra» links, link hover, the search pill
+  segment value hover, the unsaved heart hover, the focus ring and a toast's action. Content on lime
+  is always `on-lime`. On hover, «Créala» turns `text` instead, since it already renders in lime; it
+  scales to 0.97 while pressed, off under reduced motion.
 - **Lime glow** (`lime-glow`): the 7px halo around the active pin only.
 
 ### Secondary
 - **Violet** (`violet`): lime's complement — what is yours and states. The saved heart, the pressed
   chip, the filter count, the account avatar, the current tab of the phone tab bar, a chosen select
-  option's box. Content on violet is always `on-violet` (4.6:1).
+  option's box. Content on violet is always `on-violet` (4.6:1); `on-violet` at 15 % is the hover
+  wash of the brand chip's «Quitar».
 
 ### Tertiary
 - **Danger** (`danger`): only what cannot be undone (delete account), with one reversible exception,
   «Desactivar dos pasos», a security downgrade that asks for the password and a code (amended
-  2026-10-16, PAGES); and the hover or focus of an undo action («Quitar filtros»). Never a large fill.
+  2026-10-16, PAGES); the hover or focus of an undo action («Quitar filtros»); and the danger
+  button's hover border. Never a large fill.
 
 ### Neutral
 - **Night** (`bg`): the whole app's background. Never pure black inside the app.
 - **Surface** (`surface`): raised pieces — the search pill, map preview, bottom sheet, forms, alert and
   account cards, toasts, and the headers — the map's two-row band and the phone map's top band among
   them — which stand apart from `bg` by this tone; on those bands the search pill and the phone
-  summary are told apart by their 1px `line` border.
+  summary are told apart by their 1px `line` border. It is also the secondary button's hover fill.
 - **Surface strong** (`surface-strong`): one step above surface — the hovered select option, the
-  skeleton's price bar.
+  skeleton's price bar, and the hover fill of ghost and icon buttons, the tab bar's tabs, the
+  map's zoom buttons, the phone legal index's toggle and the map preview's close button.
 - **Line** (`line`) and **soft line** (`line-soft`): 1px borders of controls, and section dividers.
   Headers draw no divider: they stand apart from the page by the `surface` tone.
 - **Text** (`text`): off-white main text, never pure white. **Muted text** (`text-muted`): subtitles,
-  car metadata, labels, placeholders and the empty checkbox border (7.6:1 on `bg`). **Legal text**
+  car metadata, labels, placeholders and the empty checkbox border (7.6:1 on `bg`), and the hover
+  border of secondary buttons, chips, fields, «Filtros», the phone search summary and the landing's
+  phone search card. **Legal text**
   (`text-legal`): the body of the legal pages.
 - **Map inks** (`map-ground`, `map-road`, `map-road-major`, `map-road-minor`, `map-water`): the dark
   minimal map.
@@ -393,6 +413,19 @@ Each component's full guidelines and preview live in
 `docs/design/system/components/<Name>/README.md`; the summaries below are the parts every screen
 shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 
+### Motion
+- **Timing:** one curve, `ease-out` (`cubic-bezier(0.23, 1, 0.32, 1)`), and three durations:
+  `fast` 120ms for every state change (hover, focus, press, a pressed chip), `base` 180ms for
+  popovers, dropdowns, the map preview, fades and the legal index fold, `sheet` 240ms for phone sheets and dialogs that
+  slide, and the legal article's entrance (a sheet that fades uses `base`). No CSS transition or
+  Motion preset runs at 300ms or longer; the loading pulse, the spinners and Leaflet's own zoom are
+  outside this scale ([motion spec](docs/specs/motion.md)).
+- **Press:** buttons, chips and the other pressable controls scale to 0.97 while pressed; never
+  under reduced motion, and never on listing cards.
+- **Never animated:** the results list, the saved list, the alerts list, the type-ahead lists, the
+  card rings and the price pins; and anything a key opens or closes, which appears and leaves at
+  once.
+
 ### Buttons
 - **Shape:** full pill; the label never wraps onto a second line.
 - **Primary:** `lime` with `on-lime`, weight 800; one per task, two per view at most when the tasks
@@ -403,11 +436,15 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   border at 60 %, always with confirmation. **Icon:** 42px round with a `line` border and a required
   `aria-label`; saved turns it `violet`. Anything drawn under 44px keeps a 44 × 44px hit area on a
   phone.
+- **Hover and press:** primary brightens slightly; secondary turns its border `text-muted` and fills
+  with `surface`; ghost and icon fill with `surface-strong`; every button scales to 0.97 while
+  pressed. The undo ghost's colour still changes at once.
 - Guidelines: [Button](docs/design/system/components/Button/README.md).
 
 ### Chips
 - **Style:** a button with `aria-pressed`; unpressed is a 1px `line` border at weight 600, pressed is
   a `violet` fill with `on-violet` text at weight 800 — fill and weight change, not colour alone.
+  On hover an unpressed chip turns its border `text-muted`; every chip scales to 0.97 while pressed.
 - **Quick-filter chip:** on the map, «Gasolina», «Diésel», «Manual», «Automático» and «Hasta
   100.000 km», 34px and 13px, with the same weights, 600 unpressed and 800 pressed; they apply at
   once.
@@ -433,9 +470,11 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 
 ### Inputs / Fields
 - **Style:** 52px, `radius-field`, `bg` fill, 1px `line` border, 16px text, placeholders in
-  `text-muted`. **Focus:** the border turns `lime`. The password field adds a four-step meter in
+  `text-muted`. **Hover:** while not focused, the border turns `text-muted`. **Focus:** the border
+  turns `lime`, both in the 120ms state transition. The password field adds a four-step meter in
   `lime` and `line`. The password field has a show/hide `eye` / `eye-off` button at its right end,
-  44px target. **Error:** the message sits 8px under the field, an 18px `circle-alert` in `danger`
+  44px target; on hover it turns `text` over the ghost `surface-strong` fill and presses to 0.97.
+  **Error:** the message sits 8px under the field, an 18px `circle-alert` in `danger`
   and 14px weight 600 `text`; the border does not change.
   [PasswordField](docs/design/system/components/PasswordField/README.md).
 
@@ -456,7 +495,9 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 ### Navigation
 - **Header:** the wordmark left, navigation right; 80px on desktop (the map's band 151px), 64px on a
   phone; the current page
-  is an inverted pill (`text` fill, `bg` text) with `aria-current="page"`, links turn `lime` on hover.
+  is an inverted pill (`text` fill, `bg` text) with `aria-current="page"`; links, icon links,
+  «Volver» and the wordmark turn `lime` on hover, the avatar darkens slightly (brightness 92%), so
+  its on-violet content keeps its contrast, and each scales to 0.97 while pressed.
   One header per kind of page: the map (the search group in the centre; on the right the language,
   heart and bell icon links and the avatar, or «Entrar» signed out), the pages — Guardados, Alertas,
   Cuenta and the signed-in landing (Mapa · Guardados · Alertas and the avatar), the signed-out
@@ -471,7 +512,7 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   in the tab bar.
 - **Language «ES · EN»:** in every header, a group of two 44 × 44 buttons in 13px Rethink Sans, the
   active one `text` weight 800 and pressed, the other `text-muted` weight 600; no accent, fill or
-  border. [HeaderNav](docs/design/system/components/HeaderNav/README.md).
+  border. On hover a button turns `text`, and it scales to 0.97 while pressed. [HeaderNav](docs/design/system/components/HeaderNav/README.md).
 - **Tab bar:** on a phone, a full-width `surface` bar along the bottom with a 1px `line` top border:
   64px tabs plus the safe area. Signed in, four tabs — Mapa · Guardados · Alertas · Cuenta — each an
   icon over an 11px label; the current one has a `violet` icon and its label in `text` at weight 800
@@ -479,7 +520,8 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   and Entrar. It is on the map, Guardados, Alertas, an alert's page and Cuenta, and the signed-in
   landing and the signed-in not-found page, with no tab marked, never at desktop width.
   On the map it hides only while the results sheet is full; on the pages it hides while scrolling down
-  and comes back on scrolling up. [BottomNav](docs/design/system/components/BottomNav/README.md).
+  and comes back on scrolling up. A tab fills with `surface-strong` on hover and scales to 0.97
+  while pressed. [BottomNav](docs/design/system/components/BottomNav/README.md).
 - **Legal index:** the legal pages' «En esta página»: from `lg` a sticky 260px column beside the
   text, the section on screen in `text` with a 2px `lime` bar and `aria-current="location"`; on a
   phone a `surface` field after the date that opens the same list inside it.
@@ -493,8 +535,12 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
 - **Price pin:** a `surface` pill with the price; the active one turns `lime` / `on-lime`, weight 800,
   with the `lime-glow` halo. [PricePin](docs/design/system/components/PricePin/README.md).
 - **Map preview:** the quick card over the map, `surface`, `radius-preview`, `shadow-float`, 340px.
+  On hover its close fills with `surface-strong`, «Ver anuncio» brightens and the heart turns
+  `lime` (once saved, darkens slightly instead, brightness 92%, so its on-violet content keeps its
+  contrast).
   [MapPreview](docs/design/system/components/MapPreview/README.md).
-- **Search pill:** Dónde · Coche · Precio segments with a `lime` button.
+- **Search pill:** Dónde · Coche · Precio segments with a `lime` button. On hover a segment's
+  value turns `lime` and «Buscar» brightens.
   [SearchPill](docs/design/system/components/SearchPill/README.md).
 - Also [BottomSheet](docs/design/system/components/BottomSheet/README.md),
   [FilterSheet](docs/design/system/components/FilterSheet/README.md),

@@ -19,6 +19,8 @@ export function initialOf(name: string | null | undefined, email: string) {
 // docs/design/system/components/HeaderNav/README.md › Avatar: violet with the
 // initial in Unbounded 800 on on-violet, linking to the account page; on that
 // page it carries the current ring (`shadow-current`, `-sm` on the phone).
+// Hover darkens it slightly, so its on-violet content keeps its contrast, and
+// a press scales it to 0.97 (MOTION-6).
 export function Avatar({ name, email, size, current }: AvatarProps) {
   const t = useTranslations();
   const initial = initialOf(name, email);
@@ -34,7 +36,7 @@ export function Avatar({ name, email, size, current }: AvatarProps) {
       aria-label={t("nav.account")}
       aria-current={current ? "page" : undefined}
       className={cn(
-        "rounded-pill",
+        "rounded-pill transition-[filter,scale] hover:brightness-92 active:scale-97 motion-reduce:active:scale-none",
         size === "desktop" ? circle : "flex size-11 items-center justify-center",
       )}
     >

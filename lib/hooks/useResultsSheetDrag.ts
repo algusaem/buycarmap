@@ -1,22 +1,11 @@
 "use client";
 
-import {
-  type PointerEvent,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  animate,
-  type PanInfo,
-  useDragControls,
-  useMotionValue,
-  useReducedMotion,
-} from "motion/react";
+import { type PointerEvent, useCallback, useLayoutEffect, useRef, useState } from "react";
+import { animate, useDragControls, useMotionValue, useReducedMotion } from "motion/react";
 import { sheetSpring } from "@/lib/animations";
 import type { ResultsSheetPosition } from "@/lib/hooks/useMapPageState";
+import { useReleaseSampling } from "@/lib/hooks/useReleaseSampling";
+import { lastInputWasKeyboard } from "@/lib/input-modality";
 import { type SheetTops, settleSheetPosition } from "@/lib/map/sheet-position";
 
 // docs/specs/redesign-map.md (MAPUI-23, MAPUI-59, MAPUI-60);
@@ -29,6 +18,8 @@ import { type SheetTops, settleSheetPosition } from "@/lib/map/sheet-position";
 // the list, moves `y` with the finger, so the sheet always reaches from the
 // finger down; on release it settles on a position (settleSheetPosition) and
 // springs to it, as it does on a handle press, and jumps under reduced motion.
+// A position change made from the keyboard (Enter or Space on the handle)
+// jumps too, stopping any spring in flight (MOTION-14).
 //
 // The positions' offsets are measured from the layout, never hardcoded: full
 // is the top of the area, middle the top of an empty probe drawn with the
@@ -88,9 +79,6 @@ export function useResultsSheetDrag({
   const dragEndedAtRef = useRef<number | null>(null);
   // Whether a finger is moving the sheet right now: a re-measure then leaves `y` to it.
   const draggingRef = useRef(false);
-  // The press in progress, if any: removes its window listeners. A second
-  // finger's pointerdown while it lasts starts nothing.
-  const pressRef = useRef<(() => void) | null>(null);
   // The position `y` was last put at, and whether it has been put anywhere yet.
   const placedAtRef = useRef<ResultsSheetPosition | null>(null);
   const [offsets, setOffsets] = useState<SheetTops | null>(null);
@@ -138,8 +126,8 @@ export function useResultsSheetDrag({
   }, [docked]);
 
   // Puts the sheet at its position's offset before the paint: at once the
-  // first time, after a re-measure and under reduced motion; with the spring
-  // when the position itself changed (a release, a handle press).
+  // first time, after a re-measure, under reduced motion and after a key; with
+  // the spring when a pointer changed the position (a release, a handle press).
   useLayoutEffect(() => {
     if (!activeOffsets) {
       placedAtRef.current = null;
@@ -149,7 +137,7 @@ export function useResultsSheetDrag({
     if (draggingRef.current) return;
     const moved = placedAtRef.current !== null && placedAtRef.current !== position;
     placedAtRef.current = position;
-    moveTo(activeOffsets[position], moved);
+    moveTo(activeOffsets[position], moved && !lastInputWasKeyboard());
   }, [activeOffsets, position, moveTo, y]);
 
   /** Back to `position`'s offset, when a press or a release settles where it started. */
@@ -164,16 +152,22 @@ export function useResultsSheetDrag({
     settleBackRef.current = settleBack;
   });
 
-  // A press still in progress when the sheet unmounts leaves no window listeners behind.
-  useEffect(
-    () => () => {
-      pressRef.current?.();
-      pressRef.current = null;
-    },
-    [],
-  );
+  // The press/release sampling (MOTION-20) a handle press drives, shared with
+  // the phone bottom sheets; a release that did not drag settles the sheet back.
+  const {
+    releaseVelocityRef,
+    pressRef,
+    start: startSampling,
+  } = useReleaseSampling(() => {
+    if (draggedRef.current) {
+      dragEndedAtRef.current = performance.now();
+      return;
+    }
+    settleBackRef.current();
+  });
 
-  function onDragEnd(_event: globalThis.PointerEvent | MouseEvent | TouchEvent, info: PanInfo) {
+  // Motion calls it after the frame is drawn, so the press's pointerup has already set releaseVelocityRef.
+  function onDragEnd() {
     draggingRef.current = false;
     setDragging(false);
     const tops = measureTops(
@@ -190,7 +184,7 @@ export function useResultsSheetDrag({
     const next = settleSheetPosition({
       start: position,
       releaseTop: sheet.getBoundingClientRect().top,
-      velocityY: info.velocity.y,
+      velocityY: releaseVelocityRef.current,
       tops,
     });
     if (next === position) {
@@ -230,7 +224,6 @@ export function useResultsSheetDrag({
     startDrag: (event: PointerEvent) => {
       // Only the first finger presses: a second one, or one while a press lasts, starts nothing.
       if (!event.isPrimary || pressRef.current) return;
-      const { pointerId } = event;
       draggedRef.current = false;
       dragEndedAtRef.current = null;
       dragControls.start(event);
@@ -238,25 +231,9 @@ export function useResultsSheetDrag({
       // the sheet back at its position (a drag's own release is onDragEnd's).
       // A drag's end is timed here, on its pointerup, not in onDragEnd: Motion
       // calls onDragEnd after the frame is drawn, by when the click that
-      // follows the release has already reached the handle.
-      const removeListeners = () => {
-        window.removeEventListener("pointerup", endPress);
-        window.removeEventListener("pointercancel", endPress);
-      };
-      function endPress(upEvent: globalThis.PointerEvent) {
-        // Another finger's release does not end this press.
-        if (upEvent.pointerId !== pointerId) return;
-        removeListeners();
-        pressRef.current = null;
-        if (draggedRef.current) {
-          dragEndedAtRef.current = performance.now();
-          return;
-        }
-        settleBackRef.current();
-      }
-      pressRef.current = removeListeners;
-      window.addEventListener("pointerup", endPress);
-      window.addEventListener("pointercancel", endPress);
+      // follows the release has already reached the handle. Another finger's
+      // release does not end this press.
+      startSampling(event);
     },
     /** Whether a click on the handle ends a drag (within CLICK_AFTER_DRAG_MS of its end) rather than pressing it; reading it clears it. */
     consumeDrag: () => {

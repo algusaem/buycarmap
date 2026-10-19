@@ -4,6 +4,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { CreateAlert, type CreateAlertProps } from "./CreateAlert";
 
 const push = vi.fn();
@@ -34,7 +35,10 @@ const BASE: CreateAlertProps = {
   onClose: vi.fn(),
 };
 
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
 beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
   push.mockReset();
   vi.mocked(createAlert).mockReset();
   vi.mocked(toast.error).mockClear();
@@ -409,5 +413,36 @@ describe("ALERTUI-48: CreateAlert sends the place name", () => {
 
     expect(createAlert).toHaveBeenCalledTimes(1);
     expect(vi.mocked(createAlert).mock.calls[0][2]).toBe("X".repeat(200));
+  });
+});
+
+// docs/specs/motion.md (MOTION-23): the validation notices appear with no
+// fade when a key caused them (Enter in the name field), and keep their fade
+// when a pointer did (a press on «Crear alerta»).
+describe("MOTION-23: CreateAlert — the empty-name notice", () => {
+  it("MOTION-23: Enter in an emptied name field shows the notice with no inline opacity below 1", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<CreateAlert {...BASE} />, { locale: "es" });
+      const nameField = screen.getByRole("textbox", { name: /nombre/i });
+      await userEvent.clear(nameField);
+
+      await userEvent.type(nameField, "{Enter}");
+
+      const notice = await screen.findByText("Ponle un nombre a la alerta.");
+      const opacity = notice.style.opacity;
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-23: a press on «Crear alerta» with an emptied name still fades the notice in, with an inline opacity below 1 right after", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<CreateAlert {...BASE} />, { locale: "es" });
+      await userEvent.clear(screen.getByRole("textbox", { name: /nombre/i }));
+
+      await userEvent.click(screen.getByRole("button", { name: "Crear alerta" }));
+
+      const notice = await screen.findByText("Ponle un nombre a la alerta.");
+      expect(Number(notice.style.opacity)).toBeLessThan(1);
+    });
   });
 });

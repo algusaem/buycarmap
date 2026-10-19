@@ -1,11 +1,18 @@
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { FilterPanel } from "./FilterPanel";
 import { FilterRow } from "./FilterRow";
+
+// The last input is page-wide (lib/input-modality.ts), so every test starts
+// from a pointer press, whatever key the test before it pressed last.
+beforeEach(() => {
+  window.dispatchEvent(new PointerEvent("pointerdown"));
+});
 
 // docs/specs/redesign-map.md (MAPUI-13). The row shows «Filtros» with its
 // badge (counting the active criteria, lib/search/filter-chips.ts's
@@ -228,5 +235,145 @@ describe("FilterRow accessibility", () => {
     );
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-6: «Filtros» gains a
+// press state alongside its existing hover.
+describe("MOTION-6: FilterRow — hover and press on Filtros", () => {
+  it("MOTION-6: Filtros carries hover:border-text-muted and active:scale-97, off under reduced motion", () => {
+    renderWithI18n(
+      <FilterRow
+        input={{}}
+        onApplyQuick={vi.fn()}
+        onOpenFilters={vi.fn()}
+        panel={closedPanel}
+        panelOpen={false}
+        onClosePanel={vi.fn()}
+      />,
+      { locale: "es" },
+    );
+
+    const className = screen.getByRole("button", { name: "Filtros" }).className;
+    expect(className).toContain("hover:border-text-muted");
+    expect(className).toContain("active:scale-97");
+    expect(className).toContain("motion-reduce:active:scale-none");
+  });
+});
+
+// docs/specs/motion.md (MOTION-10): the desktop «Filtros» dropdown opens and
+// closes at once from the keyboard, and still fades for a pointer — the
+// worked example «Filtros» (MOTION-10, MOTION-16).
+describe("MOTION-10: FilterRow — the dropdown opens and closes at once from the keyboard, but still animates for a pointer", () => {
+  function ClosedHarness() {
+    const [open, setOpen] = useState(false);
+    return (
+      <FilterRow
+        input={{}}
+        onApplyQuick={vi.fn()}
+        onOpenFilters={() => setOpen(true)}
+        panelOpen={open}
+        onClosePanel={() => setOpen(false)}
+        panel={
+          <FilterPanel
+            input={{}}
+            mode="desktop"
+            onChange={vi.fn()}
+            onClear={vi.fn()}
+            onCloseDesktop={() => setOpen(false)}
+          />
+        }
+      />
+    );
+  }
+
+  it.each([
+    ["Enter", "{Enter}"],
+    ["Space", " "],
+  ])(
+    "MOTION-10: %s on Filtros opens the dropdown with no inline opacity below 1, even with animations enabled",
+    async (_key, keys) => {
+      await withAnimations(async () => {
+        renderWithI18n(<ClosedHarness />, { locale: "es" });
+        screen.getByRole("button", { name: "Filtros" }).focus();
+
+        await userEvent.keyboard(keys);
+
+        const dropdown = await screen.findByRole("dialog", { name: "Filtros" });
+        const opacity = dropdown.style.opacity;
+        expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+      });
+    },
+  );
+
+  it("MOTION-10: Escape closes the dropdown in the same tick, with no exit animation to wait for", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<ClosedHarness />, { locale: "es" });
+      screen.getByRole("button", { name: "Filtros" }).focus();
+      await userEvent.keyboard("{Enter}");
+      await screen.findByRole("dialog", { name: "Filtros" });
+
+      await userEvent.keyboard("{Escape}");
+
+      // Not even mounted as a hidden, leaving element.
+      expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    });
+  });
+
+  it("MOTION-10: opened with a click and closed with Escape, the dropdown is gone in the same tick (worked example «Filtros», third row)", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<ClosedHarness />, { locale: "es" });
+      await userEvent.click(screen.getByRole("button", { name: "Filtros" }));
+      await screen.findByRole("dialog", { name: "Filtros" });
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    });
+  });
+
+  it("MOTION-10: a click on Filtros still fades the dropdown in, with an inline opacity below 1 right after", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<ClosedHarness />, { locale: "es" });
+
+      await userEvent.click(screen.getByRole("button", { name: "Filtros" }));
+
+      const dropdown = await screen.findByRole("dialog", { name: "Filtros" });
+      expect(Number(dropdown.style.opacity)).toBeLessThan(1);
+    });
+  });
+
+  it("MOTION-10: a click outside still plays the close animation — the dropdown is still mounted right after", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<ClosedHarness />, { locale: "es" });
+      await userEvent.click(screen.getByRole("button", { name: "Filtros" }));
+      await screen.findByRole("dialog", { name: "Filtros" });
+
+      await userEvent.click(document.body);
+
+      // Still in the document while its exit plays: aria-hidden and inert
+      // (PopoverCard.tsx), so it is found only by asking for hidden roles —
+      // and an aria-hidden node's computed accessible name is empty, so its
+      // identity is checked by the aria-label attribute instead of by name.
+      const dropdown = screen.getByRole("dialog", { hidden: true });
+      expect(dropdown).toHaveAttribute("aria-label", "Filtros");
+    });
+  });
+  it("MOTION-10: reopened with Enter while its pointer close still plays, the dropdown is drawn whole at once", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<ClosedHarness />, { locale: "es" });
+      const filtros = screen.getByRole("button", { name: "Filtros" });
+      await userEvent.click(filtros);
+      await screen.findByRole("dialog", { name: "Filtros" });
+      await userEvent.click(document.body);
+      const leaving = screen.getByRole("dialog", { hidden: true });
+      expect(Number(leaving.style.opacity)).toBeLessThan(1);
+
+      filtros.focus();
+      await userEvent.keyboard("{Enter}");
+
+      const dropdown = screen.getByRole("dialog", { name: "Filtros" });
+      expect(dropdown.style.opacity === "" || Number(dropdown.style.opacity) >= 1).toBe(true);
+    });
   });
 });

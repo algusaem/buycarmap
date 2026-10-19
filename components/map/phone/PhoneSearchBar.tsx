@@ -14,7 +14,9 @@ import type { SearchInput } from "@/lib/search/schema";
 // phone map. Row one: the 56px search summary, with the magnifier and the
 // summary on two lines, and beside it, 12px apart, the 44px round «Filtros»
 // button that opens the full-screen filters dialog. Under them, 16px apart,
-// the quick filters, scrolling sideways.
+// the quick filters, scrolling sideways. The summary's border turns text-muted
+// and «Filtros» fills with surface-strong on hover; both scale to 0.97 while
+// pressed (MOTION-6).
 //
 // «Filtros» is named by `map.filters` alone; the violet badge at its corner
 // counts the active criteria (lib/search/filter-chips.ts's filterChips) as
@@ -67,7 +69,7 @@ export function PhoneSearchBar({
           type="button"
           aria-haspopup="dialog"
           onClick={onOpenSearch}
-          className="flex h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-pill border border-line bg-surface px-4.5 text-left font-sans text-text"
+          className="flex h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-pill border border-line bg-surface px-4.5 text-left font-sans text-text transition-[border-color,scale] hover:border-text-muted active:scale-97 motion-reduce:active:scale-none"
         >
           <Search aria-hidden="true" strokeWidth={2.4} className="size-4.5 shrink-0" />
           <span className="flex min-w-0 flex-col">
@@ -83,7 +85,7 @@ export function PhoneSearchBar({
           aria-expanded={filtersOpen}
           aria-describedby={describedBy}
           onClick={onOpenFilters}
-          className="relative flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-pill border border-line text-text"
+          className="relative flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-pill border border-line text-text transition-[background-color,scale] hover:bg-surface-strong active:scale-97 motion-reduce:active:scale-none"
         >
           <SlidersHorizontal aria-hidden="true" className="size-4.5" />
           <FiltersBadge

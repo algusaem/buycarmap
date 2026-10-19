@@ -102,3 +102,19 @@ describe("ENTRY-22: PasswordInput — the error's id, association and placement"
     expect(error.querySelector("svg[aria-hidden='true']")).not.toBeNull();
   });
 });
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-21: the show or hide
+// button turns `text` on hover, with its colour in the state transition, and
+// keeps the button's press.
+describe("MOTION-21: PasswordInput — hover and press on the show or hide button", () => {
+  it("MOTION-21: the button carries transition-[color,background-color,scale], hover:text-text and active:scale-97, off under reduced motion, and no legacy hover:text-foreground", () => {
+    renderWithI18n(<PasswordInput placeholder="Your password" />);
+
+    const classes = screen.getByRole("button", { name: "Show password" }).className.split(/\s+/);
+    expect(classes).toContain("transition-[color,background-color,scale]");
+    expect(classes).toContain("hover:text-text");
+    expect(classes).toContain("active:scale-97");
+    expect(classes).toContain("motion-reduce:active:scale-none");
+    expect(classes).not.toContain("hover:text-foreground");
+  });
+});

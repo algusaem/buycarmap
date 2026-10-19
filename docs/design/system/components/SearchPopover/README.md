@@ -55,4 +55,5 @@ Un solo campo que busca mientras escribes, «Marca o modelo…».
 
 ## Movimiento
 
-- El desplegable y la hoja aparecen y desaparecen con Motion.
+- Abiertos o cerrados con el ratón, el desplegable se funde y se mueve 4px en 180ms y la hoja sube en 240ms (o se funde en 180ms), y salen como entraron; con Intro, Espacio o Escape aparecen y desaparecen al instante. Las listas de sugerencias nunca se animan.
+- **Hover y pulsación** (en la transición de estado de 120ms, curva `ease-out`): la «×» que borra un campo pasa a `text` al pasar el ratón y se encoge a 0,97 mientras se pulsa, salvo con movimiento reducido.

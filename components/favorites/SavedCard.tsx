@@ -90,7 +90,8 @@ export function SavedCard({
           iconClassName="size-14"
           focusRing
           className={cn(
-            "aspect-20/17 rounded-card transition-[box-shadow]",
+            // The active ring turns on and off at once (MOTION-9).
+            "aspect-20/17 rounded-card",
             active && "ring-2 ring-lime",
           )}
         />

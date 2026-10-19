@@ -84,7 +84,7 @@ export function LandingSearch() {
         aria-haspopup="dialog"
         aria-expanded={sheetOpen}
         aria-label={t("search.sheetTitle")}
-        className="flex w-full flex-col rounded-sheet border border-line bg-surface p-1.5 text-left lg:hidden"
+        className="flex w-full cursor-pointer flex-col rounded-sheet border border-line bg-surface p-1.5 text-left transition-[border-color,scale] hover:border-text-muted active:scale-97 motion-reduce:active:scale-none lg:hidden"
       >
         <span aria-hidden="true" className="flex flex-col border-b border-line px-4 py-3">
           <span className="text-overline font-bold uppercase text-text-muted">

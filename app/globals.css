@@ -145,6 +145,16 @@
    (docs/specs/redesign-map.md › Contracts › Type scale): `text-<style>` sets
    the size, and the line height and letter spacing where the style has them. */
 @theme {
+  /* Motion timing (MOTION-1, docs/specs/motion.md): every `transition-*` class
+     runs at the state timing unless it names its own duration; `base` and
+     `sheet` match the durations in lib/animations.ts. */
+  --default-transition-duration: 120ms;
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  --transition-duration-fast: 120ms;
+  --transition-duration-base: 180ms;
+  --transition-duration-sheet: 240ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
   --text-hero: 72px;
   --text-hero--line-height: 1.04;
   --text-hero--letter-spacing: -0.01em;

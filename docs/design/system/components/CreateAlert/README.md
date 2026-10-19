@@ -16,3 +16,4 @@ Guarda la búsqueda del mapa como una alerta. Lo abre «Crear alerta» (ver Head
 - **Pausada o borrada**: si esa alerta estaba pausada desde el correo o la habías borrado, vuelve a activarse con el nombre nuevo y el aviso es «Alerta creada».
 - **La búsqueda que guarda**: los criterios del mapa sin «Publicado» y sin el texto libre que llega de la landing (`?q=`).
 - Abrir «Crear alerta» cierra la vista previa (MapPreview) que esté abierta.
+- Movimiento: el diálogo se funde en 180ms (en el móvil, la hoja sube en 240ms) cuando se abre o cierra con el ratón; con el teclado aparece y desaparece al instante. Los avisos se funden tras un clic y aparecen al instante tras una tecla.

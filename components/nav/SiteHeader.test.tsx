@@ -749,3 +749,29 @@ describe("SiteHeader — the alert page's «Volver» at phone width", () => {
     expect(phone().getByRole("link", { name: "BuyCarMap" })).toBeInTheDocument();
   });
 });
+
+// docs/specs/motion.md (Key MOTION, Approved), MOTION-6: the header's icon
+// and text links gain a press state alongside their existing lime hover.
+describe("MOTION-6: SiteHeader — hover and press on the icon and text links", () => {
+  it("MOTION-6: the desktop Saved text link carries hover:text-lime and active:scale-97", () => {
+    pathname.mockReturnValue("/map");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<SiteHeader />);
+
+    const link = desktop().getByRole("link", { name: "Saved" });
+    expect(link.className).toContain("hover:text-lime");
+    expect(link.className).toContain("active:scale-97");
+    expect(link.className).toContain("motion-reduce:active:scale-none");
+  });
+
+  it("MOTION-6: the phone «Back» icon link carries active:scale-97 alongside its existing hover:text-lime", () => {
+    pathname.mockReturnValue("/alerts/abc");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<SiteHeader />);
+
+    const back = phone().getByRole("link", { name: "Back" });
+    expect(back.className).toContain("hover:text-lime");
+    expect(back.className).toContain("active:scale-97");
+    expect(back.className).toContain("motion-reduce:active:scale-none");
+  });
+});

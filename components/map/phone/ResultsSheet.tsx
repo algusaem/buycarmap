@@ -1,7 +1,6 @@
 "use client";
 
 import { type ReactNode, type Ref, useId } from "react";
-import { AnimatePresence } from "motion/react";
 import * as motion from "motion/react-client";
 import { BellPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -9,7 +8,6 @@ import { CarCard, savedProps } from "@/components/map/CarCard";
 import { RESULTS_GRID_CLASS } from "@/components/map/results-grid";
 import { Button } from "@/components/ui/button";
 import type { CarListing } from "@/interfaces/listing";
-import { crossFade } from "@/lib/animations";
 import type { ResultsSheetPosition } from "@/lib/hooks/useMapPageState";
 import { useResultsSheetDrag } from "@/lib/hooks/useResultsSheetDrag";
 import { cardDomId } from "@/lib/map/card-dom-id";
@@ -47,6 +45,10 @@ import { cn } from "@/lib/utils";
 // middle position is 520px tall (BottomSheet README) but never taller than
 // the room between the tab bar and 12px under the band. Full reaches the
 // band.
+//
+// The list never animates (MOTION-8): the body, the switch between a results
+// state and the cards, and the cards themselves appear and leave at once, at
+// every position and in the desktop column.
 
 export interface ResultsSheetProps {
   heading: string;
@@ -67,15 +69,6 @@ export interface ResultsSheetProps {
   status?: ReactNode;
   /** Under the whole list (the infinite-scroll sentinel), never under the middle position's single card. */
   footer?: ReactNode;
-}
-
-/**
- * What the body shows, the key its cross-fade swaps on: the state in place of
- * the cards, the first card (middle) or the whole list (full, or docked).
- */
-function bodyKey(hasStatus: boolean, showsWholeList: boolean): string {
-  if (hasStatus) return "status";
-  return showsWholeList ? "list" : "first-card";
 }
 
 function visibleListings(listings: CarListing[], position: ResultsSheetPosition, docked: boolean) {
@@ -175,49 +168,40 @@ export function ResultsSheet({
             {t("createAlert.open")}
           </Button>
         </div>
-        <AnimatePresence initial={false}>
-          {showBody && (
-            <motion.div
-              key="body"
-              {...crossFade}
-              inert={drag.dragging}
-              className={cn(
-                "min-h-0 flex-1 overscroll-contain lg:-mr-6 lg:-ml-12 lg:pt-1.5 lg:pr-6 lg:pl-12",
-                // MAPUI-23: at full, clears the home indicator (and, once the
-                // tab bar hides, the room it left) instead of the plain pb-6
-                // the other positions and the desktop list column keep.
-                position === "full" ? "pb-sheet-full-bottom" : "pb-6",
-                showsWholeList ? "overflow-y-auto" : "overflow-hidden",
-              )}
-            >
-              {/* The state and the cards, and the first card and the whole list, cross-fade one after the other. */}
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={bodyKey(Boolean(status), showsWholeList)} {...crossFade}>
-                  {status}
-                  {!status && (
-                    <div className={RESULTS_GRID_CLASS}>
-                      {cards.map((listing) => (
-                        <CarCard
-                          key={listing.id}
-                          domId={cardDomId(listing.id)}
-                          listing={listing}
-                          {...savedProps(listing, favoriteIds, onToggleFavorite)}
-                          active={activeId === listing.id}
-                          onActiveChange={
-                            onActiveChange
-                              ? (active) => onActiveChange(active ? listing.id : null)
-                              : undefined
-                          }
-                        />
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-              {showsWholeList && footer}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {showBody && (
+          <div
+            inert={drag.dragging}
+            className={cn(
+              "min-h-0 flex-1 overscroll-contain lg:-mr-6 lg:-ml-12 lg:pt-1.5 lg:pr-6 lg:pl-12",
+              // MAPUI-23: at full, clears the home indicator (and, once the
+              // tab bar hides, the room it left) instead of the plain pb-6
+              // the other positions and the desktop list column keep.
+              position === "full" ? "pb-sheet-full-bottom" : "pb-6",
+              showsWholeList ? "overflow-y-auto" : "overflow-hidden",
+            )}
+          >
+            {status}
+            {!status && (
+              <div className={RESULTS_GRID_CLASS}>
+                {cards.map((listing) => (
+                  <CarCard
+                    key={listing.id}
+                    domId={cardDomId(listing.id)}
+                    listing={listing}
+                    {...savedProps(listing, favoriteIds, onToggleFavorite)}
+                    active={activeId === listing.id}
+                    onActiveChange={
+                      onActiveChange
+                        ? (active) => onActiveChange(active ? listing.id : null)
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            )}
+            {showsWholeList && footer}
+          </div>
+        )}
       </motion.section>
     </>
   );

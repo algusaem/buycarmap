@@ -63,7 +63,10 @@ the UI Kit). Where this brief and the design disagree, the design wins and this 
 - Back restores the list's scroll; Tab walks every card in order; focus after a removal goes to the
   next item, the previous one, or the empty state's heading.
 - The car sheet slides up over the dimmed screen and closes with «Cerrar», Escape or a press outside,
-  returning focus to its row. Everything that appears or disappears animates with Motion.
+  returning focus to its row. Motion follows `docs/specs/motion.md`: opened or closed with a pointer,
+  the sheet slides over 240ms and the map preview fades over 180ms; with a key or Escape they appear
+  and disappear at once. The saved list, its sort chips, its empty state, the card rings and the pins
+  never animate.
 
 ## 7. Constraints and open decisions
 

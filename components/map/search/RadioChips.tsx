@@ -18,6 +18,9 @@ import { cn } from "@/lib/utils";
 //   inverted, `text` fill with `bg` text and weight 800. Each option is drawn
 //   40px tall and keeps a 44px-tall hit area (RULES §19) with the same
 //   centred pseudo-element as the shortcut chips.
+//
+// An unchecked chip turns its border to text-muted on hover, and every option
+// scales to 0.97 while pressed, off under reduced motion (MOTION-5).
 interface RadioChipOption<T extends string | number> {
   value: T;
   label: string;
@@ -62,7 +65,7 @@ export function RadioChips<T extends string | number>({
           <label
             key={option.value}
             className={cn(
-              "flex cursor-pointer items-center justify-center whitespace-nowrap rounded-pill font-sans text-sm transition-[background-color,border-color,color]",
+              "flex cursor-pointer items-center justify-center whitespace-nowrap rounded-pill font-sans text-sm transition-[background-color,border-color,color,scale] active:scale-97 motion-reduce:active:scale-none",
               "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3 has-[:focus-visible]:outline-lime",
               disabled && "cursor-not-allowed",
               variant === "chips" && "border",
@@ -73,7 +76,7 @@ export function RadioChips<T extends string | number>({
               variant === "chips" &&
                 (checked
                   ? "border-transparent bg-violet font-extrabold text-on-violet"
-                  : "border-line font-semibold text-text"),
+                  : "border-line font-semibold text-text hover:border-text-muted"),
               variant === "segmented" &&
                 "relative flex-1 p-2.5 before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2",
               variant === "segmented" &&

@@ -136,7 +136,8 @@ The AlertCard
 - [x] ALERTUI-11 · component — At desktop width, pressing a folded AlertCard opens it and folds the
   one that was open. The map then shows the newly open alert's zone, pill and pins, and fits them as
   ALERTUI-16 says. A folded card is one button with `aria-expanded="false"`, named by the alert's
-  name. The open card is not a button.
+  name. The open card is not a button. — the card opens with no fade (MOTION-9) (amended 2026-10-18,
+  MOTION — motion.md)
 
 Which alert is open (desktop)
 
@@ -278,7 +279,8 @@ Deleting an alert
   the dimmed page, with «Eliminar», the danger button, and «Cancelar», with no handle and no «×». It
   fades in and out with Motion. Focus starts on «Cancelar». «Cancelar», Escape and a press outside
   close it with nothing sent, and focus returns to the control that opened it. (Amended 2026-10-16,
-  owner: the title names the alert; it was «¿Eliminar esta alerta?».)
+  owner: the title names the alert; it was «¿Eliminar esta alerta?».) — it fades only when a pointer
+  opens or closes it; at once from the keyboard (MOTION-12) (amended 2026-10-18, MOTION — motion.md)
 - [x] ALERTUI-34 · component — At phone width, «Eliminar alerta» opens the confirmation sheet
   (`role="alertdialog"`, named by its title, «¿Eliminar «<nombre de la alerta>»?»): the handle, the
   title, «Eliminar» and «Cancelar», with no «×» and no «Cerrar». It closes with «Cancelar», a drag
@@ -293,7 +295,8 @@ Deleting an alert
   - no toast appears;
   - focus is on the heading «Alertas».
 
-  The worked example "Delete" gives the sequence.
+  The worked example "Delete" gives the sequence. — the deleted card leaves, and the switch from
+  placeholders to matches happens, with no fade (MOTION-9) (amended 2026-10-18, MOTION — motion.md)
 - [x] ALERTUI-36 · component — A delete the server refuses, or that throws, closes the confirmation,
   leaves the alert listed and the URL as it was, shows the error toast (FRONT-15) with the refusal
   code's `alertErrors.*` copy, or «Algo ha salido mal. Inténtalo de nuevo.» when it throws, and

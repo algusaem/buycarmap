@@ -30,3 +30,4 @@ El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chi
 - **Publicado**: chips del panel, uno activo: «Cualquier momento», «Últimas 24 h», «Última semana», «Último mes».
 - **Marca y modelo**: un solo campo de 52px que busca mientras escribes, «Marca o modelo…», el mismo que Coche en [SearchPopover](../SearchPopover/README.md): fondo `bg`, borde `line`, `radius-field` y la lupa de 18px en `text-muted`.
 - Los mandos del rango son sliders con su valor en texto («20.000 €»); el segmentado es un grupo de radios.
+- Movimiento: el desplegable «Filtros» se funde y se mueve 4px en 180ms al abrirlo o cerrarlo con el ratón; con Intro, Espacio o Escape aparece y desaparece al instante.

@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils";
 // pressed/unpressed buttons, «ES · EN» in that order, with no accent, fill or
 // border; each has a 44×44 hit area, which is also what spaces it from its
 // neighbours. The switch itself (cookie, setLocale, refresh) is
-// useLocaleSwitcher's.
+// useLocaleSwitcher's. Hover turns a locale `text`, never the accent, and a
+// press scales it to 0.97 (MOTION-6).
 export function LanguageControl() {
   const t = useTranslations();
   const locale = useLocale();
@@ -56,7 +57,7 @@ function LocaleButton({ locale, active, label, onSelect }: LocaleButtonProps) {
       aria-pressed={active}
       onClick={() => onSelect(locale)}
       className={cn(
-        "flex h-11 min-w-11 cursor-pointer items-center justify-center",
+        "flex h-11 min-w-11 cursor-pointer items-center justify-center transition-[color,scale] hover:text-text active:scale-97 motion-reduce:active:scale-none",
         active ? "font-extrabold text-text" : "font-semibold text-text-muted",
       )}
     >
