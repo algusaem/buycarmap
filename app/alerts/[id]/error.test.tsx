@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/alerts/alert-1",
 }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
-vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
 // test/utils/alerts.tsx also renders the alert pages, whose actions reach the server.
 vi.mock("@/server/alerts/actions", () => ({ deleteAlert: vi.fn(), createAlert: vi.fn() }));
 vi.mock("@/server/favorites/actions", () => ({

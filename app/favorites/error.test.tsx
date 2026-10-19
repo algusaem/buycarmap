@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/favorites",
 }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
-vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
 
 import FavoritesError from "./error";
 
@@ -103,7 +103,7 @@ describe("SAVED-32: the page-error state", () => {
     expect(
       await screen.findByRole("region", { name: "Mapa de tus guardados" }),
     ).toBeInTheDocument();
-    expect(container.querySelector(".leaflet-marker-icon")).toBeNull();
+    expect(container.querySelector(".maplibregl-marker")).toBeNull();
     expect(screen.queryByText("Tus guardados en el mapa")).not.toBeInTheDocument();
     expect(screen.queryByText("Aquí saldrán tus guardados")).not.toBeInTheDocument();
   });

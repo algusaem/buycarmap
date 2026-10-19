@@ -1,28 +1,22 @@
 "use client";
 
-import { useMap } from "react-leaflet";
 import { Minus, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
-
-/** Leaflet must not read a press on an overlay control as a press on the map (drag, double-click zoom). */
-function stopMapGestures(element: HTMLElement | null) {
-  if (!element) return;
-  for (const type of ["mousedown", "touchstart", "dblclick", "wheel"]) {
-    element.addEventListener(type, (event) => event.stopPropagation());
-  }
-}
+import { useMapInstance } from "@/components/map/MapInstanceContext";
 
 // docs/specs/redesign-map.md (MAPUI-29); docs/design/system/components/MapZoom/README.md.
-// «Acercar» and «Alejar», bottom right, replacing Leaflet's own zoom control.
-// Hover fills surface-strong and a press scales to 0.97, in the state
-// transition (MOTION-6).
+// «Acercar» and «Alejar», bottom right, over the map: each changes its zoom
+// by one level through the map's own zoom, which animates it (motion.md ›
+// Out of scope). They sit beside the map's container, not inside it, so a
+// press on them never reaches the map's own gestures. Hover fills
+// surface-strong and a press scales to 0.97, in the state transition
+// (MOTION-6).
 export function MapZoom() {
   const t = useTranslations();
-  const map = useMap();
+  const map = useMapInstance();
 
   return (
     <div
-      ref={stopMapGestures}
       // No `overflow-hidden`: it clipped the global focus ring along with
       // the buttons' square corners, so each button carries its own matching
       // rounding instead (MAPUI-29).
@@ -31,7 +25,7 @@ export function MapZoom() {
       <button
         type="button"
         aria-label={t("map.zoomIn")}
-        onClick={() => map.zoomIn(1)}
+        onClick={() => map.zoomIn()}
         className="flex size-10.5 cursor-pointer items-center justify-center rounded-t-pill border-b border-line text-text transition-[background-color,scale] hover:bg-surface-strong active:scale-97 motion-reduce:active:scale-none"
       >
         <Plus aria-hidden="true" className="size-5" />
@@ -39,7 +33,7 @@ export function MapZoom() {
       <button
         type="button"
         aria-label={t("map.zoomOut")}
-        onClick={() => map.zoomOut(1)}
+        onClick={() => map.zoomOut()}
         className="flex size-10.5 cursor-pointer items-center justify-center rounded-b-pill text-text transition-[background-color,scale] hover:bg-surface-strong active:scale-97 motion-reduce:active:scale-none"
       >
         <Minus aria-hidden="true" className="size-5" />

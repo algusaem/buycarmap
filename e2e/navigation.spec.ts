@@ -2,6 +2,13 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
 import { e2eEmail, seedUser } from "./fixtures/db";
 import { scrollableAncestor } from "./fixtures/measure";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // docs/specs/redesign-navigation.md. Replaces e2e/navbar.spec.ts (NAV-2 moves
 // here as HEAD-15). These are the criteria jsdom cannot reach: Tailwind's

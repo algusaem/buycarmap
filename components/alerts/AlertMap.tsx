@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { SavedMapFrame } from "@/components/favorites/SavedLayout";
@@ -7,7 +8,7 @@ import { MapPill } from "@/components/map/ResultsStates";
 import type { CarListing } from "@/interfaces/listing";
 import type { MapZone } from "@/lib/map/zone";
 
-// Leaflet cannot run server-side (as in components/map/MapResultsArea.tsx).
+// MapLibre cannot run server-side (as in components/map/MapResultsArea.tsx).
 const ListingsMap = dynamic(
   async () => (await import("@/components/map/ListingsMap")).ListingsMap,
   { ssr: false },
@@ -57,6 +58,8 @@ export function AlertMap({
   onToggleFavorite,
 }: AlertMapProps) {
   const t = useTranslations();
+  // No WebGL: the map's own «map unavailable» pill is the only one over it (MAPLIBRE-15).
+  const [mapUnavailable, setMapUnavailable] = useState(false);
 
   return (
     <SavedMapFrame label={t("alerts.mapLabel")}>
@@ -71,8 +74,9 @@ export function AlertMap({
         onPreviewClose={onPreviewClose}
         favoriteIds={favoriteIds}
         onToggleFavorite={onToggleFavorite}
+        onUnavailableChange={setMapUnavailable}
       />
-      <MapPill text={pill.text} accent={pill.zone} live={pill.live} />
+      {!mapUnavailable && <MapPill text={pill.text} accent={pill.zone} live={pill.live} />}
     </SavedMapFrame>
   );
 }

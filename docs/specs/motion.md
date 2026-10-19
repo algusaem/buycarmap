@@ -130,7 +130,7 @@ None: the change is presentational. It touches no user data and no authorization
 ## Out of scope
 
 - Toasts: Sonner animates them, and the core exempts them.
-- Leaflet's own zoom animation (250ms) and its panning. The map library draws them, and they explain where the map went.
+- The map library's own zoom animation and its panning (MapLibre's since MAPLIBRE, map-maplibre.md; Leaflet's 250ms before). The map library draws them, and they explain where the map went.
 - The loading skeleton's pulse and the spinners. They are feedback that something is still loading.
 - The drag physics of the phone sheets and the results sheet. A pointer release still springs (SAVED-37, SAVED-38, ALERTUI-32, PAGES-39, MAPUI-58). The one exception: the results sheet and the phone sheets now measure their release speed from the pointer events, because the animation library reads 0px/s on a fast flick when the page is idle (owner, 2026-10-18; worked examples in `docs/specs/redesign-map.md`, MAPUI-60; MOTION-20).
 - New decorative animations, page transitions and a light theme.

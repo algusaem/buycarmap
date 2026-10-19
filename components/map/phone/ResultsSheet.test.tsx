@@ -214,6 +214,95 @@ describe("MAPUI-59: ResultsSheet — a drag never starts from the list, and the 
   });
 });
 
+// docs/specs/redesign-map.md (MAPUI-59), worked example «Release point
+// (MAPUI-59; bug fix, 2026-10-19)»: the sheet settles from where the finger
+// left the screen, not from the edge last drawn, which lags (or leads) the
+// finger when the browser skips frames.
+describe("MAPUI-59: ResultsSheet — a drag settles from the finger's release point, not the edge last drawn", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** The sheet's drawn top edge, as its getBoundingClientRect reports it; set per step. */
+  let drawnSheetTop = 0;
+
+  /** Positions' top edges F = 0 (the sheet's area), M = 400 (the middle probe)
+   * and P = 700 (the peeked probe, less a header 0 tall in jsdom), the boxes
+   * measureTops reads (lib/hooks/useResultsSheetDrag.ts); the sheet itself
+   * reports `drawnSheetTop`. Every other box stays at 0. */
+  function stubTops() {
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: Element,
+    ) {
+      let top = 0;
+      if (this.getAttribute("data-testid") === "results-sheet") top = drawnSheetTop;
+      else if (this.classList.contains("h-sheet-middle")) top = 400;
+      else if (this.classList.contains("pb-3.5") && this.getAttribute("aria-hidden")) top = 700;
+      return {
+        top,
+        bottom: top,
+        left: 0,
+        right: 0,
+        width: 0,
+        height: 0,
+        x: 0,
+        y: top,
+        toJSON() {
+          return {};
+        },
+      } as DOMRect;
+    });
+  }
+
+  /**
+   * From middle (drawn at M = 400), presses the title at clientY 500, moves to
+   * 600 and then `releaseY`, holds still there for two waits (so the release
+   * speed is 0px/s, no flick: MAPUI-60), has the sheet report `drawnAtRelease`
+   * as its drawn top, and lets go at `releaseY`.
+   */
+  async function dragFromMiddle(releaseY: number, drawnAtRelease: number) {
+    const onPositionChange = vi.fn();
+    stubTops();
+    drawnSheetTop = 400;
+    renderWithI18n(
+      <ResultsSheet {...BASE} position="middle" onPositionChange={onPositionChange} />,
+      { locale: "es" },
+    );
+    await nextFrames();
+
+    const heading = screen.getByRole("heading", { level: 1 });
+    fireEvent.pointerDown(heading, pointerAt(500));
+    await nextFrames();
+    fireEvent.pointerMove(heading, pointerAt(600));
+    await nextFrames();
+    fireEvent.pointerMove(heading, pointerAt(releaseY));
+    await nextFrames();
+    await nextFrames();
+    drawnSheetTop = drawnAtRelease;
+    fireEvent.pointerUp(heading, pointerAt(releaseY));
+    await nextFrames();
+    return onPositionChange;
+  }
+
+  it("MAPUI-59: the drawn top lagging the finger — press at 500, release at 680, drawn top still 420 — settles at peeked", async () => {
+    // Finger travel: 680 − 500 = +180, so the release point is 400 + 180 = 580.
+    // |580 − 700| = 120 < |580 − 400| = 180 → peeked. The lagging drawn top
+    // would give |420 − 400| = 20 < |420 − 700| = 280 → middle (the bug).
+    const onPositionChange = await dragFromMiddle(680, 420);
+
+    expect(onPositionChange).toHaveBeenCalledWith("peeked");
+  });
+
+  it("MAPUI-59: the drawn top ahead of the finger — press at 500, release at 640, drawn top already 560 — stays at middle", async () => {
+    // Finger travel: 640 − 500 = +140, so the release point is 400 + 140 = 540.
+    // |540 − 400| = 140 < |540 − 700| = 160 → middle (no change). The drawn top
+    // ahead of the finger would give |560 − 700| = 140 < |560 − 400| = 160 → peeked.
+    const onPositionChange = await dragFromMiddle(640, 560);
+
+    expect(onPositionChange).not.toHaveBeenCalled();
+  });
+});
+
 describe("MAPUI-23: ResultsSheet — Crear alerta under the title", () => {
   it("MAPUI-23: shows Crear alerta under the title and calls onCreateAlert", async () => {
     const onCreateAlert = vi.fn();

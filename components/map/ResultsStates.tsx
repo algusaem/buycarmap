@@ -244,6 +244,10 @@ export function StatusPill({ state, radiusKm, canWiden, hasFilters }: StatusPill
   return <MapPill text={text} live />;
 }
 
+/** The StatusPill's own shape over a map (StatusPill/README.md): one line, cut with «…» when it does not fit. */
+export const MAP_PILL_CLASS =
+  "block w-fit max-w-full truncate rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-bold text-text";
+
 interface MapPillProps {
   /** What the pill says; none draws no pill. */
   text: string | undefined;
@@ -271,7 +275,7 @@ export function MapPill({ text, accent, live }: MapPillProps) {
       className="pointer-events-none absolute top-4.5 right-4.5 left-4.5 z-1000 max-lg:hidden"
     >
       {text && (
-        <span className="pointer-events-auto block w-fit max-w-full truncate rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-bold text-text">
+        <span className={cn("pointer-events-auto", MAP_PILL_CLASS)}>
           {text}
           {accent && (
             <>

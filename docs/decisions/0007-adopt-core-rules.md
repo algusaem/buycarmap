@@ -13,6 +13,10 @@ packages the map and search redesign adds (`@radix-ui/react-popover`, `@radix-ui
 Superseded in part by [0021](0021-react-virtual.md), 2026-10-15: `@tanstack/react-virtual`, which
 virtualises the saved cars list, is recorded there, by name and use.
 
+Superseded in part by [0023](0023-maplibre-openfreemap.md), 2026-10-19: `maplibre-gl` draws the
+map, and `leaflet`, `react-leaflet` and `@types/leaflet` (approved below for the map) leave the
+dependencies.
+
 ## Context
 
 BuyCarMap was built before the shared core (`algusaem-claude`: `RULES.md`, `STACK.md`, the
@@ -99,7 +103,7 @@ to do it in phases, each on its own branch and PR, each closed by `/check-all`.
 ### Dependencies outside `STACK.md`
 
 Approved by the owner (2026-09-27) for jobs `STACK.md` has no library for: `leaflet`, `react-leaflet` and
-`@types/leaflet` (the map), `react-icons` (brand icons), `next-themes` (theme switching), the
+`@types/leaflet` (the map; superseded by [0023](0023-maplibre-openfreemap.md)), `react-icons` (brand icons), `next-themes` (theme switching), the
 Radix packages shadcn/ui is built on and `tw-animate-css`, `react-qr-code` (the 2FA enrolment
 QR), `cross-env` (scripts that run on Windows), `pg` and `@types/pg` (the peer of
 `@prisma/adapter-pg`), `@testing-library/*`, `jsdom` and `vitest-axe` (component tests).

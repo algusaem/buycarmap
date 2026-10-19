@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -22,7 +22,7 @@ import { useSavedColumns } from "@/lib/hooks/useSavedColumns";
 import { useSavedList } from "@/lib/hooks/useSavedList";
 import { useSavedPins } from "@/lib/hooks/useSavedPins";
 
-// Leaflet cannot run server-side (as in components/map/MapResultsArea.tsx).
+// MapLibre cannot run server-side (as in components/map/MapResultsArea.tsx).
 const ListingsMap = dynamic(
   async () => (await import("@/components/map/ListingsMap")).ListingsMap,
   { ssr: false },
@@ -60,6 +60,8 @@ export function FavoritesList({ favorites }: FavoritesListProps) {
   const pins = useSavedPins(shown);
   const list = useSavedList({ shown, columns });
   const sheet = useSavedCarSheet();
+  // No WebGL: the map's own «map unavailable» pill is the only one over it (MAPLIBRE-15).
+  const [mapUnavailable, setMapUnavailable] = useState(false);
   const removalFocus = useRemovalFocus({
     shown,
     scrollToCar: list.scrollToCar,
@@ -163,8 +165,14 @@ export function FavoritesList({ favorites }: FavoritesListProps) {
             onPreviewClose={pins.closePreview}
             favoriteIds={savedIds}
             onToggleFavorite={handleRemove}
+            onUnavailableChange={setMapUnavailable}
           />
-          <MapPill text={empty ? t("favorites.mapEmpty") : t("favorites.mapTitle")} live={empty} />
+          {!mapUnavailable && (
+            <MapPill
+              text={empty ? t("favorites.mapEmpty") : t("favorites.mapTitle")}
+              live={empty}
+            />
+          )}
         </SavedMapFrame>
       )}
 

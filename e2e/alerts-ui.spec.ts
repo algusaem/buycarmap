@@ -1103,15 +1103,19 @@ test.describe("ALERTUI-29 to ALERTUI-31: 200 matches on the phone", () => {
 
       await remove.evaluate((element) => element.scrollIntoView({ block: "end" }));
       await scrollTo(remove, "end");
-      // The tab bar hides on scroll-down; a little scroll up at the end brings
-      // it back, and «Eliminar alerta» must still sit clear of it. By test id:
-      // while hidden it leaves the accessibility tree, and the phone header's
-      // nav would answer «Principal» instead.
-      await page.mouse.move(PHONE_390.width / 2, PHONE_390.height / 2);
-      await page.mouse.wheel(0, -60);
+      // The tab bar hides on scroll-down and comes back once the scroll reaches
+      // its end (MAPUI-53, #142), with the content left where it is: there
+      // «Eliminar alerta» must sit clear of it. By test id: while hidden it
+      // leaves the accessibility tree, and the phone header's nav would answer
+      // «Principal» instead.
       const bottomNav = page.getByTestId("bottom-nav");
       await expect(bottomNav).toHaveAttribute("aria-hidden", "false");
       await expect(bottomNav).toBeInViewport();
+      // Two equal reads can both fall at the start of the slide in (#142): its
+      // place is where the slide ends, with no transform left.
+      await expect
+        .poll(() => bottomNav.evaluate((element) => getComputedStyle(element).transform))
+        .toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
       const tabBar = await settledBox(bottomNav);
       const removeBox = await box(remove);
       expect(removeBox.y + removeBox.height).toBeLessThanOrEqual(tabBar.y);
@@ -1239,7 +1243,7 @@ test.describe("ALERTUI-51 to ALERTUI-55: 200 matches on desktop", () => {
       const { email } = await openLongAlert(page, "alertui55", 200, DESKTOP_1440);
       await expect(cards(page).first()).toBeVisible({ timeout: 15_000 });
       const target = await scrollUntilMounted(page, cards(page), "Coche 150");
-      const pins = page.locator(".leaflet-marker-icon");
+      const pins = page.locator(".maplibregl-marker");
       await expect(pins).toHaveCount(200);
 
       await target.getByRole("button", { name: "Guardar" }).click();

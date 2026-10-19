@@ -38,7 +38,7 @@ vi.mock("@/server/favorites/actions", () => ({
 }));
 vi.mock("@/server/alerts/actions", () => ({ deleteAlert: vi.fn(), createAlert: vi.fn() }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
-vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
 
 stubLayoutBox({ width: 390 });
 
@@ -98,7 +98,7 @@ describe("ALERTUI-2: /alerts at phone width", () => {
       "Serie 3 diésel",
     ]);
     expect(screen.queryByRole("region", { name: ALERT_COPY.mapLabel })).not.toBeInTheDocument();
-    expect(document.querySelector(".leaflet-container")).toBeNull();
+    expect(document.querySelector(".maplibregl-map")).toBeNull();
     expect(screen.queryByRole("link", { name: ALERT_COPY.newAlert })).not.toBeInTheDocument();
     expect(screen.queryByText(ALERT_COPY.subtitle)).not.toBeInTheDocument();
     expect(

@@ -26,7 +26,7 @@ Three things about how BuyCarMap runs in Vercel and GitHub still deviate from th
   `VERCEL_ENV === "production"` (ADR 0013). `BETTER_AUTH_URL` is set for both Production and
   Preview, so a preview's OAuth callbacks and email links point at the production URL instead of
   the preview's own. `docs/privacy/processors.md` records a region for Neon, Sentry and Upstash,
-  but Vercel, Resend, Google, GitHub, Have I Been Pwned, Nominatim, CARTO, Wallapop, coches.net and
+  but Vercel, Resend, Google, GitHub, Have I Been Pwned, Nominatim, OpenFreeMap (CARTO until MAPLIBRE), Wallapop, coches.net and
   Milanuncios all read "phase 12".
 
 Hobby has no paid staging slot, and with three users there is no traffic to justify one. The owner

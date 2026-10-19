@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/alerts/alert-1",
 }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
-vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
 
 // FRONT-14 (docs/specs/core-frontend.md): /alerts/[id]'s loading state,
 // amended 2026-10-15 by docs/specs/redesign-alerts.md (ALERTUI-39): it
@@ -20,6 +20,7 @@ vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
 // drawn and CSS picks one; jsdom applies no CSS, so each is found by its
 // breakpoint classes.
 import Loading from "./loading";
+import { zoneShapes } from "@/test/utils/alerts";
 
 function placeholders(composition: HTMLElement): Element[] {
   return Array.from(composition.querySelectorAll(":scope > [aria-hidden='true']"));
@@ -90,8 +91,8 @@ describe("ALERTUI-39: /alerts/[id]'s loading state", () => {
     const map = screen.getByRole("region", { name: ALERT_COPY.mapLabel });
     expect(map).toHaveClass("hidden", "lg:flex");
     expect(within(map).getByRole("status")).toHaveTextContent(ALERT_COPY.loading);
-    expect(container.querySelector(".leaflet-marker-icon")).toBeNull();
-    expect(container.querySelector(".leaflet-overlay-pane path")).toBeNull();
+    expect(container.querySelector(".maplibregl-marker")).toBeNull();
+    expect(zoneShapes()).toEqual([]);
   });
 
   it("ALERTUI-39: each composition holds exactly one live region", () => {

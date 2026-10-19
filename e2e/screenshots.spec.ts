@@ -2,6 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { test, type Page } from "@playwright/test";
 import { mockListingSources, setUpstreamScenario } from "./fixtures/network";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // FRONT-22 (docs/specs/core-frontend.md): this is the only file that ever
 // asks the mock upstream server (e2e/fixtures/upstream-server.ts) for a

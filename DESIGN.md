@@ -418,7 +418,7 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   `fast` 120ms for every state change (hover, focus, press, a pressed chip), `base` 180ms for
   popovers, dropdowns, the map preview, fades and the legal index fold, `sheet` 240ms for phone sheets and dialogs that
   slide, and the legal article's entrance (a sheet that fades uses `base`). No CSS transition or
-  Motion preset runs at 300ms or longer; the loading pulse, the spinners and Leaflet's own zoom are
+  Motion preset runs at 300ms or longer; the loading pulse, the spinners and MapLibre's own zoom are
   outside this scale ([motion spec](docs/specs/motion.md)).
 - **Press:** buttons, chips and the other pressable controls scale to 0.97 while pressed; never
   under reduced motion, and never on listing cards.

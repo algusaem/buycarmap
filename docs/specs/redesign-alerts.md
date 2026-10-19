@@ -784,8 +784,8 @@ caller's listed alerts, the newest otherwise.
 - Removed: `RouteError` (ALERTUI-42), `AlertsList` and `AlertMatchesList`, replaced by the new
   pieces.
 
-**Dependency.** None. The zone circle is Leaflet's own `Circle`, through `react-leaflet`, both
-installed.
+**Dependency.** None. The zone circle is a GeoJSON polygon drawn by the map's own MapLibre
+(`components/map/ZoneLayers.tsx`; amended by MAPLIBRE, map-maplibre.md).
 
 **Tests.** Every e2e criterion that needs a signed-in user's alerts — ALERTUI-3, ALERTUI-4,
 ALERTUI-12, ALERTUI-21, ALERTUI-27, ALERTUI-29 to ALERTUI-32, ALERTUI-35, ALERTUI-37, ALERTUI-43 and

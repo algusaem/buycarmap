@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "leaflet/dist/leaflet.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 @custom-variant dark (&:is(.dark *));
 /* Keyed on TabBar's own `data-tab-bar` attribute (components/nav/TabBar.tsx),
@@ -508,27 +508,41 @@
   }
 }
 
-/* Leaflet map overrides. Each selector carries `.leaflet-container`
-   and the control's own classes so it outranks leaflet.css — whose strongest
-   competitors are `.leaflet-touch .leaflet-bar a` and
-   `.leaflet-container .leaflet-control-attribution` — without !important. */
-.leaflet-container {
-  background: var(--bg);
+/* MapLibre map overrides (docs/specs/map-maplibre.md, MAPLIBRE-5). Each
+   selector carries `.maplibregl-map` and the control's own classes so it
+   outranks maplibre-gl.css — whose strongest competitor is
+   `.maplibregl-ctrl-attrib.maplibregl-compact` — without !important. The
+   attribution sits in the very corner, under the zoom buttons, in the theme's
+   `surface` and `text-muted`. `.map-attribution` is the phone zone map's
+   plain-text credit (components/alerts/ZoneMapCanvas.tsx), drawn the same. */
+.maplibregl-map {
   font-family: var(--font-sans);
 }
 
-.leaflet-container .leaflet-control.leaflet-control-attribution {
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib,
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact,
+.map-attribution {
+  margin: 0;
+  background-color: var(--surface);
   color: var(--text-muted);
   font-size: 10px;
-  padding: 2px 8px;
-  backdrop-filter: blur(4px);
+  line-height: 16px;
 }
 
-.leaflet-container .leaflet-control-attribution a {
+.map-attribution {
+  padding: 2px 8px;
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib a {
   color: var(--text-muted);
 }
 
-.leaflet-container .leaflet-control-attribution a:hover {
+.maplibregl-map .maplibregl-ctrl-attrib a:hover {
   color: var(--lime);
+}
+
+/* The compact control's «i» toggle is a dark glyph drawn for a light
+   control; on `surface` it is inverted to stay visible. */
+.maplibregl-map .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
 }

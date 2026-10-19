@@ -1,4 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // FRONT-13 (docs/specs/core-frontend.md). The source proxies FRONT-5 deletes
 // no longer exist, so — unlike e2e/fixtures/network.ts's `mockListingSources`,

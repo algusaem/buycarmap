@@ -3,6 +3,13 @@ import AxeBuilder from "@axe-core/playwright";
 import { mockListingSources } from "./fixtures/network";
 import { e2eEmail, seedAlertMatches, seedAlerts, seedFavorites, seedUser } from "./fixtures/db";
 import { signIn } from "./fixtures/session";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 // FRONT-19 (docs/specs/core-frontend.md, amended 2026-10-12, LOOK —
 // redesign-foundation.md): the contrast rule is no longer disabled, and

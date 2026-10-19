@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import type { MapZone } from "@/lib/map/zone";
 
-// Leaflet cannot run server-side (as in components/map/MapResultsArea.tsx).
+// MapLibre cannot run server-side (as in components/map/MapResultsArea.tsx).
 const ZoneMapCanvas = dynamic(
   async () => (await import("@/components/alerts/ZoneMapCanvas")).ZoneMapCanvas,
   { ssr: false },

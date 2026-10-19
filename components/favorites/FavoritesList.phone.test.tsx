@@ -60,7 +60,7 @@ vi.mock("@/server/favorites/actions", () => ({
   listFavorites: vi.fn(),
 }));
 vi.mock("next/image", () => import("@/test/mocks/next-image"));
-vi.mock("@/lib/env", () => ({ env: { NEXT_PUBLIC_CARTO_API_KEY: undefined } }));
+vi.mock("maplibre-gl", () => import("@/test/utils/maplibre"));
 
 // jsdom has no layout: every element reports a tall box (test/utils/viewport.ts),
 // so the virtualised list (SAVED-25) mounts all of these few rows.
@@ -107,7 +107,7 @@ describe("SAVED-2: the page at phone width", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Guardados" })).toBeInTheDocument();
     expect(rows()).toHaveLength(7);
     expect(screen.queryByRole("region", { name: "Mapa de tus guardados" })).not.toBeInTheDocument();
-    expect(document.querySelector(".leaflet-container")).toBeNull();
+    expect(document.querySelector(".maplibregl-map")).toBeNull();
     expect(screen.queryByRole("button", { name: "Recientes" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Precio" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Km" })).not.toBeInTheDocument();

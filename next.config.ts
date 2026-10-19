@@ -13,7 +13,7 @@ import { env } from "@/lib/env";
 // whose script-src allowed 'unsafe-inline'.
 //
 // Host allowances trace to real browser-side dependencies:
-//   - cartocdn: Leaflet map tiles, loaded as <img> (components/map/ListingsMap.tsx)
+//   - tiles.openfreemap.org: MapLibre's TileJSON and vector tiles, fetched (components/map/ListingsMap.tsx)
 //   - nominatim: geocoding autocomplete, fetched from the client (lib/geo/nominatim.ts)
 // Listing photos are not listed because next/image proxies them through
 // /_next/image on this origin. See proxy.ts for the actual directives.

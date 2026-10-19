@@ -3,6 +3,13 @@ import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
 import { visualBaselineSkipReason } from "./fixtures/visual-baseline";
+import { stubMapTiles } from "./fixtures/map-tiles";
+
+// docs/specs/map-maplibre.md: no run reaches OpenFreeMap — a page that opens
+// a map draws it from stubbed tiles (e2e/fixtures/map-tiles.ts).
+test.beforeEach(async ({ page }) => {
+  await stubMapTiles(page);
+});
 
 const SNAPSHOT_DIR = path.join(process.cwd(), "e2e", "visual.spec.ts-snapshots");
 
@@ -75,6 +82,6 @@ test("TEST-15: map page visual baseline", async ({ page }) => {
   await waitForPageToSettle(page);
   // Mask the map tiles — they load asynchronously and aren't pixel-stable.
   await expect(page).toHaveScreenshot("map.png", {
-    mask: [page.locator(".leaflet-container")],
+    mask: [page.locator(".maplibregl-map")],
   });
 });

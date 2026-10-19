@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { stubMapTiles } from "./map-tiles";
 
 // Deterministic payloads for the mock upstream server
 // (e2e/fixtures/upstream-server.ts) so e2e never touches live
@@ -216,9 +217,10 @@ export async function setUpstreamScenario(scenario: "default" | "empty"): Promis
 
 /** Points the mock upstream server at its "default" scenario (one listing per source). */
 export async function mockListingSources(page: Page) {
-  // Images are part of "don't touch the network", so they belong here rather
-  // than in each caller.
+  // Images and the map's tiles are part of "don't touch the network", so
+  // they belong here rather than in each caller (docs/specs/map-maplibre.md).
   await mockListingImages(page);
+  await stubMapTiles(page);
 
   await setUpstreamScenario("default");
 }
