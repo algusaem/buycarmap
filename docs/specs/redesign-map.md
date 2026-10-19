@@ -2,7 +2,7 @@
 
 Key: MAPUI
 Status: Implemented
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ---
 
@@ -386,7 +386,10 @@ Phone tab bar
 - [x] MAPUI-53 · component — On `/map` the tab bar hides only while the results sheet is full, and
   comes back when the sheet leaves full; scrolling the map or the sheet's list never hides it (owner
   approval, 2026-10-13). On the other pages of MAPUI-52 it hides while the page is being scrolled
-  down and comes back on scrolling up (bug fix). (amended 2026-10-13)
+  down and comes back on scrolling up (bug fix). (amended 2026-10-13) It also comes back when the
+  page's scroll reaches its end, even while scrolling down, so the last control, which the page's
+  bottom padding keeps clear of the bar, is clear of a bar that is showing (bug fix, found
+  2026-10-18, #142; owner decision 2026-10-19). (amended 2026-10-19)
 - [x] MAPUI-54 · component — At phone width, the headers of `/favorites`, `/alerts`, `/alerts/[id]`
   and `/account` show the wordmark and the language control and no avatar, because «Cuenta» is in
   the tab bar (amends HEAD-7). The alert page's own «Volver» is built with that page in F6. — Built:
@@ -709,6 +712,18 @@ barato», and already has an alert with the same criteria hash:
 - **Before the fix:** the tab bar hides as on a scrolled page.
 - **Correct result:** the tab bar stays. It hides only when the sheet reaches full, and comes back when
   it leaves full.
+
+**The tab bar at the end of a page's scroll (MAPUI-53; bug fix, #142).**
+- **Input:** signed in at 390 × 844 on `/alerts/[id]` with 200 matches (ALERTUI-31). Tab reaches
+  «Eliminar alerta» and the page scrolls to its end; the bar has hidden on the way down. The bar's top
+  edge, once showing, is at 779px; the page's bottom padding (88px) puts the button's bottom edge at
+  756px at the end of the scroll.
+- **Before the fix:** the bar stays hidden at the end. The only way to bring it back is to scroll up,
+  which moves the content down by the same amount: a 60px wheel up puts the button's bottom edge at
+  816px, and once the bar finishes sliding in, its top at 779px covers the button.
+- **Correct result:** reaching the end of the scroll shows the bar while the content stays where it
+  is. Once the bar has settled, the button's bottom edge (756px) is above the bar's top edge (779px).
+  Scrolling up from the end still keeps the bar shown, as before.
 
 **Phone results sheet (MAPUI-58 to MAPUI-62, #133).** The positions' top edges are whatever the
 layout measures (the design gives no fixed heights); call them P (peeked), M (middle) and F (full),
