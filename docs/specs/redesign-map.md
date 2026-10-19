@@ -426,7 +426,11 @@ Phone results sheet: drag and map tap (added 2026-10-17, #133; design accepted 2
 - [x] MAPUI-59 · component + e2e — At phone width, the results sheet can be dragged up and down from
   its handle strip and from its header (the results heading). On release it settles on the position
   (peeked, middle or full) whose top edge is nearest to where the sheet's top edge was released. A
-  drag that starts in the list does not move the sheet; at full the list keeps its own scroll.
+  drag that starts in the list does not move the sheet; at full the list keeps its own scroll. The
+  release point is where the finger left the screen: the sheet's top edge when the drag started plus
+  the finger's travel from press to release, kept between full and peeked, never the edge last drawn,
+  so a frame the browser had not drawn yet at release does not change where the sheet settles (bug
+  fix, found 2026-10-19 on PR #147's CI). (amended 2026-10-19)
 - [x] MAPUI-60 · unit + e2e — A drag released faster than 800px/s moves the sheet exactly one
   position in the drag's direction from where the drag started, whatever the nearest position is;
   at peeked a fast downward release and at full a fast upward release leave it where it is. Under
@@ -728,6 +732,15 @@ barato», and already has an alert with the same criteria hash:
 **Phone results sheet (MAPUI-58 to MAPUI-62, #133).** The positions' top edges are whatever the
 layout measures (the design gives no fixed heights); call them P (peeked), M (middle) and F (full),
 with P below M below F. The test measures them and derives the expectation from them.
+
+**Release point (MAPUI-59; bug fix, 2026-10-19).** On a loaded phone the browser can skip frames, so
+the sheet drawn on screen lags behind the finger. Seen on PR #147's CI (GitHub runner, software
+WebGL): (1) from middle, the handle dragged down by 0.3·(P−M) and released slowly was read as
+settled 108px below M, still at the release point; (2) from full, the handle dragged past the M/P
+midpoint and released slowly settled at middle instead of peeked. Correct result: the sheet settles
+from the finger's release point — its top at press plus the finger's travel — so (1) settles at
+middle and (2) at peeked, however many frames were skipped. A test reads the sheet as settled only
+after several drawn frames without movement, never after a stretch of wall-clock time.
 
 | Start | Gesture | Result |
 | --- | --- | --- |
