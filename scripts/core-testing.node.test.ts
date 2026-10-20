@@ -156,6 +156,10 @@ const ALLOW_LISTED_PRISMA_MOCKS = [
   "server/favorites/actions.node.test.ts",
   "server/alerts/actions.node.test.ts",
   "server/locale/actions.node.test.ts",
+  // ALERT-51: a run with nothing due must make zero database queries, which
+  // only a recording Prisma mock can show (TEST-7 allows a mock whose point is
+  // the absence of database access).
+  "server/alerts/service.node.test.ts",
 ];
 
 // The 21 files docs/specs/core-testing.md names as mocking @/lib/db/prisma
