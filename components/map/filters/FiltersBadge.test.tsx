@@ -56,8 +56,9 @@ describe("MOTION-23: FiltersBadge — a key-caused change is instant, a pointer 
   });
 
   it("MOTION-23: after a pointer press, the badge is still mounted right after the count drops to none", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       const { rerender } = renderWithI18n(<FiltersBadge count={1} descriptionId="filters" />);
+      await clock.finish();
 
       window.dispatchEvent(new PointerEvent("pointerdown"));
       await act(async () => {

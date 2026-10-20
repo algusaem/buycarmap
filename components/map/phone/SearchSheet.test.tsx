@@ -224,10 +224,11 @@ describe("MOTION-12: SearchSheet — the fading sheet opens and closes at once f
   });
 
   it("MOTION-12: a press outside still plays the close animation — the sheet is still mounted right after", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       renderWithI18n(<Harness />, { locale: "es" });
       await userEvent.click(screen.getByRole("button", { name: "Abrir búsqueda" }));
       await screen.findByRole("dialog", { name: "BUSCAR" });
+      await clock.finish();
 
       // The modal dialog sets the rest of the page's pointer-events to none,
       // which userEvent's realistic click refuses to click through; fireEvent
@@ -239,6 +240,7 @@ describe("MOTION-12: SearchSheet — the fading sheet opens and closes at once f
 
       expect(screen.getByRole("dialog", { name: "BUSCAR", hidden: true })).toBeInTheDocument();
       // The press did close it: the fade ends and the sheet leaves.
+      await clock.finish();
       await waitFor(() => expect(screen.queryByRole("dialog", { hidden: true })).toBeNull());
     });
   });

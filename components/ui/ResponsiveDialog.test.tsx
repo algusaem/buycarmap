@@ -74,10 +74,11 @@ describe("MOTION-12: ResponsiveDialog — the desktop dialog opens and closes at
   });
 
   it("MOTION-12: a click outside still plays the close animation — the dialog is still mounted right after", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       renderWithI18n(<Harness />);
       await userEvent.click(screen.getByRole("button", { name: "Abrir" }));
       await screen.findByRole("dialog");
+      await clock.finish();
 
       // A modal Radix dialog sets the rest of the page's pointer-events to
       // none, which userEvent's realistic click refuses to click through;

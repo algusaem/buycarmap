@@ -457,10 +457,11 @@ describe("MOTION-10: SearchPill — a segment's popover opens and closes at once
   });
 
   it("MOTION-10: a click outside still plays the close animation — the popover is still mounted right after", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       renderWithI18n(<Harness />, { locale: "es" });
       await userEvent.click(screen.getByRole("button", { name: "Cualquier marca" }));
       await screen.findByRole("dialog", { name: "Coche" });
+      await clock.finish();
 
       // A synchronous outside press, so no await can let the 180ms exit finish
       // before the assertion below.
