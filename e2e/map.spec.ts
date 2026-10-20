@@ -272,7 +272,13 @@ test.describe("MAPUI-50: phone BUSCAR sheet applies only on Ver coches", () => {
     await carField.click();
     await carField.fill("Toy");
     await page.getByRole("option", { name: "Toyota" }).click();
+    // The brand step lists Toyota's models once they arrive. While that list
+    // shows, the first Escape closes only the list and the second the sheet
+    // (MAPUI-21); waiting for it keeps the two presses from racing the fetch.
+    await expect(page.getByRole("listbox")).toBeVisible();
 
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("listbox")).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     // The summary still reads the search it had, not the discarded choice.
@@ -327,7 +333,9 @@ test.describe("SAVED-37, SAVED-38: the phone BUSCAR sheet closes when dragged do
     const { sheet } = await openSearchSheet(page);
 
     await dragDown(page, sheet.locator("[data-sheet-handle]"), 40, { hold: true });
-    expect(Math.abs((await sheetOffset(sheet)) - 40)).toBeLessThanOrEqual(1);
+    // The last move is drawn on the next frame, which WebKit can paint after
+    // the move resolves: polled, not read once.
+    await expect.poll(async () => Math.abs((await sheetOffset(sheet)) - 40)).toBeLessThanOrEqual(1);
     await page.mouse.up();
     await expect.poll(() => sheetOffset(sheet)).toBeLessThan(0.5);
     await expect(sheet).toBeVisible();
