@@ -1847,12 +1847,30 @@ without reaching any Redis at all.
 ### Background work (alerts)
 
 Saved searches are drained by a **QStash schedule** calling `POST
-/api/alerts/run` every five minutes (`*/5 * * * *`, 3 retries) — set up once
+/api/alerts/run` every hour (`0 * * * *`, 3 retries) — set up once
 with `pnpm qstash:schedule` (`scripts/qstash-schedule.mjs`) after the owner's
 QStash variables are in Vercel. Why QStash rather than the GitHub Actions
 cron this replaced: [`decisions/0006-alert-scheduling.md`](decisions/0006-alert-scheduling.md)
 (superseded by [ADR 0017](decisions/0017-upstash-qstash-react-email.md)).
 Behaviour: [`specs/alerts.md`](specs/alerts.md).
+
+**A run with nothing due never touches Postgres**, so the Neon compute can
+suspend between runs (it suspends after five idle minutes, and the free plan's
+compute-hours ran out while every five-minute run queried it). The gate is
+`server/alerts/run-gate.ts`: one Upstash Redis key, `alerts:next-due-at` under
+the environment prefix, holding the epoch-ms moment the next run can have
+work. A run before it answers `nothingDue: true` without a query; a run at or
+after it works as before and writes the next moment; saving, deleting or
+unsubscribing an alert sets the key to the moment of the write. It reuses rate
+limiting's Upstash client (`lib/platform/rate-limit.ts`'s
+`sharedKeyValueStore`), so it needs no new variable, and without Upstash, or
+with Redis erroring, every run queries the database as before (errors logged
+and sent to Sentry). The rules — what counts as work, the six-hour ceiling, a
+write landing mid-run — are ALERT-51 to ALERT-55 in
+[`specs/alerts.md`](specs/alerts.md). With any active alert the five-minute
+base interval is shorter than the schedule, so every run has work; the gate
+saves the compute when no alert is active and nothing is queued or
+undelivered.
 
 **The route trusts only QStash's own signature**, verified by
 `lib/platform/qstash.ts`'s `verifyQstashSignature` (`@upstash/qstash`'s
@@ -1879,6 +1897,7 @@ that case rather than losing it.
 | `unhealthySources` | Sources returning nothing for three consecutive runs — the silent-death signal |
 | `skippedNoEmail` | Matches found but not sent, because the mailer is unconfigured |
 | `failures` | Per-criteria poll errors, with the upstream message |
+| `nothingDue` | The gate stopped the run before the database; every other field is zero or the base interval because nothing was read |
 
 **Scheduled runs can still drift.** QStash retries and delivers on schedule far
 more reliably than GitHub's best-effort cron did, but judge health by

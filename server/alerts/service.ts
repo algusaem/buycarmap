@@ -22,6 +22,7 @@ import {
   uuidv7,
 } from "@/lib/ids";
 import { saveUserLocale } from "@/server/locale/service";
+import { closeRunGate, markAlertsChanged, nextDueAt, openRunGate } from "./run-gate";
 import { searchAllSources } from "./search";
 import { hashUnsubscribeToken, unsubscribeTokenFor } from "./unsubscribe-token";
 import type { CarListing } from "@/interfaces/listing";
@@ -261,6 +262,9 @@ export async function createAlertForUser(
   if (saved.outcome === "alreadyLive") return ok({ created: false });
   if (saved.outcome === "tooManyAlerts") return err(ALERT_ERROR.tooManyAlerts);
 
+  // ALERT-53: a new, reactivated or restored alert can be due at once.
+  await markAlertsChanged();
+
   // Only when the criteria set is new: an existing one already has a
   // seen-list, and re-seeding would spend three upstream requests to learn
   // what is already recorded. After the commit, never inside it: the seed is
@@ -437,12 +441,14 @@ export async function deleteAlertForUser(userId: UserId, alertId: AlertId): Prom
   // success whether or not anything matched: the caller asked for the alert
   // not to exist, and it does not. Saying otherwise would confirm that
   // someone else's alert does.
-  await prisma.alert.updateMany({
+  const { count } = await prisma.alert.updateMany({
     where: { id: alertId, ...ownedBy({ id: userId }), ...notDeleted },
     data: { deletedAt: new Date() },
   });
 
   if (doomed) await releaseCriteriaIfUnused(asAlertCriteriaId(doomed.criteriaId));
+  // ALERT-53: one fewer active criteria set can shorten a stretched interval.
+  if (count > 0) await markAlertsChanged();
 }
 
 /**
@@ -534,10 +540,12 @@ export async function findAlertWithMatches(
  * criteria set.
  */
 export async function pauseAlertByUnsubscribeToken(token: string): Promise<void> {
-  await prisma.alert.updateMany({
+  const { count } = await prisma.alert.updateMany({
     where: { unsubscribeTokenHash: hashUnsubscribeToken(token) },
     data: { active: false },
   });
+  // ALERT-53: as deleting one. An unknown token changes nothing (ALERT-27).
+  if (count > 0) await markAlertsChanged();
 }
 
 // --- The alert runner (app/api/alerts/run/route.ts) --------------------------
@@ -577,7 +585,12 @@ function effectiveIntervalMs(criteriaCount: number): number {
   return Math.max(BASE_INTERVAL_MS, Math.ceil(minutesNeeded) * 60_000);
 }
 
-/** One full alert run: enqueue, drain, deliver, then report source health. */
+/**
+ * One full alert run: enqueue, drain, deliver, then report source health —
+ * unless the "nothing due" gate says no work can be due yet (ALERT-51), in
+ * which case not a single query is made. A run that does work ends by storing
+ * when the next one can have any (ALERT-52).
+ */
 export async function runAlerts(now: Date): Promise<RunSummary> {
   const summary: RunSummary = {
     claimed: 0,
@@ -590,14 +603,47 @@ export async function runAlerts(now: Date): Promise<RunSummary> {
     oldestPendingAgeMs: 0,
     unhealthySources: [],
     failures: [],
+    nothingDue: false,
   };
+
+  const gate = await openRunGate(now);
+  if (gate.nothingDue) return { ...summary, nothingDue: true };
 
   await enqueueDueCriteria(now, summary);
   await drainQueue(now, summary);
-  await deliverPendingMatches(summary);
+  const undelivered = await deliverPendingMatches(summary);
   await reportUnhealthySources(summary);
 
+  if (gate.observed !== undefined) {
+    await closeRunGate(gate, now, await findNextDueAt(now, summary.intervalMs, undelivered));
+  }
+
   return summary;
+}
+
+/**
+ * ALERT-52: the earliest moment the next run can have work, read after this
+ * run's own writes — two small reads on a compute that is already awake.
+ */
+async function findNextDueAt(now: Date, intervalMs: number, undelivered: boolean): Promise<number> {
+  const [criteria, jobs] = await Promise.all([
+    prisma.alertCriteria.findMany({
+      where: { alerts: { some: { active: true, deletedAt: null } } },
+      select: { id: true, lastPolledAt: true },
+    }),
+    prisma.alertPollJob.findMany({
+      select: { criteriaId: true, status: true, availableAt: true, lockedAt: true },
+    }),
+  ]);
+
+  return nextDueAt({
+    now: now.getTime(),
+    intervalMs,
+    leaseTimeoutMs: LEASE_TIMEOUT_MS,
+    undelivered,
+    criteria,
+    jobs,
+  });
 }
 
 async function enqueueDueCriteria(now: Date, summary: RunSummary): Promise<void> {
@@ -857,12 +903,15 @@ async function reportUnhealthySources(summary: RunSummary): Promise<void> {
  * throwing, so a one-stage design would mark a listing seen with nobody told —
  * and it is never new again. Scanning every un-notified match, not only this
  * run's, is what makes a failed send retry rather than vanish.
+ *
+ * Returns whether a match of an active alert is still un-notified, so the
+ * next run is due at once (ALERT-52).
  */
-async function deliverPendingMatches(summary: RunSummary): Promise<void> {
+async function deliverPendingMatches(summary: RunSummary): Promise<boolean> {
   const pending = await prisma.alertMatch.findMany({
     where: { notifiedAt: null },
   });
-  if (pending.length === 0) return;
+  if (pending.length === 0) return false;
 
   const byAlert = new Map<string, typeof pending>();
   for (const match of pending) {
@@ -876,6 +925,7 @@ async function deliverPendingMatches(summary: RunSummary): Promise<void> {
     include: { user: true },
   });
 
+  let undelivered = false;
   for (const alert of alerts) {
     const matches = byAlert.get(alert.id) ?? [];
     if (matches.length === 0) continue;
@@ -884,6 +934,7 @@ async function deliverPendingMatches(summary: RunSummary): Promise<void> {
       // Recorded but undeliverable. Counted rather than silently skipped, so
       // "alerts are working" is not something the run implies falsely.
       summary.skippedNoEmail += 1;
+      undelivered = true;
       continue;
     }
 
@@ -908,7 +959,10 @@ async function deliverPendingMatches(summary: RunSummary): Promise<void> {
       text,
     });
 
-    if (!sent) continue;
+    if (!sent) {
+      undelivered = true;
+      continue;
+    }
 
     await prisma.alertMatch.updateMany({
       where: { id: { in: matches.map((match) => match.id) } },
@@ -916,4 +970,5 @@ async function deliverPendingMatches(summary: RunSummary): Promise<void> {
     });
     summary.emailed += 1;
   }
+  return undelivered;
 }

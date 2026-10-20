@@ -49,4 +49,10 @@ export interface RunSummary {
    */
   unhealthySources: string[];
   failures: string[];
+  /**
+   * The "nothing due" gate stopped the run before the database
+   * (docs/specs/alerts.md, ALERT-51): every count is zero because nothing was
+   * read.
+   */
+  nothingDue: boolean;
 }
