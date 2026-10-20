@@ -39,10 +39,14 @@ jobs:
       # next dev imports the generated Prisma client; without it every page
       # renders the Module-not-found overlay and nearly every test fails behind it.
       - run: pnpm exec prisma generate
-      # @guidepup/setup's CLI (`guidepup`) installs and configures NVDA; `--ci`
-      # skips its prompts for manual interaction.
+      # @guidepup/setup's CLI (`guidepup`): `setup` configures Windows for a
+      # screen reader (`--ci` skips its prompts for manual interaction), and
+      # `install nvda` downloads the NVDA build the pinned @guidepup/guidepup
+      # expects. Without `install`, every test fails with «NVDA is not installed».
       - name: Set up NVDA (@guidepup/setup)
-        run: pnpm exec guidepup setup --ci
+        run: |
+          pnpm exec guidepup setup --ci
+          pnpm exec guidepup install nvda
       - run: pnpm test:sr
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

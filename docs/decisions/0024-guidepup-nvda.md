@@ -21,8 +21,8 @@ GitHub-hosted Windows runner.
   released weekly, so a range would change the suite under us between two runs.
 - **On a GitHub-hosted `windows-2025` runner** (owner, 2026-10-19), in its own workflow
   (`.github/workflows/screen-reader.yml`): on pull requests that touch `app/`, `components/` or
-  `messages/`, and on demand. `@guidepup/setup`'s CLI installs and configures NVDA there at run time
-  (`guidepup setup --ci`). Nothing is installed on the owner's machine.
+  `messages/`, and on demand. `@guidepup/setup`'s CLI configures Windows and installs NVDA there at
+  run time (`guidepup setup --ci`, then `guidepup install nvda`). Nothing is installed on the owner's machine.
 - **Outside `pnpm check:full`**: the tests live in `e2e-sr/`, with their own Playwright config
   (`playwright.sr.config.ts`, serial and headed through `withGuidepup`, one worker, the e2e suite's
   web servers imported from `playwright.config.ts`) and their own script, `pnpm test:sr`.
