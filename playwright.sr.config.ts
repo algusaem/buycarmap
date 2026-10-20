@@ -18,8 +18,15 @@ export default defineConfig(
     // No retries, as in the e2e suite: a flaky test is a broken test (STACK.md §16).
     retries: 0,
     reporter: process.env.CI ? [["html"], ["list"]] : "list",
+    // Each NVDA command waits for the speech it causes to settle, so a walk
+    // of up to MAX_NVDA_STOPS `next()` calls outlasts the default 30s; a
+    // timeout mid-walk tears NVDA down and reads as «NVDA is not running».
+    timeout: 180_000,
     globalSetup: e2eConfig.globalSetup,
-    use: e2eConfig.use,
+    // The assertions read BuyCarMap's Spanish strings, and the app picks its
+    // language from Accept-Language: the runner's English browser would get
+    // the English pages (the skip link spoken as «Skip to content»).
+    use: { ...e2eConfig.use, locale: "es-ES" },
     projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
     webServer: e2eConfig.webServer,
   }),

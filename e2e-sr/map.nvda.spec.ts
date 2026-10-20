@@ -131,6 +131,9 @@ test.describe("A11Y-11: NVDA names a pin, speaks the car's name on its preview, 
     const pin = page
       .locator(".maplibregl-marker")
       .getByRole("button", { name: /Audi A3 2\.0 TDI/ });
+    // NVDA reports focus changes only inside the document it is reading, so
+    // it moves into the page's content first, as the walks above do.
+    await nvda.navigateToWebContent();
     // Moving to the pin is a focus change NVDA follows and speaks.
     await nvda.capture(() => pin.focus());
 
@@ -278,6 +281,8 @@ test.describe("A11Y-13: at phone width, NVDA reads the tab bar's labels, marks t
 
     await nvda.next();
     const log = (await nvda.spokenPhraseLog()).join(" ");
+    // A silent NVDA would pass the two checks below on nothing (A11Y-14).
+    expect(log.length).toBeGreaterThan(0);
     expect(log).not.toContain("Mapa");
     expect(log).not.toContain("Entrar");
   });
