@@ -1847,7 +1847,7 @@ without reaching any Redis at all.
 ### Background work (alerts)
 
 Saved searches are drained by a **QStash schedule** calling `POST
-/api/alerts/run` every thirty minutes (`*/30 * * * *`, 3 retries) — set up once
+/api/alerts/run` every hour (`0 * * * *`, 3 retries) — set up once
 with `pnpm qstash:schedule` (`scripts/qstash-schedule.mjs`) after the owner's
 QStash variables are in Vercel. Why QStash rather than the GitHub Actions
 cron this replaced: [`decisions/0006-alert-scheduling.md`](decisions/0006-alert-scheduling.md)

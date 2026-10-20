@@ -457,7 +457,7 @@ ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
 
 | Name | Value | Why |
 | --- | --- | --- |
-| Base poll interval | 5 min | GitHub's cron floor — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period, `*/5 * * * *` (Scheduling, below) — amended 2026-10-20: the schedule now runs every 30 minutes and this constant is unchanged, so every run finds each actively subscribed criteria set due |
+| Base poll interval | 5 min | GitHub's cron floor — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period, `*/5 * * * *` (Scheduling, below) — amended 2026-10-20: the schedule now runs every hour and this constant is unchanged, so every run finds each actively subscribed criteria set due |
 | Upstream request ceiling | 60 req/min | The budget the cadence stretches to respect (ALERT-35, ALERT-36). Unmeasured — see the third open question |
 | Effective interval | `max(base, criteria × 3 ÷ ceiling)` | Uniform across every criteria set |
 | Worker slice | 25 criteria sets | Bounded so ALERT-12 holds inside the Vercel invocation timeout |
@@ -472,8 +472,9 @@ ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
 
 ### Scheduling
 
-A QStash schedule, `*/30 * * * *` — every 30 minutes, amended 2026-10-20 from
-`*/5 * * * *` (owner decision: the five-minute calls kept the Neon free plan's
+A QStash schedule, `0 * * * *` — every hour (owner decision 2026-10-20,
+Neon free-plan compute), amended from `*/30 * * * *` (itself amended
+2026-10-20 from `*/5 * * * *`: the five-minute calls kept the Neon free plan's
 production compute from ever suspending) — POSTing to the run endpoint with a request
 QStash itself signs (`lib/platform/qstash.ts`; INT-7,
 docs/specs/core-integrations.md). Originally a GitHub Actions workflow
@@ -631,7 +632,7 @@ arriving**. That decomposes:
 
 | Segment | Budget | Bounded by |
 | --- | --- | --- |
-| Listing appears → next poll | ≤ 5 min | GitHub's minimum cron granularity — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period — amended 2026-10-20: ≤ 30 min, the schedule's new period (Contracts › Scheduling) |
+| Listing appears → next poll | ≤ 5 min | GitHub's minimum cron granularity — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period — amended 2026-10-20: ≤ 1 h, the schedule's new period (Contracts › Scheduling) |
 | Poll → match recorded | ≤ 2 min | Slice size and worker count |
 | Match recorded → email sent | ≤ 3 min | Notification drain in the same run |
 
@@ -933,8 +934,8 @@ detection idiom as registration's duplicate-email guard
 Added 2026-10-20. Neon's free plan gives 100 compute-hours a month and suspends
 the compute after five idle minutes; a run every five minutes that always
 queried Postgres kept the production compute awake around the clock and used
-the whole allowance. The owner decided two things: the schedule runs every 30
-minutes (Contracts › Scheduling), and a run with nothing to do must not touch
+the whole allowance. The owner decided two things: the schedule runs every
+hour (Contracts › Scheduling), and a run with nothing to do must not touch
 Postgres.
 
 The second is a timestamp in the Upstash Redis the app already uses for rate
@@ -966,7 +967,7 @@ Postgres queue, not an in-process loop and not Redis, above) — Redis holds one
 timestamp, no personal data and no job state.
 
 With at least one active alert, the five-minute base interval is shorter than
-the 30-minute schedule, so every run has work and queries the database. The
+the hourly schedule, so every run has work and queries the database. The
 gate saves the compute when no alert is active and nothing is queued or
 undelivered, and while a backoff or the stretched interval puts every piece of
 work beyond the next run.

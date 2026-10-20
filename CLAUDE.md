@@ -242,7 +242,7 @@ account management, two-factor, optional OAuth. **Favorites are built** — mode
 server actions, `/favorites`, and reconciliation into search results.
 
 **Car alerts are built.** Saved criteria (deduplicated across users), a
-Postgres queue drained every thirty minutes by a QStash schedule, email
+Postgres queue drained every hour by a QStash schedule, email
 digests, `/alerts` and `/alerts/[id]`, one-click unsubscribe. See
 `docs/specs/alerts.md`. A run with nothing due returns without touching
 Postgres — a Redis "nothing due" key (`server/alerts/run-gate.ts`, ALERT-51

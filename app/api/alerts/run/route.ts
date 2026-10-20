@@ -4,7 +4,7 @@ import { withRequestContext } from "@/lib/request-context";
 import { runAlerts } from "@/server/alerts/service";
 
 // The alert runner. Called by the QStash schedule (scripts/qstash-schedule.mjs),
-// every thirty minutes. A run with nothing due answers without touching the
+// every hour. A run with nothing due answers without touching the
 // database (docs/specs/alerts.md, ALERT-51), so the Neon compute can suspend.
 //
 // A route handler rather than a server action because the caller is a machine,
