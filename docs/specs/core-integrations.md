@@ -2,7 +2,7 @@
 
 Key: INT
 Status: Implemented
-Last updated: 2026-10-02
+Last updated: 2026-10-20
 
 ---
 
@@ -43,7 +43,7 @@ This is phase 10 of ADR 0007: rows 22, 23 and 24.
 ### Background work
 
 - [x] INT-7 · node — `POST /api/alerts/run` accepts only requests signed by QStash, verified with `@upstash/qstash`'s `Receiver` against `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY`. An unsigned or wrongly signed request gets `401`, and nothing runs. The `ALERTS_CRON_SECRET` bearer check is removed.
-- [x] INT-8 · unit — `scripts/qstash-schedule.mjs` creates or updates one QStash schedule that calls `POST <APP_URL>/api/alerts/run` every five minutes (`*/5 * * * *`) with 3 retries. Run twice, it leaves exactly one schedule. It reads `QSTASH_TOKEN` and `APP_URL` from the environment and refuses to run without them.
+- [x] INT-8 · unit — `scripts/qstash-schedule.mjs` creates or updates one QStash schedule that calls `POST <APP_URL>/api/alerts/run` every five minutes (`*/5 * * * *`) with 3 retries. Run twice, it leaves exactly one schedule. It reads `QSTASH_TOKEN` and `APP_URL` from the environment and refuses to run without them. (Amended 2026-10-20, owner decision: every 30 minutes, `*/30 * * * *`, so the Neon free plan's production compute can suspend between runs; a schedule left at the old cron is replaced. See docs/specs/alerts.md › Contracts › Scheduling.)
 - [x] INT-9 · unit — .github/workflows/alerts.yml is deleted, and nothing in the repository references `ALERTS_CRON_SECRET`.
 - [x] INT-10 · node — Post-response housekeeping runs inside `after()` from `next/server`, so it never delays a response:
   - the opportunistic prune of expired auth rows;

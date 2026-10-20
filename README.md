@@ -210,7 +210,7 @@ One-time, after the five Upstash/QStash variables below are set in Vercel and th
    `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY` in Vercel (Production and Preview) —
    see [`.env.example`](.env.example) for where each comes from.
 3. Run `pnpm qstash:schedule` with `QSTASH_TOKEN` and `APP_URL` pointing at the deployment. It
-   creates the five-minute schedule that drains `/api/alerts/run`; run it again after changing the
+   creates the thirty-minute schedule that drains `/api/alerts/run`; run it again after changing the
    cadence or retries and it replaces the old schedule rather than adding a second one.
 
 Full reasoning: [docs/decisions/0017-upstash-qstash-react-email.md](docs/decisions/0017-upstash-qstash-react-email.md).

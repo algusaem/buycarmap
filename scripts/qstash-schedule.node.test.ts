@@ -36,7 +36,7 @@ function makeFakeClient(initial: FakeSchedule[] = []) {
 const ENV = { QSTASH_TOKEN: "t", APP_URL: "https://buycarmap.vercel.app" };
 
 describe("main", () => {
-  it("INT-8: creates the five-minute schedule with 3 retries on the first run", async () => {
+  it("INT-8: creates the thirty-minute schedule with 3 retries on the first run", async () => {
     const client = makeFakeClient();
 
     const code = await main({ env: ENV, client });
@@ -45,7 +45,7 @@ describe("main", () => {
     expect(client.schedules.create).toHaveBeenCalledTimes(1);
     expect(client.schedules.create).toHaveBeenCalledWith({
       destination: "https://buycarmap.vercel.app/api/alerts/run",
-      cron: "*/5 * * * *",
+      cron: "*/30 * * * *",
       retries: 3,
       method: "POST",
     });
@@ -56,7 +56,7 @@ describe("main", () => {
       {
         scheduleId: "sched_1",
         destination: "https://buycarmap.vercel.app/api/alerts/run",
-        cron: "*/5 * * * *",
+        cron: "*/30 * * * *",
       },
     ]);
 
@@ -64,6 +64,29 @@ describe("main", () => {
 
     expect(client.schedules.create).not.toHaveBeenCalled();
     expect(await client.schedules.list()).toHaveLength(1);
+  });
+
+  it("INT-8: a schedule left at the old five-minute cron is replaced by the thirty-minute one", async () => {
+    const client = makeFakeClient([
+      {
+        scheduleId: "sched_1",
+        destination: "https://buycarmap.vercel.app/api/alerts/run",
+        cron: "*/5 * * * *",
+      },
+    ]);
+
+    await main({ env: ENV, client });
+
+    expect(client.schedules.delete).toHaveBeenCalledWith("sched_1");
+    expect(await client.schedules.list()).toEqual([
+      {
+        scheduleId: "sched_2",
+        destination: "https://buycarmap.vercel.app/api/alerts/run",
+        cron: "*/30 * * * *",
+        retries: 3,
+        method: "POST",
+      },
+    ]);
   });
 
   it("INT-8: exits 1 with a message when QSTASH_TOKEN is missing", async () => {

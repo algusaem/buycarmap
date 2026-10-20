@@ -2,7 +2,7 @@
 
 Key: ALERT
 Status: Implemented
-Last updated: 2026-10-15
+Last updated: 2026-10-20
 
 ---
 
@@ -83,9 +83,14 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-48 · node — A poll job left `running` by a worker that died is claimed again once its lease is older than ten minutes: the lost run counts as one failed attempt, and the next drain polls the job as it would a pending one, or marks it failed if that attempt exhausts the retry budget (ALERT-19); a job whose lease is ten minutes old or newer is left to the worker holding it
 - [x] ALERT-49 · node — Two users saving the same new criteria at the same moment both get their alert: the criteria set is stored once, both alerts reference it, and its seen-list is seeded by exactly one seed poll ([#95](https://github.com/algusaem/buycarmap/issues/95))
 - [x] ALERT-50 · component — Switching language from the header's language control writes the `locale` cookie and calls `setLocale` with the new language, so a signed-in user's stored locale follows the switch (ALERT-33) and a signed-out visitor's stays cookie-only; the switch still happens when `setLocale` fails ([#45](https://github.com/algusaem/buycarmap/issues/45)) (amended 2026-10-12, HEAD — redesign-navigation.md)
+- [x] ALERT-51 · node — A run that finds the Redis key `alerts:next-due-at` holding a moment later than its own clock returns a "nothing due" summary (`nothingDue: true`, every count zero, the base interval) without a single database query and without searching any source
+- [x] ALERT-52 · node — A run that finds no key, or one holding a moment at or before its clock, runs against the database as before and then stores in the key the earliest moment it can next have work, expiring at that moment: now when a match of an active alert is still un-notified; a pending job's `availableAt`; a running job's lease expiry (`lockedAt` + 10 min + 1 ms); for an actively subscribed criteria set with no job, now when it was never polled, otherwise `lastPolledAt` + the interval in force; a failed job counts for nothing; and never later than now + 6 h. A moment at or before now is not stored
+- [x] ALERT-53 · node — Saving an alert (new, reactivated or restored), deleting an alert, and pausing one from the unsubscribe link each set the key to the moment of the write, so the next run queries the database; saving criteria the user already has live, or refused by the cap, leaves the key alone
+- [x] ALERT-54 · node — When the key changes while a run is in progress, the run does not overwrite it at its end, so a write made during a run is never hidden by that run's older reading of the database
+- [x] ALERT-55 · node — With Redis erroring, a run queries the database as before and stores nothing, and a write whose key update fails still succeeds; each failure is logged and reported to Sentry. Without Upstash configured the gate is off: every run queries the database and every write leaves Redis untouched
 
-Fifty criteria: forty-two on the server boundary, five on rendering, one on
-the email template, two on real Postgres. Twelve cover the management surface, thirteen
+Fifty-five criteria: forty-seven on the server boundary, five on rendering, one on
+the email template, two on real Postgres. Twelve cover the management surface, eighteen
 the queue and cadence, nine discovery, ten delivery, six the UI.
 
 **ALERT-13 and ALERT-14 are the two `e2e` criteria, and they are the ones that
@@ -117,6 +122,11 @@ than as documentation.
 - **ALERT-48** — The clock reads T = 2026-10-11T12:00:00Z when a drain starts; the lease is 10 minutes. Job J (criteria set C) is `running` with `lockedAt` = 11:49:00 (T − 11 min) and `attempts` 0; job K is `running` with `lockedAt` = 11:59:00 (T − 1 min); job M is `running` with `lockedAt` = 11:50:00 (T − 10 min exactly); job L is `running` with `lockedAt` = 11:49:00 and `attempts` 2. The drain → J is claimed with `attempts` 1 and `lockedAt` = T, and polled: the poll succeeds, so J is deleted and C's `lastPolledAt` = T. K and M are not claimed: both stay `running`, `lockedAt` and `attempts` unchanged, and neither is polled. L is not polled: it becomes `failed` with `attempts` 3. The bug this records: before the fix, the claim selected only `pending` jobs and the enqueue upsert left an existing job untouched, so a worker killed between claiming J and deleting it (or rescheduling it in the catch) left J `running` for ever, and C was never polled again ([#94](https://github.com/algusaem/buycarmap/issues/94)).
 - **ALERT-49** — Ada (user-ada) and Grace (user-grace) save criteria C = {brand:"Audi", model:"A3", maxPrice:20000, latitude:40.4168, longitude:-3.7038, distanceInKm:50} (hash h, no `AlertCriteria` row with hash h) at the same moment, as "Ada's search" and "Grace's search"; both saves look h up before either has committed, and both miss; the sources return wallapop-abc123 and cochesnet-99 → both saves return success; exactly 1 `AlertCriteria` row with hash h; 2 `Alert` rows on it, one per user; the seen-list is exactly ["cochesnet-99", "wallapop-abc123"], recorded by one seed poll, run by whichever save created the row; 0 emails. Before this fix, one of the two saves rejected with a unique-constraint error (P2002 on `criteriaHash`) and that user had no alert ([#95](https://github.com/algusaem/buycarmap/issues/95)).
 - **ALERT-50** — Signed-in Ada (user-ada, `users.locale` = "es") switches to English → cookie `locale=en`, `setLocale("en")` called once, and `users.locale` = "en". A signed-out visitor switches to English → cookie `locale=en`, `setLocale("en")` called once and returns `{ ok: true }` without writing anything (ALERT-33's no-op), so no locale is stored. `setLocale` rejects → cookie `locale=en` and the page still refreshes into English, with no toast. The bug this records: before the fix, neither switcher called `setLocale`, so a signed-in user's switch reached only the cookie and alert emails kept whatever locale was backfilled when an alert was created (ALERT-34) ([#45](https://github.com/algusaem/buycarmap/issues/45)).
+- **ALERT-51** — The run's clock reads T = 2026-10-20T12:00:00.000Z and the key holds 2026-10-20T12:25:00.000Z (T + 25 min) → summary `{ claimed: 0, polled: 0, matched: 0, emailed: 0, skippedNoEmail: 0, criteriaCount: 0, intervalMs: 300000, oldestPendingAgeMs: 0, unhealthySources: [], failures: [], nothingDue: true }`, 0 Prisma calls, 0 source searches. The same key read by a run at 12:25:00.000 (not earlier than the key) → the run queries the database.
+- **ALERT-52** — T = 2026-10-20T12:00:00.000Z, base interval 5 min, no key. (a) One active alert on criteria set C, `lastPolledAt` 11:58:00, no job → nothing enqueued, and the key is set to 12:03:00.000 expiring at 12:03:00.000; a run at 12:02:00 then returns nothing due (ALERT-51). (b) No active alert, an empty queue, no un-notified match → key 18:00:00.000 (T + 6 h). (c) C has a pending job with `availableAt` 12:15:00 (backoff) and active criteria set D, `lastPolledAt` 10:00:00, has a failed job → key 12:15:00.000 (D contributes nothing, and C's job outranks its `lastPolledAt`). (d) C's job is running with `lockedAt` 11:55:00 → key 12:05:00.001. (e) Ada's active alert has a match whose send failed (ALERT-24) → the earliest moment is T itself, so no key is stored and the next run queries the database.
+- **ALERT-53** — The key holds 12:25:00.000. At 12:10:00.000 Ada saves a new alert → the key holds 12:10:00.000; a run at 12:10:30 queries the database and polls the new criteria set (never polled → due). The same holds after `deleteAlert` and after a valid unsubscribe link at 12:10:00.000. Ada saving criteria she already has live at 12:10:00.000 → `created: false`, and the key still holds 12:25:00.000.
+- **ALERT-54** — A run starts at T = 12:00:00.000 and finds no key; at 12:00:20.000 Ada saves an alert (key 12:00:20.000); the run, from what it read before her save, computes 12:05:00.000 at its end → the key still holds 12:00:20.000, and the next run queries the database.
+- **ALERT-55** — Redis rejects the read at T = 12:00:00.000 → the run queries the database exactly as without the gate, no key is written, and one error is logged and one exception sent to Sentry. Redis rejects the write when Ada deletes her alert → `deleteAlert` returns success, the alert is soft-deleted, one error logged and one exception sent to Sentry. With `UPSTASH_REDIS_REST_URL` unset, a run at T queries the database and no Redis call is made.
 
 ## Data model
 
@@ -271,6 +281,8 @@ Routing). Signed-out visitors cannot have alerts (see Out of scope).
 - A source that returns zero ads on a parse failure — see Decisions › A silently empty source is the dangerous failure.
 - A source flapping, then recovering — see Decisions › Partial upstream failure must not poison the seen-set.
 - ALERT-48 — a worker killed while holding a job, leaving it `running`.
+- ALERT-54 — a write that lands while a run is in progress.
+- ALERT-55 — Redis erroring, or Upstash not configured.
 
 ## Out of scope
 
@@ -397,8 +409,13 @@ interface RunSummary {
   oldestPendingAgeMs: number;
   unhealthySources: string[];
   failures: string[];
+  nothingDue: boolean;
 }
 ```
+
+`nothingDue` is true only for a run the gate stopped before the database
+(ALERT-51); every count in it is zero and `intervalMs` is the base interval,
+because nothing was read — amended 2026-10-20 (Neon free-plan compute).
 
 `app/api/alerts/unsubscribe/route.ts` — `GET` with a token, session-free
 (ALERT-26, ALERT-27).
@@ -431,6 +448,8 @@ they made a mistake (ALERT-38).
 | --- | --- |
 | `QSTASH_CURRENT_SIGNING_KEY` + `QSTASH_NEXT_SIGNING_KEY` | The run endpoint refuses every request (no signature can ever verify), so alerts never fire. Optional, like every other feature flag in `lib/env.ts` — it disables a feature rather than blocking boot |
 
+| `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | The "nothing due" gate is off (ALERT-55): every run queries the database, as before 2026-10-20. Already required in production and preview builds by rate limiting (INT-5, docs/specs/core-integrations.md), so the gate adds no variable |
+
 Delivery additionally needs `RESEND_API_KEY` + `EMAIL_FROM`; without them
 ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
 
@@ -438,7 +457,7 @@ ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
 
 | Name | Value | Why |
 | --- | --- | --- |
-| Base poll interval | 5 min | GitHub's cron floor — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period, `*/5 * * * *` (Scheduling, below) |
+| Base poll interval | 5 min | GitHub's cron floor — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period, `*/5 * * * *` (Scheduling, below) — amended 2026-10-20: the schedule now runs every 30 minutes and this constant is unchanged, so every run finds each actively subscribed criteria set due |
 | Upstream request ceiling | 60 req/min | The budget the cadence stretches to respect (ALERT-35, ALERT-36). Unmeasured — see the third open question |
 | Effective interval | `max(base, criteria × 3 ÷ ceiling)` | Uniform across every criteria set |
 | Worker slice | 25 criteria sets | Bounded so ALERT-12 holds inside the Vercel invocation timeout |
@@ -448,10 +467,14 @@ ALERT-25 applies. Add `isAlertsConfigured` alongside `isEmailConfigured`.
 | Backoff | 5 / 15 / 45 min | Deliberately longer than the poll interval — a failing upstream should be polled less, not more |
 | Alerts per user | 20 | A proxy for the real constraint — total distinct criteria sets |
 | Empty runs before unhealthy | 3 | ALERT-20 |
+| Gate key | `alerts:next-due-at`, under the environment prefix (INT-2) | Holds an epoch-milliseconds timestamp and nothing else (ALERT-51, ALERT-52) |
+| Gate ceiling | 6 h | The furthest ahead the key is ever set, so a write path that forgot to touch it delays work by at most this long (ALERT-52) |
 
 ### Scheduling
 
-A QStash schedule, `*/5 * * * *`, POSTing to the run endpoint with a request
+A QStash schedule, `*/30 * * * *` — every 30 minutes, amended 2026-10-20 from
+`*/5 * * * *` (owner decision: the five-minute calls kept the Neon free plan's
+production compute from ever suspending) — POSTing to the run endpoint with a request
 QStash itself signs (`lib/platform/qstash.ts`; INT-7,
 docs/specs/core-integrations.md). Originally a GitHub Actions workflow
 (a matrix of K jobs each POSTing with a shared secret) — superseded in phase
@@ -608,7 +631,7 @@ arriving**. That decomposes:
 
 | Segment | Budget | Bounded by |
 | --- | --- | --- |
-| Listing appears → next poll | ≤ 5 min | GitHub's minimum cron granularity — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period |
+| Listing appears → next poll | ≤ 5 min | GitHub's minimum cron granularity — amended 2026-10-15 (ALERTUI — redesign-alerts.md): the QStash schedule's period — amended 2026-10-20: ≤ 30 min, the schedule's new period (Contracts › Scheduling) |
 | Poll → match recorded | ≤ 2 min | Slice size and worker count |
 | Match recorded → email sent | ≤ 3 min | Notification drain in the same run |
 
@@ -904,6 +927,49 @@ it. Any other error, or a second P2002, propagates as before. It is the same
 detection idiom as registration's duplicate-email guard
 (`server/registration/service.ts`), and it needs no raw SQL — an
 `INSERT … ON CONFLICT DO NOTHING` would have.
+
+### A Redis "nothing due" gate in front of the database (ALERT-51 to ALERT-55)
+
+Added 2026-10-20. Neon's free plan gives 100 compute-hours a month and suspends
+the compute after five idle minutes; a run every five minutes that always
+queried Postgres kept the production compute awake around the clock and used
+the whole allowance. The owner decided two things: the schedule runs every 30
+minutes (Contracts › Scheduling), and a run with nothing to do must not touch
+Postgres.
+
+The second is a timestamp in the Upstash Redis the app already uses for rate
+limiting (`lib/platform/rate-limit.ts` stays the only module importing the
+Upstash SDK, INT-1): the earliest moment a run can have work. A run before that
+moment answers "nothing due" without a query (ALERT-51). A run at or after it
+works as before and, from the database, writes the next moment (ALERT-52).
+That moment covers every kind of work a run does — due criteria sets, pending
+and backed-off jobs, stale leases, un-notified matches — and a failed job is
+the one thing it skips, because no run ever touches one again (ALERT-19). The
+key expires at the moment it names and is never set more than six hours ahead,
+so a missed write path costs at most six hours of delay and a lost key costs
+one database run.
+
+Every write that can bring work forward sets the key to its own moment:
+saving an alert (new, reactivated or restored), deleting one and pausing one
+from the unsubscribe link (ALERT-53). Deleting and pausing bring work forward
+only by shrinking the stretched interval, which needs more than a hundred
+active criteria sets; they set the key anyway, because a run costs less than
+reasoning about when it is safe not to. Setting rather than deleting is what
+lets a run that started before the write notice it and leave the key alone
+(ALERT-54). Account deletion (ALERT-45) does not set it: it can bring work
+forward only through the same stretched-interval case, and the six-hour ceiling
+bounds that.
+
+Redis failing never stops alerts: the run falls back to the database and the
+write keeps its result (ALERT-55). The queue itself stays in Postgres (A
+Postgres queue, not an in-process loop and not Redis, above) — Redis holds one
+timestamp, no personal data and no job state.
+
+With at least one active alert, the five-minute base interval is shorter than
+the 30-minute schedule, so every run has work and queries the database. The
+gate saves the compute when no alert is active and nothing is queued or
+undelivered, and while a backoff or the stretched interval puts every piece of
+work beyond the next run.
 
 ## Open questions
 

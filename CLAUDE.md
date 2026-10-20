@@ -242,9 +242,12 @@ account management, two-factor, optional OAuth. **Favorites are built** — mode
 server actions, `/favorites`, and reconciliation into search results.
 
 **Car alerts are built.** Saved criteria (deduplicated across users), a
-Postgres queue drained every five minutes by a QStash schedule, email
+Postgres queue drained every thirty minutes by a QStash schedule, email
 digests, `/alerts` and `/alerts/[id]`, one-click unsubscribe. See
-`docs/specs/alerts.md`.
+`docs/specs/alerts.md`. A run with nothing due returns without touching
+Postgres — a Redis "nothing due" key (`server/alerts/run-gate.ts`, ALERT-51
+to ALERT-55) — so the Neon compute can suspend; every write that can bring
+work forward must set that key (`markAlertsChanged`).
 
 Not built, and not to be assumed: normalized `Car` listing persistence,
 in-app notifications, web push.
