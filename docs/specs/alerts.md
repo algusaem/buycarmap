@@ -627,8 +627,10 @@ several instances each running their own timer is a duplicate-email generator.
 
 ### The freshness budget, and why it is a criterion rather than a hope
 
-The target is **ten minutes from a listing appearing upstream to the email
-arriving**. That decomposes:
+The target is **about an hour from a listing appearing upstream to the email
+arriving** — at most one schedule period plus about five minutes (amended
+2026-10-20 from ten minutes, when the schedule moved to every hour to keep the
+Neon free plan's compute within its allowance). That decomposes:
 
 | Segment | Budget | Bounded by |
 | --- | --- | --- |
@@ -902,9 +904,9 @@ bounded by a 15 s timeout, and coches.net makes at most two in sequence (model
 resolution, then the search) — 30 s. That is about 75 s plus the database
 writes, which carry no timeout of their own. The hard ceiling is the platform's
 invocation limit: past it the worker is dead, which is exactly the case to
-reclaim. Ten minutes leaves a wide margin over 75 s, is two schedule periods, and
-matches the ten-minute freshness target, so a reclaimed job is polled within
-one more lap. It is safe only while the invocation limit is below ten minutes,
+reclaim. Ten minutes leaves a wide margin over 75 s and is shorter than one
+schedule period (an hour since 2026-10-20), so a job whose worker died is
+always reclaimable by the next run and is polled within one more lap. It is safe only while the invocation limit is below ten minutes,
 which the route guarantees by setting `maxDuration = 300` (five minutes; open
 question 9).
 
