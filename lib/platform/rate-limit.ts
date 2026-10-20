@@ -47,6 +47,26 @@ function isUpstashConfigured(): boolean {
   return !!env.UPSTASH_REDIS_REST_URL && !!env.UPSTASH_REDIS_REST_TOKEN;
 }
 
+/**
+ * The subset of the Upstash client the alert runner's "nothing due" gate uses
+ * (docs/specs/alerts.md, ALERT-51 to ALERT-55): one timestamp read and
+ * written. Declared here so this module stays the only one importing
+ * `@upstash/redis` (INT-1) and a test can inject an in-memory fake.
+ */
+export interface SharedKeyValueStore {
+  get(key: string): Promise<unknown>;
+  set(key: string, value: number, options: { pxat: number }): Promise<unknown>;
+}
+
+/**
+ * The same Upstash client rate limiting uses, as a plain key-value store, or
+ * null when Upstash is not configured (INT-5) — the caller then runs without
+ * it. Keys go through `redisKey` for the environment prefix (INT-2).
+ */
+export function sharedKeyValueStore(): SharedKeyValueStore | null {
+  return isUpstashConfigured() ? getDefaultRedis() : null;
+}
+
 let warnedDisabled = false;
 
 /**

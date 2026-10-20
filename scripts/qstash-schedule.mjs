@@ -8,7 +8,7 @@
 import { fileURLToPath } from "node:url";
 import { Client } from "@upstash/qstash";
 
-const CRON = "*/5 * * * *";
+const CRON = "0 * * * *";
 const RETRIES = 3;
 const METHOD = "POST";
 
