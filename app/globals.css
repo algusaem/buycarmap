@@ -7,6 +7,11 @@
    never on a test id — a page below the phone tab bar uses this to clear it
    without reading the session itself (ENTRY-8, Landing.tsx's phone region). */
 @custom-variant with-tab-bar (body:has([data-tab-bar]) &);
+/* While «Saltar al contenido» has focus it covers the wordmark, which is not
+   drawn but keeps its space, so nothing moves (SkipLink README, A11Y-1). The
+   wordmark goes transparent rather than `visibility: hidden`, which would take
+   it out of the keyboard order: the Tab after the skip link lands on it. */
+@custom-variant skip-link-focused (body:has(#skip-link:focus) &);
 
 /* The illustrations' room (docs/specs/redesign-entry.md, ENTRY-29): under
    150px of drawn content the illustration is not shown. On the landing the
@@ -457,10 +462,51 @@
   }
 }
 
+/* «Saltar al contenido» (components/nav/SkipLink.tsx; docs/specs/a11y-checks.md,
+   A11Y-1; SkipLink README). Off screen, above the viewport's top edge, until
+   it has focus — never `display: none`, so it stays in the keyboard order.
+   With focus it floats over the header's first row, its left edge on the
+   wordmark's: on a phone 20px from the left and 8px from the top (the 64px
+   header); from `lg` 48px and 16px under the 80px open headers, 32px from the
+   left under the pages' `surface` header, and 24px from the top on the map's
+   band, whose first row is 48px. Above everything else on the page: the
+   map's own layers (z-1000), the sheets, the dialogs' backdrop and the tab
+   bar. The headers name their geometry with `data-skip-link`. */
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 1.25rem;
+  z-index: 1001;
+}
+
+.skip-link:not(:focus) {
+  top: auto;
+  bottom: 100%;
+}
+
+@media (width >= 64rem) {
+  .skip-link:focus {
+    top: 1rem;
+    left: 3rem;
+  }
+
+  body:has([data-skip-link="pages"]) .skip-link:focus {
+    left: 2rem;
+  }
+
+  body:has([data-skip-link="map"]) .skip-link:focus {
+    top: 1.5rem;
+  }
+}
+
 @layer base {
+  /* The outline colour every element starts from is the focus outline's own
+     lime (`ring`), so keyboard focus changes no colour a `transition-colors`
+     could animate: the outline appears at once (A11Y-4, RULES.md §19). No
+     smooth scrolling either: the scroll that brings a focused control into
+     view is instant, because a key caused it. */
   * {
-    @apply border-border outline-ring/50;
-    scroll-behavior: smooth;
+    @apply border-border outline-ring;
   }
   body {
     background-color: var(--bg);
@@ -473,8 +519,18 @@
   }
 
   /* Keyboard focus on every interactive primitive: a 2px lime outline offset
-     by 3px (LOOK-11). */
-  :where(button, a, input, textarea, select, [role="button"], [role="combobox"]):focus-visible {
+     by 3px (LOOK-11). MapLibre's attribution toggle is a `summary`
+     (A11Y-4). */
+  :where(
+    button,
+    a,
+    input,
+    textarea,
+    select,
+    summary,
+    [role="button"],
+    [role="combobox"]
+  ):focus-visible {
     outline: 2px solid var(--lime);
     outline-offset: 3px;
   }
@@ -542,7 +598,58 @@
 }
 
 /* The compact control's «i» toggle is a dark glyph drawn for a light
-   control; on `surface` it is inverted to stay visible. */
+   control; on `surface` it is inverted to stay visible. The inversion is
+   drawn by a layer over the toggle, which inherits its glyph and fill, rather
+   than by a filter on the toggle itself: a filter would invert its focus
+   outline too. The toggle's own fill is clipped to an empty content box. */
 .maplibregl-map .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button {
+  padding: 12px;
+  background-clip: content-box;
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: inherit;
+  background-color: inherit;
   filter: invert(1);
+}
+
+/* Keyboard focus on the toggle: LOOK-11's outline, which maplibre-gl.css
+   (unlayered, so above the base layer's focus rule) replaces with
+   `outline: none` and a blue glow (A11Y-4). Drawn inside the button
+   (negative offset) rather than outside it: the map corner's rounded
+   overflow clipped the outside outline. */
+.maplibregl-map .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+/* Keyboard focus on the map surface (A11Y-4, A11Y-8): an inset 2px lime ring
+   inside the map's edge, following the rounded card it is clipped to on
+   desktop, drawn over the map but under its controls (MapLibre's corners sit
+   at z-index 2) and taking no pointer events. It replaces the canvas's own
+   outline, which the card's clipping would cut off. */
+[data-map="listings"] {
+  border-radius: inherit;
+}
+
+[data-map="listings"] .maplibregl-canvas:focus-visible {
+  outline: none;
+}
+
+[data-map="listings"]:has(.maplibregl-canvas:focus-visible)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--lime);
+  pointer-events: none;
 }

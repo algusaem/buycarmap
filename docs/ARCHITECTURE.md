@@ -1425,8 +1425,40 @@ request) — the fixture URLs use allowed hosts but do not exist, so
 `next/image` really fetched them, really 404'd, and rendered differently
 depending on timing.
 
-Three projects, all run by `pnpm test:e2e`: `chromium` and `mobile` (functional)
-plus `visual` (screenshots). `pnpm test:visual` runs the screenshots alone.
+Five projects, all run by `pnpm test:e2e`: `chromium`, `mobile`, `webkit-iphone`
+and `webkit-desktop` (functional) plus `visual` (screenshots). `pnpm test:visual`
+runs the screenshots alone.
+
+#### Keyboard, screen reader and Safari
+
+What jsdom cannot prove about accessibility — a real focus ring, a control
+scrolled off-screen, covered by the tab bar or inside something inert, what a
+screen reader says, the engine every iPhone uses — is specified in
+[docs/specs/a11y-checks.md](specs/a11y-checks.md) (Key A11Y).
+
+- **Keyboard walk-throughs** (`e2e/keyboard.spec.ts`, Chromium only): every
+  redesigned screen at 1440 × 900 and 390 × 844, Tab from the skip link to the
+  last stop and Shift+Tab back, against the spec's exact sequence; every stop
+  visible, unclipped, uncovered, not inert, with the LOOK-11 outline; focus
+  back on its opener after Escape. The signed-in screens run only with
+  `E2E_DB=1`. Safari's Tab skips links unless a preference is set, so the
+  walk-throughs stay off WebKit.
+- **The NVDA suite** (`e2e-sr/`, `playwright.sr.config.ts`, `pnpm test:sr`):
+  Guidepup drives a real NVDA, so it runs serially and headed, outside
+  `pnpm test:e2e` and `pnpm check:full`, on a GitHub-hosted `windows-2025`
+  runner ([`screen-reader.yml`](../.github/workflows/screen-reader.yml)) — not
+  locally. It asserts the app's own Spanish strings inside NVDA's spoken log,
+  never NVDA's role words ([ADR 0024](decisions/0024-guidepup-nvda.md)).
+- **WebKit** (`webkit-iphone`, Playwright's newest iPhone descriptor; and
+  `webkit-desktop`, desktop Safari at 1440 × 900) runs `e2e/map.spec.ts` and
+  `e2e/navigation.spec.ts`, so `pnpm check:full` needs
+  `pnpm exec playwright install webkit` once. In CI it runs in its own job,
+  `End-to-end (WebKit)`, not yet a required check. Its gaps: Playwright's WebKit
+  reports a safe-area inset of 0 and has no real iOS toolbar or touch
+  gestures, and its mobile WebKit has no mouse wheel — the one test that
+  needs it (MAPUI-59, scrolling the full sheet's list) skips the iPhone
+  project with that reason. The rest stays on the spec's manual iPhone
+  checklist.
 
 #### The database-backed suite
 
@@ -1786,7 +1818,9 @@ Neon project directly from a runbook — everything else in this section runs lo
 | --- | --- | --- |
 | `check` | push to master, pull requests | `prisma generate` → `pnpm check`: lint → typecheck → test → build |
 | `gitleaks` | push to master, pull requests | gitleaks over the pushed commits |
-| `e2e` | pull requests only | `prisma generate` → Playwright, chromium, no retries; uploads the report as an artifact |
+| `e2e` | pull requests only | Installs Chromium, `prisma generate` → Playwright's `chromium`, `mobile` and `visual` projects, no retries; uploads the report as an artifact |
+| `e2e-webkit` (`End-to-end (WebKit)`) | pull requests only | Installs WebKit, `prisma generate` → the `webkit-iphone` and `webkit-desktop` projects; not a required check until they pass reliably in CI ([A11Y-15](specs/a11y-checks.md)) |
+| `Screen reader (NVDA)` ([`screen-reader.yml`](../.github/workflows/screen-reader.yml)) | pull requests touching `app/`, `components/` or `messages/`; on demand | On `windows-2025`: installs Chromium, `prisma generate`, NVDA through `@guidepup/setup` → `pnpm test:sr`; uploads the report as an artifact |
 | `contract-live` | nightly cron (04:00 UTC) | `test:contract:live` against the real upstream APIs |
 | `Preview smoke` ([`e2e-preview.yml`](../.github/workflows/e2e-preview.yml)) | Vercel's `deployment_status` event, state `success`, environment `Preview` | Playwright, `e2e/preview-smoke.spec.ts` only, against `environment_url` with the Deployment Protection bypass header; uploads the report on failure |
 

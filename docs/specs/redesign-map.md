@@ -140,6 +140,7 @@ Filters row and panel
   - every choice applies at once;
   - «Ver coches» only closes it, as do pressing outside and Escape;
   - «Borrar» clears every panel criterion at once.
+  Closed with Escape, focus returns to «Filtros» (amended 2026-10-19, A11Y — a11y-checks.md, A11Y-5).
 
 Phone
 

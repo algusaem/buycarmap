@@ -262,6 +262,8 @@ export function useResultsSheetDrag({
     peekedProbeRef,
     /** Whether the phone sheet has been put at its position yet (until then it keeps its resting layout). */
     placed: activeOffsets !== null,
+    /** Where the sheet's top edge rests at its position, in px from the area's top; null until measured or docked. */
+    restingTop: activeOffsets ? activeOffsets[position] : null,
     /** Whether a finger is moving the sheet right now. */
     dragging,
     /** The sheet's own drag props, for a vertical drag driven only by `startDrag`, between full and peeked. */

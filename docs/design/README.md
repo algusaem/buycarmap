@@ -45,6 +45,8 @@ Page "Pantallas", every screen in journey order, each artboard a desktop screen 
 beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, register, account and the legal pages also carry a laptop screen (1024 × 900):
 
 - `R3-landing.dc.html`, `R3-login.dc.html` — the landing and sign in.
+- `F0-saltar-contenido.dc.html` — the «Saltar al contenido» skip link, focused over the landing
+  header: the first Tab on any page.
 - `F0-registro.dc.html`, `F0-confirmar.dc.html`, `F0-contrasena.dc.html`,
   `F0-nueva-contrasena.dc.html` — register, confirm the account, request and set a new password,
   each with a phone variant of its follow-up state (check your inbox, account ready, expired link).
@@ -55,6 +57,9 @@ beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, 
   missing widths of request and set a new password, and a rejected new password.
 - `R2Base.dc.html` — the map screen. `R3-mapa-detalle.dc.html` imports it and adds a car's preview
   and the phone filters sheet, so keep both.
+- `F3-mapa-foco.dc.html` — the map with keyboard focus: the focus ring drawn inside the map's edge,
+  following its radius, under the pins and the zoom (desktop), and inside the visible strip of the
+  map (phone).
 - `F3-mapa-filtros.dc.html`, `F3-mapa-crear-alerta.dc.html`, `F3-crear-alerta-estados.dc.html` — the
   map with the filters open (the desktop dropdown and the phone sheet), with «Crear alerta» open, and
   creating an alert from a search that is too broad and once it is created.
@@ -131,6 +136,7 @@ screen structure, icons and accessibility. `system/tokens.json` holds every toke
 - [CreateAlert](system/components/CreateAlert/README.md)
 - [Cover](system/components/Cover/README.md)
 - [LegalToc](system/components/LegalToc/README.md)
+- [SkipLink](system/components/SkipLink/README.md)
 
 ## Relation to `DESIGN.md`
 

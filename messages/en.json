@@ -384,7 +384,8 @@
     "pinGroup": "{count} cars · from {price}",
     "sheetHandle": "Results list",
     "unavailable": "The map isn't available in this browser",
-    "toggleAttribution": "Toggle attribution"
+    "toggleAttribution": "Toggle attribution",
+    "surface": "Map: use the arrow keys to move it and + or − to zoom"
   },
   "search": {
     "where": "Where",
@@ -587,7 +588,8 @@
     "main": "Main",
     "createAccount": "Create account",
     "localeEs": "Spanish",
-    "localeEn": "English"
+    "localeEn": "English",
+    "skipToContent": "Skip to content"
   },
   "meta": {
     "title": "Buy Car Map",

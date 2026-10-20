@@ -272,6 +272,10 @@ test.describe("MAPUI-50: phone BUSCAR sheet applies only on Ver coches", () => {
     await carField.click();
     await carField.fill("Toy");
     await page.getByRole("option", { name: "Toyota" }).click();
+    // The brand step lists Toyota's models once they arrive. While that list
+    // shows, the first Escape closes only the list and the second the sheet
+    // (MAPUI-21); waiting for it keeps the two presses from racing the fetch.
+    await expect(page.getByRole("listbox")).toBeVisible();
 
     // Choosing the brand lists its models (MAPUI-7) once listCarModels
     // answers, which can be before or after the next key. Wait for the list,
@@ -282,6 +286,8 @@ test.describe("MAPUI-50: phone BUSCAR sheet applies only on Ver coches", () => {
     await page.keyboard.press("Escape");
     await expect(golf).toHaveCount(0);
     await expect(page.getByRole("dialog")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("listbox")).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     // The summary still reads the search it had, not the discarded choice.
@@ -336,7 +342,9 @@ test.describe("SAVED-37, SAVED-38: the phone BUSCAR sheet closes when dragged do
     const { sheet } = await openSearchSheet(page);
 
     await dragDown(page, sheet.locator("[data-sheet-handle]"), 40, { hold: true });
-    expect(Math.abs((await sheetOffset(sheet)) - 40)).toBeLessThanOrEqual(1);
+    // The last move is drawn on the next frame, which WebKit can paint after
+    // the move resolves: polled, not read once.
+    await expect.poll(async () => Math.abs((await sheetOffset(sheet)) - 40)).toBeLessThanOrEqual(1);
     await page.mouse.up();
     await expect.poll(() => sheetOffset(sheet)).toBeLessThan(0.5);
     await expect(sheet).toBeVisible();
@@ -354,6 +362,10 @@ test.describe("SAVED-37, SAVED-38: the phone BUSCAR sheet closes when dragged do
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only BUSCAR sheet");
     const { sheet } = await openSearchSheet(page);
     // Nothing animates for a while, so the last frame drawn is old.
@@ -678,6 +690,10 @@ test.describe("MAPUI-66: the desktop list's outline is never clipped (bug fix, #
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-desktop",
+      "Safari's Tab skips links by default (A11Y-16)",
+    );
     test.skip(isMobile, "desktop-only layout");
     await gotoMap(page, DESKTOP_1440);
 
@@ -1057,6 +1073,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, strip, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1072,6 +1092,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1087,6 +1111,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, strip, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1104,6 +1132,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, strip, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1121,6 +1153,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, strip, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1174,6 +1210,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "MAPUI-59 scrolls with the mouse wheel, which Playwright's mobile WebKit does not provide (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle } = await openPhoneMap(page);
     await handle.click();

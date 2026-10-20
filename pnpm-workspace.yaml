@@ -19,6 +19,9 @@ allowBuilds:
   # next-intl's plugin is not used; see ADR 0016.
   '@swc/core': false
   '@parcel/watcher': false
+  # Guidepup's macOS setup records the screen with it, optionally; the NVDA
+  # suite on Windows never loads it (ADR 0024).
+  ffmpeg-static: false
 
 # Dependabot-alert patches for transitive deps the parents still pin below the
 # patched version. Each stays within the parent's major; `pnpm update --depth

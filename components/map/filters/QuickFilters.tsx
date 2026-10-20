@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 // in QUICK_FILTERS order. Each reads the current search
 // (lib/search/quick-filters.ts's isQuickFilterOn) and, pressed, hands the
 // patch toggleQuickFilter returns to `onApply`, which applies it at once.
+// A toggle that takes focus is brought fully into the row's visible part at
+// once, so the phone row never leaves a focused chip clipped (A11Y-4).
 export interface QuickFiltersProps {
   input: SearchInput;
   onApply: (patch: Partial<SearchInput>) => void;
@@ -39,7 +41,13 @@ export function QuickFilters({ input, onApply, className }: QuickFiltersProps) {
   };
 
   return (
-    <fieldset aria-label={t("map.quickFilters")} className={cn("flex min-w-0 gap-2", className)}>
+    <fieldset
+      aria-label={t("map.quickFilters")}
+      onFocus={(event) =>
+        event.target.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" })
+      }
+      className={cn("flex min-w-0 scroll-px-2 gap-2", className)}
+    >
       {QUICK_FILTERS.map((key) => (
         <ToggleChip
           key={key}

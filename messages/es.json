@@ -384,7 +384,8 @@
     "pinGroup": "{count} coches · desde {price}",
     "sheetHandle": "Lista de resultados",
     "unavailable": "El mapa no está disponible en este navegador",
-    "toggleAttribution": "Mostrar u ocultar la atribución"
+    "toggleAttribution": "Mostrar u ocultar la atribución",
+    "surface": "Mapa: usa las flechas para moverlo y + o − para acercar o alejar"
   },
   "search": {
     "where": "Dónde",
@@ -587,7 +588,8 @@
     "main": "Principal",
     "createAccount": "Crear cuenta",
     "localeEs": "Español",
-    "localeEn": "Inglés"
+    "localeEn": "Inglés",
+    "skipToContent": "Saltar al contenido"
   },
   "meta": {
     "title": "Buy Car Map",

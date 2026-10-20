@@ -47,6 +47,9 @@ export function DesktopRegion({ open, children }: RegionProps) {
   return (
     <div
       data-testid="header-desktop"
+      // The pages' `surface` header puts its wordmark, and so the skip link
+      // over it, 32px from the left (app/globals.css, A11Y-1).
+      data-skip-link={open ? undefined : "pages"}
       className={cn(
         "hidden h-20 items-center justify-between lg:flex",
         open ? "px-12" : "bg-surface px-8",

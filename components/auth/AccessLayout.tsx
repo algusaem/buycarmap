@@ -7,6 +7,7 @@ import { Headline } from "@/components/ui/Headline";
 import { crossFade } from "@/lib/animations";
 import { focusOnMount } from "@/lib/focus";
 import { cn } from "@/lib/utils";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 const ILLUSTRATION = "/illus/by-my-car-lime.svg";
 
@@ -35,7 +36,10 @@ interface AccessShellProps {
 export function AccessShell({ children }: AccessShellProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-auto bg-bg">
-      <main className="relative isolate flex flex-1 flex-col 3xl:min-h-193">
+      <main
+        {...MAIN_CONTENT}
+        className="outline-none relative isolate flex flex-1 flex-col 3xl:min-h-193"
+      >
         <div className="mx-auto flex w-full max-w-360 flex-1 flex-col lg:w-110 3xl:w-full 3xl:px-12">
           {children}
         </div>

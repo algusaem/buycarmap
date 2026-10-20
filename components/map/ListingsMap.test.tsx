@@ -116,7 +116,7 @@ describe("ListingsMap markers", () => {
 });
 
 describe("ListingsMap viewport", () => {
-  it("MAPLIBRE-7: fits the viewport to every listing, 40px of padding, at most zoom 13, at once", () => {
+  it("MAPLIBRE-7: fits the viewport to every listing, 56px of padding, at most zoom 13, at once", () => {
     const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
     renderWithI18n(
       <ListingsMap
@@ -129,7 +129,7 @@ describe("ListingsMap viewport", () => {
         [-3.7038, 40.4168],
         [2.1686, 41.3874],
       ],
-      { padding: 40, maxZoom: 13, animate: false },
+      { padding: 56, maxZoom: 13, animate: false },
     );
     fitBounds.mockRestore();
   });
@@ -212,8 +212,16 @@ describe("MAPLIBRE: ListingsMap — the map it creates", () => {
     renderMap();
 
     const canvas = mapIn().getCanvas();
-    expect(canvas).not.toHaveAttribute("role");
-    expect(canvas).not.toHaveAttribute("aria-label");
+    // A11Y-8 (docs/specs/a11y-checks.md): the interactive map's canvas is one
+    // keyboard stop, an application named by how to use it — never a region,
+    // never named «Map» nor «Mapa», the page's map region's own name.
+    expect(canvas).not.toHaveAttribute("role", "region");
+    expect(canvas).not.toHaveAccessibleName("Map");
+    expect(canvas).not.toHaveAccessibleName("Mapa");
+    expect(canvas).toHaveAttribute("role", "application");
+    expect(canvas).toHaveAccessibleName(
+      "Mapa: usa las flechas para moverlo y + o − para acercar o alejar",
+    );
   });
 
   it("MAPLIBRE-4: turns rotation and tilt off", () => {
@@ -1139,5 +1147,61 @@ describe("MAPUI-62: ListingsMap - reporting a map interaction", () => {
     await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
 
     expect(onMapInteract).not.toHaveBeenCalled();
+  });
+});
+
+// docs/specs/a11y-checks.md (A11Y-4, amended 2026-10-20): a pin the phone's
+// results sheet covers is out of the tab order while it is covered. The
+// stand-in projects a point to the latitude as its pixel height
+// (test/utils/maplibre.ts) and lays nothing out, so a pin's box has no height:
+// a pin is covered when its latitude is below the sheet's top edge,
+// `coveredFrom`. AUDI sits at y 40.4168 and SEAT at y 41.3879.
+describe("A11Y-4: ListingsMap — pins under the phone's results sheet leave the tab order", () => {
+  function phoneMap(coveredFrom: number | null) {
+    return <ListingsMap listings={[AUDI, SEAT]} desktop={false} coveredFrom={coveredFrom} />;
+  }
+
+  it("A11Y-4: with the sheet's top edge at 41, SEAT (y 41.3879) is out of the tab order and AUDI (y 40.4168) keeps its stop", () => {
+    renderWithI18n(phoneMap(41), { locale: "es" });
+
+    expect(screen.getByRole("button", { name: AUDI_PIN })).not.toHaveAttribute("tabindex");
+    expect(screen.getByRole("button", { name: SEAT_PIN })).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("A11Y-4: the sheet resting higher, at 40, covers both pins; resting lower, at 42, covers neither", () => {
+    const { rerender } = renderWithI18n(phoneMap(40), { locale: "es" });
+
+    expect(screen.getByRole("button", { name: AUDI_PIN })).toHaveAttribute("tabindex", "-1");
+    expect(screen.getByRole("button", { name: SEAT_PIN })).toHaveAttribute("tabindex", "-1");
+
+    rerender(phoneMap(42));
+
+    expect(screen.getByRole("button", { name: AUDI_PIN })).not.toHaveAttribute("tabindex");
+    expect(screen.getByRole("button", { name: SEAT_PIN })).not.toHaveAttribute("tabindex");
+  });
+
+  it("A11Y-4: with nothing covering the map (desktop), every pin keeps its stop", () => {
+    renderWithI18n(<ListingsMap listings={[AUDI, SEAT]} />, { locale: "es" });
+
+    expect(screen.getByRole("button", { name: AUDI_PIN })).not.toHaveAttribute("tabindex");
+    expect(screen.getByRole("button", { name: SEAT_PIN })).not.toHaveAttribute("tabindex");
+  });
+
+  it("A11Y-4: once the map stops moving with both pins projected to y 100, a sheet at 50 covers both", () => {
+    renderWithI18n(phoneMap(50), { locale: "es" });
+    expect(screen.getByRole("button", { name: AUDI_PIN })).not.toHaveAttribute("tabindex");
+    expect(screen.getByRole("button", { name: SEAT_PIN })).not.toHaveAttribute("tabindex");
+
+    const project = vi.spyOn(mapIn(), "project").mockReturnValue({ x: 0, y: 100 });
+    try {
+      act(() => {
+        mapIn().fire("moveend");
+      });
+
+      expect(screen.getByRole("button", { name: AUDI_PIN })).toHaveAttribute("tabindex", "-1");
+      expect(screen.getByRole("button", { name: SEAT_PIN })).toHaveAttribute("tabindex", "-1");
+    } finally {
+      project.mockRestore();
+    }
   });
 });

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { listFavoritesForPage } from "@/server/favorites/queries";
 import { FavoritesList } from "@/components/favorites/FavoritesList";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
@@ -18,7 +19,11 @@ export default async function FavoritesPage() {
   const favorites = await listFavoritesForPage();
 
   return (
-    <main data-toast-anchor="saved" className="flex min-h-0 flex-1 flex-col bg-background">
+    <main
+      {...MAIN_CONTENT}
+      data-toast-anchor="saved"
+      className="outline-none flex min-h-0 flex-1 flex-col bg-background"
+    >
       <FavoritesList favorites={favorites} />
     </main>
   );

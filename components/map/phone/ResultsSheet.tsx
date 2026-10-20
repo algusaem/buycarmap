@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, type Ref, useId } from "react";
+import { type ReactNode, type Ref, useEffect, useId, useRef } from "react";
 import * as motion from "motion/react-client";
 import { BellPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -69,6 +69,12 @@ export interface ResultsSheetProps {
   status?: ReactNode;
   /** Under the whole list (the infinite-scroll sentinel), never under the middle position's single card. */
   footer?: ReactNode;
+  /**
+   * Hears where the phone sheet's top edge rests at its position, in px from
+   * the top of the area it shares with the map (null until measured, and
+   * docked): what it covers leaves the tab order (A11Y-4).
+   */
+  onRestingTopChange?: (top: number | null) => void;
 }
 
 function visibleListings(listings: CarListing[], position: ResultsSheetPosition, docked: boolean) {
@@ -91,6 +97,7 @@ export function ResultsSheet({
   onActiveChange,
   status,
   footer,
+  onRestingTopChange,
 }: ResultsSheetProps) {
   const t = useTranslations();
   const headingId = useId();
@@ -99,6 +106,11 @@ export function ResultsSheet({
   const cards = visibleListings(listings, position, docked);
   const drag = useResultsSheetDrag({ position, onPositionChange, docked });
   const startDrag = docked ? undefined : drag.startDrag;
+  const restingTopChangeRef = useRef(onRestingTopChange);
+  restingTopChangeRef.current = onRestingTopChange;
+  useEffect(() => {
+    restingTopChangeRef.current?.(drag.restingTop);
+  }, [drag.restingTop]);
 
   return (
     <>

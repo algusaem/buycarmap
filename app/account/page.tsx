@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { AccountPage } from "@/components/account/AccountPage";
 import { getAccountOverview } from "@/server/account/queries";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
@@ -17,7 +18,7 @@ export default async function AccountRoute() {
   const overview = await getAccountOverview();
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col bg-background">
+    <main {...MAIN_CONTENT} className="outline-none flex min-h-0 flex-1 flex-col bg-background">
       <AccountPage {...overview} />
     </main>
   );

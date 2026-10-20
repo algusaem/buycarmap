@@ -18,6 +18,7 @@ import { useSearchFilters } from "@/lib/hooks/useSearchFilters";
 import { resultsHeading } from "@/lib/map/results-heading";
 import { nextRadius, resultsState } from "@/lib/map/results-state";
 import { phoneSummary } from "@/lib/search/phone-summary";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 interface MapViewProps {
   initialQuery?: string;
@@ -85,7 +86,11 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   // `data-toast-anchor`: every toast here sits under the header band (12px,
   // MAPUI-64, SAVED-24), centred over the results list (app/globals.css).
   return (
-    <main data-toast-anchor="map" className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+    <main
+      {...MAIN_CONTENT}
+      data-toast-anchor="map"
+      className="outline-none flex h-0 min-h-0 flex-1 flex-col overflow-hidden"
+    >
       {/* Desktop: the search pill and «Crear alerta» in the map header's first row, «Filtros» and the quick filters in its second (MAPUI-1, MAPUI-13, MAPUI-19, MAPUI-39, MAPUI-63). */}
       <HeaderSearch
         filters={filters}

@@ -71,6 +71,9 @@ export function MapResultsArea({
   const t = useTranslations();
   // No WebGL: the map's own «map unavailable» pill is the only one over it (MAPLIBRE-15).
   const [mapUnavailable, setMapUnavailable] = useState(false);
+  // Where the phone results sheet's top edge rests: the pins and the
+  // attribution under it leave the tab order (A11Y-4).
+  const [sheetTop, setSheetTop] = useState<number | null>(null);
 
   return (
     // `isolate` keeps the sheet's z-index inside this area, under the tab bar and the dialogs
@@ -120,6 +123,7 @@ export function MapResultsArea({
               />
             )
           }
+          onRestingTopChange={setSheetTop}
           footer={
             results.hasMore && (
               <div ref={results.sentinelRef} className="mt-6 flex justify-center py-4">
@@ -145,6 +149,7 @@ export function MapResultsArea({
             favoriteIds={favoriteIds}
             onToggleFavorite={onToggleFavorite}
             onUnavailableChange={setMapUnavailable}
+            coveredFrom={isPhone ? sheetTop : null}
           />
           {!mapUnavailable && (
             <StatusPill

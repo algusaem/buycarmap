@@ -7,8 +7,9 @@ import { useMapInstance } from "@/components/map/MapInstanceContext";
 // docs/specs/redesign-map.md (MAPUI-29); docs/design/system/components/MapZoom/README.md.
 // «Acercar» and «Alejar», bottom right, over the map: each changes its zoom
 // by one level through the map's own zoom, which animates it (motion.md ›
-// Out of scope). They sit beside the map's container, not inside it, so a
-// press on them never reaches the map's own gestures. Hover fills
+// Out of scope). They sit in the map's bottom-right control corner
+// (ListingsMap's ZoomControl), outside its canvas container, so a press on
+// them never reaches the map's own gestures. Hover fills
 // surface-strong and a press scales to 0.97, in the state transition
 // (MOTION-6).
 export function MapZoom() {

@@ -479,7 +479,7 @@ test.describe("MAPLIBRE-6: every existing map behaviour, ported to MapLibre", ()
 });
 
 test.describe("MAPLIBRE-7: a new search fits its first results, max zoom 13; an empty one resets to the default view", () => {
-  test("MAPLIBRE-7: results across Madrid, Barcelona and Seville fit at zoom 13 or lower, every pin inside a 40px inset", async ({
+  test("MAPLIBRE-7: results across Madrid, Barcelona and Seville fit at zoom 13 or lower, every pin wholly inside the map", async ({
     page,
   }) => {
     await stubMapTiles(page);
@@ -496,28 +496,30 @@ test.describe("MAPLIBRE-7: a new search fits its first results, max zoom 13; an 
       .toBeLessThanOrEqual(13);
 
     const mapBox = await box(mapEl);
-    const inset = {
-      x: mapBox.x + 40,
-      y: mapBox.y + 40,
-      width: mapBox.width - 80,
-      height: mapBox.height - 80,
-    };
+    // MAPLIBRE-7's 56px of fit padding leaves, past each pin's own 86px-wide
+    // drawn box, room for its focus outline: 2px solid plus a 3px offset, 5px
+    // of spare on every side. A pin's box (not just its centre) must stay
+    // inside the map by at least that much.
+    const spare = 5;
 
-    const pins = mapEl.locator(".maplibregl-marker");
+    const pins = mapEl.locator(".maplibregl-marker button");
     const count = await pins.count();
     expect(count, "at least one pin rendered").toBeGreaterThan(0);
     for (let index = 0; index < count; index++) {
       const pinBox = await box(pins.nth(index));
-      const centreX = pinBox.x + pinBox.width / 2;
-      const centreY = pinBox.y + pinBox.height / 2;
-      expect(centreX, `pin ${index} within the left/right 40px inset`).toBeGreaterThanOrEqual(
-        inset.x - 1,
+      expect(pinBox.x, `pin ${index} left edge inside the map`).toBeGreaterThanOrEqual(
+        mapBox.x + spare,
       );
-      expect(centreX).toBeLessThanOrEqual(inset.x + inset.width + 1);
-      expect(centreY, `pin ${index} within the top/bottom 40px inset`).toBeGreaterThanOrEqual(
-        inset.y - 1,
+      expect(pinBox.x + pinBox.width, `pin ${index} right edge inside the map`).toBeLessThanOrEqual(
+        mapBox.x + mapBox.width - spare,
       );
-      expect(centreY).toBeLessThanOrEqual(inset.y + inset.height + 1);
+      expect(pinBox.y, `pin ${index} top edge inside the map`).toBeGreaterThanOrEqual(
+        mapBox.y + spare,
+      );
+      expect(
+        pinBox.y + pinBox.height,
+        `pin ${index} bottom edge inside the map`,
+      ).toBeLessThanOrEqual(mapBox.y + mapBox.height - spare);
     }
   });
 
