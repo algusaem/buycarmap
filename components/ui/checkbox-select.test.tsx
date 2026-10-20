@@ -217,11 +217,12 @@ describe("MOTION-18: CheckboxSelect — the dropdown opens and closes at once fr
   });
 
   it("MOTION-18: a click outside still plays the close animation — the dropdown is still mounted right after", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       renderSelect([]);
       const user = userEvent.setup({ pointerEventsCheck: 0 });
       await openSelect(user);
       await screen.findByRole("listbox");
+      await clock.finish();
 
       await user.click(document.body);
 

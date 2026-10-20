@@ -223,12 +223,14 @@ describe("SAVED-21: opening and closing the car sheet", () => {
   it("SAVED-21: «Cerrar» closes it, fading out with Motion, and focus returns to its row", async () => {
     renderSaved();
 
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       const sheet = await openSheet("B");
+      await clock.finish();
       await userEvent.click(within(sheet).getByRole("button", { name: "Cerrar" }));
 
       // Still mounted while its exit plays, then gone.
       expect(screen.getByRole("dialog", { name: TITLE.B })).toBeInTheDocument();
+      await clock.finish();
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });
 

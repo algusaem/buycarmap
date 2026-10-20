@@ -344,10 +344,11 @@ describe("MOTION-10: FilterRow — the dropdown opens and closes at once from th
   });
 
   it("MOTION-10: a click outside still plays the close animation — the dropdown is still mounted right after", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       renderWithI18n(<ClosedHarness />, { locale: "es" });
       await userEvent.click(screen.getByRole("button", { name: "Filtros" }));
       await screen.findByRole("dialog", { name: "Filtros" });
+      await clock.finish();
 
       await userEvent.click(document.body);
 
@@ -360,17 +361,22 @@ describe("MOTION-10: FilterRow — the dropdown opens and closes at once from th
     });
   });
   it("MOTION-10: reopened with Enter while its pointer close still plays, the dropdown is drawn whole at once", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       renderWithI18n(<ClosedHarness />, { locale: "es" });
       const filtros = screen.getByRole("button", { name: "Filtros" });
       await userEvent.click(filtros);
       await screen.findByRole("dialog", { name: "Filtros" });
+      await clock.finish();
       await userEvent.click(document.body);
+      // A frame into the 180ms fade out.
+      await clock.advance(16);
       const leaving = screen.getByRole("dialog", { hidden: true });
       expect(Number(leaving.style.opacity)).toBeLessThan(1);
 
       filtros.focus();
       await userEvent.keyboard("{Enter}");
+      // Drawn with no time passing: at once, not over a fade.
+      await clock.advance(0);
 
       const dropdown = screen.getByRole("dialog", { name: "Filtros" });
       expect(dropdown.style.opacity === "" || Number(dropdown.style.opacity) >= 1).toBe(true);

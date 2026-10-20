@@ -1352,7 +1352,17 @@ end states, and animations are exercised by E2E. A test that needs an exit still
 fading preview card, a closing popover — wraps its own body in `withAnimations`
 (`test/utils/animations.ts`), which turns real animations back on for exactly that call; the same
 wrapper also proves that something does *not* animate, by asserting no inline opacity below 1 or
-the element gone in the same tick, with animations on.
+the element gone in the same tick, with animations on. Inside it Motion's clock stands still:
+an animation moves only when the test calls `clock.advance(ms)` or `clock.finish()`, never
+because the runner was slow, so "still mounted while its exit plays" holds on a loaded CI
+machine. Open with a pointer, then `clock.finish()` before closing: an exit from a fade-in that
+never moved starts at opacity 0 and ends at once.
+
+In e2e, never bound an animation by the test's wall clock (`expect.poll` with a 200ms
+timeout, a `waitForTimeout` deadline): on a loaded runner the page draws late. Measure on the
+page's own clock instead — a CSS transition's `transitionend` and its `elapsedTime`, an element's
+opacity read in a `MutationObserver` the moment it is inserted, or the fast drag of
+`e2e/fixtures/drag.ts`, whose pointer events carry their own timestamps.
 
 **`lib/input-modality.ts`'s last input is page-wide module state.** A key pressed in one test
 makes the next test's open or close instant, whatever that next test presses. Files that compare
