@@ -64,9 +64,10 @@ The same map, on the new engine
   zone (`components/map/ZoneLayers.tsx`, redesign-alerts.md), the phone zone preview (ALERTUI-24),
   and the phone results sheet's drag (MAPUI-58 to MAPUI-62). Where one of those tests names a
   Leaflet class or API, it names the MapLibre equivalent instead.
-- [x] MAPLIBRE-7 · e2e — A new search's first results fit the map with 40px of padding on every side
-  and a maximum MapLibre zoom of 13 (Leaflet's 14); the reset view of an empty search is the
-  default view of MAPLIBRE-3.
+- [x] MAPLIBRE-7 · e2e — A new search's first results fit the map with 56px of padding on every side
+  and a maximum MapLibre zoom of 13 (Leaflet's 14), so every pin and its focus outline sit wholly
+  inside the map; the reset view of an empty search is the default view of MAPLIBRE-3. (amended
+  2026-10-20, bug fix: with 40px, half of an 86px-wide pin, the end pins were cut by 3px — A11Y-4)
 - [x] MAPLIBRE-8 · e2e — The pins stay keyboard-operable as today: each is a button with its
   accessible name, Tab reaches them in the order they are today, Enter or Space on a pin opens its
   preview on desktop at once, Escape closes it and focus returns to the pin.
@@ -122,7 +123,7 @@ one zoom level lower:
 | View | Leaflet today | MapLibre |
 | --- | --- | --- |
 | default (Spain) | centre 40.4168, −3.7038, zoom 6 | same centre, zoom 5 |
-| fit to results | padding 40px, max zoom 14 | padding 40px, max zoom 13 |
+| fit to results | padding 40px, max zoom 14 | padding 56px (amended 2026-10-20), max zoom 13 |
 | phone zone preview | `paddingTopLeft` [80, 26], `paddingBottomRight` [0, 26] | padding top 26, left 80, right 0, bottom 26 |
 
 **Privacy page (MAPLIBRE-13).** In «Third-party services» / «Servicios de terceros», only the CARTO

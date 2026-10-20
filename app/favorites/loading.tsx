@@ -1,4 +1,5 @@
 import { SavedPagePlaceholder } from "@/components/favorites/SavedPlaceholders";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 // docs/specs/redesign-saved.md (SAVED-30, SAVED-13; amends FRONT-14);
 // F5-guardados-estados. /favorites' loading state mirrors the populated page
@@ -7,7 +8,7 @@ import { SavedPagePlaceholder } from "@/components/favorites/SavedPlaceholders";
 // breakpoints pick one, so nothing waits on the client's media queries.
 export default function FavoritesLoading() {
   return (
-    <main className="flex min-h-0 flex-1 flex-col bg-background">
+    <main {...MAIN_CONTENT} className="outline-none flex min-h-0 flex-1 flex-col bg-background">
       <SavedPagePlaceholder />
     </main>
   );

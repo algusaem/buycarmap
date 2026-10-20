@@ -51,7 +51,7 @@
       "y": 3180
     },
     "UIKit.dc.html": {
-      "h": 19751,
+      "h": 20056,
       "page": "kit",
       "title": "UI Kit",
       "w": 1970,
@@ -64,6 +64,14 @@
       "title": "Mapa (base que reutiliza la pantalla del coche abierto)",
       "w": 1970,
       "x": 0,
+      "y": 3180
+    },
+    "F3-mapa-foco.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa con foco de teclado",
+      "w": 1970,
+      "x": 4100,
       "y": 3180
     },
     "F0-registro.dc.html": {
@@ -368,6 +376,7 @@
     "F0-nueva-contrasena.dc.html",
     "F7-contrasena-estados.dc.html",
     "R2Base.dc.html",
+    "F3-mapa-foco.dc.html",
     "R3-mapa-detalle.dc.html",
     "F3-mapa-filtros.dc.html",
     "F3-mapa-crear-alerta.dc.html",

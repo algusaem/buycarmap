@@ -7,6 +7,7 @@ import { ResultsSkeleton } from "@/components/map/ResultsStates";
 import { SheetCardPlaceholder } from "@/components/ui/CardGridSkeleton";
 import { DEFAULT_RADIUS_KM } from "@/lib/search/schema";
 import { phoneSummary } from "@/lib/search/phone-summary";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 // docs/specs/redesign-map.md (MAPUI-30, MAPUI-34, MAPUI-65, MAPUI-67);
 // docs/design/canvas/F0-estado-cargando.dc.html. /map's own loading state.
@@ -26,7 +27,8 @@ import { phoneSummary } from "@/lib/search/phone-summary";
 // since nothing on this static frame opens, and nothing on it should be
 // reachable by keyboard or a screen reader either. The busy region that
 // carries the status therefore sits outside that inert part, as the desktop
-// column's own does (ResultsSkeleton's `label`).
+// column's own does (ResultsSkeleton's `label`). The frame is the page's
+// `main`, as the live page's is (A11Y-2).
 function doNothing() {
   // Nothing on this static frame opens, so every handler below is this one
   // no-op, shared rather than repeated as an empty arrow at each call site.
@@ -38,7 +40,7 @@ export default function MapLoading() {
   const summary = phoneSummary({}, null, DEFAULT_RADIUS_KM, { t, locale });
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden">
+    <main {...MAIN_CONTENT} className="flex min-h-0 flex-1 overflow-hidden outline-none">
       <div
         data-testid="map-loading-desktop"
         className="hidden w-full px-5 pt-6.5 lg:block lg:w-1/2 lg:pt-6 lg:pr-6 lg:pl-12"
@@ -75,6 +77,6 @@ export default function MapLoading() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

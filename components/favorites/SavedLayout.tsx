@@ -7,6 +7,7 @@ import { TAB_BAR_CLEARANCE } from "@/components/nav/tab-bar-clearance";
 import { Button } from "@/components/ui/button";
 import { PageError } from "@/components/ui/PageError";
 import { cn } from "@/lib/utils";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 // docs/specs/redesign-saved.md (SAVED-1 to SAVED-4, SAVED-30 to SAVED-32);
 // docs/design/canvas/R3-favoritos.dc.html. The frame /favorites draws in every
@@ -105,7 +106,7 @@ export function SavedRouteError({ error, reset, mapLabel }: SavedRouteErrorProps
   const t = useTranslations();
 
   return (
-    <main className="flex min-h-0 flex-1 bg-background">
+    <main {...MAIN_CONTENT} className="outline-none flex min-h-0 flex-1 bg-background">
       <SavedColumn>
         <div className="mt-4.5 lg:mt-14">
           <PageError error={error} reset={reset} line={t("errors.pageLine")}>

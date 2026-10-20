@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { fadeInUp } from "@/lib/animations";
 import { useLegalToc } from "@/lib/hooks/useLegalToc";
 import type { Translations } from "@/lib/i18n/types";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 import { LegalToc } from "./LegalToc";
 
 interface LegalContentProps {
@@ -22,7 +23,9 @@ type LegalDocument = Translations["legal"]["terms"];
 // sides, the 260px index, 72px, and a reading column of at most 720px (596px
 // at 1024px). On a phone: one column, the index folded after the date. Each
 // section's `h2` carries its stable id from the message files, which its
-// index link names.
+// index link names. The text and its index are the page's `main`, the target
+// of «Saltar al contenido» (A11Y-2); the footer follows it, outside, as the
+// page's contentinfo.
 export function LegalContent({ doc, children }: LegalContentProps) {
   const t = useTranslations("legal");
   // `t.raw` rather than `t(...)`: this document's sections are structured
@@ -36,7 +39,10 @@ export function LegalContent({ doc, children }: LegalContentProps) {
       onScroll={toc.onScroll}
       className="flex min-h-0 flex-1 flex-col overflow-y-auto"
     >
-      <div className="flex flex-col gap-4 px-5 pt-3.5 pb-10 lg:grid lg:grid-cols-legal lg:gap-x-18 lg:gap-y-5.5 lg:px-12 lg:py-7.5">
+      <main
+        {...MAIN_CONTENT}
+        className="flex flex-col gap-4 px-5 pt-3.5 pb-10 outline-none lg:grid lg:grid-cols-legal lg:gap-x-18 lg:gap-y-5.5 lg:px-12 lg:py-7.5"
+      >
         <div className="flex flex-col gap-4 lg:col-start-2 lg:row-start-1 lg:gap-5.5">
           <h1 className="m-0 font-display text-page-title-mobile font-black uppercase lg:text-legal-h1">
             {content.title}
@@ -78,7 +84,7 @@ export function LegalContent({ doc, children }: LegalContentProps) {
             </section>
           ))}
         </motion.article>
-      </div>
+      </main>
       {children}
     </div>
   );

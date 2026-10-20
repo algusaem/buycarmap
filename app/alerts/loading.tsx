@@ -1,4 +1,5 @@
 import { AlertsPagePlaceholder } from "@/components/alerts/AlertPlaceholders";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 // docs/specs/redesign-alerts.md (ALERTUI-38; amends FRONT-14);
 // F6-alertas-escritorio › Cargando. /alerts' loading state mirrors the
@@ -7,7 +8,7 @@ import { AlertsPagePlaceholder } from "@/components/alerts/AlertPlaceholders";
 // one, so nothing waits on the client's media queries.
 export default function AlertsLoading() {
   return (
-    <main className="flex min-h-0 flex-1 flex-col bg-background">
+    <main {...MAIN_CONTENT} className="outline-none flex min-h-0 flex-1 flex-col bg-background">
       <AlertsPagePlaceholder />
     </main>
   );

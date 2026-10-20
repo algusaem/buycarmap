@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { TAB_BAR_CLEARANCE } from "@/components/nav/tab-bar-clearance";
 import { cn } from "@/lib/utils";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 interface PageStateLayoutProps {
   /**
@@ -24,7 +25,7 @@ interface PageStateLayoutProps {
 // pages header does (components/nav/nav-routes.ts, PAGES-66).
 export function PageStateLayout({ sides, children }: PageStateLayoutProps) {
   return (
-    <main className="flex min-h-0 flex-1 bg-background">
+    <main {...MAIN_CONTENT} className="outline-none flex min-h-0 flex-1 bg-background">
       <div
         className={cn(
           "min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-5.5 lg:w-136.5 lg:flex-none lg:px-12 lg:pt-7.5 lg:pb-7.5 xl:w-207.5",

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { AlertPage } from "@/components/alerts/AlertPage";
 import { getAlertWithMatches } from "@/server/alerts/queries";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -30,7 +31,11 @@ export default async function AlertMatchesPage({ params }: PageProps) {
   const alert = await readAlert(id);
 
   return (
-    <main data-toast-anchor="alerts" className="flex min-h-0 flex-1 flex-col bg-background">
+    <main
+      {...MAIN_CONTENT}
+      data-toast-anchor="alerts"
+      className="outline-none flex min-h-0 flex-1 flex-col bg-background"
+    >
       <AlertPage alert={alert} />
     </main>
   );

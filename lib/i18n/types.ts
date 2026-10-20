@@ -313,6 +313,7 @@ export interface Translations {
     sheetHandle: string;
     unavailable: string;
     toggleAttribution: string;
+    surface: string;
   };
   // docs/specs/redesign-map.md › Contracts › i18n keys (MAPUI).
   search: {
@@ -522,6 +523,7 @@ export interface Translations {
     createAccount: string;
     localeEs: string;
     localeEn: string;
+    skipToContent: string;
   };
   meta: {
     title: string;

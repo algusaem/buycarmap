@@ -60,6 +60,10 @@ export function useMapLibre(
   // instead. Read through a ref, so a new `t` never rebuilds the map.
   const toggleAttributionRef = useRef(t("map.toggleAttribution"));
   toggleAttributionRef.current = t("map.toggleAttribution");
+  // The interactive map's canvas is its one keyboard stop (A11Y-8), named the
+  // same way: read through a ref, so a new `t` never rebuilds the map.
+  const surfaceLabelRef = useRef(t("map.surface"));
+  surfaceLabelRef.current = t("map.surface");
 
   useEffect(() => {
     const element = container.current;
@@ -89,14 +93,21 @@ export function useMapLibre(
 
     // MapLibre makes its canvas a region named «Map», in English. The map
     // area around it is already the named region (the page's section), so
-    // the canvas would be a second one of the same name: it stays a plain
-    // canvas, as Leaflet's container was.
+    // the canvas is never a second region. An interactive map keeps the
+    // canvas's tab stop, where MapLibre's own keyboard handler pans with the
+    // arrow keys and zooms with + and −: it is an application, since those
+    // keys belong to the map there, named by how to use it (A11Y-8,
+    // docs/specs/a11y-checks.md). A static map has no tab stop at all
+    // (ALERTUI-24).
     const canvas = instance.getCanvas();
     canvas.removeAttribute("role");
     canvas.removeAttribute("aria-label");
     instance.touchZoomRotate.disableRotation();
     instance.keyboard.disableRotation();
+    if (!interactive) canvas.removeAttribute("tabindex");
     if (interactive) {
+      canvas.setAttribute("role", "application");
+      canvas.setAttribute("aria-label", surfaceLabelRef.current);
       instance.addControl(
         new AttributionControl({ compact: true, customAttribution: OPENFREEMAP_ATTRIBUTION }),
         "bottom-right",

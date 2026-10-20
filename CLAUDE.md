@@ -110,7 +110,7 @@ pnpm dev              # Start dev server (next dev)
 pnpm build            # prisma generate && next build
 pnpm start            # next start
 pnpm check             # The verification contract: lint → typecheck → test → build
-pnpm check:full        # pnpm check, then the Playwright e2e suite
+pnpm check:full        # pnpm check, then the Playwright e2e suite (needs `pnpm exec playwright install webkit` once)
 pnpm lint              # Biome, depcruise, knip, spec:check, docs:check, todo:check
 pnpm typecheck         # tsc --noEmit and type-coverage
 pnpm depcruise         # dependency-cruiser boundaries (.dependency-cruiser.cjs), 0 violations required
@@ -125,6 +125,7 @@ pnpm test:watch       # Vitest watch mode
 pnpm test:e2e         # Playwright end-to-end (needs a runnable app + browsers)
 pnpm test:e2e:db      # DB-backed round trips — needs `pnpm db:branch` first. NOT in CI
 pnpm test:visual      # Screenshot comparisons alone (baselines are per-platform)
+pnpm test:sr          # NVDA screen-reader suite — runs on the Windows CI runner, not locally
 pnpm test:contract       # Contract tests vs fixtures (offline)
 pnpm test:contract:live  # Contract tests vs the real upstream APIs (all three sources)
 

@@ -8,6 +8,7 @@ import { MotionProvider } from "@/components/MotionProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import { TabBar } from "@/components/nav/TabBar";
 import { SiteHeader } from "@/components/nav/SiteHeader";
+import { SkipLink } from "@/components/nav/SkipLink";
 import { Toaster } from "@/components/Toaster";
 import "./globals.css";
 
@@ -57,6 +58,8 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={`dark ${rethinkSans.variable} ${unbounded.variable}`}>
       <body className="flex h-viewport flex-col overflow-hidden font-sans antialiased">
+        {/* The first thing in the document, before the header (A11Y-1). */}
+        <SkipLink />
         <AuthProvider>
           <MotionProvider>
             <NextIntlClientProvider locale={locale} messages={messages}>

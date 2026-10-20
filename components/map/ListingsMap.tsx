@@ -3,6 +3,7 @@
 import { type MapLibreMap, type MapMouseEvent, Marker, Popup } from "maplibre-gl";
 import {
   type MutableRefObject,
+  type RefObject,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -47,10 +48,11 @@ import { ZoneLayers } from "@/components/map/ZoneLayers";
 // generation. With neither a zone nor a pin it goes back to the default view
 // (`resetWhenEmpty`), so the alert open before leaves no zone fitted behind;
 // a search with no results keeps the view it had (MAP-25).
-// MAPLIBRE-7: 40px of padding on every side and a maximum zoom of 13
-// (Leaflet's 14, on MapLibre's 512px tiles), at once: the view a page's
-// first results open on is the one the map first reports, not a frame of a
-// flight still under way (MAPLIBRE-9).
+// MAPLIBRE-7: 56px of padding on every side — half an 86px-wide pin plus its
+// focus outline, so a pin's outline never sits outside the map — and a
+// maximum zoom of 13 (Leaflet's 14, on MapLibre's 512px tiles), at once: the
+// view a page's first results open on is the one the map first reports, not
+// a frame of a flight still under way (MAPLIBRE-9).
 interface FitBoundsProps {
   listings: CarListing[];
   zone?: MapZone;
@@ -82,7 +84,7 @@ function FitBounds({ listings, zone, resetWhenEmpty }: FitBoundsProps) {
       return;
     }
     if (fitZone) points.push(...zoneBounds(fitZone));
-    mapRef.current.fitBounds(boundsOf(points), { padding: 40, maxZoom: 13, animate: false });
+    mapRef.current.fitBounds(boundsOf(points), { padding: 56, maxZoom: 13, animate: false });
   }, []);
 
   return null;
@@ -236,6 +238,39 @@ interface PricePinProps extends PreviewProps {
   onActivate?: (listingId: string) => void;
   onPreviewClose?: () => void;
   openPinRef: OpenPinRef;
+  /** Where the phone results sheet starts covering the map, in px from its top; null when nothing covers it. */
+  coveredFrom: number | null;
+}
+
+/**
+ * A11Y-4: whether the phone results sheet covers the pin at `lng`, `lat` —
+ * its box reaches below the sheet's top edge `coveredFrom` (px from the
+ * map's top). Read again whenever the map stops moving and whenever the sheet
+ * rests somewhere else; never covered while nothing covers the map.
+ */
+function usePinCovered(
+  map: MapLibreMap,
+  lng: number,
+  lat: number,
+  coveredFrom: number | null,
+  pinRef: RefObject<HTMLButtonElement | null>,
+): boolean {
+  const [covered, setCovered] = useState(false);
+
+  useEffect(() => {
+    if (coveredFrom === null) return;
+    const update = () => {
+      const halfHeight = (pinRef.current?.offsetHeight ?? 0) / 2;
+      setCovered(map.project([lng, lat]).y + halfHeight > coveredFrom);
+    };
+    update();
+    map.on("moveend", update);
+    return () => {
+      map.off("moveend", update);
+    };
+  }, [map, lng, lat, coveredFrom, pinRef]);
+
+  return coveredFrom !== null && covered;
 }
 
 function PricePin({
@@ -247,6 +282,7 @@ function PricePin({
   favoriteIds,
   onToggleFavorite,
   openPinRef,
+  coveredFrom,
 }: PricePinProps) {
   const t = useTranslations();
   const locale = useLocale();
@@ -262,6 +298,8 @@ function PricePin({
   const [popupContent] = useState(() => document.createElement("div"));
   const [open, setOpen] = useState(false);
   const pinRef = useRef<HTMLButtonElement>(null);
+  // Under the phone results sheet, the pin is out of the tab order (A11Y-4).
+  const covered = usePinCovered(map, lng, lat, coveredFrom, pinRef);
   // MAPUI-27: the mounted MapPreview's own open/close control. Escape, the
   // outside press and the toggle call `requestClose()`, so the card fades out
   // (at once after a key, MOTION-11) before its popup is removed.
@@ -275,7 +313,10 @@ function PricePin({
   // focus goes back to the pin that opened it (MAPUI-27), once the close has
   // settled: not when another pin's preview opened in its place, nor when the
   // focus already moved on outside the map (to the «Crear alerta» card that
-  // closed it, MAPUI-39).
+  // closed it, MAPUI-39). Focus on something around the map counts as lost
+  // too: Safari does not focus a button it presses, so a press on the close
+  // button hands the focus to its nearest focusable ancestor — the page's
+  // `main`, a skip-link target (A11Y-2) — rather than to the body.
   function finishClose() {
     // Another pin's preview opened in this one's place: the page's preview is
     // that one now, so this close is not reported as the preview closing.
@@ -286,8 +327,12 @@ function PricePin({
     window.setTimeout(() => {
       if (openPinRef.current) return;
       const focused = document.activeElement;
+      const container = map.getContainer();
       const focusLost =
-        !focused?.isConnected || focused === document.body || map.getContainer().contains(focused);
+        !focused?.isConnected ||
+        focused === document.body ||
+        container.contains(focused) ||
+        focused.contains(container);
       if (focusLost) pinRef.current?.focus({ preventScroll: true });
     }, 0);
   }
@@ -396,6 +441,7 @@ function PricePin({
           ref={pinRef}
           type="button"
           aria-label={markerLabel}
+          tabIndex={covered ? -1 : undefined}
           data-active={active}
           onClick={activate}
           onKeyDown={(keyEvent) => {
@@ -421,6 +467,69 @@ function PricePin({
         )}
     </>
   );
+}
+
+/**
+ * «Acercar» and «Alejar» in MapLibre's bottom-right corner, ahead of the
+ * attribution there, so the keyboard reaches the zoom buttons before the
+ * attribution's toggle and links (A11Y-3, docs/specs/a11y-checks.md) while
+ * the buttons stay drawn where MapZoom puts them. The corner sits outside the
+ * map's canvas container, so a press on them never reaches the map's own
+ * gestures. The slot lays nothing out (`contents`), so MapZoom is positioned
+ * against the corner, which spans the map's bottom right; the corner takes no
+ * pointer events of its own, so the slot gives them back to the buttons.
+ */
+function ZoomControl() {
+  const map = useMapInstance();
+  const [slot] = useState(() => {
+    const element = document.createElement("div");
+    element.className = "pointer-events-auto contents";
+    return element;
+  });
+
+  useEffect(() => {
+    map.getContainer().querySelector(".maplibregl-ctrl-bottom-right")?.prepend(slot);
+    return () => slot.remove();
+  }, [map, slot]);
+
+  return createPortal(<MapZoom />, slot);
+}
+
+/**
+ * A11Y-4: the attribution's toggle and links leave the tab order while the
+ * phone results sheet covers the attribution — its box reaches below the
+ * sheet's top edge `coveredFrom` (px from the map's top) — and come back
+ * when it no longer does. MapLibre redraws the attribution's content as the
+ * map's sources load, so every redraw is read again.
+ */
+function AttributionTabOrder({ coveredFrom }: { coveredFrom: number | null }) {
+  const map = useMapInstance();
+
+  useEffect(() => {
+    if (coveredFrom === null) return;
+    const container = map.getContainer();
+    const attribution = container.querySelector(".maplibregl-ctrl-attrib");
+    if (!attribution) return;
+    const stops = () => attribution.querySelectorAll<HTMLElement>("summary, a");
+    const apply = () => {
+      const bottom =
+        attribution.getBoundingClientRect().bottom - container.getBoundingClientRect().top;
+      const covered = bottom > coveredFrom;
+      for (const stop of stops()) {
+        if (covered) stop.tabIndex = -1;
+        else stop.removeAttribute("tabindex");
+      }
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(attribution, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      for (const stop of stops()) stop.removeAttribute("tabindex");
+    };
+  }, [map, coveredFrom]);
+
+  return null;
 }
 
 /** No WebGL: the map's ground with a status pill over it, as F0-estado-mapa-no-disponible draws it (MAPLIBRE-15). */
@@ -465,6 +574,12 @@ interface ListingsMapProps {
    * StatusPill at a time (StatusPill/README.md).
    */
   onUnavailableChange?: (unavailable: boolean) => void;
+  /**
+   * Phone: where the results sheet's top edge rests, in px from the map's
+   * top. The pins and the attribution it covers are out of the tab order
+   * while covered (A11Y-4). Null or absent when nothing covers the map.
+   */
+  coveredFrom?: number | null;
 }
 
 export function ListingsMap({
@@ -481,6 +596,7 @@ export function ListingsMap({
   favoriteIds,
   onToggleFavorite,
   onUnavailableChange,
+  coveredFrom = null,
 }: ListingsMapProps) {
   const t = useTranslations();
   const locale = useLocale();
@@ -528,9 +644,11 @@ export function ListingsMap({
               favoriteIds={favoriteIds}
               onToggleFavorite={onToggleFavorite}
               openPinRef={openPinRef}
+              coveredFrom={coveredFrom}
             />
           ))}
-          {desktop && <MapZoom />}
+          <AttributionTabOrder coveredFrom={coveredFrom} />
+          {desktop && <ZoomControl />}
         </MapInstanceContext.Provider>
       )}
     </div>

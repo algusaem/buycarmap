@@ -176,7 +176,7 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm dev` | Dev server |
 | `pnpm build` | `prisma generate && next build` |
 | `pnpm check` | The verification contract: `lint` → `typecheck` → `test` → `build`, stopping at the first failure |
-| `pnpm check:full` | `check`, then `test:e2e` |
+| `pnpm check:full` | `check`, then `test:e2e`. Needs Playwright's WebKit once: `pnpm exec playwright install webkit` |
 | `pnpm lint` | Biome (lint and format), `depcruise`, knip, `spec:check`, `docs:check`, `todo:check` |
 | `pnpm depcruise` | The dependency-cruiser boundaries (`.dependency-cruiser.cjs`), 0 violations required |
 | `pnpm typecheck` | `tsc --noEmit` and type-coverage (minimum in `package.json` › `typeCoverage`) |
@@ -184,9 +184,10 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm test:unit` | The unit (jsdom) and node projects — no database |
 | `pnpm test:integration` | The integration project alone — real Postgres via Testcontainers |
 | `pnpm test:watch` | Vitest in watch mode |
-| `pnpm test:e2e` | Playwright, all three projects |
+| `pnpm test:e2e` | Playwright, all five projects (Chromium, Pixel, the two WebKit ones, visual) |
 | `pnpm test:e2e:db` | The database-backed e2e round trips. Needs `pnpm db:branch` first |
 | `pnpm test:visual` | Screenshot comparisons alone |
+| `pnpm test:sr` | NVDA screen-reader suite — runs on the Windows CI runner, not locally |
 | `pnpm test:contract` | External API shapes, against offline fixtures |
 | `pnpm test:contract:live` | The same, against the real upstream APIs |
 | `pnpm spec:check` | Every approved acceptance criterion is still named by a test |
@@ -480,6 +481,7 @@ name what it beat, it is a fact, and facts belong in the doc for that area.
 | [0021 — TanStack Virtual for the saved cars list](docs/decisions/0021-react-virtual.md) | `@tanstack/react-virtual` mounts only the visible saved cars; pin, Back, Tab and removal are rebuilt on top of it |
 | [0022 — No unsaved-changes warning on the access forms and the account dialogs](docs/decisions/0022-access-forms-no-unsaved-guard.md) | Three fields at most, or one short task per dialog: leaving or closing with something typed warns of nothing; departs from `STACK.md` §14 and `RULES.md` §19 for those forms |
 | [0023 — MapLibre GL and OpenFreeMap vector tiles for the map](docs/decisions/0023-maplibre-openfreemap.md) | Vector tiles styled with the `map-*` tokens replace Leaflet over CARTO's raster tiles; free, keyless, no SLA, Protomaps as the fallback |
+| [0024 — Guidepup and NVDA on a Windows runner for the screen-reader tests](docs/decisions/0024-guidepup-nvda.md) | Guidepup drives NVDA on a GitHub-hosted `windows-2025` runner, pinned exactly; a serial, headed suite outside `check:full`, asserting the app's own Spanish strings; `ffmpeg-static` denied |
 
 </details>
 
@@ -525,7 +527,9 @@ every pull request; [`pr-title.yml`](.github/workflows/pr-title.yml) runs on pul
 | `gitleaks` | A secret is committed |
 | PR title | The title is not a Conventional Commit |
 
-Pull requests also run Playwright. A nightly job runs the contract tests against
+Pull requests also run Playwright, and those that touch `app/`, `components/` or
+`messages/` run the NVDA screen-reader suite on Windows
+([`screen-reader.yml`](.github/workflows/screen-reader.yml)). A nightly job runs the contract tests against
 the real upstream APIs, which is the alarm for a source changing shape.
 
 **`pnpm test:e2e:db` is not in CI.** Those round trips need a branch database and
@@ -689,6 +693,9 @@ Do not point a gap at a loosely related file to make it look covered.
 | `next.config.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `vitest.config.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `playwright.config.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `playwright.sr.config.ts` | [docs/specs/a11y-checks.md](docs/specs/a11y-checks.md) |
+| `e2e-sr/**` | [docs/specs/a11y-checks.md](docs/specs/a11y-checks.md) |
+| `.github/workflows/screen-reader.yml` | [docs/specs/a11y-checks.md](docs/specs/a11y-checks.md) |
 | `biome.json` | [README.md](README.md) |
 | `.git-blame-ignore-revs` | [README.md](README.md) |
 | `.gitattributes` | [README.md](README.md) |

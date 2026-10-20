@@ -27,6 +27,8 @@ export function MapHeader({ session }: { session: HeaderSession }) {
   return (
     <div
       data-testid="header-desktop"
+      // The skip link sits on row one, 24px from the top (app/globals.css, A11Y-1).
+      data-skip-link="map"
       className="hidden flex-col bg-surface px-12 pt-6 pb-4.25 lg:flex"
     >
       <div className="grid h-12 grid-cols-[1fr_auto_1fr] items-center">

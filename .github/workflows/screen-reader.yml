@@ -1,0 +1,52 @@
+name: Screen reader
+
+# docs/specs/a11y-checks.md (A11Y-9 to A11Y-14); ADR 0024. The NVDA suite
+# (e2e-sr/, playwright.sr.config.ts) on a GitHub-hosted Windows runner, where
+# @guidepup/setup installs NVDA at run time. It runs on pull requests that
+# touch what NVDA reads, and on demand — never inside `pnpm check:full`.
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "components/**"
+      - "messages/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# The same dummy values as test.yml's: lib/env.ts validates these at import
+# and refuses to boot without them. Nothing here connects to a real database
+# or signs a real token.
+env:
+  DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+  BETTER_AUTH_SECRET: "ci-test-secret-at-least-32-characters"
+  BETTER_AUTH_URL: "http://localhost:3000"
+
+jobs:
+  nvda:
+    name: Screen reader (NVDA)
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install chromium
+      # next dev imports the generated Prisma client; without it every page
+      # renders the Module-not-found overlay and nearly every test fails behind it.
+      - run: pnpm exec prisma generate
+      # @guidepup/setup's CLI (`guidepup`) installs and configures NVDA; `--ci`
+      # skips its prompts for manual interaction.
+      - name: Set up NVDA (@guidepup/setup)
+        run: pnpm exec guidepup setup --ci
+      - run: pnpm test:sr
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: screen-reader-report
+          path: playwright-report/
+          retention-days: 7

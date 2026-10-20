@@ -162,6 +162,21 @@ export default defineConfig({
       use: { ...devices["Pixel 7"] },
       testMatch: /(map|auth|navigation)\.spec\.ts/,
     },
+    // A11Y-15, A11Y-16 (docs/specs/a11y-checks.md): the engine every iPhone
+    // uses, on the map and navigation flows — an iPhone (touch, mobile) and
+    // desktop Safari at 1440×900. Playwright's WebKit reports a safe-area
+    // inset of 0 and has no real iOS toolbar, and its mobile WebKit has no
+    // mouse wheel; those stay on the manual iPhone checklist.
+    {
+      name: "webkit-iphone",
+      use: { ...devices["iPhone 17"] },
+      testMatch: ["**/map.spec.ts", "**/navigation.spec.ts"],
+    },
+    {
+      name: "webkit-desktop",
+      use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 900 } },
+      testMatch: ["**/map.spec.ts", "**/navigation.spec.ts"],
+    },
     // Runs as part of `pnpm test:e2e` like everything else. It used to be
     // excluded as "inherently flaky"; it wasn't — the screenshots were racing
     // the navbar's session placeholder and next/image fetching fixture URLs

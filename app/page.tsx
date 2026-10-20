@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Footer } from "@/components/Footer";
 import { Landing } from "@/components/landing/Landing";
+import { MAIN_CONTENT } from "@/components/nav/SkipLink";
 
 // docs/specs/redesign-entry.md (ENTRY-20). "Buy Car Map" is the brand name,
 // not translated copy — identical in both locales' `meta.title` — but reads
@@ -27,7 +28,10 @@ export default function Home() {
   // components/nav/tab-bar-clearance.ts; ENTRY-31, HEAD-19).
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-auto max-lg:with-tab-bar:pb-tab-clearance lg:justify-center-safe lg:@container-size/landing 3xl:justify-start">
-      <main className="flex flex-1 flex-col lg:max-3xl:min-h-0 lg:max-3xl:flex-initial lg:max-3xl:landing-illus-hidden:min-h-auto">
+      <main
+        {...MAIN_CONTENT}
+        className="outline-none flex flex-1 flex-col lg:max-3xl:min-h-0 lg:max-3xl:flex-initial lg:max-3xl:landing-illus-hidden:min-h-auto"
+      >
         <Landing />
       </main>
       <Footer centered />

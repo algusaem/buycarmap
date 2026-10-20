@@ -110,10 +110,21 @@ export class MapLibreMap extends Evented {
     );
     this.canvas = document.createElement("canvas");
     this.canvas.className = "maplibregl-canvas";
+    this.canvas.setAttribute("tabindex", options.interactive === false ? "-1" : "0");
     this.canvas.setAttribute("role", "region");
     this.canvas.setAttribute("aria-label", "Map");
     this.canvasContainer.appendChild(this.canvas);
     this.container.appendChild(this.canvasContainer);
+    // MapLibre's control corners, after the canvas container: the app puts
+    // its zoom buttons in the bottom-right one.
+    const controlContainer = document.createElement("div");
+    controlContainer.className = "maplibregl-control-container";
+    for (const position of ["top-left", "top-right", "bottom-left", "bottom-right"]) {
+      const corner = document.createElement("div");
+      corner.className = `maplibregl-ctrl-${position}`;
+      controlContainer.appendChild(corner);
+    }
+    this.container.appendChild(controlContainer);
     liveMaps.push(this);
   }
 
@@ -203,6 +214,15 @@ export class MapLibreMap extends Evented {
     if (options.zoom !== undefined) this.zoom = options.zoom;
     this.fire("moveend");
     return this;
+  }
+
+  /**
+   * A point's pixel position in the map's container. Nothing is laid out
+   * here, so the stand-in reads the longitude as x and the latitude as y:
+   * a test places a pin at a pixel height by giving it that latitude.
+   */
+  project(lngLat: LngLatTuple): { x: number; y: number } {
+    return { x: lngLat[0], y: lngLat[1] };
   }
 
   /** Records the pan the app asks for; nothing is laid out, so the view stays where it is. */

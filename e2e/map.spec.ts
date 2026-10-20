@@ -345,6 +345,10 @@ test.describe("SAVED-37, SAVED-38: the phone BUSCAR sheet closes when dragged do
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only BUSCAR sheet");
     const { sheet } = await openSearchSheet(page);
     // Nothing animates for a while, so the last frame drawn is old.
@@ -669,6 +673,10 @@ test.describe("MAPUI-66: the desktop list's outline is never clipped (bug fix, #
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-desktop",
+      "Safari's Tab skips links by default (A11Y-16)",
+    );
     test.skip(isMobile, "desktop-only layout");
     await gotoMap(page, DESKTOP_1440);
 
@@ -1048,6 +1056,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, strip, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1063,6 +1075,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1078,6 +1094,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, strip, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1095,6 +1115,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, strip, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1112,6 +1136,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "Playwright's mobile WebKit can deliver the last move and the release in one frame, so Motion never starts the gesture (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle, strip, middle } = await openPhoneMap(page);
     const offsets = await measureOffsets(sheet, handle, middle);
@@ -1165,6 +1193,10 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     page,
     isMobile,
   }) => {
+    test.skip(
+      test.info().project.name === "webkit-iphone",
+      "MAPUI-59 scrolls with the mouse wheel, which Playwright's mobile WebKit does not provide (A11Y-16)",
+    );
     test.skip(!isMobile, "phone-only results sheet drag");
     const { sheet, handle } = await openPhoneMap(page);
     await handle.click();
