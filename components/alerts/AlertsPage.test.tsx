@@ -838,14 +838,16 @@ describe("ALERTUI-33: the confirmation at desktop width", () => {
   it("ALERTUI-33: «Cancelar» closes it, fading out with Motion, with nothing sent, and focus returns to «Eliminar»", async () => {
     renderAlerts();
 
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       const { opener, dialog } = await confirmFrom("Corolla híbrido");
+      await clock.finish();
       await userEvent.click(within(dialog).getByRole("button", { name: ALERT_COPY.cancel }));
 
       // Still mounted while its exit plays, then gone.
       expect(
         screen.getByRole("alertdialog", { name: ALERT_COPY.confirmTitle("Corolla híbrido") }),
       ).toBeInTheDocument();
+      await clock.finish();
       await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
       expect(opener).toHaveFocus();
     });

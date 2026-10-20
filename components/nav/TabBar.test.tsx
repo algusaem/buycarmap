@@ -532,15 +532,8 @@ describe("MOTION-6: TabBar — hover and press", () => {
   });
 });
 
-/** Waits one animation frame: what a jump needs to be drawn, and far too little for the 180ms slide. */
-function oneFrame() {
-  return act(
-    () =>
-      new Promise<void>((resolve) => {
-        requestAnimationFrame(() => resolve());
-      }),
-  );
-}
+/** One frame at 60fps, in ms: what a jump needs to be drawn, and far too little for the 180ms slide. */
+const ONE_FRAME_MS = 16;
 
 // docs/specs/motion.md (MOTION-23): when the results sheet moves to full or
 // away from it by Enter or Space on its handle, the tab bar hides or comes
@@ -549,13 +542,13 @@ describe("MOTION-23: TabBar — a key-caused hide or return is instant", () => {
   it.each(["Enter", " "])(
     "MOTION-23: after the %j key, the sheet going full puts the bar fully down within a frame",
     async (key) => {
-      await withAnimations(async () => {
+      await withAnimations(async (clock) => {
         renderWithI18n(<TabBar />);
         const nav = screen.getByRole("navigation");
 
         fireEvent.keyDown(window, { key });
         act(() => setResultsSheetFull(true));
-        await oneFrame();
+        await clock.advance(ONE_FRAME_MS);
 
         expect(nav.style.transform).toBe("translateY(100%)");
       });
@@ -563,29 +556,29 @@ describe("MOTION-23: TabBar — a key-caused hide or return is instant", () => {
   );
 
   it("MOTION-23: after a key, the sheet leaving full brings the bar fully back within a frame", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       renderWithI18n(<TabBar />);
       const nav = screen.getByRole("navigation");
       fireEvent.keyDown(window, { key: "Enter" });
       act(() => setResultsSheetFull(true));
-      await oneFrame();
+      await clock.advance(ONE_FRAME_MS);
 
       fireEvent.keyDown(window, { key: "Enter" });
       act(() => setResultsSheetFull(false));
-      await oneFrame();
+      await clock.advance(ONE_FRAME_MS);
 
       expect(nav.style.transform).toBe("none");
     });
   });
 
   it("MOTION-23: after a pointer press, the sheet going full still slides the bar — it is not down yet a frame later", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       renderWithI18n(<TabBar />);
       const nav = screen.getByRole("navigation");
 
       window.dispatchEvent(new PointerEvent("pointerdown"));
       act(() => setResultsSheetFull(true));
-      await oneFrame();
+      await clock.advance(ONE_FRAME_MS);
 
       expect(nav.style.transform).not.toBe("translateY(100%)");
     });

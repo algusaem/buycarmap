@@ -55,8 +55,9 @@ describe("MOTION-23: FieldMessage — a key-caused change is instant, a pointer 
   });
 
   it("MOTION-23: after a pointer press, the message is still mounted right after it is hidden", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       const { rerender } = render(<FieldMessage show>Enter your email.</FieldMessage>);
+      await clock.finish();
 
       window.dispatchEvent(new PointerEvent("pointerdown"));
       await act(async () => {
