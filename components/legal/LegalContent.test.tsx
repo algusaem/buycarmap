@@ -398,7 +398,7 @@ describe("MOTION-15: LegalContent — the phone index folds at once from the key
   });
 
   it("MOTION-15: a click on a section link still folds the index first — it is still mounted right after the click, and the jump waits for its exit", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       stubPhoneWidth();
       const scrollIntoView = vi
         .spyOn(Element.prototype, "scrollIntoView")
@@ -408,11 +408,14 @@ describe("MOTION-15: LegalContent — the phone index folds at once from the key
       const toggle = screen.getByRole("button", { name: "En esta página" });
       await userEvent.click(toggle);
       const cookies = await screen.findByRole("link", { name: "Cookies" });
+      // The index has slid in whole: a fold from opacity 0 would end at once.
+      await clock.finish();
 
       await userEvent.click(cookies);
 
       expect(screen.getByRole("link", { name: "Cookies" })).toBeInTheDocument();
       expect(scrollIntoView).not.toHaveBeenCalled();
+      await clock.finish();
       await waitFor(() =>
         expect(screen.queryByRole("link", { name: "Cookies" })).not.toBeInTheDocument(),
       );

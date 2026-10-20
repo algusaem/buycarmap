@@ -778,14 +778,16 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
   ])(
     "MAPUI-27: %s keeps the card mounted until the exit finishes, then removes it",
     async (_name, close) => {
-      await withAnimations(async () => {
+      await withAnimations(async (clock) => {
         renderMap();
         await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
         await screen.findByText("Audi A3 2.0 TDI");
+        await clock.finish();
 
         await close();
 
         expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
+        await clock.finish();
         await waitFor(() => expect(screen.queryByText("Audi A3 2.0 TDI")).toBeNull());
       });
     },
@@ -794,14 +796,14 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
   // MOTION-11: Escape closes at once, so this reopens mid-fade from a pointer
   // close instead (a click on the pin toggles it shut), which still animates.
   it("MAPUI-27: reopening a pin mid-fade cancels the exit, leaving the preview open and focused", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       renderMap();
       const pin = screen.getByRole("button", { name: AUDI_PIN });
       await userEvent.click(pin);
-      const opened = await screen.findByRole("article", { name: "Vista previa del coche" });
+      await screen.findByRole("article", { name: "Vista previa del coche" });
       // An exit from opacity 0 is instant in Motion (0 to 0 is nothing to
-      // animate), so wait for the enter animation's first frame first.
-      await waitFor(() => expect(Number(opened.style.opacity)).toBeGreaterThan(0));
+      // animate), so the fade in ends first.
+      await clock.finish();
 
       await userEvent.click(pin);
       expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
@@ -813,13 +815,14 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
       await waitFor(() =>
         expect(within(card).getByRole("button", { name: "Cerrar vista previa" })).toHaveFocus(),
       );
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Past when the cancelled exit would have ended: the preview stays.
+      await clock.finish();
       expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
     });
   });
 
   it("MAPUI-27: a pin unmounting mid-exit throws nothing and leaves no popup open", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       function Wrapper() {
         const [listings, setListings] = useState<CarListing[]>([AUDI, SEAT]);
         return (
@@ -835,13 +838,14 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
 
       const pin = screen.getByRole("button", { name: AUDI_PIN });
       await userEvent.click(pin);
-      const opened = await screen.findByRole("article", { name: "Vista previa del coche" });
-      await waitFor(() => expect(Number(opened.style.opacity)).toBeGreaterThan(0));
+      await screen.findByRole("article", { name: "Vista previa del coche" });
+      await clock.finish();
 
       await userEvent.click(pin);
       expect(screen.getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole("button", { name: "Drop Audi" }));
+      await clock.finish();
 
       await waitFor(() => expect(screen.queryByText("Audi A3 2.0 TDI")).toBeNull());
       expect(document.querySelector(".maplibregl-popup")).toBeNull();

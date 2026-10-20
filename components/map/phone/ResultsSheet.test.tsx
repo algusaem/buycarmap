@@ -469,7 +469,7 @@ describe("MOTION-14: ResultsSheet — the handle moves at once from the keyboard
   }
 
   it("MOTION-14: a pointer press still springs — from middle (400) to full (0) the sheet passes through an offset strictly between them", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       stubOffsets();
       renderWithI18n(<Harness initial="middle" />, { locale: "es" });
       const handle = screen.getByRole("button", {
@@ -481,19 +481,16 @@ describe("MOTION-14: ResultsSheet — the handle moves at once from the keyboard
 
       await userEvent.click(handle);
 
-      // Sampled frame by frame until the spring's first step leaves middle.
-      let offset = drawnOffset(sheet);
-      for (let frame = 0; frame < 30 && offset === 400; frame += 1) {
-        await act(() => new Promise((resolve) => setTimeout(resolve, 16)));
-        offset = drawnOffset(sheet);
-      }
+      // One frame into the spring: it has left middle and not reached full.
+      await clock.advance(16);
+      const offset = drawnOffset(sheet);
       expect(offset).toBeGreaterThan(0);
       expect(offset).toBeLessThan(400);
     });
   });
 
   it("MOTION-14: Enter mid-spring stops the spring and jumps to the next position exactly — a press at middle (400) springs towards full (0), Enter then lands on peeked (700)", async () => {
-    await withAnimations(async () => {
+    await withAnimations(async (clock) => {
       stubOffsets();
       renderWithI18n(<Harness initial="middle" />, { locale: "es" });
       const handle = screen.getByRole("button", {
@@ -502,13 +499,10 @@ describe("MOTION-14: ResultsSheet — the handle moves at once from the keyboard
       await nextFrames();
       const sheet = screen.getByTestId("results-sheet");
 
-      // MAPUI-58: middle → full on the press; the spring is caught on its way.
+      // MAPUI-58: middle → full on the press; the spring is caught a frame on its way.
       await userEvent.click(handle);
-      let offset = drawnOffset(sheet);
-      for (let frame = 0; frame < 30 && offset === 400; frame += 1) {
-        await act(() => new Promise((resolve) => setTimeout(resolve, 16)));
-        offset = drawnOffset(sheet);
-      }
+      await clock.advance(16);
+      const offset = drawnOffset(sheet);
       expect(offset).toBeGreaterThan(0);
       expect(offset).toBeLessThan(400);
 

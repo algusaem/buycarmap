@@ -277,6 +277,15 @@ test.describe("MAPUI-50: phone BUSCAR sheet applies only on Ver coches", () => {
     // (MAPUI-21); waiting for it keeps the two presses from racing the fetch.
     await expect(page.getByRole("listbox")).toBeVisible();
 
+    // Choosing the brand lists its models (MAPUI-7) once listCarModels
+    // answers, which can be before or after the next key. Wait for the list,
+    // so the first Escape always closes the list and the second the sheet
+    // (MAPUI-21), instead of racing the request.
+    const golf = page.getByRole("option", { name: "Golf" });
+    await expect(golf).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(golf).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(1);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("listbox")).toHaveCount(0);
     await page.keyboard.press("Escape");
@@ -1726,33 +1735,32 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
     test.skip(isMobile, "the preview is desktop-only (MAPUI-24)");
     const { audi, preview } = await openDesktopMap(page);
 
-    // A single read right after the click can land after the 180ms fade has
-    // already finished on a slow runner (a CI flake, not a real bug). Sample
-    // the card's computed opacity on every animation frame for ~600ms
-    // instead, so the minimum sample — not one point in time racing the
-    // click — is what proves the fade happened.
-    const samplesPromise = page.evaluate(
-      () =>
-        new Promise<number[]>((resolve) => {
-          const samples: number[] = [];
-          const deadline = performance.now() + 600;
-          function tick() {
-            const card = document.querySelector(".maplibregl-popup article");
-            if (card) samples.push(Number.parseFloat(getComputedStyle(card).opacity));
-            if (performance.now() < deadline) requestAnimationFrame(tick);
-            else resolve(samples);
-          }
-          requestAnimationFrame(tick);
-        }),
-    );
+    // The card's opacity read the moment it is inserted, before any frame is
+    // drawn: below 1 when it fades in, 1 when it is drawn whole at once. A
+    // read on a later frame raced the 180ms fade, and on a loaded runner the
+    // first frame after the click could already show it finished.
+    const inserted = await page.evaluateHandle(() => {
+      const state = { opacity: -1 };
+      const observer = new MutationObserver(() => {
+        const card = document.querySelector(".maplibregl-popup article");
+        if (!card) return;
+        state.opacity = Number.parseFloat(getComputedStyle(card).opacity);
+        observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      return state;
+    });
 
     await audi.click();
-    await preview.waitFor({ state: "attached" });
 
-    const samples = await samplesPromise;
-    expect(samples.length).toBeGreaterThan(0);
-    expect(Math.min(...samples)).toBeLessThan(1);
-    expect(samples[samples.length - 1]).toBe(1);
+    await expect
+      .poll(() => inserted.evaluate((state) => state.opacity), { message: "the card was inserted" })
+      .toBeGreaterThanOrEqual(0);
+    expect(await inserted.evaluate((state) => state.opacity)).toBeLessThan(1);
+    // …and the fade ends with the card whole.
+    await expect
+      .poll(() => preview.evaluate((el) => Number.parseFloat(getComputedStyle(el).opacity)))
+      .toBe(1);
   });
 
   test("MAPUI-27: the open preview card has no serious or critical axe violation", async ({

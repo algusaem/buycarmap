@@ -101,6 +101,39 @@ async function computed(locator: Locator, props: string[]): Promise<Record<strin
   }, props);
 }
 
+/**
+ * Starts watching `locator` for the end of a CSS transition of `property`, a
+ * longhand: a `border-color` transition ends as `border-top-color` and its
+ * three siblings.
+ * The returned function waits for it and gives how long it took on the page's
+ * own animation clock, in ms: its delay plus `TransitionEvent.elapsedTime`.
+ * A property that changes without a transition never ends one and fails the
+ * wait; one that transitions too slowly fails the caller's bound. Neither
+ * depends on how fast the runner draws, as a wall-clock poll of the colour
+ * did: a loaded CI runner read the border a frame short of its end at 200ms
+ * (MOTION-7).
+ */
+async function watchTransition(locator: Locator, property: string): Promise<() => Promise<number>> {
+  const watch = await locator.evaluateHandle((el, name) => {
+    const state = { tookMs: -1 };
+    el.addEventListener("transitionend", (event) => {
+      if (!(event instanceof TransitionEvent)) return;
+      if (event.target !== el || event.propertyName !== name) return;
+      const delayMs = Number.parseFloat(getComputedStyle(el).transitionDelay) * 1000;
+      state.tookMs = delayMs + event.elapsedTime * 1000;
+    });
+    return state;
+  }, property);
+  return async () => {
+    await expect
+      .poll(() => watch.evaluate((state) => state.tookMs), {
+        message: `a ${property} transition ended`,
+      })
+      .toBeGreaterThanOrEqual(0);
+    return watch.evaluate((state) => state.tookMs);
+  };
+}
+
 test.describe("LOOK-3: every page renders in the dark theme", () => {
   test("LOOK-3: / renders dark", async ({ page }) => {
     await page.goto("/");
@@ -391,14 +424,12 @@ test("LOOK-13/MAPUI-48: inputs and the checkbox select trigger are at least 52px
     expect(restStyle.borderColor, testId).toBe("rgb(42, 42, 46)");
 
     // The border turns lime within the 120ms state transition (LOOK-13, MOTION-3).
+    const borderEnded = await watchTransition(field, "border-top-color");
     await field.focus();
-    await expect
-      .poll(async () => field.evaluate((el) => getComputedStyle(el).borderColor), {
-        message: testId,
-        timeout: 300,
-        intervals: [20],
-      })
-      .toBe("rgb(198, 255, 61)");
+    expect(Math.round(await borderEnded()), testId).toBeLessThanOrEqual(120);
+    expect(await field.evaluate((el) => getComputedStyle(el).borderColor), testId).toBe(
+      "rgb(198, 255, 61)",
+    );
   }
 });
 
@@ -506,21 +537,22 @@ test("MOTION-7: a secondary button's hover border and press scale move in the st
 
   expect(await button.evaluate((el) => getComputedStyle(el).borderColor)).toBe("rgb(42, 42, 46)");
 
+  // The border lands within 200ms of the hover, on the page's animation clock.
+  const borderEnded = await watchTransition(button, "border-top-color");
   await button.hover();
-  await expect
-    .poll(async () => button.evaluate((el) => getComputedStyle(el).borderColor), { timeout: 200 })
-    .toBe("rgb(163, 160, 166)");
+  expect(await borderEnded()).toBeLessThanOrEqual(200);
+  expect(await button.evaluate((el) => getComputedStyle(el).borderColor)).toBe(
+    "rgb(163, 160, 166)",
+  );
 
   const box = await button.boundingBox();
   if (!box) throw new Error("btn-secondary-48 did not lay out");
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const scaleEnded = await watchTransition(button, "scale");
   await page.mouse.down();
-  await expect
-    .poll(async () => button.evaluate((el) => getComputedStyle(el).scale), {
-      timeout: 300,
-      intervals: [20],
-    })
-    .toMatch(/^0\.97( 0\.97)?$/);
+  // The press scale moves in the state transition (MOTION-3's 120ms), not at once.
+  expect(Math.round(await scaleEnded())).toBeLessThanOrEqual(120);
+  expect(await button.evaluate((el) => getComputedStyle(el).scale)).toMatch(/^0\.97( 0\.97)?$/);
   await page.mouse.up();
 
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -542,14 +574,12 @@ test("MOTION-5: at 1440×900 a focused field input and a focused checkbox select
 
   for (const testId of ["field-input", "field-checkbox-select-trigger"]) {
     const field = page.getByTestId(testId);
+    const borderEnded = await watchTransition(field, "border-top-color");
     await field.focus();
-    await expect
-      .poll(async () => field.evaluate((el) => getComputedStyle(el).borderColor), {
-        message: testId,
-        timeout: 300,
-        intervals: [20],
-      })
-      .toBe("rgb(198, 255, 61)");
+    await borderEnded();
+    expect(await field.evaluate((el) => getComputedStyle(el).borderColor), testId).toBe(
+      "rgb(198, 255, 61)",
+    );
 
     await field.hover();
     // Longer than the 120ms state transition: a hover border would have landed.

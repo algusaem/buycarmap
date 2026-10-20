@@ -131,14 +131,18 @@ test.describe("PAGES-63: the phone index's links are 44px targets", () => {
     const index = page.getByRole("navigation", { name: "En esta página" });
     const links = index.getByRole("link");
     await expect(links.first()).toBeVisible();
-    // Measured once the list has finished sliding in, not mid-animation.
-    await expect(index.locator("ul")).toHaveCSS("transform", "none");
+    // Each link's laid-out height, which the list's 4px slide in
+    // (dropdownReveal, a translation) never changes, so it is read without
+    // waiting for the slide to end. A box measured through the moving
+    // transform came out a hair short of 44 (43.99998).
 
     const count = await links.count();
     expect(count, "the index lists the sections").toBeGreaterThan(0);
     for (let i = 0; i < count; i++) {
-      const linkBox = await box(links.nth(i));
-      expect(linkBox.height, `link ${i + 1} at least 44px tall`).toBeGreaterThanOrEqual(44);
+      const height = await links
+        .nth(i)
+        .evaluate((el) => Number.parseFloat(getComputedStyle(el).height));
+      expect(height, `link ${i + 1} at least 44px tall`).toBeGreaterThanOrEqual(44);
     }
   });
 });
