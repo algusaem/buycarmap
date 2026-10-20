@@ -129,12 +129,24 @@ describe("A11Y-15: two WebKit projects run the map and navigation e2e flows", ()
     expect(testMatchForSafari).toMatch(/navigation\.spec\.ts/);
   });
 
-  it("A11Y-15: the CI e2e job installs webkit next to chromium", () => {
+  it("A11Y-15: CI runs the WebKit projects in their own End-to-end (WebKit) job, and the required e2e job runs the others on Chromium alone", () => {
     const workflow = read(".github/workflows/test.yml");
-    const installLine = /playwright install --with-deps ([^\n]+)/.exec(workflow);
-    expect(installLine, "no playwright install --with-deps line found").not.toBeNull();
-    expect(installLine?.[1] ?? "").toMatch(/\bwebkit\b/);
-    expect(installLine?.[1] ?? "").toMatch(/\bchromium\b/);
+    const job = (name: string) => {
+      const start = workflow.indexOf(`name: ${name}\n`);
+      expect(start, `no job named ${name}`).toBeGreaterThanOrEqual(0);
+      const next = workflow.slice(start).search(/\n {2}[a-z][\w-]*:\n/);
+      return next === -1 ? workflow.slice(start) : workflow.slice(start, start + next);
+    };
+
+    const webkit = job("End-to-end (WebKit)");
+    expect(webkit).toMatch(/playwright install --with-deps webkit\b/);
+    expect(webkit).toMatch(/--project=webkit-iphone/);
+    expect(webkit).toMatch(/--project=webkit-desktop/);
+
+    const required = job("End-to-end (Playwright)");
+    expect(required).toMatch(/playwright install --with-deps chromium\n/);
+    expect(required).toMatch(/--project=chromium/);
+    expect(required).not.toMatch(/--project=webkit/);
   });
 });
 

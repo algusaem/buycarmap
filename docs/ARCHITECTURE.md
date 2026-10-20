@@ -1442,7 +1442,8 @@ screen reader says, the engine every iPhone uses — is specified in
 - **WebKit** (`webkit-iphone`, Playwright's newest iPhone descriptor; and
   `webkit-desktop`, desktop Safari at 1440 × 900) runs `e2e/map.spec.ts` and
   `e2e/navigation.spec.ts`, so `pnpm check:full` needs
-  `pnpm exec playwright install webkit` once. Its gaps: Playwright's WebKit
+  `pnpm exec playwright install webkit` once. In CI it runs in its own job,
+  `End-to-end (WebKit)`, not yet a required check. Its gaps: Playwright's WebKit
   reports a safe-area inset of 0 and has no real iOS toolbar or touch
   gestures, and its mobile WebKit has no mouse wheel — the one test that
   needs it (MAPUI-59, scrolling the full sheet's list) skips the iPhone
@@ -1807,7 +1808,8 @@ Neon project directly from a runbook — everything else in this section runs lo
 | --- | --- | --- |
 | `check` | push to master, pull requests | `prisma generate` → `pnpm check`: lint → typecheck → test → build |
 | `gitleaks` | push to master, pull requests | gitleaks over the pushed commits |
-| `e2e` | pull requests only | Installs Chromium and WebKit, `prisma generate` → Playwright, no retries; uploads the report as an artifact |
+| `e2e` | pull requests only | Installs Chromium, `prisma generate` → Playwright's `chromium`, `mobile` and `visual` projects, no retries; uploads the report as an artifact |
+| `e2e-webkit` (`End-to-end (WebKit)`) | pull requests only | Installs WebKit, `prisma generate` → the `webkit-iphone` and `webkit-desktop` projects; not a required check until they pass reliably in CI ([A11Y-15](specs/a11y-checks.md)) |
 | `Screen reader (NVDA)` ([`screen-reader.yml`](../.github/workflows/screen-reader.yml)) | pull requests touching `app/`, `components/` or `messages/`; on demand | On `windows-2025`: installs Chromium, `prisma generate`, NVDA through `@guidepup/setup` → `pnpm test:sr`; uploads the report as an artifact |
 | `contract-live` | nightly cron (04:00 UTC) | `test:contract:live` against the real upstream APIs |
 | `Preview smoke` ([`e2e-preview.yml`](../.github/workflows/e2e-preview.yml)) | Vercel's `deployment_status` event, state `success`, environment `Preview` | Playwright, `e2e/preview-smoke.spec.ts` only, against `environment_url` with the Deployment Protection bypass header; uploads the report on failure |

@@ -110,11 +110,13 @@ Screen reader (NVDA)
 
 WebKit
 
-- [x] A11Y-15 · node — `playwright.config.ts` has two WebKit projects, an iPhone (Playwright's
+- [ ] A11Y-15 · node — `playwright.config.ts` has two WebKit projects, an iPhone (Playwright's
   iPhone device descriptor, touch, mobile) and desktop Safari (1440 × 900), both running
   `e2e/map.spec.ts` and `e2e/navigation.spec.ts`; `pnpm test:e2e` (and so `pnpm check:full`) runs
-  them; the CI e2e job installs WebKit next to Chromium.
-- [x] A11Y-16 · e2e — Every test in `e2e/map.spec.ts` and `e2e/navigation.spec.ts` passes on both
+  them; in CI they run in their own job, `End-to-end (WebKit)`, which installs WebKit and is not a
+  required check until they pass there reliably, while the required e2e job runs the other
+  projects with Chromium alone. (amended 2026-10-20, owner)
+- [ ] A11Y-16 · e2e — Every test in `e2e/map.spec.ts` and `e2e/navigation.spec.ts` passes on both
   WebKit projects, except a test that needs an input Playwright's WebKit does not provide, which
   runs on Chromium only, with the reason in the test. The only such tests: MAPUI-59 on the iPhone
   project (Playwright's mobile WebKit has no mouse wheel); MOTION-20 and the MAPUI-60 fast drags on
@@ -213,8 +215,8 @@ existing DB-backed tests do.
   inside NVDA's spoken log, never NVDA's role words, which follow the reader's language.
 - **Runner:** GitHub-hosted `windows-2025` (free for this public repository), with NVDA installed
   by `@guidepup/setup` at run time. Nothing is installed on the owner's machine.
-- **WebKit:** `pnpm exec playwright install webkit` locally, and the CI e2e job's install step
-  gains `webkit` (`.github/workflows/test.yml`).
+- **WebKit:** `pnpm exec playwright install webkit` locally, and in CI a job of its own,
+  `End-to-end (WebKit)` (`.github/workflows/test.yml`), not required (A11Y-15).
 - **Map surface:** the MapLibre canvas, which MapLibre puts in the tab order for keyboard panning,
   gets `role="application"` and the name of A11Y-8, from new message keys in both locales.
 - **Manual checks on a real iPhone** (owner, on a preview or production deployment, in Safari and in
