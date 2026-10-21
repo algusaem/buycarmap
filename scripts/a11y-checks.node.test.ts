@@ -21,7 +21,8 @@ import { describe, expect, it } from "vitest";
 // "file missing" for a file that exists — noted in the report rather than
 // silently working around it.
 const ROOT = process.cwd();
-const read = (path: string): string => readFileSync(join(ROOT, path), "utf8");
+const read = (path: string): string =>
+  readFileSync(join(ROOT, path), "utf8").replace(/\r\n/g, "\n");
 const exists = (path: string): boolean => existsSync(join(ROOT, path));
 const readIfExists = (path: string): string => (exists(path) ? read(path) : "");
 
