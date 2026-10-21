@@ -379,6 +379,8 @@ export interface Translations {
     clearFilters: string;
     statusNoneRadius: string;
     statusNone: string;
+    statusCount: string;
+    statusMore: string;
     errorTitle: string;
     errorRetry: string;
     errorLine: string;

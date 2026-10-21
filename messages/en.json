@@ -450,6 +450,8 @@
     "clearFilters": "Remove filters",
     "statusNoneRadius": "No cars within {km} km",
     "statusNone": "No cars match these filters",
+    "statusCount": "{count, plural, one {# car} other {# cars}}",
+    "statusMore": "{count, plural, one {More than # car} other {More than # cars}}",
     "errorTitle": "Is something down?",
     "errorRetry": "Try again",
     "errorLine": "We couldn't fetch the listings. It's usually back in a moment.",

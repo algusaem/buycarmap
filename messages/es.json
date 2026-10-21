@@ -450,6 +450,8 @@
     "clearFilters": "Quitar filtros",
     "statusNoneRadius": "Ningún coche en {km} km",
     "statusNone": "Ningún coche con estos filtros",
+    "statusCount": "{count, plural, one {# coche} other {# coches}}",
+    "statusMore": "{count, plural, one {Más de # coche} other {Más de # coches}}",
     "errorTitle": "¿Se ha caído algo?",
     "errorRetry": "Prueba otra vez",
     "errorLine": "No hemos podido traer los anuncios. Suele ser cosa de un momento.",

@@ -94,7 +94,9 @@ Screen reader (NVDA)
   «Crear alerta» buttons by their names.
 - [ ] A11Y-10 · e2e — After a search, NVDA speaks the result count once, without the user moving
   focus (the polite status of MAPUI-3 and MAP-20), and speaks the no-match line when a search returns
-  nothing.
+  nothing. — the polite status is the map's status pill (MAPUI-68, redesign-map.md), and the no-match
+  line is the one it says («Ningún coche con estos filtros»); MAPUI-3 and MAP-20 are the place
+  search's own status (amended 2026-10-21, bug fix — the count was never announced)
 - [ ] A11Y-11 · e2e — Moving to a pin, NVDA speaks its name (price and car, MAPUI-25); opening its
   preview with Enter speaks the car's name from the card; Escape returns to the pin and NVDA speaks
   the pin again.

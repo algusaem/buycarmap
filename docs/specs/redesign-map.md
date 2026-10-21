@@ -264,6 +264,14 @@ States
     1 COCHE» when that number is one (owner approval, 2026-10-13). (amended 2026-10-13)
 
   It has no «cerca de…» line in any state, since the search already names the place.
+- [x] MAPUI-68 · component — The status pill of MAPUI-30 to MAPUI-32 is the page's one polite live
+  region (`role="status"`) at both widths, so a screen reader hears each state of the search without
+  the focus moving (A11Y-10). Once the cars are listed it says the count, which it does not draw:
+  «3 coches» («1 coche») once the sources are exhausted, «Más de 40 coches» («Más de 1 coche») while
+  more pages remain, so a page that lands by scrolling says the new count. At desktop width the pill
+  is drawn as before and draws nothing while the cars are listed; at phone width it is never drawn,
+  and its text is there only for a screen reader. Nothing visible changes at either width (bug fix,
+  found by the NVDA suite 2026-10-21: the count was never announced, and at phone width no state was).
 - [x] MAPUI-34 · component — `/map` has its own `loading.tsx`, which renders the loading state, and its
   own `error.tsx`. The error file renders the page-error state with the line «Error al cargar el mapa. Vuelve a
   intentarlo más tarde.» and «Reintentar», which retries the route. (amended 2026-10-13)
@@ -665,6 +673,24 @@ in three cases:
 | 40 cars listed, more pages left | «MÁS DE 40 COCHES» |
 | 1 car listed, more pages left | «MÁS DE 1 COCHE» |
 | 40 listed, load-more running | «MÁS DE 40 COCHES» (unchanged until the page lands) |
+
+**What the status says (MAPUI-68; bug fix, NVDA suite 2026-10-21).**
+
+- **Input that failed:** `/map` with NVDA at 1280 × 720, the default three listings; «Buscar» focused, Enter.
+- **Before the fix:** NVDA said «Buscando coches…» and then nothing: the pill empties once the cars are
+  listed, and the «3 COCHES» heading is not a live region. At 390 × 844 it said nothing at all, since
+  the pill was `display: none` there.
+- **Correct result:** NVDA says «Buscando coches…», then «3 coches», at both widths, with nothing new drawn.
+
+| State | Drawn at desktop width | Said by the status (both widths) |
+| --- | --- | --- |
+| first page loading | «Buscando coches…» | «Buscando coches…» |
+| exhausted with 1 car | nothing | «1 coche» |
+| exhausted with 3 cars | nothing | «3 coches» |
+| 40 cars listed, more pages left | nothing | «Más de 40 coches» |
+| 1 car listed, more pages left | nothing | «Más de 1 coche» |
+| a model filter, no place, no cars | «Ningún coche con estos filtros» | «Ningún coche con estos filtros» |
+| failed | «Sin conexión con los anuncios» | «Sin conexión con los anuncios» |
 
 **Empty state widening (MAPUI-31).** 10 → «Ampliar a 25 km», 25 → «Ampliar a 50 km», 50 → «Ampliar a
 100 km», 100 → «Ampliar a 200 km», 200 → no button. At 200 km or with no place: the headline «¿Nada por aquí?» over «Quita algún filtro», «Quitar filtros» as the primary action, «Ningún coche con estos filtros»
