@@ -9,6 +9,7 @@ import { MapResultsArea } from "@/components/map/MapResultsArea";
 import { SearchSheet } from "@/components/map/phone/SearchSheet";
 import { HeaderSearch } from "@/components/map/search/HeaderSearch";
 import type { CarListing } from "@/interfaces/listing";
+import type { ShownPlace } from "@/interfaces/location";
 import { useFavorites } from "@/lib/hooks/useFavorites";
 import { useFavoriteToggle } from "@/lib/hooks/useFavoriteToggle";
 import { useIsPhone } from "@/lib/hooks/useIsPhone";
@@ -16,6 +17,7 @@ import { useListingsSearch } from "@/lib/hooks/useListingsSearch";
 import { useMapPageState } from "@/lib/hooks/useMapPageState";
 import { useSearchFilters } from "@/lib/hooks/useSearchFilters";
 import { resultsHeading } from "@/lib/map/results-heading";
+import type { MapZone } from "@/lib/map/zone";
 import { nextRadius, resultsState } from "@/lib/map/results-state";
 import { phoneSummary } from "@/lib/search/phone-summary";
 import { MAIN_CONTENT } from "@/components/nav/SkipLink";
@@ -39,8 +41,18 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   // edits it, and nothing in the app produces it any more.
   const getKeywords = useCallback(() => initialQuery, [initialQuery]);
   const filters = useSearchFilters(search, getKeywords);
-  const { input } = filters;
-  const place = filters.selectedLocation ?? null;
+  const { input, browserPosition } = filters;
+  // MAP-32, MAP-34: while the browser's position stands in for a place, it
+  // reads «Tu ubicación» wherever a place would, and the map frames its
+  // circle. It is never a `SelectedLocation`: no place id, no URL (MAP-33).
+  const place: ShownPlace | null =
+    filters.selectedLocation ??
+    (browserPosition ? { displayName: t("search.yourLocation") } : null);
+  const zone: MapZone | undefined = browserPosition && {
+    lat: browserPosition.lat,
+    lng: browserPosition.lng,
+    radiusKm: filters.distanceInKm,
+  };
 
   const isPhone = useIsPhone();
   const page = useMapPageState(listings, isPhone);
@@ -78,7 +90,8 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
 
   const createAlertProps = {
     criteria: input,
-    placeName: place?.displayName,
+    // The browser's position has no name to store: an alert keeps only its coordinates.
+    placeName: filters.selectedLocation?.displayName,
     onClose: page.closeAlert,
   };
 
@@ -94,6 +107,7 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
       {/* Desktop: the search pill and «Crear alerta» in the map header's first row, «Filtros» and the quick filters in its second (MAPUI-1, MAPUI-13, MAPUI-19, MAPUI-39, MAPUI-63). */}
       <HeaderSearch
         filters={filters}
+        place={place}
         createAlertOpen={page.alertOpen === "popover"}
         onCreateAlertOpenChange={(open) => (open ? page.openAlert("popover") : page.closeAlert())}
         createAlert={
@@ -112,6 +126,7 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
         state={state}
         widenTo={widenTo}
         distanceInKm={filters.distanceInKm}
+        zone={zone}
         hasFilters={filters.hasFilters}
         onWiden={() => filters.applyInput({ distanceInKm: widenTo })}
         onClearFilters={filters.clearAll}

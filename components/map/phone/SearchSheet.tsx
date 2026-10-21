@@ -9,8 +9,9 @@ import { PlaceField } from "@/components/map/search/PlaceField";
 import { PriceRange } from "@/components/map/search/PriceRange";
 import { RadiusChoice } from "@/components/map/search/RadiusChoice";
 import { PhoneBottomSheet, SheetHeader, ShowCarsFooter } from "./SheetChrome";
-import type { SelectedLocation } from "@/interfaces/location";
+import type { SelectedLocation, ShownPlace } from "@/interfaces/location";
 import type { SheetSearch } from "@/interfaces/search-sheet";
+import { isSelectedLocation } from "@/lib/search/shown-place";
 import type { SearchInput } from "@/lib/search/schema";
 
 // docs/specs/redesign-map.md (MAPUI-21); docs/design/system/components/
@@ -25,8 +26,8 @@ import type { SearchInput } from "@/lib/search/schema";
 export interface SearchSheetProps {
   open: boolean;
   initial: SearchInput;
-  /** The chosen place, which `SearchInput` carries only as coordinates. */
-  place?: SelectedLocation | null;
+  /** The chosen place, which `SearchInput` carries only as coordinates, or «Tu ubicación» (MAP-32). */
+  place?: ShownPlace | null;
   /** The filters' radius, kept even while no place is chosen (`SearchInput` then carries none). */
   radiusKm: number;
   onApply: (search: SheetSearch) => void;
@@ -66,7 +67,9 @@ export function SearchSheet({
 }
 
 interface Draft {
-  place: SelectedLocation | null;
+  place: ShownPlace | null;
+  /** Whether «Dónde» was changed here: a place picked, «Borrar», or the × on «Tu ubicación». */
+  placeTouched: boolean;
   radiusKm: number;
   brand: string;
   model: string;
@@ -74,9 +77,21 @@ interface Draft {
   maxPrice?: number;
 }
 
+/**
+ * The sheet's place for «Ver coches»: left out while «Dónde» is untouched, so
+ * the current place or the browser's position stands — even one that arrived
+ * after the sheet opened (MAP-28, MAP-32); otherwise the place picked, or
+ * `null` for «Toda España» once «Borrar» or the × emptied it.
+ */
+function appliedPlace({ place, placeTouched }: Draft): SelectedLocation | null | undefined {
+  if (!placeTouched) return undefined;
+  if (!place || !isSelectedLocation(place)) return null;
+  return place;
+}
+
 interface SheetContentProps {
   initial: SearchInput;
-  place: SelectedLocation | null;
+  place: ShownPlace | null;
   radiusKm: number;
   onApply: (search: SheetSearch) => void;
   onClose: () => void;
@@ -87,6 +102,7 @@ function SheetContent({ initial, place, radiusKm, onApply, onClose }: SheetConte
   const t = useTranslations();
   const [draft, setDraft] = useState<Draft>({
     place,
+    placeTouched: false,
     radiusKm,
     brand: initial.brand ?? "",
     model: initial.model ?? "",
@@ -102,7 +118,7 @@ function SheetContent({ initial, place, radiusKm, onApply, onClose }: SheetConte
       minPrice: draft.minPrice,
       maxPrice: draft.maxPrice,
       distanceInKm: draft.radiusKm,
-      place: draft.place,
+      place: appliedPlace(draft),
     });
   }
 
@@ -114,12 +130,23 @@ function SheetContent({ initial, place, radiusKm, onApply, onClose }: SheetConte
         onClose={onClose}
         hideClose
         onClear={() =>
-          edit({ place: null, brand: "", model: "", minPrice: undefined, maxPrice: undefined })
+          edit({
+            place: null,
+            placeTouched: true,
+            brand: "",
+            model: "",
+            minPrice: undefined,
+            maxPrice: undefined,
+          })
         }
       />
       <div className="flex min-h-0 flex-1 flex-col gap-6.5 overflow-y-auto px-5 py-5.5">
         <PanelSection level={3} title={t("search.where")}>
-          <PlaceField value={draft.place} onSelect={(chosen) => edit({ place: chosen })} />
+          <PlaceField
+            value={draft.place}
+            onSelect={(chosen) => edit({ place: chosen, placeTouched: true })}
+            onClearPosition={() => edit({ place: null, placeTouched: true })}
+          />
           <RadiusChoice
             radiusKm={draft.radiusKm}
             disabled={!draft.place}

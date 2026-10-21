@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { FilterPanel } from "@/components/map/filters/FilterPanel";
 import { FilterRow } from "@/components/map/filters/FilterRow";
+import type { ShownPlace } from "@/interfaces/location";
 import type { useSearchFilters } from "@/lib/hooks/useSearchFilters";
 import { useMapFiltersSlot, useMapHeaderSlot } from "@/lib/hooks/useMapHeaderSlot";
 import { CarPopover } from "./CarPopover";
@@ -21,6 +22,8 @@ import { SearchPill } from "./SearchPill";
 // debounced `updateInput` (MAPUI-63).
 interface HeaderSearchProps {
   filters: ReturnType<typeof useSearchFilters>;
+  /** The chosen place, or «Tu ubicación» while the browser's position stands in (MAP-32). */
+  place: ShownPlace | null;
   createAlertOpen: boolean;
   onCreateAlertOpenChange: (open: boolean) => void;
   createAlert: ReactNode;
@@ -28,6 +31,7 @@ interface HeaderSearchProps {
 
 export function HeaderSearch({
   filters,
+  place,
   createAlertOpen,
   onCreateAlertOpenChange,
   createAlert,
@@ -35,7 +39,6 @@ export function HeaderSearch({
   const headerSlot = useMapHeaderSlot();
   const filtersSlot = useMapFiltersSlot();
 
-  const place = filters.selectedLocation ?? null;
   const closePopover = () => filters.setActivePopover(null);
   const closeFilters = () => filters.setFiltersOpen(false);
 

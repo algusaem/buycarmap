@@ -2,7 +2,7 @@
 
 Key: MAPLIBRE
 Status: Implemented
-Last updated: 2026-10-19
+Last updated: 2026-10-21
 
 ---
 
@@ -68,6 +68,8 @@ The same map, on the new engine
   and a maximum MapLibre zoom of 13 (Leaflet's 14), so every pin and its focus outline sit wholly
   inside the map; the reset view of an empty search is the default view of MAPLIBRE-3. (amended
   2026-10-20, bug fix: with 40px, half of an 86px-wide pin, the end pins were cut by 3px — A11Y-4)
+  — on a phone the circle around the browser's position is centred in the strip above the results
+  sheet (amended 2026-10-21, map-and-search.md MAP-39)
 - [x] MAPLIBRE-8 · e2e — The pins stay keyboard-operable as today: each is a button with its
   accessible name, Tab reaches them in the order they are today, Enter or Space on a pin opens its
   preview on desktop at once, Escape closes it and focus returns to the pin.

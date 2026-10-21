@@ -266,6 +266,55 @@ describe("ENTRY-5: LandingSearch — the phone card opens the BUSCAR sheet", () 
       maxPrice: "10000",
     });
   });
+
+  // Amended 2026-10-21 (MAPUI-21, issue #117): the sheet leaves the place out
+  // while «Dónde» is untouched, so the place chosen on the landing stands.
+  it("ENTRY-5: «Ver coches» with «Dónde» untouched in the phone sheet keeps the place chosen on the landing", async () => {
+    renderWithI18n(<LandingSearch />, { locale: "es" });
+    const desktop = within(screen.getByTestId("landing-search-desktop"));
+
+    await userEvent.click(desktop.getByRole("button", { name: "Ciudad o código postal…" }));
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad o código postal" }), "Ma");
+    await userEvent.click(await screen.findByRole("option", { name: "MadridComunidad de Madrid" }));
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Dónde" })).toBeNull());
+
+    await userEvent.click(screen.getByTestId("landing-search-phone"));
+    await userEvent.type(screen.getByRole("textbox", { name: "Máximo" }), "15000");
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(push).toHaveBeenCalledTimes(1);
+    const url = push.mock.calls[0][0] as string;
+    expect(pathOf(url)).toBe("/map");
+    expect(parsedParams(url)).toEqual({
+      lat: "40.4168",
+      lng: "-3.7038",
+      placeId: "1",
+      locationName: "Madrid",
+      radius: "50",
+      maxPrice: "15000",
+    });
+  });
+
+  it("ENTRY-5: «Borrar» in the phone sheet clears a place chosen on the landing", async () => {
+    renderWithI18n(<LandingSearch />, { locale: "es" });
+    const desktop = within(screen.getByTestId("landing-search-desktop"));
+
+    await userEvent.click(desktop.getByRole("button", { name: "Ciudad o código postal…" }));
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad o código postal" }), "Ma");
+    await userEvent.click(await screen.findByRole("option", { name: "MadridComunidad de Madrid" }));
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Dónde" })).toBeNull());
+
+    await userEvent.click(screen.getByTestId("landing-search-phone"));
+    await userEvent.click(screen.getByRole("button", { name: "Borrar" }));
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(push).toHaveBeenCalledTimes(1);
+    const url = push.mock.calls[0][0] as string;
+    expect(pathOf(url)).toBe("/map");
+    expect(parsedParams(url)).toEqual({});
+  });
 });
 
 // docs/specs/motion.md (Key MOTION, Approved), MOTION-21: the phone search

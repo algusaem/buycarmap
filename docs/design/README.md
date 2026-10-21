@@ -66,6 +66,9 @@ beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, 
 - `F3-buscador-donde.dc.html`, `F3-buscador-coche.dc.html`, `F3-buscador-precio.dc.html` — the map
   with each search pill segment open (Dónde, Coche, Precio) on desktop; on the phone, the map with
   the search row and the «Buscar» sheet it opens.
+- `F3-mapa-tu-ubicacion.dc.html`, `F3-buscador-tu-ubicacion.dc.html` — the map centred on the user's
+  position, with «Tu ubicación · 50 km» in the pill and the phone row and the 50 km zone drawn
+  around it; and the «Dónde» popover and the phone «Buscar» sheet with «Tu ubicación» as the place.
 - `F0-estado-cargando.dc.html`, `F0-estado-sin-resultados.dc.html`,
   `F0-estado-error-busqueda.dc.html`, `F0-estado-mapa-no-disponible.dc.html` — the map loading,
   with no results, with a failed search and in a browser without WebGL.

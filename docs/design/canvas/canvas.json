@@ -51,7 +51,7 @@
       "y": 3180
     },
     "UIKit.dc.html": {
-      "h": 20056,
+      "h": 20216,
       "page": "kit",
       "title": "UI Kit",
       "w": 1970,
@@ -226,6 +226,22 @@
       "x": 2050,
       "y": 6360
     },
+    "F3-mapa-tu-ubicacion.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · tu ubicación",
+      "w": 1970,
+      "x": 4100,
+      "y": 4240
+    },
+    "F3-buscador-tu-ubicacion.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · buscador: Dónde con tu ubicación",
+      "w": 1970,
+      "x": 4100,
+      "y": 5300
+    },
     "F5-guardados-coche.dc.html": {
       "h": 900,
       "page": "r3",
@@ -384,6 +400,8 @@
     "F3-buscador-donde.dc.html",
     "F3-buscador-coche.dc.html",
     "F3-buscador-precio.dc.html",
+    "F3-mapa-tu-ubicacion.dc.html",
+    "F3-buscador-tu-ubicacion.dc.html",
     "F0-estado-cargando.dc.html",
     "F0-estado-sin-resultados.dc.html",
     "F0-estado-error-busqueda.dc.html",

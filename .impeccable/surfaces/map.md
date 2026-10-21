@@ -3,8 +3,9 @@
 The map and search screen of BuyCarMap 2.0. Behaviour is specified in
 [`docs/specs/redesign-map.md`](../../docs/specs/redesign-map.md) (MAPUI); the visual source of truth is
 the design in [`docs/design/`](../../docs/design/README.md) (boards `R3-mapa-detalle`, `F3-buscador-*`,
-`F3-mapa-filtros`, `F3-mapa-crear-alerta`, `F3-crear-alerta-estados`, the `F0-estado-*` states and the
-UI Kit). Where this brief and the design disagree, the design wins and this brief is corrected.
+`F3-mapa-filtros`, `F3-mapa-tu-ubicacion`, `F3-mapa-crear-alerta`, `F3-crear-alerta-estados`, the
+`F0-estado-*` states and the UI Kit). Where this brief and the design disagree, the design wins and
+this brief is corrected.
 
 ## 1. Job and audience
 
@@ -59,6 +60,9 @@ UI Kit). Where this brief and the design disagree, the design wins and this brie
   «Quitar filtros», or, at 200 km or with no place, over «Quita algún filtro» with «Quitar filtros»,
   which keeps the place and the radius. With no filter: over «Amplía el radio» with «Ampliar a … km»,
   and at 200 km «Toda España».
+- Dónde: a chosen place («Madrid · 50 km»), «Toda España», or «Tu ubicación · 50 km» while the
+  browser's position stands in for a place — the radius choices work around it, «Toda España»
+  clears it (and, in the phone «Buscar» sheet, the field's × «Borrar texto»), and the map draws and frames its zone (MAP-32, MAP-34).
 - Error: «¿Se ha caído algo?» with «Reintentar» inline; the route's own error page reads «Error al
   cargar el mapa. Vuelve a intentarlo más tarde.» with «Reintentar».
 - Pins: one price per point; cars sharing a point (city-level coordinates from coches.net and

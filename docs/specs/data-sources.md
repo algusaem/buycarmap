@@ -2,7 +2,7 @@
 
 Key: SRC
 Status: Implemented
-Last updated: 2026-10-13
+Last updated: 2026-10-21
 
 ---
 
@@ -164,7 +164,7 @@ section_type=organic_search_results
 order_by=most_relevance | newest
 ```
 
-`order_by` switches to `newest` when the user has picked no location — relevance
+`order_by` switches to `newest` when the search carries no location — neither a chosen place nor the browser's position — relevance
 against an arbitrary map centre is not meaningful, recency is.
 
 **A caller can override that choice.** `buildWallapopQuery` takes an `orderBy`
@@ -194,7 +194,9 @@ sources translate away from it, not towards it.
 
 Even when the user has chosen no location. The fallback chain is **explicit
 location → browser geolocation → Spain centre (40.0, −3.5)**, with
-`distance_in_km` defaulting to 1000 when there is no explicit location.
+`distance_in_km` defaulting to 1000 when there is neither a location nor a
+position. The browser's position is rounded to two decimals and searched within
+the filters' radius, 50 km by default ([map-and-search.md](map-and-search.md), MAP-28, MAP-35).
 
 This is not a nicety. Without coordinates Wallapop geo-filters by the caller's IP
 — and in production that is a Vercel server in the United States, so a Spanish

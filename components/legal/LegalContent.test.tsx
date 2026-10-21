@@ -56,7 +56,7 @@ describe("LegalContent", () => {
   it("FRONT-27: renders the English privacy copy from the spec's worked example word for word (amended 2026-10-12, LOOK — redesign-foundation.md)", () => {
     renderWithI18n(<LegalContent doc="privacy" />);
 
-    expect(screen.getByText("Last updated: 14 October 2026")).toBeInTheDocument();
+    expect(screen.getByText("Last updated: 21 October 2026")).toBeInTheDocument();
 
     // FRONT-27 amendment: the Cookies section no longer names the theme —
     // there is nothing left to keep in local storage.
@@ -68,7 +68,7 @@ describe("LegalContent", () => {
 
     expect(
       screen.getByText(
-        "If you create an account, we store your email address, an optional display name, and a securely hashed password — never the password itself. If you sign in with Google, we store the identifier of that account, the sign-in tokens it issues and the address of your profile picture. If you turn on two-factor authentication, we store its secret in encrypted form. We also store the listings you save as favourites, the alerts you create with their search criteria (including any location you chose), your language so emails reach you in it, and, for each signed-in session, the IP address and browser it came from, so you can see and end your sessions from your account page. We do not keep a history of your searches. To protect the service from abuse, we process your IP address and, when you sign in or ask for a password reset, your email address.",
+        "If you create an account, we store your email address, an optional display name, and a securely hashed password — never the password itself. If you sign in with Google, we store the identifier of that account, the sign-in tokens it issues and the address of your profile picture. If you turn on two-factor authentication, we store its secret in encrypted form. We also store the listings you save as favourites, the alerts you create with their search criteria (including any location you chose or, if the search started from “Your location”, your approximate location), your language so emails reach you in it, and, for each signed-in session, the IP address and browser it came from, so you can see and end your sessions from your account page. We do not keep a history of your searches. To protect the service from abuse, we process your IP address and, when you sign in or ask for a password reset, your email address.",
       ),
     ).toBeInTheDocument();
 
@@ -113,10 +113,10 @@ describe("LegalContent", () => {
     ).legal.privacy;
     const bodyByHeading = Object.fromEntries(privacy.sections.map((s) => [s.heading, s.body]));
 
-    expect(privacy.updated).toBe("14 de octubre de 2026");
+    expect(privacy.updated).toBe("21 de octubre de 2026");
 
     expect(bodyByHeading["Información que recopilamos"]).toBe(
-      "Si creas una cuenta, guardamos tu correo electrónico, un nombre opcional y una contraseña cifrada de forma segura, nunca la contraseña en sí. Si inicias sesión con Google, guardamos el identificador de esa cuenta, los tokens de inicio de sesión que emite y la dirección de tu foto de perfil. Si activas la verificación en dos pasos, guardamos su clave secreta cifrada. También guardamos los anuncios que marcas como favoritos, las alertas que creas con sus criterios de búsqueda (incluida la ubicación que elijas), tu idioma para enviarte los correos en él y, por cada sesión iniciada, la dirección IP y el navegador desde los que se abrió, para que puedas ver y cerrar tus sesiones desde la página de tu cuenta. No guardamos un historial de tus búsquedas. Para proteger el servicio frente a abusos, tratamos tu dirección IP y, cuando inicias sesión o pides restablecer la contraseña, tu correo electrónico.",
+      "Si creas una cuenta, guardamos tu correo electrónico, un nombre opcional y una contraseña cifrada de forma segura, nunca la contraseña en sí. Si inicias sesión con Google, guardamos el identificador de esa cuenta, los tokens de inicio de sesión que emite y la dirección de tu foto de perfil. Si activas la verificación en dos pasos, guardamos su clave secreta cifrada. También guardamos los anuncios que marcas como favoritos, las alertas que creas con sus criterios de búsqueda (incluida la ubicación que elijas o, si la búsqueda partía de «Tu ubicación», tu ubicación aproximada), tu idioma para enviarte los correos en él y, por cada sesión iniciada, la dirección IP y el navegador desde los que se abrió, para que puedas ver y cerrar tus sesiones desde la página de tu cuenta. No guardamos un historial de tus búsquedas. Para proteger el servicio frente a abusos, tratamos tu dirección IP y, cuando inicias sesión o pides restablecer la contraseña, tu correo electrónico.",
     );
 
     expect(bodyByHeading["Cómo usamos tus datos"]).toBe(

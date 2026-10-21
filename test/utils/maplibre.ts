@@ -209,6 +209,18 @@ export class MapLibreMap extends Evented {
     return this;
   }
 
+  /**
+   * Nothing is laid out, so there is no camera to compute: the stand-in
+   * answers as MapLibre does when bounds cannot be fitted, with none. A test
+   * that needs one stubs the answer.
+   */
+  cameraForBounds(
+    _bounds: [LngLatTuple, LngLatTuple],
+    _options?: object,
+  ): { center: LngLatTuple; zoom: number } | undefined {
+    return undefined;
+  }
+
   jumpTo(options: { center?: LngLatTuple; zoom?: number }): this {
     if (options.center) this.center = options.center;
     if (options.zoom !== undefined) this.zoom = options.zoom;

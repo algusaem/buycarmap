@@ -103,20 +103,22 @@ clears `model`: a model only means anything under its brand.
 nothing produces it any more (MAPUI-18 in [`specs/redesign-map.md`](specs/redesign-map.md), ENTRY-6
 in [`specs/redesign-entry.md`](specs/redesign-entry.md)). It never saves it in an alert (MAPUI-42).
 
-On mount the hook fires an immediate search using the Spain-centre fallback,
-starts browser geolocation, and re-searches when geolocation resolves — but only
-if the user has not meanwhile picked an explicit location. Doing it in that order
-is what stops the first paint waiting on a permission prompt.
+On mount the hook fires an immediate search, then — unless the URL already carries a place — asks
+the browser for its position and, if one arrives before the user makes a location choice, searches
+again centred on it; the rules are [`specs/map-and-search.md`](specs/map-and-search.md) MAP-14 and
+MAP-28 to MAP-31.
 
-**URL state (FRONT-13, ADR 0016).** The filters, the selected location and the
-radius live in the URL through [nuqs](https://nuqs.dev) parsers in
+**URL state (FRONT-13, ADR 0016).** The filters, the selected location and —
+only with a place — the radius live in the URL through [nuqs](https://nuqs.dev) parsers
+([`specs/map-and-search.md`](specs/map-and-search.md) MAP-33) in
 [`lib/search/url-state.ts`](../lib/search/url-state.ts) (`searchParsers`,
 plus `filtersToUrlState`/`urlStateToFilters` to convert to and from the hook's
 `FilterValues`), so a filtered search deep-links and a reload restores it. The
 URL is only written at the same points the hook already calls `search()` —
 the debounce firing, an explicit `triggerSearch()`, or `apply()` («Ver coches», a quick
 filter, «Borrar»; `clearAll()` goes through it) — each as
-a pushed history entry, not on every keystroke; a `useEffect` watching the
+a pushed history entry when the URL changes
+([`specs/map-and-search.md`](specs/map-and-search.md) MAP-38), not on every keystroke; a `useEffect` watching the
 nuqs-backed state resyncs and re-searches when the URL changes from outside
 the hook's own writes (Back/Forward, or a hand-edited URL). The root layout
 wraps the app in `nuqs/adapters/next/app`'s `NuqsAdapter`; a component test

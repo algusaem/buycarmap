@@ -2,7 +2,7 @@
 
 Key: MAPUI
 Status: Implemented
-Last updated: 2026-10-19
+Last updated: 2026-10-21
 
 ---
 
@@ -58,7 +58,9 @@ Search pill and its popovers (desktop)
   polite status. Choosing one applies that place with the radius in force (50 km by default) (amends
   MAP-20).
 - [x] MAPUI-4 · component — «Dónde» offers the radii 10, 25, 50, 100 and 200 km as a single-choice
-  group. Choosing one applies it. The group is disabled while no place is chosen (keeps MAP-13).
+  group. Choosing one applies it. The group is disabled while no place is chosen (keeps MAP-13) —
+  the browser's position counts as a place here: the group is enabled around it (amended
+  2026-10-21, MAP-32, issue #117).
 - [x] MAPUI-5 · component — «Toda España» clears the place. The search becomes the national one, and
   the results heading counts the national results (MAPUI-33).
 - [x] MAPUI-6 · component — In «Coche», typing lists under «Marcas» every brand whose name, or a word
@@ -146,7 +148,8 @@ Phone
 
 - [x] MAPUI-20 · component — At phone width the map shows, floating over it, two rows:
   - the search summary: «Madrid · 50 km» over «Cualquier marca · hasta 20.000 €», or «Toda España»
-    with no place;
+    with no place — «Tu ubicación · 50 km» while the browser's position stands in (amended
+    2026-10-21, MAP-32, issue #117);
   - beside it, the violet filters button, then the filters row.
 
   — not floating any more: a solid `surface` band across the top holds the summary with a 44px round
@@ -160,6 +163,10 @@ Phone
   «Precio»:
   - nothing chosen there reaches the URL, the summary or the search until «Ver coches», which applies
     it all and closes the sheet;
+  - «Dónde» left untouched keeps the place in force, or the browser's position standing in for one;
+    only a place picked there, «Borrar», or the field's × on «Tu ubicación» changes it; the × on a
+    chosen place only clears the typed text (amended
+    2026-10-21, MAP-28, MAP-32, issue #117);
   - closing the sheet discards it. It closes by dragging its handle down, a press outside it, Escape
     or its visually hidden «Cerrar», with no visible «×» (amended 2026-10-15, owner: no visible close on phone sheets; drag down to close; SAVED-37 to SAVED-41,
     redesign-saved.md);
@@ -234,7 +241,8 @@ States
   - «Quitar filtros», which clears every filter, those of MAPUI-18 and the `?q=` text included, and
     keeps the place and the radius.
 
-  At 200 km or with no place there is no widen button: the headline reads «¿Nada por aquí?» over
+  At 200 km or with no place there is no widen button (the browser's position counts as a place, so
+  it is offered around it — amended 2026-10-21, MAP-32, issue #117): the headline reads «¿Nada por aquí?» over
   «Quita algún filtro», «Quitar filtros» is the primary action, and neither the line nor the map's
   status pill names a radius. The status pill reads «Ningún coche en 50 km» (amends MAP-15 and
   FRONT-14; keeps MAP-19). (amended 2026-10-13)
@@ -807,6 +815,8 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
   - No place, no filter and no car: the failed-search state of MAPUI-32 shows, «Reintentar»
     included, with no copy of its own, since a national search with nothing narrowing it comes back
     empty only when the sources failed (decision, 2026-10-13).
+  - While the browser's position stands in, it behaves as a place: radius enabled, widen offered,
+    its zone drawn ([map-and-search.md](map-and-search.md), MAP-32, MAP-34).
 - **Results.**
   - A filtered page can come back empty while more pages remain. The search keeps fetching (MAP-19,
     kept), and the empty state shows only once the sources are exhausted.
@@ -850,7 +860,7 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
   (MAPUI-38), their phone header and their tab bar (MAPUI-52 to MAPUI-54). The phone car sheet on
   saved cars and the phone alert page are designed (`F5-guardados-coche`, `F6-alerta`,
   `F6-alerta-estados`) but are built in F5 and F6.
-- Using the browser's location to centre the first search (issue #117).
+- Using the browser's location to centre the first search (issue #117). (Amended 2026-10-21: now in scope in [map-and-search.md](map-and-search.md), MAP-28 to MAP-39.)
 - Recency on coches.net and Milanuncios. «Publicado» reaches Wallapop only, as `timeFilter` does today
   (`docs/specs/data-sources.md`).
 - A photo carousel on the card (its own issue).

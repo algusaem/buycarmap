@@ -2,8 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import type { SelectedLocation } from "@/interfaces/location";
+import type { SelectedLocation, ShownPlace } from "@/interfaces/location";
 import type { GeocodingResult } from "@/lib/geo/nominatim";
+import { isSelectedLocation } from "@/lib/search/shown-place";
 import { useLocationSearch } from "@/lib/hooks/useLocationSearch";
 import { useOptionNavigation } from "@/lib/hooks/useOptionNavigation";
 import { ComboOption, Listbox, ListStatus, NoMatch, SearchField } from "./Combobox";
@@ -79,8 +80,14 @@ function PlaceListbox({
 }
 
 interface PlaceFieldProps {
-  value: SelectedLocation | null;
+  value: ShownPlace | null;
   onSelect: (location: SelectedLocation) => void;
+  /**
+   * The × «Borrar texto» pressed while the field reads «Tu ubicación»: the
+   * «BUSCAR» sheet clears the position with it (MAP-32). Left out, the × only
+   * clears the text, as in the desktop popover.
+   */
+  onClearPosition?: () => void;
 }
 
 interface PlaceStatusState {
@@ -106,11 +113,12 @@ function placeStatusText(
   return "";
 }
 
-export function PlaceField({ value, onSelect }: PlaceFieldProps) {
+export function PlaceField({ value, onSelect, onClearPosition }: PlaceFieldProps) {
   const t = useTranslations();
   const locale = useLocale();
   const { query, setQuery, results, isSearching, failed, clear } = useLocationSearch(locale);
-  // While editing, the field shows what is typed; otherwise the chosen place.
+  // While editing, the field shows what is typed; otherwise the chosen place,
+  // or «Tu ubicación» while the browser's position stands in for one (MAP-32).
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -161,6 +169,7 @@ export function PlaceField({ value, onSelect }: PlaceFieldProps) {
           setQuery(text);
         }}
         onClearText={() => {
+          if (!editing && value && !isSelectedLocation(value)) onClearPosition?.();
           setEditing(true);
           navigation.reset();
           clear();

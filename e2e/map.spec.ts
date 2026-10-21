@@ -1322,6 +1322,51 @@ test.describe("MAPUI-62: the map lowers the middle results sheet", () => {
   });
 });
 
+// docs/specs/map-and-search.md (MAP-39): on a phone, with the browser's
+// position granted, the 50 km circle around it is centred in the strip of map
+// above the results sheet at middle. `es-ES` renders the page in Spanish, the
+// default locale (FRONT-9).
+test.describe("MAP-39: the circle around the position on a phone", () => {
+  test.use({
+    geolocation: { latitude: 40.4168, longitude: -3.7038 },
+    permissions: ["geolocation"],
+    locale: "es-ES",
+  });
+
+  test("MAP-39: on a phone, the circle around the position is centred in the strip above the results sheet", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only results sheet");
+    const { sheet } = await openPhoneMap(page);
+    const mapEl = page.locator('[data-map="listings"]');
+    // Measured at 390×844: the map runs from y 138 to 844 (706px) and the
+    // sheet at middle starts at y 260, 122px into the map — the spec's layout.
+    expectWithin((await box(mapEl)).height, 706, "map height");
+    expectWithin((await box(sheet)).y - (await box(mapEl)).y, 122, "sheet top in the map");
+    // The «Dónde» segment, with the U+00A0 the messages put before «km».
+    await expect(page.getByRole("button", { name: /Tu ubicación · 50\skm/ }).first()).toBeVisible();
+
+    // Hand-derived. The position is rounded to (40.42, −3.70) (MAP-35); 50 km
+    // is 0.4497° of latitude (39.9703 to 40.8697) and 0.5906° of longitude
+    // either side, so the circle spans 1.1813° across. Padding 56 leaves
+    // 390 − 112 = 278px for it: 278 = 1.1813 / 360 × 512 × 2^z gives z ≈ 7.37
+    // (the 594px left upright is not the limit), 512 × 2^7.37 / 2π ≈ 13,500px
+    // per Mercator radian. The circle's Mercator middle is 40.4215; the offset
+    // 122 / 2 − 706 / 2 = −292px puts it 292px above the map's centre, so the
+    // centre is 292 / 13,500 ≈ 0.0216 Mercator radians south of it, latitude
+    // 39.4703. Within 0.03° (about 9px at this zoom) of that, on the −3.70 meridian; the
+    // circle merely framed (no offset) would read 40.4215.
+    await expect
+      .poll(async () => {
+        const center = (await mapEl.getAttribute("data-map-center")) ?? "";
+        const [lat, lng] = center.split(",").map(Number);
+        return Math.abs(lat - 39.4703) < 0.03 && Math.abs(lng + 3.7) < 0.002;
+      })
+      .toBe(true);
+  });
+});
+
 // docs/specs/motion.md (Key MOTION, Approved), MOTION-16: the desktop
 // «Filtros» dropdown, opened and closed with a pointer — Escape removes it
 // within two animation frames, and a reopen closed by an outside click is

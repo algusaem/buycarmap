@@ -2,7 +2,7 @@
 
 Key: CORE
 Status: Implemented
-Last updated: 2026-09-28
+Last updated: 2026-10-21
 
 ---
 
@@ -131,7 +131,11 @@ callers await the same request instead of triggering several permission prompts.
 The promise resolves on *failure* as well as success — a denied prompt has to
 unblock every waiter, because the search that depends on it must still run with
 the country-wide fallback. A rejecting promise would have left the first search
-hanging behind a permission dialog the user ignored.
+hanging behind a permission dialog the user ignored. The position it exposes
+is rounded to two decimals before anything reads it
+([map-and-search.md](map-and-search.md), MAP-35). Once the user makes a
+location choice, the module forgets the position and asks the browser no
+more until the page is reloaded ([map-and-search.md](map-and-search.md), MAP-37).
 
 ### Unknown cities fall back to the caller's coordinates, not to a guess
 

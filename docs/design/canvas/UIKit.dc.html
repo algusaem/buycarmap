@@ -203,6 +203,27 @@ input::placeholder{color:#A3A0A6;opacity:1}
       </div>
     </div>
     <span style="font-size: 13px; color: #A3A0A6">Móvil en el mapa: una banda surface arriba, sin borde, padding 20px 0 12px y 16px entre filas · el resumen de 56px (padding 0 18px, lupa, el sitio y debajo coche · precio) y, a 12px, «Filtros» redondo de 44 (borde line, icono de ajustes de 18), con la insignia violet del número en su esquina y aria-label «Filtros», descrito como «4 filtros activos»; tocar el resumen abre la hoja BUSCAR · debajo, los filtros rápidos de 34px, a 8px, que se deslizan en horizontal con 16px a cada lado · el mapa empieza bajo la banda, nunca detrás · Móvil en la landing: tarjeta apilada con Dónde y Coche, y Buscar de 52px a todo el ancho</span>
+    <div style="display: flex; gap: 48px; align-items: flex-start; flex-wrap: wrap">
+      <div style="display: flex; flex-direction: column; gap: 14px; align-items: flex-start">
+        <form style="height: 48px; box-sizing: border-box; display: flex; align-items: center; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 5px 5px 5px 8px">
+          <button type="button" style="all: unset; cursor: pointer; padding: 0 22px; display: flex; flex-direction: column; border-right: 1px solid #2A2A2E; white-space: nowrap"><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Dónde</span><span style="font-size: 15px; font-weight: 600">Tu ubicación · 50 km</span></button>
+          <button type="button" style="all: unset; cursor: pointer; padding: 0 22px; display: flex; flex-direction: column; border-right: 1px solid #2A2A2E; white-space: nowrap"><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Coche</span><span style="font-size: 15px; font-weight: 600; color: #A3A0A6">Marca o modelo…</span></button>
+          <button type="button" style="all: unset; cursor: pointer; padding: 0 22px; display: flex; flex-direction: column; white-space: nowrap"><span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A3A0A6">Precio</span><span style="font-size: 15px; font-weight: 600">Hasta 20.000 €</span></button>
+          <button type="submit" aria-label="Buscar" style="all: unset; cursor: pointer; width: 36px; height: 36px; border-radius: 999px; background: #C6FF3D; color: #0F0F10; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+        </form>
+        <span style="font-size: 13px; color: #A3A0A6">Tu ubicación · la posición del navegador hace de sitio: radio activo, «Toda España» la quita; nunca va a la URL</span>
+      </div>
+      <div style="width: 390px; display: flex; flex-direction: column; gap: 14px">
+        <div style="box-sizing: border-box; padding: 20px 16px 12px; background: #18181B; display: flex; align-items: center; gap: 12px">
+          <button type="button" style="all: unset; cursor: pointer; flex: 1; min-width: 0; box-sizing: border-box; height: 56px; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; padding: 0 18px; display: flex; align-items: center; gap: 12px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span style="flex: 1; display: flex; flex-direction: column"><strong style="font-size: 14px">Tu ubicación · 50 km</strong><span style="font-size: 12px; color: #A3A0A6">Cualquier marca · hasta 20.000 €</span></span>
+          </button>
+          <button type="button" aria-haspopup="dialog" aria-label="Filtros" style="all: unset; cursor: pointer; position: relative; flex-shrink: 0; box-sizing: border-box; width: 44px; height: 44px; border: 1px solid #2A2A2E; border-radius: 999px; background: transparent; color: #F4F2F0; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
+        </div>
+        <span style="font-size: 13px; color: #A3A0A6">Tu ubicación · la posición del navegador hace de sitio: radio activo; la quitan «Toda España» o la × de «Borrar texto» en la hoja BUSCAR; nunca va a la URL</span>
+      </div>
+    </div>
   </section>
 
   <section style="display: flex; flex-direction: column; gap: 24px">
@@ -442,7 +463,7 @@ input::placeholder{color:#A3A0A6;opacity:1}
         </div>
       </article>
     </div>
-    <span style="font-size: 13px; color: #A3A0A6">Mapa oscuro mínimo (calles pequeñas de 3px en map-road-minor) · pin normal, activo (lime, sin borde, halo de 7px) y de grupo · zona de alerta (borde lime 2px al 80%, relleno lime al 10%, punto de centro de 7) · píldora de estado arriba a la izquierda, a 18px · zoom abajo a la derecha (42px, a 18 y 24) · vista previa al pulsar un pin: foto de 170, cerrar y fuente sobre scrim, Guardar y Ver anuncio</span>
+    <span style="font-size: 13px; color: #A3A0A6">Mapa oscuro mínimo (calles pequeñas de 3px en map-road-minor) · pin normal, activo (lime, sin borde, halo de 7px) y de grupo · zona (borde lime 2px al 80%, relleno lime al 10%, punto de centro de 7): marca la zona de una alerta y, en /map, los 50 km alrededor de la posición del navegador («Tu ubicación»), con el mapa encuadrado en ella · píldora de estado arriba a la izquierda, a 18px · zoom abajo a la derecha (42px, a 18 y 24) · vista previa al pulsar un pin: foto de 170, cerrar y fuente sobre scrim, Guardar y Ver anuncio</span>
     <div style="display: flex; gap: 32px; align-items: flex-start">
       <div style="display: flex; flex-direction: column; background: #18181B; border: 1px solid #2A2A2E; border-radius: 999px; overflow: hidden">
         <button type="button" aria-label="Acercar" style="all: unset; cursor: pointer; width: 42px; height: 42px; text-align: center; font-size: 20px; border-bottom: 1px solid #2A2A2E">+</button>

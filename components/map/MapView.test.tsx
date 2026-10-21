@@ -36,6 +36,20 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => ({ toString: () => currentQuery() }),
 }));
 vi.mock("@/server/alerts/actions", () => ({ createAlert: vi.fn() }));
+// The browser's position (MAP-28 to MAP-35, issue #117): null by default, so
+// every case above behaves exactly as before (jsdom's own geolocation denial).
+// A case that sets `geo.position` stands in for a resolved, granted fix; one
+// that replaces `geo.wait` controls when the browser answers.
+const geo = vi.hoisted(() => ({
+  position: null as { lat: number; lng: number } | null,
+  wait: Promise.resolve(),
+}));
+vi.mock("@/lib/geo/user-location", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/geo/user-location")>()),
+  initUserGeolocation: vi.fn(),
+  waitForGeolocation: () => geo.wait,
+  getUserLocation: () => geo.position,
+}));
 // SiteHeader's language control calls this action; Sentry is what
 // LanguageControl reports a failure to. Neither is what these tests are about.
 vi.mock("@/server/locale/actions", () => ({
@@ -93,6 +107,7 @@ vi.mock("@/components/map/ListingsMap", () => ({
     desktop,
     onActivate,
     onMapInteract,
+    zone,
   }: {
     listings: { id: string }[];
     activeId?: string;
@@ -100,12 +115,15 @@ vi.mock("@/components/map/ListingsMap", () => ({
     onActivate?: (id: string) => void;
     // MAPUI-62: the map itself was tapped or a pan started — never a pin tap.
     onMapInteract?: () => void;
+    // MAP-34: the 50 km circle around the browser's position, standing in for a place.
+    zone?: { lat: number; lng: number; radiusKm: number };
   }) => (
     <div
       data-testid="listings-map"
       data-count={listings.length}
       data-active-id={activeId ?? ""}
       data-desktop={String(desktop)}
+      data-zone={zone ? JSON.stringify(zone) : ""}
     >
       {onMapInteract && (
         <button type="button" onClick={() => onMapInteract()}>
@@ -1297,5 +1315,323 @@ describe("MapView — the phone dialogs give the focus back to their opener", ()
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(opener).toHaveFocus();
+  });
+});
+
+// docs/specs/map-and-search.md (MAP-28 to MAP-35, issue #117): while the
+// browser's position stands in for a chosen place, it reads «Your location»
+// everywhere a place would, the radius choices work around it, and it never
+// shows up as a deep-linked place would (no URL, MAP-33, covered at the hook
+// level in lib/hooks/useSearchFilters.test.tsx). The desktop pill only
+// renders through the map header's portalled slot (useMapHeaderSlot), as the
+// MAPUI-39 and MAPUI-63 cases above already set up by hand.
+describe("MapView with the browser's position (issue #117)", () => {
+  let headerSlot: HTMLDivElement;
+
+  beforeEach(() => {
+    geo.position = { lat: 40.42, lng: -3.7 };
+    headerSlot = document.createElement("div");
+    document.body.appendChild(headerSlot);
+    setMapHeaderSlot(headerSlot);
+  });
+
+  afterEach(() => {
+    headerSlot.remove();
+    geo.wait = Promise.resolve();
+    geo.position = null;
+  });
+
+  it("MAP-32: the pill and the phone summary read «Your location · 50 km»", async () => {
+    server.use(...onlyWallapop);
+    const { container } = renderWithI18n(<MapView initialQuery="case-geo-pill" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    expect(
+      within(headerSlot).getByRole("button", { name: "Your location · 50 km" }),
+    ).toBeInTheDocument();
+    // The phone search summary sits in the DOM at every width (jsdom ignores
+    // the `lg:hidden` breakpoint that hides it at desktop width), so it is
+    // reachable without stubbing the phone width.
+    expect(
+      within(container).getByRole("button", { name: /Your location · 50 km/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("MAP-32: the radius choices are enabled and apply around the position", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-geo-radius" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(
+      within(headerSlot).getByRole("button", { name: "Your location · 50 km" }),
+    );
+    const choice = await screen.findByRole("radio", { name: "100 km" });
+    expect(choice).not.toBeDisabled();
+
+    await userEvent.click(choice);
+
+    await waitFor(() =>
+      expect(lastSearch()).toMatchObject({ latitude: 40.42, longitude: -3.7, distanceInKm: 100 }),
+    );
+  });
+
+  it("MAP-32: an empty result offers the wider radius", async () => {
+    server.use(...nothingFound);
+    renderWithI18n(<MapView initialQuery="case-geo-empty" />, { locale: "es" });
+
+    // Same widen button MAPUI-31 asserts for a chosen place at 50 km.
+    expect(await screen.findByRole("button", { name: "Ampliar a 100 km" })).toBeInTheDocument();
+  });
+
+  it("MAP-32: «All of Spain» clears the position and runs the national search", async () => {
+    server.use(...onlyWallapop);
+    const { container } = renderWithI18n(<MapView initialQuery="case-geo-all-spain" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(
+      within(headerSlot).getByRole("button", { name: "Your location · 50 km" }),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "All of Spain" }));
+
+    await waitFor(() => expect(lastSearch()?.latitude).toBeUndefined());
+    expect(lastSearch()?.longitude).toBeUndefined();
+    expect(within(container).queryByText(/Your location/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("listings-map")).toHaveAttribute("data-zone", "");
+  });
+
+  it("MAP-28: on a phone, «Ver coches» with «Dónde» untouched keeps the position", async () => {
+    stubPhoneWidth();
+    server.use(...onlyWallapop);
+    const { container } = renderWithI18n(<MapView initialQuery="case-geo-phone-show-cars" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(within(container).getByRole("button", { name: /Your location · 50 km/ }));
+    const dialog = await screen.findByRole("dialog", { name: "SEARCH" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Show cars" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(lastSearch()).toMatchObject({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 });
+    expect(
+      within(container).getByRole("button", { name: /Your location · 50 km/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("MAP-28: on a phone, a «BUSCAR» sheet opened before the position arrives keeps it on «Ver coches»", async () => {
+    stubPhoneWidth();
+    let answer: () => void = () => undefined;
+    geo.wait = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    server.use(...onlyWallapop);
+    const { container } = renderWithI18n(<MapView initialQuery="case-geo-phone-sheet-early" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    // The browser has not answered yet: the national search, and a sheet with no place.
+    await userEvent.click(within(container).getByRole("button", { name: /All of Spain/ }));
+    const dialog = await screen.findByRole("dialog", { name: "SEARCH" });
+
+    await act(async () => {
+      answer();
+      await geo.wait;
+    });
+    await waitFor(() =>
+      expect(lastSearch()).toMatchObject({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 }),
+    );
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Show cars" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(lastSearch()).toMatchObject({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 });
+    expect(
+      within(container).getByRole("button", { name: /Your location · 50 km/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("MAP-32: on a phone, the place field's × clears «Your location»", async () => {
+    stubPhoneWidth();
+    server.use(...onlyWallapop);
+    const { container } = renderWithI18n(<MapView initialQuery="case-geo-phone-clear-text" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(within(container).getByRole("button", { name: /Your location · 50 km/ }));
+    const dialog = await screen.findByRole("dialog", { name: "SEARCH" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Clear text" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Show cars" }));
+
+    await waitFor(() => expect(lastSearch()?.latitude).toBeUndefined());
+    expect(lastSearch()?.longitude).toBeUndefined();
+    expect(screen.getByTestId("listings-map")).toHaveAttribute("data-zone", "");
+  });
+
+  it("MAP-34: the map is handed the 50 km zone around the position", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-geo-zone" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    expect(screen.getByTestId("listings-map")).toHaveAttribute(
+      "data-zone",
+      JSON.stringify({ lat: 40.42, lng: -3.7, radiusKm: 50 }),
+    );
+  });
+
+  it("MAP-34: the map is still handed the 50 km zone around the position with no results", async () => {
+    server.use(...nothingFound);
+    renderWithI18n(<MapView initialQuery="case-geo-zone-empty" />, { locale: "es" });
+    await screen.findByText("¿Nada por aquí?");
+
+    expect(screen.getByTestId("listings-map")).toHaveAttribute(
+      "data-zone",
+      JSON.stringify({ lat: 40.42, lng: -3.7, radiusKm: 50 }),
+    );
+  });
+
+  it("MAP-34: a place chosen in the URL hands the map no zone", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-geo-zone-url-place" />, { searchParams: MADRID });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    expect(screen.getByTestId("listings-map")).toHaveAttribute("data-zone", "");
+  });
+
+  it("MAP-36: «Crear alerta» from the position stores no place name and its summary ends with «50 km»", async () => {
+    useSession.mockReturnValue({ data: { user: { id: "user-ada" } }, isPending: false });
+    vi.mocked(createAlert).mockResolvedValue({ ok: true, value: { created: true } });
+    server.use(...onlyWallapop);
+    const { container } = renderWithI18n(<MapView initialQuery="case-geo-alert" />, {
+      locale: "es",
+      searchParams: "make=Toyota&model=Corolla",
+    });
+    // No Toyota Corolla among the fixture listings: the search, not its results, is what matters.
+    await waitFor(() =>
+      expect(lastSearch()).toMatchObject({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 }),
+    );
+
+    // The results area's own «Crear alerta», which opens it as a dialog at every width in jsdom.
+    await userEvent.click(within(container).getByRole("button", { name: "Crear alerta" }));
+    const dialog = await screen.findByRole("dialog", { name: "CREAR ALERTA" });
+
+    // getByText reads the no-break space before «km» as a plain one, so the
+    // exact text is asserted on the element it finds.
+    const summary = within(dialog).getByText("Toyota Corolla · Cualquier precio · 50 km");
+    expect(summary.textContent).toBe("Toyota Corolla · Cualquier precio · 50 km");
+    expect(within(dialog).getByRole("textbox", { name: /nombre/i })).toHaveValue("Toyota Corolla");
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Crear alerta" }));
+
+    await waitFor(() => expect(createAlert).toHaveBeenCalledTimes(1));
+    const [criteria, label, placeName] = vi.mocked(createAlert).mock.calls[0];
+    expect(criteria).toMatchObject({
+      brand: "Toyota",
+      model: "Corolla",
+      latitude: 40.42,
+      longitude: -3.7,
+      distanceInKm: 50,
+    });
+    expect(label).toBe("Toyota Corolla");
+    expect(placeName).toBeUndefined();
+  });
+
+  it("MAP-36: «Crear alerta» with a chosen place still stores its name", async () => {
+    useSession.mockReturnValue({ data: { user: { id: "user-ada" } }, isPending: false });
+    vi.mocked(createAlert).mockResolvedValue({ ok: true, value: { created: true } });
+    server.use(...onlyWallapop);
+    const { container } = renderWithI18n(<MapView initialQuery="case-place-alert" />, {
+      locale: "es",
+      searchParams: MADRID,
+    });
+    await waitFor(() =>
+      expect(lastSearch()).toMatchObject({ latitude: 40.4168, longitude: -3.7038 }),
+    );
+
+    await userEvent.click(within(container).getByRole("button", { name: "Crear alerta" }));
+    const dialog = await screen.findByRole("dialog", { name: "CREAR ALERTA" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Crear alerta" }));
+
+    await waitFor(() => expect(createAlert).toHaveBeenCalledTimes(1));
+    const [, , placeName] = vi.mocked(createAlert).mock.calls[0];
+    expect(placeName).toBe("Madrid");
+  });
+
+  it("MAP-31: «Toda España» chosen before the position arrives keeps the pill on «Toda España»", async () => {
+    let answer: () => void = () => undefined;
+    geo.wait = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    vi.mocked(searchListings).mockClear();
+    server.use(...onlyWallapop);
+    const { container } = renderWithI18n(<MapView initialQuery="case-geo-all-spain-pending" />, {
+      locale: "es",
+    });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    // The browser has not answered yet: the pill has no place, and reads its placeholder.
+    await userEvent.click(
+      within(headerSlot).getByRole("button", { name: "Ciudad o código postal…" }),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Toda España" }));
+
+    await act(async () => {
+      answer();
+      await geo.wait;
+    });
+
+    const withLatitude = vi
+      .mocked(searchListings)
+      .mock.calls.filter(([input]) => input.latitude !== undefined);
+    expect(withLatitude).toEqual([]);
+    expect(
+      within(headerSlot).getByRole("button", { name: "Ciudad o código postal…" }),
+    ).toBeInTheDocument();
+    expect(within(headerSlot).queryByText(/Tu ubicación/)).not.toBeInTheDocument();
+    // The phone summary keeps its no-place reading too: «Toda España» over the car and price.
+    expect(
+      within(container).getByRole("button", { name: /Toda España.*Cualquier marca/ }),
+    ).toBeInTheDocument();
+    expect(within(container).queryByText(/Tu ubicación/)).not.toBeInTheDocument();
+  });
+
+  it("MAP-32: on the desktop, the place field's × on «Your location» only clears the text", async () => {
+    vi.mocked(searchListings).mockClear();
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-geo-desktop-clear-text" />);
+    await screen.findByText(WALLAPOP_TITLE);
+    await waitFor(() =>
+      expect(lastSearch()).toMatchObject({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 }),
+    );
+
+    const searchesBefore = vi.mocked(searchListings).mock.calls.length;
+
+    await userEvent.click(
+      within(headerSlot).getByRole("button", { name: "Your location · 50 km" }),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Clear text" }));
+    await userEvent.keyboard("{Escape}");
+
+    // The × sent no national search: every search after it still has the position.
+    const withoutLatitude = vi
+      .mocked(searchListings)
+      .mock.calls.slice(searchesBefore)
+      .filter(([input]) => input.latitude === undefined);
+    expect(withoutLatitude).toEqual([]);
+    const pill = within(headerSlot).getByRole("button", { name: "Your location · 50 km" });
+    expect(pill.textContent).toContain("Your location · 50 km");
+  });
+
+  it("MAP-34: the zone follows the radius chosen around the position", async () => {
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-geo-zone-radius" />);
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(
+      within(headerSlot).getByRole("button", { name: "Your location · 50 km" }),
+    );
+    await userEvent.click(await screen.findByRole("radio", { name: "100 km" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("listings-map")).toHaveAttribute(
+        "data-zone",
+        JSON.stringify({ lat: 40.42, lng: -3.7, radiusKm: 100 }),
+      ),
+    );
   });
 });

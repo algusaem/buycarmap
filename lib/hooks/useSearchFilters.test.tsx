@@ -4,25 +4,41 @@ import { NuqsTestingAdapter, withNuqsTestingAdapter } from "nuqs/adapters/testin
 import type { SearchInput } from "@/lib/search/schema";
 
 // Geolocation is a dependency of the mount sequence, not a thing these tests
-// are about — except MAP-14, which needs to control exactly when it resolves.
-// The default is an already-resolved promise, which is what jsdom produces
-// anyway (permission denied), so every other test behaves as before.
+// are about — except the geolocation cases (MAP-14, MAP-28 to MAP-37), which
+// control when it resolves and what it answers. The default is an
+// already-resolved promise, which is what jsdom produces anyway (permission
+// denied), so every other test behaves as before.
 const geo = vi.hoisted(() => ({
   resolve: () => {
-    /* placeholder default: MAP-14 replaces this with the real resolve function */
+    /* placeholder default: a geolocation case replaces this with the real resolve function */
   },
   promise: Promise.resolve(),
+  // The browser's position (MAP-28 to MAP-35): null until a test sets it,
+  // mirroring jsdom's own denial-by-default.
+  position: null as { lat: number; lng: number } | null,
+  init: vi.fn(),
+  // MAP-37: what the real dismissUserLocation does — the position is gone for
+  // the rest of the document, a remount included.
+  dismissed: false,
+  dismiss: vi.fn(() => {
+    geo.dismissed = true;
+  }),
 }));
 vi.mock("@/lib/geo/user-location", () => ({
-  initUserGeolocation: vi.fn(),
+  initUserGeolocation: geo.init,
   waitForGeolocation: () => geo.promise,
-  getUserLocation: () => null,
+  getUserLocation: () => (geo.dismissed ? null : geo.position),
+  dismissUserLocation: geo.dismiss,
 }));
 
 import { useSearchFilters } from "./useSearchFilters";
 
 beforeEach(() => {
   geo.promise = Promise.resolve();
+  geo.position = null;
+  geo.init.mockClear();
+  geo.dismissed = false;
+  geo.dismiss.mockClear();
 });
 afterEach(() => vi.useRealTimers());
 
@@ -247,6 +263,7 @@ describe("useSearchFilters geolocation", () => {
     // user ignores would otherwise leave the map empty indefinitely.
     expect(search).toHaveBeenCalledTimes(1);
 
+    geo.position = { lat: 40.42, lng: -3.7 };
     await act(async () => {
       geo.resolve();
       await geo.promise;
@@ -255,6 +272,10 @@ describe("useSearchFilters geolocation", () => {
     // Re-run so the source clients pick up the now-known position, which is
     // what stops Wallapop geo-filtering by the server's IP.
     expect(search).toHaveBeenCalledTimes(2);
+    // MAP-28: the re-run is centred on the position, at the 50 km default.
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 }),
+    );
   });
 
   it("MAP-14: does not override a location the user chose first", async () => {
@@ -282,6 +303,431 @@ describe("useSearchFilters geolocation", () => {
     // silently drag the map back to wherever the user physically is.
     const withUserPosition = search.mock.calls.filter(([params]) => params.latitude !== 41.3874);
     expect(withUserPosition).toEqual([]);
+  });
+
+  it("MAP-28: centres the search on the browser's position with a 50 km radius, keeping the filters chosen meanwhile", async () => {
+    vi.useFakeTimers();
+    pendingGeolocation();
+    const search = vi.fn<(params: SearchInput) => void>();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+
+    // The model is chosen while the browser's prompt is still unanswered.
+    act(() => result.current.setModel("Corolla"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    geo.position = { lat: 40.42, lng: -3.7 };
+    await act(async () => {
+      geo.resolve();
+      await geo.promise;
+    });
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        latitude: 40.42,
+        longitude: -3.7,
+        distanceInKm: 50,
+        model: "Corolla",
+      }),
+    );
+  });
+
+  it("MAP-29: with no position, the national first search is the only search", async () => {
+    pendingGeolocation();
+    const search = vi.fn<(params: SearchInput) => void>();
+    renderHook(() => useSearchFilters(search, () => ""), { wrapper: withNuqsTestingAdapter() });
+
+    // The browser answers with no position (denied, or timed out).
+    await act(async () => {
+      geo.resolve();
+      await geo.promise;
+    });
+
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        latitude: undefined,
+        longitude: undefined,
+        distanceInKm: undefined,
+      }),
+    );
+  });
+
+  it("MAP-30: a location in the URL means the browser is never asked and only the deep-linked search runs", async () => {
+    // Even though the browser would answer with a position, a deep-linked
+    // place is a decision already made (MAP-30) — the prompt must never fire.
+    geo.position = { lat: 40.42, lng: -3.7 };
+    const search = vi.fn<(params: SearchInput) => void>();
+    renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({
+        searchParams: "?lat=41.3874&lng=2.1686&placeId=1&locationName=Barcelona",
+      }),
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(geo.init).not.toHaveBeenCalled();
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 41.3874, longitude: 2.1686, distanceInKm: 50 }),
+    );
+  });
+
+  it("MAP-37: a place in the URL at load also ends the position for the visit", async () => {
+    geo.position = { lat: 40.42, lng: -3.7 };
+    const search = vi.fn<(params: SearchInput) => void>();
+    renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({
+        searchParams: "?lat=41.3874&lng=2.1686&placeId=1&locationName=Barcelona",
+      }),
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(geo.dismiss).toHaveBeenCalledTimes(1);
+    expect(geo.init).not.toHaveBeenCalled();
+  });
+
+  it("MAP-31: «Toda España» chosen while the position is pending wins over a position arriving later", async () => {
+    pendingGeolocation();
+    const search = vi.fn<(params: SearchInput) => void>();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+
+    act(() => result.current.applyInput({}, null));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    geo.position = { lat: 40.42, lng: -3.7 };
+    await act(async () => {
+      geo.resolve();
+      await geo.promise;
+    });
+
+    const withLatitude = search.mock.calls.filter(([params]) => params.latitude !== undefined);
+    expect(withLatitude).toEqual([]);
+    expect(result.current.selectedLocation).toBeUndefined();
+    expect(result.current.browserPosition).toBeUndefined();
+  });
+
+  it("MAP-14: a place chosen while the position is pending wins over a position arriving later", async () => {
+    vi.useFakeTimers();
+    pendingGeolocation();
+    const search = vi.fn<(params: SearchInput) => void>();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+
+    act(() =>
+      result.current.setLocation({
+        placeId: 1,
+        displayName: "Barcelona",
+        lat: 41.3874,
+        lng: 2.1686,
+      }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    geo.position = { lat: 40.42, lng: -3.7 };
+    await act(async () => {
+      geo.resolve();
+      await geo.promise;
+    });
+
+    const withPosition = search.mock.calls.filter(([params]) => params.latitude === 40.42);
+    expect(withPosition).toEqual([]);
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 41.3874, longitude: 2.1686 }),
+    );
+    expect(result.current.browserPosition).toBeUndefined();
+  });
+
+  it("MAP-32: «Quitar filtros» keeps the position standing in", async () => {
+    vi.useFakeTimers();
+    geo.position = { lat: 40.42, lng: -3.7 };
+    const search = vi.fn<(params: SearchInput) => void>();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => result.current.setModel("Corolla"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+    act(() => result.current.clearAll());
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        latitude: 40.42,
+        longitude: -3.7,
+        distanceInKm: 50,
+        model: undefined,
+      }),
+    );
+  });
+
+  it("MAP-13: once the position stands in for a location, the chosen radius is sent around it", async () => {
+    vi.useFakeTimers();
+    geo.position = { lat: 40.42, lng: -3.7 };
+    const search = vi.fn<(params: SearchInput) => void>();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => result.current.setDistanceInKm(100));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, longitude: -3.7, distanceInKm: 100 }),
+    );
+  });
+
+  it("MAP-33: the position and a radius chosen around it never reach the URL", async () => {
+    vi.useFakeTimers();
+    geo.position = { lat: 40.42, lng: -3.7 };
+    const search = vi.fn<(params: SearchInput) => void>();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 }),
+    );
+
+    // A radius alone around the position changes nothing the URL records, so
+    // it pushes no history entry. The MAP-11 pause, then the URL update it
+    // would queue.
+    act(() => result.current.setDistanceInKm(100));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, distanceInKm: 100 }),
+    );
+    expect(onUrlUpdate).not.toHaveBeenCalled();
+
+    // With a filter the URL does record, it is written...
+    act(() => result.current.setDistanceInKm(25));
+    act(() => result.current.setModel("Corolla"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, distanceInKm: 25, model: "Corolla" }),
+    );
+    expect(onUrlUpdate).toHaveBeenCalled();
+    expect(onUrlUpdate.mock.lastCall?.[0].searchParams.get("model")).toBe("Corolla");
+    // ...yet neither the position nor the radius around it ever reached it.
+    for (const call of onUrlUpdate.mock.calls) {
+      const qs = call[0].searchParams.toString();
+      expect(qs).not.toMatch(/lat=|lng=|placeId=|locationName=|radius=/);
+    }
+  });
+
+  it("MAP-33: with no place, the radius never reaches the URL", async () => {
+    vi.useFakeTimers();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(vi.fn(), () => ""), {
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // No place and no position: the radius alone is not written. The MAP-11
+    // pause, then the URL update it would queue.
+    act(() => result.current.setDistanceInKm(25));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    for (const call of onUrlUpdate.mock.calls) {
+      expect(call[0].searchParams.toString()).not.toContain("radius=");
+    }
+
+    // A place chosen at that radius carries it.
+    act(() =>
+      result.current.setLocation({
+        placeId: 1,
+        displayName: "Barcelona",
+        lat: 41.3874,
+        lng: 2.1686,
+      }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(onUrlUpdate.mock.lastCall?.[0].searchParams.toString()).toContain("radius=25");
+  });
+
+  it("MAP-33: a radius left over after «Toda España» is not written", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn<(params: SearchInput) => void>();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() =>
+      result.current.setLocation({
+        placeId: 1,
+        displayName: "Madrid",
+        lat: 40.4168,
+        lng: -3.7038,
+      }),
+    );
+    act(() => result.current.setDistanceInKm(100));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(onUrlUpdate.mock.lastCall?.[0].searchParams.toString()).toContain("radius=100");
+
+    act(() => result.current.setLocation(undefined));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    const qs = onUrlUpdate.mock.lastCall?.[0].searchParams.toString();
+    expect(qs).not.toMatch(/radius=|lat=|lng=|placeId=|locationName=/);
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        latitude: undefined,
+        longitude: undefined,
+        distanceInKm: undefined,
+      }),
+    );
+  });
+
+  it("MAP-38: a search whose URL would not change adds no history entry", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn<(params: SearchInput) => void>();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      // With memory, as the browser keeps the URL a commit wrote.
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate, hasMemory: true }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // A filter committed with «Buscar»: one URL update.
+    act(() => result.current.updateInput({ maxPrice: 20000 }));
+    act(() => result.current.triggerSearch());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    expect(onUrlUpdate).toHaveBeenCalledTimes(1);
+    search.mockClear();
+
+    // «Buscar» again with nothing changed: it searches, the URL stays put.
+    act(() => result.current.triggerSearch());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ maxPrice: 20000 }));
+    expect(onUrlUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("MAP-31: «Toda España» from the desktop popover while the position is pending wins", async () => {
+    vi.useFakeTimers();
+    pendingGeolocation();
+    const search = vi.fn<(params: SearchInput) => void>();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+
+    act(() => result.current.setLocation(undefined));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    geo.position = { lat: 40.42, lng: -3.7 };
+    await act(async () => {
+      geo.resolve();
+      await geo.promise;
+    });
+
+    const withLatitude = search.mock.calls.filter(([params]) => params.latitude !== undefined);
+    expect(withLatitude).toEqual([]);
+    expect(result.current.browserPosition).toBeUndefined();
+  });
+
+  it("MAP-28: the geolocated search is at 50 km even if the URL carried another radius", async () => {
+    pendingGeolocation();
+    const search = vi.fn<(params: SearchInput) => void>();
+    // An old link's radius with no place: it meant nothing without one.
+    renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?radius=100" }),
+    });
+
+    geo.position = { lat: 40.42, lng: -3.7 };
+    await act(async () => {
+      geo.resolve();
+      await geo.promise;
+    });
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 }),
+    );
+  });
+
+  it("MAP-37: after a place is chosen, remounting the map does not bring the position back", async () => {
+    geo.position = { lat: 40.42, lng: -3.7 };
+    const first = renderHook(() => useSearchFilters(vi.fn(), () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(first.result.current.browserPosition).toEqual({ lat: 40.42, lng: -3.7 });
+
+    act(() =>
+      first.result.current.setLocation({
+        placeId: 1,
+        displayName: "Barcelona",
+        lat: 41.3874,
+        lng: 2.1686,
+      }),
+    );
+    expect(geo.dismiss).toHaveBeenCalledTimes(1);
+    first.unmount();
+
+    // Back on /map through a nav link: a remount in the same document, no reload.
+    const search = vi.fn<(params: SearchInput) => void>();
+    const second = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const withLatitude = search.mock.calls.filter(([params]) => params.latitude !== undefined);
+    expect(withLatitude).toEqual([]);
+    expect(second.result.current.browserPosition).toBeUndefined();
   });
 
   it("MAP-21: does not re-search after unmounting before geolocation resolves", async () => {
@@ -720,5 +1166,134 @@ describe("useSearchFilters Back/Forward", () => {
     expect(search).not.toHaveBeenCalled();
     expect(onUrlUpdate).not.toHaveBeenCalled();
     expect(result.current.maxPrice).toBe(10000);
+  });
+
+  it("MAP-37: once a place is chosen, Back to an entry with no place runs the national search, not the position", async () => {
+    geo.position = { lat: 40.42, lng: -3.7 };
+    const { search, result, goTo } = renderWithUrl("", () => "");
+    await act(async () => {
+      await Promise.resolve();
+    });
+    // The geolocated search ran: the position stood in for a place.
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 }),
+    );
+
+    act(() =>
+      result.current.setLocation({
+        placeId: 1,
+        displayName: "Barcelona",
+        lat: 41.3874,
+        lng: 2.1686,
+      }),
+    );
+    // The MAP-11 pause, then the URL update it queues.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 41.3874, longitude: 2.1686 }),
+    );
+
+    // Back to the entry with no place («?» rather than "", so the adapter
+    // sees a new URL to restore, as the browser's Back would hand it one).
+    await goTo("?");
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        latitude: undefined,
+        longitude: undefined,
+        distanceInKm: undefined,
+      }),
+    );
+    expect(result.current.browserPosition).toBeUndefined();
+  });
+
+  it("MAP-37: with no choice made, Back to an entry with no place keeps the position", async () => {
+    geo.position = { lat: 40.42, lng: -3.7 };
+    const { search, onUrlUpdate, result, goTo } = renderWithUrl("", () => "");
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 }),
+    );
+
+    act(() => result.current.setModel("Corolla"));
+    // The MAP-11 pause, then the URL update it queues.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(onUrlUpdate.mock.lastCall?.[0].queryString).toBe("?model=Corolla");
+
+    await goTo("?");
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        latitude: 40.42,
+        longitude: -3.7,
+        distanceInKm: 50,
+        model: undefined,
+      }),
+    );
+    expect(result.current.browserPosition).toEqual({ lat: 40.42, lng: -3.7 });
+  });
+
+  it("MAP-28: an old ?radius= restored by Back while the position stands in is searched at 50 km", async () => {
+    geo.position = { lat: 40.42, lng: -3.7 };
+    // Without the «?», so restoring «?radius=200» below is a new string the
+    // adapter reads, as the browser's Back would hand it one.
+    const { search, result, goTo } = renderWithUrl("radius=200", () => "");
+    await act(async () => {
+      await Promise.resolve();
+    });
+    // The geolocated search: the default radius, not the link's 200 km.
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, longitude: -3.7, distanceInKm: 50 }),
+    );
+
+    act(() => result.current.setBrand("Toyota"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    await goTo("?radius=200");
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 40.42, distanceInKm: 50, brand: undefined }),
+    );
+    expect(result.current.distanceInKm).toBe(50);
+  });
+
+  it("MAP-37: Forward to an entry with a place drops the position", async () => {
+    geo.position = { lat: 40.42, lng: -3.7 };
+    const { search, result, goTo } = renderWithUrl("", () => "");
+    await act(async () => {
+      await Promise.resolve();
+    });
+    // The position stands in for a place.
+    expect(result.current.browserPosition).toEqual({ lat: 40.42, lng: -3.7 });
+
+    act(() =>
+      result.current.setLocation({
+        placeId: 1,
+        displayName: "Barcelona",
+        lat: 41.3874,
+        lng: 2.1686,
+      }),
+    );
+    // The MAP-11 pause, then the URL update it queues.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    // Back to the entry with no place, then Forward to the Barcelona one.
+    await goTo("?");
+    await goTo("?lat=41.3874&lng=2.1686&placeId=1&locationName=Barcelona");
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: 41.3874, longitude: 2.1686, distanceInKm: 50 }),
+    );
+    expect(result.current.browserPosition).toBeUndefined();
   });
 });

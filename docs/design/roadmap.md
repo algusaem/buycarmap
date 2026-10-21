@@ -95,7 +95,7 @@ error pages' criteria in `core-frontend.md` (FRONT), through `redesign-pages.md`
 
 Each of these was left out of the phases on purpose and gets its own spec when picked up:
 
-- [#117](https://github.com/algusaem/buycarmap/issues/117) Centre the map and the search on the user's geolocation
+- [#117](https://github.com/algusaem/buycarmap/issues/117) Centre the map and the search on the user's geolocation — built 2026-10-21 (map-and-search.md MAP-28 to MAP-39)
 - [#118](https://github.com/algusaem/buycarmap/issues/118) Render the redesign's exact dark minimal map style
 - [#119](https://github.com/algusaem/buycarmap/issues/119) Photo carousel on listing cards
 - [#120](https://github.com/algusaem/buycarmap/issues/120) «Search as I move the map»
