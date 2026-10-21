@@ -21,9 +21,8 @@ import { describe, expect, it } from "vitest";
 // "file missing" for a file that exists — noted in the report rather than
 // silently working around it.
 const ROOT = process.cwd();
-// A Windows checkout with core.autocrlf has CRLF files; the checks match LF.
 const read = (path: string): string =>
-  readFileSync(join(ROOT, path), "utf8").replaceAll("\r\n", "\n");
+  readFileSync(join(ROOT, path), "utf8").replace(/\r\n/g, "\n");
 const exists = (path: string): boolean => existsSync(join(ROOT, path));
 const readIfExists = (path: string): string => (exists(path) ? read(path) : "");
 
