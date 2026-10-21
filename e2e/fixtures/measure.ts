@@ -198,7 +198,7 @@ export async function expectEachCarOnce(cards: Locator, heartLabels: readonly st
 }
 
 /** One frame of `watchFrames`: page time since the press (or click), the element's opacity and vertical translation. */
-export interface WatchedFrame {
+interface WatchedFrame {
   at: number;
   opacity: number;
   offsetY: number;
@@ -275,4 +275,18 @@ export async function framesWatched(watch: JSHandle<WatchedFrames>): Promise<Wat
     )
     .toBe(true);
   return watch.jsonValue();
+}
+
+/**
+ * How long a watched fade-out lasted, on the page's clock: from the first
+ * frame drawn below full opacity to the first frame the element was gone.
+ * The element must have faded (one frame below full opacity) and left.
+ * Measured from the fade rather than from the press, so the time a busy
+ * runner takes to handle the press does not count against the fade.
+ */
+export function fadeOutLength({ frames, goneAt }: WatchedFrames): number {
+  const fadeStart = frames.find((frame) => frame.opacity < 1);
+  expect(fadeStart, "drawn below full opacity while it fades").toBeDefined();
+  expect(goneAt, "gone from the page").toBeGreaterThanOrEqual(0);
+  return goneAt - (fadeStart?.at ?? 0);
 }
