@@ -196,3 +196,97 @@ export async function expectEachCarOnce(cards: Locator, heartLabels: readonly st
   );
   expect(heartsPerCard.every((count) => count === 1)).toBe(true);
 }
+
+/** One frame of `watchFrames`: page time since the press (or click), the element's opacity and vertical translation. */
+interface WatchedFrame {
+  at: number;
+  opacity: number;
+  offsetY: number;
+}
+
+/** What `watchFrames` saw: every frame drawn from the press on while the element was on the page, and when it left. */
+export interface WatchedFrames {
+  frames: WatchedFrame[];
+  /** Page time from the press to the first frame the element was off the page; -1 while it is still on it. */
+  goneAt: number;
+}
+
+/**
+ * Watches `target` on every animation frame from the next pointer press on
+ * the page, on the page's own clock: its opacity and how far down it is
+ * translated on each frame it is still on the page, and when it leaves. It
+ * stops when the element leaves or 1s after the press. A control that acts
+ * on its click rather than its press is watched from the click
+ * (`startOn: "click"`), so the frames between the two do not count.
+ *
+ * An animation read after the press with Playwright raced it: the round trip
+ * back to the page could outlast a 180ms fade on a loaded runner, so a fading
+ * card was already gone and a springing sheet already in place. Every frame
+ * is recorded inside the page instead, from the press itself. Call this
+ * before the press, then read the result with `framesWatched`.
+ */
+export async function watchFrames(
+  target: Locator,
+  { startOn = "pointerdown" }: { startOn?: "pointerdown" | "click" } = {},
+): Promise<JSHandle<WatchedFrames>> {
+  const element = await target.elementHandle();
+  expect(element, "the watched element is on the page").not.toBeNull();
+  return target.page().evaluateHandle(
+    ([watched, startEvent]) => {
+      const state: WatchedFrames = { frames: [], goneAt: -1 };
+      let pressedAt = -1;
+      document.addEventListener(
+        startEvent,
+        () => {
+          pressedAt = performance.now();
+        },
+        { capture: true, once: true },
+      );
+      const frame = () => {
+        if (pressedAt >= 0) {
+          const at = performance.now() - pressedAt;
+          if (!watched?.isConnected) {
+            state.goneAt = at;
+            return;
+          }
+          const style = getComputedStyle(watched);
+          state.frames.push({
+            at,
+            opacity: Number.parseFloat(style.opacity),
+            offsetY: new DOMMatrix(style.transform).m42,
+          });
+          if (at > 1000) return;
+        }
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+      return state;
+    },
+    [element, startOn] as const,
+  );
+}
+
+/** The frames `watchFrames` recorded, once it has stopped: the element left, or 1s passed since the press. */
+export async function framesWatched(watch: JSHandle<WatchedFrames>): Promise<WatchedFrames> {
+  await expect
+    .poll(
+      () => watch.evaluate((state) => state.goneAt >= 0 || (state.frames.at(-1)?.at ?? 0) > 1000),
+      { message: "the watch stopped" },
+    )
+    .toBe(true);
+  return watch.jsonValue();
+}
+
+/**
+ * How long a watched fade-out lasted, on the page's clock: from the first
+ * frame drawn below full opacity to the first frame the element was gone.
+ * The element must have faded (one frame below full opacity) and left.
+ * Measured from the fade rather than from the press, so the time a busy
+ * runner takes to handle the press does not count against the fade.
+ */
+export function fadeOutLength({ frames, goneAt }: WatchedFrames): number {
+  const fadeStart = frames.find((frame) => frame.opacity < 1);
+  expect(fadeStart, "drawn below full opacity while it fades").toBeDefined();
+  expect(goneAt, "gone from the page").toBeGreaterThanOrEqual(0);
+  return goneAt - (fadeStart?.at ?? 0);
+}

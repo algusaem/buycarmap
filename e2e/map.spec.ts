@@ -5,9 +5,12 @@ import { dragDown, sheetOffset } from "./fixtures/drag";
 import {
   box,
   expectWithin,
+  fadeOutLength,
+  framesWatched,
   hitArea,
   scrollableAncestor,
   settledBox,
+  watchFrames,
   wholly,
 } from "./fixtures/measure";
 import { mockListingSources } from "./fixtures/network";
@@ -208,7 +211,7 @@ test.describe("MAPUI-39: Crear alerta replaces the pin preview", () => {
       await page.goto("/map");
       // The pin is the button itself, its price as its text (MapLibre marker).
       await page.getByRole("button", { name: /Audi A3 2\.0 TDI/ }).click();
-      const preview = page.getByRole("article", { name: /vista previa del coche|car preview/i });
+      const preview = page.getByRole("dialog", { name: "Audi A3 2.0 TDI", exact: true });
       await expect(preview).toBeVisible();
 
       await page
@@ -1004,16 +1007,6 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     return { full, middle, peeked };
   }
 
-  /** Waits two animation frames: what a jump needs to be drawn, and far too little for a spring. */
-  async function twoFrames(page: Page) {
-    await page.evaluate(
-      () =>
-        new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        }),
-    );
-  }
-
   test("MAPUI-59: dragging the header up from middle by 0.6·(M−F), released slowly, ends at full, and Enter on the handle then goes to peeked", async ({
     page,
     isMobile,
@@ -1175,20 +1168,31 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     isMobile,
   }) => {
     test.skip(!isMobile, "phone-only results sheet drag");
+    // Every frame from the click on is read inside the page (watchFrames): a
+    // read two frames later from here raced the spring on a loaded runner.
+    // The second frame after the click is the one that counts, as before:
+    // the first is what a jump needs to be drawn.
     await page.emulateMedia({ reducedMotion: "reduce" });
     const reduced = await openPhoneMap(page);
+    const reducedWatch = await watchFrames(reduced.sheet, { startOn: "click" });
     await reduced.handle.click();
     await expect(reduced.sheet).toHaveAttribute("data-position", "full");
-    await twoFrames(page);
-    expect(await sheetOffset(reduced.sheet)).toBeLessThan(0.5);
+    const reducedFrames = (await framesWatched(reducedWatch)).frames;
+    expect(reducedFrames.length, "two frames drawn after the click").toBeGreaterThan(1);
+    // At once: from the second frame on, the sheet is in its place.
+    expect(Math.max(...reducedFrames.slice(1).map((frame) => frame.offsetY))).toBeLessThan(0.5);
 
     // The control: with motion allowed the same press springs.
     await page.emulateMedia({ reducedMotion: "no-preference" });
     const animated = await openPhoneMap(page);
+    const animatedWatch = await watchFrames(animated.sheet, { startOn: "click" });
     await animated.handle.click();
     await expect(animated.sheet).toHaveAttribute("data-position", "full");
-    await twoFrames(page);
-    expect(await sheetOffset(animated.sheet)).toBeGreaterThan(0.5);
+    const animatedFrames = (await framesWatched(animatedWatch)).frames;
+    expect(
+      animatedFrames[1]?.offsetY,
+      "still on its way two frames after the click",
+    ).toBeGreaterThan(0.5);
   });
 
   test("MAPUI-59: a drag that starts in the list does not move the sheet, not even mid-drag", async ({
@@ -1377,16 +1381,19 @@ test.describe("MOTION-16: the «Filtros» dropdown closes with Escape within two
     await filtersButton.click();
     await expect(dropdown).toBeVisible();
 
+    // Every frame after the press is read inside the page (watchFrames): a
+    // read two frames later from here raced the 180ms fade on a loaded runner.
+    const watch = await watchFrames(dropdown);
     // Outside the pill and the dropdown: the header band's padding.
     await page.mouse.click(20, 20);
-    await twoFrames(page);
 
-    const opacityNextFrame = await dropdown.evaluate((el) =>
-      Number.parseFloat(getComputedStyle(el).opacity),
-    );
-    expect(opacityNextFrame).toBeLessThan(1);
-
-    await expect(dropdown).not.toBeAttached({ timeout: 300 });
+    const watched = await framesWatched(watch);
+    expect(watched.frames.length, "still drawn on a frame after the press").toBeGreaterThan(0);
+    expect(
+      watched.frames[0]?.opacity,
+      "visible on the first frame after the press",
+    ).toBeGreaterThan(0);
+    expect(fadeOutLength(watched), "gone within 300ms of its fade starting").toBeLessThan(300);
   });
 });
 
@@ -1398,7 +1405,7 @@ test.describe("MOTION-16: the «Filtros» dropdown closes with Escape within two
 // jsdom. The cases that assert a callback, a re-render with new props or a
 // class stayed in components/map/ListingsMap.test.tsx against the stand-in.
 test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", () => {
-  const PREVIEW_NAME = /^(vista previa del coche|car preview)$/i;
+  const PREVIEW_NAME = /^(Audi A3 2\.0 TDI|BMW Serie 3 320d)$/;
   const CLOSE_NAME = /^(cerrar vista previa|close preview)$/i;
   const AUDI_PIN = /^Audi A3 2\.0 TDI, /;
   const BMW_PIN = /^BMW Serie 3 320d, /;
@@ -1424,7 +1431,7 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
       audi: pins.getByRole("button", { name: AUDI_PIN }),
       bmw: pins.getByRole("button", { name: BMW_PIN }),
       // Hidden elements included: a card fading out is still the preview.
-      preview: page.locator(".maplibregl-popup").getByRole("article", {
+      preview: page.locator(".maplibregl-popup").getByRole("dialog", {
         name: PREVIEW_NAME,
         includeHidden: true,
       }),
@@ -1668,14 +1675,14 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
     // Past the 180ms fade in, so the exit starts from a whole card.
     await page.waitForTimeout(300);
 
+    // Every frame after the press is read inside the page (watchFrames): a
+    // read two frames later from here raced the 180ms fade on a loaded runner.
+    const watch = await watchFrames(preview);
     await preview.getByRole("button", { name: CLOSE_NAME }).click();
-    await twoFrames(page);
 
-    const opacityNextFrame = await preview.evaluate((el) =>
-      Number.parseFloat(getComputedStyle(el).opacity),
-    );
-    expect(opacityNextFrame).toBeLessThan(1);
-    await expect(preview).toHaveCount(0, { timeout: 300 });
+    const watched = await framesWatched(watch);
+    expect(watched.frames.length, "still mounted on a frame after the press").toBeGreaterThan(0);
+    expect(fadeOutLength(watched), "removed within 300ms of its fade starting").toBeLessThan(300);
   });
 
   test("MAPUI-27: activating the pin of an open preview again closes it and leaves the pin inactive", async ({
@@ -1742,7 +1749,7 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
     const inserted = await page.evaluateHandle(() => {
       const state = { opacity: -1 };
       const observer = new MutationObserver(() => {
-        const card = document.querySelector(".maplibregl-popup article");
+        const card = document.querySelector('.maplibregl-popup [role="dialog"]');
         if (!card) return;
         state.opacity = Number.parseFloat(getComputedStyle(card).opacity);
         observer.disconnect();

@@ -22,20 +22,30 @@ import {
 // marketplace.
 //
 // Scenarios switch the payload set every route below answers with, via the
-// control endpoint `POST /__scenario { "scenario": "default" | "empty" }`:
+// control endpoint `POST /__scenario { "scenario": "default" | "empty" | "error" }`:
 // - "default" mirrors the old page.route() stubs' one-listing-per-source
 //   payload (e2e/fixtures/network.ts's mockListingSources).
 // - "empty" mirrors screenshots.spec.ts's old all-sources-empty override.
+// - "error" answers every source route with a 500, so all three sources fail
+//   and the search shows its error state (MAPUI-32) — the NVDA suite's
+//   search-error case (e2e-sr/map.nvda.spec.ts, A11Y-12).
 // e2e/global-setup.ts resets the scenario to "default" once the server is up,
 // so every run starts from "default".
 //
 // Single process shared by every Playwright worker (same as the `pnpm dev`
-// webServer entry), so only screenshots.spec.ts — the one file that ever asks
-// for a scenario other than "default" — switches it, and does so serially
+// webServer entry), so only screenshots.spec.ts — the one e2e file that ever
+// asks for a scenario other than "default" — switches it, and does so serially
 // with a reset back to "default" after each test (see its own header
-// comment). Every other spec only ever requests "default", so it never races.
+// comment). Every other e2e spec only ever requests "default", so it never
+// races. The NVDA suite asks for "error", but it runs on its own, with one
+// worker, and each of its other tests sets "default" first.
 
-type Scenario = "default" | "empty";
+type Scenario = "default" | "empty" | "error";
+const SCENARIOS: ReadonlySet<string> = new Set<Scenario>(["default", "empty", "error"]);
+
+function isScenario(value: unknown): value is Scenario {
+  return typeof value === "string" && SCENARIOS.has(value);
+}
 let currentScenario: Scenario = "default";
 
 function sourcesFor(scenario: Scenario) {
@@ -89,7 +99,7 @@ async function handleScenarioSwitch(
     return;
   }
 
-  if (body.scenario !== "default" && body.scenario !== "empty") {
+  if (!isScenario(body.scenario)) {
     sendJson(res, 400, { error: `unknown scenario "${String(body.scenario)}"` });
     return;
   }
@@ -103,6 +113,11 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "POST" && pathname === "/__scenario") {
     await handleScenarioSwitch(req, res);
+    return;
+  }
+
+  if (currentScenario === "error") {
+    sendJson(res, 500, { error: "e2e upstream scenario: error" });
     return;
   }
 

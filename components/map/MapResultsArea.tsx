@@ -157,6 +157,8 @@ export function MapResultsArea({
               radiusKm={distanceInKm}
               canWiden={widenTo !== undefined}
               hasFilters={hasFilters}
+              count={results.listings.length}
+              hasMore={results.hasMore}
             />
           )}
         </section>

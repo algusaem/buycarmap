@@ -220,15 +220,33 @@ interface StatusPillProps {
   radiusKm: number;
   canWiden: boolean;
   hasFilters: boolean;
+  /** The cars in the list, said once they are listed (MAPUI-68). */
+  count: number;
+  /** Whether more pages remain: «Más de N coches» rather than «N coches». */
+  hasMore: boolean;
 }
 
 /**
  * The pill at the desktop map's top left (MAPUI-30 to MAPUI-32): mounted
- * all along as the polite live region, drawn only while there is something to
- * say. On a phone the state shows in the results sheet instead.
+ * all along as the page's one polite live region, at both widths (MAPUI-68).
+ * From `lg` it is drawn while there is a state to show; on a phone the state
+ * shows in the results sheet instead, so the pill's text is there only for a
+ * screen reader. Once the cars are listed it says their count, which it never
+ * draws: the list's heading already shows it.
  */
-export function StatusPill({ state, radiusKm, canWiden, hasFilters }: StatusPillProps) {
+export function StatusPill({
+  state,
+  radiusKm,
+  canWiden,
+  hasFilters,
+  count,
+  hasMore,
+}: StatusPillProps) {
   const t = useTranslations();
+  const said =
+    state === "ready"
+      ? t(hasMore ? "mapStates.statusMore" : "mapStates.statusCount", { count })
+      : undefined;
   let text: string | undefined;
   if (state === "loading") text = t("mapStates.loading");
   if (state === "error") text = t("mapStates.statusError");
@@ -241,12 +259,25 @@ export function StatusPill({ state, radiusKm, canWiden, hasFilters }: StatusPill
         : t("mapStates.statusNone");
   }
 
-  return <MapPill text={text} live />;
+  return (
+    <div role="status" className={MAP_PILL_STRIP_CLASS}>
+      {text && (
+        <span className={cn("pointer-events-auto max-lg:sr-only", MAP_PILL_CLASS)}>{text}</span>
+      )}
+      {said && <span className="sr-only">{said}</span>}
+    </div>
+  );
 }
 
 /** The StatusPill's own shape over a map (StatusPill/README.md): one line, cut with «…» when it does not fit. */
 export const MAP_PILL_CLASS =
   "block w-fit max-w-full truncate rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-bold text-text";
+
+// The strip a pill sits in, at the map's top left. The same inset on the
+// right as on the left, so the pill inside, as wide as its text up to this
+// strip, is cut to one line with «…» rather than run past the map's edge. The
+// strip lets the map take the presses around the pill.
+const MAP_PILL_STRIP_CLASS = "pointer-events-none absolute top-4.5 right-4.5 left-4.5 z-1000";
 
 interface MapPillProps {
   /** What the pill says; none draws no pill. */
@@ -259,21 +290,14 @@ interface MapPillProps {
 
 /**
  * The pill at the top left of a desktop map (StatusPill/README.md), switching
- * from one text to the next at once: /map's status (StatusPill), the saved
+ * from one text to the next at once: the saved
  * map's title, which is a status only while it says there is nothing to show
  * (docs/specs/redesign-saved.md, SAVED-13), and the alert map's name and zone
  * (docs/specs/redesign-alerts.md, ALERTUI-15).
  */
 export function MapPill({ text, accent, live }: MapPillProps) {
   return (
-    <div
-      role={live ? "status" : undefined}
-      // The same inset on the right as on the left, so the pill inside, as wide
-      // as its text up to this strip, is cut to one line with «…» rather than
-      // run past the map's edge. The strip lets the map take the presses
-      // around the pill.
-      className="pointer-events-none absolute top-4.5 right-4.5 left-4.5 z-1000 max-lg:hidden"
-    >
+    <div role={live ? "status" : undefined} className={cn(MAP_PILL_STRIP_CLASS, "max-lg:hidden")}>
       {text && (
         <span className={cn("pointer-events-auto", MAP_PILL_CLASS)}>
           {text}

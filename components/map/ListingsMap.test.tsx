@@ -74,7 +74,7 @@ function renderMap(props: Partial<Parameters<typeof ListingsMap>[0]> = {}) {
 }
 
 function preview() {
-  return screen.queryByRole("article", { name: "Vista previa del coche" });
+  return screen.queryByRole("dialog", { name: "Audi A3 2.0 TDI" });
 }
 
 /** Where each marker went, as MapLibre takes a point: longitude first. */
@@ -413,7 +413,7 @@ describe("MAPUI-27: ListingsMap — the preview card", () => {
     renderWithI18n(<ListingsMap listings={[AUDI]} />, { locale: "es" });
 
     await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
-    const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+    const card = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
     expect(within(card).getByRole("img")).toBeInTheDocument();
     expect(within(card).getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
@@ -439,7 +439,7 @@ describe("MAPUI-27: ListingsMap — the preview card", () => {
 
     renderWithI18n(<ListingsMap listings={[a, b, c]} />, { locale: "es" });
     await userEvent.click(screen.getByRole("button", { name: "3 coches · desde 9.500 €" }));
-    await screen.findByRole("article", { name: "3 coches · desde 9.500 €" });
+    await screen.findByRole("dialog", { name: "3 coches · desde 9.500 €" });
 
     const titles = screen.getAllByText(/^Car [ABC]$/).map((node) => node.textContent);
     expect(titles).toEqual(["Car B", "Car C", "Car A"]);
@@ -449,7 +449,7 @@ describe("MAPUI-27: ListingsMap — the preview card", () => {
     renderMap();
 
     await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
-    const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+    const card = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
     const popup = card.closest(".maplibregl-popup");
     expect(popup).not.toBeNull();
@@ -461,7 +461,7 @@ describe("MAPUI-27: ListingsMap — the preview card", () => {
     screen.getByRole("button", { name: AUDI_PIN }).focus();
     await userEvent.keyboard("{Enter}");
 
-    const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+    const card = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
     expect(await axe(card)).toHaveNoViolations();
   });
@@ -474,8 +474,45 @@ describe("MAPUI-27: ListingsMap — the preview card", () => {
     await userEvent.keyboard("{Enter}");
 
     expect(
-      await screen.findByRole("article", { name: "2 coches · desde 9.500 €" }),
+      await screen.findByRole("dialog", { name: "2 coches · desde 9.500 €" }),
     ).toBeInTheDocument();
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-69, worked example «The preview's name»):
+// the preview is a non-modal dialog named by its car, or a grouped pin's by
+// the pin's own label.
+describe("MAPUI-69: the preview is a non-modal dialog named by its car", () => {
+  it("MAPUI-69: a single car's preview is a dialog named «Audi A3 2.0 TDI», with no aria-modal", async () => {
+    renderMap();
+
+    await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
+    expect(dialog).not.toHaveAttribute("aria-modal");
+    expect(screen.queryByRole("article", { name: "Vista previa del coche" })).toBeNull();
+  });
+
+  it("MAPUI-69: a grouped pin's preview is a dialog named by the pin's label", async () => {
+    // AUDI (14.500 €) and the Ibiza (9.500 €) share AUDI's point: «2 coches · desde 9.500 €».
+    const cheaper = makeListing({ id: "wallapop-3", title: "Seat Ibiza", price: 9500 });
+    renderWithI18n(<ListingsMap listings={[AUDI, cheaper]} />, { locale: "es" });
+
+    await userEvent.click(screen.getByRole("button", { name: "2 coches · desde 9.500 €" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "2 coches · desde 9.500 €" }),
+    ).toBeInTheDocument();
+  });
+
+  it("MAPUI-69: the focus moving into the preview lands inside the dialog named by its car", async () => {
+    renderMap();
+
+    screen.getByRole("button", { name: AUDI_PIN }).focus();
+    await userEvent.keyboard("{Enter}");
+
+    const dialog = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
   });
 });
 
@@ -514,7 +551,7 @@ describe("MAPLIBRE-6: ListingsMap — the preview opens above its pin and pans i
     renderMap();
 
     await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
-    await screen.findByRole("article", { name: "Vista previa del coche" });
+    await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
     const popup = addTo.mock.contexts[0] as Popup;
     expect(popup.options).toMatchObject({ anchor: "bottom", offset: 36 });
@@ -528,7 +565,7 @@ describe("MAPLIBRE-6: ListingsMap — the preview opens above its pin and pans i
     renderMap();
 
     await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
-    await screen.findByRole("article", { name: "Vista previa del coche" });
+    await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
     expect(panBy).toHaveBeenCalledTimes(1);
     expect(panBy).toHaveBeenCalledWith([0, -316], { duration: 250 });
@@ -543,7 +580,7 @@ describe("MAPLIBRE-6: ListingsMap — the preview opens above its pin and pans i
 
     screen.getByRole("button", { name: AUDI_PIN }).focus();
     await userEvent.keyboard("{Enter}");
-    await screen.findByRole("article", { name: "Vista previa del coche" });
+    await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
     expect(panBy).toHaveBeenCalledWith([0, -316], { animate: false });
     panBy.mockRestore();
@@ -557,7 +594,7 @@ describe("MAPLIBRE-6: ListingsMap — the preview opens above its pin and pans i
     renderMap();
 
     await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
-    await screen.findByRole("article", { name: "Vista previa del coche" });
+    await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
     expect(panBy).not.toHaveBeenCalled();
     panBy.mockRestore();
@@ -583,7 +620,7 @@ describe("MAPUI-27: ListingsMap — opening the preview from the keyboard", () =
       screen.getByRole("button", { name: AUDI_PIN }).focus();
       await userEvent.keyboard(keys);
 
-      const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+      const card = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
       expect(within(card).getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
       expect(onActivate).toHaveBeenCalledWith("wallapop-1");
       await waitFor(() =>
@@ -599,7 +636,7 @@ describe("MAPUI-27: ListingsMap — closing the preview", () => {
     const pin = screen.getByRole("button", { name: AUDI_PIN });
     pin.focus();
     await userEvent.keyboard("{Enter}");
-    await screen.findByRole("article", { name: "Vista previa del coche" });
+    await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
     return { pin, onPreviewClose };
   }
 
@@ -663,7 +700,7 @@ describe("MAPUI-27: ListingsMap — closing the preview", () => {
 
   it("MAPUI-27: a press inside the preview leaves it open", async () => {
     const { onPreviewClose } = await openAudi();
-    const card = screen.getByRole("article", { name: "Vista previa del coche" });
+    const card = screen.getByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
     fireEvent.pointerDown(within(card).getByText("Audi A3 2.0 TDI"));
 
@@ -677,7 +714,7 @@ describe("MAPUI-27: ListingsMap — closing the preview", () => {
     await waitFor(() => expect(pin).toHaveFocus());
 
     await userEvent.keyboard("{Enter}");
-    await screen.findByRole("article", { name: "Vista previa del coche" });
+    await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
     await userEvent.keyboard("{Escape}");
 
     await waitFor(() => expect(preview()).not.toBeInTheDocument());
@@ -690,7 +727,7 @@ describe("MAPUI-27: ListingsMap — closing the preview", () => {
     screen.getByRole("button", { name: SEAT_PIN }).focus();
     await userEvent.keyboard("{Enter}");
 
-    const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+    const card = await screen.findByRole("dialog", { name: "Seat Leon FR" });
     await waitFor(() => expect(within(card).getByText("Seat Leon FR")).toBeInTheDocument());
     // Past the tick the closed preview waits before returning focus.
     await new Promise((resolve) => setTimeout(resolve, 10));
@@ -709,7 +746,7 @@ describe("MAPUI-27: ListingsMap — closing the preview", () => {
       const { rerender } = renderMap({ previewId: "wallapop-1" });
       screen.getByRole("button", { name: AUDI_PIN }).focus();
       await userEvent.keyboard("{Enter}");
-      await screen.findByRole("article", { name: "Vista previa del coche" });
+      await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
       outside.focus();
 
       rerender(<ListingsMap listings={[AUDI, SEAT]} previewId={null} />);
@@ -749,13 +786,13 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
       renderMap();
       const pin = screen.getByRole("button", { name: AUDI_PIN });
       await userEvent.click(pin);
-      await screen.findByRole("article", { name: "Vista previa del coche" });
+      await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
       await userEvent.click(pin);
       await waitFor(() => expect(screen.queryByText("Audi A3 2.0 TDI")).toBeNull());
 
       await userEvent.click(pin);
-      const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+      const card = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
       await waitFor(() =>
         expect(within(card).getByRole("button", { name: "Cerrar vista previa" })).toHaveFocus(),
       );
@@ -800,7 +837,7 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
       renderMap();
       const pin = screen.getByRole("button", { name: AUDI_PIN });
       await userEvent.click(pin);
-      await screen.findByRole("article", { name: "Vista previa del coche" });
+      await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
       // An exit from opacity 0 is instant in Motion (0 to 0 is nothing to
       // animate), so the fade in ends first.
       await clock.finish();
@@ -810,7 +847,7 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
 
       await userEvent.click(pin);
 
-      const card = screen.getByRole("article", { name: "Vista previa del coche" });
+      const card = screen.getByRole("dialog", { name: "Audi A3 2.0 TDI" });
       expect(within(card).getByText("Audi A3 2.0 TDI")).toBeInTheDocument();
       await waitFor(() =>
         expect(within(card).getByRole("button", { name: "Cerrar vista previa" })).toHaveFocus(),
@@ -838,7 +875,7 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
 
       const pin = screen.getByRole("button", { name: AUDI_PIN });
       await userEvent.click(pin);
-      await screen.findByRole("article", { name: "Vista previa del coche" });
+      await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
       await clock.finish();
 
       await userEvent.click(pin);
@@ -868,7 +905,7 @@ describe("MOTION-11: ListingsMap — the preview opens and closes at once from t
 
         await userEvent.keyboard(keys);
 
-        const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+        const card = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
         const opacity = card.style.opacity;
         expect(opacity === "" || Number(opacity) >= 1).toBe(true);
       });
@@ -881,7 +918,7 @@ describe("MOTION-11: ListingsMap — the preview opens and closes at once from t
       const pin = screen.getByRole("button", { name: AUDI_PIN });
       pin.focus();
       await userEvent.keyboard("{Enter}");
-      await screen.findByRole("article", { name: "Vista previa del coche" });
+      await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
       await userEvent.keyboard("{Escape}");
 
@@ -895,7 +932,7 @@ describe("MOTION-11: ListingsMap — the preview opens and closes at once from t
 
       await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
 
-      const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+      const card = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
       expect(Number(card.style.opacity)).toBeLessThan(1);
     });
   });
@@ -908,7 +945,7 @@ describe("MOTION-11: ListingsMap — a preview whose car leaves the results", ()
     await withAnimations(async () => {
       const { rerender } = renderMap();
       await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
-      await screen.findByRole("article", { name: "Vista previa del coche" });
+      await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
       fireEvent.keyDown(window, { key: "a" });
       await act(async () => {
@@ -923,7 +960,7 @@ describe("MOTION-11: ListingsMap — a preview whose car leaves the results", ()
     await withAnimations(async () => {
       const { rerender } = renderMap();
       await userEvent.click(screen.getByRole("button", { name: AUDI_PIN }));
-      await screen.findByRole("article", { name: "Vista previa del coche" });
+      await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
       await act(async () => {
         rerender(<ListingsMap listings={[SEAT]} />);
@@ -959,7 +996,7 @@ describe("MOTION-17: ListingsMap — hover and press on the preview's close butt
       renderMap();
       screen.getByRole("button", { name: AUDI_PIN }).focus();
       await userEvent.keyboard("{Enter}");
-      const card = await screen.findByRole("article", { name: "Vista previa del coche" });
+      const card = await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
 
       const className = within(card).getByRole(role, { name }).className;
       expect(className).toContain(hover);
@@ -1052,7 +1089,7 @@ describe("MAPUI-27, MAPUI-28: ListingsMap — the active pin", () => {
     const pin = screen.getByRole("button", { name: AUDI_PIN });
     pin.focus();
     await userEvent.keyboard("{Enter}");
-    await screen.findByRole("article", { name: "Vista previa del coche" });
+    await screen.findByRole("dialog", { name: "Audi A3 2.0 TDI" });
     expect(pin).toHaveAttribute("data-active", "true");
 
     pin.focus();

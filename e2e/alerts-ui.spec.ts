@@ -1168,7 +1168,7 @@ test.describe("ALERTUI-51 to ALERTUI-55: 200 matches on desktop", () => {
       await expect(target).toHaveAttribute("data-active", "true");
       const column = await listColumn(page);
       await expect.poll(async () => wholly(await box(target), await box(column))).toBe(true);
-      const preview = page.getByRole("article", { name: "Vista previa del coche" });
+      const preview = page.getByRole("dialog", { name: "Coche 150", exact: true });
       await expect(preview).toBeVisible();
       await expect(preview).toContainText("Coche 150");
     },
