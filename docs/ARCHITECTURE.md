@@ -1361,8 +1361,12 @@ never moved starts at opacity 0 and ends at once.
 In e2e, never bound an animation by the test's wall clock (`expect.poll` with a 200ms
 timeout, a `waitForTimeout` deadline): on a loaded runner the page draws late. Measure on the
 page's own clock instead — a CSS transition's `transitionend` and its `elapsedTime`, an element's
-opacity read in a `MutationObserver` the moment it is inserted, or the fast drag of
-`e2e/fixtures/drag.ts`, whose pointer events carry their own timestamps.
+opacity read in a `MutationObserver` the moment it is inserted, the fast drag of
+`e2e/fixtures/drag.ts`, whose pointer events carry their own timestamps, or `watchFrames`
+(`e2e/fixtures/measure.ts`), which records an element's opacity and translation on every frame
+from the press or click on and when it leaves. Never read an animation after the action from the
+test (wait two frames, then `evaluate`): the round trip back to the page can outlast a 180ms
+fade, so the card is already gone.
 
 **`lib/input-modality.ts`'s last input is page-wide module state.** A key pressed in one test
 makes the next test's open or close instant, whatever that next test presses. Files that compare

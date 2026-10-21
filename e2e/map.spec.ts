@@ -5,9 +5,11 @@ import { dragDown, sheetOffset } from "./fixtures/drag";
 import {
   box,
   expectWithin,
+  framesWatched,
   hitArea,
   scrollableAncestor,
   settledBox,
+  watchFrames,
   wholly,
 } from "./fixtures/measure";
 import { mockListingSources } from "./fixtures/network";
@@ -1004,16 +1006,6 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     return { full, middle, peeked };
   }
 
-  /** Waits two animation frames: what a jump needs to be drawn, and far too little for a spring. */
-  async function twoFrames(page: Page) {
-    await page.evaluate(
-      () =>
-        new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        }),
-    );
-  }
-
   test("MAPUI-59: dragging the header up from middle by 0.6·(M−F), released slowly, ends at full, and Enter on the handle then goes to peeked", async ({
     page,
     isMobile,
@@ -1175,20 +1167,31 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     isMobile,
   }) => {
     test.skip(!isMobile, "phone-only results sheet drag");
+    // Every frame from the click on is read inside the page (watchFrames): a
+    // read two frames later from here raced the spring on a loaded runner.
+    // The second frame after the click is the one that counts, as before:
+    // the first is what a jump needs to be drawn.
     await page.emulateMedia({ reducedMotion: "reduce" });
     const reduced = await openPhoneMap(page);
+    const reducedWatch = await watchFrames(reduced.sheet, { startOn: "click" });
     await reduced.handle.click();
     await expect(reduced.sheet).toHaveAttribute("data-position", "full");
-    await twoFrames(page);
-    expect(await sheetOffset(reduced.sheet)).toBeLessThan(0.5);
+    const reducedFrames = (await framesWatched(reducedWatch)).frames;
+    expect(reducedFrames.length, "two frames drawn after the click").toBeGreaterThan(1);
+    // At once: from the second frame on, the sheet is in its place.
+    expect(Math.max(...reducedFrames.slice(1).map((frame) => frame.offsetY))).toBeLessThan(0.5);
 
     // The control: with motion allowed the same press springs.
     await page.emulateMedia({ reducedMotion: "no-preference" });
     const animated = await openPhoneMap(page);
+    const animatedWatch = await watchFrames(animated.sheet, { startOn: "click" });
     await animated.handle.click();
     await expect(animated.sheet).toHaveAttribute("data-position", "full");
-    await twoFrames(page);
-    expect(await sheetOffset(animated.sheet)).toBeGreaterThan(0.5);
+    const animatedFrames = (await framesWatched(animatedWatch)).frames;
+    expect(
+      animatedFrames[1]?.offsetY,
+      "still on its way two frames after the click",
+    ).toBeGreaterThan(0.5);
   });
 
   test("MAPUI-59: a drag that starts in the list does not move the sheet, not even mid-drag", async ({
@@ -1377,16 +1380,21 @@ test.describe("MOTION-16: the «Filtros» dropdown closes with Escape within two
     await filtersButton.click();
     await expect(dropdown).toBeVisible();
 
+    // Every frame after the press is read inside the page (watchFrames): a
+    // read two frames later from here raced the 180ms fade on a loaded runner.
+    const watch = await watchFrames(dropdown);
     // Outside the pill and the dropdown: the header band's padding.
     await page.mouse.click(20, 20);
-    await twoFrames(page);
 
-    const opacityNextFrame = await dropdown.evaluate((el) =>
-      Number.parseFloat(getComputedStyle(el).opacity),
-    );
-    expect(opacityNextFrame).toBeLessThan(1);
-
-    await expect(dropdown).not.toBeAttached({ timeout: 300 });
+    const { frames, goneAt } = await framesWatched(watch);
+    expect(frames.length, "still drawn on a frame after the press").toBeGreaterThan(0);
+    expect(frames[0]?.opacity, "visible on the first frame after the press").toBeGreaterThan(0);
+    expect(
+      frames.some((frame) => frame.opacity < 1),
+      "drawn below full opacity while it fades",
+    ).toBe(true);
+    expect(goneAt, "gone within 300ms of the press").toBeGreaterThanOrEqual(0);
+    expect(goneAt).toBeLessThan(300);
   });
 });
 
@@ -1668,14 +1676,19 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
     // Past the 180ms fade in, so the exit starts from a whole card.
     await page.waitForTimeout(300);
 
+    // Every frame after the press is read inside the page (watchFrames): a
+    // read two frames later from here raced the 180ms fade on a loaded runner.
+    const watch = await watchFrames(preview);
     await preview.getByRole("button", { name: CLOSE_NAME }).click();
-    await twoFrames(page);
 
-    const opacityNextFrame = await preview.evaluate((el) =>
-      Number.parseFloat(getComputedStyle(el).opacity),
-    );
-    expect(opacityNextFrame).toBeLessThan(1);
-    await expect(preview).toHaveCount(0, { timeout: 300 });
+    const { frames, goneAt } = await framesWatched(watch);
+    expect(frames.length, "still mounted on a frame after the press").toBeGreaterThan(0);
+    expect(
+      frames.some((frame) => frame.opacity < 1),
+      "drawn below full opacity while it fades",
+    ).toBe(true);
+    expect(goneAt, "removed within 300ms of the press").toBeGreaterThanOrEqual(0);
+    expect(goneAt).toBeLessThan(300);
   });
 
   test("MAPUI-27: activating the pin of an open preview again closes it and leaves the pin inactive", async ({
