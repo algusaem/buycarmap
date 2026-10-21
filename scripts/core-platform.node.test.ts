@@ -322,7 +322,9 @@ describe("PLAT-8: prisma.config.ts prefers DIRECT_URL over DATABASE_URL", () => 
     vi.unstubAllEnvs();
   });
 
-  it("PLAT-8: uses DIRECT_URL when it is set", async () => {
+  // The first import of prisma.config.ts loads the Prisma CLI cold: about
+  // 0.5 s alone, but over 5 s while the whole suite competes for workers.
+  it("PLAT-8: uses DIRECT_URL when it is set", { timeout: 20_000 }, async () => {
     const url = await loadDatasourceUrl({
       DIRECT_URL: "postgres://a",
       DATABASE_URL: "postgres://b",

@@ -44,7 +44,8 @@ describe("initUserGeolocation", () => {
     initUserGeolocation();
     await waitForGeolocation();
 
-    expect(getUserLocation()).toEqual({ lat: 40.4168, lng: -3.7038 });
+    // Rounded to two decimals since MAP-35 (docs/specs/map-and-search.md).
+    expect(getUserLocation()).toEqual({ lat: 40.42, lng: -3.7 });
   });
 
   it("CORE-9: resolves when the user denies the prompt", async () => {
@@ -78,5 +79,78 @@ describe("initUserGeolocation", () => {
     const { waitForGeolocation } = await freshModule();
 
     await expect(waitForGeolocation()).resolves.toBeUndefined();
+  });
+});
+
+describe("MAP-35 rounding the fix before it leaves the browser", () => {
+  it("MAP-35: rounds the fix to two decimal places before exposing it", async () => {
+    stubGeolocation((success) =>
+      success({ coords: { latitude: 40.416775, longitude: -3.70379 } } as GeolocationPosition),
+    );
+    const { initUserGeolocation, waitForGeolocation, getUserLocation } = await freshModule();
+
+    initUserGeolocation();
+    await waitForGeolocation();
+
+    expect(getUserLocation()).toEqual({ lat: 40.42, lng: -3.7 });
+  });
+
+  it("MAP-35: rounds a second fix to two decimal places before exposing it", async () => {
+    stubGeolocation((success) =>
+      success({ coords: { latitude: 41.38749, longitude: 2.16862 } } as GeolocationPosition),
+    );
+    const { initUserGeolocation, waitForGeolocation, getUserLocation } = await freshModule();
+
+    initUserGeolocation();
+    await waitForGeolocation();
+
+    expect(getUserLocation()).toEqual({ lat: 41.39, lng: 2.17 });
+  });
+});
+
+describe("MAP-37 the position ends once a place is chosen", () => {
+  it("MAP-37: after dismissUserLocation, getUserLocation is null even with a cached fix", async () => {
+    stubGeolocation((success) => success(MADRID as GeolocationPosition));
+    const { initUserGeolocation, waitForGeolocation, getUserLocation, dismissUserLocation } =
+      await freshModule();
+    initUserGeolocation();
+    await waitForGeolocation();
+    expect(getUserLocation()).toEqual({ lat: 40.42, lng: -3.7 });
+
+    dismissUserLocation();
+
+    // A later caller in the same document — the map mounted again — gets nothing.
+    initUserGeolocation();
+    await waitForGeolocation();
+    expect(getUserLocation()).toBeNull();
+  });
+
+  it("MAP-37: after a dismissal the browser is not asked again", async () => {
+    const getCurrentPosition = stubGeolocation((success) => success(MADRID as GeolocationPosition));
+    const { initUserGeolocation, waitForGeolocation, getUserLocation, dismissUserLocation } =
+      await freshModule();
+
+    // A choice made before this document ever asked — a remount after it,
+    // on a deep-linked page — brings no permission prompt.
+    dismissUserLocation();
+    initUserGeolocation();
+
+    await expect(waitForGeolocation()).resolves.toBeUndefined();
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+    expect(getUserLocation()).toBeNull();
+  });
+
+  it("MAP-37: a reload asks the browser again", async () => {
+    const first = await freshModule();
+    first.dismissUserLocation();
+
+    const getCurrentPosition = stubGeolocation((success) => success(MADRID as GeolocationPosition));
+    const { initUserGeolocation, waitForGeolocation, getUserLocation } = await freshModule();
+
+    initUserGeolocation();
+    await waitForGeolocation();
+
+    expect(getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(getUserLocation()).toEqual({ lat: 40.42, lng: -3.7 });
   });
 });

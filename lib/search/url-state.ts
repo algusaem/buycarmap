@@ -121,6 +121,16 @@ export function filtersToUrlState(filters: UrlFilterValues): UrlSearchState {
 }
 
 /**
+ * The radius as the URL carries it: only with a chosen place, `null`
+ * otherwise — even around the browser's position, which never reaches the
+ * URL (MAP-33) — although `filtersToUrlState` always carries one. Shared by
+ * `mapSearchUrl` and the map's own URL commits (`useSearchFilters`).
+ */
+export function urlRadius(filters: UrlFilterValues): number | null {
+  return filters.selectedLocation ? filters.distanceInKm : null;
+}
+
+/**
  * `/map` with exactly the given filters, built through `searchParsers`'
  * own serializer (docs/specs/redesign-entry.md, Contracts › "Landing to
  * map") so the parameter names and shapes are exactly those the map reads —
@@ -128,15 +138,13 @@ export function filtersToUrlState(filters: UrlFilterValues): UrlSearchState {
  * popular-car chips all share, instead of each hand-rolling its own
  * `URLSearchParams`. The radius only means anything once a place is chosen
  * (worked example "Dónde «Madrid» (50 km)" keeps it even at its default, via
- * `mapUrlSerializer`'s `clearOnDefault: false`), so it is cleared outright,
- * `null`, whenever one is not — even though `filtersToUrlState` always
- * carries one.
+ * `mapUrlSerializer`'s `clearOnDefault: false`), so `urlRadius` clears it
+ * whenever one is not.
  */
 export function mapSearchUrl(filters: UrlFilterValues): string {
-  const state = filtersToUrlState(filters);
   return mapUrlSerializer("/map", {
-    ...state,
-    radius: filters.selectedLocation ? state.radius : null,
+    ...filtersToUrlState(filters),
+    radius: urlRadius(filters),
   });
 }
 

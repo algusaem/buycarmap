@@ -101,6 +101,31 @@ describe("MAPUI-40: alertSummary — in the buyer's locale", () => {
   });
 });
 
+// docs/specs/map-and-search.md (MAP-36): «Crear alerta» from a search centred
+// on the browser's position stores no place name, so the summary ends with
+// the radius alone, as the saved alert's card reads it (ALERTUI-5). Expected
+// values from messages/es.json: «search.anyPrice» is «Cualquier precio» and
+// «search.radiusOption» is «{km} km», with U+00A0 before «km».
+describe("MAP-36: alertSummary — a search around the browser's position", () => {
+  const input: SearchInput = {
+    brand: "Toyota",
+    model: "Corolla",
+    latitude: 40.42,
+    longitude: -3.7,
+    distanceInKm: 50,
+  };
+
+  it("MAP-36: with no place name, the summary ends with the radius alone", () => {
+    expect(alertSummary(input, undefined, ES_COPY)).toBe(
+      "Toyota Corolla · Cualquier precio · 50 km",
+    );
+  });
+
+  it("MAP-36: the prefilled name is the car alone", () => {
+    expect(alertName(input, undefined, ES_COPY)).toBe("Toyota Corolla");
+  });
+});
+
 // docs/specs/redesign-alerts.md (ALERTUI-5; worked example "Criteria"): the
 // AlertCard's criteria, a second function of this module beside the dialog's
 // summary (Decisions › Two orders, one module). Every price comes from

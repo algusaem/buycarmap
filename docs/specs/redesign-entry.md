@@ -2,7 +2,7 @@
 
 Key: ENTRY
 Status: Implemented
-Last updated: 2026-10-17
+Last updated: 2026-10-21
 
 ---
 
@@ -60,7 +60,7 @@ Landing
 - [x] ENTRY-5 · component — At phone width the landing search is a card with «Dónde» and «Coche»
   over «Buscar». Tapping anywhere on the card, «Buscar» included, opens the «BUSCAR» sheet of the map
   (MAPUI-21), over the landing.
-  «Ver coches» goes to `/map` with what was chosen, as ENTRY-3 does; closing it changes nothing.
+  «Ver coches» goes to `/map` with what was chosen, as ENTRY-3 does; closing it changes nothing. — «Dónde» left untouched in the phone sheet keeps the place chosen on the landing card (amended 2026-10-21, MAPUI-21, issue #117)
 - [x] ENTRY-6 · component — The landing produces no `?q=` link: neither the search nor a popular car
   sends free text. The map still reads `?q=` from old links (MAPUI-18, kept).
 - [x] ENTRY-7 · component — The map preview is a fixed illustration with example pins and an example

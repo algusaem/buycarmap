@@ -2,7 +2,7 @@
 
 Key: MAP
 Status: Implemented
-Last updated: 2026-10-18
+Last updated: 2026-10-21
 
 ---
 
@@ -27,7 +27,9 @@ MAP-1 through MAP-15 are proven. Nine already held when the spec was written;
 six were gaps, and two of those (MAP-7) were defects rather than merely
 untested. MAP-16 through MAP-18 were amended in and implemented test-first on
 2026-08-12, and MAP-19 the same day, to close the failure mode they introduced.
-MAP-24 was amended in and implemented test-first on 2026-10-09.
+MAP-24 was amended in and implemented test-first on 2026-10-09. MAP-28 through MAP-39 were amended in for issue #117 and approved by the owner on 2026-10-21; they
+also amend MAP-13, MAP-14 and MAP-25 here and MAPUI-4, MAPUI-20, MAPUI-21 and MAPUI-31 in
+[redesign-map.md](redesign-map.md). Their tests are green and their boxes ticked.
 
 - [x] MAP-1 · unit — A search queries all three sources and interleaves the results, so no single source fills the top of the list
 - [x] MAP-2 · unit — When some sources fail, the results from the rest still render
@@ -41,8 +43,8 @@ MAP-24 was amended in and implemented test-first on 2026-10-09.
 - [x] MAP-10 · unit — Overlapping requests for the next page do not fetch the same page twice
 - [x] MAP-11 · unit — Adjusting a filter re-searches after a pause, while pressing search re-searches at once
 - [x] MAP-12 · unit — Changing the brand clears the selected model, so the two cannot contradict each other
-- [x] MAP-13 · unit — A distance radius is sent only when the user has chosen a location
-- [x] MAP-14 · unit — The first search uses a country-wide fallback, re-runs once the browser reports the user's position, and does not override a location the user picked
+- [x] MAP-13 · unit — A distance radius is sent only when the user has chosen a location — or when the browser's position stands in for one (MAP-28) (amended 2026-10-21, issue #117)
+- [x] MAP-14 · unit — The first search uses a country-wide fallback, re-runs once the browser reports the user's position, and does not override a location the user picked — the re-run is centred on that position (MAP-28); with no position it does not run (MAP-29) (amended 2026-10-21, issue #117)
 - [x] MAP-15 · component — A search returning nothing shows the empty state, and the list and the map always show the same set of listings — the map shows them as price pins, listings at the same point sharing one pin, so the pins account for exactly the listings in the list (MAPUI-25), and the empty state offers a wider radius and «Quitar filtros» (MAPUI-31) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] MAP-16 · unit — When the user has chosen a location, no listing whose map position lies outside the chosen radius appears in the results, whatever its source
 - [x] MAP-17 · unit — When the user has chosen a location, a listing whose position could only be resolved to the country-centre fallback is excluded rather than placed at the country centre
@@ -53,9 +55,21 @@ MAP-24 was amended in and implemented test-first on 2026-10-09.
 - [x] MAP-22 · unit — If the location search unmounts before its 400 ms debounce fires, no geocoding request is sent.
 - [x] MAP-23 · unit — Withdrawn 2026-10-19 by MAPLIBRE (map-maplibre.md): the map draws OpenFreeMap's vector tiles in its own style, with no tile URL left to build and no key. Was: Only the dark map tile URL remains (the light basemap and the theme that chose between them are gone), and it carries the CARTO Basemaps key from `NEXT_PUBLIC_CARTO_API_KEY` as the URL-encoded `key` query parameter; with no key configured the tile URL carries no `key` parameter. (amended 2026-10-12, LOOK — redesign-foundation.md)
 - [x] MAP-24 · unit — Within one search, a Wallapop `next_page` cursor that was already requested — the same cursor handed back again (c1 → c1) or an earlier one coming round again (c1 → c2 → c1) — is treated as Wallapop being exhausted: that round reports no next Wallapop cursor and `hasMore.Wallapop` false, the page that carried the repeat keeps its listings, and the other sources keep paging, so neither the first search nor the sentinel loops forever
-- [x] MAP-25 · unit — The map fits its viewport to the results when a search's first results arrive, and only then: appending the next page, or toggling a favourite, leaves the viewport where the user left it. A search whose first results are empty leaves the viewport alone. — on a phone the results sit in a sheet over a map that is always on screen, so there is no mobile map to open and fit (MAPUI-23) (amended 2026-10-13, MAPUI — redesign-map.md)
+- [x] MAP-25 · unit — The map fits its viewport to the results when a search's first results arrive, and only then: appending the next page, or toggling a favourite, leaves the viewport where the user left it. A search whose first results are empty leaves the viewport alone. — on a phone the results sit in a sheet over a map that is always on screen, so there is no mobile map to open and fit (MAPUI-23) (amended 2026-10-13, MAPUI — redesign-map.md) — a search centred on the browser's position frames its circle, with results or without (amended 2026-10-21, MAP-34)
 - [x] MAP-26 · unit — A next page that arrives after a newer search has committed its results is discarded: the newer search's list is not extended with it, and its next page continues the newer search, not the older one (issue #74).
 - [x] MAP-27 · unit — A search that carries coordinates but no `distanceInKm` is searched within 50 km of them — the radius the filter panel defaults to — so the radius post-filter (MAP-16) and every source's query respect it as if the caller had sent it; because `searchSchema` is where the interactive search (`server/search/actions.ts`) and the stored alert criteria (`server/alerts/schema.ts`'s `parseStoredCriteria`, `server/alerts/actions.ts`'s `createAlert`) alike parse their input, both get the default from one change. A search with no coordinates still sends no radius (MAP-13 unchanged) (issue #75; see also alerts.md ALERT-43/ALERT-44 and its open question 7).
+- [x] MAP-28 · unit — When `/map` opens with no location in the URL and the browser then reports the user's position, the search that follows is centred on that position with a 50 km radius (`DEFAULT_RADIUS_KM`), keeping every other filter in force at that moment, so the radius post-filter (MAP-16, MAP-17) and Wallapop's `distance_in_km` both apply to it; an old link's `?radius=` restored by Back/Forward while the position stands in is searched at 50 km too (issue #117)
+- [x] MAP-29 · unit — When the browser's geolocation is denied, unavailable or times out, the country-wide first search is the only search: nothing is re-run, and no radius is sent (issue #117)
+- [x] MAP-30 · unit — When `/map` opens with a location in the URL, the browser is not asked for the user's position, and only the deep-linked search runs (issue #117)
+- [x] MAP-31 · unit — A place the user chooses, or «Toda España», while the position is still pending wins: when the position arrives afterwards, neither the filters nor the search change (issue #117)
+- [x] MAP-32 · component + e2e — While the browser's position stands in for a location, the search pill and the phone summary read «Tu ubicación · 50 km», the radius choices are enabled and apply around the position, the empty state offers the wider radius (MAPUI-31), and «Toda España» clears it and runs the national search — on the phone, the place field's × «Borrar texto» clears it too (issue #117; open question 8)
+- [x] MAP-33 · unit — The browser's position is never written to the URL, and the radius reaches the URL only with a chosen place: after the geolocated search the URL gains no `lat`, `lng`, `placeId`, `locationName` or `radius`, and neither a radius chosen around the position nor one left over after «Toda España» is written (issue #117; widened by owner decision 2026-10-21)
+- [x] MAP-34 · component + e2e — When the geolocated search's first results arrive, the map frames the 50 km circle around the position — with no results as well — instead of fitting the pins alone; a later search with a chosen place or «Toda España» fits as before (MAP-25) (issue #117; open question 11)
+- [x] MAP-35 · unit — The position is rounded to two decimal places (about 1 km) before it leaves the browser, so neither the Server Action, Wallapop nor an alert created from the search receives the precise fix (issue #117; open question 10)
+- [x] MAP-36 · unit — «Crear alerta» from a search centred on the browser's position stores no place name, and its summary ends with the radius alone («50 km»), as the alert's card does once saved (issue #117; owner decision 2026-10-21)
+- [x] MAP-37 · unit — Once the user makes a location choice — a place or «Toda España», or a place already in the URL when the map loads — the browser's position no longer stands in for the rest of the visit: going Back to an entry with no place in the URL, or returning to the map without reloading, runs the national search; a reload asks the browser again (issue #117; owner decision 2026-10-21)
+- [x] MAP-38 · unit — A search whose URL would not change adds no history entry, whatever started it («Buscar» pressed twice, a radius changed around the position) (owner decision 2026-10-21)
+- [x] MAP-39 · component — On a phone, the circle around the browser's position (MAP-34) is sized by the map's width and centred in the strip of map left visible above the results sheet at its resting height, spilling behind the sheet as in the design; a search's pins are fitted as before (MAP-25). When the sheet leaves no room, or MapLibre cannot compute the frame, the whole map is fitted as on desktop (owner decision 2026-10-21; design `F3-mapa-tu-ubicacion.dc.html`, phone)
 
 ## Worked examples
 
@@ -81,11 +95,26 @@ MAP-24 was amended in and implemented test-first on 2026-10-09.
   - Wrong result today: the list becomes `[b1, a2]` and `cursorsRef.current` is overwritten with A's cursors above, so B's next page is requested with keywords "ibiza" but A's cursors — continuing search A's pagination, not search B's.
   - Correct result: the list stays `[b1]`; the discarded round leaves `cursorsRef.current` at B's cursors `{ wallapop: "b-page-2", wallapopRequested: [], cochesNet: 1, milanuncios: 1 }`, so B's next page is requested with keywords "ibiza" and those cursors.
 - **MAP-27** — Centre Madrid (40.4168, −3.7038), no `distanceInKm`; wallapop-wp-alcala at Alcalá de Henares (40.4818, −3.3643, ~29.6 km from Madrid) and wallapop-wp-toledo at Toledo (39.8628, −4.0273, ~66.9 km from Madrid) → wrong today: both wallapop-wp-alcala and wallapop-wp-toledo reach the results, and the Wallapop request carries no `distance_in_km`; correct: exactly wallapop-wp-alcala — Toledo excluded — and the Wallapop request carries `distance_in_km=50`. The same search with no coordinates at all → no radius is applied: no listing is dropped by distance, and the Wallapop request keeps the nationwide `distance_in_km=1000` it already sends without a location (MAP-13 unchanged).
+- **MAP-28** — The bug this records (issue #117): `/map` with no query string, model «Corolla» chosen during the wait, the browser reporting Madrid (40.4168, −3.7038) → wrong today: the second search sends `latitude` undefined, `longitude` undefined, `distanceInKm` undefined, so the server falls back to the Spain centre (40.0, −3.5) and Wallapop is asked for `distance_in_km=1000` — the same input as the first search; correct: the second search sends `latitude` 40.42, `longitude` −3.70 (rounded, MAP-35), `distanceInKm` 50 and `model` «Corolla», and the Wallapop request carries `distance_in_km=50`.
+- **MAP-28** — `/map?radius=200`, position (40.42, −3.70) arrives → searched at 50 km; the brand changes, then Back to the `?radius=200` entry → still 50 km around the position.
+- **MAP-29** — `/map` with no query string, geolocation denied (the jsdom default, `code: 1`) → `search` is called exactly once, with `latitude`, `longitude` and `distanceInKm` undefined.
+- **MAP-30** — `/map?lat=41.3874&lng=2.1686&placeId=1&locationName=Barcelona` → `initUserGeolocation` is never called, and `search` is called exactly once, with `latitude` 41.3874, `longitude` 2.1686 and `distanceInKm` 50.
+- **MAP-31** — `/map` with no query string; while the position is pending the user chooses «Toda España» → when Madrid arrives, no search with a `latitude` is sent, and the place keeps its no-place reading: «Toda España» in the phone summary, the «Dónde» placeholder on the desktop pill.
+- **MAP-33** — Madrid at 100 km, then «Toda España» → the URL carries no `radius`; a reload searches nationally and the radius control starts at 50 km.
+- **MAP-34** — Position (40.42, −3.70) standing in, 100 km chosen → the zone handed to the map is { lat 40.42, lng −3.7, radiusKm 100 }.
+- **MAP-35** — Fix (40.416775, −3.703790) → sent as (40.42, −3.70); fix (41.38749, 2.16862) → (41.39, 2.17).
+- **MAP-36** — Geolocated search (40.42, −3.70, 50 km), brand Toyota, model Corolla → «Crear alerta» stores criteria with latitude 40.42, longitude −3.7, distanceInKm 50 and no place name; its summary reads «Toyota Corolla · Cualquier precio · 50 km». The prefilled name is «Toyota Corolla».
+- **MAP-37** — Position (40.42, −3.70) standing in; the user picks Barcelona; Back to the first entry (no place in the URL) → the search carries no latitude, longitude or distanceInKm.
+- **MAP-37** — No choice made: position standing in, model «Corolla» chosen, Back to the entry with no place → latitude 40.42, longitude −3.7, distanceInKm 50; the position still stands in.
+- **MAP-38** — Maximum price 20.000 € committed (one history entry), then «Buscar» with nothing changed → one more search, no new history entry.
+- **MAP-39** — Phone 390×844, the sheet resting in its middle position (the map 706px tall under the 138px band, the sheet's top edge 706 − 64 − 520 = 122px from the map's top, so it covers 706 − 122 = 584px); zone (40.42, −3.7, 50 km), no listings → the map fits the zone with padding 56 on every side, so the 390 − 2 × 56 = 278px left across sets the circle's size, and offset [0, −292]: the strip's middle is 122 / 2 = 61px from the map's top and the map's middle 706 / 2 = 353px, so the circle's centre sits 61 − 353 = −292px from the map's centre; at most zoom 13. The same layout with the zone and listings → the same padding 56 and offset [0, −292]. The same layout with one listing and no zone → padding 56 on every side, no offset, at most zoom 13, as on desktop. The sheet at full, its top edge at 112px or less (the strip must exceed 2 × 56 = 112px to hold the padding on both sides of the centre), or no camera from MapLibre → padding 56, no offset. A sheet that covers none of the map (its top at or below the map's bottom) → padding 56, no offset, as on desktop. On desktop (nothing covers the map) → padding 56 on every side, no offset.
 
 ## Data model
 
 None: this feature adds or changes no table or column. No database involvement:
-nothing on this path is persisted.
+nothing on this path is persisted. The browser's position (MAP-28) is held in
+memory only; an alert created from a geolocated search stores it in the alert's
+existing criteria, which is [alerts.md](alerts.md)'s model (open question 10).
 
 ## Permissions
 
@@ -109,7 +138,17 @@ may do what to which records.
 - MAP-21 — the map unmounts before geolocation resolves.
 - MAP-22 — the location search unmounts before its debounce fires.
 - MAP-24 — Wallapop hands back a cursor already requested in this search, directly or after a cycle.
-- MAP-25 — a page appended, a favourite toggled, and a new search with no results: none of them moves the map.
+- MAP-25 — a page appended, a favourite toggled, and a new search with no results: none of them moves the map. — except around the browser's position, which frames its circle (MAP-34)
+- An old `?radius=` with no place: around the position it is ignored for 50 km (MAP-28).
+- MAP-29 — geolocation denied, unavailable or timed out (5 s, `lib/geo/user-location.ts`): the national search stands.
+- MAP-30 — a deep-linked location: no permission prompt at all.
+- MAP-31 — the user decides before the browser does: their choice wins, «Toda España» included.
+- MAP-34 — a geolocated search with no results still frames the circle, so the empty state is seen against the area it describes.
+- MAP-36 — an alert made from the position has no place name; its zone reads as the radius alone.
+- MAP-37 — Back after a chosen place: the national search, not the position.
+- A geolocated search that fails: the zone is drawn but the map is not reframed to it, since only results refit (MAP-25).
+- A position outside Spain: searched as any other position; the empty state's wider radius and «Toda España» are the way out (open question 12).
+- The permission prompt left unanswered: some browsers do not start the 5 s timeout until the prompt is answered, so the position can arrive minutes later; MAP-31 covers a choice made meanwhile, and Decisions › The national search does not wait for the position.
 - Opening the mobile map: see Decisions › The map fits on a new search, not on a new page (MAP-25).
 - Partial source failure: see Decisions › Sources fail independently.
 - Out-of-order responses: see Decisions › A version counter, not cancellation.
@@ -130,6 +169,13 @@ Out of scope, deliberately:
   and its `search_histories` table were dropped (DATA-19 in
   [core-data-model.md](core-data-model.md), issue #23). Building search history
   needs its own spec.
+- **Following the user as they move.** The position is read once per session
+  (CORE-8, [cross-cutting.md](cross-cutting.md)); `watchPosition` and a «use my
+  location» button that asks again after a denial are not part of #117.
+- **Framing the radius of a chosen place.** MAP-34 frames the circle only for the
+  browser's position; a place picked in «Dónde» keeps fitting its pins (MAP-25).
+- **Geolocation on the landing page.** The entry search (`lib/hooks/useLandingSearch.ts`)
+  is [redesign-entry.md](redesign-entry.md)'s.
 
 ## Contracts
 
@@ -185,6 +231,13 @@ The contracts are:
 > the user had panned (issue #6). The criterion ties the fit to a search's
 > first results, not to the list growing.
 
+> **Amended 2026-10-21: MAP-28 to MAP-39, approved (issue #117).** `/map`
+> asked the browser for the user's position and then threw it away: the hook
+> awaited it and re-ran the identical national search, so a user in Sevilla
+> who granted the prompt still got all of Spain. The criteria make the
+> position stand in for a place until the user chooses one. Approved by the
+> owner with its design on 2026-10-21; the worked examples of MAP-28 to MAP-31 and MAP-35, and later those of MAP-36, MAP-37 and MAP-34's radius, were confirmed the same day.
+
 > **This is a backfill.** The behaviour below is already built and working. The
 > spec was written from the code, so it cannot disagree with it — which is the
 > one thing a spec is normally for. Its value is elsewhere: the criteria list
@@ -217,7 +270,9 @@ stringified params. A cache hit deliberately resets `pageRef` and sets
 search's pagination cursors in place would make the scroll sentinel page
 *forward* through a query the user is no longer looking at. Sixty seconds is
 short enough that a stale listing set is not a concern and long enough to absorb
-the double-search that geolocation causes on mount (see MAP-14).
+the double-search that geolocation causes on mount (see MAP-14). Since #117 the
+re-run carries the position (MAP-28), so it is a different key and is not
+absorbed; with no position it no longer runs at all (MAP-29).
 
 ### A version counter, not cancellation
 
@@ -234,6 +289,73 @@ cosmetic: Wallapop geo-filters by the caller's IP when it gets no coordinates,
 and on Vercel that IP is American, so an unlocated search returns American
 listings to a Spanish user. Recorded here because it looks like a redundant
 default and will be "simplified away" by someone otherwise.
+
+The chain is explicit location → the browser's position → Spain centre. Until
+#117 the middle step was documented ([data-sources.md](data-sources.md) ›
+Coordinates are always sent) but not wired: the hook awaited the position and
+re-ran the same search without it. MAP-28 wires it.
+
+### The browser's position stands in for a place (MAP-28 to MAP-35)
+
+**Why a radius, not just a centre.** Sending the position without `distanceInKm`
+would already get the 50 km default from `searchSchema` (MAP-27), but the hook
+is where the user's radius lives, so it sends `DEFAULT_RADIUS_KM` explicitly and
+the radius choices then work around the position as they do around a place
+(MAP-32). The search becomes a located one in every respect: the post-filter
+drops listings outside the circle and those pinned at the country-centre
+fallback (MAP-16, MAP-17), and Wallapop's default order turns from `newest` to
+`most_relevance`, as for any located search (`lib/wallapop/client.ts`).
+
+**The national search does not wait for the position (MAP-14 kept).** The
+first search still fires at once. Waiting for the position would leave the
+list empty behind a permission prompt the user may never answer — and in
+browsers that start the timeout only after the prompt is answered, the 5 s
+bound does not bound the wait. The cost is a visible swap: national results,
+then local ones, with the map refitting once more (MAP-25 treats it as a new
+search, which it is).
+
+**Explicit always wins (MAP-30, MAP-31).** A deep link is a decision the sender
+made, and a reload must restore it (FRONT-13), so a page that already has a
+place does not ask for the position at all — a prompt whose answer cannot
+change anything is noise. «Toda España» chosen while the position is pending
+is a decision too: the user asked for the whole country, and a late position
+narrowing it to 50 km would undo it behind their back. The check is the one
+the hook already makes before re-running, extended to «Toda España».
+
+**A choice ends it for the visit (MAP-37).** Choosing a place, or «Toda
+España», drops the position until the page is loaded again, so Back to an
+entry with no place runs the national search. The choice also tells
+`lib/geo/user-location.ts` to forget the position for the document, so
+returning to the map without reloading neither brings it back nor shows the
+browser's prompt again. The URL cannot say whether an entry with no place
+was the position or «Toda España», and guessing would bring back a position
+the user had moved away from; a reload asks the browser again, which answers
+from its cache (owner's decision, 2026-10-21).
+
+**Not in the URL (MAP-33).** A shared link is the most common way a URL leaves
+the device, and a geolocated URL would carry the sender's home to whoever opens
+it. The URL describes what the user chose; the position is not a choice. A
+reload asks the browser again, which answers from its own cache within
+`maximumAge` (5 min) without a prompt once permission is granted.
+
+Since 2026-10-21 the radius follows the same rule everywhere: it reaches the
+URL only with a chosen place, as the landing's links already did, so a radius
+never outlives the place it measured (owner's decision). A commit that would
+leave the URL unchanged adds no history entry (MAP-38), so Back always moves
+to a different search.
+
+**Rounded before it leaves the browser (MAP-35).** The position is personal
+data, and the search hands it to Wallapop (`RULES.md` §12) and, through
+«Crear alerta», to the stored alert criteria. Two decimals is about 1.1 km in
+latitude and 0.85 km in longitude at Madrid — under the precision of the
+coches.net and Milanuncios pins the circle is compared with (SRC-3) — so the
+search loses nothing a user could see. Owner's decision, 2026-10-21 (open
+question 10).
+
+**An alert names no place (MAP-36).** «Tu ubicación» is not a place another
+day, so an alert created from the position stores no place name, and its
+summary and card show the radius alone, «50 km» — the same reading for the
+same criteria before and after saving (owner's decision, 2026-10-21).
 
 ### Filters debounce, the search button does not
 
@@ -513,3 +635,51 @@ needed to prove it.
    would turn a long legitimate scroll into an `invalidInput` error, so none is
    added; if a bound is wanted later, it needs a measured n and a defined
    behaviour at the limit.
+
+Questions 8 to 13 were **settled by the owner on 2026-10-21, each as
+recommended**; the reasoning is kept below. The design for questions 8 and 11
+(`F3-mapa-tu-ubicacion.dc.html`, `F3-buscador-tu-ubicacion.dc.html` in
+`docs/design/canvas/`) was accepted by the owner the same day.
+
+8. **Is the position shown as the selected place (MAP-32, MAP-33)?** The issue
+   asks whether it should appear in the filter panel and the URL, or stay
+   implicit. **Recommendation: shown, not in the URL.** Implicit would leave the
+   pill reading «Dónde» over results limited to 50 km, with the radius choices
+   disabled (MAPUI-4) and no wider-radius button in the empty state (MapView
+   offers it only with a place) — the user could neither see nor change why the
+   list is local. Shown as «Tu ubicación · 50 km», everything that works for a
+   place works for it. The URL stays out for the privacy reason in Decisions.
+   Either way the place is not counted as an active filter: it never was
+   (`lib/search/panel.ts`). **«Tu ubicación» is new on-screen copy**, so under
+   Design first it goes into `docs/design/` and is accepted before this spec is
+   approved.
+9. **Does the first national search still fire at once (MAP-14, MAP-21)?**
+   **Recommendation: yes**, for the reason in Decisions › The national search
+   does not wait for the position. The alternative — wait up to a timeout, then
+   search — is only sound if the timeout bounds the prompt too, which the
+   Geolocation API does not guarantee.
+10. **Personal data (`RULES.md` §1, §12) — settled: MAP-35 approved.** Today
+    only a place the user picked — a city centre from Nominatim — reaches
+    Wallapop and the alert criteria. With #117 the user's own position does.
+    MAP-35 rounds it to two decimals before it leaves the browser.
+    **Decided: MAP-35** and record the position in
+    `docs/privacy/data-inventory.md` (alert criteria) and
+    `docs/privacy/processors.md` (Wallapop receives an approximate user
+    location).
+11. **Is the circle drawn, or only framed (MAP-34)?** The issue asks for the
+    map to frame the 50 km radius. The alert maps already draw a zone
+    (`components/map/ZoneLayers.tsx`) and fit to it. **Recommendation: draw
+    it**, with the alert maps' zone style — a frame with no visible edge shows
+    an area the user cannot tell apart from the rest of the map. Drawing it is
+    a visible change, so it goes through Design first with question 8.
+12. **A position outside Spain.** The three marketplaces are Spanish, so a
+    50 km circle around Lisbon or Toulouse comes back empty or nearly.
+    **Recommendation: no special case**; the empty state offers the wider
+    radius and «Toda España» (MAPUI-31). Clamping to Spain's bounds would need
+    a definition of «Spain» (Canarias, Ceuta, Melilla) for a rare case.
+13. **The 1000 km Wallapop default.** The issue asks whether it still applies
+    when the position comes from geolocation. **Settled by MAP-28: no.** The
+    1000 km is the default for a search with no centre of its own; a geolocated
+    search has one and sends 50 km. [data-sources.md](data-sources.md) ›
+    Coordinates are always sent has to say «when there is neither a location
+    nor a position» in the same change.

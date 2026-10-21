@@ -57,7 +57,7 @@ describe("MAPUI-21: SearchSheet — nothing applies before Ver coches", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
 
-    expect(onApply).toHaveBeenCalledWith({ maxPrice: 20000, distanceInKm: 50, place: null });
+    expect(onApply).toHaveBeenCalledWith({ maxPrice: 20000, distanceInKm: 50, place: undefined });
   });
 
   it("MAPUI-21: closing the sheet without Ver coches discards everything", async () => {
@@ -83,7 +83,7 @@ describe("MAPUI-21: SearchSheet — the radius draft", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
 
-    expect(onApply).toHaveBeenCalledWith({ distanceInKm: 25, place: null });
+    expect(onApply).toHaveBeenCalledWith({ distanceInKm: 25, place: undefined });
   });
 });
 
@@ -102,6 +102,72 @@ describe("MAPUI-21: SearchSheet — Borrar", () => {
   });
 });
 
+// Amended 2026-10-21 (MAPUI-21, MAP-32, issue #117): the field's × changes
+// «Dónde» only on «Tu ubicación»; on a chosen place it only clears the text.
+describe("MAPUI-21: SearchSheet — the place field's ×", () => {
+  it("MAPUI-21: the × on a chosen place only clears the text; «Ver coches» keeps the place", async () => {
+    const onApply = vi.fn();
+    renderWithI18n(
+      <SearchSheet
+        {...BASE}
+        place={{ placeId: 1, displayName: "Madrid", lat: 40.4168, lng: -3.7038 }}
+        onApply={onApply}
+      />,
+      { locale: "es" },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Borrar texto" }));
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(onApply).toHaveBeenCalledWith({ distanceInKm: 50, place: undefined });
+  });
+
+  it("MAPUI-21: the × on «Tu ubicación» clears it", async () => {
+    const onApply = vi.fn();
+    renderWithI18n(
+      <SearchSheet {...BASE} place={{ displayName: "Tu ubicación" }} onApply={onApply} />,
+      { locale: "es" },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Borrar texto" }));
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(onApply).toHaveBeenCalledWith({ distanceInKm: 50, place: null });
+  });
+
+  it("MAPUI-21: the × while typing over «Tu ubicación» clears only the typed text", async () => {
+    const onApply = vi.fn();
+    renderWithI18n(
+      <SearchSheet {...BASE} place={{ displayName: "Tu ubicación" }} onApply={onApply} />,
+      { locale: "es" },
+    );
+
+    // «Ma» typed over «Tu ubicación», then the × on that text.
+    await userEvent.tripleClick(screen.getByRole("combobox", { name: "Ciudad o código postal" }));
+    await userEvent.keyboard("Ma");
+    await userEvent.click(screen.getByRole("button", { name: "Borrar texto" }));
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(onApply).toHaveBeenCalledWith({ distanceInKm: 50, place: undefined });
+  });
+
+  it("MAP-32: around «Tu ubicación» the radius choices are enabled and apply", async () => {
+    const onApply = vi.fn();
+    renderWithI18n(
+      <SearchSheet {...BASE} place={{ displayName: "Tu ubicación" }} onApply={onApply} />,
+      { locale: "es" },
+    );
+
+    const choice = screen.getByRole("radio", { name: "100 km" });
+    expect(choice).toBeEnabled();
+
+    await userEvent.click(choice);
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(onApply).toHaveBeenCalledWith({ distanceInKm: 100, place: undefined });
+  });
+});
+
 describe("MAPUI-21: SearchSheet — a typed price is kept", () => {
   it("MAPUI-21: a maximum typed into Máximo and not yet blurred reaches Ver coches", async () => {
     const onApply = vi.fn();
@@ -111,7 +177,7 @@ describe("MAPUI-21: SearchSheet — a typed price is kept", () => {
     await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
 
     expect(onApply).toHaveBeenCalledTimes(1);
-    expect(onApply).toHaveBeenCalledWith({ maxPrice: 15000, distanceInKm: 50, place: null });
+    expect(onApply).toHaveBeenCalledWith({ maxPrice: 15000, distanceInKm: 50, place: undefined });
   });
 });
 

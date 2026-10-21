@@ -1,6 +1,12 @@
 "use client";
 
-import { type MapLibreMap, type MapMouseEvent, Marker, Popup } from "maplibre-gl";
+import {
+  type FitBoundsOptions,
+  type MapLibreMap,
+  type MapMouseEvent,
+  Marker,
+  Popup,
+} from "maplibre-gl";
 import {
   type MutableRefObject,
   type RefObject,
@@ -30,7 +36,8 @@ import { ZoneLayers } from "@/components/map/ZoneLayers";
 // docs/specs/map-maplibre.md; docs/specs/redesign-map.md (MAPUI-24 to
 // MAPUI-29, MAPUI-39, MAPUI-62). The search, saved and alert maps: one
 // MapLibre map (lib/hooks/useMapLibre.ts) in the design's own style, a price
-// pin per point, the desktop preview card, the alert's zone and the zoom
+// pin per point, the desktop preview card, a zone — an alert's, or the
+// search's circle around the browser's position (MAP-34) — and the zoom
 // buttons. The pins and the preview are React trees portaled into the
 // elements MapLibre positions — a `Marker`'s element and a `Popup`'s content
 // — so their buttons, names, focus and keys stay React's.
@@ -46,20 +53,46 @@ import { ZoneLayers } from "@/components/map/ZoneLayers";
 // An alert's map (docs/specs/redesign-alerts.md, ALERTUI-16) fits its zone
 // and every pin together, once, when the alert opens: the alert's id is its
 // generation. With neither a zone nor a pin it goes back to the default view
-// (`resetWhenEmpty`), so the alert open before leaves no zone fitted behind;
-// a search with no results keeps the view it had (MAP-25).
+// (`resetWhenEmpty`), so the alert open before leaves no zone fitted behind.
+// A search with no results keeps the view it had (MAP-25), unless it passes a
+// zone — the circle around the browser's position — which it frames (MAP-34).
 // MAPLIBRE-7: 56px of padding on every side — half an 86px-wide pin plus its
 // focus outline, so a pin's outline never sits outside the map — and a
 // maximum zoom of 13 (Leaflet's 14, on MapLibre's 512px tiles), at once: the
 // view a page's first results open on is the one the map first reports, not
 // a frame of a flight still under way (MAPLIBRE-9).
+// MAP-39: on a phone the circle around the browser's position (MAP-34) is
+// centred in the strip of map left visible above the results sheet at its
+// resting position — the map above the sheet's top edge, `coveredFrom`, which
+// the sheet measures itself. It would shrink under its pin in so short a strip
+// (122px on a 390×844 phone), so it is sized by the whole map, as on desktop,
+// and only its centre moves up to the strip's middle, spilling behind the band
+// and the sheet as in the design. A search's pins are fitted as before (MAP-25),
+// on a phone as on desktop. With no room left above the sheet for the padding
+// on both sides of the centre (at full), or no camera MapLibre can compute, the
+// whole map is fitted as before, since MapLibre fits nothing whose padding
+// outgrows the map.
+const FIT_PADDING = 56;
+const FIT_MAX_ZOOM = 13;
+
+type FitFrame = Pick<FitBoundsOptions, "padding" | "offset">;
+
+function zoneFrame(map: MapLibreMap, coveredFrom: number | null): FitFrame {
+  if (coveredFrom === null || coveredFrom <= 2 * FIT_PADDING) return { padding: FIT_PADDING };
+  const height = map.getContainer().clientHeight;
+  if (height - coveredFrom <= 0) return { padding: FIT_PADDING };
+  return { padding: FIT_PADDING, offset: [0, coveredFrom / 2 - height / 2] };
+}
+
 interface FitBoundsProps {
   listings: CarListing[];
   zone?: MapZone;
   resetWhenEmpty: boolean;
+  /** Phone: where the results sheet's top edge rests, in px from the map's top (MAP-39). */
+  coveredFrom: number | null;
 }
 
-function FitBounds({ listings, zone, resetWhenEmpty }: FitBoundsProps) {
+function FitBounds({ listings, zone, resetWhenEmpty, coveredFrom }: FitBoundsProps) {
   const map = useMapInstance();
   const mapRef = useRef(map);
   mapRef.current = map;
@@ -69,6 +102,8 @@ function FitBounds({ listings, zone, resetWhenEmpty }: FitBoundsProps) {
   zoneRef.current = zone;
   const resetRef = useRef(resetWhenEmpty);
   resetRef.current = resetWhenEmpty;
+  const coveredFromRef = useRef(coveredFrom);
+  coveredFromRef.current = coveredFrom;
 
   useEffect(() => {
     // A listing with no coordinates has no pin (groupPins), so it has no say
@@ -84,7 +119,22 @@ function FitBounds({ listings, zone, resetWhenEmpty }: FitBoundsProps) {
       return;
     }
     if (fitZone) points.push(...zoneBounds(fitZone));
-    mapRef.current.fitBounds(boundsOf(points), { padding: 56, maxZoom: 13, animate: false });
+    const bounds = boundsOf(points);
+    const frame = fitZone ? zoneFrame(mapRef.current, coveredFromRef.current) : undefined;
+    if (frame?.offset) {
+      // fitBounds would apply the offset twice — once in the camera it computes,
+      // again in the flight to it — so the camera is computed and jumped to.
+      const camera = mapRef.current.cameraForBounds(bounds, { ...frame, maxZoom: FIT_MAX_ZOOM });
+      if (camera) {
+        mapRef.current.jumpTo(camera);
+        return;
+      }
+    }
+    mapRef.current.fitBounds(bounds, {
+      padding: FIT_PADDING,
+      maxZoom: FIT_MAX_ZOOM,
+      animate: false,
+    });
   }, []);
 
   return null;
@@ -551,7 +601,11 @@ interface ListingsMapProps {
   listings?: CarListing[];
   /** Refits the map when it changes: a new search's first results, or the alert newly open. */
   resultsGeneration?: number | string;
-  /** An alert's zone, drawn under the pins and fitted with them (ALERTUI-14, ALERTUI-16). */
+  /**
+   * A zone drawn under the pins and fitted with them: an alert's (ALERTUI-14,
+   * ALERTUI-16), or the search's circle around the browser's position while
+   * it stands in for a place (MAP-34) — never a chosen place's.
+   */
   zone?: MapZone;
   /** A new generation with neither a zone nor a pin goes back to the default view: an alert's map (ALERTUI-16). */
   resetWhenEmpty?: boolean;
@@ -630,6 +684,7 @@ export function ListingsMap({
             zone={zone}
             // No generation (an alert's map waiting for its next alert) is not a new one.
             resetWhenEmpty={resetWhenEmpty && resultsGeneration !== undefined}
+            coveredFrom={coveredFrom}
           />
           <ClosePopupOnPreviewClear previewId={previewId} openPinRef={openPinRef} />
           {onMapInteract && <MapInteractions onMapInteract={onMapInteract} />}

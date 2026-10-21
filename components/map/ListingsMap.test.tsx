@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as Sentry from "@sentry/nextjs";
@@ -7,7 +7,7 @@ import { AttributionControl, MapLibreMap, Popup } from "maplibre-gl";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { withAnimations } from "@/test/utils/animations";
-import { failNextMap, GPUInitializationError, mapIn } from "@/test/utils/maplibre";
+import { failNextMap, fittedContains, GPUInitializationError, mapIn } from "@/test/utils/maplibre";
 import type { CarListing } from "@/interfaces/listing";
 import { mapStyle } from "@/lib/map/style";
 import { ListingsMap } from "./ListingsMap";
@@ -187,6 +187,286 @@ describe("ListingsMap viewport generation (MAP-25)", () => {
     rerender(<ListingsMap listings={[]} resultsGeneration={3} />);
     expect(fitBounds).toHaveBeenCalledTimes(2);
     fitBounds.mockRestore();
+  });
+
+  it("MAP-34: with a zone and no listings, the map frames the zone", () => {
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+
+    renderWithI18n(
+      <ListingsMap
+        listings={[]}
+        zone={{ lat: 40.42, lng: -3.7, radiusKm: 50 }}
+        resultsGeneration={1}
+      />,
+    );
+
+    // 50 km is 50 / 6371 rad ≈ 0.4497° of latitude: 40.42 ± 0.4497 → 39.9703
+    // to 40.8697. Across, 0.4497 / cos(40.42°) = 0.4497 / 0.7616 ≈ 0.590°:
+    // -3.7 ± 0.590 → -4.290 to -3.110.
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+    const bounds = fitBounds.mock.calls[0][0];
+    // South below 39.98 and north above 40.86, on the centre's meridian...
+    expect(fittedContains(bounds, 39.98, -3.7)).toBe(true);
+    expect(fittedContains(bounds, 40.86, -3.7)).toBe(true);
+    // ...west below -4.28 and east above -3.12, on its parallel.
+    expect(fittedContains(bounds, 40.42, -4.28)).toBe(true);
+    expect(fittedContains(bounds, 40.42, -3.12)).toBe(true);
+    fitBounds.mockRestore();
+  });
+
+  it("MAP-34: with neither a zone nor listings, the map keeps its view (MAP-25)", () => {
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    const jumpTo = vi.spyOn(MapLibreMap.prototype, "jumpTo");
+
+    renderWithI18n(<ListingsMap listings={[]} resultsGeneration={1} />);
+
+    expect(fitBounds).not.toHaveBeenCalled();
+    expect(jumpTo).not.toHaveBeenCalled();
+    fitBounds.mockRestore();
+    jumpTo.mockRestore();
+  });
+});
+
+// docs/specs/map-and-search.md (MAP-39): on a phone the circle around the
+// browser's position is centred in the strip of map left visible above the
+// results sheet at its resting position; a search's pins are fitted as before
+// (MAP-25). The layout is a 390×844 phone's: the band ends at y 138, so the map
+// is 844 − 138 = 706px tall, and the sheet rests in its middle position, 520px
+// tall on the 64px tab bar (--spacing-sheet-middle,
+// --spacing-sheet-above-tabs in app/globals.css), its top edge at
+// 706 − 64 − 520 = 122px from the map's top (`coveredFrom`). The strip needs
+// room for 56px of padding above and below the circle's centre, so a sheet
+// whose top edge is at 2 × 56 = 112px or less leaves the whole map fitted.
+describe("ListingsMap viewport on a phone (MAP-39)", () => {
+  const MAP_HEIGHT = 706;
+  const SHEET_TOP = 122;
+  const ZONE = { lat: 40.42, lng: -3.7, radiusKm: 50 };
+  const CAMERA = { center: [-3.7, 40.42] as [number, number], zoom: 8, bearing: 0 };
+
+  // A failed assertion must not leave a spy behind for the next test.
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** jsdom lays nothing out: the map's container reports the phone's map height. */
+  function layOutMap() {
+    return vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.classList.contains("maplibregl-map") ? MAP_HEIGHT : 0;
+    });
+  }
+
+  it("MAP-39: on a phone the circle is sized by the map's width and centred in the visible strip", () => {
+    layOutMap();
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    // jsdom lays out no width, so MapLibre cannot compute a camera here: it
+    // answers with a stand-in one, which the map must jump to as it is.
+    const cameraForBounds = vi
+      .spyOn(MapLibreMap.prototype, "cameraForBounds")
+      .mockReturnValue(CAMERA);
+    const jumpTo = vi.spyOn(MapLibreMap.prototype, "jumpTo");
+
+    renderWithI18n(
+      <ListingsMap
+        listings={[]}
+        zone={ZONE}
+        resultsGeneration={1}
+        desktop={false}
+        coveredFrom={SHEET_TOP}
+      />,
+    );
+
+    // The size comes from the whole map, as on desktop: 56px on every side.
+    // The centre moves to the middle of the visible strip, 0 to 122px: its
+    // middle is 122 / 2 = 61px from the map's top, the map's own middle is
+    // 706 / 2 = 353px, so the zone's centre sits 61 − 353 = −292px from the
+    // map's centre, straight up. fitBounds would shift it by twice that
+    // (MapLibre applies its offset again in the flight), so it is not used.
+    expect(fitBounds).not.toHaveBeenCalled();
+    expect(cameraForBounds).toHaveBeenCalledTimes(1);
+    const bounds = cameraForBounds.mock.calls[0][0];
+    expect(fittedContains(bounds, 39.98, -3.7)).toBe(true);
+    expect(fittedContains(bounds, 40.86, -3.7)).toBe(true);
+    expect(fittedContains(bounds, 40.42, -4.28)).toBe(true);
+    expect(fittedContains(bounds, 40.42, -3.12)).toBe(true);
+    expect(cameraForBounds.mock.calls[0][1]).toEqual({
+      padding: 56,
+      offset: [0, -292],
+      maxZoom: 13,
+    });
+    expect(jumpTo).toHaveBeenCalledWith(CAMERA);
+  });
+
+  it("MAP-39: on a phone a search's pins are fitted as on desktop, 56px on every side", () => {
+    layOutMap();
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    const cameraForBounds = vi
+      .spyOn(MapLibreMap.prototype, "cameraForBounds")
+      .mockReturnValue(CAMERA);
+    const jumpTo = vi.spyOn(MapLibreMap.prototype, "jumpTo");
+
+    renderWithI18n(
+      <ListingsMap
+        listings={[AUDI]}
+        resultsGeneration={1}
+        desktop={false}
+        coveredFrom={SHEET_TOP}
+      />,
+    );
+
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(fitBounds).toHaveBeenCalledWith(
+      [
+        [-3.7038, 40.4168],
+        [-3.7038, 40.4168],
+      ],
+      { padding: 56, maxZoom: 13, animate: false },
+    );
+    expect(cameraForBounds).not.toHaveBeenCalled();
+    expect(jumpTo).not.toHaveBeenCalled();
+  });
+
+  it("MAP-39: on a phone a zone with listings is centred in the visible strip too", () => {
+    layOutMap();
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    const cameraForBounds = vi
+      .spyOn(MapLibreMap.prototype, "cameraForBounds")
+      .mockReturnValue(CAMERA);
+    const jumpTo = vi.spyOn(MapLibreMap.prototype, "jumpTo");
+
+    renderWithI18n(
+      <ListingsMap
+        listings={[AUDI]}
+        zone={ZONE}
+        resultsGeneration={1}
+        desktop={false}
+        coveredFrom={SHEET_TOP}
+      />,
+    );
+
+    // The same strip as the circle alone: 122 / 2 − 706 / 2 = −292px.
+    expect(fitBounds).not.toHaveBeenCalled();
+    expect(cameraForBounds).toHaveBeenCalledTimes(1);
+    const bounds = cameraForBounds.mock.calls[0][0];
+    expect(fittedContains(bounds, 40.4168, -3.7038)).toBe(true);
+    expect(fittedContains(bounds, 39.98, -3.7)).toBe(true);
+    expect(fittedContains(bounds, 40.86, -3.7)).toBe(true);
+    expect(cameraForBounds.mock.calls[0][1]).toEqual({
+      padding: 56,
+      offset: [0, -292],
+      maxZoom: 13,
+    });
+    expect(jumpTo).toHaveBeenCalledWith(CAMERA);
+  });
+
+  it("MAP-39: with the sheet's top edge at 112px, no room for the strip, the whole map is fitted", () => {
+    layOutMap();
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    const cameraForBounds = vi
+      .spyOn(MapLibreMap.prototype, "cameraForBounds")
+      .mockReturnValue(CAMERA);
+
+    renderWithI18n(
+      <ListingsMap
+        listings={[]}
+        zone={ZONE}
+        resultsGeneration={1}
+        desktop={false}
+        coveredFrom={112}
+      />,
+    );
+
+    expect(cameraForBounds).not.toHaveBeenCalled();
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(fitBounds.mock.calls[0][1]).toEqual({ padding: 56, maxZoom: 13, animate: false });
+  });
+
+  it("MAP-39: with the sheet's top edge at 113px the circle is centred in the strip", () => {
+    layOutMap();
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    const cameraForBounds = vi
+      .spyOn(MapLibreMap.prototype, "cameraForBounds")
+      .mockReturnValue(CAMERA);
+
+    renderWithI18n(
+      <ListingsMap
+        listings={[]}
+        zone={ZONE}
+        resultsGeneration={1}
+        desktop={false}
+        coveredFrom={113}
+      />,
+    );
+
+    // 113 / 2 − 706 / 2 = 56.5 − 353 = −296.5px.
+    expect(fitBounds).not.toHaveBeenCalled();
+    expect(cameraForBounds.mock.calls[0][1]).toEqual({
+      padding: 56,
+      offset: [0, -296.5],
+      maxZoom: 13,
+    });
+  });
+
+  it("MAP-39: when MapLibre cannot compute the strip's camera, the whole map is fitted", () => {
+    layOutMap();
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    const cameraForBounds = vi
+      .spyOn(MapLibreMap.prototype, "cameraForBounds")
+      .mockReturnValue(undefined);
+    const jumpTo = vi.spyOn(MapLibreMap.prototype, "jumpTo");
+
+    renderWithI18n(
+      <ListingsMap
+        listings={[]}
+        zone={ZONE}
+        resultsGeneration={1}
+        desktop={false}
+        coveredFrom={SHEET_TOP}
+      />,
+    );
+
+    expect(cameraForBounds).toHaveBeenCalledTimes(1);
+    expect(jumpTo).not.toHaveBeenCalled();
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(fittedContains(fitBounds.mock.calls[0][0], 39.98, -3.7)).toBe(true);
+    expect(fitBounds.mock.calls[0][1]).toEqual({ padding: 56, maxZoom: 13, animate: false });
+  });
+
+  it("MAP-39: on a phone, a sheet that covers none of the map fits the whole map as on desktop", () => {
+    layOutMap();
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    const cameraForBounds = vi
+      .spyOn(MapLibreMap.prototype, "cameraForBounds")
+      .mockReturnValue(CAMERA);
+
+    renderWithI18n(
+      <ListingsMap
+        listings={[]}
+        zone={ZONE}
+        resultsGeneration={1}
+        desktop={false}
+        coveredFrom={706}
+      />,
+    );
+
+    expect(cameraForBounds).not.toHaveBeenCalled();
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(fitBounds.mock.calls[0][1]).toEqual({ padding: 56, maxZoom: 13, animate: false });
+  });
+
+  it("MAP-39: on desktop, where nothing covers the map, the fit keeps 56px on every side", () => {
+    layOutMap();
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    const cameraForBounds = vi
+      .spyOn(MapLibreMap.prototype, "cameraForBounds")
+      .mockReturnValue(CAMERA);
+
+    renderWithI18n(<ListingsMap listings={[]} zone={ZONE} resultsGeneration={1} />);
+
+    expect(fitBounds).toHaveBeenCalledTimes(1);
+    expect(fitBounds.mock.calls[0][1]).toEqual({ padding: 56, maxZoom: 13, animate: false });
+    expect(cameraForBounds).not.toHaveBeenCalled();
   });
 });
 

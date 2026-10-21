@@ -10,6 +10,7 @@ import type { CarListing } from "@/interfaces/listing";
 import type { useListingsSearch } from "@/lib/hooks/useListingsSearch";
 import type { MapPageState } from "@/lib/hooks/useMapPageState";
 import type { ResultsState } from "@/lib/map/results-state";
+import type { MapZone } from "@/lib/map/zone";
 import type { PhoneSummary } from "@/lib/search/phone-summary";
 import type { SearchInput } from "@/lib/search/schema";
 
@@ -42,6 +43,8 @@ interface MapResultsAreaProps {
   state: ResultsState;
   widenTo: number | undefined;
   distanceInKm: number;
+  /** The circle around the browser's position while it stands in for a place (MAP-34). */
+  zone?: MapZone;
   hasFilters: boolean;
   onWiden: () => void;
   onClearFilters: () => void;
@@ -61,6 +64,7 @@ export function MapResultsArea({
   state,
   widenTo,
   distanceInKm,
+  zone,
   hasFilters,
   onWiden,
   onClearFilters,
@@ -140,6 +144,7 @@ export function MapResultsArea({
           <ListingsMap
             listings={results.listings}
             resultsGeneration={results.resultsGeneration}
+            zone={zone}
             activeId={page.activeId}
             previewId={page.previewId}
             onActivate={page.activatePin}

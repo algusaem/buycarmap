@@ -79,7 +79,8 @@ export function useLandingSearch() {
   function applySheet(result: SheetSearch) {
     setSheetOpen(false);
     navigateTo({
-      place: result.place,
+      // Left out when the sheet's «Dónde» was untouched: the landing's own place stands.
+      place: result.place === undefined ? draft.place : result.place,
       radiusKm: result.distanceInKm ?? draft.radiusKm,
       brand: result.brand ?? "",
       model: result.model ?? "",

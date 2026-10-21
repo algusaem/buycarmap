@@ -1,10 +1,10 @@
-import type { SelectedLocation } from "@/interfaces/location";
+import type { ShownPlace } from "@/interfaces/location";
 import type { LocaleCopy } from "@/lib/i18n/copy";
 import { carLabel, placeLabel, priceLabel } from "@/lib/search/filter-chips";
 import type { SearchInput } from "@/lib/search/schema";
 
 export interface PhoneSummary {
-  /** «Madrid · 50 km», or «Toda España» with no place chosen. */
+  /** «Madrid · 50 km», «Tu ubicación · 50 km» around the browser's position, or «Toda España» with no place chosen. */
   placeSummary: string;
   /** «Cualquier marca · hasta 20.000 €»: the car, then the price. */
   carPriceSummary: string;
@@ -16,7 +16,7 @@ export interface PhoneSummary {
  */
 export function phoneSummary(
   input: SearchInput,
-  place: SelectedLocation | null,
+  place: ShownPlace | null,
   radiusKm: number,
   copy: LocaleCopy,
 ): PhoneSummary {

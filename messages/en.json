@@ -322,13 +322,13 @@
     },
     "privacy": {
       "title": "Privacy Policy",
-      "updated": "14 October 2026",
+      "updated": "21 October 2026",
       "intro": "This policy explains what data BuyCarMap collects, why, and what you can do about it. We aim to collect as little as possible.",
       "sections": [
         {
           "id": "collection",
           "heading": "Information we collect",
-          "body": "If you create an account, we store your email address, an optional display name, and a securely hashed password — never the password itself. If you sign in with Google, we store the identifier of that account, the sign-in tokens it issues and the address of your profile picture. If you turn on two-factor authentication, we store its secret in encrypted form. We also store the listings you save as favourites, the alerts you create with their search criteria (including any location you chose), your language so emails reach you in it, and, for each signed-in session, the IP address and browser it came from, so you can see and end your sessions from your account page. We do not keep a history of your searches. To protect the service from abuse, we process your IP address and, when you sign in or ask for a password reset, your email address."
+          "body": "If you create an account, we store your email address, an optional display name, and a securely hashed password — never the password itself. If you sign in with Google, we store the identifier of that account, the sign-in tokens it issues and the address of your profile picture. If you turn on two-factor authentication, we store its secret in encrypted form. We also store the listings you save as favourites, the alerts you create with their search criteria (including any location you chose or, if the search started from “Your location”, your approximate location), your language so emails reach you in it, and, for each signed-in session, the IP address and browser it came from, so you can see and end your sessions from your account page. We do not keep a history of your searches. To protect the service from abuse, we process your IP address and, when you sign in or ask for a password reset, your email address."
         },
         {
           "id": "use",
@@ -392,6 +392,7 @@
     "price": "Price",
     "wherePlaceholder": "City or postcode…",
     "whereLabel": "City or postcode",
+    "yourLocation": "Your location",
     "places": "Places",
     "carPlaceholder": "Make or model…",
     "carLabel": "Make or model",

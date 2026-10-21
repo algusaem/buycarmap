@@ -36,14 +36,17 @@ export function alertName(
 /**
  * The car («Cualquier marca»), the price («Cualquier precio»), then the
  * fuels, the gearbox, the mileage, the year and the place with its radius,
- * each only when set.
+ * each only when set. A place with no name — the browser's position — ends
+ * with the radius alone, as the alert's card reads once saved (MAP-36).
  */
 export function alertSummary(
   input: SearchInput,
   placeName: string | undefined,
   copy: LocaleCopy,
 ): string {
-  const place = placeLabel(placeName, input.distanceInKm, copy);
+  const place = placeName
+    ? placeLabel(placeName, input.distanceInKm, copy)
+    : alertZone(input, null, copy);
 
   return [
     carLabel(input, copy) ?? copy.t("search.anyBrand"),

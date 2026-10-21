@@ -9,7 +9,7 @@ import {
 } from "react";
 import { BellPlus, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import type { SelectedLocation } from "@/interfaces/location";
+import type { ShownPlace } from "@/interfaces/location";
 import { Button } from "@/components/ui/button";
 import type { SearchPopover } from "@/lib/hooks/useSearchFilters";
 import { carLabel, placeLabel, priceLabel } from "@/lib/search/filter-chips";
@@ -100,7 +100,7 @@ const VARIANT = {
 // Hover turns a segment's value lime and brightens «Buscar»; a press scales
 // either to 0.97, off under reduced motion (MOTION-6).
 export interface SearchPillProps {
-  place: SelectedLocation | null;
+  place: ShownPlace | null;
   radiusKm: number;
   brand: string;
   model: string;

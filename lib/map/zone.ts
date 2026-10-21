@@ -4,8 +4,10 @@ import { DEFAULT_RADIUS_KM, hasPlace, type SearchInput } from "@/lib/search/sche
 // docs/specs/redesign-alerts.md (ALERTUI-14, ALERTUI-16, ALERTUI-22): the zone
 // an alert watches, read off its stored criteria. An alert "has a place" when
 // its criteria hold a latitude and a longitude; with none it has no zone.
+// docs/specs/map-and-search.md (MAP-34): the search map draws the same zone
+// around the browser's position while it stands in for a place.
 
-/** An alert's zone: its criteria point and radius. */
+/** A zone on the map: an alert's criteria point and radius, or the browser's position and the search radius (MAP-34). */
 export interface MapZone {
   lat: number;
   lng: number;

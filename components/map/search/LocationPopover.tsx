@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { SelectedLocation } from "@/interfaces/location";
+import type { SelectedLocation, ShownPlace } from "@/interfaces/location";
 import { SectionLabel } from "./Combobox";
 import { PlaceField } from "./PlaceField";
 import { PopoverResetButton } from "./PopoverResetButton";
@@ -13,7 +13,7 @@ import { RadiusChoice } from "./RadiusChoice";
 // radii (MAPUI-4), and "Toda España" (MAPUI-5). SearchPill frames it in the
 // popover card; this is its body.
 export interface LocationPopoverProps {
-  value: SelectedLocation | null;
+  value: ShownPlace | null;
   radiusKm: number;
   onSelect: (location: SelectedLocation) => void;
   onClear: () => void;
