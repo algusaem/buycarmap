@@ -7,6 +7,7 @@ La ficha rápida que se abre encima del mapa al pulsar un pin, en Mapa, Guardado
 - Nombre 16px y la ciudad a la derecha en 13px `text-muted`; debajo los metadatos en `meta`, subidos 6px.
 - Fila del precio: precio Unbounded 24px en `lime`, sin espacio entre letras; Guardar (botón de icono de 42px) y «Ver anuncio» (principal de 42px).
 - Guardado: el botón pasa a `violet` sin borde, con el corazón relleno en `on-violet`, y su `aria-label` cambia a «Quitar de guardados».
+- Es un diálogo no modal (`role="dialog"`, sin `aria-modal`) con el nombre del coche («Audi A3 2.0 TDI»), o con la etiqueta del pin si agrupa varios («2 coches · desde 9.500 €»), para que un lector de pantalla diga el coche al entrar el foco (MAPUI-69).
 - Al abrirse, el foco pasa a la vista previa. Se cierra con su botón, con Escape (desde el pin o desde dentro) o pulsando fuera, y el foco vuelve al pin.
 - En escritorio va anclada a su pin y se mueve con el mapa. Abrir «Crear alerta» la cierra.
 - Si el pin agrupa varios coches, la vista previa los lista en orden, con scroll.

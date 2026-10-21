@@ -213,7 +213,17 @@ Map
   A grouped pin's preview lists its cars in order. The preview receives focus when it opens (owner
   approval, 2026-10-13). It closes with its button, Escape
   pressed on the pin or inside the preview, or a press anywhere outside it, on the map or the page
-  (owner decision, 2026-10-13: «Vale»), and focus returns to the pin. (amended 2026-10-13)
+  (owner decision, 2026-10-13: «Vale»), and focus returns to the pin. (amended 2026-10-13) — the
+  preview is a non-modal dialog named by its car (MAPUI-69) (amended 2026-10-21)
+- [x] MAPUI-69 · component — The preview is a non-modal dialog (`role="dialog"`, never
+  `aria-modal`) named by its car's name («Audi A3 2.0 TDI»), or, for a grouped pin, by the pin's own
+  label («2 coches · desde 9.500 €», MAPUI-26). So when the focus moves into it, a screen reader names
+  the car before the button that takes the focus (A11Y-11). Nothing else about the preview changes:
+  how it looks, what it holds, and MAPUI-27's open, focus, close and Escape lifecycle stay as they are.
+  The same holds on every map that opens it: `/map`, Guardados (redesign-saved.md) and an alert's
+  map (redesign-alerts.md). «Vista previa del coche» (`map.preview`) names nothing any more and is removed
+  (bug fix, found by the NVDA suite 2026-10-21: NVDA said only «Cerrar vista previa, botón» on
+  opening, since a screen reader does not announce an `article`'s name when the focus enters it).
 - [x] MAPUI-28 · component — Hovering or focusing a card in the list marks its pin active.
 - [x] MAPUI-29 · component — At desktop width, «Acercar» and «Alejar» change the map zoom by one level,
   and the map shows no other zoom control.
@@ -264,6 +274,14 @@ States
     1 COCHE» when that number is one (owner approval, 2026-10-13). (amended 2026-10-13)
 
   It has no «cerca de…» line in any state, since the search already names the place.
+- [x] MAPUI-68 · component — The status pill of MAPUI-30 to MAPUI-32 is the page's one polite live
+  region (`role="status"`) at both widths, so a screen reader hears each state of the search without
+  the focus moving (A11Y-10). Once the cars are listed it says the count, which it does not draw:
+  «3 coches» («1 coche») once the sources are exhausted, «Más de 40 coches» («Más de 1 coche») while
+  more pages remain, so a page that lands by scrolling says the new count. At desktop width the pill
+  is drawn as before and draws nothing while the cars are listed; at phone width it is never drawn,
+  and its text is there only for a screen reader. Nothing visible changes at either width (bug fix,
+  found by the NVDA suite 2026-10-21: the count was never announced, and at phone width no state was).
 - [x] MAPUI-34 · component — `/map` has its own `loading.tsx`, which renders the loading state, and its
   own `error.tsx`. The error file renders the page-error state with the line «Error al cargar el mapa. Vuelve a
   intentarlo más tarde.» and «Reintentar», which retries the route. (amended 2026-10-13)
@@ -665,6 +683,38 @@ in three cases:
 | 40 cars listed, more pages left | «MÁS DE 40 COCHES» |
 | 1 car listed, more pages left | «MÁS DE 1 COCHE» |
 | 40 listed, load-more running | «MÁS DE 40 COCHES» (unchanged until the page lands) |
+
+**The preview's name (MAPUI-69; bug fix, NVDA suite 2026-10-21).**
+
+- **Input that failed:** `/map` with NVDA at 1280 × 720, the default three listings; focus on the
+  Audi pin, Enter.
+- **Before the fix:** NVDA said «Cerrar vista previa, botón». The preview was an `article` named
+  «Vista previa del coche», and an article's name is not announced when the focus enters it.
+- **Correct result:** the preview is a dialog named «Audi A3 2.0 TDI», and NVDA says that name, its
+  role, then «Cerrar vista previa, botón».
+
+| Pin | The preview's role and name |
+| --- | --- |
+| one car, «Audi A3 2.0 TDI» at 14.500 € | dialog «Audi A3 2.0 TDI» |
+| two cars at one point, the cheaper 9.500 € | dialog «2 coches · desde 9.500 €» |
+
+**What the status says (MAPUI-68; bug fix, NVDA suite 2026-10-21).**
+
+- **Input that failed:** `/map` with NVDA at 1280 × 720, the default three listings; «Buscar» focused, Enter.
+- **Before the fix:** NVDA said «Buscando coches…» and then nothing: the pill empties once the cars are
+  listed, and the «3 COCHES» heading is not a live region. At 390 × 844 it said nothing at all, since
+  the pill was `display: none` there.
+- **Correct result:** NVDA says «Buscando coches…», then «3 coches», at both widths, with nothing new drawn.
+
+| State | Drawn at desktop width | Said by the status (both widths) |
+| --- | --- | --- |
+| first page loading | «Buscando coches…» | «Buscando coches…» |
+| exhausted with 1 car | nothing | «1 coche» |
+| exhausted with 3 cars | nothing | «3 coches» |
+| 40 cars listed, more pages left | nothing | «Más de 40 coches» |
+| 1 car listed, more pages left | nothing | «Más de 1 coche» |
+| a model filter, no place, no cars | «Ningún coche con estos filtros» | «Ningún coche con estos filtros» |
+| failed | «Sin conexión con los anuncios» | «Sin conexión con los anuncios» |
 
 **Empty state widening (MAPUI-31).** 10 → «Ampliar a 25 km», 25 → «Ampliar a 50 km», 50 → «Ampliar a
 100 km», 100 → «Ampliar a 200 km», 200 → no button. At 200 km or with no place: the headline «¿Nada por aquí?» over «Quita algún filtro», «Quitar filtros» as the primary action, «Ningún coche con estos filtros»

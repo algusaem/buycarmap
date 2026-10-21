@@ -830,7 +830,7 @@ gives Spanish only. English is drafted here and reviewed in the pull request, as
 | The criteria parts | `search.brandModel`, `search.priceUpTo`, `search.priceFrom`, `filters.fuelGroups.*`, `filters.transmissions.*`, `filters.maxKmChip`, `filters.minYearChip` | existing | — |
 | «Cargando…» (pill, visually hidden status) | `map.loading` | existing | "Loading…" |
 | «Guardar», «Quitar de guardados», «Ver anuncio» | `map.addFavorite`, `map.removeFavorite`, `map.viewListing` | existing | "Save", "Remove from saved", "View listing" |
-| «Vista previa del coche», «Cerrar vista previa», «N coches · desde …», «Acercar», «Alejar» | `map.preview`, `map.closePreview`, `map.pinGroup`, `map.zoomIn`, `map.zoomOut` | existing | — |
+| «Cerrar vista previa», «N coches · desde …», «Acercar», «Alejar» | `map.closePreview`, `map.pinGroup`, `map.zoomIn`, `map.zoomOut` | existing | — `map.preview` («Vista previa del coche») is removed: the preview is named by its car (amended 2026-10-21, MAPUI-69 — redesign-map.md) |
 | «Cerrar» (car sheet), «Cerrar aviso» (toast) | `common.close`, `common.closeToast` | existing | "Close", "Close notice" |
 | The page error | `errors.pageTitle`, `errors.pagePunchline`, `errors.pageLine`, `errors.retry`, `nav.backToMap` | existing | — |
 | «No se pudo cargar esta página. Inténtalo de nuevo.» | `errors.pageLoadFailed` | removed, with `RouteError` | — |

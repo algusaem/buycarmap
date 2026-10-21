@@ -48,11 +48,13 @@ export interface PreviewProps {
   onExitComplete?: () => void;
 }
 
-// docs/specs/redesign-map.md (MAPUI-27); docs/design/system/components/MapPreview/README.md.
+// docs/specs/redesign-map.md (MAPUI-27, MAPUI-69); docs/design/system/components/MapPreview/README.md.
 // The preview card a pin opens on desktop: the photo with the source badge
 // and the close button, the name and city, «año · km · combustible», then the
 // price with «Guardar» and «Ver anuncio» (new tab). A grouped pin lists its
-// cars in price order, scrolling, and is named by its pin's label.
+// cars in price order, scrolling. The card is a non-modal dialog named by its
+// car, or by its pin's label when it holds several, so a screen reader names
+// the car as the focus moves in (MAPUI-69).
 //
 // PricePin (ListingsMap.tsx) mounts this card each time its preview opens,
 // portaled with React's `createPortal` into the content element of a
@@ -83,8 +85,7 @@ export function MapPreview({
   previewControlRef,
   onExitComplete,
 }: PreviewProps) {
-  const t = useTranslations();
-  const previewRef = useRef<HTMLElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const [closing, setClosing] = useState(false);
   // Bumped by `reset()`, so the focus effect below reruns even when
   // `closing` was already `false` — a click on the pin mid-fade cancels the
@@ -128,7 +129,8 @@ export function MapPreview({
         <PreviewFrame
           key="preview"
           ref={previewRef}
-          aria-label={group.listings.length > 1 ? group.label : t("map.preview")}
+          role="dialog"
+          aria-label={group.listings.length > 1 ? group.label : group.listings[0]?.title}
           className="flex max-h-120 flex-col gap-4 overflow-y-auto overscroll-contain p-3 font-sans text-text"
         >
           {group.listings.map((listing, index) => (
@@ -146,10 +148,10 @@ export function MapPreview({
 }
 
 /** The preview's own fade, instant from the keyboard (MOTION-11). */
-function PreviewFrame(props: HTMLMotionProps<"article">) {
+function PreviewFrame(props: HTMLMotionProps<"div">) {
   const fade = usePresenceMotion(crossFade);
 
-  return <motion.article {...fade} {...props} />;
+  return <motion.div {...fade} {...props} />;
 }
 
 interface PreviewCarProps {

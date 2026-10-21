@@ -204,7 +204,7 @@ const UPSTREAM_PORT = process.env.E2E_UPSTREAM_PORT ?? "3912";
  * reaches the browser — this is a Node-to-Node control-plane call instead,
  * not something the page sees.
  */
-export async function setUpstreamScenario(scenario: "default" | "empty"): Promise<void> {
+export async function setUpstreamScenario(scenario: "default" | "empty" | "error"): Promise<void> {
   const response = await fetch(`http://localhost:${UPSTREAM_PORT}/__scenario`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
