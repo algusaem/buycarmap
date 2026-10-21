@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { http, passthrough } from "msw";
 import { z } from "zod";
+import { SPAIN_CENTER } from "@/lib/geo/cities";
+import { buildWallapopQuery } from "@/lib/wallapop/client";
 import { server } from "../msw/server";
 import { makeWallapopItem, makeWallapopResponse } from "../fixtures/wallapop";
 
@@ -63,16 +65,20 @@ describe("Wallapop response contract", () => {
       // Let this one request reach the real API; MSW intercepts everything else.
       server.use(http.get(UPSTREAM, () => passthrough()));
 
-      const url = new URL(UPSTREAM);
-      url.searchParams.set("category_id", "100");
-      url.searchParams.set("latitude", "40.0");
-      url.searchParams.set("longitude", "-3.5");
-      url.searchParams.set("distance_in_km", "100");
+      // The same query and headers server/search/service.ts's fetchWallapopPage
+      // sends, so this checks the request production actually makes.
+      const query = buildWallapopQuery(
+        { latitude: SPAIN_CENTER.lat, longitude: SPAIN_CENTER.lng, distanceInKm: 100 },
+        { lat: SPAIN_CENTER.lat, lng: SPAIN_CENTER.lng, distance: 100 },
+      );
 
-      const res = await fetch(url, {
-        headers: { "x-deviceos": "0", "x-appversion": "85000" },
+      const res = await fetch(`${UPSTREAM}?${query.toString()}`, {
+        headers: { Accept: "application/json", "x-deviceos": "0", "x-appversion": "85000" },
       });
-      expect(res.ok).toBe(true);
+      if (!res.ok) {
+        const excerpt = (await res.text()).slice(0, 500);
+        throw new Error(`Wallapop answered ${res.status} ${res.statusText}:\n${excerpt}`);
+      }
 
       const body: unknown = await res.json();
       const parsed = wallapopResponseContract.safeParse(body);
