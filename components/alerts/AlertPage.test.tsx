@@ -99,10 +99,11 @@ async function findPin(name: string): Promise<HTMLElement> {
   return screen.findByRole("button", { name });
 }
 
-async function openPreview(name: string): Promise<HTMLElement> {
+/** Opens a pin's preview: a dialog named by its car's title, or by a grouped pin's own label (MAPUI-69). */
+async function openPreview(name: string, previewName = name): Promise<HTMLElement> {
   (await findPin(name)).focus();
   await userEvent.keyboard("{Enter}");
-  return screen.findByRole("article", { name: /Vista previa del coche|coches · desde/ });
+  return screen.findByRole("dialog", { name: previewName });
 }
 
 function cardOf(title: string): HTMLElement {
@@ -327,7 +328,10 @@ describe("ALERTUI-18: the saved state of a match (worked example «Saved state»
 
     const heart = await within(card).findByRole("button", { name: ALERT_COPY.unsave });
     expect(heart).toHaveClass("bg-violet");
-    const preview = await openPreview(pinName("Toyota Corolla 125H", "16.200"));
+    const preview = await openPreview(
+      pinName("Toyota Corolla 125H", "16.200"),
+      "Toyota Corolla 125H",
+    );
     expect(within(preview).getByRole("button", { name: ALERT_COPY.unsave })).toBeInTheDocument();
 
     // The card's heart is a press outside the preview, which closes it (MAPUI-27).
@@ -336,7 +340,10 @@ describe("ALERTUI-18: the saved state of a match (worked example «Saved state»
     expect(removeFavorite).toHaveBeenCalledTimes(1);
     expect(removeFavorite).toHaveBeenCalledWith("cochesnet-99");
     expect(within(card).getByRole("button", { name: ALERT_COPY.save })).toBeInTheDocument();
-    const reopened = await openPreview(pinName("Toyota Corolla 125H", "16.200"));
+    const reopened = await openPreview(
+      pinName("Toyota Corolla 125H", "16.200"),
+      "Toyota Corolla 125H",
+    );
     expect(within(reopened).getByRole("button", { name: ALERT_COPY.save })).toBeInTheDocument();
     // The heart toggles: the card stays in the list.
     expect(guardadosCards()).toHaveLength(4);
@@ -351,7 +358,10 @@ describe("ALERTUI-18: the saved state of a match (worked example «Saved state»
     expect(saveFavorite).toHaveBeenCalledTimes(1);
     expect(vi.mocked(saveFavorite).mock.calls[0][0]).toMatchObject({ id: "wallapop-corolla-2" });
     expect(within(card).getByRole("button", { name: ALERT_COPY.unsave })).toBeInTheDocument();
-    const preview = await openPreview(pinName("Toyota Corolla 1.8 Hybrid Active", "17.900"));
+    const preview = await openPreview(
+      pinName("Toyota Corolla 1.8 Hybrid Active", "17.900"),
+      "Toyota Corolla 1.8 Hybrid Active",
+    );
     expect(within(preview).getByRole("button", { name: ALERT_COPY.unsave })).toBeInTheDocument();
   });
 });

@@ -307,7 +307,6 @@ export interface Translations {
     zoomIn: string;
     zoomOut: string;
     viewListing: string;
-    preview: string;
     closePreview: string;
     pinGroup: string;
     sheetHandle: string;

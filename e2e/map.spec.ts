@@ -208,7 +208,7 @@ test.describe("MAPUI-39: Crear alerta replaces the pin preview", () => {
       await page.goto("/map");
       // The pin is the button itself, its price as its text (MapLibre marker).
       await page.getByRole("button", { name: /Audi A3 2\.0 TDI/ }).click();
-      const preview = page.getByRole("article", { name: /vista previa del coche|car preview/i });
+      const preview = page.getByRole("dialog", { name: "Audi A3 2.0 TDI", exact: true });
       await expect(preview).toBeVisible();
 
       await page
@@ -1398,7 +1398,7 @@ test.describe("MOTION-16: the «Filtros» dropdown closes with Escape within two
 // jsdom. The cases that assert a callback, a re-render with new props or a
 // class stayed in components/map/ListingsMap.test.tsx against the stand-in.
 test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", () => {
-  const PREVIEW_NAME = /^(vista previa del coche|car preview)$/i;
+  const PREVIEW_NAME = /^(Audi A3 2\.0 TDI|BMW Serie 3 320d)$/;
   const CLOSE_NAME = /^(cerrar vista previa|close preview)$/i;
   const AUDI_PIN = /^Audi A3 2\.0 TDI, /;
   const BMW_PIN = /^BMW Serie 3 320d, /;
@@ -1424,7 +1424,7 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
       audi: pins.getByRole("button", { name: AUDI_PIN }),
       bmw: pins.getByRole("button", { name: BMW_PIN }),
       // Hidden elements included: a card fading out is still the preview.
-      preview: page.locator(".maplibregl-popup").getByRole("article", {
+      preview: page.locator(".maplibregl-popup").getByRole("dialog", {
         name: PREVIEW_NAME,
         includeHidden: true,
       }),
@@ -1742,7 +1742,7 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
     const inserted = await page.evaluateHandle(() => {
       const state = { opacity: -1 };
       const observer = new MutationObserver(() => {
-        const card = document.querySelector(".maplibregl-popup article");
+        const card = document.querySelector('.maplibregl-popup [role="dialog"]');
         if (!card) return;
         state.opacity = Number.parseFloat(getComputedStyle(card).opacity);
         observer.disconnect();

@@ -360,7 +360,7 @@ test.describe("MAPLIBRE-6: every existing map behaviour, ported to MapLibre", ()
 
     const firstPin = pins.first().getByRole("button");
     await firstPin.click();
-    const preview = page.getByRole("article", { name: /vista previa del coche|car preview/i });
+    const preview = page.getByRole("dialog", { name: "Audi A3 2.0 TDI", exact: true });
     await expect(preview).toBeVisible({ timeout: ATTR_TIMEOUT });
 
     await page.keyboard.press("Escape");
@@ -557,7 +557,7 @@ test.describe("MAPLIBRE-8: the pins stay keyboard-operable", () => {
     await firstPin.focus({ timeout: ATTR_TIMEOUT });
     await expect(firstPin).toBeFocused();
 
-    const preview = page.getByRole("article", { name: /vista previa del coche|car preview/i });
+    const preview = page.getByRole("dialog", { name: "Audi A3 2.0 TDI", exact: true });
 
     await page.keyboard.press("Enter");
     await expect(preview).toBeVisible({ timeout: 100 });
@@ -673,7 +673,7 @@ test.describe("MAPLIBRE-14: OpenFreeMap down — the map still shows its ground,
     const firstPin = mapEl.locator(".maplibregl-marker").first().getByRole("button");
     await expect(firstPin).toBeVisible({ timeout: ATTR_TIMEOUT });
     await firstPin.click();
-    const preview = page.getByRole("article", { name: /vista previa del coche|car preview/i });
+    const preview = page.getByRole("dialog", { name: "Audi A3 2.0 TDI", exact: true });
     await expect(preview).toBeVisible({ timeout: ATTR_TIMEOUT });
 
     await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();

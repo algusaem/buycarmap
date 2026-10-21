@@ -213,7 +213,17 @@ Map
   A grouped pin's preview lists its cars in order. The preview receives focus when it opens (owner
   approval, 2026-10-13). It closes with its button, Escape
   pressed on the pin or inside the preview, or a press anywhere outside it, on the map or the page
-  (owner decision, 2026-10-13: «Vale»), and focus returns to the pin. (amended 2026-10-13)
+  (owner decision, 2026-10-13: «Vale»), and focus returns to the pin. (amended 2026-10-13) — the
+  preview is a non-modal dialog named by its car (MAPUI-69) (amended 2026-10-21)
+- [x] MAPUI-69 · component — The preview is a non-modal dialog (`role="dialog"`, never
+  `aria-modal`) named by its car's name («Audi A3 2.0 TDI»), or, for a grouped pin, by the pin's own
+  label («2 coches · desde 9.500 €», MAPUI-26). So when the focus moves into it, a screen reader names
+  the car before the button that takes the focus (A11Y-11). Nothing else about the preview changes:
+  how it looks, what it holds, and MAPUI-27's open, focus, close and Escape lifecycle stay as they are.
+  The same holds on every map that opens it: `/map`, Guardados (redesign-saved.md) and an alert's
+  map (redesign-alerts.md). «Vista previa del coche» (`map.preview`) names nothing any more and is removed
+  (bug fix, found by the NVDA suite 2026-10-21: NVDA said only «Cerrar vista previa, botón» on
+  opening, since a screen reader does not announce an `article`'s name when the focus enters it).
 - [x] MAPUI-28 · component — Hovering or focusing a card in the list marks its pin active.
 - [x] MAPUI-29 · component — At desktop width, «Acercar» and «Alejar» change the map zoom by one level,
   and the map shows no other zoom control.
@@ -673,6 +683,20 @@ in three cases:
 | 40 cars listed, more pages left | «MÁS DE 40 COCHES» |
 | 1 car listed, more pages left | «MÁS DE 1 COCHE» |
 | 40 listed, load-more running | «MÁS DE 40 COCHES» (unchanged until the page lands) |
+
+**The preview's name (MAPUI-69; bug fix, NVDA suite 2026-10-21).**
+
+- **Input that failed:** `/map` with NVDA at 1280 × 720, the default three listings; focus on the
+  Audi pin, Enter.
+- **Before the fix:** NVDA said «Cerrar vista previa, botón». The preview was an `article` named
+  «Vista previa del coche», and an article's name is not announced when the focus enters it.
+- **Correct result:** the preview is a dialog named «Audi A3 2.0 TDI», and NVDA says that name, its
+  role, then «Cerrar vista previa, botón».
+
+| Pin | The preview's role and name |
+| --- | --- |
+| one car, «Audi A3 2.0 TDI» at 14.500 € | dialog «Audi A3 2.0 TDI» |
+| two cars at one point, the cheaper 9.500 € | dialog «2 coches · desde 9.500 €» |
 
 **What the status says (MAPUI-68; bug fix, NVDA suite 2026-10-21).**
 
