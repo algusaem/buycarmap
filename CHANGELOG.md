@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.6.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.5.0...buycarmap-v0.6.0) (2026-10-21)
+
+
+### Features
+
+* **a11y:** add a skip link, keyboard walk-throughs, NVDA and WebKit checks ([#151](https://github.com/algusaem/buycarmap/issues/151)) ([ac93954](https://github.com/algusaem/buycarmap/commit/ac939549b562e7c38a4897c59283877c889f394a))
+* **map:** add quick filters and split the desktop list and map ([#141](https://github.com/algusaem/buycarmap/issues/141)) ([174985d](https://github.com/algusaem/buycarmap/commit/174985df471fe238b3064103574f68d4309e8fc5))
+* **map:** centre the map on your location within 50 km ([#153](https://github.com/algusaem/buycarmap/issues/153)) ([ef04c37](https://github.com/algusaem/buycarmap/commit/ef04c37c30c40bf346b72f9d625c015ca7cd6471))
+* **map:** draw the design's own map style with MapLibre GL and OpenFreeMap ([#147](https://github.com/algusaem/buycarmap/issues/147)) ([f251597](https://github.com/algusaem/buycarmap/commit/f2515978376e00240ea9b505a0d05999bdbd7fd8))
+* **ui:** give every control hover and press feedback and faster motion ([#144](https://github.com/algusaem/buycarmap/issues/144)) ([d558170](https://github.com/algusaem/buycarmap/commit/d55817004584a69e7b57291d09fd33f10f144327))
+
+
+### Bug Fixes
+
+* **alerts:** stop the alert runner from keeping the Neon compute awake ([#149](https://github.com/algusaem/buycarmap/issues/149)) ([24ab93d](https://github.com/algusaem/buycarmap/commit/24ab93dbf1f837348eea5754902edbc2dc9d1726))
+* **legal:** jump to a section after the folded index leaves the page ([#139](https://github.com/algusaem/buycarmap/issues/139)) ([586c86a](https://github.com/algusaem/buycarmap/commit/586c86a2e95593b7c38fb5078b8860341891030b)), closes [#137](https://github.com/algusaem/buycarmap/issues/137)
+* **map:** announce the result count and name the preview by its car ([#155](https://github.com/algusaem/buycarmap/issues/155)) ([361334b](https://github.com/algusaem/buycarmap/commit/361334b12a93c72ad1616ac3c3960b5d5e08f990))
+* **map:** settle the phone results sheet from the finger's release point ([#148](https://github.com/algusaem/buycarmap/issues/148)) ([446998e](https://github.com/algusaem/buycarmap/commit/446998e45c10f001f3095bcb5d8f567b1714202c))
+* **nav:** bring the tab bar back at the end of a page's scroll ([#145](https://github.com/algusaem/buycarmap/issues/145)) ([3005b3d](https://github.com/algusaem/buycarmap/commit/3005b3d7dd1cf04d04d4cf2309f8ef9e89eef92a))
+
 ## [0.5.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.4.0...buycarmap-v0.5.0) (2026-10-18)
 
 
