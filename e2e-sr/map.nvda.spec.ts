@@ -10,12 +10,22 @@
 //
 // Guidepup's spoken phrase log holds only what NVDA says while Guidepup runs
 // a command: an NVDA command (`next()`, `navigateToWebContent()`) or a page
-// action wrapped in `nvda.capture()`. So a load, a focus or a key press whose
-// speech is asserted runs inside `nvda.capture()`, and every capture keeps
-// the whole of what NVDA says, not only its first phrase (`capture: true`).
-import { nvdaTest as test } from "@guidepup/playwright";
-import { expect } from "@playwright/test";
-import { mockListingSources } from "../e2e/fixtures/network";
+// action wrapped in `nvda.capture()`, which stops listening one second after
+// NVDA last spoke. So a focus or a key press whose speech is asserted runs
+// inside `nvda.capture()`, and every capture keeps the whole of what NVDA
+// says, not only its first phrase (`capture: true`).
+//
+// A page load is never what a test captures. On load NVDA starts reading the
+// page from the top and, on the CI runner, stops after its first line («Saltar
+// al contenido»), long before the results arrive: a live region that changes
+// during the load is not heard, and content that is simply there is only
+// spoken when the reader reaches it. So each test loads the page first, then
+// asserts on what NVDA says to a user action: a key press that starts a search
+// (a polite status, A11Y-10), focus moving (A11Y-9, A11Y-11), or the virtual
+// cursor walking the page with `next()` (A11Y-12, A11Y-13).
+import { type NVDAPlaywright, nvdaTest as test } from "@guidepup/playwright";
+import { expect, type Page } from "@playwright/test";
+import { mockListingSources, setUpstreamScenario } from "../e2e/fixtures/network";
 import { stubMapTiles } from "../e2e/fixtures/map-tiles";
 
 // messages/es.json. The NVDA assertions check for BuyCarMap's own Spanish
@@ -23,10 +33,10 @@ import { stubMapTiles } from "../e2e/fixtures/map-tiles";
 // role words, which follow the reader's language"), so these are read from
 // the message files rather than guessed:
 //  - search.where/car/price: the segment's overline label ("Dónde" etc.);
-//    search.allSpain/anyBrand/priceAny: each segment's default value.
+//    search.wherePlaceholder/anyBrand/priceAny: each segment's default value.
 //  - map.markerLabel "{title}, {price}": a pin's spoken name.
-//  - map.preview "Vista previa del coche": the pin preview dialog's name.
-//  - mapStates.headingCount/headingNone: the result count heading.
+//  - mapStates.statusCount: the count the status pill says (MAPUI-68).
+//  - mapStates.statusNone: the status pill's no-match line (MAPUI-31).
 //  - mapStates.emptyTitle/emptyLine: the no-results EmptyState.
 //  - mapStates.errorTitle/errorLine: the search-error EmptyState.
 //  - map.unavailable: the no-WebGL status pill (MAPLIBRE-15).
@@ -40,42 +50,105 @@ const MAX_NVDA_STOPS = 80;
 
 test.use({ nvdaStartOptions: { capture: true } });
 
+/**
+ * What NVDA said, compared the way it is spoken. NVDA's default speech
+ * dictionary splits a word where its letters change case or meet a digit
+ * before speaking it — «A3» is spoken «A 3», «BuyCarMap» «Buy Car Map» — and
+ * its log writes «…» as «...». Dropping the whitespace and spelling out «…»
+ * on both sides keeps every assertion on the app's own string, whatever NVDA
+ * does to its spacing.
+ */
+function spoken(text: string): string {
+  return text.replaceAll("…", "...").replace(/\s+/g, "");
+}
+
+async function spokenLog(nvda: NVDAPlaywright): Promise<string> {
+  return (await nvda.spokenPhraseLog()).join(" ");
+}
+
+/**
+ * Guidepup's `navigateToWebContent()` clicks the middle of the page's body to
+ * hand it the focus. On /map that point is a pin or a card, and a card is a
+ * link to the listing on its marketplace: at phone width the click opened
+ * Wallapop in a new tab, and NVDA read CloudFront's «403 ERROR» page instead
+ * of the app. A blank layer over the page for the length of the call takes
+ * the click, so it activates nothing; NVDA never reads it (`aria-hidden`), and
+ * it is gone before the test reads anything.
+ */
+async function enterWebContent(nvda: NVDAPlaywright, page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const shield = document.createElement("div");
+    shield.id = "nvda-click-shield";
+    shield.setAttribute("aria-hidden", "true");
+    shield.style.cssText = "position: fixed; inset: 0; z-index: 2147483647;";
+    document.body.append(shield);
+  });
+  await nvda.navigateToWebContent();
+  await page.evaluate(() => document.getElementById("nvda-click-shield")?.remove());
+}
+
+/** Moves NVDA's virtual cursor one `next()` at a time — Guidepup's own pattern for walking the reading order — until it speaks `phrase`. */
+async function walkUntil(nvda: NVDAPlaywright, phrase: string): Promise<void> {
+  for (
+    let stop = 0;
+    stop < MAX_NVDA_STOPS && !spoken(await nvda.lastSpokenPhrase()).includes(spoken(phrase));
+    stop++
+  ) {
+    await nvda.next();
+  }
+}
+
+/**
+ * Presses Enter on the focused «Buscar» and waits for the search's Server
+ * Action to answer, so a capture around it lasts until the status has its
+ * final text, however long the search takes.
+ */
+async function searchAgain(page: Page): Promise<void> {
+  const answered = page.waitForResponse(
+    (response) => response.request().headers()["next-action"] !== undefined,
+  );
+  await page.keyboard.press("Enter");
+  await answered;
+}
+
+async function gotoMap(page: Page, path: string, ready: string): Promise<void> {
+  await stubMapTiles(page);
+  await mockListingSources(page);
+  await page.goto(path);
+  await expect(page.getByText(ready).first()).toBeVisible();
+}
+
 test.describe("A11Y-9: NVDA reads the search pill's segments and the submit/Crear alerta buttons by name", () => {
-  test("A11Y-9: moving through the pill speaks «Dónde», «Toda España», «Coche», «Cualquier marca», «Precio», «Cualquiera», «Buscar» and «Crear alerta»", async ({
+  test("A11Y-9: tabbing through the pill speaks «Dónde», «Ciudad o código postal…», «Coche», «Cualquier marca», «Precio», «Cualquiera», «Buscar» and «Crear alerta»", async ({
     nvda,
     page,
   }) => {
-    await stubMapTiles(page);
-    await mockListingSources(page);
-    await page.goto("/map");
-    await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+    await gotoMap(page, "/map", "Audi A3 2.0 TDI");
 
-    // From the start of the page's content, moves NVDA's virtual cursor one
-    // `next()` at a time — Guidepup's own documented pattern for walking the
-    // reading order — through the skip link, the wordmark, the pill's three
-    // segments and the two buttons that follow it, until it reaches «Crear
-    // alerta», the last of them.
-    await nvda.navigateToWebContent();
-    for (
-      let stop = 0;
-      stop < MAX_NVDA_STOPS && !(await nvda.lastSpokenPhrase()).includes("Crear alerta");
-      stop++
-    ) {
-      await nvda.next();
+    // A segment's name is its value and its overline label is its
+    // description (SearchPill.tsx). NVDA speaks a description when the
+    // control takes the focus, not when its virtual cursor passes over it,
+    // so the pill is walked the way a keyboard user moves through it: Tab
+    // from the wordmark, through the three segments, «Buscar» and «Crear
+    // alerta».
+    await enterWebContent(nvda, page);
+    await page.getByRole("link", { name: "BuyCarMap" }).focus();
+    for (let stop = 0; stop < 5; stop++) {
+      await nvda.capture(() => page.keyboard.press("Tab"));
     }
 
-    const log = (await nvda.spokenPhraseLog()).join(" ");
+    const log = spoken(await spokenLog(nvda));
     expect(log.length, "NVDA spoke nothing at all — the edge case A11Y-14 forbids").toBeGreaterThan(
       0,
     );
-    expect(log).toContain("Dónde");
-    expect(log).toContain("Toda España");
-    expect(log).toContain("Coche");
-    expect(log).toContain("Cualquier marca");
-    expect(log).toContain("Precio");
-    expect(log).toContain("Cualquiera");
-    expect(log).toContain("Buscar");
-    expect(log).toContain("Crear alerta");
+    expect(log).toContain(spoken("Dónde"));
+    expect(log).toContain(spoken("Ciudad o código postal…"));
+    expect(log).toContain(spoken("Coche"));
+    expect(log).toContain(spoken("Cualquier marca"));
+    expect(log).toContain(spoken("Precio"));
+    expect(log).toContain(spoken("Cualquiera"));
+    expect(log).toContain(spoken("Buscar"));
+    expect(log).toContain(spoken("Crear alerta"));
   });
 });
 
@@ -84,37 +157,41 @@ test.describe("A11Y-10: NVDA speaks the result count politely, and the no-match 
     nvda,
     page,
   }) => {
-    await stubMapTiles(page);
-    await mockListingSources(page);
+    await gotoMap(page, "/map", "Audi A3 2.0 TDI");
 
-    // MAPUI-3/MAP-20: the count is a polite aria-live status, so NVDA speaks
-    // it without the user moving focus at all — no nvda.next() here, only
-    // the load, captured.
+    // MAPUI-68: the count is said by the polite status pill, so NVDA speaks
+    // it without the user moving focus at all: «Buscar» keeps the focus
+    // while its search runs, and only the key press is captured.
+    await enterWebContent(nvda, page);
+    await page.getByRole("button", { name: "Buscar", exact: true }).focus();
     await nvda.capture(async () => {
-      await page.goto("/map");
-      await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+      await searchAgain(page);
+      await expect(page.getByRole("heading", { name: "3 COCHES" })).toBeVisible();
     });
-    const log = (await nvda.spokenPhraseLog()).join(" ");
+
+    const log = spoken(await spokenLog(nvda));
     expect(log.length).toBeGreaterThan(0);
-    // mapStates.headingCount: "{count, plural, one {# COCHE} other {# COCHES}}" — 3 cars, default scenario.
-    expect(log).toMatch(/3\s*COCHES/i);
+    // mapStates.statusCount: "{count, plural, one {# coche} other {# coches}}" — 3 cars, default scenario.
+    expect(log).toContain(spoken("3 coches"));
   });
 
   test("A11Y-10: a search with no results speaks the no-match line", async ({ nvda, page }) => {
-    await stubMapTiles(page);
-    await mockListingSources(page);
     // model=Corolla matches none of the default-scenario listings
-    // (e2e/maplibre.spec.ts's own derivation for the same fixture).
+    // (e2e/maplibre.spec.ts's own derivation for the same fixture). A model
+    // is a filter and there is no place, so there is no radius to widen: the
+    // status pill reads mapStates.statusNone (MAPUI-31).
+    await gotoMap(page, "/map?model=Corolla", "¿Nada por aquí?");
+
+    await enterWebContent(nvda, page);
+    await page.getByRole("button", { name: "Buscar", exact: true }).focus();
     await nvda.capture(async () => {
-      await page.goto("/map?model=Corolla");
-      await page.getByText("¿Nada por aquí?").first().waitFor();
+      await searchAgain(page);
+      await expect(page.getByText("Ningún coche con estos filtros")).toBeVisible();
     });
 
-    const log = (await nvda.spokenPhraseLog()).join(" ");
+    const log = spoken(await spokenLog(nvda));
     expect(log.length).toBeGreaterThan(0);
-    // mapStates.emptyTitle + emptyLine.
-    expect(log).toContain("¿Nada por aquí?");
-    expect(log).toContain("Con estos filtros no hay coches. Prueba a quitar algún filtro.");
+    expect(log).toContain(spoken("Ningún coche con estos filtros"));
   });
 });
 
@@ -123,32 +200,31 @@ test.describe("A11Y-11: NVDA names a pin, speaks the car's name on its preview, 
     nvda,
     page,
   }) => {
-    await stubMapTiles(page);
-    await mockListingSources(page);
-    await page.goto("/map");
-    await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+    await gotoMap(page, "/map", "Audi A3 2.0 TDI");
 
     const pin = page
       .locator(".maplibregl-marker")
       .getByRole("button", { name: /Audi A3 2\.0 TDI/ });
     // NVDA reports focus changes only inside the document it is reading, so
-    // it moves into the page's content first, as the walks above do.
-    await nvda.navigateToWebContent();
+    // it moves into the page's content first.
+    await enterWebContent(nvda, page);
     // Moving to the pin is a focus change NVDA follows and speaks.
     await nvda.capture(() => pin.focus());
 
-    let log = (await nvda.spokenPhraseLog()).join(" ");
+    let log = spoken(await spokenLog(nvda));
     expect(log.length).toBeGreaterThan(0);
     // map.markerLabel "{title}, {price}".
-    expect(log).toContain("Audi A3 2.0 TDI");
+    expect(log).toContain(spoken("Audi A3 2.0 TDI, 14.500 €"));
 
+    await nvda.clearSpokenPhraseLog();
     await nvda.capture(() => page.keyboard.press("Enter"));
-    log = (await nvda.spokenPhraseLog()).join(" ");
-    expect(log).toContain("Audi A3 2.0 TDI");
+    log = spoken(await spokenLog(nvda));
+    expect(log).toContain(spoken("Audi A3 2.0 TDI"));
 
+    await nvda.clearSpokenPhraseLog();
     await nvda.capture(() => page.keyboard.press("Escape"));
-    log = (await nvda.spokenPhraseLog()).join(" ");
-    expect(log).toContain("Audi A3 2.0 TDI");
+    log = spoken(await spokenLog(nvda));
+    expect(log).toContain(spoken("Audi A3 2.0 TDI, 14.500 €"));
   });
 });
 
@@ -157,36 +233,39 @@ test.describe("A11Y-12: NVDA speaks the error and empty EmptyStates, and the no-
     nvda,
     page,
   }) => {
-    // No mockListingSources: the upstream mock server is not pointed at, so
-    // the Next dev server's own fetches to the real upstream hosts fail —
-    // the same "search fails" path e2e/map-error.spec.ts (if any) exercises
-    // elsewhere; here only the spoken EmptyState matters.
+    // Every source answers 500 (the mock upstream server's "error"
+    // scenario), so the search fails as a whole (MAPUI-32). The next test's
+    // mockListingSources puts the server back on "default".
     await stubMapTiles(page);
-    await nvda.capture(async () => {
-      await page.goto("/map");
-      await page.getByText("¿Se ha caído algo?").first().waitFor();
-    });
+    await mockListingSources(page);
+    await setUpstreamScenario("error");
+    await page.goto("/map");
+    await expect(page.getByText("¿Se ha caído algo?").first()).toBeVisible();
 
-    const log = (await nvda.spokenPhraseLog()).join(" ");
+    await enterWebContent(nvda, page);
+    await walkUntil(nvda, "No hemos podido traer los anuncios. Suele ser cosa de un momento.");
+
+    const log = spoken(await spokenLog(nvda));
     expect(log.length).toBeGreaterThan(0);
-    expect(log).toContain("¿Se ha caído algo?");
-    expect(log).toContain("No hemos podido traer los anuncios. Suele ser cosa de un momento.");
+    expect(log).toContain(spoken("¿Se ha caído algo?"));
+    expect(log).toContain(
+      spoken("No hemos podido traer los anuncios. Suele ser cosa de un momento."),
+    );
   });
 
   test("A11Y-12: the no-results EmptyState speaks «¿Nada por aquí?» and its line", async ({
     nvda,
     page,
   }) => {
-    await stubMapTiles(page);
-    await mockListingSources(page);
-    await nvda.capture(async () => {
-      await page.goto("/map?model=Corolla");
-      await page.getByText("¿Nada por aquí?").first().waitFor();
-    });
+    await gotoMap(page, "/map?model=Corolla", "¿Nada por aquí?");
 
-    const log = (await nvda.spokenPhraseLog()).join(" ");
-    expect(log).toContain("¿Nada por aquí?");
-    expect(log).toContain("Con estos filtros no hay coches. Prueba a quitar algún filtro.");
+    await enterWebContent(nvda, page);
+    await walkUntil(nvda, "Con estos filtros no hay coches. Prueba a quitar algún filtro.");
+
+    const log = spoken(await spokenLog(nvda));
+    expect(log.length).toBeGreaterThan(0);
+    expect(log).toContain(spoken("¿Nada por aquí?"));
+    expect(log).toContain(spoken("Con estos filtros no hay coches. Prueba a quitar algún filtro."));
   });
 
   test("A11Y-12: without WebGL, NVDA speaks «El mapa no está disponible en este navegador»", async ({
@@ -214,18 +293,17 @@ test.describe("A11Y-12: NVDA speaks the error and empty EmptyStates, and the no-
       }
       HTMLCanvasElement.prototype.getContext = patchedGetContext as typeof original;
     });
-    await stubMapTiles(page);
-    await mockListingSources(page);
-    await nvda.capture(async () => {
-      await page.goto("/map");
-      await page
-        .getByRole("status", { name: "El mapa no está disponible en este navegador" })
-        .waitFor();
-    });
+    await gotoMap(page, "/map", "Audi A3 2.0 TDI");
+    await expect(
+      page.getByRole("status", { name: "El mapa no está disponible en este navegador" }),
+    ).toBeVisible();
 
-    const log = (await nvda.spokenPhraseLog()).join(" ");
+    await enterWebContent(nvda, page);
+    await walkUntil(nvda, "El mapa no está disponible en este navegador");
+
+    const log = spoken(await spokenLog(nvda));
     expect(log.length).toBeGreaterThan(0);
-    expect(log).toContain("El mapa no está disponible en este navegador");
+    expect(log).toContain(spoken("El mapa no está disponible en este navegador"));
   });
 });
 
@@ -234,27 +312,18 @@ test.describe("A11Y-13: at phone width, NVDA reads the tab bar's labels, marks t
     nvda,
     page,
   }) => {
-    await stubMapTiles(page);
-    await mockListingSources(page);
     await page.setViewportSize(PHONE_390);
-    await page.goto("/map");
-    await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+    await gotoMap(page, "/map", "Audi A3 2.0 TDI");
 
     // The tab bar ends the page: walks from the start of its content to it,
     // until NVDA reaches «Entrar», its last tab.
-    await nvda.navigateToWebContent();
-    for (
-      let stop = 0;
-      stop < MAX_NVDA_STOPS && !(await nvda.lastSpokenPhrase()).includes("Entrar");
-      stop++
-    ) {
-      await nvda.next();
-    }
+    await enterWebContent(nvda, page);
+    await walkUntil(nvda, "Entrar");
 
-    const log = (await nvda.spokenPhraseLog()).join(" ");
+    const log = spoken(await spokenLog(nvda));
     expect(log.length).toBeGreaterThan(0);
-    expect(log).toContain("Mapa");
-    expect(log).toContain("Entrar");
+    expect(log).toContain(spoken("Mapa"));
+    expect(log).toContain(spoken("Entrar"));
     // MAPUI-52: the current tab is marked current — NVDA speaks "current
     // page" (English role word) only because this run negotiates its own
     // locale; the Spanish string asserted above is what this spec's
@@ -265,11 +334,8 @@ test.describe("A11Y-13: at phone width, NVDA reads the tab bar's labels, marks t
     nvda,
     page,
   }) => {
-    await stubMapTiles(page);
-    await mockListingSources(page);
     await page.setViewportSize(PHONE_390);
-    await page.goto("/map");
-    await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+    await gotoMap(page, "/map", "Audi A3 2.0 TDI");
 
     // MAPUI-59's keyboard path: Enter on the sheet's handle moves it to
     // full at once (MOTION-14), the same way e2e/map.spec.ts's own MAPUI-59
@@ -280,7 +346,7 @@ test.describe("A11Y-13: at phone width, NVDA reads the tab bar's labels, marks t
     await expect(page.getByTestId("results-sheet")).toHaveAttribute("data-position", "full");
 
     await nvda.next();
-    const log = (await nvda.spokenPhraseLog()).join(" ");
+    const log = await spokenLog(nvda);
     // A silent NVDA would pass the two checks below on nothing (A11Y-14).
     expect(log.length).toBeGreaterThan(0);
     expect(log).not.toContain("Mapa");

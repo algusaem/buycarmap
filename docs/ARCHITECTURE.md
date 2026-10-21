@@ -700,7 +700,7 @@ MapView
 │  │  ├─ CarCard ×n        one link, the heart beside it
 │  │  └─ ResultsStatus     placeholders, no results, search error
 │  ├─ ListingsMap          dynamic, ssr: false: price pins, MapPreview, MapZoom
-│  └─ StatusPill           the desktop map's polite live region
+│  └─ StatusPill           the map's polite live region, both widths (MAPUI-68)
 ├─ SearchSheet             phone «BUSCAR» (Radix Dialog), applied on «Ver coches»
 ├─ FilterPanel (phone)     the full-screen filters (Radix Dialog)
 └─ CreateAlert (sheet)     the phone create-alert bottom sheet (Radix Dialog)
@@ -1406,10 +1406,11 @@ before running `globalSetup`, so a port `globalSetup` picked itself would
 already be too late for the `pnpm dev` entry's env — and points the three
 base-URL vars at it.
 
-It serves one of two **scenarios**, switched through its control endpoint
-(`POST /__scenario { "scenario": "default" | "empty" }`): `"default"` (one
-listing per source) and `"empty"` (every source returns zero listings,
-`screenshots.spec.ts`'s "map results list — empty" screenshot). Every spec
+It serves one of three **scenarios**, switched through its control endpoint
+(`POST /__scenario { "scenario": "default" | "empty" | "error" }`): `"default"` (one
+listing per source), `"empty"` (every source returns zero listings,
+`screenshots.spec.ts`'s "map results list — empty" screenshot) and `"error"`
+(every source answers 500, the NVDA suite's search-error case). Every spec
 but `screenshots.spec.ts` only ever needs `"default"`, which
 `e2e/fixtures/network.ts`'s `mockListingSources` sets; `e2e/global-setup.ts`
 also resets to `"default"` once the server answers, so every run starts from
