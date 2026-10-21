@@ -50,6 +50,17 @@ const MAX_NVDA_STOPS = 80;
 
 test.use({ nvdaStartOptions: { capture: true } });
 
+// Guidepup quits NVDA as each test's `nvda` fixture tears down, while the
+// page it was reading is still open. On the CI runner that sometimes took
+// Chromium down with it, around 200ms after a passing test ended: the next
+// test then failed at once on «browser.newContext: Target page, context or
+// browser has been closed». Closing the page first, in an afterEach (which
+// runs before fixtures tear down), leaves NVDA nothing to be reading when it
+// quits.
+test.afterEach(async ({ page }) => {
+  await page.close();
+});
+
 /**
  * What NVDA said, compared the way it is spoken. NVDA's default speech
  * dictionary splits a word where its letters change case or meet a digit
