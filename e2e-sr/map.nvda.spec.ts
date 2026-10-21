@@ -53,13 +53,18 @@ test.use({ nvdaStartOptions: { capture: true } });
 /**
  * What NVDA said, compared the way it is spoken. NVDA's default speech
  * dictionary splits a word where its letters change case or meet a digit
- * before speaking it — «A3» is spoken «A 3», «BuyCarMap» «Buy Car Map» — and
- * its log writes «…» as «...». Dropping the whitespace and spelling out «…»
- * on both sides keeps every assertion on the app's own string, whatever NVDA
- * does to its spacing.
+ * before speaking it — «A3» is spoken «A 3», «BuyCarMap» «Buy Car Map» —, its
+ * log writes «…» as «...», it drops «¿» and «?», and it reads text the way it
+ * is drawn, so an upper-case overline or headline («DÓNDE», «SE HA CAÍDO
+ * ALGO») reaches the log in capitals. Comparing without whitespace, «¿?¡!» or
+ * case, with «…» spelled out, on both sides keeps every assertion on the
+ * app's own string, whatever NVDA does to its spacing.
  */
 function spoken(text: string): string {
-  return text.replaceAll("…", "...").replace(/\s+/g, "");
+  return text
+    .replaceAll("…", "...")
+    .replace(/[\s¿?¡!]+/g, "")
+    .toLocaleLowerCase("es");
 }
 
 async function spokenLog(nvda: NVDAPlaywright): Promise<string> {
@@ -99,11 +104,16 @@ async function walkUntil(nvda: NVDAPlaywright, phrase: string): Promise<void> {
 }
 
 /**
- * Presses Enter on the focused «Buscar» and waits for the search's Server
- * Action to answer, so a capture around it lasts until the status has its
- * final text, however long the search takes.
+ * Presses Enter on the focused quick filter and waits for the search it
+ * starts to answer, so a capture around it lasts until the status has its
+ * final text, however long the search takes. A quick filter, not «Buscar»:
+ * the page keeps each search's answer, so «Buscar» on criteria already
+ * searched answers from that copy, with no loading state and no change for
+ * the status to announce. The filter makes it a search the page has not run.
+ * Its focus stays on the filter, so whatever NVDA says about the results
+ * comes from the polite status.
  */
-async function searchAgain(page: Page): Promise<void> {
+async function searchWithQuickFilter(page: Page): Promise<void> {
   const answered = page.waitForResponse(
     (response) => response.request().headers()["next-action"] !== undefined,
   );
@@ -160,32 +170,35 @@ test.describe("A11Y-10: NVDA speaks the result count politely, and the no-match 
     await gotoMap(page, "/map", "Audi A3 2.0 TDI");
 
     // MAPUI-68: the count is said by the polite status pill, so NVDA speaks
-    // it without the user moving focus at all: «Buscar» keeps the focus
+    // it without the user moving focus at all: «Diésel» keeps the focus
     // while its search runs, and only the key press is captured.
     await enterWebContent(nvda, page);
-    await page.getByRole("button", { name: "Buscar", exact: true }).focus();
+    await page.getByRole("button", { name: "Diésel", exact: true }).focus();
     await nvda.capture(async () => {
-      await searchAgain(page);
-      await expect(page.getByRole("heading", { name: "3 COCHES" })).toBeVisible();
+      await searchWithQuickFilter(page);
+      await expect(page.getByRole("heading", { name: "2 COCHES" })).toBeVisible();
     });
 
     const log = spoken(await spokenLog(nvda));
     expect(log.length).toBeGreaterThan(0);
-    // mapStates.statusCount: "{count, plural, one {# coche} other {# coches}}" — 3 cars, default scenario.
-    expect(log).toContain(spoken("3 coches"));
+    // mapStates.statusCount: "{count, plural, one {# coche} other {# coches}}".
+    // Of the default scenario's three cars, the Audi and the BMW are diesel
+    // and the SEAT petrol, so «Diésel» leaves two (MAPUI-55).
+    expect(log).toContain(spoken("2 coches"));
   });
 
   test("A11Y-10: a search with no results speaks the no-match line", async ({ nvda, page }) => {
     // model=Corolla matches none of the default-scenario listings
     // (e2e/maplibre.spec.ts's own derivation for the same fixture). A model
     // is a filter and there is no place, so there is no radius to widen: the
-    // status pill reads mapStates.statusNone (MAPUI-31).
+    // status pill reads mapStates.statusNone (MAPUI-31). «Diésel» adds a
+    // second filter, so the new search finds none either.
     await gotoMap(page, "/map?model=Corolla", "¿Nada por aquí?");
 
     await enterWebContent(nvda, page);
-    await page.getByRole("button", { name: "Buscar", exact: true }).focus();
+    await page.getByRole("button", { name: "Diésel", exact: true }).focus();
     await nvda.capture(async () => {
-      await searchAgain(page);
+      await searchWithQuickFilter(page);
       await expect(page.getByText("Ningún coche con estos filtros")).toBeVisible();
     });
 
