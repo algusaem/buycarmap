@@ -739,7 +739,7 @@ test.describe("SAVED-25 to SAVED-29: 200 saved cars", () => {
       await expect
         .poll(async () => wholly(await box(target), await box(listColumn(page))))
         .toBe(true);
-      const preview = page.getByRole("article", { name: "Vista previa del coche" });
+      const preview = page.getByRole("dialog", { name: "Coche 150", exact: true });
       await expect(preview).toBeVisible();
       await expect(preview).toContainText("Coche 150");
     },

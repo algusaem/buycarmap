@@ -655,6 +655,21 @@ describe("MapView — MAPUI-33 the results heading", () => {
   });
 });
 
+// docs/specs/redesign-map.md (MAPUI-68): the page hands its count to the
+// status pill, which says it once the cars are listed.
+describe("MapView — MAPUI-68 the status says the count", () => {
+  it("MAPUI-68: once every source is exhausted with one car, the status says «1 coche»", async () => {
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([makeWallapopItem()], null))),
+    );
+    renderWithI18n(<MapView initialQuery="case-status-count" />, { locale: "es" });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    expect(screen.getByRole("status")).toHaveTextContent("1 coche");
+  });
+});
+
 // --- Phone width, the page's URL, and the cars a case returns. ---
 
 const SEAT_TITLE = "Seat Leon FR";

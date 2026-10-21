@@ -601,7 +601,7 @@ gives Spanish only. English is drafted here and reviewed in the pull request, as
 | «Volver al mapa» | `nav.backToMap` | existing | "Back to map" |
 | «Quitar de guardados» (heart, sheet button) | `map.removeFavorite` | existing | "Remove from saved" |
 | «Ver anuncio» | `map.viewListing` | existing | "View listing" |
-| «Vista previa del coche», «Cerrar vista previa» | `map.preview`, `map.closePreview` | existing | "Car preview", "Close preview" |
+| «Cerrar vista previa» | `map.closePreview` | existing | "Close preview" — `map.preview` («Vista previa del coche») is removed: the preview is named by its car (amended 2026-10-21, MAPUI-69 — redesign-map.md) |
 | «N coches · desde …» | `map.pinGroup` | existing | "{count} cars · from {price}" |
 | «Cerrar» (car sheet) | `common.close` | existing | "Close" |
 | «Cargando…» (loading, visually hidden) | `map.loading` | existing | "Loading…" |

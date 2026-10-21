@@ -145,10 +145,11 @@ async function findPin(name: string): Promise<HTMLElement> {
   return screen.findByRole("button", { name });
 }
 
-async function openPreview(name: string): Promise<HTMLElement> {
+/** Opens a pin's preview: a dialog named by its car's title, or by a grouped pin's own label (MAPUI-69). */
+async function openPreview(name: string, previewName = name): Promise<HTMLElement> {
   (await findPin(name)).focus();
   await userEvent.keyboard("{Enter}");
-  return screen.findByRole("article", { name: /Vista previa del coche|coches · desde/ });
+  return screen.findByRole("dialog", { name: previewName });
 }
 
 /** Serie 3 diésel open, with its twelve matches (worked example "Page queries"). */
@@ -719,7 +720,10 @@ describe("ALERTUI-17: the list and the map in sync", () => {
   it("ALERTUI-17: activating a pin opens its preview, marks the pin and outlines its card only", async () => {
     renderAlerts();
 
-    const preview = await openPreview(pinName("Toyota Corolla 125H", "16.200"));
+    const preview = await openPreview(
+      pinName("Toyota Corolla 125H", "16.200"),
+      "Toyota Corolla 125H",
+    );
 
     expect(within(preview).getByText("Toyota Corolla 125H")).toBeInTheDocument();
     expect(
@@ -744,7 +748,7 @@ describe("ALERTUI-17: the list and the map in sync", () => {
   it("ALERTUI-17: a pin whose match is not among the four shown opens its preview and outlines no card — the 318d 07", async () => {
     renderAlerts(serie3Page());
 
-    const preview = await openPreview(pinName(serie3Title(7), "15.500"));
+    const preview = await openPreview(pinName(serie3Title(7), "15.500"), serie3Title(7));
 
     expect(within(preview).getByText(serie3Title(7))).toBeInTheDocument();
     for (const card of listingLinks(openCard("Serie 3 diésel"))) {
@@ -759,7 +763,7 @@ describe("ALERTUI-18: the saved state of a match in the preview (bug fix)", () =
     renderAlerts(serie3Page());
 
     const preview = await openPreview(`2 coches · desde 17.900${NBSP}€`);
-    // Each car of the group is one child of the preview's article (MapPreview).
+    // Each car of the group is one child of the preview's dialog (MapPreview).
     const [cheaper, saved] = Array.from(preview.children) as HTMLElement[];
 
     await waitFor(() =>
@@ -777,7 +781,10 @@ describe("ALERTUI-18: the saved state of a match in the preview (bug fix)", () =
   it("ALERTUI-18: «Guardar» in the preview saves the listing and it reads «Quitar de guardados»", async () => {
     renderAlerts();
 
-    const preview = await openPreview(pinName("Toyota Corolla 125H", "16.200"));
+    const preview = await openPreview(
+      pinName("Toyota Corolla 125H", "16.200"),
+      "Toyota Corolla 125H",
+    );
     await userEvent.click(within(preview).getByRole("button", { name: ALERT_COPY.save }));
 
     expect(saveFavorite).toHaveBeenCalledTimes(1);
@@ -791,7 +798,10 @@ describe("ALERTUI-19: a save that fails", () => {
     vi.mocked(saveFavorite).mockResolvedValue(FAVORITE_UNAUTHENTICATED);
     renderAlerts();
 
-    const preview = await openPreview(pinName("Toyota Corolla 125H", "16.200"));
+    const preview = await openPreview(
+      pinName("Toyota Corolla 125H", "16.200"),
+      "Toyota Corolla 125H",
+    );
     await userEvent.click(within(preview).getByRole("button", { name: ALERT_COPY.save }));
 
     expect(await screen.findByText(ALERT_COPY.favoriteUnauthenticated)).toBeInTheDocument();
@@ -802,7 +812,10 @@ describe("ALERTUI-19: a save that fails", () => {
     vi.mocked(saveFavorite).mockRejectedValue(new Error("network down"));
     renderAlerts();
 
-    const preview = await openPreview(pinName("Toyota Corolla 125H", "16.200"));
+    const preview = await openPreview(
+      pinName("Toyota Corolla 125H", "16.200"),
+      "Toyota Corolla 125H",
+    );
     await userEvent.click(within(preview).getByRole("button", { name: ALERT_COPY.save }));
 
     expect(await screen.findByText(ALERT_COPY.unexpected)).toBeInTheDocument();
@@ -1352,7 +1365,7 @@ describe("ALERTUI-35: the open card until the server's next data", () => {
 describe("ALERTUI-17: the pins when another alert opens", () => {
   it("ALERTUI-17: with the Corolla 125H's preview open, pressing Golf TDI leaves no preview open once Golf's data arrives — its match standing on the 125H's point", async () => {
     const { rerenderWith } = renderAlerts();
-    await openPreview(pinName("Toyota Corolla 125H", "16.200"));
+    await openPreview(pinName("Toyota Corolla 125H", "16.200"), "Toyota Corolla 125H");
 
     await userEvent.click(foldedCard("Golf TDI"));
     // Golf's match moved onto the 125H's point (Getafe, 40.3057, -3.7327), so
@@ -1367,7 +1380,9 @@ describe("ALERTUI-17: the pins when another alert opens", () => {
 
     await waitFor(() => expect(pinNames()).toEqual([pinName("Volkswagen Golf 2.0 TDI", "13.900")]));
     expect(
-      screen.queryByRole("article", { name: /Vista previa del coche|coches · desde/ }),
+      screen.queryByRole("dialog", {
+        name: /^Toyota Corolla 125H$|^Volkswagen Golf 2\.0 TDI$|coches · desde/,
+      }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: pinName("Volkswagen Golf 2.0 TDI", "13.900") }),

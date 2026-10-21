@@ -307,7 +307,6 @@ export interface Translations {
     zoomIn: string;
     zoomOut: string;
     viewListing: string;
-    preview: string;
     closePreview: string;
     pinGroup: string;
     sheetHandle: string;
@@ -379,6 +378,8 @@ export interface Translations {
     clearFilters: string;
     statusNoneRadius: string;
     statusNone: string;
+    statusCount: string;
+    statusMore: string;
     errorTitle: string;
     errorRetry: string;
     errorLine: string;

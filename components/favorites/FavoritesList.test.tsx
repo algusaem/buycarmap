@@ -143,7 +143,7 @@ async function findPin(name: string): Promise<HTMLElement> {
 async function openPreview(name: string): Promise<HTMLElement> {
   (await findPin(name)).focus();
   await userEvent.keyboard("{Enter}");
-  return screen.findByRole("article", { name: /Vista previa del coche|coches · desde/ });
+  return screen.findByRole("dialog", { name: /^Audi A3 2\.0 TDI$|coches · desde/ });
 }
 
 function chip(name: "Recientes" | "Precio" | "Km"): HTMLElement {
@@ -639,9 +639,7 @@ describe("SAVED-14: removing a saved car (desktop)", () => {
     expect(cardOrder()).toEqual(["D", "E", "B", "F", "C", "G"]);
     expect(removeFavorite).toHaveBeenCalledWith("wallapop-a");
     await waitFor(() =>
-      expect(
-        screen.queryByRole("article", { name: "Vista previa del coche" }),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByRole("dialog", { name: "Audi A3 2.0 TDI" })).not.toBeInTheDocument(),
     );
     expect(screen.queryByRole("button", { name: PIN.A })).not.toBeInTheDocument();
     expect(await screen.findByText(REMOVED)).toBeInTheDocument();
@@ -663,7 +661,7 @@ describe("SAVED-14: removing a saved car (desktop)", () => {
 
     expect(cardOrder()).toEqual(["G"]);
     expect(await findPin("Toyota Corolla 125H, 19.750 €")).toBeInTheDocument();
-    const stillOpen = await screen.findByRole("article", { name: "Vista previa del coche" });
+    const stillOpen = await screen.findByRole("dialog", { name: "Toyota Corolla 125H" });
     expect(within(stillOpen).getByText("Toyota Corolla 125H")).toBeInTheDocument();
     expect(within(stillOpen).queryByText("Audi A3 2.0 TDI")).not.toBeInTheDocument();
   });
@@ -691,7 +689,7 @@ describe("MOTION-18: FavoritesList — a car leaving an open grouped preview has
       await userEvent.click(audiHeart);
 
       expect(audiTitle).not.toBeInTheDocument();
-      const stillOpen = screen.getByRole("article", { name: "Vista previa del coche" });
+      const stillOpen = screen.getByRole("dialog", { name: "Toyota Corolla 125H" });
       expect(within(stillOpen).getByText("Toyota Corolla 125H")).toBeInTheDocument();
       expect(within(stillOpen).queryByText("Audi A3 2.0 TDI")).toBeNull();
     });
