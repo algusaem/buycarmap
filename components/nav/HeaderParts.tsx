@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { Avatar } from "./Avatar";
 import { SECTIONS, type Section } from "./nav-routes";
 
 // The pieces every header in docs/design/system/components/HeaderNav/README.md
@@ -131,7 +133,7 @@ export function PhoneTextLink({ href, children }: Omit<TextLinkProps, "current">
 }
 
 /** Mapa · Guardados · Alertas, with the current one marked (HEAD-3, HEAD-4). */
-export function SectionLinks({ current }: { current: Section | undefined }) {
+function SectionLinks({ current }: { current: Section | undefined }) {
   const t = useTranslations();
 
   return SECTIONS.map(({ section, href, labelKey }) => (
@@ -139,4 +141,40 @@ export function SectionLinks({ current }: { current: Section | undefined }) {
       {t(labelKey)}
     </TextLink>
   ));
+}
+
+interface SectionNavProps {
+  name: string | null | undefined;
+  email: string;
+  /** The section marked current; none on `/account` and on the landing. */
+  current: Section | undefined;
+  /** On `/account` the avatar carries the current ring (HEAD-4). */
+  onAccount: boolean;
+}
+
+/**
+ * The signed-in desktop navigation of the map and pages headers: Mapa ·
+ * Guardados · Alertas and, 8px further, the avatar (HEAD-1, HEAD-3).
+ */
+export function SectionNav({ name, email, current, onAccount }: SectionNavProps) {
+  return (
+    <>
+      <SectionLinks current={current} />
+      <span className="ml-2 flex">
+        <Avatar name={name} email={email} size="desktop" current={onAccount} />
+      </span>
+    </>
+  );
+}
+
+/** One placeholder per destination of `SectionNav` while the session resolves (HEAD-11). */
+export function SectionNavPlaceholder() {
+  return (
+    <>
+      <Skeleton className="h-10.5 w-18 rounded-pill" />
+      <Skeleton className="h-10.5 w-28 rounded-pill" />
+      <Skeleton className="h-10.5 w-21 rounded-pill" />
+      <Skeleton className="ml-2 size-10.5 rounded-pill" />
+    </>
+  );
 }

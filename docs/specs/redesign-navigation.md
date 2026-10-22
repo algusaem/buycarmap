@@ -2,7 +2,7 @@
 
 Key: HEAD
 Status: Implemented
-Last updated: 2026-10-17
+Last updated: 2026-10-22
 
 ---
 
@@ -34,6 +34,10 @@ layout (F3–F7).
   header's centre gains the search pill and «Crear alerta» (MAPUI-1, MAPUI-39)
   (amended 2026-10-13, MAPUI — redesign-map.md) — the header becomes a two-row band with «Filtros»
   and the quick filters on the second row (MAPUI-64) (amended 2026-10-17, MAPUI — redesign-map.md)
+  — the right side is the pages header's navigation: the language control, «Mapa» (`/map`, current),
+  «Guardados» (`/favorites`) and «Alertas» (`/alerts`) as section links, and the avatar; no icon
+  links. Below 1440px the band takes three rows (MAPUI-70) (amended 2026-10-22, design accepted
+  2026-10-22, #157)
 - [x] HEAD-2 · component — At desktop width, signed out, `/map` shows the wordmark, the language
   control and «Entrar» linking to `/login`, and no link to saved cars, alerts or the account. — the
   header's centre gains the search pill and «Crear alerta» (MAPUI-1, MAPUI-39, MAPUI-46)
@@ -43,7 +47,8 @@ layout (F3–F7).
   (`/favorites`), «Alertas» (`/alerts`) and the avatar (`/account`).
 - [x] HEAD-4 · component — In the pages header exactly one destination is marked current
   (`aria-current="page"`): «Guardados» on `/favorites`, «Alertas» on `/alerts` and on `/alerts/[id]`,
-  and the avatar on `/account`, where no section link is current.
+  and the avatar on `/account`, where no section link is current. — the map header is held to the
+  same rule: «Mapa» is current on `/map`, and nothing else is (amended 2026-10-22, #157)
 - [x] HEAD-5 · component — The landing `/` shows, signed out, the language control, «Entrar»
   (`/login`) and «Crear cuenta» (`/register`); signed in, the pages header with no destination marked
   current.
@@ -78,7 +83,9 @@ layout (F3–F7).
   locale; the active locale's button is pressed and the other is not; choosing the other locale writes
   the `locale` cookie and calls `setLocale` with it (amends ALERT-50 and keeps CORE-5).
 - [x] HEAD-11 · component — While the session is resolving, no header offers signed-in or signed-out
-  destinations, and the header keeps the size it will have once the session resolves.
+  destinations, and the header keeps the size it will have once the session resolves. — on `/map` the
+  desktop map header holds the pages header's placeholders (Mapa, Guardados, Alertas, avatar)
+  instead of one (amended 2026-10-22, #157)
 - [x] HEAD-12 · component — A session that ends while a signed-in header is on screen switches it to
   the signed-out header of the same page, without a reload.
 - [x] HEAD-13 · component — The account page offers «Cerrar sesión»; using it ends the session and
@@ -91,7 +98,8 @@ layout (F3–F7).
   at least 44 × 44px (keeps NAV-2).
 - [x] HEAD-16 · e2e — At 1024 and at 1440px wide, no header scrolls horizontally on `/`, `/map` and
   `/login`. — on `/map` this holds with the search pill and «Crear alerta» in the header (MAPUI-1)
-  (amended 2026-10-13, MAPUI — redesign-map.md)
+  (amended 2026-10-13, MAPUI — redesign-map.md) — and with the section links: at 1024px the map
+  header is the three-row band of MAPUI-70 (amended 2026-10-22, MAPUI — redesign-map.md, #157)
 - [x] HEAD-17 · component — The bottom nav is offset from the bottom by the safe-area inset as well as
   its 24px, and the root layout's viewport opts into the safe area (`viewport-fit=cover`). — the
   24px float becomes a full-width tab bar padded by the safe-area inset (MAPUI-52)
@@ -121,7 +129,7 @@ MAPUI-54) (amended 2026-10-13, MAPUI — redesign-map.md):
 
 | Route | Session | Desktop right side | Phone right side | Tab bar (phone) |
 | --- | --- | --- | --- | --- |
-| `/map` | in | Idioma · Guardados (icon) · Alertas (icon) · avatar | no header | **Mapa** · Guardados · Alertas · Cuenta |
+| `/map` | in | Idioma · **Mapa** · Guardados · Alertas · avatar | no header | **Mapa** · Guardados · Alertas · Cuenta |
 | `/map` | out | Idioma · Entrar | no header | **Mapa** · Entrar |
 | `/favorites` | in | Idioma · Mapa · **Guardados** · Alertas · avatar | Idioma | Mapa · **Guardados** · Alertas · Cuenta |
 | `/alerts`, `/alerts/[id]` | in | Idioma · Mapa · Guardados · **Alertas** · avatar | Idioma | Mapa · Guardados · **Alertas** · Cuenta |
@@ -174,7 +182,9 @@ NAV-10) — and that a session ending mid-page stops offering them (HEAD-12).
 - `/account`: the avatar, not a section, is current in the desktop header (HEAD-4), «Cuenta» is
   current in the phone tab bar (HEAD-8, MAPUI-52), and «Cerrar sesión» must not hide behind the tab
   bar (HEAD-18).
-- Narrow desktops (HEAD-16): from 1024px the header must fit without scrolling.
+- Narrow desktops (HEAD-16): from 1024px the header must fit without scrolling. On `/map` the wordmark,
+  the search group and the section links fit in one row only from 1440px; from 1024 to 1439px the
+  band takes three rows (MAPUI-70). (amended 2026-10-22, #157)
 - Phones with a home indicator (HEAD-17): the tab bar is padded by the safe area.
 - No phone header shows the avatar: every signed-in page, the landing included, has «Cuenta» in the
   tab bar (MAPUI-54, ENTRY-8). (amended 2026-10-14, ENTRY — redesign-entry.md)
@@ -240,10 +250,13 @@ the start of each header keeps the switch one tap away for signed-out visitors t
 accent colour: violet would fail contrast as small text and lime is for the current action. The phone
 map has no header, so it has no language control; switching there means leaving the map.
 
-**Icons for Guardados and Alertas on the map (owner decision).** The map header's centre belongs to the
-search, so it has no room for section links; a heart and a bell give both sections a one-click shortcut.
-«Crear alerta» is an action on the search, not a destination, so it sits next to the search pill (F3),
-and the right side holds only navigation.
+**The map header uses the section links (owner decision, 2026-10-22, #157).** It first used a heart and
+a bell, because the header's centre belongs to the search and section links were not expected to fit.
+That made the navigation change between `/map` and `/favorites` or `/alerts`, with no «Mapa» marked on
+the map, so it now carries the pages header's links, «Mapa» current. They fit beside the search from
+1440px; below that the band takes three rows (MAPUI-70) rather than going back to icons, which would
+bring the inconsistency back on laptops. «Crear alerta» is an action on the search, not a destination,
+so it sits next to the search pill (F3), and the right side holds only navigation.
 
 **Sign-out on the account page (owner decision).** Desktop puts it in the account page's header, phone
 at the end of the page, above the bottom nav. It is the same control in both places.
@@ -251,5 +264,5 @@ at the end of the page, above the bottom nav. It is the same control in both pla
 **Owner decisions on the draft (2026-10-12).** The English copy in Contracts is approved as drafted. «Crear alerta» — the action that saves the map's current search as an alert, which no screen offers today — is built in F3 with the map's search, not here and not in F6.
 
 **The two undrawn headers were derived and approved.** The signed-out map header keeps the search group
-in the same place and swaps the icons and avatar for «Entrar»; the signed-in landing reuses the pages
+in the same place and swaps the section links and avatar for «Entrar» (amended 2026-10-22, #157); the signed-in landing reuses the pages
 header with nothing current. Both are in the UI Kit and the HeaderNav guide.

@@ -57,6 +57,9 @@ beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, 
   missing widths of request and set a new password, and a rejected new password.
 - `R2Base.dc.html` — the map screen. `R3-mapa-detalle.dc.html` imports it and adds a car's preview
   and the phone filters sheet, so keep both.
+- `F3-mapa-portatil.dc.html` — the map on a laptop (1024 × 900), signed in and out: below 1440px
+  the header band takes three rows, the pages navigation on the first, the search group on the
+  second and the filters on the third.
 - `F3-mapa-foco.dc.html` — the map with keyboard focus: the focus ring drawn inside the map's edge,
   following its radius, under the pins and the zoom (desktop), and inside the visible strip of the
   map (phone).
