@@ -1,6 +1,5 @@
 import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar } from "./Avatar";
 import {
   BackLink,
   DesktopRegion,
@@ -8,7 +7,8 @@ import {
   MainNav,
   PhoneRegion,
   PhoneTextLink,
-  SectionLinks,
+  SectionNav,
+  SectionNavPlaceholder,
   TextLink,
 } from "./HeaderParts";
 import { LanguageControl } from "./LanguageControl";
@@ -44,26 +44,14 @@ export function PagesHeader({ session, current, onAccount, open, back }: PagesHe
         <MainNav className="gap-1.5">
           <LanguageControl />
           {session.status === "signedIn" && (
-            <>
-              <SectionLinks current={current} />
-              <span className="ml-2 flex">
-                <Avatar
-                  name={session.name}
-                  email={session.email}
-                  size="desktop"
-                  current={onAccount}
-                />
-              </span>
-            </>
+            <SectionNav
+              name={session.name}
+              email={session.email}
+              current={current}
+              onAccount={onAccount}
+            />
           )}
-          {session.status === "pending" && (
-            <>
-              <Skeleton className="h-10.5 w-18 rounded-pill" />
-              <Skeleton className="h-10.5 w-28 rounded-pill" />
-              <Skeleton className="h-10.5 w-21 rounded-pill" />
-              <Skeleton className="ml-2 size-10.5 rounded-pill" />
-            </>
-          )}
+          {session.status === "pending" && <SectionNavPlaceholder />}
           {session.status === "signedOut" && <TextLink href="/login">{t("nav.signIn")}</TextLink>}
         </MainNav>
       </DesktopRegion>

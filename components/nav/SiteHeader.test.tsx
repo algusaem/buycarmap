@@ -71,7 +71,7 @@ beforeEach(() => {
 });
 
 describe("SiteHeader — map header", () => {
-  it("HEAD-1: signed in on /map, the desktop region offers the language group, Saved, Alerts and the avatar, and no Map link", () => {
+  it("HEAD-1: signed in on /map, the desktop region offers the language group, the section links Map, Saved and Alerts, and the avatar", () => {
     pathname.mockReturnValue("/map");
     useSession.mockReturnValue(SIGNED_IN);
     renderWithI18n(<SiteHeader />);
@@ -79,10 +79,13 @@ describe("SiteHeader — map header", () => {
     const region = desktop();
     expect(region.getByRole("link", { name: "BuyCarMap" })).toHaveAttribute("href", "/");
     expect(region.getByRole("group", { name: "Language" })).toBeInTheDocument();
+    expect(region.getByRole("link", { name: "Map" })).toHaveAttribute("href", "/map");
     expect(region.getByRole("link", { name: "Saved" })).toHaveAttribute("href", "/favorites");
     expect(region.getByRole("link", { name: "Alerts" })).toHaveAttribute("href", "/alerts");
     expect(region.getByRole("link", { name: "Account" })).toHaveAttribute("href", "/account");
-    expect(region.queryByRole("link", { name: "Map" })).not.toBeInTheDocument();
+    expect(region.getByRole("link", { name: "Saved" })).toHaveTextContent("Saved");
+    expect(region.getByRole("link", { name: "Alerts" })).toHaveTextContent("Alerts");
+    expect(region.getByRole("link", { name: "Map" })).toHaveTextContent("Map");
   });
 
   it("HEAD-2: signed out on /map, the desktop region offers the wordmark, the language group and Sign in, and no guarded link", () => {
@@ -132,6 +135,16 @@ describe("SiteHeader — current page", () => {
     const current = currentLinks();
     expect(current).toHaveLength(1);
     expect(current[0]).toHaveAccessibleName("Saved");
+  });
+
+  it("HEAD-4: /map marks Map current, and nothing else", () => {
+    pathname.mockReturnValue("/map");
+    useSession.mockReturnValue(SIGNED_IN);
+    renderWithI18n(<SiteHeader />);
+
+    const current = currentLinks();
+    expect(current).toHaveLength(1);
+    expect(current[0]).toHaveAccessibleName("Map");
   });
 
   it.each(["/alerts", "/alerts/abc"])(
@@ -415,17 +428,17 @@ describe("SiteHeader — session resolving", () => {
     expect(screen.getByTestId("header-phone")).toBeInTheDocument();
   });
 
-  it("HEAD-11: on /map, while the session resolves, the desktop region offers neither Saved, Alerts, the avatar nor Sign in, and holds one placeholder in their place", () => {
+  it("HEAD-11: on /map, while the session resolves, the desktop region holds the pages header's four placeholders (Map, Saved, Alerts, avatar), with no destination offered", () => {
     pathname.mockReturnValue("/map");
     useSession.mockReturnValue(LOADING);
     renderWithI18n(<SiteHeader />);
 
-    for (const name of ["Saved", "Alerts", "Account", "Sign in"]) {
+    for (const name of ["Map", "Saved", "Alerts", "Account", "Sign in"]) {
       expect(desktop().queryByRole("link", { name })).not.toBeInTheDocument();
     }
     expect(
       screen.getByTestId("header-desktop").querySelectorAll('[data-slot="skeleton"]'),
-    ).toHaveLength(1);
+    ).toHaveLength(4);
   });
 
   it("HEAD-11: on /favorites, while the session resolves, the desktop region holds four placeholders (Map, Saved, Alerts, avatar) and the phone region one (avatar), with no destination offered", () => {

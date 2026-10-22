@@ -2,7 +2,7 @@
 
 Key: MAPUI
 Status: Implemented
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 ---
 
@@ -498,6 +498,10 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
     window, 17px above the band's bottom — «Filtros» in the band is named «Filtros» and described as
     «N filtros activos» while criteria are active, as on the phone (MAPUI-67); its badge is not part of
     the name (amended 2026-10-17, #134).
+  — this band is the one from 1440px wide; its navigation is the pages header's section links (HEAD-1),
+  and row two is centred on the same column as the search group instead of on the window: the section
+  links are wider than the wordmark, so that column sits left of the window's centre, and both rows
+  share its axis (amended 2026-10-22, design accepted 2026-10-22, #157).
 - [x] MAPUI-65 · e2e — At desktop width, under the band, the list and the map share the width between
   48px side margins in two equal halves 48px apart. The results heading is 24px under the band. The
   map is a card with the `card` radius (22px) and no border, its top level with the heading's top and
@@ -516,6 +520,12 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
   badge while any criterion is active and is named «Filtros» and, while criteria are active, is
   described as «N filtros activos» («1 filtro activo») (amended 2026-10-17, #134), then the quick
   filters scrolling sideways. The map, its pins and the results sheet are under the band, never behind it.
+- [x] MAPUI-70 · e2e — From 1024 to 1439px wide on `/map`, the header is the same `surface` band in three
+  rows, 48px from each side, 219px tall: row one, 48px, the wordmark at the start and the navigation
+  (HEAD-1, or «Entrar» signed out, HEAD-2) at the end, as in the pages header; row two, 20px under it,
+  the 48px search pill and «Crear alerta», centred on the window; row three, 28px under the pill,
+  «Filtros», the divider and the quick filters, centred on the window, 17px above the band's bottom.
+  Nothing in the band reaches past its 48px side margins (design accepted 2026-10-22, #157).
 
 ## Worked examples
 
@@ -570,8 +580,15 @@ of `manual` and `automatic` is set (MAPUI-16), and `semiautomatic` has no contro
 
 | Window | Band | Pill | Row two | Heading top | List | Map card | Columns |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1024 × 900 | 0–219 | 92–140 | 168–202 | 243 | 48–488 | 536–976 × 243–876 | 2 |
 | 1440 × 900 | 0–151 | 24–72 | 100–134 | 175 | 48–696 | 744–1392 × 175–876 | 2 |
 | 2560 × 1440 | 0–151 | 24–72 | 100–134 | 175 | 48–1256 | 1304–2512 × 175–1416 | 3 |
+
+At 1024 the pill row is row two and row three is the filters (MAPUI-70). At 1440, signed in, with the
+design's values («Madrid · 50 km», «Cualquier marca», «Hasta 20.000 €»), the search group (pill and
+«Crear alerta») is 633px wide and the section links with the language and the avatar 418px, so the
+group's centre is at x 646, 74px left of the window's centre, and row two's centre is at x 646 too
+(MAPUI-64, amended 2026-10-22, #157).
 
 **The desktop list's clipped outline (MAPUI-66, bug fix #134).** Measured on production at 1440 × 900.
 

@@ -492,11 +492,9 @@ test.describe("MAPUI-64: the desktop header band", () => {
     expectWithin(filtersBox.y, 100, "row two top");
     expectWithin(filtersBox.y + filtersBox.height, 134, "row two bottom (Filtros)");
     expectWithin(kmBox.y + kmBox.height, 134, "row two bottom (quick filter)");
-    expectWithin(
-      filtersBox.x - (DESKTOP_1440.width - (kmBox.x + kmBox.width)),
-      0,
-      "row two centred on the window",
-    );
+    const rowTwoCentre1440 = (filtersBox.x + kmBox.x + kmBox.width) / 2;
+    const groupCentre1440 = (pillBox.x + crearAlertaBox.x + crearAlertaBox.width) / 2;
+    expectWithin(rowTwoCentre1440 - groupCentre1440, 0, "row two on the search group's axis");
 
     const wordmarkBox = await box(page.getByRole("link", { name: "BuyCarMap" }));
     expectWithin(wordmarkBox.x, 48, "wordmark left");
@@ -539,12 +537,131 @@ test.describe("MAPUI-64: the desktop header band", () => {
     expectWithin(filtersBox.y, 100, "row two top");
     expectWithin(filtersBox.y + filtersBox.height, 134, "row two bottom (Filtros)");
     expectWithin(kmBox.y + kmBox.height, 134, "row two bottom (quick filter)");
-    expectWithin(
-      filtersBox.x - (DESKTOP_2560.width - (kmBox.x + kmBox.width)),
-      0,
-      "row two centred on the window",
-    );
+    const rowTwoCentre2560 = (filtersBox.x + kmBox.x + kmBox.width) / 2;
+    const groupCentre2560 = (pillBox.x + crearAlertaBox.x + crearAlertaBox.width) / 2;
+    expectWithin(rowTwoCentre2560 - groupCentre2560, 0, "row two on the search group's axis");
   });
+
+  dbTest(
+    "MAPUI-64 (dbTest): signed in at 1440×900 the band holds the section links with Map current, and row two shares the search group's axis",
+    async ({ page, isMobile }) => {
+      test.skip(isMobile, "desktop-only header band");
+      const email = e2eEmail("headerbanddesktop");
+      await seedUser(email, PASSWORD, "Header Band User");
+      await mockListingSources(page);
+      await page.setViewportSize(DESKTOP_1440);
+      await signIn(page, email);
+      await page.goto("/map");
+      await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+
+      const band = page.getByTestId("header-desktop");
+      const bandBox = await box(band);
+      expectWithin(bandBox.height, 151, "band height");
+
+      const mapLink = band.getByRole("link", { name: /^(mapa|map)$/i });
+      await expect(mapLink).toHaveAttribute("aria-current", "page");
+      await expect(band.getByRole("link", { name: /^(guardados|saved)$/i })).toBeVisible();
+      await expect(band.getByRole("link", { name: /^(alertas|alerts)$/i })).toBeVisible();
+
+      const pill = page.getByRole("search");
+      const pillBox = await box(pill);
+      expectWithin(pillBox.y, 24, "pill top");
+      expectWithin(pillBox.y + pillBox.height, 72, "pill bottom");
+
+      const crearAlerta = band.getByRole("button", { name: /^(crear alerta|create alert)$/i });
+      const crearAlertaBox = await box(crearAlerta);
+
+      const filtersButton = page.getByRole("button", { name: FILTERS_NAME }).first();
+      const kmQuickFilter = page.getByRole("button", { name: MAX_KM_QUICK_NAME });
+      const filtersBox = await box(filtersButton);
+      const kmBox = await box(kmQuickFilter);
+      expectWithin(filtersBox.y, 100, "row two top");
+      expectWithin(filtersBox.y + filtersBox.height, 134, "row two bottom (Filtros)");
+
+      const rowTwoCentre = (filtersBox.x + kmBox.x + kmBox.width) / 2;
+      const groupCentre = (pillBox.x + crearAlertaBox.x + crearAlertaBox.width) / 2;
+      expectWithin(rowTwoCentre - groupCentre, 0, "row two on the search group's axis");
+
+      const navBox = await box(
+        page.locator("header").getByRole("navigation", { name: /^(main|principal)$/i }),
+      );
+      expectWithin(navBox.x + navBox.width, 1392, "nav right edge");
+    },
+  );
+});
+
+// docs/specs/redesign-map.md (MAPUI-70, design accepted 2026-10-22, #157):
+// from 1024 to 1439px wide the band is the same surface band but in three
+// rows instead of MAPUI-64's two. Numbers from the worked example "Desktop
+// layout (MAPUI-64, MAPUI-65)", row 1024 × 900.
+test.describe("MAPUI-70: the laptop header band", () => {
+  for (const width of [1024, 1439]) {
+    test(`MAPUI-70: at ${width}×900 the band is 219px in three rows: the wordmark and navigation, then the search group, then the filters, centred`, async ({
+      page,
+      isMobile,
+    }) => {
+      test.skip(isMobile, "desktop-only header band");
+      await gotoMap(page, { width, height: 900 });
+
+      const band = page.getByTestId("header-desktop");
+      const bandBox = await box(band);
+      expectWithin(bandBox.y, 0, "band top");
+      expectWithin(bandBox.height, 219, "band height");
+
+      const wordmark = page.getByRole("link", { name: "BuyCarMap" });
+      const wordmarkBox = await box(wordmark);
+      expectWithin(wordmarkBox.x, 48, "wordmark left");
+      expectWithin(wordmarkBox.y + wordmarkBox.height / 2, 48, "wordmark vertical centre");
+
+      const nav = page.locator("header").getByRole("navigation", { name: /^(main|principal)$/i });
+      const navBox = await box(nav);
+      expectWithin(navBox.x + navBox.width, width - 48, "navigation right edge");
+      expectWithin(navBox.y + navBox.height / 2, 48, "navigation vertical centre");
+
+      const pill = page.getByRole("search");
+      const pillBox = await box(pill);
+      expectWithin(pillBox.y, 92, "pill top");
+      expectWithin(pillBox.y + pillBox.height, 140, "pill bottom");
+
+      const crearAlerta = band.getByRole("button", { name: /^(crear alerta|create alert)$/i });
+      const crearAlertaBox = await box(crearAlerta);
+      expectWithin(
+        pillBox.x - (width - (crearAlertaBox.x + crearAlertaBox.width)),
+        0,
+        "the pill + Crear alerta group centred on the window",
+      );
+
+      const filtersButton = page.getByRole("button", { name: FILTERS_NAME }).first();
+      const kmQuickFilter = page.getByRole("button", { name: MAX_KM_QUICK_NAME });
+      const filtersBox = await box(filtersButton);
+      const kmBox = await box(kmQuickFilter);
+      expectWithin(filtersBox.y, 168, "row two top");
+      expectWithin(filtersBox.y + filtersBox.height, 202, "row two bottom (Filtros)");
+      expectWithin(kmBox.y + kmBox.height, 202, "row two bottom (quick filter)");
+      expectWithin(
+        filtersBox.x - (width - (kmBox.x + kmBox.width)),
+        0,
+        "row two centred on the window",
+      );
+
+      const offenders = await band.evaluate(
+        (el, bounds: { left: number; right: number }) =>
+          [...el.querySelectorAll("*")]
+            .map((node) => ({
+              tag: node.tagName.toLowerCase(),
+              rect: node.getBoundingClientRect(),
+            }))
+            .filter(({ rect }) => rect.width > 0 && rect.height > 0)
+            .filter(({ rect }) => rect.left < bounds.left - 1 || rect.right > bounds.right + 1)
+            .map(
+              ({ tag, rect }) =>
+                `${tag} left=${rect.left.toFixed(1)} right=${rect.right.toFixed(1)}`,
+            ),
+        { left: 48, right: width - 48 },
+      );
+      expect(offenders, `elements past the 48px side margins: ${offenders.join(", ")}`).toEqual([]);
+    });
+  }
 });
 
 test.describe("MAPUI-65: the desktop list and map share the width", () => {
