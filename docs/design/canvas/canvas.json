@@ -369,6 +369,14 @@
       "w": 5830,
       "x": 0,
       "y": 14840
+    },
+    "F3-mapa-portatil.dc.html": {
+      "h": 980,
+      "page": "r3",
+      "title": "Mapa en portátil (1024px), con y sin sesión",
+      "w": 2188,
+      "x": 6150,
+      "y": 3180
     }
   },
   "createdOnFiles": {
@@ -392,6 +400,7 @@
     "F0-nueva-contrasena.dc.html",
     "F7-contrasena-estados.dc.html",
     "R2Base.dc.html",
+    "F3-mapa-portatil.dc.html",
     "F3-mapa-foco.dc.html",
     "R3-mapa-detalle.dc.html",
     "F3-mapa-filtros.dc.html",
