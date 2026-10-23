@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { RegisterForm } from "./RegisterForm";
 
@@ -576,5 +577,79 @@ describe("PAGES-3: a server rejection takes the focus", () => {
       "Esta contraseña es demasiado fácil de adivinar. Prueba con una más larga o menos predecible.",
     );
     expect(screen.getByLabelText("Contraseña")).toHaveFocus();
+  });
+});
+
+// docs/specs/motion.md (MOTION-24): «Entra» gains the hover and press of its
+// twin «Créala» on /login (MOTION-21): lime to text on hover, a press scale,
+// off under reduced motion.
+describe("MOTION-24: RegisterForm — hover and press on «Entra»", () => {
+  it("MOTION-24: the link carries transition-[color,scale], hover:text-text and active:scale-97, off under reduced motion, and no longer hover:text-lime", () => {
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />, { locale: "es" });
+
+    const classes = screen.getByRole("link", { name: "Entra" }).className.split(/\s+/);
+    expect(classes).toContain("transition-[color,scale]");
+    expect(classes).toContain("hover:text-text");
+    expect(classes).toContain("active:scale-97");
+    expect(classes).toContain("motion-reduce:active:scale-none");
+    expect(classes).not.toContain("hover:text-lime");
+  });
+});
+
+// docs/specs/motion.md (MOTION-25): the other links sharing the access
+// pages' link style keep their hover to lime and gain the same press.
+describe("MOTION-25: RegisterForm — hover and press on «términos» and «política de privacidad»", () => {
+  it("MOTION-25: both links keep hover:text-lime and gain active:scale-97 and a scale transition", () => {
+    renderWithI18n(<RegisterForm isGoogleConfigured={false} />, { locale: "es" });
+
+    for (const name of ["Términos", "Privacidad"]) {
+      const classes = screen.getByRole("link", { name }).className.split(/\s+/);
+      expect(classes).toContain("hover:text-lime");
+      expect(classes).toContain("active:scale-97");
+      expect(classes).toContain("motion-reduce:active:scale-none");
+      expect(
+        classes.some(
+          (className) => className.startsWith("transition-") && className.includes("scale"),
+        ),
+      ).toBe(true);
+    }
+  });
+});
+
+// docs/specs/motion.md (MOTION-27): an access page's form gives way to the
+// state that follows it at once after a key, and fades after a pointer.
+describe("MOTION-27: RegisterForm — the form gives way to «check your inbox»", () => {
+  it("MOTION-27: Enter in the confirm-password field shows the next state with no inline opacity below 1", async () => {
+    registerUser.mockResolvedValue({ success: true, pending: true });
+    await withAnimations(async (clock) => {
+      const { container } = renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
+      await fillValid();
+
+      await userEvent.type(screen.getByLabelText("Confirm password"), "{Enter}");
+      await waitFor(() => expect(registerUser).toHaveBeenCalledOnce());
+      // `AnimatePresence mode="wait"`: the outgoing form's exit must finish
+      // before the next state mounts — real animations are frozen by
+      // `withAnimations`, so the clock has to be moved past it by hand.
+      await clock.finish();
+
+      await screen.findByText("Check your email");
+      const opacity = (container.firstChild as HTMLElement).style.opacity;
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-27: pressing «Sign up» still fades the next state in, with an inline opacity below 1 right after", async () => {
+    registerUser.mockResolvedValue({ success: true, pending: true });
+    await withAnimations(async (clock) => {
+      const { container } = renderWithI18n(<RegisterForm isGoogleConfigured={false} />);
+      await fillValid();
+
+      await submit();
+      await waitFor(() => expect(registerUser).toHaveBeenCalledOnce());
+      await clock.finish();
+
+      await screen.findByText("Check your email");
+      expect(Number((container.firstChild as HTMLElement).style.opacity)).toBeLessThan(1);
+    });
   });
 });

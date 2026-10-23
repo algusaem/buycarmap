@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import * as motion from "motion/react-client";
 import { Footer } from "@/components/Footer";
 import { Headline } from "@/components/ui/Headline";
-import { crossFade } from "@/lib/animations";
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { focusOnMount } from "@/lib/focus";
 import { cn } from "@/lib/utils";
 import { MAIN_CONTENT } from "@/components/nav/SkipLink";
@@ -78,12 +77,13 @@ interface AccessBodyProps {
 /**
  * One state of an access page: the headline, the panel and, on /register, the
  * arrow. A form that gives way to another state renders a new body under
- * `AnimatePresence`, so the two cross-fade (RULES.md §17).
+ * `AnimatePresence`, so the two cross-fade — at once when the input that
+ * caused it was a key, over the preset's timing for a pointer (`PresenceFade`,
+ * docs/specs/motion.md MOTION-27, RULES.md §17).
  */
 export function AccessBody({ variant, fadeIn = true, children }: AccessBodyProps) {
   return (
-    <motion.div
-      {...crossFade}
+    <PresenceFade
       {...(!fadeIn && { initial: false })}
       className={cn(
         ACCESS_ROW_CLASSES,
@@ -92,7 +92,7 @@ export function AccessBody({ variant, fadeIn = true, children }: AccessBodyProps
       )}
     >
       {children}
-    </motion.div>
+    </PresenceFade>
   );
 }
 
@@ -241,10 +241,12 @@ export function AccessArrow() {
 /**
  * An inline link of the access pages, underlined, with a 44px hit area on a
  * phone (PAGES-8) drawn by a pseudo-element, so the line keeps its drawn
- * height: AccessLink's, and /register's legal notice and «Entra».
+ * height: AccessLink's, and /register's legal notice and «Entra». Also
+ * carries a press scale, off under reduced motion (docs/specs/motion.md,
+ * MOTION-25).
  */
 export const ACCESS_LINK_CLASSES =
-  "inline-flex items-center justify-center underline transition-colors before:absolute before:size-11 hover:text-lime 3xl:before:size-6";
+  "inline-flex items-center justify-center underline transition-[color,scale] before:absolute before:size-11 hover:text-lime active:scale-97 motion-reduce:active:scale-none 3xl:before:size-6";
 
 interface AccessLinkProps {
   href: string;

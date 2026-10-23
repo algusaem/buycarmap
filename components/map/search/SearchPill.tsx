@@ -11,6 +11,7 @@ import { BellPlus, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type { ShownPlace } from "@/interfaces/location";
 import { Button } from "@/components/ui/button";
+import { useChangedByKey } from "@/lib/hooks/useChangedByKey";
 import type { SearchPopover } from "@/lib/hooks/useSearchFilters";
 import { carLabel, placeLabel, priceLabel } from "@/lib/search/filter-chips";
 import { cn } from "@/lib/utils";
@@ -254,6 +255,9 @@ function Segment({
   onOpenChange,
 }: SegmentProps) {
   const labelId = useId();
+  // docs/specs/motion.md (MOTION-28): the underline follows its popover, at
+  // once when a key opened or closed it.
+  const underlineByKey = useChangedByKey(open);
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     // Escape closes the open popover and leaves the focus on its segment
@@ -298,6 +302,7 @@ function Segment({
             className={cn(
               "absolute inset-x-5.5 bottom-0 h-0.5 rounded-pill bg-lime transition-[opacity,scale] motion-reduce:transition-none",
               open ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0",
+              underlineByKey && "transition-none",
             )}
           />
         </button>

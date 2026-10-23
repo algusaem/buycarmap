@@ -8,6 +8,7 @@ import { authClient } from "@/lib/auth/auth-client";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BusyButton } from "@/components/ui/BusyButton";
@@ -232,7 +233,12 @@ function SignUpForm({ isGoogleConfigured, onPending }: SignUpFormProps) {
 
         <p className="m-0 text-center text-label text-text-muted">
           {t("auth.alreadyHaveAccount")}{" "}
-          <Link href="/login" className={`${ACCESS_LINK_CLASSES} font-bold text-lime`}>
+          {/* docs/specs/motion.md (MOTION-24): the twin of /login's «Créala» —
+              lime to text on hover, not lime kept. */}
+          <Link
+            href="/login"
+            className={cn(ACCESS_LINK_CLASSES, "font-bold text-lime hover:text-text")}
+          >
             {t("auth.signInLink")}
           </Link>
         </p>

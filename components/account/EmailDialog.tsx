@@ -4,14 +4,13 @@ import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { useMessages, useTranslations } from "next-intl";
 import { FieldMessage } from "@/components/auth/FieldMessage";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { crossFade } from "@/lib/animations";
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { focusOnMount } from "@/lib/focus";
 import { translateAuthError, translateRefusal } from "@/lib/i18n/errors";
@@ -60,7 +59,7 @@ function EmailChange({ onClose }: EmailChangeProps) {
       <AccountDialogTitle>{t("account.email.submit")}</AccountDialogTitle>
       <AnimatePresence mode="wait" initial={false}>
         {sent && (
-          <motion.div key="sent" {...crossFade} className="flex flex-col gap-3.5">
+          <PresenceFade key="sent" className="flex flex-col gap-3.5">
             <p id={noticeId} className="m-0 text-meta leading-normal text-text-muted">
               {t("account.email.submitted")}
             </p>
@@ -75,12 +74,12 @@ function EmailChange({ onClose }: EmailChangeProps) {
             >
               {t("common.close")}
             </Button>
-          </motion.div>
+          </PresenceFade>
         )}
         {!sent && (
-          <motion.div key="form" {...crossFade}>
+          <PresenceFade key="form">
             <EmailChangeForm onSent={() => setSent(true)} />
-          </motion.div>
+          </PresenceFade>
         )}
       </AnimatePresence>
     </>

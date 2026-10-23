@@ -532,3 +532,78 @@ describe("MOTION-10: SearchPill — the «Crear alerta» popover opens and close
     });
   });
 });
+
+// docs/specs/motion.md (MOTION-28): the search pill's lime underline under
+// the open segment appears and leaves at once with the keyboard, as the
+// popover itself does (MOTION-10), and keeps its grow and fade for a pointer.
+describe("MOTION-28: SearchPill — the open segment's underline", () => {
+  function Harness() {
+    const [openSegment, setOpenSegment] = useState<SearchPopover | null>(null);
+    return (
+      <SearchPill
+        {...BASE}
+        openSegment={openSegment}
+        setOpenSegment={setOpenSegment}
+        popovers={{
+          car: (
+            <CarPopover
+              brand=""
+              model=""
+              onSelectBrand={vi.fn()}
+              onSelectModel={vi.fn()}
+              onClear={vi.fn()}
+              onClose={() => setOpenSegment(null)}
+            />
+          ),
+        }}
+      />
+    );
+  }
+
+  function underlineOf(segmentButton: HTMLElement): HTMLElement {
+    const underline = segmentButton.querySelector(".bg-lime");
+    if (!underline) throw new Error("expected the segment's underline span");
+    return underline as HTMLElement;
+  }
+
+  it("MOTION-28: Enter opens the popover and the underline carries transition-none", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      const segment = screen.getByRole("button", { name: "Cualquier marca" });
+      segment.focus();
+
+      await userEvent.keyboard("{Enter}");
+      await screen.findByRole("dialog", { name: "Coche" });
+
+      expect(underlineOf(segment).className.split(/\s+/)).toContain("transition-none");
+    });
+  });
+
+  it("MOTION-28: Escape closes the popover and the underline still carries transition-none", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      const segment = screen.getByRole("button", { name: "Cualquier marca" });
+      segment.focus();
+      await userEvent.keyboard("{Enter}");
+      await screen.findByRole("dialog", { name: "Coche" });
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(underlineOf(segment).className.split(/\s+/)).toContain("transition-none");
+    });
+  });
+
+  it("MOTION-28: a click opens the popover and the underline keeps its grow-and-fade transition, not transition-none", async () => {
+    await withAnimations(async () => {
+      renderWithI18n(<Harness />, { locale: "es" });
+      const segment = screen.getByRole("button", { name: "Cualquier marca" });
+
+      await userEvent.click(segment);
+      await screen.findByRole("dialog", { name: "Coche" });
+
+      const classes = underlineOf(segment).className.split(/\s+/);
+      expect(classes).toContain("transition-[opacity,scale]");
+      expect(classes).not.toContain("transition-none");
+    });
+  });
+});

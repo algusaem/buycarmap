@@ -1,7 +1,6 @@
 import type { ReactNode, RefObject } from "react";
 import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
-import { crossFade } from "@/lib/animations";
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { cn } from "@/lib/utils";
 
 // docs/specs/redesign-pages.md (PAGES-25 to PAGES-37); AccountCard/README.md.
@@ -61,9 +60,9 @@ export function AccountCard({
         </h2>
         <AnimatePresence initial={false}>
           {badge && (
-            <motion.span key="badge" {...crossFade} className="flex shrink-0">
+            <PresenceFade key="badge" className="flex shrink-0">
               {badge}
-            </motion.span>
+            </PresenceFade>
           )}
         </AnimatePresence>
       </div>
@@ -74,13 +73,12 @@ export function AccountCard({
       )}
       <AnimatePresence initial={false}>
         {children && (
-          <motion.div
+          <PresenceFade
             key="actions"
-            {...crossFade}
             className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2.5 pt-1"
           >
             {children}
-          </motion.div>
+          </PresenceFade>
         )}
       </AnimatePresence>
     </section>
