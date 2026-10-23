@@ -2,11 +2,10 @@
 
 import { useId } from "react";
 import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { useTranslations } from "next-intl";
 import { initialOf } from "@/components/nav/Avatar";
 import { Button } from "@/components/ui/button";
-import { crossFade } from "@/lib/animations";
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { useAccountLabels } from "@/lib/hooks/useAccountLabels";
 import { cardClasses } from "./AccountCard";
 
@@ -60,13 +59,9 @@ export function OwnCard({
           </h2>
           <AnimatePresence initial={false}>
             {name && (
-              <motion.p
-                key="email"
-                {...crossFade}
-                className="m-0 truncate text-meta text-text-muted"
-              >
-                {email}
-              </motion.p>
+              <PresenceFade key="email">
+                <p className="m-0 truncate text-meta text-text-muted">{email}</p>
+              </PresenceFade>
             )}
           </AnimatePresence>
         </div>

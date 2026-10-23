@@ -2,7 +2,7 @@
 
 Key: MOTION
 Status: Implemented
-Last updated: 2026-10-18
+Last updated: 2026-10-23
 
 ---
 
@@ -88,6 +88,19 @@ Added after the second review (owner, 2026-10-18)
 - [x] MOTION-22 · component — Moving the highlight through the select dropdown with the arrow keys changes it at once, with no transition, as the type-ahead options do (MOTION-13).
 - [x] MOTION-23 · component — What a key causes appears at once. When the results sheet moves to full or away from it by Enter or Space on its handle, the phone tab bar hides or comes back at once. The «Filtros» count badge and the validation notices appear and leave with no fade when a key caused the change, and keep their fade when a pointer did.
 
+Added for the surfaces a later review found (#143, 2026-10-23)
+
+- [x] MOTION-24 · component — «Entra» on `/register` gains the hover and press of its twin «Créala» on `/login` (MOTION-21): in the state transition it turns from `lime` to `text` on hover and scales to 0.97 while pressed, with the press off under reduced motion.
+- [x] MOTION-25 · component — The other links that share the access pages' link style keep their hover to `lime` and gain the same press: /register's «términos» and «política de privacidad» links, and the access pages' own text links («Entrar», «Volver a entrar»).
+- [x] MOTION-26 · component — The two-factor code field on `/login` appears at once when Enter submitted the form that asked for it, and fades in over 180ms when a press on «Entrar» did, as MOTION-23's validation notices do.
+- [x] MOTION-27 · component — A step change on the account page and the access pages follows the input that caused it: at once after a key, a 180ms cross-fade after a pointer. The surfaces covered:
+  - the two-factor dialog's steps: from the password to the setup, and from the setup to the recovery codes;
+  - the email dialog's swap from the form to «sent»;
+  - the sessions dialog's swap between loading, error and the list, its actions block, and a revoked session's row leaving;
+  - the account cards' badge and actions, and the own card's email line;
+  - an access page's form giving way to the state that follows it (registered, link sent, password changed).
+- [x] MOTION-28 · component — The search pill's lime underline under the open segment appears at once when its popover is opened with Enter or Space, and leaves at once when it is closed with Escape, as the popover itself does (MOTION-10). Opened or closed with a pointer, it keeps its grow and fade in the state transition.
+
 ## Worked examples
 
 **Tokens (MOTION-1, MOTION-2).**
@@ -110,6 +123,15 @@ Added after the second review (owner, 2026-10-18)
 
 **Saved list (MOTION-9).** At `/favorites` with cars A, B and C, removing A takes its card off the list in the same frame, and B and C move up. «Deshacer» puts A back in the same frame, with no fade.
 
+**The two-factor field on `/login` (MOTION-26).** An account with two-factor on, email and password filled in.
+
+| How the form is sent | The code field |
+| --- | --- |
+| Enter in «Contraseña» | on screen in the same frame, opacity 1 |
+| press on «Entrar» | on screen with an opacity below 1 on the next frame, opacity 1 within 180ms |
+
+**The two-factor dialog (MOTION-27).** In «Dos pasos», with the six-digit code typed, Enter in the code field shows «Guarda tus códigos de recuperación» in the same frame. A press on «Activar dos pasos» cross-fades to it over 180ms.
+
 ## Data model
 
 None. The change adds no table or column and reads no data.
@@ -126,6 +148,7 @@ None: the change is presentational. It touches no user data and no authorization
 - **Mixed input.** Opening with a click and closing with Escape animates the open and not the close (worked example «Filtros», third row).
 - **A spring interrupted by a key.** Enter on the handle mid-spring stops the spring and puts the sheet at its next position at once (MOTION-14).
 - **The legal index jump.** An instant fold still triggers the jump to the chosen section, which today waits for the fold's exit to finish (MOTION-15, PAGES-63).
+- **A step nobody triggered.** The sessions dialog swapping from loading to the list when the request answers follows the last input, the one that opened the dialog: at once after a key, a fade after a pointer (MOTION-27), as «A close nobody triggered» above.
 
 ## Out of scope
 

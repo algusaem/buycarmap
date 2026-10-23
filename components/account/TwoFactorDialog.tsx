@@ -4,7 +4,6 @@ import { useState } from "react";
 import { type UseFormRegisterReturn, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { useMessages, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { FieldMessage } from "@/components/auth/FieldMessage";
@@ -12,7 +11,7 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { BusyButton } from "@/components/ui/BusyButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { crossFade } from "@/lib/animations";
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { AUTH_ERROR, CURRENT_PASSWORD_REJECTIONS, refusalCode } from "@/lib/auth/errors";
 import type { ShownCodes } from "@/lib/hooks/useAccountPage";
 import { translateAuthError, translateRefusal } from "@/lib/i18n/errors";
@@ -83,11 +82,11 @@ export function TwoFactorDialog({
       dismissible={!codes}
     >
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={step} {...crossFade} className="flex flex-col gap-3.5">
+        <PresenceFade key={step} className="flex flex-col gap-3.5">
           {codes && <RecoveryCodesPanel codes={codes.codes} onDismiss={onCodesSaved} />}
           {step === "enable" && <EnableTwoFactor onCodes={onCodes} />}
           {step === "manage" && <ManageTwoFactor onCodes={onCodes} onDisabled={onDisabled} />}
-        </motion.div>
+        </PresenceFade>
       </AnimatePresence>
     </AccountDialog>
   );
@@ -174,34 +173,30 @@ function EnableTwoFactor({ onCodes }: EnableTwoFactorProps) {
       <AccountDialogTitle>{t("account.twoFactor.title")}</AccountDialogTitle>
       <AnimatePresence mode="wait" initial={false}>
         {setup && (
-          <motion.div key="setup" {...crossFade}>
+          <PresenceFade key="setup">
             <TwoFactorSetup
               otpauthUri={setup.otpauthUri}
               secret={setup.secret}
               onConfirmed={() => onCodes({ codes: setup.recoveryCodes, source: "enable" })}
             />
-          </motion.div>
+          </PresenceFade>
         )}
         {!setup && (
-          <motion.form
-            key="password"
-            {...crossFade}
-            onSubmit={handleSubmit(onStart)}
-            className="flex flex-col gap-3.5"
-            noValidate
-          >
-            <p className="m-0 text-meta leading-normal text-text-muted">
-              {t("account.twoFactor.line")}
-            </p>
-            <TwoFactorPassword
-              registration={register("password")}
-              error={errors.password?.message}
-            />
-            <FieldMessage show={!!formError} role="alert">
-              {formError}
-            </FieldMessage>
-            <DialogActions busy={busy}>{t("account.twoFactor.setupCta")}</DialogActions>
-          </motion.form>
+          <PresenceFade key="password">
+            <form onSubmit={handleSubmit(onStart)} className="flex flex-col gap-3.5" noValidate>
+              <p className="m-0 text-meta leading-normal text-text-muted">
+                {t("account.twoFactor.line")}
+              </p>
+              <TwoFactorPassword
+                registration={register("password")}
+                error={errors.password?.message}
+              />
+              <FieldMessage show={!!formError} role="alert">
+                {formError}
+              </FieldMessage>
+              <DialogActions busy={busy}>{t("account.twoFactor.setupCta")}</DialogActions>
+            </form>
+          </PresenceFade>
         )}
       </AnimatePresence>
     </>

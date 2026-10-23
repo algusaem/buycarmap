@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
@@ -206,5 +207,49 @@ describe("PAGES-4: a requestPasswordReset that throws", () => {
       "aria-disabled",
     );
     expect(toast.error).not.toHaveBeenCalled();
+  });
+});
+
+// docs/specs/motion.md (MOTION-27): an access page's form gives way to the
+// state that follows it at once after a key, and fades after a pointer.
+describe("MOTION-27: ForgotPasswordForm — the form gives way to the confirmation", () => {
+  // This file's own `beforeEach` that resets `requestPasswordReset` lives
+  // inside the `describe("ForgotPasswordForm", …)` block above, so a sibling
+  // block needs its own reset too.
+  beforeEach(() => {
+    requestPasswordReset.mockReset();
+  });
+
+  it("MOTION-27: Enter in the email field shows the next state with no inline opacity below 1", async () => {
+    requestPasswordReset.mockResolvedValue({ success: true });
+    await withAnimations(async (clock) => {
+      const { container } = renderWithI18n(<ForgotPasswordForm />);
+
+      await userEvent.type(screen.getByLabelText("Email"), "ada@example.com{Enter}");
+      await waitFor(() => expect(requestPasswordReset).toHaveBeenCalledOnce());
+      // `AnimatePresence mode="wait"`: the outgoing form's exit must finish
+      // before the next state mounts — real animations are frozen by
+      // `withAnimations`, so the clock has to be moved past it by hand.
+      await clock.finish();
+
+      await screen.findByText("Check your email");
+      const opacity = (container.firstChild as HTMLElement).style.opacity;
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-27: pressing «Send reset link» still fades the next state in, with an inline opacity below 1 right after", async () => {
+    requestPasswordReset.mockResolvedValue({ success: true });
+    await withAnimations(async (clock) => {
+      const { container } = renderWithI18n(<ForgotPasswordForm />);
+      await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+
+      await submit();
+      await waitFor(() => expect(requestPasswordReset).toHaveBeenCalledOnce());
+      await clock.finish();
+
+      await screen.findByText("Check your email");
+      expect(Number((container.firstChild as HTMLElement).style.opacity)).toBeLessThan(1);
+    });
   });
 });

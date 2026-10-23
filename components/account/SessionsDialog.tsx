@@ -9,11 +9,13 @@ import { useMessages, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { FieldMessage } from "@/components/auth/FieldMessage";
 import { BusyButton } from "@/components/ui/BusyButton";
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { Skeleton } from "@/components/ui/skeleton";
 import { crossFade } from "@/lib/animations";
 import { authClient } from "@/lib/auth/auth-client";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { useAccountLabels } from "@/lib/hooks/useAccountLabels";
+import { usePresenceMotion } from "@/lib/hooks/usePresenceMotion";
 import { useMySessions } from "@/lib/hooks/useMySessions";
 import { translateAuthError, translateRefusal } from "@/lib/i18n/errors";
 import type { Translations } from "@/lib/i18n/types";
@@ -135,7 +137,7 @@ function SessionsBody({ closeRef, onChanged }: SessionsBodyProps) {
       <AccountDialogTitle>{t("account.sessions.title")}</AccountDialogTitle>
       <AnimatePresence mode="wait" initial={false}>
         {status === "error" && (
-          <motion.div key="error" {...crossFade} className="flex flex-col gap-3.5">
+          <PresenceFade key="error" className="flex flex-col gap-3.5">
             <FieldMessage show role="alert">
               {t("account.sessions.loadError")}
             </FieldMessage>
@@ -149,33 +151,35 @@ function SessionsBody({ closeRef, onChanged }: SessionsBodyProps) {
             >
               {t("errors.retry")}
             </BusyButton>
-          </motion.div>
+          </PresenceFade>
         )}
         {status === "loading" && (
-          <motion.div key="loading" {...crossFade} role="status">
+          <PresenceFade key="loading" role="status">
             <span className="sr-only">{t("account.loading")}</span>
             <SessionsPlaceholder />
-          </motion.div>
+          </PresenceFade>
         )}
         {status === "ready" && (
-          <motion.ul key="ready" {...crossFade} className="m-0 flex list-none flex-col p-0">
-            <AnimatePresence initial={false}>
-              {sessions.map((session) => (
-                <SessionRow
-                  key={session.id}
-                  session={session}
-                  busy={pending === session.id}
-                  disabled={pending !== null && pending !== session.id}
-                  onRevoke={() => onRevoke(session.id)}
-                />
-              ))}
-            </AnimatePresence>
-          </motion.ul>
+          <PresenceFade key="ready">
+            <ul className="m-0 flex list-none flex-col p-0">
+              <AnimatePresence initial={false}>
+                {sessions.map((session) => (
+                  <SessionRow
+                    key={session.id}
+                    session={session}
+                    busy={pending === session.id}
+                    disabled={pending !== null && pending !== session.id}
+                    onRevoke={() => onRevoke(session.id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </ul>
+          </PresenceFade>
         )}
       </AnimatePresence>
       <AnimatePresence initial={false}>
         {status !== "error" && (
-          <motion.div key="actions" {...crossFade} className="flex flex-col gap-3.5">
+          <PresenceFade key="actions" className="flex flex-col gap-3.5">
             <BusyButton
               type="button"
               variant="secondary"
@@ -202,7 +206,7 @@ function SessionsBody({ closeRef, onChanged }: SessionsBodyProps) {
             >
               {t("account.sessions.submit")}
             </BusyButton>
-          </motion.div>
+          </PresenceFade>
         )}
       </AnimatePresence>
       <DialogCancel ref={closeRef} label={t("common.close")} />
@@ -222,10 +226,13 @@ function SessionRow({ session, busy, disabled, onRevoke }: SessionRowProps) {
   const t = useTranslations();
   const { device, lastUsed } = useAccountLabels();
   const label = device(session.userAgent);
+  // An `li` cannot be wrapped in PresenceFade's div, so it plays the preset
+  // directly (docs/specs/motion.md MOTION-27).
+  const fade = usePresenceMotion(crossFade);
 
   return (
     <motion.li
-      {...crossFade}
+      {...fade}
       className="flex min-h-12.5 items-center justify-between gap-3 border-t border-line-soft py-3"
     >
       <span className="flex min-w-0 flex-col gap-0.5">

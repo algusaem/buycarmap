@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { toast } from "sonner";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { ResetPasswordForm } from "./ResetPasswordForm";
@@ -358,5 +359,43 @@ describe("PAGES-23: after the reset, the button stays busy until /login replaces
     expect(button).toHaveAttribute("aria-busy", "true");
     await userEvent.click(button);
     expect(resetPassword).toHaveBeenCalledTimes(1);
+  });
+});
+
+// docs/specs/motion.md (MOTION-27): an access page's form gives way to the
+// state that follows it at once after a key, and fades after a pointer.
+describe("MOTION-27: ResetPasswordForm — the form gives way to the expired-link state", () => {
+  it("MOTION-27: Enter in the confirm-password field shows the expired state with no inline opacity below 1", async () => {
+    resetPassword.mockResolvedValue({ success: false, error: AUTH_ERROR.tokenInvalid });
+    await withAnimations(async (clock) => {
+      const { container } = renderWithI18n(<ResetPasswordForm token={TOKEN} />);
+      await fillValid();
+
+      await userEvent.type(screen.getByLabelText("Confirm password"), "{Enter}");
+      await waitFor(() => expect(resetPassword).toHaveBeenCalledOnce());
+      // `AnimatePresence mode="wait"`: the outgoing form's exit must finish
+      // before the next state mounts — real animations are frozen by
+      // `withAnimations`, so the clock has to be moved past it by hand.
+      await clock.finish();
+
+      await screen.findByRole("heading", { name: /Link expired\?/ });
+      const opacity = (container.firstChild as HTMLElement).style.opacity;
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-27: pressing «Update password» still fades the expired state in, with an inline opacity below 1 right after", async () => {
+    resetPassword.mockResolvedValue({ success: false, error: AUTH_ERROR.tokenInvalid });
+    await withAnimations(async (clock) => {
+      const { container } = renderWithI18n(<ResetPasswordForm token={TOKEN} />);
+      await fillValid();
+
+      await submit();
+      await waitFor(() => expect(resetPassword).toHaveBeenCalledOnce());
+      await clock.finish();
+
+      await screen.findByRole("heading", { name: /Link expired\?/ });
+      expect(Number((container.firstChild as HTMLElement).style.opacity)).toBeLessThan(1);
+    });
   });
 });

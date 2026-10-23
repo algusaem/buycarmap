@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { toast } from "sonner";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import en from "@/messages/en.json";
 import es from "@/messages/es.json";
 import { LoginForm } from "./LoginForm";
@@ -999,5 +1000,46 @@ describe("MOTION-21: LoginForm — hover and press on «Create one»", () => {
     expect(classes).toContain("hover:text-text");
     expect(classes).toContain("active:scale-97");
     expect(classes).toContain("motion-reduce:active:scale-none");
+  });
+});
+
+// docs/specs/motion.md (MOTION-26): the two-factor code field appears at
+// once when Enter in the password field asked for it, and fades in over
+// 180ms when a press on «Sign in» did, as MOTION-23's validation notices do.
+describe("MOTION-26: LoginForm — the two-factor code field", () => {
+  beforeEach(() => {
+    signIn.mockReset();
+    searchParams = new URLSearchParams();
+    stubLocation();
+  });
+
+  it("MOTION-26: Enter in the password field reveals the code field with no inline opacity below 1", async () => {
+    signIn.mockResolvedValue({ success: false, twoFactorRequired: true });
+    await withAnimations(async () => {
+      renderWithI18n(<LoginForm isGoogleConfigured={false} />);
+      await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+
+      await userEvent.type(screen.getByLabelText("Password"), "secret123{Enter}");
+
+      const codeField = await screen.findByLabelText(/enter the 6-digit code/i);
+      const container = codeField.parentElement as HTMLElement;
+      const opacity = container.style.opacity;
+      expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+    });
+  });
+
+  it("MOTION-26: a press on «Sign in» still fades the code field in, with an inline opacity below 1 right after", async () => {
+    signIn.mockResolvedValue({ success: false, twoFactorRequired: true });
+    await withAnimations(async () => {
+      renderWithI18n(<LoginForm isGoogleConfigured={false} />);
+      await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+      await userEvent.type(screen.getByLabelText("Password"), "secret123");
+
+      await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+      const codeField = await screen.findByLabelText(/enter the 6-digit code/i);
+      const container = codeField.parentElement as HTMLElement;
+      expect(Number(container.style.opacity)).toBeLessThan(1);
+    });
   });
 });

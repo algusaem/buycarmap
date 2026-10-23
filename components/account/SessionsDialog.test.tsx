@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
+import { withAnimations } from "@/test/utils/animations";
 import { toast } from "sonner";
 import { SessionsDialog } from "./SessionsDialog";
 
@@ -204,5 +205,85 @@ describe("BAUTH-4: the active sessions list", () => {
 
     await waitFor(() => expect(screen.getByText("This device")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Sign out the others" })).toBeInTheDocument();
+  });
+});
+
+function expectOpaque(element: HTMLElement) {
+  const opacity = element.style.opacity;
+  expect(opacity === "" || Number(opacity) >= 1).toBe(true);
+}
+
+// docs/specs/motion.md (MOTION-27, edge case "A step nobody triggered"): the
+// sessions dialog's swap from loading to the list follows the last input
+// that opened it — at once after a key, a fade after a pointer.
+describe("MOTION-27: SessionsDialog — loading to the list", () => {
+  it("MOTION-27: the list is drawn with no inline opacity below 1 when a key opened the dialog", async () => {
+    await withAnimations(async (clock) => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+      renderDialog();
+      await waitFor(() => expect(listMySessions).toHaveBeenCalledOnce());
+      // `AnimatePresence mode="wait"`: the loading state's exit must finish
+      // before the list mounts — real animations are frozen by
+      // `withAnimations`, so the clock has to be moved past it by hand.
+      await clock.finish();
+
+      const list = await screen.findByText("This device");
+      expectOpaque(list.closest("ul") as HTMLElement);
+    });
+  });
+
+  it("MOTION-27: the list still fades in when a pointer opened the dialog, with an inline opacity below 1 right after", async () => {
+    await withAnimations(async (clock) => {
+      window.dispatchEvent(new PointerEvent("pointerdown"));
+      renderDialog();
+      await waitFor(() => expect(listMySessions).toHaveBeenCalledOnce());
+      await clock.finish();
+
+      const list = await screen.findByText("This device");
+      expect(Number((list.closest("ul") as HTMLElement).style.opacity)).toBeLessThan(1);
+    });
+  });
+});
+
+// docs/specs/motion.md (MOTION-27): a revoked session's row follows the
+// input that revoked it — leaving in the same tick after a key, still
+// mounted right after a pointer press.
+describe("MOTION-27: SessionsDialog — a revoked row leaving", () => {
+  it("MOTION-27: Enter on «Sign out of Safari on iOS» removes its row with no transition left in flight", async () => {
+    listMySessions.mockReset();
+    listMySessions.mockResolvedValueOnce([MINE, OTHER]).mockResolvedValueOnce([MINE]);
+    revokeMySession.mockResolvedValue({ success: true });
+    await withAnimations(async (clock) => {
+      renderDialog();
+      await waitFor(() => expect(listMySessions).toHaveBeenCalledOnce());
+      // `AnimatePresence mode="wait"`: the loading state's exit must finish
+      // before the list mounts, to even reach the row under test.
+      await clock.finish();
+      await screen.findByText("Safari on iOS");
+      const revokeButton = screen.getByRole("button", { name: "Sign out of Safari on iOS" });
+      revokeButton.focus();
+
+      await userEvent.keyboard("{Enter}");
+
+      await waitFor(() => expect(screen.queryByText("Safari on iOS")).not.toBeInTheDocument());
+    });
+  });
+
+  it("MOTION-27: a pointer press on «Sign out of Safari on iOS» leaves its row mounted right after", async () => {
+    listMySessions.mockReset();
+    listMySessions.mockResolvedValueOnce([MINE, OTHER]).mockResolvedValueOnce([MINE]);
+    revokeMySession.mockResolvedValue({ success: true });
+    await withAnimations(async (clock) => {
+      renderDialog();
+      await waitFor(() => expect(listMySessions).toHaveBeenCalledOnce());
+      await clock.finish();
+      await screen.findByText("Safari on iOS");
+      const revokeButton = screen.getByRole("button", { name: "Sign out of Safari on iOS" });
+
+      await userEvent.click(revokeButton);
+
+      await waitFor(() => expect(listMySessions).toHaveBeenCalledTimes(2));
+      expect(screen.getByText("Safari on iOS")).toBeInTheDocument();
+    });
   });
 });

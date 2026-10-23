@@ -4,13 +4,13 @@ import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
-import * as motion from "motion/react-client";
 import { signIn, verifySignInBackupCode, verifySignInTotp } from "@/server/auth/actions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BusyButton } from "@/components/ui/BusyButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PresenceFade } from "@/components/ui/PresenceFade";
 import { FieldMessage } from "./FieldMessage";
 import { PasswordInput } from "./PasswordInput";
 import { OAuthButtons } from "./OAuthButtons";
@@ -21,7 +21,6 @@ import type { Translations } from "@/lib/i18n/types";
 import { AUTH_ERROR } from "@/lib/auth/errors";
 import { safeRedirectTarget } from "@/lib/auth/safe-redirect";
 import { settleAction } from "@/lib/auth/settle-action";
-import { crossFade } from "@/lib/animations";
 import { loginSchema, type LoginInput } from "@/server/auth/schema";
 
 interface LoginFormProps {
@@ -260,14 +259,12 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
           />
         </div>
 
+        {/* docs/specs/motion.md (MOTION-26): at once when Enter in the
+            password field asked for it, fading in over the preset's timing
+            when a press on «Sign in» did (PresenceFade). */}
         <AnimatePresence>
           {needsTwoFactor && (
-            <motion.div
-              key="two-factor"
-              className="flex flex-col gap-2"
-              aria-live="polite"
-              {...crossFade}
-            >
+            <PresenceFade key="two-factor" className="flex flex-col gap-2" aria-live="polite">
               <Label htmlFor="totp" className="text-field-label font-bold">
                 {t("account.twoFactor.codeLabel")}
               </Label>
@@ -292,7 +289,7 @@ export function LoginForm({ isGoogleConfigured }: LoginFormProps) {
               <p id={totpHintId} className="m-0 text-meta text-text-muted">
                 {t("account.twoFactor.recoveryHint")}
               </p>
-            </motion.div>
+            </PresenceFade>
           )}
         </AnimatePresence>
 
