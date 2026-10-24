@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.6.0...buycarmap-v0.7.0) (2026-10-24)
+
+
+### Features
+
+* **map:** use the section links in the map header ([#158](https://github.com/algusaem/buycarmap/issues/158)) ([0d91438](https://github.com/algusaem/buycarmap/commit/0d91438eb2b0c3b3d932747293f93922d42791a0))
+
+
+### Bug Fixes
+
+* **ui:** make the last surfaces follow the input that moved them ([#160](https://github.com/algusaem/buycarmap/issues/160)) ([7014dc1](https://github.com/algusaem/buycarmap/commit/7014dc180b7e746b1aa50c6f2556470e2ee5b50e))
+
 ## [0.6.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.5.0...buycarmap-v0.6.0) (2026-10-21)
 
 
