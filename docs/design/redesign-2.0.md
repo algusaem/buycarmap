@@ -65,7 +65,7 @@ shown at phone (390 × 844).
 
 | Before | After |
 | --- | --- |
-| <img src="redesign/map-before-desktop.webp" width="400" alt="Old map screen: two columns of listing cards with amber monospaced prices beside a map of Spain with small amber dots"> | <img src="redesign/map-after-desktop.webp" width="400" alt="New map screen: a header with a pill search, a car count in uppercase, three columns of cards with lime prices, and a map of Spain with a price pin per car"> |
+| <img src="redesign/map-before-desktop.webp" width="400" alt="Old map screen: two columns of listing cards with amber monospaced prices beside a map of Spain with small amber dots"> | <img src="redesign/map-after-desktop.webp" width="400" alt="New map screen: a header with a pill search and quick filter chips, a car count in uppercase, two columns of cards with lime prices, and a map of Spain with a price pin per car"> |
 
 ## On the phone
 
