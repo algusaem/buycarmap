@@ -92,10 +92,12 @@ const footerStyle = {
 export interface EmailLayoutProps {
   heading: string;
   footer: string;
+  /** A second footer line under `footer`, for links such as the alert digest's manage and unsubscribe. */
+  footerLinks?: ReactNode;
   children: ReactNode;
 }
 
-export function EmailLayout({ heading, footer, children }: EmailLayoutProps) {
+export function EmailLayout({ heading, footer, footerLinks, children }: EmailLayoutProps) {
   return (
     <Html>
       <Head />
@@ -108,6 +110,9 @@ export function EmailLayout({ heading, footer, children }: EmailLayoutProps) {
           {children}
         </Container>
         <Text style={footerStyle}>{footer}</Text>
+        {footerLinks ? (
+          <Text style={{ ...footerStyle, marginTop: "4px" }}>{footerLinks}</Text>
+        ) : null}
       </Body>
     </Html>
   );
@@ -168,4 +173,4 @@ export function RawLink({ url }: { url: string }) {
   );
 }
 
-export { INK, MUTED };
+export { BORDER, INK, MUTED };
