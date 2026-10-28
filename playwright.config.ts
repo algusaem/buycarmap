@@ -126,17 +126,19 @@ export default defineConfig({
   // Pre-compiles every route so no test pays the cold-start cost. See the file.
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
+  // With no retries, "on-first-retry" never records a trace: a failure keeps
+  // its own, so an intermittent one can still be diagnosed (#163).
   use: previewBaseUrl
     ? {
         baseURL: previewBaseUrl,
         extraHTTPHeaders: {
           "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "",
         },
-        trace: "on-first-retry",
+        trace: "retain-on-failure",
       }
     : {
         baseURL: BASE_URL,
-        trace: "on-first-retry",
+        trace: "retain-on-failure",
       },
   expect: {
     toHaveScreenshot: {
