@@ -119,18 +119,19 @@ function DesktopRoads() {
   );
 }
 
-/** The phone preview's two roads, on the board's own 350×300 grid. */
+/** The phone preview's two roads, on a 350×440 grid; they fill the preview, whatever its size, reaching every edge. */
 function PhoneRoads() {
   return (
     <svg
       aria-hidden="true"
-      viewBox="0 0 350 300"
-      className="absolute top-0 left-0 h-75 w-87.5"
+      viewBox="0 0 350 440"
+      preserveAspectRatio="xMinYMin slice"
+      className="absolute inset-0 size-full"
       fill="none"
     >
       <path d="M-10 90 C 100 120 200 70 360 110" strokeWidth="10" className="stroke-map-road" />
       <path
-        d="M120 -10 C 140 100 160 200 150 310"
+        d="M120 -10 C 140 100 160 200 150 310 S 140 400 150 450"
         strokeWidth="8"
         className="stroke-map-road-major"
       />
@@ -173,7 +174,8 @@ const PHONE_PINS: PinSpec[] = [
 // of the map — roads, price pins (the active one lime with its halo) and the
 // example car card — that is one link to /map as a whole. Desktop draws five
 // pins; phone draws two, with the card under the active one, and runs to the
-// bottom of the screen.
+// bottom of the screen, at least 440px tall: on a shorter screen the page
+// scrolls (ENTRY-32).
 export function LandingMapPreview({ variant, label, locale }: LandingMapPreviewProps) {
   const desktop = variant === "desktop";
   const pins = desktop ? DESKTOP_PINS : PHONE_PINS;
@@ -188,7 +190,7 @@ export function LandingMapPreview({ variant, label, locale }: LandingMapPreviewP
         // chooses it, since the landing is a Server Component.
         desktop
           ? "@container hidden rounded-panel 3xl:col-start-2 3xl:row-span-full 3xl:row-start-1 3xl:block 3xl:aspect-map-preview 3xl:max-h-full 3xl:self-center"
-          : "block min-h-0 flex-1 rounded-t-preview border-b-0",
+          : "block min-h-110 flex-1 rounded-t-preview border-b-0",
       )}
     >
       <div aria-hidden="true">

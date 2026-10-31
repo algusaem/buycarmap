@@ -451,9 +451,9 @@ Phone results sheet: drag and map tap (added 2026-10-17, #133; design accepted 2
   Space moves the sheet at once; a pointer press still springs it (MOTION-14) (amended 2026-10-18,
   MOTION — motion.md)
 - [x] MAPUI-59 · component + e2e — At phone width, the results sheet can be dragged up and down from
-  its handle strip and from its header (the results heading). On release it settles on the position
-  (peeked, middle or full) whose top edge is nearest to where the sheet's top edge was released. A
-  drag that starts in the list does not move the sheet; at full the list keeps its own scroll. The
+  its handle strip and from its header (the results heading); at peeked and middle, from anywhere on the sheet, the card and «Crear alerta» included (bug fix, owner 2026-10-31). On release it settles on the position
+  (peeked, middle or full) whose top edge is nearest to where the sheet's top edge was released. At
+  full a drag that starts in the list does not move the sheet: the list keeps its own scroll. A press on the card or on «Crear alerta» that does not move stays a press. The
   release point is where the finger left the screen: the sheet's top edge when the drag started plus
   the finger's travel from press to release, kept between full and peeked, never the edge last drawn,
   so a frame the browser had not drawn yet at release does not change where the sheet settles (bug
@@ -526,6 +526,10 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
   the 48px search pill and «Crear alerta», centred on the window; row three, 28px under the pill,
   «Filtros», the divider and the quick filters, centred on the window, 17px above the band's bottom.
   Nothing in the band reaches past its 48px side margins (design accepted 2026-10-22, #157).
+- [x] MAPUI-71 · e2e — The sheet's moves are checked with a real finger (touch events through the
+  browser, never the mouse, which ignores `touch-action`): a swipe up on the middle sheet's card
+  reaches full, and at full a swipe in the list scrolls the list and leaves the sheet at full (bug
+  fix, owner 2026-10-31).
 
 ## Worked examples
 
@@ -809,6 +813,12 @@ barato», and already has an alert with the same criteria hash:
 layout measures (the design gives no fixed heights); call them P (peeked), M (middle) and F (full),
 with P below M below F. The test measures them and derives the expectation from them.
 
+**A finger on the middle sheet's card (MAPUI-59, MAPUI-71; bug fix, owner 2026-10-31).**
+
+- **Input:** at 402×874, touch, `/map`, sheet at middle, a 250px swipe up that starts on the first card.
+- **Before the fix:** the sheet stays at middle and the list does not scroll: the swipe does nothing.
+- **Correct result:** the sheet follows the finger and settles at full.
+
 **Release point (MAPUI-59; bug fix, 2026-10-19).** On a loaded phone the browser can skip frames, so
 the sheet drawn on screen lags behind the finger. Seen on PR #147's CI (GitHub runner, software
 WebGL): (1) from middle, the handle dragged down by 0.3·(P−M) and released slowly was read as
@@ -831,7 +841,9 @@ after several drawn frames without movement, never after a stretch of wall-clock
 | full | drag the handle down a little and release faster than 800px/s | middle |
 | middle | drag the header up a little and release at exactly 800px/s | settles on the nearest position |
 | peeked | drag the handle down and release fast | peeked |
-| middle | drag on the card | middle, nothing moves (MAPUI-23 shows one card) |
+| middle | drag on the card up, release slowly with the top edge nearer F than M | full |
+| middle | drag on the card down, release slowly with the top edge nearer P than M | peeked |
+| middle | tap the card | middle, the card acts as a press |
 | full | drag inside the list | full, the list scrolls |
 | middle | tap the map | peeked |
 | middle | pan the map | peeked |

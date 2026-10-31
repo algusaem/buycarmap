@@ -135,4 +135,18 @@ describe("ENTRY-7: Landing — the map preview", () => {
     // MapPreview.tsx's PHONE_PINS: two example price pins.
     expect(preview.querySelectorAll(".rounded-pill")).toHaveLength(2);
   });
+
+  // docs/specs/redesign-entry.md (ENTRY-32, bug fix): the phone preview's
+  // road svg scales to the preview's own box instead of a fixed 350×300
+  // grid, and the link itself never shrinks under 440px tall.
+  it("ENTRY-32: the phone preview's roads fill the preview, however tall", () => {
+    renderWithI18n(<Landing />, { locale: "es" });
+    const phone = within(screen.getByTestId("landing-phone"));
+
+    const preview = phone.getByRole("link", { name: "Ver el mapa" });
+    const roads = preview.querySelector("svg");
+    expect(roads).toHaveAttribute("viewBox", "0 0 350 440");
+    expect(roads).toHaveAttribute("preserveAspectRatio", "xMinYMin slice");
+    expect(preview.className).toContain("min-h-110");
+  });
 });
