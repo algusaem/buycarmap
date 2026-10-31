@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
+import { swipe } from "./fixtures/touch";
 
 // e2e/location-search.spec.ts:9-15, verbatim: the Nominatim fixture result
 // for "Madrid".
@@ -1105,5 +1106,48 @@ test.describe("ENTRY-30: the gap from the item above to the drawn content's top"
       Math.abs(drawn.y - (taglineBox.y + taglineBox.height) - 30),
       "gap from the tagline to the drawn content's top",
     ).toBeLessThanOrEqual(1);
+  });
+});
+
+// docs/specs/redesign-entry.md (ENTRY-32, worked example «The landing on a
+// short phone»), with a real finger: the scroll a mouse wheel would not prove.
+test.describe("ENTRY-32: the phone landing scrolls instead of shrinking the map", () => {
+  test("ENTRY-32: at 402×700 the preview is 440px tall and a swipe scrolls the page 163px, to the preview's end", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      hasTouch: true,
+      isMobile: true,
+      locale: "es-ES",
+      viewport: { width: 402, height: 700 },
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    const preview = page.getByRole("link", { name: VER_EL_MAPA });
+    await expect(preview).toBeVisible();
+    expect((await preview.boundingBox())?.height).toBe(440);
+
+    await swipe(page, page.getByTestId("landing-search-phone"), -300);
+
+    const scroller = page.locator("main").locator("xpath=..");
+    await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBe(163);
+    const box = await preview.boundingBox();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeCloseTo(700, 0);
+    await context.close();
+  });
+
+  test("ENTRY-32: at 402×874 the page has nothing to scroll and the preview fills the room left", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 402, height: 874 });
+    await page.goto("/");
+
+    const scroller = page.locator("main").locator("xpath=..");
+    const overflow = await scroller.evaluate(
+      (element) => element.scrollHeight - element.clientHeight,
+    );
+    expect(overflow).toBe(0);
+    const box = await page.getByRole("link", { name: VER_EL_MAPA }).boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThan(440);
   });
 });

@@ -124,8 +124,8 @@ export function Landing() {
   const locale = useLocale();
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-360 flex-1 flex-col lg:px-12">
-      <div className="relative isolate flex min-h-0 flex-1 flex-col gap-4.5 px-5 pt-4.5 lg:gap-7.5 lg:px-0 lg:pt-0 lg:max-3xl:items-center lg:max-3xl:text-center 3xl:grid 3xl:grid-cols-landing 3xl:grid-rows-landing 3xl:justify-between 3xl:gap-x-14 3xl:gap-y-7.5 3xl:pt-10 3xl:pb-2">
+    <div className="mx-auto flex w-full max-w-360 flex-1 flex-col lg:min-h-0 lg:px-12">
+      <div className="relative isolate flex lg:min-h-0 flex-1 flex-col gap-4.5 px-5 pt-4.5 lg:gap-7.5 lg:px-0 lg:pt-0 lg:max-3xl:items-center lg:max-3xl:text-center 3xl:grid 3xl:grid-cols-landing 3xl:grid-rows-landing 3xl:justify-between 3xl:gap-x-14 3xl:gap-y-7.5 3xl:pt-10 3xl:pb-2">
         <div className="flex flex-col gap-4.5 lg:gap-7.5 lg:max-3xl:items-center 3xl:col-start-1 3xl:row-start-2">
           {/* The board trims the headline's box to its cap height and baseline
               (its `.display` class), which sets the 30px rhythm below it. */}
@@ -194,10 +194,11 @@ export function Landing() {
             indicator itself (pb-safe-bottom) when signed out — or to the top
             of the tab bar when the bar is shown (signed in, with-tab-bar):
             this body reads no session, so it follows the bar's own presence
-            instead. */}
+            instead. Nothing above it shrinks at phone width, so a short
+            screen scrolls the page instead of squashing the map (ENTRY-32). */}
         <div
           data-testid="landing-phone"
-          className="flex min-h-0 flex-1 flex-col pb-safe-bottom lg:hidden with-tab-bar:pb-sheet-above-tabs"
+          className="flex flex-1 flex-col pb-safe-bottom lg:hidden with-tab-bar:pb-sheet-above-tabs"
         >
           <LandingMapPreview variant="phone" label={t("hero.exploreMap")} locale={locale} />
         </div>

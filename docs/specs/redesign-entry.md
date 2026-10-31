@@ -68,13 +68,16 @@ Landing
   beside the search, with the Storyset illustration and the arrows. From 1024px to 1439px wide there
   is no preview and no arrow, and the Storyset illustration sits centred under the search (amended
   2026-10-14: ENTRY-23, ENTRY-24). At phone width it shows the car card inside the map and no
-  illustration.
+  illustration, and the map is at least 440px tall (amended 2026-10-31, ENTRY-32).
 - [x] ENTRY-8 · component — At phone width, signed in, the landing shows the tab bar with «Mapa»,
   «Guardados», «Alertas» and «Cuenta», none marked current. Its header shows the wordmark and the
   language control, with no avatar and no «Entrar». Signed out it shows no tab bar and keeps «Entrar»
   (amends HEAD-7 and MAPUI-52).
 - [x] ENTRY-31 · e2e — Signed in at phone width, the landing's last element can be
   scrolled fully clear of the tab bar (bug fix, found 2026-10-17, #133; HEAD-19 for the other pages).
+- [x] ENTRY-32 · e2e — At phone width the map preview never shrinks under 440px: on a shorter screen
+  the page scrolls with a finger, and at the end of the scroll the preview's lower edge meets the
+  bottom of the screen. Its roads reach every edge of the preview (bug fix, owner 2026-10-31).
 
 Sign in
 
@@ -346,6 +349,12 @@ between 503.5px and 505.5px. With no scrollbar, the centre is at 512px.
 last element's bottom was at 812px while the tab bar's top was at 747px, so it sat under the bar.
 Correct result: the last element's bottom is at or above the tab bar's top (≤ 747px at that
 viewport).
+
+**The landing on a short phone (ENTRY-32; bug fix, owner 2026-10-31).**
+
+- **Input:** at 402×700, touch, signed out, in Spanish (the subtitle takes two lines), `/`, a 300px swipe up that starts on the search card.
+- **Before the fix:** the preview shrinks to fit, the page has nothing to scroll and the swipe does nothing.
+- **Correct result:** the preview is 440px tall and the page scrolls 163px, its end, where the preview's lower edge is at 700.
 
 ## Data model
 
