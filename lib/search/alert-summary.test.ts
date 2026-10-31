@@ -114,7 +114,7 @@ describe("MAPUI-75: alertSummary and alertCriteria — minimum mileage", () => {
     expect(alertCriteria(input, null, ES_COPY)).toEqual(["Toyota", "50.000 – 100.000 km"]);
   });
 
-  it("MAPUI-76: minKm above maxKm still reads as the range in the given order, 150.000 – 100.000 km", () => {
+  it("MAPUI-86: minKm above maxKm still reads as the range in the given order, 150.000 – 100.000 km", () => {
     const input: SearchInput = { brand: "Toyota", minKm: 150000, maxKm: 100000 };
 
     expect(alertSummary(input, undefined, ES_COPY)).toBe(

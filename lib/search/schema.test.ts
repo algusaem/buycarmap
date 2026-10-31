@@ -58,7 +58,7 @@ describe("searchSchema", () => {
     expect(searchSchema.safeParse({ minKm: 100.5 }).success).toBe(false);
   });
 
-  it("MAPUI-76: accepts a minKm above maxKm, unchanged — their order is not the schema's concern", () => {
+  it("MAPUI-86: accepts a minKm above maxKm, unchanged — their order is not the schema's concern", () => {
     const result = searchSchema.safeParse({ minKm: 150000, maxKm: 100000 });
     expect(result.success).toBe(true);
     if (result.success) {
