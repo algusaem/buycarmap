@@ -1109,10 +1109,30 @@ test.describe("ENTRY-30: the gap from the item above to the drawn content's top"
   });
 });
 
-// docs/specs/redesign-entry.md (ENTRY-32, worked example «The landing on a
-// short phone»), with a real finger: the scroll a mouse wheel would not prove.
+// docs/specs/redesign-entry.md (ENTRY-32, ENTRY-33, worked example «The
+// landing on a short phone»), with a real finger: the scroll a mouse wheel
+// would not prove. ENTRY-33 (amended 2026-10-31) drops the preview's own
+// 440px floor: it is now a whole bordered, rounded box, as tall as its pins
+// and card need, so every phone scrolls to reach its 20px clearance at the
+// end — including the 402×874 screen that previously had nothing to scroll.
+async function swipeToEnd(page: Page, scroller: Locator): Promise<void> {
+  let lastScrollTop = await scroller.evaluate((element) => element.scrollTop);
+  for (let attempt = 0; attempt < 15; attempt++) {
+    // The search card leaves the screen after the first swipe; by then the
+    // preview's middle is on it.
+    const from =
+      attempt === 0
+        ? page.getByTestId("landing-search-phone")
+        : page.getByRole("link", { name: VER_EL_MAPA });
+    await swipe(page, from, -300);
+    const scrollTop = await scroller.evaluate((element) => element.scrollTop);
+    if (scrollTop === lastScrollTop) break;
+    lastScrollTop = scrollTop;
+  }
+}
+
 test.describe("ENTRY-32: the phone landing scrolls instead of shrinking the map", () => {
-  test("ENTRY-32: at 402×700 the preview is 440px tall and a swipe scrolls the page 163px, to the preview's end", async ({
+  test("ENTRY-32: at 402×700 a swipe up (repeated as needed) reaches the page's end, where the preview's lower edge is at 680", async ({
     browser,
   }) => {
     const context = await browser.newContext({
@@ -1125,29 +1145,65 @@ test.describe("ENTRY-32: the phone landing scrolls instead of shrinking the map"
     await page.goto("/");
     const preview = page.getByRole("link", { name: VER_EL_MAPA });
     await expect(preview).toBeVisible();
-    expect((await preview.boundingBox())?.height).toBe(440);
-
-    await swipe(page, page.getByTestId("landing-search-phone"), -300);
 
     const scroller = page.locator("main").locator("xpath=..");
-    await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBe(163);
+    await swipeToEnd(page, scroller);
+
     const box = await preview.boundingBox();
-    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeCloseTo(700, 0);
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeCloseTo(680, 0);
     await context.close();
   });
 
-  test("ENTRY-32: at 402×874 the page has nothing to scroll and the preview fills the room left", async ({
-    page,
+  test("ENTRY-33: at 402×874 the page also scrolls; the preview is a bordered, rounded box whose card sits 12-13px above its bottom, clear of the lowest pin", async ({
+    browser,
   }) => {
-    await page.setViewportSize({ width: 402, height: 874 });
+    const context = await browser.newContext({
+      hasTouch: true,
+      isMobile: true,
+      locale: "es-ES",
+      viewport: { width: 402, height: 874 },
+    });
+    const page = await context.newPage();
     await page.goto("/");
 
     const scroller = page.locator("main").locator("xpath=..");
     const overflow = await scroller.evaluate(
       (element) => element.scrollHeight - element.clientHeight,
     );
-    expect(overflow).toBe(0);
-    const box = await page.getByRole("link", { name: VER_EL_MAPA }).boundingBox();
-    expect(box?.height ?? 0).toBeGreaterThan(440);
+    expect(overflow).toBeGreaterThan(0);
+
+    const preview = page.getByRole("link", { name: VER_EL_MAPA });
+    await swipeToEnd(page, scroller);
+
+    const box = await preview.boundingBox();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeCloseTo(854, 0);
+
+    const borderBottomWidth = await preview.evaluate(
+      (element) => getComputedStyle(element).borderBottomWidth,
+    );
+    expect(borderBottomWidth).toBe("1px");
+    const borderBottomLeftRadius = await preview.evaluate(
+      (element) => getComputedStyle(element).borderBottomLeftRadius,
+    );
+    expect(borderBottomLeftRadius).not.toBe("0px");
+
+    const card = preview.getByTestId("landing-preview-car-card");
+    const cardBox = await card.boundingBox();
+    const previewBottom = (box?.y ?? 0) + (box?.height ?? 0);
+    const cardBottomGap = previewBottom - ((cardBox?.y ?? 0) + (cardBox?.height ?? 0));
+    expect(cardBottomGap).toBeGreaterThanOrEqual(12);
+    expect(cardBottomGap).toBeLessThanOrEqual(13);
+
+    const pins = preview.locator(".rounded-pill");
+    const pinCount = await pins.count();
+    let lowestPinBottom = 0;
+    for (let index = 0; index < pinCount; index++) {
+      const pinBox = await pins.nth(index).boundingBox();
+      const bottom = (pinBox?.y ?? 0) + (pinBox?.height ?? 0);
+      if (bottom > lowestPinBottom) lowestPinBottom = bottom;
+    }
+    expect(lowestPinBottom).toBeLessThan(cardBox?.y ?? 0);
+
+    await context.close();
   });
 });

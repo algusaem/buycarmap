@@ -209,8 +209,8 @@ reasonable-looking change, because breaking one is silent:
   ends the loops.
 - **The search fan-out is server-only, in one place.** `server/search/service.ts`'s
   `searchRound` calls the upstreams directly and is the only fan-out —
-  `server/search/actions.ts` (the interactive search) and `server/alerts/search.ts`
-  (the poller) both call it, reusing the pure query builders from `lib/*/client.ts`.
+  `server/search/actions.ts` (the interactive search), `server/alerts/search.ts`
+  (the poller) and `server/landing/queries.ts` (the landing preview, cached for an hour) call it, reusing the pure query builders from `lib/*/client.ts`.
   There are no browser-bound fetchers or proxy routes left to resolve a URL
   against `window.location.origin` (ADR 0016).
 - Respect robots.txt and the upstreams' rate limits.

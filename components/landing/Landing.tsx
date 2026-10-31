@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { Headline } from "@/components/ui/Headline";
+import type { CarListing } from "@/interfaces/listing";
 import { EMPTY_URL_FILTERS, mapSearchUrl } from "@/lib/search/url-state";
 import { LandingSearch } from "./LandingSearch";
 import { LandingMapPreview } from "./MapPreview";
@@ -105,6 +106,11 @@ function PillArrow() {
 // uses for "header-desktop"/"header-phone"), since jsdom applies no
 // responsive CSS. Reads no session: the signed-in/out difference lives in
 // the header and tab bar only (ENTRY-8, SiteHeader.test.tsx, TabBar.test.tsx).
+interface LandingProps {
+  /** The map preview's listings for this visit (ENTRY-34). */
+  listings?: CarListing[];
+}
+
 // A Server Component: the only interactive part is LandingSearch, which is
 // its own client component.
 //
@@ -119,7 +125,7 @@ function PillArrow() {
 // content 30px under Populares, as large as the room allows up to 480px
 // wide — with no map preview and no arrows; app/page.tsx centres it, with
 // the footer's links 24px under the drawn content.
-export function Landing() {
+export function Landing({ listings }: LandingProps) {
   const t = useTranslations();
   const locale = useLocale();
 
@@ -186,21 +192,31 @@ export function Landing() {
               />
             </div>
           </div>
-          <LandingMapPreview variant="desktop" label={t("hero.exploreMap")} locale={locale} />
+          <LandingMapPreview
+            variant="desktop"
+            label={t("hero.exploreMap")}
+            locale={locale}
+            listings={listings}
+          />
           <ArtLayer />
         </div>
 
-        {/* The phone map runs to the bottom of the screen — clearing the home
-            indicator itself (pb-safe-bottom) when signed out — or to the top
-            of the tab bar when the bar is shown (signed in, with-tab-bar):
-            this body reads no session, so it follows the bar's own presence
-            instead. Nothing above it shrinks at phone width, so a short
-            screen scrolls the page instead of squashing the map (ENTRY-32). */}
+        {/* The phone map ends the page, a whole box as tall as its content
+            needs — clearing the home indicator itself (pb-safe-bottom) when
+            signed out, or the tab bar when the bar is shown (signed in,
+            with-tab-bar): this body reads no session, so it follows the bar's
+            own presence instead. Nothing here shrinks at phone width, so the
+            page scrolls (ENTRY-33). */}
         <div
           data-testid="landing-phone"
           className="flex flex-1 flex-col pb-safe-bottom lg:hidden with-tab-bar:pb-sheet-above-tabs"
         >
-          <LandingMapPreview variant="phone" label={t("hero.exploreMap")} locale={locale} />
+          <LandingMapPreview
+            variant="phone"
+            label={t("hero.exploreMap")}
+            locale={locale}
+            listings={listings}
+          />
         </div>
       </div>
     </div>
