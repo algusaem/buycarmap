@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CarPhoto } from "@/components/map/CarCard";
+import type { CarListing } from "@/interfaces/listing";
 import { formatMileage, formatPrice } from "@/lib/format";
 import { PIN_BASE_CLASSES } from "@/lib/map/pin-classes";
 import { cn } from "@/lib/utils";
@@ -33,50 +35,69 @@ function ExamplePin({ price, locale, active = false, className }: ExamplePinProp
   );
 }
 
-interface ExampleCarCardProps {
-  /** The phone's tighter card: 8px padding, 10px gap and an 80×60 photo. */
+interface PreviewCarCardProps {
+  car: CarListing;
+  /** The phone's card: in the flow, under the pins, with its photo on top. */
   compact: boolean;
   locale: string;
 }
 
-// The map preview's illustrative example figures — not a real listing's
-// (ListingCard README › Tarjeta del mapa de la landing) — but still real
-// numbers, run through the app's own formatters (FRONT-11) rather than
-// typed out as already-formatted strings.
-const EXAMPLE_MILEAGE_KM = 71000;
-const EXAMPLE_PRICE_EUR = 9400;
+// What the preview shows with no listings to draw from (ENTRY-36): the spec's
+// own worked figures, run through the app's own formatters (FRONT-11) rather
+// than typed out as already-formatted strings.
+const EXAMPLE_CAR: CarListing = {
+  id: "landing-example",
+  image: "",
+  title: "Renault Clio TCe 90",
+  subtitle: "",
+  price: 9400,
+  mileage: 71000,
+  year: 2019,
+  fuel: "",
+  brand: "Renault",
+  model: "Clio",
+  location: "Zaragoza",
+  source: "Wallapop",
+  lat: 0,
+  lng: 0,
+  url: "",
+};
 
-/**
- * The map preview's illustrative example — the spec's own worked figures, not a
- * real listing (ListingCard README › Tarjeta del mapa de la landing).
- */
-function ExampleCarCard({ compact, locale }: ExampleCarCardProps) {
+/** The preview's car (ListingCard README › Tarjeta del mapa de la landing). */
+function PreviewCarCard({ car, compact, locale }: PreviewCarCardProps) {
+  const origin = [car.source, car.location].filter(Boolean).join(" · ");
+  const meta = [car.year, formatMileage(car.mileage, locale)].filter(Boolean).join(" · ");
+
   return (
     <article
       data-testid="landing-preview-car-card"
       className={cn(
-        "absolute flex items-center rounded-card border border-line bg-surface",
+        "flex rounded-card border border-line bg-surface",
         // Desktop, on a laptop's narrower preview (its own container width):
-        // the phone's tighter card under 384px, and no photo under 320px.
+        // a tighter card under 384px, and no photo under 320px.
         compact
-          ? "inset-x-4 bottom-4 gap-2.5 p-2"
-          : "inset-x-5.5 bottom-5.5 gap-3.5 p-3 @max-sm:inset-x-4 @max-sm:bottom-4 @max-sm:gap-2.5 @max-sm:p-2",
+          ? "relative flex-col overflow-hidden"
+          : "absolute inset-x-5.5 bottom-5.5 items-center gap-3.5 p-3 @max-sm:inset-x-4 @max-sm:bottom-4 @max-sm:gap-2.5 @max-sm:p-2",
       )}
     >
-      <span
+      <CarPhoto
+        listing={car}
+        alt=""
+        sizes={compact ? "100vw" : "120px"}
+        badge={false}
+        iconClassName="size-8"
         className={cn(
-          "shrink-0 rounded-field bg-photo-tint-6",
-          compact ? "h-15 w-20" : "h-22.5 w-30 @max-sm:h-15 @max-sm:w-20 @max-xs:hidden",
+          compact
+            ? "h-42.5 w-full"
+            : "h-22.5 w-30 shrink-0 rounded-field @max-sm:h-15 @max-sm:w-20 @max-xs:hidden",
         )}
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.75">
-        <span className="truncate text-caption font-bold text-text-muted">Wallapop · Zaragoza</span>
-        <strong className="truncate text-card-title text-text">Renault Clio TCe 90</strong>
-        <span className="truncate text-small text-text-muted">
-          2019 · {formatMileage(EXAMPLE_MILEAGE_KM, locale)}
-        </span>
+      <div className={cn("flex min-w-0 flex-1 flex-col gap-0.75", compact && "px-3.5 pt-3 pb-3.5")}>
+        <span className="truncate text-caption font-bold text-text-muted">{origin}</span>
+        <strong className="truncate text-card-title text-text">{car.title}</strong>
+        <span className="truncate text-small text-text-muted">{meta}</span>
         <strong className="font-display text-xl leading-tight font-extrabold text-lime">
-          {formatPrice(EXAMPLE_PRICE_EUR, locale)}
+          {formatPrice(car.price, locale)}
         </strong>
       </div>
     </article>
@@ -119,21 +140,27 @@ function DesktopRoads() {
   );
 }
 
-/** The phone preview's two roads, on the board's own 350×300 grid. */
+/** The phone preview's three roads and water, on a 350×680 grid; they fill the preview, whatever its size, reaching every edge. */
 function PhoneRoads() {
   return (
     <svg
       aria-hidden="true"
-      viewBox="0 0 350 300"
-      className="absolute top-0 left-0 h-75 w-87.5"
+      viewBox="0 0 350 680"
+      preserveAspectRatio="xMinYMin slice"
+      className="absolute inset-0 size-full"
       fill="none"
     >
-      <path d="M-10 90 C 100 120 200 70 360 110" strokeWidth="10" className="stroke-map-road" />
       <path
-        d="M120 -10 C 140 100 160 200 150 310"
+        d="M-20 440 C 80 400 170 470 260 435 S 340 400 370 415 L 370 700 L -20 700 Z"
+        className="fill-map-water"
+      />
+      <path d="M-10 120 C 100 150 200 90 360 135" strokeWidth="10" className="stroke-map-road" />
+      <path
+        d="M120 -10 C 140 130 185 250 195 370 S 225 590 250 700"
         strokeWidth="8"
         className="stroke-map-road-major"
       />
+      <path d="M-10 305 C 120 295 240 335 360 290" strokeWidth="7" className="stroke-map-road" />
     </svg>
   );
 }
@@ -142,6 +169,8 @@ export interface LandingMapPreviewProps {
   variant: "desktop" | "phone";
   label: string;
   locale: string;
+  /** The visit's listings, the one for the card first (ENTRY-34). */
+  listings?: CarListing[];
 }
 
 interface PinSpec {
@@ -165,18 +194,39 @@ const DESKTOP_PINS: PinSpec[] = [
 ];
 
 const PHONE_PINS: PinSpec[] = [
-  { price: 14500, className: "top-15 left-10" },
-  { price: 9400, active: true, className: "top-30 left-45" },
+  { price: 14500, className: "top-15 left-9" },
+  { price: 9400, active: true, className: "top-46.25 left-45" },
+  { price: 16500, className: "top-75 left-13" },
 ];
 
-// docs/specs/redesign-entry.md (ENTRY-7): a static, non-interactive picture
-// of the map — roads, price pins (the active one lime with its halo) and the
-// example car card — that is one link to /map as a whole. Desktop draws five
-// pins; phone draws two, with the card under the active one, and runs to the
-// bottom of the screen.
-export function LandingMapPreview({ variant, label, locale }: LandingMapPreviewProps) {
+/** Each pin with a listing's price: the featured one's on the active pin, the others' in order. */
+function pricedPins(pins: PinSpec[], featured: CarListing, others: CarListing[]): PinSpec[] {
+  const quietPins = pins.filter((pin) => !pin.active);
+  return pins.map((pin) => ({
+    ...pin,
+    price: pin.active ? featured.price : (others[quietPins.indexOf(pin)]?.price ?? pin.price),
+  }));
+}
+
+// docs/specs/redesign-entry.md (ENTRY-7, ENTRY-33, ENTRY-34, ENTRY-36): a
+// static, non-interactive picture of the map — roads, price pins (the active
+// one lime with its halo) and a car card — that is one link to /map as a
+// whole. With a listing for every pin they are real, the card's on the active
+// pin; with fewer, the example car and its prices. Desktop draws five pins;
+// phone draws three over the card, a whole box as tall as they need, so the
+// page scrolls on every phone.
+export function LandingMapPreview({
+  variant,
+  label,
+  locale,
+  listings = [],
+}: LandingMapPreviewProps) {
   const desktop = variant === "desktop";
-  const pins = desktop ? DESKTOP_PINS : PHONE_PINS;
+  const examplePins = desktop ? DESKTOP_PINS : PHONE_PINS;
+  const [featured, ...others] = listings;
+  const real = featured !== undefined && listings.length >= examplePins.length;
+  const pins = real ? pricedPins(examplePins, featured, others) : examplePins;
+  const car = real ? featured : EXAMPLE_CAR;
 
   return (
     <Link
@@ -188,21 +238,21 @@ export function LandingMapPreview({ variant, label, locale }: LandingMapPreviewP
         // chooses it, since the landing is a Server Component.
         desktop
           ? "@container hidden rounded-panel 3xl:col-start-2 3xl:row-span-full 3xl:row-start-1 3xl:block 3xl:aspect-map-preview 3xl:max-h-full 3xl:self-center"
-          : "block min-h-0 flex-1 rounded-t-preview border-b-0",
+          : "mb-5 block scroll-mb-5 rounded-preview px-3 pt-92.5 pb-3",
       )}
     >
       <div aria-hidden="true">
         {desktop ? <DesktopRoads /> : <PhoneRoads />}
         {pins.map((pin) => (
           <ExamplePin
-            key={pin.price}
+            key={pin.className}
             price={pin.price}
             locale={locale}
             active={pin.active}
             className={pin.className}
           />
         ))}
-        <ExampleCarCard compact={!desktop} locale={locale} />
+        <PreviewCarCard car={car} compact={!desktop} locale={locale} />
       </div>
     </Link>
   );

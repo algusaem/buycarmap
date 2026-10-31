@@ -123,7 +123,7 @@ describe("ENTRY-7: Landing — the map preview", () => {
     expect(preview.querySelectorAll(".rounded-pill")).toHaveLength(5);
   });
 
-  it("ENTRY-7: the phone region shows the example car card inside the map, no illustration and two pins", () => {
+  it("ENTRY-7: the phone region shows the example car card inside the map, no illustration and three pins", () => {
     renderWithI18n(<Landing />, { locale: "es" });
     const phoneEl = screen.getByTestId("landing-phone");
     const phone = within(phoneEl);
@@ -132,7 +132,23 @@ describe("ENTRY-7: Landing — the map preview", () => {
     expect(preview).toHaveAttribute("href", "/map");
     expect(phoneEl.querySelector('img[src*="vehicle-sale-lime.svg"]')).toBeNull();
     expect(phone.getByTestId("landing-preview-car-card")).toBeInTheDocument();
-    // MapPreview.tsx's PHONE_PINS: two example price pins.
-    expect(preview.querySelectorAll(".rounded-pill")).toHaveLength(2);
+    // MapPreview.tsx's PHONE_PINS (amended 2026-10-31, ENTRY-33): three
+    // example price pins, up from two.
+    expect(preview.querySelectorAll(".rounded-pill")).toHaveLength(3);
+  });
+
+  // docs/specs/redesign-entry.md (ENTRY-32, ENTRY-33, bug fix): the phone
+  // preview's road svg scales to the preview's own box instead of a fixed
+  // grid. ENTRY-33 (amended 2026-10-31) drops the preview's own minimum
+  // height — it is now a whole box as tall as its pins and card need,
+  // whatever the screen's height, so the old `min-h-110` floor goes.
+  it("ENTRY-32: the phone preview's roads fill the preview, however tall", () => {
+    renderWithI18n(<Landing />, { locale: "es" });
+    const phone = within(screen.getByTestId("landing-phone"));
+
+    const preview = phone.getByRole("link", { name: "Ver el mapa" });
+    const roads = preview.querySelector("svg");
+    expect(roads).toHaveAttribute("viewBox", "0 0 350 680");
+    expect(roads).toHaveAttribute("preserveAspectRatio", "xMinYMin slice");
   });
 });

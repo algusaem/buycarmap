@@ -160,8 +160,8 @@ describe("MAPUI-58: ResultsSheet — the handle moves one position up on each pr
   );
 });
 
-describe("MAPUI-59: ResultsSheet — a drag never starts from the list, and the draggable areas opt out of the browser's own scroll", () => {
-  it("MAPUI-59: a downward pointerdown/move/up on the middle sheet's card calls no onPositionChange", async () => {
+describe("MAPUI-59: ResultsSheet — where a drag starts, and the draggable areas opt out of the browser's own scroll", () => {
+  it("MAPUI-59: a downward pointerdown/move/up on the middle sheet's card calls onPositionChange once", async () => {
     const onPositionChange = vi.fn();
     renderWithI18n(
       <ResultsSheet {...BASE} position="middle" onPositionChange={onPositionChange} />,
@@ -176,10 +176,43 @@ describe("MAPUI-59: ResultsSheet — a drag never starts from the list, and the 
     fireEvent.pointerUp(card, pointerAt(200));
     await nextFrames();
 
+    expect(onPositionChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("MAPUI-59: at full, the same downward pointerdown/move/up on a card calls no onPositionChange", async () => {
+    const onPositionChange = vi.fn();
+    renderWithI18n(<ResultsSheet {...BASE} position="full" onPositionChange={onPositionChange} />, {
+      locale: "es",
+    });
+
+    const [card] = screen.getAllByRole("article");
+    fireEvent.pointerDown(card, pointerAt(100));
+    await nextFrames();
+    fireEvent.pointerMove(card, pointerAt(200));
+    await nextFrames();
+    fireEvent.pointerUp(card, pointerAt(200));
+    await nextFrames();
+
     expect(onPositionChange).not.toHaveBeenCalled();
   });
 
-  it("MAPUI-59: the same downward pointerdown/move/up on the middle sheet's title does call onPositionChange (the control for the list test above)", async () => {
+  it("MAPUI-59: a press on the middle sheet's card that does not move calls no onPositionChange", async () => {
+    const onPositionChange = vi.fn();
+    renderWithI18n(
+      <ResultsSheet {...BASE} position="middle" onPositionChange={onPositionChange} />,
+      { locale: "es" },
+    );
+
+    const [card] = screen.getAllByRole("article");
+    fireEvent.pointerDown(card, pointerAt(100));
+    await nextFrames();
+    fireEvent.pointerUp(card, pointerAt(100));
+    await nextFrames();
+
+    expect(onPositionChange).not.toHaveBeenCalled();
+  });
+
+  it("MAPUI-59: the same downward pointerdown/move/up on the middle sheet's title does call onPositionChange (the title drags at every position)", async () => {
     const onPositionChange = vi.fn();
     renderWithI18n(
       <ResultsSheet {...BASE} position="middle" onPositionChange={onPositionChange} />,
@@ -205,6 +238,25 @@ describe("MAPUI-59: ResultsSheet — a drag never starts from the list, and the 
 
     expect(strip.className).toContain("touch-none");
     expect(heading.className).toContain("touch-none");
+  });
+
+  it("MAPUI-59: at peeked and middle the whole sheet carries touch-action: none, at full it does not", () => {
+    const { unmount: unmountMiddle } = renderWithI18n(
+      <ResultsSheet {...BASE} position="middle" />,
+      { locale: "es" },
+    );
+    expect(screen.getByTestId("results-sheet").className).toContain("touch-none");
+    unmountMiddle();
+
+    const { unmount: unmountPeeked } = renderWithI18n(
+      <ResultsSheet {...BASE} position="peeked" />,
+      { locale: "es" },
+    );
+    expect(screen.getByTestId("results-sheet").className).toContain("touch-none");
+    unmountPeeked();
+
+    renderWithI18n(<ResultsSheet {...BASE} position="full" />, { locale: "es" });
+    expect(screen.getByTestId("results-sheet").className).not.toContain("touch-none");
   });
 
   it("MAPUI-59: at full the sheet itself sets no inline touch-action, so the list keeps the browser's own scroll", () => {

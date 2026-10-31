@@ -85,9 +85,9 @@ this brief is corrected.
   outside or Escape with focus returned. The preview is anchored to its pin and moves with the map;
   it takes focus on open, and opening «Crear alerta» closes it.
 - The phone results sheet: peeked, middle, full. Each press of the handle «Lista de resultados»
-  moves it one position up (peeked → middle → full, then back to peeked). It also drags from the
-  handle strip and the heading, never from the list, and settles on the nearest position, or one
-  position on a fast flick. At middle, tapping or panning the map lowers it to peeked; a pin does
+  moves it one position up (peeked → middle → full, then back to peeked). At peeked and middle it
+  also drags from anywhere on it; at full, from the handle strip and the heading, never from the
+  list. It settles on the nearest position, or one position on a fast flick. At middle, tapping or panning the map lowers it to peeked; a pin does
   not. The tab bar hides only while the sheet is full.
 - Motion follows `docs/specs/motion.md`: opened or closed with a pointer, the popovers, the «Filtros»
   dropdown and the preview fade over 180ms and the sheets slide over 240ms (or fade over 180ms),

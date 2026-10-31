@@ -74,8 +74,9 @@ sequenceDiagram
 
 ADR 0016: the fan-out is server-only now — `server/search/service.ts`'s
 `searchRound` is the one place that calls the three upstreams, shared by the
-interactive search (`server/search/actions.ts`) and the alert poller
-(`server/alerts/search.ts`). There is no `/api/<source>/` proxy and no
+interactive search (`server/search/actions.ts`), the alert poller
+(`server/alerts/search.ts`) and the landing preview (`server/landing/queries.ts`,
+cached for an hour). There is no `/api/<source>/` proxy and no
 browser-bound `searchWallapop`/`searchCochesNet`/`searchMilanuncios` any more.
 
 **Filters.** [`lib/hooks/useSearchFilters.ts`](../lib/hooks/useSearchFilters.ts)

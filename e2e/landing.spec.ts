@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
+import { swipe } from "./fixtures/touch";
 
 // e2e/location-search.spec.ts:9-15, verbatim: the Nominatim fixture result
 // for "Madrid".
@@ -1155,5 +1156,104 @@ test.describe("ENTRY-30: the gap from the item above to the drawn content's top"
       Math.abs(drawn.y - (taglineBox.y + taglineBox.height) - 30),
       "gap from the tagline to the drawn content's top",
     ).toBeLessThanOrEqual(1);
+  });
+});
+
+// docs/specs/redesign-entry.md (ENTRY-32, ENTRY-33, worked example «The
+// landing on a short phone»), with a real finger: the scroll a mouse wheel
+// would not prove. ENTRY-33 (amended 2026-10-31) drops the preview's own
+// 440px floor: it is now a whole bordered, rounded box, as tall as its pins
+// and card need, so every phone scrolls to reach its 20px clearance at the
+// end — including the 402×874 screen that previously had nothing to scroll.
+async function swipeToEnd(page: Page, scroller: Locator): Promise<void> {
+  let lastScrollTop = await scroller.evaluate((element) => element.scrollTop);
+  for (let attempt = 0; attempt < 15; attempt++) {
+    // The search card leaves the screen after the first swipe; by then the
+    // preview's middle is on it.
+    const from =
+      attempt === 0
+        ? page.getByTestId("landing-search-phone")
+        : page.getByRole("link", { name: VER_EL_MAPA });
+    await swipe(page, from, -300);
+    const scrollTop = await scroller.evaluate((element) => element.scrollTop);
+    if (scrollTop === lastScrollTop) break;
+    lastScrollTop = scrollTop;
+  }
+}
+
+test.describe("ENTRY-32: the phone landing scrolls instead of shrinking the map", () => {
+  test("ENTRY-32: at 402×700 a swipe up (repeated as needed) reaches the page's end, where the preview's lower edge is at 680", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      hasTouch: true,
+      isMobile: true,
+      locale: "es-ES",
+      viewport: { width: 402, height: 700 },
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    const preview = page.getByRole("link", { name: VER_EL_MAPA });
+    await expect(preview).toBeVisible();
+
+    const scroller = page.locator("main").locator("xpath=..");
+    await swipeToEnd(page, scroller);
+
+    const box = await preview.boundingBox();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeCloseTo(680, 0);
+    await context.close();
+  });
+
+  test("ENTRY-33: at 402×874 the page also scrolls; the preview is a bordered, rounded box whose card sits 12-13px above its bottom, clear of the lowest pin", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      hasTouch: true,
+      isMobile: true,
+      locale: "es-ES",
+      viewport: { width: 402, height: 874 },
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+
+    const scroller = page.locator("main").locator("xpath=..");
+    const overflow = await scroller.evaluate(
+      (element) => element.scrollHeight - element.clientHeight,
+    );
+    expect(overflow).toBeGreaterThan(0);
+
+    const preview = page.getByRole("link", { name: VER_EL_MAPA });
+    await swipeToEnd(page, scroller);
+
+    const box = await preview.boundingBox();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeCloseTo(854, 0);
+
+    const borderBottomWidth = await preview.evaluate(
+      (element) => getComputedStyle(element).borderBottomWidth,
+    );
+    expect(borderBottomWidth).toBe("1px");
+    const borderBottomLeftRadius = await preview.evaluate(
+      (element) => getComputedStyle(element).borderBottomLeftRadius,
+    );
+    expect(borderBottomLeftRadius).not.toBe("0px");
+
+    const card = preview.getByTestId("landing-preview-car-card");
+    const cardBox = await card.boundingBox();
+    const previewBottom = (box?.y ?? 0) + (box?.height ?? 0);
+    const cardBottomGap = previewBottom - ((cardBox?.y ?? 0) + (cardBox?.height ?? 0));
+    expect(cardBottomGap).toBeGreaterThanOrEqual(12);
+    expect(cardBottomGap).toBeLessThanOrEqual(13);
+
+    const pins = preview.locator(".rounded-pill");
+    const pinCount = await pins.count();
+    let lowestPinBottom = 0;
+    for (let index = 0; index < pinCount; index++) {
+      const pinBox = await pins.nth(index).boundingBox();
+      const bottom = (pinBox?.y ?? 0) + (pinBox?.height ?? 0);
+      if (bottom > lowestPinBottom) lowestPinBottom = bottom;
+    }
+    expect(lowestPinBottom).toBeLessThan(cardBox?.y ?? 0);
+
+    await context.close();
   });
 });
