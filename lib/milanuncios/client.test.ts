@@ -42,6 +42,12 @@ describe("buildMilanunciosQuery", () => {
     expect(query.get("engineHpFrom")).toBe("90");
   });
 
+  it("MAPUI-85: translates minKm to kilometersFrom", () => {
+    const query = buildMilanunciosQuery({ minKm: 50000 }, 1);
+
+    expect(query.get("kilometersFrom")).toBe("50000");
+  });
+
   it("SRC-5: maps fuel and transmission tokens and folds the model into palabras", () => {
     const query = buildMilanunciosQuery(
       {

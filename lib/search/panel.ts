@@ -1,6 +1,6 @@
 import type { SearchInput } from "@/lib/search/schema";
 
-// docs/specs/redesign-map.md (MAPUI-14, MAPUI-16, MAPUI-18, MAPUI-19). What
+// docs/specs/redesign-map.md (MAPUI-16, MAPUI-18, MAPUI-19). What
 // the filters panel offers and what its «Borrar» clears, shared by the panel
 // (components/map/filters/FilterPanel.tsx), the chips
 // (lib/search/filter-chips.ts) and the search hook
@@ -26,10 +26,26 @@ export function chosenGearbox(gearbox: readonly string[] | undefined): OfferedGe
 }
 
 /**
+ * A minimum mileage above the maximum is swapped with it (MAPUI-86):
+ * on desktop when either box of «Kilómetros» loses focus or on Enter
+ * (components/map/search/MileageRange.tsx's MileageRange,
+ * lib/hooks/useMileageDraft.ts), on the phone once at «Ver coches»
+ * (lib/hooks/useFilterSheetDraft.ts). Equal ends are left as they are.
+ */
+export function orderedKm({
+  minKm,
+  maxKm,
+}: Pick<SearchInput, "minKm" | "maxKm">): Pick<SearchInput, "minKm" | "maxKm"> {
+  if (minKm != null && maxKm != null && minKm > maxKm) return { minKm: maxKm, maxKm: minKm };
+  return { minKm, maxKm };
+}
+
+/**
  * Every `SearchInput` criterion the panel's «Borrar» clears (MAPUI-19): the
- * panel's own sections and the criteria the UI no longer offers (MAPUI-18).
- * Not the place and its radius, which belong to «Dónde», nor the `?q=` text,
- * which its callers drop on their own.
+ * panel's own sections — «Kilómetros» now offers `minKm` too (MAPUI-84) —
+ * and the criteria the UI no longer offers (`maxYear`, `minHorsePower`,
+ * `maxHorsePower`, MAPUI-18). Not the place and its radius, which belong to
+ * «Dónde», nor the `?q=` text, which its callers drop on their own.
  */
 export const PANEL_KEYS = [
   "minPrice",

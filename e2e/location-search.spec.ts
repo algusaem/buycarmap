@@ -19,8 +19,12 @@ const MADRID_RESULT = {
 // segment instead of behind "Filtros".
 // The Desktop Chrome device sends Accept-Language en-US, so the page renders
 // in English (FRONT-9); the patterns match the segment's name in either locale.
-const WHERE_SEGMENT = /ciudad o código postal|city or postcode/i;
-const LOCATION_PLACEHOLDER = /ciudad o código postal|city or postcode/i;
+// docs/specs/redesign-map.md (MAPUI-77, owner report 2026-10-31): the field
+// reads «Ciudad…» / «City…» now, never «Ciudad o código postal…» — anchored
+// so the pattern still matches only this field, not a result mentioning a
+// city elsewhere on the page.
+const WHERE_SEGMENT = /^ciudad…?$|^city…?$/i;
+const LOCATION_PLACEHOLDER = /^ciudad…?$|^city…?$/i;
 
 async function openLocationSearch(page: Page) {
   await page.goto("/map");
@@ -90,4 +94,55 @@ test("MAP-20: selecting an option closes the dropdown", async ({ page }) => {
   // The dropdown's options are gone, not just hidden — scoped to role="option"
   // because the field and the segment repeat the same display name as text.
   await expect(page.getByRole("option")).toHaveCount(0);
+});
+
+// docs/specs/redesign-map.md (MAPUI-78, bug fix, owner report 2026-10-31):
+// Enter with nothing highlighted chooses the first listed place, exactly as
+// clicking it does — reproduced in production on 2026-10-31, where Enter did
+// nothing (worked example "Enter in «Dónde»").
+test("MAPUI-78: Enter with no option highlighted chooses the first place, updating the URL", async ({
+  page,
+}) => {
+  await page.route(NOMINATIM_URL, (route) => route.fulfill({ json: [MADRID_RESULT] }));
+
+  const input = await openLocationSearch(page);
+  await input.fill("28013");
+  await expect(page.getByRole("option", { name: /Madrid/ })).toBeVisible();
+
+  await page.keyboard.press("Enter");
+
+  await expect(page).toHaveURL(/locationName=Madrid/);
+  await expect(page.getByRole("button", { name: /madrid · 50 km/i })).toBeVisible();
+});
+
+// docs/specs/redesign-map.md (MAPUI-81, amends MAP-20): Enter pressed while
+// the search for the typed text is still running chooses nothing yet, and
+// chooses the first place once that search answers.
+test("MAPUI-81: Enter pressed immediately, with the answer delayed, still chooses the place once it arrives", async ({
+  page,
+}) => {
+  let resolveReached: (() => void) | undefined;
+  const reached = new Promise<void>((resolve) => {
+    resolveReached = resolve;
+  });
+  const routeGate = Promise.withResolvers<void>();
+  await page.route(NOMINATIM_URL, async (route) => {
+    resolveReached?.();
+    await routeGate.promise;
+    await route.fulfill({ json: [MADRID_RESULT] });
+  });
+
+  const input = await openLocationSearch(page);
+  await input.fill("28013");
+  await page.keyboard.press("Enter");
+
+  await reached;
+
+  // The request is still held: nothing chosen yet.
+  await expect(page).not.toHaveURL(/locationName=/);
+
+  routeGate.resolve();
+
+  await expect(page).toHaveURL(/locationName=Madrid/, { timeout: 10000 });
+  await expect(page.getByRole("button", { name: /madrid · 50 km/i })).toBeVisible();
 });

@@ -1,6 +1,6 @@
 # FilterSheet
 
-El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chip). En móvil es una pantalla completa; en escritorio, un desplegable anclado bajo «Filtros». El cuerpo es idéntico en los dos: las mismas seis secciones (Precio, Combustible, Cambio, Kilómetros y año, Publicado, Marca y modelo), en el mismo orden, con los mismos controles, medidas y textos. Solo cambian la cabecera, el marco y cómo se cierra.
+El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chip). En móvil es una pantalla completa; en escritorio, un desplegable anclado bajo «Filtros». El cuerpo es idéntico en los dos: las mismas siete secciones (Precio, Combustible, Cambio, Kilómetros, Año, Publicado, Marca y modelo), en el mismo orden, con los mismos controles, medidas y textos. Solo cambian la cabecera, el marco y cómo se cierra.
 
 ## Móvil: pantalla completa
 
@@ -26,7 +26,8 @@ El panel completo de filtros, como `role="dialog"`. Lo abre «Filtros» (ver Chi
 - **Precio**: un rango de 0 a 30.000 € en pasos de 500 €, con la pista de 4px en `line`, el tramo elegido y los dos mandos de 24px en `lime`; el mando derecho al final quiere decir sin máximo. Debajo, dos cajas `surface` con borde `line`, `radius-field` y padding 10px 14px: «Mínimo» / «Máximo» a 11px `text-muted` y el valor a 16px. Las cajas aceptan cualquier cantidad: por encima de 30.000 € el mando se queda al final y la caja guarda la cantidad exacta.
 - **Combustible**: chips del panel (padding 10px 16px), en varias líneas, varios activos a la vez.
 - **Cambio**: «Todos», «Manual» y «Automático»; solo hay dos tipos de cambio, así que «Todos» cubre cualquier combinación. Un control segmentado `surface` con borde `line`, `radius-pill` y 4px de relleno; las opciones se reparten el ancho (flex 1, padding 10px, 14px peso 600) y la elegida va invertida, relleno `text` con texto `bg` y peso 800.
-- **Kilómetros y año**: dos campos como las cajas de precio, `surface` con borde `line`, `radius-field` y padding 10px 14px, sin chevron, cada uno con su etiqueta visible a 11px `text-muted` sobre el valor a 16px: «Kilómetros, hasta» y «Año, desde». El valor va sin repetir la etiqueta: «100.000 km», «2017»; vacíos, el ejemplo «100.000…» y «2017…» en `text-muted`.
+- **Kilómetros**: dos campos como las cajas de precio, `surface` con borde `line`, `radius-field` y padding 10px 14px, sin chevron, cada uno con su etiqueta visible a 11px `text-muted` sobre el valor a 16px: «Mínimo» y «Máximo». El valor va sin repetir la etiqueta: «50.000 km», «100.000 km»; vacíos, el ejemplo «50.000…» y «100.000…» en `text-muted`.
+- **Año**: un solo campo igual, de la mitad del ancho, con la etiqueta «Desde»: «2017»; vacío, el ejemplo «2017…» en `text-muted`.
 - **Publicado**: chips del panel, uno activo: «Cualquier momento», «Últimas 24 h», «Última semana», «Último mes».
 - **Marca y modelo**: un solo campo de 52px que busca mientras escribes, «Marca o modelo…», el mismo que Coche en [SearchPopover](../SearchPopover/README.md): fondo `bg`, borde `line`, `radius-field` y la lupa de 18px en `text-muted`.
 - Los mandos del rango son sliders con su valor en texto («20.000 €»); el segmentado es un grupo de radios.

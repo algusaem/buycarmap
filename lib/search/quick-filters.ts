@@ -12,6 +12,9 @@ import type { SearchInput } from "@/lib/search/schema";
 //   clears the gearbox;
 // - «Hasta 100.000 km» is pressed when the maximum mileage is exactly 100.000
 //   km; pressing it sets it, pressing it again clears the maximum mileage.
+//   Pressing it over a minimum above 100.000 clears that minimum too, since
+//   no car could match both (MAPUI-76); a minimum of 100.000 or less is left
+//   as it is, and releasing it never touches the minimum.
 // The patches use `undefined` to clear a criterion, as the panel's do.
 
 export const QUICK_FILTERS = ["gasoline", "gasoil", "manual", "automatic", "maxKm100k"] as const;
@@ -64,8 +67,14 @@ export function toggleQuickFilter(input: SearchInput, key: QuickFilterKey): Part
     case "manual":
     case "automatic":
       return { gearbox: on ? undefined : [key] };
-    case "maxKm100k":
-      return { maxKm: on ? undefined : QUICK_MAX_KM };
+    case "maxKm100k": {
+      if (on) return { maxKm: undefined };
+      // MAPUI-76: a minimum above the new maximum could match no car, so it
+      // is cleared along with setting the maximum; one at or below it is left.
+      const { minKm } = input;
+      if (minKm != null && minKm > QUICK_MAX_KM) return { maxKm: QUICK_MAX_KM, minKm: undefined };
+      return { maxKm: QUICK_MAX_KM };
+    }
     default:
       return assertNever(key);
   }

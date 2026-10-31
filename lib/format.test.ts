@@ -137,6 +137,30 @@ describe("formatMileage", () => {
   });
 });
 
+// docs/specs/redesign-map.md (MAPUI-82): the mileage range and the lone
+// «Desde» box group their thousands the same way the price boxes do
+// (MAPUI-57 extended to mileage), through formatAmount rather than a bare
+// Intl.NumberFormat call, which leaves Spanish four-digit amounts ungrouped.
+describe("MAPUI-82: formatMileage — ranges and a lone four-digit amount", () => {
+  it("MAPUI-82: a range reads with the en dash, grouped on both ends", () => {
+    expect(formatMileage({ min: 50000, max: 100000 }, "es")).toBe(`50.000 – 100.000 km`);
+  });
+
+  it("MAPUI-82: the same range in English", () => {
+    expect(formatMileage({ min: 50000, max: 100000 }, "en")).toBe(`50,000 – 100,000 km`);
+  });
+
+  it("MAPUI-82: a range whose ends are equal reads as that one mileage", () => {
+    expect(formatMileage({ min: 100000, max: 100000 }, "es")).toBe(`100.000 km`);
+  });
+
+  it("MAPUI-82: a four-digit mileage still groups its thousands, alone and in a range", () => {
+    expect(formatMileage(9000, "es")).toBe(`9.000 km`);
+    expect(formatMileage(9000, "en")).toBe(`9,000 km`);
+    expect(formatMileage({ min: 5000, max: 9000 }, "es")).toBe(`5.000 – 9.000 km`);
+  });
+});
+
 // docs/specs/redesign-alerts.md (ALERTUI-10; amends FRONT-11; worked example
 // "Created on"). Today is 2026-10-15; Europe/Madrid is UTC+2 until
 // 2026-10-25 and UTC+1 in winter, so 22:30 UTC on 30 September is 00:30 on
