@@ -518,6 +518,8 @@
       "intro": "Estos han aparecido desde la última comprobación:",
       "viewAll": "Ver todos los coches",
       "unsubscribe": "Dejar de recibir estos correos",
+      "manage": "Gestionar alertas",
+      "noPhoto": "Sin foto",
       "footer": "Recibes esto porque creaste una alerta en BuyCarMap."
     }
   },

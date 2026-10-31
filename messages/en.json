@@ -518,6 +518,8 @@
       "intro": "These have appeared since we last checked:",
       "viewAll": "View all matches",
       "unsubscribe": "Stop these emails",
+      "manage": "Manage alerts",
+      "noPhoto": "No photo",
       "footer": "You are receiving this because you set up an alert on BuyCarMap."
     }
   },

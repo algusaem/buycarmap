@@ -1,6 +1,15 @@
 import type { CarListing } from "@/interfaces/listing";
 import type { Locale } from "@/lib/i18n/config";
-import { EmailLayout, INK, MUTED, Paragraph, RawLink, emailTranslator } from "./components";
+import { Img, Link } from "@react-email/components";
+import {
+  BORDER,
+  EmailButton,
+  EmailLayout,
+  INK,
+  MUTED,
+  Paragraph,
+  emailTranslator,
+} from "./components";
 
 // react-email replacement for lib/email/templates/alert-emails.ts's
 // renderAlertEmail (docs/specs/core-integrations.md, INT-13/INT-15).
@@ -19,7 +28,14 @@ export interface AlertDigestEmailProps {
   unsubscribeUrl: string;
   /** Link back to this alert's matches page. Optional, as the old builder's was. */
   alertUrl?: string;
+  /** Link to the alerts list (`/alerts`), shown in the footer next to the unsubscribe link. */
+  manageUrl: string;
 }
+
+// ALERT-56: every photo slot is this tall, photo or placeholder, so the list
+// stays even. The photo is cropped to it with object-fit, which the classic
+// Outlook for Windows ignores (it stretches instead) — accepted in #152.
+const PHOTO_HEIGHT = "200px";
 
 /**
  * Formats a number the way the app does elsewhere — Spanish grouping, since
@@ -36,7 +52,9 @@ export function subject(locale: Locale, { matches }: AlertDigestEmailProps): str
     : `${t("subject")} (${matches.length})`;
 }
 
-function MatchCard({ listing }: { listing: CarListing }) {
+const footerLinkStyle = { color: MUTED, textDecoration: "underline" };
+
+function MatchCard({ listing, noPhoto }: { listing: CarListing; noPhoto: string }) {
   const details = [
     listing.year > 0 ? String(listing.year) : "",
     listing.mileage > 0 ? `${formatNumber(listing.mileage)} km` : "",
@@ -52,9 +70,43 @@ function MatchCard({ listing }: { listing: CarListing }) {
       width="100%"
       cellPadding={0}
       cellSpacing={0}
-      style={{ margin: "0 0 12px", border: "1px solid #E5E7EB", borderRadius: "8px" }}
+      style={{
+        margin: "0 0 12px",
+        border: `1px solid ${BORDER}`,
+        borderRadius: "8px",
+        overflow: "hidden",
+      }}
     >
       <tbody>
+        <tr>
+          {listing.image ? (
+            <td style={{ padding: 0 }}>
+              <Img
+                src={listing.image}
+                alt={listing.title}
+                style={{
+                  width: "100%",
+                  height: PHOTO_HEIGHT,
+                  objectFit: "cover",
+                  borderRadius: "8px 8px 0 0",
+                }}
+              />
+            </td>
+          ) : (
+            <td
+              style={{
+                height: PHOTO_HEIGHT,
+                backgroundColor: "#F3F4F6",
+                textAlign: "center",
+                verticalAlign: "middle",
+                fontSize: "13px",
+                color: MUTED,
+              }}
+            >
+              {noPhoto}
+            </td>
+          )}
+        </tr>
         <tr>
           <td style={{ padding: "16px" }}>
             <a
@@ -80,20 +132,33 @@ export function AlertDigestEmail({
   matches,
   unsubscribeUrl,
   alertUrl,
+  manageUrl,
 }: AlertDigestEmailProps) {
   const t = emailTranslator(locale, "alerts.email");
 
   return (
-    <EmailLayout heading={t("heading")} footer={t("footer")}>
+    <EmailLayout
+      heading={t("heading")}
+      footer={t("footer")}
+      footerLinks={
+        <>
+          <Link href={manageUrl} style={footerLinkStyle}>
+            {t("manage")}
+          </Link>
+          {" · "}
+          <Link href={unsubscribeUrl} style={footerLinkStyle}>
+            {t("unsubscribe")}
+          </Link>
+        </>
+      }
+    >
       <Paragraph>
         {t("intro")} {alertLabel}
       </Paragraph>
       {matches.map((listing) => (
-        <MatchCard key={listing.id} listing={listing} />
+        <MatchCard key={listing.id} listing={listing} noPhoto={t("noPhoto")} />
       ))}
-      {alertUrl ? <RawLink url={alertUrl} /> : null}
-      <p style={{ margin: "24px 0 0", fontSize: "12px", color: MUTED }}>{t("unsubscribe")}</p>
-      <RawLink url={unsubscribeUrl} />
+      {alertUrl ? <EmailButton label={t("viewAll")} url={alertUrl} /> : null}
     </EmailLayout>
   );
 }

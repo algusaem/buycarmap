@@ -86,6 +86,10 @@ beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, 
   and several matches at one point, alerts on a laptop and loading (desktop); an alert's page on
   desktop and its delete dialog; on the phone, an alert with no place, a long list scrolled, a
   saved match and both pages loading; and no alerts.
+- `I152-correo-alerta.dc.html` — the alert digest email, desktop and phone: each car's photo above
+  its details, «Sin foto» for a listing without one, and the footer with «Gestionar alertas» beside
+  the unsubscribe link. It keeps the current email style; moving the emails to the redesign is
+  [#123](https://github.com/algusaem/buycarmap/issues/123).
 - `F0-cuenta.dc.html` — account. `F7-cuenta-editar.dc.html`, `F7-cuenta-dos-pasos.dc.html`,
   `F7-cuenta-sesiones-google.dc.html`, `F7-cuenta-eliminar-y-mas.dc.html` — editing each card in a
   dialog (desktop) or sheet (phone): name, email, password and the unverified email; two-factor
