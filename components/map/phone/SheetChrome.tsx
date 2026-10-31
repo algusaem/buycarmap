@@ -23,9 +23,9 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { PresenceFade } from "@/components/ui/PresenceFade";
 import { crossFade, sheetSlideUp, sheetSpring } from "@/lib/animations";
-import { useKeyboardOverlap } from "@/lib/hooks/useKeyboardOverlap";
 import { usePresenceMotion } from "@/lib/hooks/usePresenceMotion";
 import { useReleaseSampling } from "@/lib/hooks/useReleaseSampling";
+import { useVisibleScreen } from "@/lib/hooks/useVisibleScreen";
 import { FLICK_VELOCITY } from "@/lib/map/sheet-position";
 import { cn } from "@/lib/utils";
 
@@ -194,10 +194,12 @@ type SheetPanelProps = Omit<ComponentProps<typeof motion.div>, "children"> & {
  * closes past the threshold (shouldDragClose), or springs back, at once with
  * reduced motion. The release's speed is read from the handle's own pointer
  * events (samplePress), never from Motion's drag velocity, which reads 0 on a
- * flick drawn in one frame on an idle page (MOTION-20). While the phone's
- * keyboard is up it rests on the keyboard, as tall as what stays visible, so
- * what no longer fits scrolls inside it (MAPUI-72), and the focused field
- * rises to the top of that scroll, with its list under it (MAPUI-74).
+ * flick drawn in one frame on an idle page (MOTION-20). It always rests on the
+ * bottom of the visible part of the screen, so on the phone's keyboard when
+ * that is up: `100%` is the real height of the layout viewport, whatever
+ * `window.innerHeight` says. It is never taller than that part, so what no
+ * longer fits scrolls inside it (MAPUI-72), and the focused field rises to the
+ * top of that scroll, with its list under it (MAPUI-74).
  */
 function SheetPanel({
   preset,
@@ -212,11 +214,11 @@ function SheetPanel({
   const y = useMotionValue(0);
   const reduceMotion = useReducedMotion();
   const presence = usePresenceMotion(preset);
-  const keyboard = useKeyboardOverlap();
-  const keyboardUp = keyboard !== null;
+  const visible = useVisibleScreen();
+  const visibleHeight = visible?.height;
   useEffect(() => {
-    if (keyboardUp) showFocusedField();
-  }, [keyboardUp]);
+    if (visibleHeight !== undefined) showFocusedField();
+  }, [visibleHeight]);
   // The press/release sampling (MOTION-20) the handle drives, shared with the results sheet.
   const { releaseVelocityRef, start: startSampling } = useReleaseSampling();
 
@@ -245,12 +247,12 @@ function SheetPanel({
       style={{
         ...style,
         y,
-        ...(keyboard && {
-          bottom: keyboard.bottom,
-          maxHeight: `calc(${keyboard.height}px - env(safe-area-inset-top))`,
+        ...(visible && {
+          bottom: `calc(100% - ${visible.bottom}px)`,
+          maxHeight: `calc(${visible.height}px - env(safe-area-inset-top))`,
         }),
       }}
-      onFocusCapture={keyboardUp ? showFocusedField : undefined}
+      onFocusCapture={visible ? showFocusedField : undefined}
       drag={draggable && !dragDisabled ? "y" : false}
       dragControls={dragControls}
       dragListener={false}
@@ -351,12 +353,8 @@ interface ShowCarsFooterProps {
   onShowCars: () => void;
 }
 
-/** Hidden while the phone's keyboard is up, so the list gains its room (MAPUI-73). */
 export function ShowCarsFooter({ onShowCars }: ShowCarsFooterProps) {
   const t = useTranslations();
-  const keyboard = useKeyboardOverlap();
-  if (keyboard) return null;
-
   return (
     <div className="shrink-0 border-t border-line-soft px-5 pt-3.5 pb-sheet-footer">
       <Button type="button" variant="primary" size="display" onClick={onShowCars}>
