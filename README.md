@@ -15,7 +15,7 @@ plotted on a map of Spain.
 - **One search, three marketplaces.** Wallapop, coches.net and Milanuncios are searched together
   and merged into one result list; if a source is down, the others still render.
 - **One set of filters for every source**: location and radius, price, make and model, fuel,
-  gearbox, maximum mileage, minimum year and recency. Horsepower is no longer offered; old links
+  gearbox, mileage range, minimum year and recency. Horsepower is no longer offered; old links
   that carry it still work.
 - **A card list and a map that stay in sync**, with a price pin for each car.
 - **Saved cars**: keep the listings you like, with their own map, at `/favorites`.
@@ -590,6 +590,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `components/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
 | `components/favorites/Saved*` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
 | `components/favorites/SortChips*` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
+| `server/landing/**` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
 | `server/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
 | `app/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `app/api/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |

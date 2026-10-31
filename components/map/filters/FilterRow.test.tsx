@@ -57,6 +57,24 @@ describe("MAPUI-13: FilterRow — badge and quick filters, no chips", () => {
     expect(screen.queryAllByRole("button", { name: /^Quitar/ })).toHaveLength(0);
   });
 
+  it("MAPUI-75: a minKm and maxKm together count as one active filter, badge 1", () => {
+    renderWithI18n(
+      <FilterRow
+        input={{ minKm: 50000, maxKm: 100000 }}
+        onOpenFilters={vi.fn()}
+        onApplyQuick={vi.fn()}
+        panel={closedPanel}
+        panelOpen={false}
+        onClosePanel={vi.fn()}
+      />,
+      { locale: "es" },
+    );
+
+    const filtersButton = screen.getByRole("button", { name: "Filtros" });
+    expect(within(filtersButton).getByText("1", { exact: true })).toBeInTheDocument();
+    expect(filtersButton).toHaveAccessibleDescription("1 filtro activo");
+  });
+
   it("MAPUI-13: with no criterion active, shows Filtros with no badge and every quick filter unpressed", () => {
     renderWithI18n(
       <FilterRow
@@ -109,7 +127,7 @@ describe("MAPUI-19: FilterRow — the desktop dropdown", () => {
     />
   );
 
-  it("MAPUI-19: open, the dropdown holds the header, all six sections and Ver coches", () => {
+  it("MAPUI-19: open, the dropdown holds the header, all seven sections and Ver coches", () => {
     renderWithI18n(
       <FilterRow
         input={{}}
@@ -133,7 +151,8 @@ describe("MAPUI-19: FilterRow — the desktop dropdown", () => {
       "Precio",
       "Combustible",
       "Cambio",
-      "Kilómetros y año",
+      "Kilómetros",
+      "Año",
       "Publicado",
       "Marca y modelo",
     ]);

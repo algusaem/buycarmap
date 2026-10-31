@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mockListingSources } from "./fixtures/network";
+import { swipe } from "./fixtures/touch";
 
 // e2e/location-search.spec.ts:9-15, verbatim: the Nominatim fixture result
 // for "Madrid".
@@ -64,8 +65,8 @@ test.describe("ENTRY-3: the landing search hands its choice to the map", () => {
     await page.setViewportSize(DESKTOP);
     await page.goto("/");
 
-    await page.getByRole("button", { name: /ciudad o código postal|city or postcode/i }).click();
-    const locationInput = page.getByPlaceholder(/ciudad o código postal|city or postcode/i);
+    await page.getByRole("button", { name: /^ciudad…?$|^city…?$/i }).click();
+    const locationInput = page.getByPlaceholder(/^ciudad…?$|^city…?$/i);
     await locationInput.fill("Madrid");
     await page.getByRole("option", { name: /Madrid/ }).click();
 
@@ -112,6 +113,30 @@ test.describe("ENTRY-3: the landing search hands its choice to the map", () => {
       page.getByRole("button", { name: /^(Hasta\s*10\.000\s*€|Up to\s*€10,000)$/ }),
     ).toBeVisible();
   });
+
+  // docs/specs/redesign-map.md (MAPUI-78, bug fix, owner report 2026-10-31):
+  // Enter with nothing highlighted chooses the first listed place — the
+  // desktop popover's own e2e/location-search.spec.ts case, through the
+  // landing's pill and «Buscar» instead of the map's.
+  test("MAPUI-78: Enter with no option highlighted chooses Madrid, and Buscar navigates with it", async ({
+    page,
+  }) => {
+    await page.route(NOMINATIM_URL, (route) => route.fulfill({ json: [MADRID_RESULT] }));
+    await page.setViewportSize(DESKTOP);
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /^ciudad…?$|^city…?$/i }).click();
+    const locationInput = page.getByPlaceholder(/^ciudad…?$|^city…?$/i);
+    await locationInput.fill("28013");
+    await expect(page.getByRole("option", { name: /Madrid/ })).toBeVisible();
+
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: /^(buscar|search)$/i }).click();
+
+    await expect(page).toHaveURL(/\/map\?/);
+    const url = new URL(page.url());
+    expect(url.searchParams.get("locationName")).toBe("Madrid");
+  });
 });
 
 // (F4 review round 1): ENTRY-5's phone card, forced to a phone viewport
@@ -136,6 +161,32 @@ test.describe("ENTRY-5: the phone landing card opens the BUSCAR sheet", () => {
 
     await expect(page).toHaveURL(/\/map\?maxPrice=15000/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  // docs/specs/redesign-map.md (MAPUI-78, bug fix, owner report 2026-10-31):
+  // the phone card's own «Dónde», through ENTRY-5's BUSCAR sheet, gets the
+  // same Enter behaviour as the desktop pill's (the test above this describe
+  // block).
+  test("MAPUI-78: on the phone card, Enter with no option highlighted chooses Madrid, and Ver coches navigates with it", async ({
+    page,
+  }) => {
+    await page.route(NOMINATIM_URL, (route) => route.fulfill({ json: [MADRID_RESULT] }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockListingSources(page);
+    await page.goto("/");
+
+    await page.getByTestId("landing-search-phone").click();
+    const sheet = page.getByRole("dialog", { name: /^(buscar|search)$/i });
+    const where = sheet.getByRole("combobox", { name: /^(ciudad|city)$/i });
+    await where.fill("28013");
+    await expect(sheet.getByRole("option", { name: /Madrid/ })).toBeVisible();
+
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: /^(ver coches|show cars)$/i }).click();
+
+    await expect(page).toHaveURL(/\/map\?/);
+    const url = new URL(page.url());
+    expect(url.searchParams.get("locationName")).toBe("Madrid");
   });
 });
 
@@ -1105,5 +1156,104 @@ test.describe("ENTRY-30: the gap from the item above to the drawn content's top"
       Math.abs(drawn.y - (taglineBox.y + taglineBox.height) - 30),
       "gap from the tagline to the drawn content's top",
     ).toBeLessThanOrEqual(1);
+  });
+});
+
+// docs/specs/redesign-entry.md (ENTRY-32, ENTRY-33, worked example «The
+// landing on a short phone»), with a real finger: the scroll a mouse wheel
+// would not prove. ENTRY-33 (amended 2026-10-31) drops the preview's own
+// 440px floor: it is now a whole bordered, rounded box, as tall as its pins
+// and card need, so every phone scrolls to reach its 20px clearance at the
+// end — including the 402×874 screen that previously had nothing to scroll.
+async function swipeToEnd(page: Page, scroller: Locator): Promise<void> {
+  let lastScrollTop = await scroller.evaluate((element) => element.scrollTop);
+  for (let attempt = 0; attempt < 15; attempt++) {
+    // The search card leaves the screen after the first swipe; by then the
+    // preview's middle is on it.
+    const from =
+      attempt === 0
+        ? page.getByTestId("landing-search-phone")
+        : page.getByRole("link", { name: VER_EL_MAPA });
+    await swipe(page, from, -300);
+    const scrollTop = await scroller.evaluate((element) => element.scrollTop);
+    if (scrollTop === lastScrollTop) break;
+    lastScrollTop = scrollTop;
+  }
+}
+
+test.describe("ENTRY-32: the phone landing scrolls instead of shrinking the map", () => {
+  test("ENTRY-32: at 402×700 a swipe up (repeated as needed) reaches the page's end, where the preview's lower edge is at 680", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      hasTouch: true,
+      isMobile: true,
+      locale: "es-ES",
+      viewport: { width: 402, height: 700 },
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    const preview = page.getByRole("link", { name: VER_EL_MAPA });
+    await expect(preview).toBeVisible();
+
+    const scroller = page.locator("main").locator("xpath=..");
+    await swipeToEnd(page, scroller);
+
+    const box = await preview.boundingBox();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeCloseTo(680, 0);
+    await context.close();
+  });
+
+  test("ENTRY-33: at 402×874 the page also scrolls; the preview is a bordered, rounded box whose card sits 12-13px above its bottom, clear of the lowest pin", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      hasTouch: true,
+      isMobile: true,
+      locale: "es-ES",
+      viewport: { width: 402, height: 874 },
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+
+    const scroller = page.locator("main").locator("xpath=..");
+    const overflow = await scroller.evaluate(
+      (element) => element.scrollHeight - element.clientHeight,
+    );
+    expect(overflow).toBeGreaterThan(0);
+
+    const preview = page.getByRole("link", { name: VER_EL_MAPA });
+    await swipeToEnd(page, scroller);
+
+    const box = await preview.boundingBox();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeCloseTo(854, 0);
+
+    const borderBottomWidth = await preview.evaluate(
+      (element) => getComputedStyle(element).borderBottomWidth,
+    );
+    expect(borderBottomWidth).toBe("1px");
+    const borderBottomLeftRadius = await preview.evaluate(
+      (element) => getComputedStyle(element).borderBottomLeftRadius,
+    );
+    expect(borderBottomLeftRadius).not.toBe("0px");
+
+    const card = preview.getByTestId("landing-preview-car-card");
+    const cardBox = await card.boundingBox();
+    const previewBottom = (box?.y ?? 0) + (box?.height ?? 0);
+    const cardBottomGap = previewBottom - ((cardBox?.y ?? 0) + (cardBox?.height ?? 0));
+    expect(cardBottomGap).toBeGreaterThanOrEqual(12);
+    expect(cardBottomGap).toBeLessThanOrEqual(13);
+
+    const pins = preview.locator(".rounded-pill");
+    const pinCount = await pins.count();
+    let lowestPinBottom = 0;
+    for (let index = 0; index < pinCount; index++) {
+      const pinBox = await pins.nth(index).boundingBox();
+      const bottom = (pinBox?.y ?? 0) + (pinBox?.height ?? 0);
+      if (bottom > lowestPinBottom) lowestPinBottom = bottom;
+    }
+    expect(lowestPinBottom).toBeLessThan(cardBox?.y ?? 0);
+
+    await context.close();
   });
 });

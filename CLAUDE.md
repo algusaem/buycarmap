@@ -67,7 +67,7 @@ session did not follow this section, whatever its «Lacayos» line says.
 
 ## Project Overview
 
-BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, and recency (horsepower only survives in old links), then browse results as a synchronized card list + map.
+BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, fuel, gearbox, mileage range, minimum year, and recency (horsepower only survives in old links), then browse results as a synchronized card list + map.
 
 What is and is not built is under **Current state** below. Everything else in this
 file is a rule; the explanations live in `docs/`.
@@ -209,8 +209,8 @@ reasonable-looking change, because breaking one is silent:
   ends the loops.
 - **The search fan-out is server-only, in one place.** `server/search/service.ts`'s
   `searchRound` calls the upstreams directly and is the only fan-out —
-  `server/search/actions.ts` (the interactive search) and `server/alerts/search.ts`
-  (the poller) both call it, reusing the pure query builders from `lib/*/client.ts`.
+  `server/search/actions.ts` (the interactive search), `server/alerts/search.ts`
+  (the poller) and `server/landing/queries.ts` (the landing preview, cached for an hour) call it, reusing the pure query builders from `lib/*/client.ts`.
   There are no browser-bound fetchers or proxy routes left to resolve a URL
   against `window.location.origin` (ADR 0016).
 - Respect robots.txt and the upstreams' rate limits.

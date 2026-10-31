@@ -21,8 +21,8 @@ import { type SheetTops, settleSheetPosition } from "@/lib/map/sheet-position";
 // and each position is only how far down it is translated (`y`): its lower
 // edge stays at the area's bottom, behind the tab bar (whatever is translated
 // below the area is clipped by it), and only its top edge moves. A drag, which
-// starts only from the handle strip and the title (`startDrag`), never from
-// the list, moves `y` with the finger, so the sheet always reaches from the
+// starts from the handle strip and the title (`startDrag`) and, below full,
+// anywhere on the sheet, never from the list at full, moves `y` with the finger, so the sheet always reaches from the
 // finger down; on release it settles on a position (settleSheetPosition) and
 // springs to it, as it does on a handle press, and jumps under reduced motion.
 // A position change made from the keyboard (Enter or Space on the handle)
@@ -283,7 +283,7 @@ export function useResultsSheetDrag({
       },
       onDragEnd,
     },
-    /** On a pointerdown of the handle strip or the header. */
+    /** On a pointerdown that may move the sheet: the strip, the header and, below full, the whole sheet. */
     startDrag: (event: PointerEvent) => {
       // Only the first finger presses: a second one, or one while a press lasts, starts nothing.
       if (!event.isPrimary || pressRef.current) return;

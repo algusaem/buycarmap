@@ -17,8 +17,8 @@ function dateFnsLocale(locale: string) {
   return DATE_FNS_LOCALES[locale as keyof typeof DATE_FNS_LOCALES] ?? enGB;
 }
 
-/** A minimum and a maximum price, written as one range (MAPUI-1). */
-export interface PriceRange {
+/** A minimum and a maximum amount, written as one range (MAPUI-1, MAPUI-75): a price or a mileage. */
+export interface AmountRange {
   min: number;
   max: number;
 }
@@ -36,8 +36,9 @@ const AMOUNT_FORMAT_OPTIONS: Intl.NumberFormatOptions = {
 
 /**
  * The amount boxes' formatter (MAPUI-11): a whole number with the thousands
- * point, no currency sign — the price boxes and «Kilómetros, hasta» read it
- * while not focused (components/map/search/NumberBox.tsx's `grouped`).
+ * point, no currency sign — the price boxes and «Kilómetros»'s «Mínimo» and
+ * «Máximo» read it while not focused (components/map/search/NumberBox.tsx's
+ * `grouped`).
  */
 export function formatAmount(value: number, locale: string): string {
   return new Intl.NumberFormat(locale, AMOUNT_FORMAT_OPTIONS).format(value);
@@ -49,7 +50,7 @@ export function formatAmount(value: number, locale: string): string {
  * locale's own placement of the symbol («3.000 – 20.000 €», «€3,000 –
  * €20,000»); a range whose ends are equal reads as that one price.
  */
-export function formatPrice(value: number | PriceRange, locale: string): string {
+export function formatPrice(value: number | AmountRange, locale: string): string {
   const format = new Intl.NumberFormat(locale, {
     ...AMOUNT_FORMAT_OPTIONS,
     style: "currency",
@@ -77,13 +78,21 @@ function rangeStart(format: Intl.NumberFormat, amount: number): string {
     .join("");
 }
 
-export function formatMileage(value: number, locale: string): string {
-  // Intl's "km" unit renders as "84 000 km" in some engines without the
-  // NBSP the spec's worked example asks for, and locale-dependent unit
-  // nouns ("kilómetros" vs "km") are not what the UI wants — so the number
-  // is formatted plain and " km" appended with the same NBSP Intl's currency
-  // formatting already uses between the number and the symbol.
-  return `${new Intl.NumberFormat(locale).format(value)} km`;
+/**
+ * The only mileage formatter (MAPUI-57's rule, extended to mileage): a whole
+ * number, grouped by `formatAmount` the same way the price boxes group
+ * theirs (MAPUI-82) — a bare `Intl.NumberFormat` call leaves a Spanish
+ * four-digit amount ungrouped — with the unit appended with the same NBSP
+ * Intl's currency formatting already uses between the number and the
+ * symbol. A range keeps formatPrice's own dash, with no «km» on the first
+ * end, and a range whose ends are equal reads as that one mileage.
+ */
+export function formatMileage(value: number | AmountRange, locale: string): string {
+  if (typeof value === "number") {
+    return `${formatAmount(value, locale)} km`;
+  }
+  if (value.min === value.max) return formatMileage(value.min, locale);
+  return `${formatAmount(value.min, locale)}${RANGE_DASH}${formatMileage(value.max, locale)}`;
 }
 
 export function formatRelativeTime(value: Date, locale: string, timeZone = "UTC"): string {

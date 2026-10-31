@@ -61,7 +61,7 @@ describe("MAPUI-1: SearchPill segment values — the worked example table", () =
   it("MAPUI-1: nothing chosen shows the muted placeholder, Cualquier marca and Cualquiera", () => {
     renderWithI18n(<SearchPill {...BASE} />, { locale: "es" });
 
-    expect(screen.getByRole("button", { name: "Ciudad o código postal…" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ciudad…" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cualquier marca" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cualquiera" })).toBeInTheDocument();
   });
@@ -121,7 +121,7 @@ describe("MAPUI-2: SearchPill popovers — at most one open", () => {
     const setOpenSegment = vi.fn<SetOpenSegment>();
     renderWithI18n(<SearchPill {...BASE} setOpenSegment={setOpenSegment} />, { locale: "es" });
 
-    await userEvent.click(screen.getByRole("button", { name: "Ciudad o código postal…" }));
+    await userEvent.click(screen.getByRole("button", { name: "Ciudad…" }));
 
     expect(nextOpenSegment(setOpenSegment, null)).toBe("where");
   });
@@ -129,7 +129,7 @@ describe("MAPUI-2: SearchPill popovers — at most one open", () => {
   it("MAPUI-2: with Dónde open, its segment reports aria-expanded true and the others false", () => {
     renderWithI18n(<SearchPill {...BASE} openSegment="where" />, { locale: "es" });
 
-    expect(screen.getByRole("button", { name: "Ciudad o código postal…" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ciudad…" })).toHaveAttribute(
       "aria-expanded",
       "true",
     );
@@ -260,7 +260,7 @@ describe("MAPUI-2: SearchPill — closing with the real popovers", () => {
     await userEvent.click(document.body);
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(screen.getByRole("button", { name: "Ciudad o código postal…" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ciudad…" })).toHaveAttribute(
       "aria-expanded",
       "false",
     );
@@ -363,7 +363,7 @@ describe("MOTION-6: SearchPill — hover and press on the segments and the searc
   it("MOTION-6: a segment carries hover:text-lime and active:scale-97, off under reduced motion", () => {
     renderWithI18n(<SearchPill {...BASE} />, { locale: "es" });
 
-    const className = screen.getByRole("button", { name: "Ciudad o código postal…" }).className;
+    const className = screen.getByRole("button", { name: "Ciudad…" }).className;
     expect(className).toContain("hover:text-lime");
     expect(className).toContain("active:scale-97");
     expect(className).toContain("motion-reduce:active:scale-none");

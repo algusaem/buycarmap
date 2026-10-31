@@ -272,6 +272,28 @@ describe("MAPUI-10: CarPopover — a failed model request", () => {
   });
 });
 
+// docs/specs/redesign-map.md (MAPUI-80): «Coche» keeps nothing-highlighted
+// Enter inert — the first listed would be a guess between a brand and a
+// model.
+describe("MAPUI-80: CarPopover — Enter with no option highlighted", () => {
+  it("MAPUI-80: Enter with brands listed and none highlighted chooses neither a brand nor a model", async () => {
+    const onSelectBrand = vi.fn();
+    const onSelectModel = vi.fn();
+    renderWithI18n(
+      <CarPopover {...BASE} onSelectBrand={onSelectBrand} onSelectModel={onSelectModel} />,
+      { locale: "es" },
+    );
+
+    await userEvent.type(screen.getByRole("combobox"), "Toy");
+    await screen.findByRole("option", { name: "Toyota" });
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSelectBrand).not.toHaveBeenCalled();
+    expect(onSelectModel).not.toHaveBeenCalled();
+  });
+});
+
 describe("MAPUI-56: CarPopover — text no brand matches", () => {
   it("MAPUI-56: «Pegaso» shows «No existe ninguna marca con ese nombre» in the polite status, with no listbox", async () => {
     renderWithI18n(<CarPopover {...BASE} />, { locale: "es" });

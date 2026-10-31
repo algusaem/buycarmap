@@ -536,17 +536,18 @@ test.describe("A11Y-2: each page has exactly one main landmark, targeted by the 
 //    its value; its overline label describes it"). With nothing chosen, the
 //    values (SearchPill.tsx: `where = placeLabel(place?.displayName, …)`,
 //    which is `undefined` with no place selected, confirmed against
-//    lib/search/filter-chips.test.ts's own "no location" case) are «Ciudad o
-//    código postal…» (`search.wherePlaceholder`, the Segment's own fallback
-//    — not «Toda España», which is `phone-summary.ts`'s fallback for the
-//    *phone* summary button only), «Cualquier marca» and «Cualquiera».
+//    lib/search/filter-chips.test.ts's own "no location" case) are «Ciudad…»
+//    (`search.wherePlaceholder`, the Segment's own fallback — not «Toda
+//    España», which is `phone-summary.ts`'s fallback for the *phone* summary
+//    button only; amended 2026-10-31, MAPUI-77, owner report), «Cualquier
+//    marca» and «Cualquiera».
 //  - «ES»/«EN» (LanguageControl.tsx): each button's drawn text is "ES"/"EN",
 //    but its `aria-label` is `t("nav.localeEs")`/`t("nav.localeEn")` —
 //    "Español"/"Inglés" in messages/es.json — which is its accessible name.
 const DESKTOP_MAP_SEQUENCE: (string | RegExp)[] = [
   "Saltar al contenido", // 1
   "BuyCarMap", // 2: the wordmark link
-  "Ciudad o código postal…", // 3: «Dónde» segment — accessible name is its value, see header note
+  "Ciudad…", // 3: «Dónde» segment — accessible name is its value, see header note
   "Cualquier marca", // 4: «Coche» segment
   "Cualquiera", // 5: «Precio» segment
   "Buscar", // 6
@@ -769,7 +770,7 @@ test.describe("A11Y-5: Escape closes every opener at once, focus back on it, no 
     // Default values (see the A11Y-3 header note): the «Dónde» segment's
     // fallback is its placeholder, not «Toda España» (that is the phone
     // summary's own fallback).
-    for (const segmentName of [/ciudad o código postal/i, /cualquier marca/i, /cualquiera/i]) {
+    for (const segmentName of [/^ciudad…?$/i, /cualquier marca/i, /cualquiera/i]) {
       const segment = page.getByRole("search").getByRole("button", { name: segmentName }).first();
       await segment.focus();
       await page.keyboard.press("Enter");
@@ -1428,8 +1429,9 @@ const A11Y7_SEQUENCES: Record<
 //
 // Desktop, 1440×900 (`3xl` is 90rem, app/globals.css, so the 1440 grid):
 // LandingSearch.tsx's pill (SearchPill `variant="landing"`): each segment's
-// name is its value (see the A11Y-3 header note) — «Ciudad o código postal…»
-// (search.wherePlaceholder), «Marca o modelo…» (search.carPlaceholder, the
+// name is its value (see the A11Y-3 header note) — «Ciudad…» (amended
+// 2026-10-31, MAPUI-77, owner report; search.wherePlaceholder), «Marca o
+// modelo…» (search.carPlaceholder, the
 // landing's own «Coche» placeholder), «Cualquiera» (search.priceAny) — then
 // «Buscar», whose name is its drawn label (search.submit; the landing variant
 // sets no aria-label). Then Landing.tsx's «Populares» links in POPULAR_CARS
@@ -1444,7 +1446,7 @@ const LANDING_DESKTOP: (string | RegExp)[] = [
   "Inglés",
   "Entrar",
   "Crear cuenta",
-  "Ciudad o código postal…",
+  "Ciudad…",
   "Marca o modelo…",
   "Cualquiera",
   "Buscar",

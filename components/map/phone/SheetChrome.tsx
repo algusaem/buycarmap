@@ -1,6 +1,13 @@
 "use client";
 
-import type { ComponentProps, PointerEvent, ReactNode, Ref, RefObject } from "react";
+import {
+  type ComponentProps,
+  type PointerEvent,
+  type ReactNode,
+  type Ref,
+  type RefObject,
+  useEffect,
+} from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   AnimatePresence,
@@ -18,6 +25,7 @@ import { PresenceFade } from "@/components/ui/PresenceFade";
 import { crossFade, sheetSlideUp, sheetSpring } from "@/lib/animations";
 import { usePresenceMotion } from "@/lib/hooks/usePresenceMotion";
 import { useReleaseSampling } from "@/lib/hooks/useReleaseSampling";
+import { useVisibleScreen } from "@/lib/hooks/useVisibleScreen";
 import { FLICK_VELOCITY } from "@/lib/map/sheet-position";
 import { cn } from "@/lib/utils";
 
@@ -161,6 +169,12 @@ export function PhoneBottomSheet({
   );
 }
 
+/** Takes the focused field to the top of what scrolls (MAPUI-74). */
+function showFocusedField() {
+  if (!(document.activeElement instanceof HTMLInputElement)) return;
+  document.activeElement.scrollIntoView({ block: "start" });
+}
+
 type SheetPanelProps = Omit<ComponentProps<typeof motion.div>, "children"> & {
   /** How it comes in and goes (SHEET_MOTION), instant from the keyboard (usePresenceMotion). */
   preset: (typeof SHEET_MOTION)[keyof typeof SHEET_MOTION];
@@ -180,7 +194,12 @@ type SheetPanelProps = Omit<ComponentProps<typeof motion.div>, "children"> & {
  * closes past the threshold (shouldDragClose), or springs back, at once with
  * reduced motion. The release's speed is read from the handle's own pointer
  * events (samplePress), never from Motion's drag velocity, which reads 0 on a
- * flick drawn in one frame on an idle page (MOTION-20).
+ * flick drawn in one frame on an idle page (MOTION-20). It always rests on the
+ * bottom of the visible part of the screen, so on the phone's keyboard when
+ * that is up: `100%` is the real height of the layout viewport, whatever
+ * `window.innerHeight` says. It is never taller than that part, so what no
+ * longer fits scrolls inside it (MAPUI-72), and the focused field rises to the
+ * top of that scroll, with its list under it (MAPUI-74).
  */
 function SheetPanel({
   preset,
@@ -195,6 +214,11 @@ function SheetPanel({
   const y = useMotionValue(0);
   const reduceMotion = useReducedMotion();
   const presence = usePresenceMotion(preset);
+  const visible = useVisibleScreen();
+  const visibleHeight = visible?.height;
+  useEffect(() => {
+    if (visibleHeight !== undefined) showFocusedField();
+  }, [visibleHeight]);
   // The press/release sampling (MOTION-20) the handle drives, shared with the results sheet.
   const { releaseVelocityRef, start: startSampling } = useReleaseSampling();
 
@@ -220,7 +244,15 @@ function SheetPanel({
     <motion.div
       {...presence}
       {...props}
-      style={{ ...style, y }}
+      style={{
+        ...style,
+        y,
+        ...(visible && {
+          bottom: `calc(100% - ${visible.bottom}px)`,
+          maxHeight: `calc(${visible.height}px - env(safe-area-inset-top))`,
+        }),
+      }}
+      onFocusCapture={visible ? showFocusedField : undefined}
       drag={draggable && !dragDisabled ? "y" : false}
       dragControls={dragControls}
       dragListener={false}
