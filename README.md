@@ -590,6 +590,7 @@ Do not point a gap at a loosely related file to make it look covered.
 | `components/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
 | `components/favorites/Saved*` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
 | `components/favorites/SortChips*` | [docs/specs/redesign-saved.md](docs/specs/redesign-saved.md) |
+| `server/landing/**` | [docs/specs/redesign-entry.md](docs/specs/redesign-entry.md) |
 | `server/favorites/**` | [docs/specs/favorites.md](docs/specs/favorites.md) |
 | `app/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |
 | `app/api/alerts/**` | [docs/specs/alerts.md](docs/specs/alerts.md) |

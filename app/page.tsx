@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Footer } from "@/components/Footer";
 import { Landing } from "@/components/landing/Landing";
 import { MAIN_CONTENT } from "@/components/nav/SkipLink";
+import { getPreviewListings } from "@/server/landing/queries";
 
 // docs/specs/redesign-entry.md (ENTRY-20). "Buy Car Map" is the brand name,
 // not translated copy — identical in both locales' `meta.title` — but reads
@@ -14,7 +15,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("meta.title") };
 }
 
-export default function Home() {
+export default async function Home() {
+  const listings = await getPreviewListings();
+
   // The footer sits outside <main>: a footer scoped to main is not the page's
   // contentinfo landmark. Both scroll together, so the footer follows the
   // content (docs/specs/redesign-entry.md, ENTRY-24, ENTRY-26, ENTRY-29): from
@@ -32,7 +35,7 @@ export default function Home() {
         {...MAIN_CONTENT}
         className="outline-none flex flex-1 flex-col lg:max-3xl:min-h-0 lg:max-3xl:flex-initial lg:max-3xl:landing-illus-hidden:min-h-auto"
       >
-        <Landing />
+        <Landing listings={listings} />
       </main>
       <Footer centered />
     </div>

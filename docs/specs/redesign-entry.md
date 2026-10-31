@@ -2,7 +2,7 @@
 
 Key: ENTRY
 Status: Implemented
-Last updated: 2026-10-21
+Last updated: 2026-10-31
 
 ---
 
@@ -68,7 +68,7 @@ Landing
   beside the search, with the Storyset illustration and the arrows. From 1024px to 1439px wide there
   is no preview and no arrow, and the Storyset illustration sits centred under the search (amended
   2026-10-14: ENTRY-23, ENTRY-24). At phone width it shows the car card inside the map and no
-  illustration, and the map is at least 440px tall (amended 2026-10-31, ENTRY-32).
+  illustration, and the map is as tall as its content needs (amended 2026-10-31, ENTRY-33).
 - [x] ENTRY-8 · component — At phone width, signed in, the landing shows the tab bar with «Mapa»,
   «Guardados», «Alertas» and «Cuenta», none marked current. Its header shows the wordmark and the
   language control, with no avatar and no «Entrar». Signed out it shows no tab bar and keeps «Entrar»
@@ -76,8 +76,21 @@ Landing
 - [x] ENTRY-31 · e2e — Signed in at phone width, the landing's last element can be
   scrolled fully clear of the tab bar (bug fix, found 2026-10-17, #133; HEAD-19 for the other pages).
 - [x] ENTRY-32 · e2e — At phone width the map preview never shrinks under 440px: on a shorter screen
-  the page scrolls with a finger, and at the end of the scroll the preview's lower edge meets the
-  bottom of the screen. Its roads reach every edge of the preview (bug fix, owner 2026-10-31).
+  the page scrolls with a finger, and at the end of the scroll the preview's lower edge is 20px over
+  the bottom of the screen. Its roads reach every edge of the preview (bug fix, owner 2026-10-31;
+  amended by ENTRY-33).
+- [x] ENTRY-33 · e2e — At phone width the map preview is a whole box: all four borders and rounded
+  corners, 20px clear of the end of the page, as tall as its pins and its card need, whatever the
+  screen's height, so the landing scrolls on every phone. It shows three pins, three roads, water
+  and the card with its photo on top (amends ENTRY-7 and ENTRY-32; design accepted 2026-10-31).
+- [x] ENTRY-34 · component — The preview's card shows a real listing picked at random on each visit,
+  from a pool of listings with a photo and a price; the active pin carries its price and the other
+  pins other listings' prices. The preview stays one link to `/map` (amends ENTRY-7, desktop and
+  phone).
+- [x] ENTRY-35 · node — The pool comes from one nationwide search through `searchRound`, kept for an
+  hour, so visits never reach the marketplaces themselves.
+- [x] ENTRY-36 · component — With fewer listings in the pool than the preview has pins, or with the
+  search failed, the preview shows the example car, without a photo, and its example prices.
 
 Sign in
 
@@ -354,7 +367,14 @@ viewport).
 
 - **Input:** at 402×700, touch, signed out, in Spanish (the subtitle takes two lines), `/`, a 300px swipe up that starts on the search card.
 - **Before the fix:** the preview shrinks to fit, the page has nothing to scroll and the swipe does nothing.
-- **Correct result:** the preview is 440px tall and the page scrolls 163px, its end, where the preview's lower edge is at 700.
+- **Correct result:** the page scrolls to its end, where the preview's lower edge is at 680 (amended 2026-10-31, ENTRY-33).
+
+**The preview's listing (ENTRY-34 to ENTRY-36).**
+
+- **Input:** a pool of three listings at 9.400 €, 14.500 € and 16.500 €, all with a photo, and a visit where the random pick falls on the 9.400 € one, at phone width.
+- **Correct result:** the card shows that listing and its photo, the active pin says 9.400 €, the others 14.500 € and 16.500 €.
+- **Input:** the search failed and the pool is empty.
+- **Correct result:** the card shows «Renault Clio TCe 90», 9.400 €, no photo; the page renders without an error.
 
 ## Data model
 
