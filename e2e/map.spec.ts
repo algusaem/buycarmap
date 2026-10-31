@@ -2215,7 +2215,7 @@ test.describe("MAPUI-72: the «BUSCAR» sheet over the iPhone keyboard", () => {
     await expect(sheet).toBeVisible();
 
     const whereField = page.getByRole("combobox", {
-      name: /ciudad o código postal|city or postcode/i,
+      name: /^(ciudad|city)$/i,
     });
     await whereField.click();
     await expect(whereField).toBeFocused();
