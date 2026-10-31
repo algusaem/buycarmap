@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { e2eEmail, seedUser } from "./fixtures/db";
 import { dragDown, sheetOffset } from "./fixtures/drag";
+import { swipe } from "./fixtures/touch";
 import {
   box,
   expectWithin,
@@ -1312,19 +1313,72 @@ test.describe("MAPUI-59: dragging the results sheet between positions", () => {
     ).toBeGreaterThan(0.5);
   });
 
-  test("MAPUI-59: a drag that starts in the list does not move the sheet, not even mid-drag", async ({
+  test("MAPUI-59: at full, a drag that starts in the list does not move the sheet, not even mid-drag", async ({
     page,
     isMobile,
   }) => {
     test.skip(!isMobile, "phone-only results sheet drag");
-    const { sheet, middle } = await openPhoneMap(page);
+    const { sheet, handle } = await openPhoneMap(page);
+    await handle.click();
+    const full = await settledOffset(sheet, "full");
 
     const card = sheet.getByRole("article").first();
-    await dragDown(page, card, -200, { hold: true });
-    expectWithin(await sheetOffset(sheet), middle, "offset still at middle mid-drag");
+    await dragDown(page, card, 200, { hold: true });
+    expectWithin(await sheetOffset(sheet), full, "offset still at full mid-drag");
     await page.mouse.up();
 
-    await expect(sheet).toHaveAttribute("data-position", "middle");
+    await expect(sheet).toHaveAttribute("data-position", "full");
+  });
+
+  test("MAPUI-59: dragging the card up from middle, released slowly, ends at full", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only results sheet drag");
+    const { sheet } = await openPhoneMap(page);
+
+    await dragDown(page, sheet.getByRole("article").first(), -300);
+
+    await settledOffset(sheet, "full");
+  });
+
+  test.describe("MAPUI-71: with a real finger", () => {
+    test.skip(
+      ({ browserName, isMobile }) => browserName !== "chromium" || !isMobile,
+      "touch through Input.dispatchTouchEvent, which only a phone Chromium project has",
+    );
+
+    test("MAPUI-71: a swipe up on the middle sheet's card reaches full", async ({ page }) => {
+      const { sheet } = await openPhoneMap(page);
+
+      await swipe(page, sheet.getByRole("article").first(), -250);
+
+      await settledOffset(sheet, "full");
+    });
+
+    test("MAPUI-71: a swipe down on the middle sheet's card reaches peeked", async ({ page }) => {
+      const { sheet } = await openPhoneMap(page);
+
+      await swipe(page, sheet.getByRole("article").first(), 250);
+
+      await settledOffset(sheet, "peeked");
+    });
+
+    test("MAPUI-71: at full, a swipe up in the list scrolls the list and leaves the sheet at full", async ({
+      page,
+    }) => {
+      const { sheet, handle } = await openPhoneMap(page);
+      await handle.click();
+      await settledOffset(sheet, "full");
+
+      const card = sheet.getByRole("article").first();
+      const list = await scrollableAncestor(card);
+      await swipe(page, card, -300);
+
+      await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+      await list.dispose();
+      await expect(sheet).toHaveAttribute("data-position", "full");
+    });
   });
 
   test("MAPUI-59: at full, scrolling inside the list scrolls the list and leaves the sheet at full", async ({

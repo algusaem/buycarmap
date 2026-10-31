@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, type Ref, useEffect, useId, useRef } from "react";
+import { type DragEvent, type ReactNode, type Ref, useEffect, useId, useRef } from "react";
 import * as motion from "motion/react-client";
 import { BellPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -21,8 +21,8 @@ import { cn } from "@/lib/utils";
 // full the list, up to the top while the tab bar hides. The handle is a button
 // that moves the sheet one position up on each press (peeked, middle, full,
 // then peeked again), `aria-expanded` only when full. The sheet also drags
-// from the handle strip and the title, never from the list
-// (useResultsSheetDrag).
+// from the handle strip and the title and, below full, from anywhere on it;
+// at full never from the list (useResultsSheetDrag).
 //
 // From `lg` the same element is the list column beside the map (`docked`,
 // MAPUI-65, MAPUI-66): half of the row MapResultsArea lays out, the 30px
@@ -83,6 +83,23 @@ function visibleListings(listings: CarListing[], position: ResultsSheetPosition,
   return [];
 }
 
+/**
+ * Where a pointerdown may start the sheet's drag: below full, anywhere on
+ * the sheet itself; at full, only the header strip and the title.
+ */
+function pickDragStarters<T>(
+  dragsFromAnywhere: boolean,
+  startDrag: T | undefined,
+): { sheetDrag: T | undefined; headerDrag: T | undefined } {
+  if (dragsFromAnywhere) return { sheetDrag: startDrag, headerDrag: undefined };
+  return { sheetDrag: undefined, headerDrag: startDrag };
+}
+
+/** A mouse pressing a card's link would drag the link itself, never the sheet. */
+function preventNativeDrag(event: DragEvent) {
+  event.preventDefault();
+}
+
 export function ResultsSheet({
   heading,
   position,
@@ -106,6 +123,10 @@ export function ResultsSheet({
   const cards = visibleListings(listings, position, docked);
   const drag = useResultsSheetDrag({ position, onPositionChange, docked });
   const startDrag = docked ? undefined : drag.startDrag;
+  // Below full the body has nothing to scroll, so the whole sheet drags; at
+  // full the list keeps its scroll and only the strip and the title drag.
+  const dragsFromAnywhere = !docked && position !== "full";
+  const { sheetDrag, headerDrag: startHeaderDrag } = pickDragStarters(dragsFromAnywhere, startDrag);
   const restingTopChangeRef = useRef(onRestingTopChange);
   restingTopChangeRef.current = onRestingTopChange;
   useEffect(() => {
@@ -119,6 +140,8 @@ export function ResultsSheet({
         ref={drag.sheetRef}
         {...drag.dragProps}
         drag={docked ? false : "y"}
+        onPointerDown={sheetDrag}
+        onDragStartCapture={dragsFromAnywhere ? preventNativeDrag : undefined}
         aria-labelledby={headingId}
         data-testid="results-sheet"
         data-position={position}
@@ -131,6 +154,8 @@ export function ResultsSheet({
           !drag.placed && restingClasses(position),
           // While a finger moves it, no text is selected, and the list and «Crear alerta» take no input.
           drag.dragging && "select-none",
+          // Below full a finger anywhere moves it, never the page.
+          dragsFromAnywhere && "touch-none select-none",
           // Desktop: the list column beside the map.
           "lg:static lg:z-auto lg:h-full lg:min-w-0 lg:flex-1 lg:gap-4 lg:rounded-none lg:border-t-0 lg:bg-transparent lg:px-0 lg:pt-6 lg:pb-0",
         )}
@@ -140,7 +165,7 @@ export function ResultsSheet({
           {/* The handle strip: the whole row starts a drag, the button inside it is the handle. */}
           <div
             data-testid="results-sheet-handle-strip"
-            onPointerDown={startDrag}
+            onPointerDown={startHeaderDrag}
             className="-my-2.5 flex shrink-0 touch-none justify-center select-none lg:hidden"
           >
             <button
@@ -161,7 +186,7 @@ export function ResultsSheet({
           </div>
           <h1
             id={headingId}
-            onPointerDown={startDrag}
+            onPointerDown={startHeaderDrag}
             className="shrink-0 touch-none text-center font-display text-count-mobile font-extrabold uppercase select-none lg:touch-auto lg:text-left lg:text-count lg:select-auto"
           >
             {heading}
