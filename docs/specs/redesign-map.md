@@ -530,6 +530,16 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
   browser, never the mouse, which ignores `touch-action`): a swipe up on the middle sheet's card
   reaches full, and at full a swipe in the list scrolls the list and leaves the sheet at full (bug
   fix, owner 2026-10-31).
+- [x] MAPUI-72 · component — While the on-screen keyboard covers the bottom of a phone screen, a modal
+  sheet or the full-screen filters panel rests on the keyboard's top edge and is never taller than
+  the part of the screen left visible, so what no longer fits scrolls inside it. It goes back as the
+  keyboard leaves. Neither a pinch zoom nor a browser toolbar folding away counts as a keyboard:
+  under 120px covered there is no keyboard, a hardware one included (bug fix, owner 2026-10-31).
+- [x] MAPUI-73 · component — While that keyboard is up, the «BUSCAR» sheet and the filters panel hide
+  their «Ver coches» footer, which gives the list about two more rows; it comes back as the
+  keyboard leaves (design B accepted by the owner, 2026-10-31).
+- [x] MAPUI-74 · component — While that keyboard is up, a field that takes the focus rises to the top
+  of what scrolls, so the list it opens shows under it, in view (bug fix, 2026-10-31).
 
 ## Worked examples
 
@@ -818,6 +828,13 @@ with P below M below F. The test measures them and derives the expectation from 
 - **Input:** at 402×874, touch, `/map`, sheet at middle, a 250px swipe up that starts on the first card.
 - **Before the fix:** the sheet stays at middle and the list does not scroll: the swipe does nothing.
 - **Correct result:** the sheet follows the finger and settles at full.
+
+**A field in the «BUSCAR» sheet on an iPhone (MAPUI-72; bug fix, owner 2026-10-31).** iOS Safari lays
+the keyboard over the page without changing `100dvh`, so the sheet kept its height behind it.
+
+- **Input:** a screen 874px tall, the «BUSCAR» sheet open, a field focused, the keyboard leaving 538px visible.
+- **Before the fix:** the sheet's lower part sits behind the keyboard, and it has nothing to scroll until the field loses focus.
+- **Correct result:** the sheet's bottom is 336px over the screen's bottom, it is at most 538px tall less the top safe area, its fields scroll inside it, «Ver coches» is hidden and the focused field sits at the top of the scroll, its list under it. With 800px left visible, a folded toolbar, nothing moves and «Ver coches» stays.
 
 **Release point (MAPUI-59; bug fix, 2026-10-19).** On a loaded phone the browser can skip frames, so
 the sheet drawn on screen lags behind the finger. Seen on PR #147's CI (GitHub runner, software

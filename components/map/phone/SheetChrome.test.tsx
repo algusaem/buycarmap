@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { renderWithI18n } from "@/test/utils/render";
-import { PhoneBottomSheet, shouldDragClose } from "./SheetChrome";
+import { PhoneBottomSheet, ShowCarsFooter, shouldDragClose } from "./SheetChrome";
 import { SearchSheet } from "./SearchSheet";
 
 // docs/specs/redesign-saved.md (SAVED-39 to SAVED-41): what a phone bottom
@@ -16,6 +16,82 @@ import { SearchSheet } from "./SearchSheet";
 vi.mock("@/server/search/actions", () => ({
   listCarModels: vi.fn(async () => ({ ok: true, value: [] })),
 }));
+
+describe("MAPUI-72: a sheet rests on the phone's keyboard", () => {
+  const originalInnerHeight = window.innerHeight;
+
+  /** The worked example: 874px of screen, 538px left visible. */
+  function stubKeyboard() {
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: Object.assign(new EventTarget(), { height: 538, offsetTop: 0, scale: 1 }),
+    });
+    window.innerHeight = 874;
+  }
+
+  afterEach(() => {
+    Object.defineProperty(window, "visualViewport", { configurable: true, value: undefined });
+    window.innerHeight = originalInnerHeight;
+  });
+
+  it.each([
+    ["a bottom sheet", false],
+    ["the full-screen panel", true],
+  ])("MAPUI-72: %s moves up by what the keyboard covers", (_name, fullScreen) => {
+    stubKeyboard();
+
+    renderWithI18n(
+      <PhoneBottomSheet open onClose={vi.fn()} entrance="fade" fullScreen={fullScreen}>
+        <DialogPrimitive.Title>Hoja</DialogPrimitive.Title>
+      </PhoneBottomSheet>,
+    );
+
+    const sheet = screen.getByRole("dialog");
+    expect(sheet.style.bottom).toBe("336px");
+    expect(sheet.getAttribute("style")).toContain("538px");
+  });
+
+  it("MAPUI-73: «Ver coches» hides while the keyboard is up", () => {
+    stubKeyboard();
+    renderWithI18n(<ShowCarsFooter onShowCars={vi.fn()} />, { locale: "es" });
+    expect(screen.queryByRole("button", { name: "Ver coches" })).not.toBeInTheDocument();
+  });
+
+  it("MAPUI-73: «Ver coches» stays with no keyboard", () => {
+    renderWithI18n(<ShowCarsFooter onShowCars={vi.fn()} />, { locale: "es" });
+    expect(screen.getByRole("button", { name: "Ver coches" })).toBeInTheDocument();
+  });
+
+  it("MAPUI-74: the focused field rises to the top of what scrolls", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    stubKeyboard();
+    renderWithI18n(
+      <PhoneBottomSheet open onClose={vi.fn()} entrance="fade">
+        <DialogPrimitive.Title>Hoja</DialogPrimitive.Title>
+        <input aria-label="Dónde" />
+        <input aria-label="Coche" />
+      </PhoneBottomSheet>,
+    );
+
+    await userEvent.click(screen.getByRole("textbox", { name: "Coche" }));
+
+    expect(scrollIntoView).toHaveBeenLastCalledWith({ block: "start" });
+    expect(scrollIntoView.mock.contexts.at(-1)).toBe(
+      screen.getByRole("textbox", { name: "Coche" }),
+    );
+  });
+
+  it("MAPUI-72: with no keyboard the sheet keeps its own place", () => {
+    renderWithI18n(
+      <PhoneBottomSheet open onClose={vi.fn()} entrance="fade">
+        <DialogPrimitive.Title>Hoja</DialogPrimitive.Title>
+      </PhoneBottomSheet>,
+    );
+
+    expect(screen.getByRole("dialog").style.bottom).toBe("");
+  });
+});
 
 describe("SAVED-39: when letting go of the handle closes the sheet", () => {
   // The worked example "Drag to close": offset in px, velocity in px/s, down positive.
