@@ -2003,3 +2003,131 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
     expect(serious.map((violation) => violation.id)).toEqual([]);
   });
 });
+
+// docs/specs/redesign-map.md (MAPUI-72 to MAPUI-74): the «BUSCAR» sheet always
+// rests on the visible part of the screen (useVisibleScreen.ts), even with
+// the iPhone keyboard up — only `window.visualViewport` reports that, and no
+// real browser here can raise an on-screen keyboard. This fakes it the same
+// way SheetChrome.test.tsx's own stub does: an EventTarget standing in for
+// `window.visualViewport`, with a mutable `height` the test can shrink and
+// restore, dispatching the `resize` the hook listens for.
+test.describe("MAPUI-72: the «BUSCAR» sheet over the iPhone keyboard", () => {
+  /**
+   * Replaces `window.visualViewport` before any page script runs, with an
+   * EventTarget carrying `height` (the live `window.innerHeight` until a test
+   * sets one: read this early, before the viewport meta, it is the wrong
+   * size), `offsetTop` 0 and `scale` 1 — exposed as `window.__viewport` so the
+   * test can drive it later.
+   */
+  async function fakeVisualViewport(page: Page) {
+    await page.addInitScript(() => {
+      let height: number | null = null;
+      const viewport = Object.defineProperties(new EventTarget(), {
+        height: {
+          get: () => height ?? window.innerHeight,
+          set: (next: number) => {
+            height = next;
+          },
+        },
+        offsetTop: { value: 0 },
+        scale: { value: 1 },
+      });
+      Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
+      (window as Window & { __viewport?: typeof viewport }).__viewport = viewport;
+    });
+  }
+
+  /** Sets the faked viewport's `height` and dispatches `resize`, as a real keyboard would. */
+  async function setFakeViewportHeight(page: Page, height: number) {
+    await page.evaluate((next) => {
+      const viewport = (window as Window & { __viewport?: EventTarget & { height: number } })
+        .__viewport;
+      if (!viewport) throw new Error("window.__viewport was not installed");
+      viewport.height = next;
+      viewport.dispatchEvent(new Event("resize"));
+    }, height);
+  }
+
+  test("MAPUI-72: with the keyboard up, «Ver coches» and the focused field stay in the visible part, and the fields scroll", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only: the BUSCAR sheet has no desktop keyboard case");
+    await fakeVisualViewport(page);
+    await mockListingSources(page);
+    await page.goto("/map");
+    await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+    const originalHeight = await page.evaluate(() => window.innerHeight);
+
+    await page
+      .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
+      .first()
+      .click();
+    const sheet = page.getByRole("dialog", { name: /^(buscar|search)$/i });
+    await expect(sheet).toBeVisible();
+
+    const whereField = page.getByRole("combobox", {
+      name: /ciudad o código postal|city or postcode/i,
+    });
+    await whereField.click();
+    await expect(whereField).toBeFocused();
+
+    const KEYBOARD_HEIGHT = 400;
+    await setFakeViewportHeight(page, KEYBOARD_HEIGHT);
+
+    const showCars = sheet.getByRole("button", { name: /^(ver coches|show cars)$/i });
+    await expect
+      .poll(() => showCars.evaluate((el) => el.getBoundingClientRect().bottom))
+      .toBeLessThanOrEqual(KEYBOARD_HEIGHT);
+    const showCarsBox = await box(showCars);
+    expect(
+      showCarsBox.y + showCarsBox.height,
+      "«Ver coches» bottom stays inside the keyboard-shrunk viewport",
+    ).toBeLessThanOrEqual(KEYBOARD_HEIGHT);
+
+    const fieldBox = await box(whereField);
+    expect(fieldBox.y, "the focused field's top stays on screen").toBeGreaterThanOrEqual(0);
+    expect(
+      fieldBox.y + fieldBox.height,
+      "the focused field's bottom stays inside the keyboard-shrunk viewport",
+    ).toBeLessThanOrEqual(KEYBOARD_HEIGHT);
+
+    const dialogBox = await box(sheet);
+    expectWithin(
+      dialogBox.y + dialogBox.height,
+      KEYBOARD_HEIGHT,
+      "the dialog's bottom at the keyboard-shrunk viewport height",
+    );
+
+    const scroller = await scrollableAncestor(whereField);
+    const metricsBefore = await scroller.evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      scrollTop: el.scrollTop,
+    }));
+    expect(
+      metricsBefore.scrollHeight,
+      `scroller scrollHeight (${metricsBefore.scrollHeight}) over its clientHeight (${metricsBefore.clientHeight})`,
+    ).toBeGreaterThan(metricsBefore.clientHeight);
+
+    await scroller.evaluate((el) => {
+      el.scrollTop = el.scrollTop + 20;
+    });
+    const scrollTopAfter = await scroller.evaluate((el) => el.scrollTop);
+    expect(scrollTopAfter, "the scroller's scrollTop can be changed by page.evaluate").not.toBe(
+      metricsBefore.scrollTop,
+    );
+    await scroller.dispose();
+
+    await setFakeViewportHeight(page, originalHeight);
+    await expect
+      .poll(() => sheet.evaluate((el) => el.getBoundingClientRect().bottom))
+      .toBeGreaterThan(KEYBOARD_HEIGHT);
+    const restoredBox = await box(sheet);
+    expectWithin(
+      restoredBox.y + restoredBox.height,
+      originalHeight,
+      "the dialog's bottom back at the viewport height",
+    );
+  });
+});
