@@ -53,7 +53,7 @@ describe("searchSchema", () => {
     expect(searchSchema.safeParse({ maxKm: 100.5 }).success).toBe(false);
   });
 
-  it("MAPUI-72: accepts a minKm of 0 but rejects a non-integer minKm", () => {
+  it("MAPUI-84: accepts a minKm of 0 but rejects a non-integer minKm", () => {
     expect(searchSchema.safeParse({ minKm: 0 }).success).toBe(true);
     expect(searchSchema.safeParse({ minKm: 100.5 }).success).toBe(false);
   });

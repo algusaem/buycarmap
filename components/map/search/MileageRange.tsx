@@ -5,7 +5,7 @@ import type { SearchInput } from "@/lib/search/schema";
 import { useMileageDraft } from "@/lib/hooks/useMileageDraft";
 import { NumberBox } from "./NumberBox";
 
-// docs/specs/redesign-map.md (MAPUI-72 to MAPUI-74): «Kilómetros»'s «Mínimo»
+// docs/specs/redesign-map.md (MAPUI-84 to MAPUI-86): «Kilómetros»'s «Mínimo»
 // and «Máximo», the filters panel's own peer of PriceRange.tsx's boxes.
 
 interface MileageRangeProps {
@@ -13,13 +13,13 @@ interface MileageRangeProps {
   maxKm: number | undefined;
   onChange: (patch: Partial<SearchInput>) => void;
   /** MAPUI-21: in the phone sheet, each box applies as typed, like the price
-   * boxes; MAPUI-74's swap happens once, at «Ver coches»
+   * boxes; MAPUI-86's swap happens once, at «Ver coches»
    * (lib/hooks/useFilterSheetDraft.ts), not here. */
   live?: boolean;
 }
 
 /**
- * «Kilómetros»'s «Mínimo» and «Máximo» (MAPUI-72, MAPUI-73, MAPUI-74). On
+ * «Kilómetros»'s «Mínimo» and «Máximo» (MAPUI-84, MAPUI-85, MAPUI-86). On
  * desktop the two boxes share one draft (lib/hooks/useMileageDraft.ts), so a
  * minimum above the maximum — or the reverse — swaps with it on blur
  * or Enter of either box; on the phone they are independent, like the price

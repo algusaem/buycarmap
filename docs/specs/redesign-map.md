@@ -48,7 +48,7 @@ that does not work (owner report, 2026-10-31).
 The owner also reported on 2026-10-31 that mileage could not be set without a model. Neither the code
 nor production reproduces it: no control depends on brand or model, and `/map?minKm=150000&maxKm=200000`
 with no brand returned 79 cars in production that day, 39 from Wallapop and 40 from coches.net, all
-between 150.000 and 200.000 km. MAPUI-73 pins the behaviour; the one block left is «Crear alerta», where
+between 150.000 and 200.000 km. MAPUI-85 pins the behaviour; the one block left is «Crear alerta», where
 mileage alone is not specific enough (ALERT-38).
 
 ## Acceptance criteria
@@ -93,7 +93,7 @@ Search pill and its popovers (desktop)
     maximum;
   - the «Mínimo» and «Máximo» boxes, which accept any amount;
   - every amount box (the price boxes here, «Kilómetros, hasta» in the panel; amended 2026-10-31: «Mínimo» and
-    «Máximo» of «Kilómetros», MAPUI-72) shows its value with the
+    «Máximo» of «Kilómetros», MAPUI-84) shows its value with the
     thousands point, «20.000» and «100.000», and reads what is typed with or without it: «100.000» and
     «100000» are both 100.000 (owner decision, 2026-10-13: «que lo muestre con puntos y lo entienda con
     o sin»);
@@ -126,7 +126,7 @@ Filters row and panel
   type-ahead), in that order. It has no horsepower, free text, minimum mileage, maximum year or sort
   control. «Kilómetros, hasta» accepts any whole amount from 0 (0 means cars with no mileage) and «Año,
   desde» any whole year: the panel refuses neither (owner decision, 2026-10-13: «0km es posible… hay
-  coches del 1900 en wallapop, deja de limitar»). (amended 2026-10-13) — replaced by MAPUI-72 (amended 2026-10-31,
+  coches del 1900 en wallapop, deja de limitar»). (amended 2026-10-13) — replaced by MAPUI-84 (amended 2026-10-31,
   design accepted 2026-10-31)
 - [x] MAPUI-15 · unit — The fuel choices map onto the shared filter values:
   - «Gasolina» → `gasoline`;
@@ -150,7 +150,7 @@ Filters row and panel
   reaches the search, with no control or chip for it. Those criteria are `minKm`, `maxYear`,
   `minHorsePower`, `maxHorsePower`, `gearbox=semiautomatic`, `engine=cng` and the `?q=` text. «Borrar»
   and «Quitar filtros» clear them (amends FRONT-13). — `minKm` leaves this list: the panel offers it
-  again (amended 2026-10-31, MAPUI-72)
+  again (amended 2026-10-31, MAPUI-84)
 - [x] MAPUI-19 · component — On desktop the filters panel is a dropdown under «Filtros» with no close
   button:
   - every choice applies at once;
@@ -186,7 +186,7 @@ Phone
     redesign-saved.md);
   - «Borrar» empties the sheet's fields, applied only on «Ver coches».
 - [x] MAPUI-22 · component — The violet button opens the full-screen filters panel, with the same
-  sections as MAPUI-14 (as amended by MAPUI-72) and the apply, discard and «Borrar» behaviour of MAPUI-21. Removing a chip
+  sections as MAPUI-14 (as amended by MAPUI-84) and the apply, discard and «Borrar» behaviour of MAPUI-21. Removing a chip
   from the filters row applies at once. — the violet button becomes the round «Filtros» button of
   the band, outlined in `line` with its violet badge, and a quick filter applies at once (MAPUI-63)
   (amended 2026-10-17, #134)
@@ -555,19 +555,18 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
 - [x] MAPUI-74 · component — While that keyboard is up, a field that takes the focus rises to the top
   of what scrolls, so the list it opens shows under it, in view (bug fix, 2026-10-31).
 
-Mileage range and «Dónde» (owner report, design accepted 2026-10-31). MAPUI-71 is taken by the
-phone-sheet change in progress on its own branch.
+Mileage range and «Dónde» (owner report, design accepted 2026-10-31).
 
-- [x] MAPUI-72 · component — The filters panel has exactly the sections Precio, Combustible, Cambio,
+- [x] MAPUI-84 · component — The filters panel has exactly the sections Precio, Combustible, Cambio,
   Kilómetros, Año, Publicado and Marca y modelo, in that order, on desktop and on the phone.
   «Kilómetros» holds the boxes «Mínimo» and «Máximo», each showing «km» after a value, as «Máximo»
   did on its own before. «Año» the box «Desde». Each mileage box accepts
   any whole amount from 0 and «Desde» any whole year; the panel refuses neither. It has no horsepower,
   free text, maximum year or sort control (replaces MAPUI-14).
-- [x] MAPUI-73 · component — «Mínimo» of «Kilómetros» applies as «Máximo» does: on desktop when the box
+- [x] MAPUI-85 · component — «Mínimo» of «Kilómetros» applies as «Máximo» does: on desktop when the box
   loses focus or on Enter, on the phone at «Ver coches». It sets `minKm` in the URL and in the search,
   needs no brand or model, and emptying the box clears it.
-- [x] MAPUI-74 · component — A minimum mileage above the maximum is swapped with it when applied, typed
+- [x] MAPUI-86 · component — A minimum mileage above the maximum is swapped with it when applied, typed
   or not: on desktop when either box loses focus or on Enter, on the phone at «Ver coches». After
   Enter applies a swap, the focused box shows the applied amount, as after leaving it.
 - [x] MAPUI-75 · unit — `minKm` is an active criterion: alone it reads «Desde 50.000 km»; with `maxKm`
@@ -692,7 +691,7 @@ group's centre is at x 646, 74px left of the window's centre, and row two's cent
 - **Correct result:** «Madrid» is chosen with the radius in force, 50 km by default, and the search and
   the URL change as they do when pressing that option.
 
-**Mileage boxes (MAPUI-73, MAPUI-74).**
+**Mileage boxes (MAPUI-85, MAPUI-86).**
 
 | Typed | URL |
 | --- | --- |
@@ -980,7 +979,7 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
     (MAPUI-11).
   - Enter leaves the focused box showing the applied amount.
 - **Mileage.**
-  - A typed minimum above the maximum is swapped (MAPUI-74). A URL carrying one reaches the search as
+  - A typed minimum above the maximum is swapped (MAPUI-86). A URL carrying one reaches the search as
     it is: opening a link rewrites nothing. Applying the mileage orders it: leaving a box on the
     desktop or «Ver coches» on the phone, typed or not, since a minimum above the maximum matches no
     car.
@@ -1219,7 +1218,7 @@ resolves the name, the merge's model post-filter compares names, and a number wo
 that post-filter.
 
 **Removed controls, kept parameters.** Horsepower, minimum mileage, maximum year, semi-automatic and
-CNG leave the UI (the minimum mileage came back, MAPUI-72), and so does free text, which the landing stopped producing in F4 (ENTRY-6). The URL keeps understanding all of them.
+CNG leave the UI (the minimum mileage came back, MAPUI-84), and so does free text, which the landing stopped producing in F4 (ENTRY-6). The URL keeps understanding all of them.
 Old shared links and the current landing keep working instead of silently widening, and nothing a
 saved alert or a bookmark relies on breaks. Not showing them as chips is the cost: they would need
 copy and a design for criteria the product no longer offers.

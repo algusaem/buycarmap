@@ -29,7 +29,7 @@ import { chosenGearbox, OFFERED_GEARBOXES, type OfferedGearbox } from "@/lib/sea
 import { type SearchInput, TIME_FILTERS } from "@/lib/search/schema";
 
 // docs/specs/redesign-map.md (MAPUI-16, MAPUI-17, MAPUI-19,
-// MAPUI-21, MAPUI-22, MAPUI-72 to MAPUI-74); docs/design/system/components/
+// MAPUI-21, MAPUI-22, MAPUI-84 to MAPUI-86); docs/design/system/components/
 // FilterSheet/README.md. The panel both the desktop dropdown and the phone
 // full-screen sheet are built from — the same seven sections in the same
 // order (Precio, Combustible, Cambio, Kilómetros, Año, Publicado, Marca y
@@ -305,7 +305,7 @@ interface CriterionBoxProps {
 }
 
 /**
- * «Año»'s «Desde» (MAPUI-72): on desktop, a box applied when it loses focus
+ * «Año»'s «Desde» (MAPUI-84): on desktop, a box applied when it loses focus
  * or on Enter — an emptied box clears the criterion; an amount NumberBox
  * cannot read («abc», «-5», «1.2.3x») never reaches here at all, so the box
  * keeps showing the criterion in force (lib/hooks/useCriterionDraft.ts). In

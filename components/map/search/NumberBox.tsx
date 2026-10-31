@@ -26,7 +26,7 @@ interface NumberBoxProps {
   /** Shown after the value, e.g. the euro sign. Always shown once given,
    * unless `suffixOnlyWithValue`. */
   suffix?: string;
-  /** MAPUI-72: for «Kilómetros»'s «Mínimo» and «Máximo», the «km» suffix
+  /** MAPUI-84: for «Kilómetros»'s «Mínimo» and «Máximo», the «km» suffix
    * shows only once the box has a value, never beside the placeholder —
    * unlike the price boxes' «€», which this leaves alone. */
   suffixOnlyWithValue?: boolean;
@@ -96,7 +96,7 @@ export function NumberBox({
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter") return;
     onCommit();
-    // Same as handleBlur (MAPUI-74, amended 2026-10-31): once Enter applies
+    // Same as handleBlur (MAPUI-86, amended 2026-10-31): once Enter applies
     // the committed amount — swapped or not — the box falls back to showing
     // it formatted, rather than leaving what was typed on screen.
     setTypedText(null);

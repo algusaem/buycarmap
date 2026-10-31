@@ -26,7 +26,7 @@ export function chosenGearbox(gearbox: readonly string[] | undefined): OfferedGe
 }
 
 /**
- * A minimum mileage above the maximum is swapped with it (MAPUI-74):
+ * A minimum mileage above the maximum is swapped with it (MAPUI-86):
  * on desktop when either box of «Kilómetros» loses focus or on Enter
  * (components/map/search/MileageRange.tsx's MileageRange,
  * lib/hooks/useMileageDraft.ts), on the phone once at «Ver coches»
@@ -42,7 +42,7 @@ export function orderedKm({
 
 /**
  * Every `SearchInput` criterion the panel's «Borrar» clears (MAPUI-19): the
- * panel's own sections — «Kilómetros» now offers `minKm` too (MAPUI-72) —
+ * panel's own sections — «Kilómetros» now offers `minKm` too (MAPUI-84) —
  * and the criteria the UI no longer offers (`maxYear`, `minHorsePower`,
  * `maxHorsePower`, MAPUI-18). Not the place and its radius, which belong to
  * «Dónde», nor the `?q=` text, which its callers drop on their own.

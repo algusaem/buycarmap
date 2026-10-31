@@ -6,7 +6,7 @@ import type { SearchInput } from "@/lib/search/schema";
 // filters sheet's draft (components/map/filters/FilterPanel.tsx). Choices stay
 // in the draft until «Ver coches» hands them over (`criteria`); «Borrar» only
 // empties the draft, and once applied it also drops the landing's `?q=` text.
-// MAPUI-74: «Kilómetros»'s Mínimo and Máximo apply independently as typed
+// MAPUI-86: «Kilómetros»'s Mínimo and Máximo apply independently as typed
 // (MAPUI-21), so a minimum above the maximum is only swapped here, once,
 // rather than on every edit.
 
@@ -31,7 +31,7 @@ export function useFilterSheetDraft(input: SearchInput) {
 
   /**
    * What «Ver coches» hands over: every panel criterion — the mileage ends
-   * swapped if needed (MAPUI-74) — and an emptied `?q=` after «Borrar».
+   * swapped if needed (MAPUI-86) — and an emptied `?q=` after «Borrar».
    */
   function criteria(): Partial<SearchInput> {
     const resolved = { ...draft, ...orderedKm(draft) };

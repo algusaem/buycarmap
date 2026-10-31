@@ -4,7 +4,7 @@ import type { SearchInput } from "@/lib/search/schema";
 
 type Mileage = Pick<SearchInput, "minKm" | "maxKm">;
 
-// docs/specs/redesign-map.md (MAPUI-73, MAPUI-74): «Kilómetros»'s desktop
+// docs/specs/redesign-map.md (MAPUI-85, MAPUI-86): «Kilómetros»'s desktop
 // draft (components/map/search/MileageRange.tsx's MileageRange). Like
 // useCriterionDraft, but over both boxes at once — a minimum above the
 // maximum, or the reverse, swaps with it on blur or Enter of either box

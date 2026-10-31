@@ -301,13 +301,13 @@ test.describe("MAPUI-50: phone BUSCAR sheet applies only on Ver coches", () => {
   });
 });
 
-// docs/specs/redesign-map.md (MAPUI-73, MAPUI-74, owner report 2026-10-31):
+// docs/specs/redesign-map.md (MAPUI-85, MAPUI-86, owner report 2026-10-31):
 // «Kilómetros» offers «Mínimo» again, applying as «Máximo» does, with a
 // reversed pair swapped on blur, Enter or «Ver coches».
-test.describe("MAPUI-73, MAPUI-74: Kilómetros — Mínimo reaches the URL, swapped if typed in reverse", () => {
+test.describe("MAPUI-85, MAPUI-86: Kilómetros — Mínimo reaches the URL, swapped if typed in reverse", () => {
   const FILTERS = /^(filtros|filters)$/i;
 
-  test("MAPUI-73: desktop, typing a minimum and pressing Enter reaches the URL with no brand, badge 1", async ({
+  test("MAPUI-85: desktop, typing a minimum and pressing Enter reaches the URL with no brand, badge 1", async ({
     page,
     isMobile,
   }) => {
@@ -330,7 +330,7 @@ test.describe("MAPUI-73, MAPUI-74: Kilómetros — Mínimo reaches the URL, swap
     );
   });
 
-  test("MAPUI-74: desktop, then typing a maximum under the minimum swaps both ends on blur, badge stays 1", async ({
+  test("MAPUI-86: desktop, then typing a maximum under the minimum swaps both ends on blur, badge stays 1", async ({
     page,
     isMobile,
   }) => {
@@ -358,7 +358,7 @@ test.describe("MAPUI-73, MAPUI-74: Kilómetros — Mínimo reaches the URL, swap
     );
   });
 
-  test("MAPUI-74: phone, both ends typed in reverse, Ver coches hands them over swapped", async ({
+  test("MAPUI-86: phone, both ends typed in reverse, Ver coches hands them over swapped", async ({
     page,
     isMobile,
   }) => {

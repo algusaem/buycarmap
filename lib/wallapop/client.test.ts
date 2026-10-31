@@ -99,7 +99,7 @@ describe("buildWallapopQuery", () => {
     expect(q.get("max_km")).toBe("0");
   });
 
-  it("MAPUI-73: sends min_km alone, needing no brand", () => {
+  it("MAPUI-85: sends min_km alone, needing no brand", () => {
     const q = buildWallapopQuery({ minKm: 50000 }, { lat: 40, lng: -3.5 });
 
     expect(q.get("min_km")).toBe("50000");

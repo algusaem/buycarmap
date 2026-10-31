@@ -23,7 +23,7 @@ describe("buildCochesNetFilters", () => {
     expect(filters.km).toBeUndefined();
   });
 
-  it("MAPUI-73: translates minKm alone to a km range with no upper end, and no vehicles", () => {
+  it("MAPUI-85: translates minKm alone to a km range with no upper end, and no vehicles", () => {
     const filters = buildCochesNetFilters({ minKm: 50000 });
 
     expect(filters.km).toEqual({ from: 50000, to: null });

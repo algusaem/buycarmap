@@ -106,7 +106,7 @@ describe("MAPUI-13: filterChips — nothing active", () => {
     expect(filterChips({}, ES_COPY)).toEqual([]);
   });
 
-  it("MAPUI-13: criteria the UI no longer offers give no chips (MAPUI-18; minKm left this list, MAPUI-72)", () => {
+  it("MAPUI-13: criteria the UI no longer offers give no chips (MAPUI-18; minKm left this list, MAPUI-84)", () => {
     expect(
       filterChips(
         {
@@ -122,7 +122,7 @@ describe("MAPUI-13: filterChips — nothing active", () => {
 });
 
 // docs/specs/redesign-map.md (MAPUI-75, worked example "Chip texts"): minKm is
-// an active criterion again — the panel offers «Mínimo» (MAPUI-72) — so it now
+// an active criterion again — the panel offers «Mínimo» (MAPUI-84) — so it now
 // gives a chip, alone «Desde 50.000 km», and combined with maxKm exactly ONE
 // range chip rather than two separate ones. formatMileage's space before "km"
 // is U+00A0 (FRONT-11, MAPUI-57).

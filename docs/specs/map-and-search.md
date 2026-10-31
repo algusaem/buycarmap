@@ -185,7 +185,7 @@ The contracts are:
   sources translate from. Bounds worth keeping: latitude ±90, longitude ±180,
   `distanceInKm` positive, `minYear` any whole year, `maxKm` any whole amount from 0 (owner
   decision, 2026-10-13) and `minKm` any whole amount from 0
-  ([redesign-map.md](redesign-map.md) MAPUI-72, 2026-10-31), `timeFilter` one of
+  ([redesign-map.md](redesign-map.md) MAPUI-84, 2026-10-31), `timeFilter` one of
   `today` / `lastWeek` / `lastMonth`.
 - **`CarListing`** (`interfaces/listing.ts`) — what every source normalises to
   and what both the list and the map consume.

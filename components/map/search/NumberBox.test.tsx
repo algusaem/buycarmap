@@ -25,13 +25,13 @@ describe("MOTION-5: NumberBox — hover", () => {
   });
 });
 
-// docs/specs/redesign-map.md (MAPUI-74, amended 2026-10-31): after Enter
+// docs/specs/redesign-map.md (MAPUI-86, amended 2026-10-31): after Enter
 // applies a swap, the focused box shows the applied amount, as after leaving
 // it — Enter has to clear the typed text the same way handleBlur does, or a
 // later prop update (the parent applying the swap) renders behind what is
 // still typed.
-describe("MAPUI-74: NumberBox — Enter clears the typed text", () => {
-  it("MAPUI-74: typing 150000 then Enter, followed by a rerender with the unchanged value 100000, shows it grouped — not what was typed", () => {
+describe("MAPUI-86: NumberBox — Enter clears the typed text", () => {
+  it("MAPUI-86: typing 150000 then Enter, followed by a rerender with the unchanged value 100000, shows it grouped — not what was typed", () => {
     const onCommit = vi.fn();
     const { rerender } = renderWithI18n(
       <NumberBox

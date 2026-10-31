@@ -42,7 +42,7 @@ describe("buildMilanunciosQuery", () => {
     expect(query.get("engineHpFrom")).toBe("90");
   });
 
-  it("MAPUI-73: translates minKm to kilometersFrom", () => {
+  it("MAPUI-85: translates minKm to kilometersFrom", () => {
     const query = buildMilanunciosQuery({ minKm: 50000 }, 1);
 
     expect(query.get("kilometersFrom")).toBe("50000");

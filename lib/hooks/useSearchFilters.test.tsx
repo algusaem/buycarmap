@@ -1040,7 +1040,7 @@ describe("useSearchFilters updateInput (MAPUI-12)", () => {
     });
   });
 
-  it("MAPUI-73: commits minKm and maxKm to the URL and the search after the MAP-11 pause", async () => {
+  it("MAPUI-85: commits minKm and maxKm to the URL and the search after the MAP-11 pause", async () => {
     vi.useFakeTimers();
     const search = vi.fn();
     const onUrlUpdate = vi.fn();
@@ -1065,7 +1065,7 @@ describe("useSearchFilters updateInput (MAPUI-12)", () => {
     expect(params?.get("maxKm")).toBe("100000");
   });
 
-  it("MAPUI-73: minKm reaches the search with no brand or model chosen", async () => {
+  it("MAPUI-85: minKm reaches the search with no brand or model chosen", async () => {
     vi.useFakeTimers();
     const search = vi.fn();
     const { result } = renderHook(() => useSearchFilters(search, () => ""), {
@@ -1086,7 +1086,7 @@ describe("useSearchFilters updateInput (MAPUI-12)", () => {
     );
   });
 
-  it("MAPUI-73: minKm=150000 with no brand or model reaches the URL and the search unaccompanied", async () => {
+  it("MAPUI-85: minKm=150000 with no brand or model reaches the URL and the search unaccompanied", async () => {
     vi.useFakeTimers();
     const search = vi.fn();
     const onUrlUpdate = vi.fn();
@@ -1200,7 +1200,7 @@ describe("useSearchFilters gearbox (MAPUI-16)", () => {
     expect((await mountSearchFor("?gearbox=manual")).gearbox).toEqual(["manual"]);
   });
 
-  it("MAPUI-73: minKm=150000&maxKm=100000 mounts as sent and does not rewrite the URL", async () => {
+  it("MAPUI-85: minKm=150000&maxKm=100000 mounts as sent and does not rewrite the URL", async () => {
     const onUrlUpdate = vi.fn();
     const searchInput = await mountSearchFor("?minKm=150000&maxKm=100000", onUrlUpdate);
 

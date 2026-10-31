@@ -7,7 +7,7 @@ import { renderWithI18n } from "@/test/utils/render";
 import type { SearchInput } from "@/lib/search/schema";
 import { FilterPanel, type FilterPanelProps } from "./FilterPanel";
 
-// docs/specs/redesign-map.md (MAPUI-72 to MAPUI-74, owner report 2026-10-31):
+// docs/specs/redesign-map.md (MAPUI-84 to MAPUI-86, owner report 2026-10-31):
 // «Kilómetros y año» becomes two sections, «Kilómetros» (boxes «Mínimo» and
 // «Máximo») and «Año» (box «Desde»). «Mínimo»/«Máximo» read the same as the
 // price boxes' own labels, so every lookup below scopes with `within` the
@@ -35,8 +35,8 @@ const PHONE = {
   onDiscard: vi.fn(),
 } satisfies FilterPanelProps;
 
-describe("MAPUI-72: FilterPanel — exactly seven sections, in order", () => {
-  it("MAPUI-72: has Precio, Combustible, Cambio, Kilómetros, Año, Publicado and Marca y modelo, in that order", () => {
+describe("MAPUI-84: FilterPanel — exactly seven sections, in order", () => {
+  it("MAPUI-84: has Precio, Combustible, Cambio, Kilómetros, Año, Publicado and Marca y modelo, in that order", () => {
     renderWithI18n(<FilterPanel {...DESKTOP} />, { locale: "es" });
 
     // The sections are `h3`s under the panel's own `h2` title.
@@ -180,8 +180,8 @@ describe("MAPUI-19: FilterPanel — desktop mode", () => {
   });
 });
 
-describe("MAPUI-72: FilterPanel — phone mode", () => {
-  it("MAPUI-72: has the same seven sections as desktop", () => {
+describe("MAPUI-84: FilterPanel — phone mode", () => {
+  it("MAPUI-84: has the same seven sections as desktop", () => {
     renderWithI18n(<FilterPanel {...PHONE} />, { locale: "es" });
 
     // The sections are `h3`s under the sheet's `h2` title, which names the dialog.
@@ -302,8 +302,8 @@ describe("MAPUI-16: FilterPanel — Cambio back to Todos", () => {
   });
 });
 
-describe("MAPUI-72: FilterPanel — Kilómetros and Año, each scoped to its own section", () => {
-  it("MAPUI-72: Kilómetros holds Mínimo and Máximo; Año holds Desde, with their names and placeholders", () => {
+describe("MAPUI-84: FilterPanel — Kilómetros and Año, each scoped to its own section", () => {
+  it("MAPUI-84: Kilómetros holds Mínimo and Máximo; Año holds Desde, with their names and placeholders", () => {
     renderWithI18n(<FilterPanel {...DESKTOP} />, { locale: "es" });
 
     const kilometros = within(sectionNamed("Kilómetros"));
@@ -320,7 +320,7 @@ describe("MAPUI-72: FilterPanel — Kilómetros and Año, each scoped to its own
     expect(desde).toHaveAttribute("placeholder", "2017…");
   });
 
-  it("MAPUI-72: typing 0 into Mínimo is accepted", () => {
+  it("MAPUI-84: typing 0 into Mínimo is accepted", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} onChange={onChange} />, { locale: "es" });
     const minimo = within(sectionNamed("Kilómetros")).getByRole("textbox", { name: "Mínimo" });
@@ -332,8 +332,8 @@ describe("MAPUI-72: FilterPanel — Kilómetros and Año, each scoped to its own
   });
 });
 
-describe("MAPUI-73: FilterPanel — Mínimo applies as Máximo does", () => {
-  it("MAPUI-73: desktop, typing 50.000 into Mínimo and blurring applies minKm, needing no brand or model", () => {
+describe("MAPUI-85: FilterPanel — Mínimo applies as Máximo does", () => {
+  it("MAPUI-85: desktop, typing 50.000 into Mínimo and blurring applies minKm, needing no brand or model", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} onChange={onChange} />, { locale: "es" });
     const minimo = within(sectionNamed("Kilómetros")).getByRole("textbox", { name: "Mínimo" });
@@ -346,7 +346,7 @@ describe("MAPUI-73: FilterPanel — Mínimo applies as Máximo does", () => {
     expect(onChange).toHaveBeenCalledWith({ minKm: 50000 });
   });
 
-  it("MAPUI-73: desktop, Enter also applies the typed minimum", async () => {
+  it("MAPUI-85: desktop, Enter also applies the typed minimum", async () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} onChange={onChange} />, { locale: "es" });
     const minimo = within(sectionNamed("Kilómetros")).getByRole("textbox", { name: "Mínimo" });
@@ -357,7 +357,7 @@ describe("MAPUI-73: FilterPanel — Mínimo applies as Máximo does", () => {
     expect(onChange).toHaveBeenCalledWith({ minKm: 50000 });
   });
 
-  it("MAPUI-73: desktop, emptying a set Mínimo clears minKm and leaves maxKm as it is", () => {
+  it("MAPUI-85: desktop, emptying a set Mínimo clears minKm and leaves maxKm as it is", () => {
     const onChange = vi.fn();
     renderWithI18n(
       <FilterPanel {...DESKTOP} input={{ minKm: 50000, maxKm: 100000 }} onChange={onChange} />,
@@ -372,7 +372,7 @@ describe("MAPUI-73: FilterPanel — Mínimo applies as Máximo does", () => {
     expect(onChange.mock.calls[0][0]).toStrictEqual({ minKm: undefined, maxKm: 100000 });
   });
 
-  it("MAPUI-73: phone, a typed Mínimo reaches onChange only at Ver coches, with minKm 50000", async () => {
+  it("MAPUI-85: phone, a typed Mínimo reaches onChange only at Ver coches, with minKm 50000", async () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...PHONE} onChange={onChange} />, { locale: "es" });
     const minimo = within(sectionNamed("Kilómetros")).getByRole("textbox", { name: "Mínimo" });
@@ -385,7 +385,7 @@ describe("MAPUI-73: FilterPanel — Mínimo applies as Máximo does", () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ minKm: 50000 }));
   });
 
-  it("MAPUI-73: phone, closing without Ver coches discards the typed Mínimo", async () => {
+  it("MAPUI-85: phone, closing without Ver coches discards the typed Mínimo", async () => {
     const onChange = vi.fn();
     const onDiscard = vi.fn();
     renderWithI18n(<FilterPanel {...PHONE} onChange={onChange} onDiscard={onDiscard} />, {
@@ -401,8 +401,8 @@ describe("MAPUI-73: FilterPanel — Mínimo applies as Máximo does", () => {
   });
 });
 
-describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is swapped", () => {
-  it("MAPUI-74: desktop, worked example — typing 150.000 in Mínimo over an existing Máximo of 100.000 swaps on blur", () => {
+describe("MAPUI-86: FilterPanel — a typed minimum mileage above the maximum is swapped", () => {
+  it("MAPUI-86: desktop, worked example — typing 150.000 in Mínimo over an existing Máximo of 100.000 swaps on blur", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} input={{ maxKm: 100000 }} onChange={onChange} />, {
       locale: "es",
@@ -415,7 +415,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(onChange).toHaveBeenCalledWith({ minKm: 100000, maxKm: 150000 });
   });
 
-  it("MAPUI-74: desktop, worked example — typing 100.000 in Máximo under an existing Mínimo of 150.000 swaps on blur too", () => {
+  it("MAPUI-86: desktop, worked example — typing 100.000 in Máximo under an existing Mínimo of 150.000 swaps on blur too", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} input={{ minKm: 150000 }} onChange={onChange} />, {
       locale: "es",
@@ -428,7 +428,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(onChange).toHaveBeenCalledWith({ minKm: 100000, maxKm: 150000 });
   });
 
-  it("MAPUI-74: desktop, Enter swaps just as blur does", () => {
+  it("MAPUI-86: desktop, Enter swaps just as blur does", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} input={{ maxKm: 100000 }} onChange={onChange} />, {
       locale: "es",
@@ -441,7 +441,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(onChange).toHaveBeenCalledWith({ minKm: 100000, maxKm: 150000 });
   });
 
-  it("MAPUI-74: desktop, Enter on Máximo swaps too — worked example, Mínimo 150.000 and a typed Máximo of 100.000", () => {
+  it("MAPUI-86: desktop, Enter on Máximo swaps too — worked example, Mínimo 150.000 and a typed Máximo of 100.000", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} input={{ minKm: 150000 }} onChange={onChange} />, {
       locale: "es",
@@ -454,7 +454,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(onChange).toHaveBeenCalledWith({ minKm: 100000, maxKm: 150000 });
   });
 
-  it("MAPUI-74: desktop, Enter applies a swap and the focused box shows the applied amount, as after leaving it (amended 2026-10-31)", async () => {
+  it("MAPUI-86: desktop, Enter applies a swap and the focused box shows the applied amount, as after leaving it (amended 2026-10-31)", async () => {
     function ControlledPanel() {
       const [input, setInput] = useState<SearchInput>({ maxKm: 100000 });
       return (
@@ -478,7 +478,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     );
   });
 
-  it("MAPUI-74: phone, both typed, Ver coches hands over the swapped minKm 100000 and maxKm 150000", async () => {
+  it("MAPUI-86: phone, both typed, Ver coches hands over the swapped minKm 100000 and maxKm 150000", async () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...PHONE} onChange={onChange} />, { locale: "es" });
     const section = within(sectionNamed("Kilómetros"));
@@ -497,7 +497,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     );
   });
 
-  it("MAPUI-74: equal ends apply as typed", () => {
+  it("MAPUI-86: equal ends apply as typed", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} input={{ maxKm: 100000 }} onChange={onChange} />, {
       locale: "es",
@@ -510,7 +510,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(onChange).toHaveBeenCalledWith({ minKm: 100000, maxKm: 100000 });
   });
 
-  it("MAPUI-73: desktop, worked example — Mínimo 150.000 with no brand or model reaches onChange with no maximum", () => {
+  it("MAPUI-85: desktop, worked example — Mínimo 150.000 with no brand or model reaches onChange with no maximum", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} onChange={onChange} />, { locale: "es" });
     const minimo = within(sectionNamed("Kilómetros")).getByRole("textbox", { name: "Mínimo" });
@@ -521,7 +521,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(onChange).toHaveBeenCalledWith({ minKm: 150000, maxKm: undefined });
   });
 
-  it("MAPUI-73: desktop, Mínimo then Máximo blurred one after the other end with both in the last call", () => {
+  it("MAPUI-85: desktop, Mínimo then Máximo blurred one after the other end with both in the last call", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} onChange={onChange} />, { locale: "es" });
     const section = within(sectionNamed("Kilómetros"));
@@ -538,7 +538,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(onChange).toHaveBeenLastCalledWith({ minKm: 50000, maxKm: 100000 });
   });
 
-  it("MAPUI-73: phone, emptying a set Mínimo hands over minKm as an explicit undefined at Ver coches", async () => {
+  it("MAPUI-85: phone, emptying a set Mínimo hands over minKm as an explicit undefined at Ver coches", async () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...PHONE} input={{ minKm: 50000 }} onChange={onChange} />, {
       locale: "es",
@@ -554,7 +554,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(patch.minKm).toBeUndefined();
   });
 
-  it("MAPUI-72: Mínimo and Máximo show 50.000 and 100.000, scoped to Kilómetros", () => {
+  it("MAPUI-84: Mínimo and Máximo show 50.000 and 100.000, scoped to Kilómetros", () => {
     renderWithI18n(<FilterPanel {...DESKTOP} input={{ minKm: 50000, maxKm: 100000 }} />, {
       locale: "es",
     });
@@ -564,7 +564,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(section.getByRole("textbox", { name: "Máximo" })).toHaveValue("100.000");
   });
 
-  it("MAPUI-74: desktop, blurring an untouched Mínimo above the maximum still swaps it (amended 2026-10-31)", () => {
+  it("MAPUI-86: desktop, blurring an untouched Mínimo above the maximum still swaps it (amended 2026-10-31)", () => {
     const onChange = vi.fn();
     renderWithI18n(
       <FilterPanel {...DESKTOP} input={{ minKm: 150000, maxKm: 100000 }} onChange={onChange} />,
@@ -578,7 +578,7 @@ describe("MAPUI-74: FilterPanel — a typed minimum mileage above the maximum is
     expect(onChange).toHaveBeenCalledWith({ minKm: 100000, maxKm: 150000 });
   });
 
-  it("MAPUI-74: phone, an untouched sheet with the ends reversed hands over them swapped at Ver coches (amended 2026-10-31)", async () => {
+  it("MAPUI-86: phone, an untouched sheet with the ends reversed hands over them swapped at Ver coches (amended 2026-10-31)", async () => {
     const onChange = vi.fn();
     renderWithI18n(
       <FilterPanel {...PHONE} input={{ minKm: 150000, maxKm: 100000 }} onChange={onChange} />,
@@ -629,8 +629,8 @@ describe("MAPUI-83: FilterPanel — every section is named by its title", () => 
   );
 });
 
-describe("MAPUI-72: FilterPanel — number formatting on Máximo and Desde (amends MAPUI-11, MAPUI-14)", () => {
-  it("MAPUI-72: a typed maximum mileage and minimum year reach onChange as numbers once each box loses focus", () => {
+describe("MAPUI-84: FilterPanel — number formatting on Máximo and Desde (amends MAPUI-11, MAPUI-14)", () => {
+  it("MAPUI-84: a typed maximum mileage and minimum year reach onChange as numbers once each box loses focus", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} onChange={onChange} />, { locale: "es" });
 
@@ -787,7 +787,7 @@ describe("MAPUI-72: FilterPanel — number formatting on Máximo and Desde (amen
     expect(km).toHaveValue("120.000");
   });
 
-  it("MAPUI-72: Máximo and Desde show their visible labels and example placeholders, with names and no autofill", () => {
+  it("MAPUI-84: Máximo and Desde show their visible labels and example placeholders, with names and no autofill", () => {
     renderWithI18n(<FilterPanel {...DESKTOP} />, { locale: "es" });
 
     expect(within(sectionNamed("Kilómetros")).getByText("Máximo")).not.toHaveClass("sr-only");
@@ -804,8 +804,8 @@ describe("MAPUI-72: FilterPanel — number formatting on Máximo and Desde (amen
   });
 });
 
-describe("MAPUI-72: FilterPanel — number formatting and the km suffix on Mínimo (amends MAPUI-11)", () => {
-  it("MAPUI-72: the blurred Mínimo with 50000 shows 50.000 with the km suffix next to it, aria-hidden", () => {
+describe("MAPUI-84: FilterPanel — number formatting and the km suffix on Mínimo (amends MAPUI-11)", () => {
+  it("MAPUI-84: the blurred Mínimo with 50000 shows 50.000 with the km suffix next to it, aria-hidden", () => {
     renderWithI18n(<FilterPanel {...DESKTOP} input={{ minKm: 50000 }} />, { locale: "es" });
 
     const km = within(sectionNamed("Kilómetros")).getByRole("textbox", { name: "Mínimo" });
@@ -815,7 +815,7 @@ describe("MAPUI-72: FilterPanel — number formatting and the km suffix on Míni
     expect(suffix).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("MAPUI-72: the empty Mínimo shows no km suffix next to the placeholder", () => {
+  it("MAPUI-84: the empty Mínimo shows no km suffix next to the placeholder", () => {
     renderWithI18n(<FilterPanel {...DESKTOP} input={{}} />, { locale: "es" });
 
     const km = within(sectionNamed("Kilómetros")).getByRole("textbox", { name: "Mínimo" });
@@ -823,7 +823,7 @@ describe("MAPUI-72: FilterPanel — number formatting and the km suffix on Míni
     expect(km.nextElementSibling).toBeNull();
   });
 
-  it("MAPUI-72: Mínimo parses a typed amount with or without the thousands point, both to minKm 100000", () => {
+  it("MAPUI-84: Mínimo parses a typed amount with or without the thousands point, both to minKm 100000", () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...DESKTOP} onChange={onChange} />, { locale: "es" });
     const minimo = within(sectionNamed("Kilómetros")).getByRole("textbox", { name: "Mínimo" });
@@ -838,7 +838,7 @@ describe("MAPUI-72: FilterPanel — number formatting and the km suffix on Míni
   });
 });
 
-describe("MAPUI-21/MAPUI-73: FilterPanel — phone Kilómetros and Año apply without blur", () => {
+describe("MAPUI-21/MAPUI-85: FilterPanel — phone Kilómetros and Año apply without blur", () => {
   it("MAPUI-21: a typed maximum mileage reaches Ver coches without the box losing focus", async () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...PHONE} onChange={onChange} />, { locale: "es" });
@@ -851,7 +851,7 @@ describe("MAPUI-21/MAPUI-73: FilterPanel — phone Kilómetros and Año apply wi
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ maxKm: 100000 }));
   });
 
-  it("MAPUI-73: a typed minimum mileage also reaches Ver coches without the box losing focus", async () => {
+  it("MAPUI-85: a typed minimum mileage also reaches Ver coches without the box losing focus", async () => {
     const onChange = vi.fn();
     renderWithI18n(<FilterPanel {...PHONE} onChange={onChange} />, { locale: "es" });
 
@@ -954,12 +954,12 @@ describe("MAPUI-21/MAPUI-22: FilterPanel — phone apply and discard", () => {
   });
 });
 
-describe("MAPUI-72: FilterPanel — the controls it does not have", () => {
-  it("MAPUI-72: no horsepower, free-text, maximum-year or sort control (minKm now offered, MAPUI-72)", () => {
+describe("MAPUI-84: FilterPanel — the controls it does not have", () => {
+  it("MAPUI-84: no horsepower, free-text, maximum-year or sort control (minKm now offered, MAPUI-84)", () => {
     renderWithI18n(<FilterPanel {...DESKTOP} />, { locale: "es" });
 
     // The only amount boxes are the price boxes, Kilómetros's Mínimo and
-    // Máximo and Año's Desde (MAPUI-11, MAPUI-72, text boxes so they can show
+    // Máximo and Año's Desde (MAPUI-11, MAPUI-84, text boxes so they can show
     // the thousands point): no CV, no maximum year, and no other free-text
     // field.
     expect(screen.getAllByRole("textbox").map((box) => box.getAttribute("name"))).toEqual([

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-// docs/specs/redesign-map.md (MAPUI-72): the draft of the filters panel's
+// docs/specs/redesign-map.md (MAPUI-84): the draft of the filters panel's
 // desktop «Año» box, «Desde» (components/map/filters/FilterPanel.tsx).
 // «Kilómetros»'s «Mínimo» and «Máximo» share one draft instead
 // (lib/hooks/useMileageDraft.ts), since a typed minimum above the maximum
