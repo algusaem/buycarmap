@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.6.0...buycarmap-v0.7.0) (2026-10-31)
+
+
+### Features
+
+* **landing:** show a real listing in a whole phone map ([#167](https://github.com/algusaem/buycarmap/issues/167)) ([95ae462](https://github.com/algusaem/buycarmap/commit/95ae46278a0061a88290753de0af9a3e181372f5))
+* **map:** use the section links in the map header ([#158](https://github.com/algusaem/buycarmap/issues/158)) ([0d91438](https://github.com/algusaem/buycarmap/commit/0d91438eb2b0c3b3d932747293f93922d42791a0))
+
+
+### Bug Fixes
+
+* **map:** keep phone sheets above the iPhone keyboard ([#166](https://github.com/algusaem/buycarmap/issues/166)) ([940ac5c](https://github.com/algusaem/buycarmap/commit/940ac5c20875d90996a36d6b22d30796ff0d43a2))
+* **ui:** drag the phone map sheet from anywhere and scroll the landing ([#165](https://github.com/algusaem/buycarmap/issues/165)) ([4d3ed38](https://github.com/algusaem/buycarmap/commit/4d3ed38c23ebf0c95a60f70c681599215be9b41e))
+* **ui:** make the last surfaces follow the input that moved them ([#160](https://github.com/algusaem/buycarmap/issues/160)) ([7014dc1](https://github.com/algusaem/buycarmap/commit/7014dc180b7e746b1aa50c6f2556470e2ee5b50e))
+
 ## [0.6.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.5.0...buycarmap-v0.6.0) (2026-10-21)
 
 
