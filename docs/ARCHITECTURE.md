@@ -1561,6 +1561,12 @@ changes a screen regenerates its baseline the same way, after the owner reviews 
 `useSession()` resolves, and `next/font` loads asynchronously. Both raced the
 camera and made these tests look inherently flaky. They are not.
 
+**`networkidle` does not mean the session has resolved.** `get-session` goes out
+from the hydrated page, so a cold visit whose scripts keep the browser busy can
+reach `networkidle` before that request exists. A test that needs the signed-out
+header waits for it, or for its placeholders to be gone (`waitForSettledHeader`
+in `e2e/keyboard.spec.ts`).
+
 **`maxDiffPixels: 300` is calibrated, not arbitrary**: roughly 86 px of
 antialiasing noise between identical renders, versus 1,310 px for a one-step
 font-size change. Do not raise it to silence a failure — read the diff PNG in
