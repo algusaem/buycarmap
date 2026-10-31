@@ -238,7 +238,7 @@ export function LandingMapPreview({
         // chooses it, since the landing is a Server Component.
         desktop
           ? "@container hidden rounded-panel 3xl:col-start-2 3xl:row-span-full 3xl:row-start-1 3xl:block 3xl:aspect-map-preview 3xl:max-h-full 3xl:self-center"
-          : "mb-5 block rounded-preview px-3 pt-92.5 pb-3",
+          : "mb-5 block scroll-mb-5 rounded-preview px-3 pt-92.5 pb-3",
       )}
     >
       <div aria-hidden="true">
