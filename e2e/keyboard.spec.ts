@@ -178,6 +178,20 @@ async function tabWalk(
   return stops;
 }
 
+/**
+ * Waits until the header has left its session placeholders (HEAD-11), the
+ * state a walk over any page can compare. `networkidle` alone does not reach
+ * it: `get-session` only goes out from the hydrated page, so while the browser
+ * is still running a cold visit's scripts the network stays silent, and the
+ * idle mark can land before `load`, with the request not yet sent (first seen
+ * on PR #169's CI: idle before `load` at 3.5s, `get-session` out at 4.1s,
+ * answered at 4.8s, after the walk had passed the header).
+ */
+async function waitForSettledHeader(page: Page) {
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator('header [data-slot="skeleton"]')).toHaveCount(0, { timeout: 15_000 });
+}
+
 /** Compares `stops`' names against `expected` (a literal string, or a RegExp for a dynamic name). */
 function expectSequence(stops: { tag: string; name: string }[], expected: (string | RegExp)[]) {
   const actualNames = stops.map((stop) => stop.name);
@@ -725,9 +739,7 @@ test.describe("A11Y-4: every Tab stop of the walk-throughs is visible, not clipp
         await setLocale(page, "es");
         await page.setViewportSize(viewport);
         await page.goto(path);
-        // The headers draw placeholders until the session has resolved
-        // (HEAD-11): both walks start once the page has settled.
-        await page.waitForLoadState("networkidle");
+        await waitForSettledHeader(page);
 
         // Counts the stops first, then walks them again from a fresh
         // start — the skip link, the first Tab on a reloaded page — so that
@@ -735,7 +747,7 @@ test.describe("A11Y-4: every Tab stop of the walk-throughs is visible, not clipp
         const stops = await tabWalk(page, { maxStops: 60 });
         expect(stops.length, `${path} has no focusable stops`).toBeGreaterThan(0);
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForSettledHeader(page);
         for (let i = 0; i < stops.length; i++) {
           await page.keyboard.press("Tab");
           let info = await focusedInfo(page);
