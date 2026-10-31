@@ -65,8 +65,8 @@ test.describe("ENTRY-3: the landing search hands its choice to the map", () => {
     await page.setViewportSize(DESKTOP);
     await page.goto("/");
 
-    await page.getByRole("button", { name: /ciudad o código postal|city or postcode/i }).click();
-    const locationInput = page.getByPlaceholder(/ciudad o código postal|city or postcode/i);
+    await page.getByRole("button", { name: /^ciudad…?$|^city…?$/i }).click();
+    const locationInput = page.getByPlaceholder(/^ciudad…?$|^city…?$/i);
     await locationInput.fill("Madrid");
     await page.getByRole("option", { name: /Madrid/ }).click();
 
@@ -113,6 +113,30 @@ test.describe("ENTRY-3: the landing search hands its choice to the map", () => {
       page.getByRole("button", { name: /^(Hasta\s*10\.000\s*€|Up to\s*€10,000)$/ }),
     ).toBeVisible();
   });
+
+  // docs/specs/redesign-map.md (MAPUI-78, bug fix, owner report 2026-10-31):
+  // Enter with nothing highlighted chooses the first listed place — the
+  // desktop popover's own e2e/location-search.spec.ts case, through the
+  // landing's pill and «Buscar» instead of the map's.
+  test("MAPUI-78: Enter with no option highlighted chooses Madrid, and Buscar navigates with it", async ({
+    page,
+  }) => {
+    await page.route(NOMINATIM_URL, (route) => route.fulfill({ json: [MADRID_RESULT] }));
+    await page.setViewportSize(DESKTOP);
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /^ciudad…?$|^city…?$/i }).click();
+    const locationInput = page.getByPlaceholder(/^ciudad…?$|^city…?$/i);
+    await locationInput.fill("28013");
+    await expect(page.getByRole("option", { name: /Madrid/ })).toBeVisible();
+
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: /^(buscar|search)$/i }).click();
+
+    await expect(page).toHaveURL(/\/map\?/);
+    const url = new URL(page.url());
+    expect(url.searchParams.get("locationName")).toBe("Madrid");
+  });
 });
 
 // (F4 review round 1): ENTRY-5's phone card, forced to a phone viewport
@@ -137,6 +161,32 @@ test.describe("ENTRY-5: the phone landing card opens the BUSCAR sheet", () => {
 
     await expect(page).toHaveURL(/\/map\?maxPrice=15000/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  // docs/specs/redesign-map.md (MAPUI-78, bug fix, owner report 2026-10-31):
+  // the phone card's own «Dónde», through ENTRY-5's BUSCAR sheet, gets the
+  // same Enter behaviour as the desktop pill's (the test above this describe
+  // block).
+  test("MAPUI-78: on the phone card, Enter with no option highlighted chooses Madrid, and Ver coches navigates with it", async ({
+    page,
+  }) => {
+    await page.route(NOMINATIM_URL, (route) => route.fulfill({ json: [MADRID_RESULT] }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockListingSources(page);
+    await page.goto("/");
+
+    await page.getByTestId("landing-search-phone").click();
+    const sheet = page.getByRole("dialog", { name: /^(buscar|search)$/i });
+    const where = sheet.getByRole("combobox", { name: /^(ciudad|city)$/i });
+    await where.fill("28013");
+    await expect(sheet.getByRole("option", { name: /Madrid/ })).toBeVisible();
+
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: /^(ver coches|show cars)$/i }).click();
+
+    await expect(page).toHaveURL(/\/map\?/);
+    const url = new URL(page.url());
+    expect(url.searchParams.get("locationName")).toBe("Madrid");
   });
 });
 

@@ -2,7 +2,7 @@
 
 Key: MAPUI
 Status: Implemented
-Last updated: 2026-10-22
+Last updated: 2026-10-31
 
 ---
 
@@ -39,6 +39,17 @@ In scope:
 - **Crear alerta:** saving the current search as an alert.
 - **The phone tab bar:** on the map and on the signed-in pages, replacing the F2 bottom nav, with the phone headers losing the avatar.
 - **Removing the Radix select.**
+
+A buyer looking for a car with at least some mileage behind it cannot say so: the panel offers only a
+maximum. The field that picks the place promises postal codes and, whatever is typed, does nothing on
+Enter unless a suggestion was highlighted first with the arrows or the mouse, which reads as a search
+that does not work (owner report, 2026-10-31).
+
+The owner also reported on 2026-10-31 that mileage could not be set without a model. Neither the code
+nor production reproduces it: no control depends on brand or model, and `/map?minKm=150000&maxKm=200000`
+with no brand returned 79 cars in production that day, 39 from Wallapop and 40 from coches.net, all
+between 150.000 and 200.000 km. MAPUI-85 pins the behaviour; the one block left is «Crear alerta», where
+mileage alone is not specific enough (ALERT-38).
 
 ## Acceptance criteria
 
@@ -81,7 +92,8 @@ Search pill and its popovers (desktop)
   - a two-knob range from 0 to 30.000 € in steps of 500 €, where the right knob at the end means no
     maximum;
   - the «Mínimo» and «Máximo» boxes, which accept any amount;
-  - every amount box (the price boxes here, «Kilómetros, hasta» in the panel) shows its value with the
+  - every amount box (the price boxes here, «Kilómetros, hasta» in the panel; amended 2026-10-31: «Mínimo» and
+    «Máximo» of «Kilómetros», MAPUI-84) shows its value with the
     thousands point, «20.000» and «100.000», and reads what is typed with or without it: «100.000» and
     «100000» are both 100.000 (owner decision, 2026-10-13: «que lo muestre con puntos y lo entienda con
     o sin»);
@@ -114,7 +126,8 @@ Filters row and panel
   type-ahead), in that order. It has no horsepower, free text, minimum mileage, maximum year or sort
   control. «Kilómetros, hasta» accepts any whole amount from 0 (0 means cars with no mileage) and «Año,
   desde» any whole year: the panel refuses neither (owner decision, 2026-10-13: «0km es posible… hay
-  coches del 1900 en wallapop, deja de limitar»). (amended 2026-10-13)
+  coches del 1900 en wallapop, deja de limitar»). (amended 2026-10-13) — replaced by MAPUI-84 (amended 2026-10-31,
+  design accepted 2026-10-31)
 - [x] MAPUI-15 · unit — The fuel choices map onto the shared filter values:
   - «Gasolina» → `gasoline`;
   - «Diésel» → `gasoil`;
@@ -136,7 +149,8 @@ Filters row and panel
 - [x] MAPUI-18 · unit — A URL carrying a criterion the UI no longer offers still parses and still
   reaches the search, with no control or chip for it. Those criteria are `minKm`, `maxYear`,
   `minHorsePower`, `maxHorsePower`, `gearbox=semiautomatic`, `engine=cng` and the `?q=` text. «Borrar»
-  and «Quitar filtros» clear them (amends FRONT-13).
+  and «Quitar filtros» clear them (amends FRONT-13). — `minKm` leaves this list: the panel offers it
+  again (amended 2026-10-31, MAPUI-84)
 - [x] MAPUI-19 · component — On desktop the filters panel is a dropdown under «Filtros» with no close
   button:
   - every choice applies at once;
@@ -172,7 +186,7 @@ Phone
     redesign-saved.md);
   - «Borrar» empties the sheet's fields, applied only on «Ver coches».
 - [x] MAPUI-22 · component — The violet button opens the full-screen filters panel, with the same
-  sections as MAPUI-14 and the apply, discard and «Borrar» behaviour of MAPUI-21. Removing a chip
+  sections as MAPUI-14 (as amended by MAPUI-84) and the apply, discard and «Borrar» behaviour of MAPUI-21. Removing a chip
   from the filters row applies at once. — the violet button becomes the round «Filtros» button of
   the band, outlined in `line` with its violet badge, and a quick filter applies at once (MAPUI-63)
   (amended 2026-10-17, #134)
@@ -543,6 +557,47 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
   part changes, rises to the top of what scrolls, so the list it opens shows under it, in view (bug
   fix, 2026-10-31).
 
+Mileage range and «Dónde» (owner report, design accepted 2026-10-31).
+
+- [x] MAPUI-84 · component — The filters panel has exactly the sections Precio, Combustible, Cambio,
+  Kilómetros, Año, Publicado and Marca y modelo, in that order, on desktop and on the phone.
+  «Kilómetros» holds the boxes «Mínimo» and «Máximo», each showing «km» after a value, as «Máximo»
+  did on its own before. «Año» the box «Desde». Each mileage box accepts
+  any whole amount from 0 and «Desde» any whole year; the panel refuses neither. It has no horsepower,
+  free text, maximum year or sort control (replaces MAPUI-14).
+- [x] MAPUI-85 · component — «Mínimo» of «Kilómetros» applies as «Máximo» does: on desktop when the box
+  loses focus or on Enter, on the phone at «Ver coches». It sets `minKm` in the URL and in the search,
+  needs no brand or model, and emptying the box clears it.
+- [x] MAPUI-86 · component — A minimum mileage above the maximum is swapped with it when applied, typed
+  or not: on desktop when either box loses focus or on Enter, on the phone at «Ver coches». After
+  Enter applies a swap, the focused box shows the applied amount, as after leaving it.
+- [x] MAPUI-75 · unit — `minKm` is an active criterion: alone it reads «Desde 50.000 km»; with `maxKm`
+  both read as one criterion, «50.000 – 100.000 km». That text is what the «Filtros» badge counts as
+  one, and what the alert summary and the alert's criteria show (amends ALERTUI-5).
+- [x] MAPUI-76 · unit — «Hasta 100.000 km» reads `maxKm` alone. Pressing it with a `minKm` of 100.000
+  or less keeps that minimum; with a `minKm` above 100.000 it clears the minimum, since no car could
+  match. Releasing it leaves `minKm` as it is.
+- [x] MAPUI-77 · component — «Dónde» shows «Ciudad…» when empty and its field is named «Ciudad», on the
+  map and on the landing, on desktop and on the phone. Nothing on either page mentions postal codes.
+  A postal code typed there still lists what Nominatim answers.
+- [x] MAPUI-78 · component + e2e — In «Dónde», Enter with places listed and no search running chooses the highlighted one or,
+  with none highlighted, the first listed. Choosing that way does exactly what choosing it with the
+  pointer does on that surface, on the map and on the landing, on desktop and on the phone.
+- [x] MAPUI-79 · component — In «Dónde», Enter chooses nothing, and the field keeps its text and any
+  message, when no search is running and nothing is listed: under two characters, no place found, the
+  place search down, or the list closed with Escape.
+- [x] MAPUI-80 · component — In «Coche», Enter with no option highlighted still chooses nothing: the
+  first listed would be a guess between brands and models.
+- [x] MAPUI-81 · component + e2e — In «Dónde», Enter while the search for the typed text is running
+  chooses nothing yet and chooses the first place when that search lists one. Changing the text, the
+  search finding nothing or failing, or leaving the field drops it, and no earlier search's places
+  are ever chosen (amends MAP-20: Enter still selects nothing while loading, then acts on the answer).
+- [x] MAPUI-82 · unit — In the app, a mileage always groups its thousands, alone, in a range and in «Desde»: 9000
+  reads «9.000 km» in Spanish and "9,000 km" in English, the same as its box (extends MAPUI-57 to
+  mileage).
+- [x] MAPUI-83 · component — Every section of the filters panel is named by its title, so the two
+  «Mínimo» and the two «Máximo» can be told apart without seeing the panel.
+
 ## Worked examples
 
 **A fast flick on an idle page (MAPUI-60, bug fix #135).**
@@ -561,7 +616,7 @@ row, whose text comes from SearchPill's guide.
 
 | Search | Dónde | Coche | Precio |
 | --- | --- | --- | --- |
-| nothing chosen | «Ciudad o código postal…» (muted) | «Cualquier marca» | «Cualquiera» |
+| nothing chosen | «Ciudad…» (muted; was «Ciudad o código postal…», MAPUI-77) | «Cualquier marca» | «Cualquiera» |
 | Madrid, 50 km | «Madrid · 50 km» | | |
 | brand Toyota | | «Toyota» | |
 | Toyota Corolla | | «Toyota Corolla» | |
@@ -588,6 +643,9 @@ row, whose text comes from SearchPill's guide.
 | no criterion | «Hasta 100.000 km» | `maxKm=100000` | «Hasta 100.000 km» |
 | `maxKm=150000` | «Hasta 100.000 km» | `maxKm=100000` | «Hasta 100.000 km» |
 | `maxKm=100000` | «Hasta 100.000 km» | no maximum mileage | none |
+| `minKm=50000` | «Hasta 100.000 km» | `minKm=50000&maxKm=100000` | «Hasta 100.000 km» (MAPUI-76) |
+| `minKm=150000` | «Hasta 100.000 km» | `maxKm=100000`, no minimum | «Hasta 100.000 km» (MAPUI-76) |
+| `minKm=50000&maxKm=100000` | «Hasta 100.000 km» | `minKm=50000` | none (MAPUI-76) |
 
 With nothing pressed, `gearbox=manual,semiautomatic` (old link) reads «Manual» pressed: exactly one
 of `manual` and `automatic` is set (MAPUI-16), and `semiautomatic` has no control (MAPUI-18).
@@ -626,6 +684,24 @@ group's centre is at x 646, 74px left of the window's centre, and row two's cent
   list, Guardados SAVED-11, an alert's matches ALERTUI-17); the link draws no second outline.
   Moving the pointer over another card keeps the ring on the focused one.
 
+**Enter in «Dónde» (MAPUI-78, bug fix, owner report 2026-10-31).**
+
+- **Input:** `/map`, «Dónde» open, nothing chosen, «28013» typed, the list showing «Madrid» · «Comunidad
+  de Madrid», no option highlighted; Enter.
+- **Before the fix:** nothing happens: no place chosen, the URL stays `/map`, and the search stays
+  nationwide. Reproduced in production on 2026-10-31.
+- **Correct result:** «Madrid» is chosen with the radius in force, 50 km by default, and the search and
+  the URL change as they do when pressing that option.
+
+**Mileage boxes (MAPUI-85, MAPUI-86).**
+
+| Typed | URL |
+| --- | --- |
+| «Mínimo» 50.000, «Máximo» empty | `minKm=50000` |
+| «Mínimo» 50.000, «Máximo» 100.000 | `minKm=50000&maxKm=100000` |
+| «Mínimo» 150.000, «Máximo» 100.000 | `minKm=100000&maxKm=150000` (swapped) |
+| «Mínimo» 150.000 with no brand or model | `minKm=150000` |
+
 **Chip texts (MAPUI-13).** The chips are gone (MAPUI-63); the texts still name the criteria the
 «Filtros» badge counts.
 - `engine=gasoil`: one chip, «Diésel». `engine=gasoline,gasoil`: two chips, «Gasolina» and «Diésel».
@@ -633,6 +709,10 @@ group's centre is at x 646, 74px left of the window's centre, and row two's cent
 - `gearbox=automatic`: «Automático».
 - `maxPrice=20000`: «Hasta 20.000 €».
 - `maxKm=100000`: «Hasta 100.000 km». `minYear=2017`: «Desde 2017».
+- `minKm=50000`: «Desde 50.000 km». `minKm=50000&maxKm=100000`: one chip, «50.000 – 100.000 km»
+  (MAPUI-75).
+- `minKm=100000&maxKm=100000`: one chip, «100.000 km». `minKm=5000&maxKm=9000`: one chip,
+  «5.000 – 9.000 km». `formatMileage(9000, "es")` on its own: «9.000 km» (MAPUI-82).
 - `timeFilter=today`: «Últimas 24 h».
 - `make=Toyota&model=Corolla`: «Toyota Corolla».
 
@@ -782,7 +862,7 @@ Neither shows «Quitar filtros». In the strings above the space before «km» (
 | nothing | «» | «Cualquier marca · Cualquier precio» (too broad, MAPUI-41) |
 
 In the summary, the car comes first («Cualquier marca» when there is none) and the price second
-(«Cualquier precio» when there is none). Then come the fuels, the gearbox, «Hasta … km», «Desde …»
+(«Cualquier precio» when there is none). Then come the fuels, the gearbox, the mileage, «Desde …»
 and the place with its radius, each only when set.
 
 **Sign-in return (MAPUI-37, MAPUI-46; bug fix).**
@@ -899,6 +979,21 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
   - A typed minimum above the maximum is swapped (MAPUI-11).
   - An amount above 30.000 € puts the right knob at the end, with the exact amount kept in its box
     (MAPUI-11).
+  - Enter leaves the focused box showing the applied amount.
+- **Mileage.**
+  - A typed minimum above the maximum is swapped (MAPUI-86). A URL carrying one reaches the search as
+    it is: opening a link rewrites nothing. Applying the mileage orders it: leaving a box on the
+    desktop or «Ver coches» on the phone, typed or not, since a minimum above the maximum matches no
+    car.
+  - «Hasta 100.000 km» pressed over a minimum above 100.000 clears that minimum (MAPUI-76).
+  - An old link's or a saved alert's `minKm` now fills «Mínimo» and counts in the badge and the summary
+    (MAPUI-75).
+  - Until then the chip and the alert summary show the two ends in the order they came. «Crear
+    alerta» from such a link stores them that way: it matches no car, like the search.
+- **Enter in «Dónde».**
+  - A highlighted option wins over the first listed (MAPUI-78).
+  - Nothing listed and nothing running: Enter chooses nothing (MAPUI-79).
+  - Enter during a search waits for that search only (MAPUI-81): a keystroke after it cancels it.
 - **Criteria the UI no longer offers.**
   - Old links with removed criteria keep working, with no control or chip for them (MAPUI-18). A
     buyer with an empty result clears them with «Quitar filtros».
@@ -962,6 +1057,13 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
 - Recency on coches.net and Milanuncios. «Publicado» reaches Wallapop only, as `timeFilter` does today
   (`docs/specs/data-sources.md`).
 - A photo carousel on the card (its own issue).
+- Any mileage control on the landing: it offers «Dónde», «Coche» and «Precio» only ([ENTRY](redesign-entry.md)).
+- Filtering mileage on our side. The range reaches each source as a query and the merge does not
+  re-check it (`docs/specs/data-sources.md`); a seller's wrong figure stays wrong.
+- Enter in «Coche» (MAPUI-80).
+- «Buscar» and «Ver coches» with text typed and no place chosen: the text stays ignored, as today
+  (owner decision, 2026-10-31: decide once the Enter fix is in use).
+- What counts as specific enough for an alert: mileage alone still is not (ALERT-38).
 - Deduplicating the same car across sources (`docs/specs/data-sources.md`).
 - Showing the place name on `/alerts`. The stored criteria hold coordinates, not a name. (Amended
   2026-10-15, ALERTUI — redesign-alerts.md: in scope in F6, which stores the name on the alert,
@@ -969,6 +1071,8 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
 - Dragging the phone results sheet between its positions. The handle toggles them (MAPUI-23); the
   drag is tracked in [#126](https://github.com/algusaem/buycarmap/issues/126). (Amended 2026-10-17:
   in scope, MAPUI-58 to MAPUI-62, #133.)
+- The alert digest email's number format: it keeps its own, for prices as well as mileage (MAPUI-57
+  and MAPUI-82 stop at the app).
 
 ## Contracts
 
@@ -1029,9 +1133,16 @@ message (MAPUI-56).
   the network-failure message and the two toasts, «Alerta creada» and «Ya tienes esta alerta».
 - The grouped preview reuses the pin's group label (`map.pinGroup`); it has no key of its own.
 - Units take a non-breaking space (U+00A0) before them in the new strings: «50 km», «24 h».
-- The map's error-page line, the «Kilómetros, hasta» and «Año, desde» labels, the two no-match
-  messages and the place-search-down message (`search.placeSearchDown`, MAPUI-56) and the handle's
-  «Lista de resultados» are new keys too.
+- The mileage range (amended 2026-10-31): new keys `filters.km` («Kilómetros»), `filters.kmMin`
+  («Mínimo»), `filters.kmMax` («Máximo»), `filters.year` («Año»), `filters.yearFrom` («Desde»),
+  `filters.minKmPlaceholder` («50.000…») and `filters.minKmChip` («Desde {km}», MAPUI-75); English
+  "Mileage", "Minimum", "Maximum", "Year", "From". `filters.kmSuffix` renames `filters.maxKmSuffix`.
+  The range text itself (MAPUI-75, «50.000 – 100.000 km») has no key of its own — it is
+  `formatMileage`'s (MAPUI-82). The old «Kilómetros y año», «Kilómetros, hasta» and «Año, desde»
+  labels go once unused.
+  `search.wherePlaceholder` and `search.whereLabel` become «Ciudad…» / «Ciudad» ("City…" / "City").
+- The map's error-page line, the two no-match messages and the place-search-down message
+  (`search.placeSearchDown`, MAPUI-56) and the handle's «Lista de resultados» are new keys too.
 - `filters.*` keeps the five fuels, «Todos / Manual / Automático» and the four «Publicado» choices,
   and drops the removed ones once unused.
 - `map.addFavorite` / `map.removeFavorite` become «Guardar» / «Quitar de guardados» ("Save" / "Remove
@@ -1109,10 +1220,30 @@ resolves the name, the merge's model post-filter compares names, and a number wo
 that post-filter.
 
 **Removed controls, kept parameters.** Horsepower, minimum mileage, maximum year, semi-automatic and
-CNG leave the UI, and so does free text, which the landing stopped producing in F4 (ENTRY-6). The URL keeps understanding all of them.
+CNG leave the UI (the minimum mileage came back, MAPUI-84), and so does free text, which the landing stopped producing in F4 (ENTRY-6). The URL keeps understanding all of them.
 Old shared links and the current landing keep working instead of silently widening, and nothing a
 saved alert or a bookmark relies on breaks. Not showing them as chips is the cost: they would need
 copy and a design for criteria the product no longer offers.
+
+**The minimum mileage comes back (owner, 2026-10-31).** Removing it on 2026-10-13 made the range
+one-sided, and the owner wants both ends. Everything below the panel never stopped understanding it,
+which is why this is a panel, text and quick-filter change and no data one. «Año» became its own
+section because three boxes in one row leave too little width on a phone; `maxYear` stays retired,
+since nobody asked for it.
+
+**Enter takes the first place, not the first car.** A list of places is a ranking by one source with
+one obvious answer, and a user who typed a place and pressed Enter has already said what they mean.
+«Coche» mixes brands and models, so the first row is often not what was meant, and it keeps asking for
+a choice.
+
+**Enter waits for the answer (owner, 2026-10-31).** Places arrive after a pause, so anyone who types
+and presses Enter without stopping would still find an empty list and nothing would happen, the very
+complaint this fixes. MAP-20 keeps its reason: options a person cannot see are never chosen by their
+position; what is chosen is the first of the answer to the text on screen.
+
+**The quick filter clears an impossible minimum.** Keeping it would produce a range no car matches
+with no sign of why; swapping would set a maximum the pressed chip does not say. The chip's own text
+wins.
 
 **Hybrids grouped, gearbox single.** A buyer asks for "a hybrid", not for the plug-in distinction that
 two of the three sources fold anyway. The gearbox becomes one choice because coches.net and
@@ -1199,4 +1330,7 @@ the heading says «Más de N» until they run out.
 
 **Postal codes.** «Ciudad o código postal…» promises postal codes. During implementation, one manual
 Nominatim query confirms that `countrycodes=es` answers «28013» with Madrid. If it does not, the
-placeholder changes in the design first.
+placeholder changes in the design first. — The promise is gone (amended 2026-10-31, owner decision, MAPUI-77).
+Nominatim does answer postal codes: twelve probed on 2026-10-31 all returned one place, though some
+without a town («29600» → «29600, Spain»). The field reads «Ciudad…» because a city is what works best,
+and it keeps accepting a code rather than rejecting one that would have worked.

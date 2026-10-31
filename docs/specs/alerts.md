@@ -2,7 +2,7 @@
 
 Key: ALERT
 Status: Implemented
-Last updated: 2026-10-20
+Last updated: 2026-10-31
 
 ---
 
@@ -60,7 +60,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-25 · node — With email unconfigured, matches are still recorded and the run reports that nothing was sent, rather than silently succeeding
 - [x] ALERT-26 · node — Following the unsubscribe link in an email deactivates exactly that alert, with no session required — saving the same search again from the map reactivates it with the new name (MAPUI-43) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] ALERT-27 · node — An unsubscribe link with an unknown, malformed or already-used token changes nothing and reports the same response as a valid one
-- [x] ALERT-28 · component — The alerts page lists the user's alerts with a readable summary of the criteria and how many matches each has found — the list is the AlertCard: its criteria are ALERTUI-5's (car, fuels, price, gearbox, «Hasta N km», «Desde AAAA», then the zone with its stored place name), folded on one line or as chips on the open card, and the count reads «Sin coincidencias», «1 coincidencia» or «N coincidencias» (ALERTUI-6, ALERTUI-7, ALERTUI-9, ALERTUI-28) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
+- [x] ALERT-28 · component — The alerts page lists the user's alerts with a readable summary of the criteria and how many matches each has found — the list is the AlertCard: its criteria are ALERTUI-5's (car, fuels, price, gearbox, «Hasta N km» — the mileage may also read «Desde N km» or a range (amended 2026-10-31, MAPUI-75 — redesign-map.md), «Desde AAAA», then the zone with its stored place name), folded on one line or as chips on the open card, and the count reads «Sin coincidencias», «1 coincidencia» or «N coincidencias» (ALERTUI-6, ALERTUI-7, ALERTUI-9, ALERTUI-28) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
 - [x] ALERT-29 · component — With no alerts saved, the page shows an empty state offering a route to create one from a search — «¿Sin alertas?» over «Crea una», its line and «Buscar coches» to `/map`, with the map's pill «Aquí verás la zona de cada alerta» at desktop width (ALERTUI-40) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
 - [x] ALERT-30 · node — Visiting the alerts page without a session redirects to sign-in, carrying the intended path
 - [x] ALERT-31 · node — A run reports the age of the oldest un-polled criteria set, so a lap exceeding the freshness target is observable rather than silent
@@ -88,10 +88,12 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-53 · node — Saving an alert (new, reactivated or restored), deleting an alert, and pausing one from the unsubscribe link each set the key to the moment of the write, so the next run queries the database; saving criteria the user already has live, or refused by the cap, leaves the key alone
 - [x] ALERT-54 · node — When the key changes while a run is in progress, the run does not overwrite it at its end, so a write made during a run is never hidden by that run's older reading of the database
 - [x] ALERT-55 · node — With Redis erroring, a run queries the database as before and stores nothing, and a write whose key update fails still succeeds; each failure is logged and reported to Sentry. Without Upstash configured the gate is off: every run queries the database and every write leaves Redis untouched
+- [x] ALERT-56 · unit — The email shows each match's photo from its stored snapshot above the match's details, the full width of the match and 200 px high, with the listing's title as its alternative text; a match whose snapshot has no image shows, in the same place and size, a neutral box reading «Sin foto» / "No photo" instead of an image ([#152](https://github.com/algusaem/buycarmap/issues/152))
+- [x] ALERT-57 · unit — The email links to the alert's own page with a «Ver todos los coches» / "View all matches" button, and ends, below the card, with a footer that says why it was sent and carries two text links: «Gestionar alertas» / "Manage alerts" to `/alerts`, and «Dejar de recibir estos correos» / "Stop these emails" to the alert's unsubscribe link; neither URL is shown as visible text ([#152](https://github.com/algusaem/buycarmap/issues/152))
 
-Fifty-five criteria: forty-seven on the server boundary, five on rendering, one on
+Fifty-seven criteria: forty-seven on the server boundary, five on rendering, three on
 the email template, two on real Postgres. Twelve cover the management surface, eighteen
-the queue and cadence, nine discovery, ten delivery, six the UI.
+the queue and cadence, nine discovery, twelve delivery, six the UI.
 
 **ALERT-13 and ALERT-14 are the two `e2e` criteria, and they are the ones that
 cannot be faked.** Both are properties of the claim query — its exclusivity and
@@ -127,6 +129,8 @@ than as documentation.
 - **ALERT-53** — The key holds 12:25:00.000. At 12:10:00.000 Ada saves a new alert → the key holds 12:10:00.000; a run at 12:10:30 queries the database and polls the new criteria set (never polled → due). The same holds after `deleteAlert` and after a valid unsubscribe link at 12:10:00.000. Ada saving criteria she already has live at 12:10:00.000 → `created: false`, and the key still holds 12:25:00.000.
 - **ALERT-54** — A run starts at T = 12:00:00.000 and finds no key; at 12:00:20.000 Ada saves an alert (key 12:00:20.000); the run, from what it read before her save, computes 12:05:00.000 at its end → the key still holds 12:00:20.000, and the next run queries the database.
 - **ALERT-55** — Redis rejects the read at T = 12:00:00.000 → the run queries the database exactly as without the gate, no key is written, and one error is logged and one exception sent to Sentry. Redis rejects the write when Ada deletes her alert → `deleteAlert` returns success, the alert is soft-deleted, one error logged and one exception sent to Sentry. With `UPSTASH_REDIS_REST_URL` unset, a run at T queries the database and no Redis call is made.
+- **ALERT-56** — Locale "es", two matches: wallapop-golf-1 (title "Volkswagen Golf 2.0 TDI Advance", image "https://cdn.wallapop.com/images/golf-1.jpg") and milanuncios-golf-3 (title "Volkswagen Golf Variant 2.0 TDI Business", image "") → the HTML holds exactly one `<img>`, with `src` "https://cdn.wallapop.com/images/golf-1.jpg", `alt` "Volkswagen Golf 2.0 TDI Advance", width 100 % and height 200 px, placed before that match's title; for milanuncios-golf-3 no `<img>` and the text «Sin foto» in its place. The same matches in locale "en" → "No photo".
+- **ALERT-57** — App URL https://buycarmap.vercel.app, alert id alert-ada, unsubscribe token raw-token-ada, locale "es" → a button «Ver todos los coches» linking to https://buycarmap.vercel.app/alerts/alert-ada; below the card «Recibes esto porque creaste una alerta en BuyCarMap.», then «Gestionar alertas» linking to https://buycarmap.vercel.app/alerts and «Dejar de recibir estos correos» linking to https://buycarmap.vercel.app/api/alerts/unsubscribe?token=raw-token-ada; none of the three URLs appears in the HTML as visible text. Locale "en" → "View all matches", "You are receiving this because you set up an alert on BuyCarMap.", "Manage alerts", "Stop these emails".
 
 ## Data model
 
@@ -505,6 +509,11 @@ The email body resolves through `getTranslationsSync(locale)` with the locale
 read from `User.locale` — the one path that cannot use `getTranslations()`,
 because there is no request to read a cookie or `accept-language` from.
 
+ALERT-56 and ALERT-57 add two keys under `alerts.email`: `noPhoto` («Sin foto» /
+"No photo") and `manage` («Gestionar alertas» / "Manage alerts"). The button
+uses the existing `viewAll`, and the footer the existing `footer` and
+`unsubscribe`.
+
 ### Routing
 
 `/alerts` and `/alerts/[id]` join `PROTECTED_PREFIXES` and the `matcher` in
@@ -549,6 +558,16 @@ what stops a match count linking nowhere.
 > was created with (`Alert.placeName`). The same change corrects facts this
 > spec had gone stale on: the ids, the `Alert` table's `unsubscribeSubject`,
 > the message files, the scheduler and the runner's path to the upstreams.
+
+> **Amended 2026-10-27: ALERT-56 and ALERT-57, implemented ([#152](https://github.com/algusaem/buycarmap/issues/152)).**
+> The digest listed each match as text and closed on two bare URLs, the
+> alert's page and the unsubscribe link. It now shows each match's photo, with
+> a placeholder when the listing has none, links to the alert's page with a
+> button, and ends with a footer linking to `/alerts` beside the unsubscribe
+> link. The design is `docs/design/canvas/I152-correo-alerta.dc.html`; it keeps
+> the current email style, and moving the emails to the redesign stays
+> [#123](https://github.com/algusaem/buycarmap/issues/123). The photo is the
+> snapshot's `image`, already stored on `AlertMatch`, so no schema change.
 
 ### "New" cannot mean "published recently", so it means "not seen before"
 

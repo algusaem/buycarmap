@@ -145,7 +145,7 @@ test.describe("MAPUI-49: desktop search writes to the URL and Back restores it",
     // whatever the brand and the price asked for.
     const madridCar = page.getByRole("link", { name: /Audi A3 2\.0 TDI/ });
 
-    await page.getByRole("button", { name: /ciudad o código postal|city or postcode/i }).click();
+    await page.getByRole("button", { name: /^ciudad…?$|^city…?$/i }).click();
     await page.getByRole("combobox").fill("Madrid");
     await page
       .getByRole("option", { name: /madrid/i })
@@ -298,6 +298,154 @@ test.describe("MAPUI-50: phone BUSCAR sheet applies only on Ver coches", () => {
     await expect(summary).toHaveText(summaryBefore);
     await expect(page).toHaveURL(before);
     expect(page.url()).not.toContain("make=Toyota");
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-85, MAPUI-86, owner report 2026-10-31):
+// «Kilómetros» offers «Mínimo» again, applying as «Máximo» does, with a
+// reversed pair swapped on blur, Enter or «Ver coches».
+test.describe("MAPUI-85, MAPUI-86: Kilómetros — Mínimo reaches the URL, swapped if typed in reverse", () => {
+  const FILTERS = /^(filtros|filters)$/i;
+
+  test("MAPUI-85: desktop, typing a minimum and pressing Enter reaches the URL with no brand, badge 1", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "desktop-only — the phone flow is covered below");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockListingSources(page);
+    await page.goto("/map");
+
+    const header = page.getByTestId("header-desktop");
+    await header.getByRole("button", { name: FILTERS }).click();
+    const dialog = page.getByRole("dialog", { name: FILTERS });
+    const minimo = dialog.locator('input[name="minKm"]');
+    await minimo.fill("50000");
+    await minimo.press("Enter");
+
+    await expect(page).toHaveURL(/minKm=50000/);
+    expect(page.url()).not.toContain("make=");
+    await expect(page.getByRole("button", { name: FILTERS }).first()).toHaveAccessibleDescription(
+      /^1 /,
+    );
+  });
+
+  test("MAPUI-86: desktop, then typing a maximum under the minimum swaps both ends on blur, badge stays 1", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "desktop-only — the phone flow is covered below");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockListingSources(page);
+    await page.goto("/map");
+
+    const header = page.getByTestId("header-desktop");
+    await header.getByRole("button", { name: FILTERS }).click();
+    const dialog = page.getByRole("dialog", { name: FILTERS });
+    const minimo = dialog.locator('input[name="minKm"]');
+    await minimo.fill("50000");
+    await minimo.press("Enter");
+    await expect(page).toHaveURL(/minKm=50000/);
+
+    const maximo = dialog.locator('input[name="maxKm"]');
+    await maximo.fill("40000");
+    await maximo.blur();
+
+    await expect(page).toHaveURL(/minKm=40000/);
+    await expect(page).toHaveURL(/maxKm=50000/);
+    await expect(page.getByRole("button", { name: FILTERS }).first()).toHaveAccessibleDescription(
+      /^1 /,
+    );
+  });
+
+  test("MAPUI-86: phone, both ends typed in reverse, Ver coches hands them over swapped", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet flow");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockListingSources(page);
+    await page.goto("/map");
+
+    await page.getByRole("button", { name: FILTERS }).first().click();
+    const dialog = page.getByRole("dialog", { name: FILTERS });
+    await dialog.locator('input[name="minKm"]').fill("150000");
+    await dialog.locator('input[name="maxKm"]').fill("100000");
+    await dialog.getByRole("button", { name: /^(ver coches|show cars)$/i }).click();
+
+    await expect(page).toHaveURL(/minKm=100000/);
+    await expect(page).toHaveURL(/maxKm=150000/);
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-78, MAPUI-81, owner report 2026-10-31):
+// the phone BUSCAR sheet's «Dónde» combobox gets the same Enter behaviour as
+// the desktop popover (e2e/location-search.spec.ts).
+test.describe("MAPUI-78, MAPUI-81: phone BUSCAR sheet — Enter in Dónde", () => {
+  const CITY_NAME = /^(ciudad|city)$/i;
+
+  test("MAPUI-78: filling 28013, waiting for the option, Enter then Ver coches sets locationName", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet flow");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockListingSources(page);
+    await page.route(NOMINATIM_URL, (route) => route.fulfill({ json: [MADRID_RESULT] }));
+    await page.goto("/map");
+
+    await page
+      .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
+      .first()
+      .click();
+    const sheet = page.getByRole("dialog", { name: /^(buscar|search)$/i });
+    const where = sheet.getByRole("combobox", { name: CITY_NAME });
+    await where.fill("28013");
+    await expect(page.getByRole("option")).toHaveCount(1);
+
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: /^(ver coches|show cars)$/i }).click();
+
+    await expect(page).toHaveURL(/locationName=Madrid/);
+  });
+
+  test("MAPUI-81: Enter pressed immediately, with the answer held, chooses Madrid once released", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet flow");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockListingSources(page);
+    let resolveReached: (() => void) | undefined;
+    const reached = new Promise<void>((resolve) => {
+      resolveReached = resolve;
+    });
+    const routeGate = Promise.withResolvers<void>();
+    await page.route(NOMINATIM_URL, async (route) => {
+      resolveReached?.();
+      await routeGate.promise;
+      await route.fulfill({ json: [MADRID_RESULT] });
+    });
+    await page.goto("/map");
+
+    await page
+      .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
+      .first()
+      .click();
+    const sheet = page.getByRole("dialog", { name: /^(buscar|search)$/i });
+    const where = sheet.getByRole("combobox", { name: CITY_NAME });
+    await where.fill("28013");
+    await page.keyboard.press("Enter");
+
+    await reached;
+    // The request is still held: nothing chosen yet.
+    await expect(where).toHaveValue("28013");
+    routeGate.resolve();
+
+    await expect(where).toHaveValue("Madrid", { timeout: 10000 });
+    await page.getByRole("button", { name: /^(ver coches|show cars)$/i }).click();
+
+    await expect(page).toHaveURL(/locationName=Madrid/);
   });
 });
 
@@ -2067,7 +2215,7 @@ test.describe("MAPUI-72: the «BUSCAR» sheet over the iPhone keyboard", () => {
     await expect(sheet).toBeVisible();
 
     const whereField = page.getByRole("combobox", {
-      name: /ciudad o código postal|city or postcode/i,
+      name: /^(ciudad|city)$/i,
     });
     await whereField.click();
     await expect(whereField).toBeFocused();

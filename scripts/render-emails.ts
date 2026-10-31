@@ -70,6 +70,7 @@ function fixturesFor(locale: Locale) {
       matches: [SAMPLE_MATCH],
       unsubscribeUrl: `${APP_URL}/api/alerts/unsubscribe?token=t0k`,
       alertUrl: `${APP_URL}/alerts/alert_1`,
+      manageUrl: `${APP_URL}/alerts`,
     }),
   };
 }

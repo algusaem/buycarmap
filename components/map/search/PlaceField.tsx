@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { type KeyboardEvent, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { SelectedLocation, ShownPlace } from "@/interfaces/location";
 import type { GeocodingResult } from "@/lib/geo/nominatim";
@@ -22,6 +22,17 @@ import { ComboOption, Listbox, ListStatus, NoMatch, SearchField } from "./Combob
 // Nominatim could not be reached. Escape or a press outside closes the list
 // without choosing (lib/hooks/useOptionNavigation.ts). The list and the
 // no-match lines appear and leave at once (MOTION-13).
+//
+// Enter (MAPUI-78, MAPUI-79, MAPUI-81, bug fix, owner report 2026-10-31):
+// with places listed and none highlighted, it chooses the first, exactly as
+// the pointer would (`enterChoosesFirst`, lib/hooks/useOptionNavigation.ts).
+// While the search for the typed text is still running, it instead flags the
+// choice as pending (`pendingEnterRef`) and chooses nothing yet; once that
+// search settles (`useLocationSearch`'s `onSettled`, which only ever fires
+// for the still-current search), the pending choice picks the first place it
+// lists, or is dropped if it lists none or the search failed. Any later
+// keystroke, a cleared field or the field losing focus drops it too, so it
+// never resolves against an answer Enter was not pressed for.
 
 /**
  * The place and its region (Contracts › Location): the display name before
@@ -116,7 +127,19 @@ function placeStatusText(
 export function PlaceField({ value, onSelect, onClearPosition }: PlaceFieldProps) {
   const t = useTranslations();
   const locale = useLocale();
-  const { query, setQuery, results, isSearching, failed, clear } = useLocationSearch(locale);
+  // MAPUI-81: Enter pressed while the search for the typed text is still
+  // running. A ref, not state: it only ever matters inside the callbacks
+  // below, never for what renders.
+  const pendingEnterRef = useRef(false);
+  const { query, setQuery, results, isSearching, failed, clear } = useLocationSearch(
+    locale,
+    (data) => {
+      if (!pendingEnterRef.current) return;
+      pendingEnterRef.current = false;
+      const first = data[0];
+      if (first) choose(first);
+    },
+  );
   // While editing, the field shows what is typed; otherwise the chosen place,
   // or «Tu ubicación» while the browser's position stands in for one (MAP-32).
   const [editing, setEditing] = useState(false);
@@ -129,11 +152,25 @@ export function PlaceField({ value, onSelect, onClearPosition }: PlaceFieldProps
   // place search being down is a different message, never shown alongside it.
   const noMatch = searched && !failed && results.length === 0;
   const down = searched && failed;
-  const navigation = useOptionNavigation(searched && !down ? results.length : 0, (index) => {
-    const result = results[index];
-    if (result) choose(result);
-  });
+  const navigation = useOptionNavigation(
+    searched && !down ? results.length : 0,
+    (index) => {
+      const result = results[index];
+      if (result) choose(result);
+    },
+    true, // MAPUI-78: with none highlighted, Enter chooses the first listed.
+  );
   const { highlighted, setHighlighted, open: listed, listboxId } = navigation;
+
+  /** MAPUI-81: Enter while `loading` holds the choice for `onSettled` above, instead of navigation's own Enter (which sees no open list to act on anyway). */
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter" && loading) {
+      event.preventDefault();
+      pendingEnterRef.current = true;
+      return;
+    }
+    navigation.onKeyDown(event);
+  }
 
   const statusText = placeStatusText(
     { loading, down, noMatch, searched, resultCount: results.length },
@@ -166,19 +203,22 @@ export function PlaceField({ value, onSelect, onClearPosition }: PlaceFieldProps
         onValueChange={(text) => {
           setEditing(true);
           navigation.reset();
+          pendingEnterRef.current = false;
           setQuery(text);
         }}
         onClearText={() => {
           if (!editing && value && !isSelectedLocation(value)) onClearPosition?.();
           setEditing(true);
           navigation.reset();
+          pendingEnterRef.current = false;
           clear();
           inputRef.current?.focus();
         }}
         onBlur={() => {
+          pendingEnterRef.current = false;
           if (query === "") setEditing(false);
         }}
-        onKeyDown={navigation.onKeyDown}
+        onKeyDown={handleKeyDown}
       />
       {listed && (
         <PlaceListbox

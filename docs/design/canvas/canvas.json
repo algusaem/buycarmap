@@ -377,6 +377,14 @@
       "w": 2188,
       "x": 6150,
       "y": 3180
+    },
+    "I152-correo-alerta.dc.html": {
+      "h": 1540,
+      "page": "r3",
+      "title": "Correo de alerta · fotos y pie",
+      "w": 2010,
+      "x": 12864,
+      "y": 10600
     }
   },
   "createdOnFiles": {
@@ -426,6 +434,7 @@
     "F6-alerta-escritorio.dc.html",
     "F6-alerta-mas-estados.dc.html",
     "F0-estado-alertas-vacio.dc.html",
+    "I152-correo-alerta.dc.html",
     "F0-cuenta.dc.html",
     "F7-cuenta-editar.dc.html",
     "F7-cuenta-dos-pasos.dc.html",

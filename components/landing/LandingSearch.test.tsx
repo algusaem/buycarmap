@@ -44,15 +44,15 @@ describe("ENTRY-2: LandingSearch — desktop segments", () => {
     renderWithI18n(<LandingSearch />, { locale: "es" });
     const desktop = within(screen.getByTestId("landing-search-desktop"));
 
-    expect(desktop.getByRole("button", { name: "Ciudad o código postal…" })).toBeInTheDocument();
+    expect(desktop.getByRole("button", { name: "Ciudad…" })).toBeInTheDocument();
     expect(desktop.getByRole("button", { name: "Marca o modelo…" })).toBeInTheDocument();
     expect(desktop.getByRole("button", { name: "Cualquiera" })).toBeInTheDocument();
     expect(desktop.getByRole("button", { name: "Buscar" })).toBeInTheDocument();
 
-    await userEvent.click(desktop.getByRole("button", { name: "Ciudad o código postal…" }));
+    await userEvent.click(desktop.getByRole("button", { name: "Ciudad…" }));
 
     expect(screen.getByRole("dialog", { name: "Dónde" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Ciudad o código postal" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Ciudad" })).toBeInTheDocument();
   });
 
   it("ENTRY-2: with «Dónde» open, pressing «Coche» opens «Coche»", async () => {
@@ -60,7 +60,7 @@ describe("ENTRY-2: LandingSearch — desktop segments", () => {
     const desktop = within(screen.getByTestId("landing-search-desktop"));
     const carSegment = desktop.getByRole("button", { name: "Marca o modelo…" });
 
-    await userEvent.click(desktop.getByRole("button", { name: "Ciudad o código postal…" }));
+    await userEvent.click(desktop.getByRole("button", { name: "Ciudad…" }));
     expect(screen.getByRole("dialog", { name: "Dónde" })).toBeInTheDocument();
 
     await userEvent.click(carSegment);
@@ -89,8 +89,8 @@ describe("ENTRY-2: LandingSearch — desktop segments", () => {
     renderWithI18n(<LandingSearch />, { locale: "es" });
     const desktop = within(screen.getByTestId("landing-search-desktop"));
 
-    await userEvent.click(desktop.getByRole("button", { name: "Ciudad o código postal…" }));
-    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad o código postal" }), "Ma");
+    await userEvent.click(desktop.getByRole("button", { name: "Ciudad…" }));
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "Ma");
     await userEvent.click(await screen.findByRole("option", { name: "MadridComunidad de Madrid" }));
 
     await userEvent.click(desktop.getByRole("button", { name: "Marca o modelo…" }));
@@ -141,8 +141,8 @@ describe("ENTRY-3: LandingSearch — Buscar navigates with exactly what was chos
     renderWithI18n(<LandingSearch />, { locale: "es" });
     const desktop = within(screen.getByTestId("landing-search-desktop"));
 
-    await userEvent.click(desktop.getByRole("button", { name: "Ciudad o código postal…" }));
-    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad o código postal" }), "Ma");
+    await userEvent.click(desktop.getByRole("button", { name: "Ciudad…" }));
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "Ma");
     await userEvent.click(await screen.findByRole("option", { name: "MadridComunidad de Madrid" }));
 
     await userEvent.click(desktop.getByRole("button", { name: "Marca o modelo…" }));
@@ -168,6 +168,57 @@ describe("ENTRY-3: LandingSearch — Buscar navigates with exactly what was chos
       make: "Volkswagen",
       model: "Golf",
       maxPrice: "10000",
+    });
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-78, owner report 2026-10-31): Enter in
+// «Dónde» with no option highlighted chooses the first place, exactly as
+// clicking it would — so Buscar then navigates with that place's lat, lng,
+// placeId and locationName, as ENTRY-3's own click-driven test does.
+describe("MAPUI-78: LandingSearch — Enter in Dónde chooses the first place", () => {
+  it("MAPUI-78: Enter with no option highlighted chooses Madrid, and Buscar navigates with its lat, lng, placeId and locationName", async () => {
+    renderWithI18n(<LandingSearch />, { locale: "es" });
+    const desktop = within(screen.getByTestId("landing-search-desktop"));
+
+    await userEvent.click(desktop.getByRole("button", { name: "Ciudad…" }));
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "28013");
+    await screen.findByRole("option");
+
+    await userEvent.keyboard("{Enter}");
+    await userEvent.click(desktop.getByRole("button", { name: "Buscar" }));
+
+    expect(push).toHaveBeenCalledTimes(1);
+    const url = push.mock.calls[0][0] as string;
+    expect(pathOf(url)).toBe("/map");
+    expect(parsedParams(url)).toEqual({
+      lat: "40.4168",
+      lng: "-3.7038",
+      placeId: "1",
+      locationName: "Madrid",
+      radius: "50",
+    });
+  });
+
+  it("MAPUI-78: in the phone sheet, Enter with no option highlighted chooses Madrid, and Ver coches navigates with it", async () => {
+    renderWithI18n(<LandingSearch />, { locale: "es" });
+    await userEvent.click(screen.getByTestId("landing-search-phone"));
+
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "28013");
+    await screen.findByRole("option");
+
+    await userEvent.keyboard("{Enter}");
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(push).toHaveBeenCalledTimes(1);
+    const url = push.mock.calls[0][0] as string;
+    expect(pathOf(url)).toBe("/map");
+    expect(parsedParams(url)).toEqual({
+      lat: "40.4168",
+      lng: "-3.7038",
+      placeId: "1",
+      locationName: "Madrid",
+      radius: "50",
     });
   });
 });
@@ -242,7 +293,7 @@ describe("ENTRY-5: LandingSearch — the phone card opens the BUSCAR sheet", () 
     renderWithI18n(<LandingSearch />, { locale: "es" });
     await userEvent.click(screen.getByTestId("landing-search-phone"));
 
-    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad o código postal" }), "Ma");
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "Ma");
     await userEvent.click(await screen.findByRole("option", { name: "MadridComunidad de Madrid" }));
 
     await userEvent.type(screen.getByRole("combobox", { name: "Marca o modelo" }), "Volks");
@@ -273,8 +324,8 @@ describe("ENTRY-5: LandingSearch — the phone card opens the BUSCAR sheet", () 
     renderWithI18n(<LandingSearch />, { locale: "es" });
     const desktop = within(screen.getByTestId("landing-search-desktop"));
 
-    await userEvent.click(desktop.getByRole("button", { name: "Ciudad o código postal…" }));
-    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad o código postal" }), "Ma");
+    await userEvent.click(desktop.getByRole("button", { name: "Ciudad…" }));
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "Ma");
     await userEvent.click(await screen.findByRole("option", { name: "MadridComunidad de Madrid" }));
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Dónde" })).toBeNull());
@@ -300,8 +351,8 @@ describe("ENTRY-5: LandingSearch — the phone card opens the BUSCAR sheet", () 
     renderWithI18n(<LandingSearch />, { locale: "es" });
     const desktop = within(screen.getByTestId("landing-search-desktop"));
 
-    await userEvent.click(desktop.getByRole("button", { name: "Ciudad o código postal…" }));
-    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad o código postal" }), "Ma");
+    await userEvent.click(desktop.getByRole("button", { name: "Ciudad…" }));
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "Ma");
     await userEvent.click(await screen.findByRole("option", { name: "MadridComunidad de Madrid" }));
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Dónde" })).toBeNull());
