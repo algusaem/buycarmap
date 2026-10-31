@@ -106,11 +106,10 @@ describe("MAPUI-13: filterChips — nothing active", () => {
     expect(filterChips({}, ES_COPY)).toEqual([]);
   });
 
-  it("MAPUI-13: criteria the UI no longer offers give no chips (MAPUI-18)", () => {
+  it("MAPUI-13: criteria the UI no longer offers give no chips (MAPUI-18; minKm left this list, MAPUI-72)", () => {
     expect(
       filterChips(
         {
-          minKm: 10000,
           maxYear: 2015,
           minHorsePower: 90,
           maxHorsePower: 200,
@@ -119,6 +118,58 @@ describe("MAPUI-13: filterChips — nothing active", () => {
         ES_COPY,
       ),
     ).toEqual([]);
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-75, worked example "Chip texts"): minKm is
+// an active criterion again — the panel offers «Mínimo» (MAPUI-72) — so it now
+// gives a chip, alone «Desde 50.000 km», and combined with maxKm exactly ONE
+// range chip rather than two separate ones. formatMileage's space before "km"
+// is U+00A0 (FRONT-11, MAPUI-57).
+describe("MAPUI-75: filterChips — minimum mileage, alone and combined with the maximum", () => {
+  it("MAPUI-75: minKm=50000 alone gives one chip, Desde 50.000 km", () => {
+    const chips = filterChips({ minKm: 50000 }, ES_COPY);
+
+    expect(chips.map((chip) => chip.label)).toEqual(["Desde 50.000 km"]);
+  });
+
+  it("MAPUI-75: minKm=50000&maxKm=100000 gives exactly one km chip, the range 50.000 – 100.000 km", () => {
+    const chips = filterChips({ minKm: 50000, maxKm: 100000 }, ES_COPY);
+
+    expect(chips.map((chip) => chip.label)).toEqual(["50.000 – 100.000 km"]);
+  });
+
+  it("MAPUI-75: maxKm=100000 alone still reads Hasta 100.000 km, unchanged by the minimum's addition", () => {
+    expect(filterChips({ maxKm: 100000 }, ES_COPY).map((chip) => chip.label)).toEqual([
+      "Hasta 100.000 km",
+    ]);
+  });
+
+  it("MAPUI-75: English copy — minKm and maxKm together read the range, minKm alone reads From", () => {
+    expect(filterChips({ minKm: 50000, maxKm: 100000 }, EN_COPY).map((chip) => chip.label)).toEqual(
+      ["50,000 – 100,000 km"],
+    );
+    expect(filterChips({ minKm: 50000 }, EN_COPY).map((chip) => chip.label)).toEqual([
+      "From 50,000 km",
+    ]);
+  });
+
+  it("MAPUI-75: equal ends read as that one mileage, 100.000 km", () => {
+    expect(
+      filterChips({ minKm: 100000, maxKm: 100000 }, ES_COPY).map((chip) => chip.label),
+    ).toEqual(["100.000 km"]);
+  });
+
+  it("MAPUI-75: a four-digit range reads 5.000 – 9.000 km, grouped on both ends", () => {
+    expect(filterChips({ minKm: 5000, maxKm: 9000 }, ES_COPY).map((chip) => chip.label)).toEqual([
+      "5.000 – 9.000 km",
+    ]);
+  });
+
+  it("MAPUI-75: a minimum above the maximum (an old link's or a saved alert's reversed ends) reads in the order they came, 150.000 – 100.000 km", () => {
+    expect(
+      filterChips({ minKm: 150000, maxKm: 100000 }, ES_COPY).map((chip) => chip.label),
+    ).toEqual(["150.000 – 100.000 km"]);
   });
 });
 

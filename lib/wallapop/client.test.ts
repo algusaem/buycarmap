@@ -99,6 +99,13 @@ describe("buildWallapopQuery", () => {
     expect(q.get("max_km")).toBe("0");
   });
 
+  it("MAPUI-73: sends min_km alone, needing no brand", () => {
+    const q = buildWallapopQuery({ minKm: 50000 }, { lat: 40, lng: -3.5 });
+
+    expect(q.get("min_km")).toBe("50000");
+    expect(q.get("brand")).toBeNull();
+  });
+
   it("forwards the next_page cursor for pagination", () => {
     const q = buildWallapopQuery({}, { lat: 40, lng: -3.5, nextPage: "cursor-xyz" });
     expect(q.get("next_page")).toBe("cursor-xyz");

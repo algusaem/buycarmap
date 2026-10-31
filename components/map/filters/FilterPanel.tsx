@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import { useTranslations } from "next-intl";
 import { CarTypeahead } from "@/components/map/search/CarTypeahead";
 import { closeListboxFirst } from "@/components/map/search/Combobox";
+import { MileageRange } from "@/components/map/search/MileageRange";
 import { NumberBox } from "@/components/map/search/NumberBox";
 import { PanelSection } from "@/components/map/search/PanelSection";
 import { PriceRange } from "@/components/map/search/PriceRange";
@@ -27,12 +28,12 @@ import {
 import { chosenGearbox, OFFERED_GEARBOXES, type OfferedGearbox } from "@/lib/search/panel";
 import { type SearchInput, TIME_FILTERS } from "@/lib/search/schema";
 
-// docs/specs/redesign-map.md (MAPUI-14, MAPUI-16, MAPUI-17, MAPUI-19,
-// MAPUI-21, MAPUI-22); docs/design/system/components/FilterSheet/README.md.
-// The panel both the desktop dropdown and the phone full-screen sheet are
-// built from — the same six sections in the same order (Precio, Combustible,
-// Cambio, Kilómetros y año, Publicado, Marca y modelo); only the header, the
-// frame and how it closes change.
+// docs/specs/redesign-map.md (MAPUI-16, MAPUI-17, MAPUI-19,
+// MAPUI-21, MAPUI-22, MAPUI-72 to MAPUI-74); docs/design/system/components/
+// FilterSheet/README.md. The panel both the desktop dropdown and the phone
+// full-screen sheet are built from — the same seven sections in the same
+// order (Precio, Combustible, Cambio, Kilómetros, Año, Publicado, Marca y
+// modelo); only the header, the frame and how it closes change.
 //
 // - `desktop`: the dropdown's content (FilterRow frames it under «Filtros»).
 //   Every choice applies at once through `onChange`, «Borrar» is `onClear`
@@ -136,12 +137,13 @@ function PhoneFilterSheet({ input, onChange, onApply, onDiscard }: PhoneFilterSh
 interface PanelBodyProps {
   value: SearchInput;
   onChange: (patch: Partial<SearchInput>) => void;
-  /** MAPUI-21: the phone sheet applies «Kilómetros, hasta» and «Año, desde»
-   * as typed, like the price boxes, so «Ver coches» has them even unblurred. */
+  /** MAPUI-21: the phone sheet applies «Kilómetros»'s «Mínimo» and «Máximo»
+   * and «Año»'s «Desde» as typed, like the price boxes, so «Ver coches» has
+   * them even unblurred. */
   liveCriteria?: boolean;
 }
 
-/** The six sections, identical on desktop and phone (FilterSheet README › Cuerpo). */
+/** The seven sections, identical on desktop and phone (FilterSheet README › Cuerpo). */
 function PanelBody({ value, onChange, liveCriteria = false }: PanelBodyProps) {
   const t = useTranslations();
 
@@ -160,21 +162,19 @@ function PanelBody({ value, onChange, liveCriteria = false }: PanelBodyProps) {
       <PanelSection level={3} title={t("filters.transmission")}>
         <GearboxChoice gearbox={value.gearbox} onChange={(gearbox) => onChange({ gearbox })} />
       </PanelSection>
-      <PanelSection level={3} title={t("filters.kmAndYear")}>
-        <div className="flex gap-2.5">
-          <CriterionBox
-            name="maxKm"
-            label={t("filters.maxKm")}
-            placeholder={t("filters.maxKmPlaceholder")}
-            value={value.maxKm}
-            suffix={t("filters.maxKmSuffix")}
-            onCommit={(maxKm) => onChange({ maxKm })}
-            live={liveCriteria}
-            grouped
-          />
+      <PanelSection level={3} title={t("filters.km")}>
+        <MileageRange
+          minKm={value.minKm}
+          maxKm={value.maxKm}
+          onChange={onChange}
+          live={liveCriteria}
+        />
+      </PanelSection>
+      <PanelSection level={3} title={t("filters.year")}>
+        <div className="grid grid-cols-2 gap-2.5">
           <CriterionBox
             name="minYear"
-            label={t("filters.year")}
+            label={t("filters.yearFrom")}
             placeholder={t("filters.minYearPlaceholder")}
             value={value.minYear}
             onCommit={(minYear) => onChange({ minYear })}
@@ -302,38 +302,25 @@ interface CriterionBoxProps {
   /** MAPUI-21: in the phone sheet, every edit goes straight to `onCommit` as
    * typed — like the price boxes — so «Ver coches» has it even unblurred. */
   live?: boolean;
-  /** MAPUI-11: reads with the thousands point while not focused — «Kilómetros, hasta», never «Año, desde». */
-  grouped?: boolean;
-  /** MAPUI-14: «Kilómetros, hasta»'s «km», shown only once the box has a value. «Año, desde» has none. */
-  suffix?: string;
 }
 
 /**
- * «Kilómetros, hasta» / «Año, desde» (MAPUI-14): on desktop, a box applied
- * when it loses focus or on Enter — an emptied box clears the criterion; an
- * amount NumberBox cannot read («abc», «-5», «1.2.3x») never reaches here at
- * all, so the box keeps showing the criterion in force
- * (lib/hooks/useCriterionDraft.ts). In the phone sheet (`live`), every edit
- * applies at once instead, the way the price boxes already do
- * (lib/hooks/usePriceDraft.ts), since the sheet's own draft — not this box —
- * is what «Ver coches» later hands over. Split into two components, rather
- * than branching on `live` inside one, so the live path never calls
- * `useCriterionDraft` for a result it would throw away.
+ * «Año»'s «Desde» (MAPUI-72): on desktop, a box applied when it loses focus
+ * or on Enter — an emptied box clears the criterion; an amount NumberBox
+ * cannot read («abc», «-5», «1.2.3x») never reaches here at all, so the box
+ * keeps showing the criterion in force (lib/hooks/useCriterionDraft.ts). In
+ * the phone sheet (`live`), every edit applies at once instead, the way the
+ * price boxes already do (lib/hooks/usePriceDraft.ts), since the sheet's own
+ * draft — not this box — is what «Ver coches» later hands over. Split into
+ * two components, rather than branching on `live` inside one, so the live
+ * path never calls `useCriterionDraft` for a result it would throw away.
  */
 function CriterionBox(props: CriterionBoxProps) {
   if (props.live) return <LiveCriterionBox {...props} />;
   return <DraftCriterionBox {...props} />;
 }
 
-function LiveCriterionBox({
-  name,
-  label,
-  placeholder,
-  value,
-  onCommit,
-  grouped,
-  suffix,
-}: CriterionBoxProps) {
+function LiveCriterionBox({ name, label, placeholder, value, onCommit }: CriterionBoxProps) {
   return (
     <NumberBox
       name={name}
@@ -344,22 +331,11 @@ function LiveCriterionBox({
       onCommit={() => {
         // Already applied on every edit above; blur and Enter have nothing left to commit.
       }}
-      grouped={grouped}
-      suffix={suffix}
-      suffixOnlyWithValue
     />
   );
 }
 
-function DraftCriterionBox({
-  name,
-  label,
-  placeholder,
-  value,
-  onCommit,
-  grouped,
-  suffix,
-}: CriterionBoxProps) {
+function DraftCriterionBox({ name, label, placeholder, value, onCommit }: CriterionBoxProps) {
   const { draft, setDraft, commit } = useCriterionDraft(value, onCommit);
 
   return (
@@ -370,9 +346,6 @@ function DraftCriterionBox({
       value={draft}
       onValueChange={setDraft}
       onCommit={commit}
-      grouped={grouped}
-      suffix={suffix}
-      suffixOnlyWithValue
     />
   );
 }

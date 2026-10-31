@@ -4,9 +4,10 @@ import { type ChangeEvent, type KeyboardEvent, useId, useState } from "react";
 import { useLocale } from "next-intl";
 import { formatAmount } from "@/lib/format";
 
-// docs/design/system/components/FilterSheet/README.md (Precio, Kilómetros y
-// año): the number boxes of the price range («Mínimo», «Máximo») and of the
-// filters panel's «Kilómetros, hasta» and «Año, desde». `surface`, `line`
+// docs/design/system/components/FilterSheet/README.md (Precio, Kilómetros,
+// Año): the number boxes of the price range («Mínimo», «Máximo») and of
+// the filters panel's «Kilómetros» («Mínimo», «Máximo») and «Año»
+// («Desde»). `surface`, `line`
 // border (`lime` with focus, plus LOOK-11's 2px lime ring on the box),
 // `radius-field`, padding 10px 14px; the visible label at 11px `text-muted`
 // over the value at 16px, so a phone never zooms into it. The caller owns the
@@ -16,7 +17,7 @@ import { formatAmount } from "@/lib/format";
 // `type="text"` (MAPUI-11), not `type="number"`: a `grouped` box reads with
 // the thousands point while not focused (`formatAmount`), which a number
 // input's own formatting cannot show. While focused the box always shows
-// exactly what is typed, so formatting never fights the caret.
+// exactly what is typed until Enter applies it, so formatting never fights the caret.
 interface NumberBoxProps {
   name: string;
   label: string;
@@ -25,11 +26,11 @@ interface NumberBoxProps {
   /** Shown after the value, e.g. the euro sign. Always shown once given,
    * unless `suffixOnlyWithValue`. */
   suffix?: string;
-  /** MAPUI-14: for «Kilómetros, hasta», the «km» suffix shows only once the
-   * box has a value, never beside the placeholder — unlike the price boxes'
-   * «€», which this leaves alone. */
+  /** MAPUI-72: for «Kilómetros»'s «Mínimo» and «Máximo», the «km» suffix
+   * shows only once the box has a value, never beside the placeholder —
+   * unlike the price boxes' «€», which this leaves alone. */
   suffixOnlyWithValue?: boolean;
-  /** MAPUI-11: reads with the thousands point while not focused — the price boxes and «Kilómetros, hasta», never «Año, desde». */
+  /** MAPUI-11: reads with the thousands point while not focused — the price boxes and «Kilómetros»'s «Mínimo» and «Máximo», never «Año»'s «Desde». */
   grouped?: boolean;
   onValueChange: (value: number | undefined) => void;
   onCommit: () => void;
@@ -68,7 +69,7 @@ export function NumberBox({
   const id = useId();
   const locale = useLocale();
   // What is currently typed, while the box is being edited; `null` once it
-  // is not (reset on focus and blur), so the box falls back to showing
+  // is not (reset on focus, blur and Enter), so the box falls back to showing
   // `value` — the committed amount again when what was last typed could not
   // be read, since that never reached `onValueChange` to begin with.
   const [typedText, setTypedText] = useState<string | null>(null);
@@ -93,7 +94,12 @@ export function NumberBox({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter") onCommit();
+    if (event.key !== "Enter") return;
+    onCommit();
+    // Same as handleBlur (MAPUI-74, amended 2026-10-31): once Enter applies
+    // the committed amount — swapped or not — the box falls back to showing
+    // it formatted, rather than leaving what was typed on screen.
+    setTypedText(null);
   }
 
   return (

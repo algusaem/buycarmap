@@ -140,7 +140,7 @@ async function gotoMap(page: Page, path: string, ready: string): Promise<void> {
 }
 
 test.describe("A11Y-9: NVDA reads the search pill's segments and the submit/Crear alerta buttons by name", () => {
-  test("A11Y-9: tabbing through the pill speaks «Dónde», «Ciudad o código postal…», «Coche», «Cualquier marca», «Precio», «Cualquiera», «Buscar» and «Crear alerta»", async ({
+  test("A11Y-9: tabbing through the pill speaks «Dónde», «Ciudad…», «Coche», «Cualquier marca», «Precio», «Cualquiera», «Buscar» and «Crear alerta»", async ({
     nvda,
     page,
   }) => {
@@ -163,7 +163,7 @@ test.describe("A11Y-9: NVDA reads the search pill's segments and the submit/Crea
       0,
     );
     expect(log).toContain(spoken("Dónde"));
-    expect(log).toContain(spoken("Ciudad o código postal…"));
+    expect(log).toContain(spoken("Ciudad…"));
     expect(log).toContain(spoken("Coche"));
     expect(log).toContain(spoken("Cualquier marca"));
     expect(log).toContain(spoken("Precio"));

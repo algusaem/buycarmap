@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -87,6 +88,30 @@ describe("MAPUI-11: PricePopover — the Mínimo and Máximo boxes", () => {
 
     expect(screen.getByRole("textbox", { name: "Mínimo" })).toHaveValue("10.000");
     expect(screen.getByRole("textbox", { name: "Máximo" })).toHaveValue("15.000");
+  });
+
+  it("MAPUI-11: maximum 20.000, typing 25000 into Mínimo and Enter swaps to Mínimo 20.000, Máximo 25.000", async () => {
+    function ControlledPopover() {
+      const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
+      const [maxPrice, setMaxPrice] = useState<number | undefined>(20000);
+      return (
+        <PricePopover
+          minPrice={minPrice}
+          maxPrice={maxPrice}
+          onApply={(min, max) => {
+            setMinPrice(min);
+            setMaxPrice(max);
+          }}
+        />
+      );
+    }
+    renderWithI18n(<ControlledPopover />, { locale: "es" });
+
+    const minBox = screen.getByRole("textbox", { name: "Mínimo" });
+    await userEvent.type(minBox, "25000{Enter}");
+
+    expect(screen.getByRole("textbox", { name: "Mínimo" })).toHaveValue("20.000");
+    expect(screen.getByRole("textbox", { name: "Máximo" })).toHaveValue("25.000");
   });
 
   it("MAPUI-11 edge case: an amount above 30.000 € puts the right knob at the end but keeps the exact amount in its box", async () => {

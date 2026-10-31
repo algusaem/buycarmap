@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { SectionLabel } from "./Combobox";
 
 // docs/design/system/components/FilterSheet/README.md (Cuerpo) and
@@ -14,10 +14,11 @@ interface PanelSectionProps {
 
 export function PanelSection({ title, level, children }: PanelSectionProps) {
   const Heading = `h${level}` as const;
+  const headingId = useId();
 
   return (
-    <section className="flex flex-col gap-3">
-      <Heading>
+    <section className="flex flex-col gap-3" aria-labelledby={headingId}>
+      <Heading id={headingId}>
         <SectionLabel>{title}</SectionLabel>
       </Heading>
       {children}

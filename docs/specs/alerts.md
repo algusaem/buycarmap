@@ -2,7 +2,7 @@
 
 Key: ALERT
 Status: Implemented
-Last updated: 2026-10-20
+Last updated: 2026-10-31
 
 ---
 
@@ -60,7 +60,7 @@ ALERT-1's e2e half, ALERT-13 and ALERT-14 are proven only by the database-backed
 - [x] ALERT-25 · node — With email unconfigured, matches are still recorded and the run reports that nothing was sent, rather than silently succeeding
 - [x] ALERT-26 · node — Following the unsubscribe link in an email deactivates exactly that alert, with no session required — saving the same search again from the map reactivates it with the new name (MAPUI-43) (amended 2026-10-13, MAPUI — redesign-map.md)
 - [x] ALERT-27 · node — An unsubscribe link with an unknown, malformed or already-used token changes nothing and reports the same response as a valid one
-- [x] ALERT-28 · component — The alerts page lists the user's alerts with a readable summary of the criteria and how many matches each has found — the list is the AlertCard: its criteria are ALERTUI-5's (car, fuels, price, gearbox, «Hasta N km», «Desde AAAA», then the zone with its stored place name), folded on one line or as chips on the open card, and the count reads «Sin coincidencias», «1 coincidencia» or «N coincidencias» (ALERTUI-6, ALERTUI-7, ALERTUI-9, ALERTUI-28) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
+- [x] ALERT-28 · component — The alerts page lists the user's alerts with a readable summary of the criteria and how many matches each has found — the list is the AlertCard: its criteria are ALERTUI-5's (car, fuels, price, gearbox, «Hasta N km» — the mileage may also read «Desde N km» or a range (amended 2026-10-31, MAPUI-75 — redesign-map.md), «Desde AAAA», then the zone with its stored place name), folded on one line or as chips on the open card, and the count reads «Sin coincidencias», «1 coincidencia» or «N coincidencias» (ALERTUI-6, ALERTUI-7, ALERTUI-9, ALERTUI-28) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
 - [x] ALERT-29 · component — With no alerts saved, the page shows an empty state offering a route to create one from a search — «¿Sin alertas?» over «Crea una», its line and «Buscar coches» to `/map`, with the map's pill «Aquí verás la zona de cada alerta» at desktop width (ALERTUI-40) (amended 2026-10-15, ALERTUI — redesign-alerts.md)
 - [x] ALERT-30 · node — Visiting the alerts page without a session redirects to sign-in, carrying the intended path
 - [x] ALERT-31 · node — A run reports the age of the oldest un-polled criteria set, so a lap exceeding the freshness target is observable rather than silent

@@ -2,7 +2,7 @@
 
 Key: MAP
 Status: Implemented
-Last updated: 2026-10-21
+Last updated: 2026-10-31
 
 ---
 
@@ -50,7 +50,7 @@ also amend MAP-13, MAP-14 and MAP-25 here and MAPUI-4, MAPUI-20, MAPUI-21 and MA
 - [x] MAP-17 · unit — When the user has chosen a location, a listing whose position could only be resolved to the country-centre fallback is excluded rather than placed at the country centre
 - [x] MAP-18 · unit — When a model is selected, a listing that names the chosen model — ignoring case and accents — neither in its model field nor in its title does not appear in the results (amended 2026-10-14, ENTRY — redesign-entry.md, owner decision)
 - [x] MAP-19 · unit — When every listing on a fetched page is removed by the filters, the search keeps fetching until a page yields a listing or every source is exhausted — on the first search as well as on the sentinel
-- [x] MAP-20 · unit — While the location search is loading or has no results, no listbox is rendered: the combobox reports `aria-expanded="false"` with no `aria-controls`, and the loading or no-results text is announced through a polite status region that stays mounted. With results, `aria-controls="location-listbox"` and `aria-expanded="true"` point at the listbox of options. After the "Madrid" options show, typing more starts a new search: while it loads, no listbox is rendered (the previous options are not shown), `aria-expanded="false"`, and the status region reads "Loading…". While that new search loads, ArrowDown then Enter selects nothing — hidden options are not selectable. A response for an earlier query that arrives after a later query was typed is discarded: the listbox shows only the latest query's options, and while the latest search is pending it stays hidden. While options animate out — after a new query, Escape, a click outside, or a selection — they are no longer a listbox and cannot be selected; a click on a fading option selects nothing. A late response for "Madr" that arrives after the query was shortened to "M" is discarded: results stay empty and nothing is loading. — the combobox moves into the search pill's «Dónde» popover and the phone search sheet, where choosing a place applies it with the radius in force (MAPUI-3) (amended 2026-10-13, MAPUI — redesign-map.md) — the type-ahead options appear and leave at once (MOTION-13), so no option is ever fading; the rule stands only as «an option that has left cannot be selected» (amended 2026-10-18, MOTION — motion.md)
+- [x] MAP-20 · unit — (Enter during a search acts when it answers: amended 2026-10-31, MAPUI-81 — redesign-map.md.) While the location search is loading or has no results, no listbox is rendered: the combobox reports `aria-expanded="false"` with no `aria-controls`, and the loading or no-results text is announced through a polite status region that stays mounted. With results, `aria-controls="location-listbox"` and `aria-expanded="true"` point at the listbox of options. After the "Madrid" options show, typing more starts a new search: while it loads, no listbox is rendered (the previous options are not shown), `aria-expanded="false"`, and the status region reads "Loading…". While that new search loads, ArrowDown then Enter selects nothing — hidden options are not selectable. A response for an earlier query that arrives after a later query was typed is discarded: the listbox shows only the latest query's options, and while the latest search is pending it stays hidden. While options animate out — after a new query, Escape, a click outside, or a selection — they are no longer a listbox and cannot be selected; a click on a fading option selects nothing. A late response for "Madr" that arrives after the query was shortened to "M" is discarded: results stay empty and nothing is loading. — the combobox moves into the search pill's «Dónde» popover and the phone search sheet, where choosing a place applies it with the radius in force (MAPUI-3) (amended 2026-10-13, MAPUI — redesign-map.md) — the type-ahead options appear and leave at once (MOTION-13), so no option is ever fading; the rule stands only as «an option that has left cannot be selected» (amended 2026-10-18, MOTION — motion.md)
 - [x] MAP-21 · unit — If the map unmounts before the browser's geolocation resolves, the search is not repeated when it does.
 - [x] MAP-22 · unit — If the location search unmounts before its 400 ms debounce fires, no geocoding request is sent.
 - [x] MAP-23 · unit — Withdrawn 2026-10-19 by MAPLIBRE (map-maplibre.md): the map draws OpenFreeMap's vector tiles in its own style, with no tile URL left to build and no key. Was: Only the dark map tile URL remains (the light basemap and the theme that chose between them are gone), and it carries the CARTO Basemaps key from `NEXT_PUBLIC_CARTO_API_KEY` as the URL-encoded `key` query parameter; with no key configured the tile URL carries no `key` parameter. (amended 2026-10-12, LOOK — redesign-foundation.md)
@@ -183,8 +183,9 @@ The contracts are:
 
 - **`SearchInput`** (`lib/search/schema.ts`) — the one filter set all three
   sources translate from. Bounds worth keeping: latitude ±90, longitude ±180,
-  `distanceInKm` positive, `minYear` any whole year and `maxKm` any whole amount from 0 (owner
-  decision, 2026-10-13, [redesign-map.md](redesign-map.md) MAPUI-14), `timeFilter` one of
+  `distanceInKm` positive, `minYear` any whole year, `maxKm` any whole amount from 0 (owner
+  decision, 2026-10-13) and `minKm` any whole amount from 0
+  ([redesign-map.md](redesign-map.md) MAPUI-72, 2026-10-31), `timeFilter` one of
   `today` / `lastWeek` / `lastMonth`.
 - **`CarListing`** (`interfaces/listing.ts`) — what every source normalises to
   and what both the list and the map consume.

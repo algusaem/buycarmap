@@ -95,6 +95,49 @@ describe("MAPUI-40: alertSummary — price phrasing", () => {
   });
 });
 
+// docs/specs/redesign-map.md (MAPUI-75): minKm is an active criterion again,
+// so the summary and the criteria both carry it — alone as «Desde 50.000 km»,
+// combined with maxKm as the one range «50.000 – 100.000 km» (never two
+// separate mileage parts). formatMileage's space before "km" is U+00A0.
+describe("MAPUI-75: alertSummary and alertCriteria — minimum mileage", () => {
+  it("MAPUI-75: alertSummary with a brand, minKm and maxKm contains the range 50.000 – 100.000 km", () => {
+    const input: SearchInput = { brand: "Toyota", minKm: 50000, maxKm: 100000 };
+
+    expect(alertSummary(input, undefined, ES_COPY)).toBe(
+      "Toyota · Cualquier precio · 50.000 – 100.000 km",
+    );
+  });
+
+  it("MAPUI-75: alertCriteria with a brand, minKm and maxKm contains the range 50.000 – 100.000 km", () => {
+    const input: SearchInput = { brand: "Toyota", minKm: 50000, maxKm: 100000 };
+
+    expect(alertCriteria(input, null, ES_COPY)).toEqual(["Toyota", "50.000 – 100.000 km"]);
+  });
+
+  it("MAPUI-76: minKm above maxKm still reads as the range in the given order, 150.000 – 100.000 km", () => {
+    const input: SearchInput = { brand: "Toyota", minKm: 150000, maxKm: 100000 };
+
+    expect(alertSummary(input, undefined, ES_COPY)).toBe(
+      `Toyota · Cualquier precio · 150.000 – 100.000 km`,
+    );
+  });
+
+  it("MAPUI-75: a brand with minKm alone reads Toyota · Cualquier precio · Desde 50.000 km", () => {
+    const input: SearchInput = { brand: "Toyota", minKm: 50000 };
+
+    expect(alertSummary(input, undefined, ES_COPY)).toBe(
+      `Toyota · Cualquier precio · Desde 50.000 km`,
+    );
+    expect(alertCriteria(input, null, ES_COPY)).toEqual(["Toyota", `Desde 50.000 km`]);
+  });
+
+  it("MAPUI-75: English copy — alertCriteria with a brand and minKm reads From 50,000 km", () => {
+    const input: SearchInput = { brand: "Toyota", minKm: 50000 };
+
+    expect(alertCriteria(input, null, EN_COPY)).toEqual(["Toyota", `From 50,000 km`]);
+  });
+});
+
 describe("MAPUI-40: alertSummary — in the buyer's locale", () => {
   it("MAPUI-40: English copy writes the summary in English", () => {
     expect(alertSummary({ maxPrice: 15000 }, undefined, EN_COPY)).toBe("Any make · Up to €15,000");

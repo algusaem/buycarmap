@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chosenGearbox, hasPanelCriteria, PANEL_KEYS, panelCriteria } from "./panel";
+import { chosenGearbox, hasPanelCriteria, orderedKm, PANEL_KEYS, panelCriteria } from "./panel";
 
 // docs/specs/redesign-map.md (MAPUI-16, worked example "Gearbox"; MAPUI-18,
 // MAPUI-19).
@@ -92,5 +92,33 @@ describe("MAPUI-31: hasPanelCriteria — is a filter active beyond the place?", 
 
   it("MAPUI-31: a criterion the UI no longer offers (maxHorsePower) is a filter", () => {
     expect(hasPanelCriteria({ maxHorsePower: 150 })).toBe(true);
+  });
+
+  it("MAPUI-72: a minimum mileage alone is a filter", () => {
+    expect(hasPanelCriteria({ minKm: 50000 })).toBe(true);
+  });
+});
+
+describe("MAPUI-74: orderedKm — a typed minimum above the maximum is swapped", () => {
+  it("MAPUI-74: a minimum above the maximum is swapped", () => {
+    expect(orderedKm({ minKm: 150000, maxKm: 100000 })).toEqual({ minKm: 100000, maxKm: 150000 });
+  });
+
+  it("MAPUI-74: a minimum of 5000 above a maximum of 0 is swapped too", () => {
+    expect(orderedKm({ minKm: 5000, maxKm: 0 })).toEqual({ minKm: 0, maxKm: 5000 });
+  });
+
+  it("MAPUI-74: a minimum alone, with no maximum to compare it to, is left as it is", () => {
+    expect(orderedKm({ minKm: 150000, maxKm: undefined })).toEqual({
+      minKm: 150000,
+      maxKm: undefined,
+    });
+  });
+
+  it("MAPUI-74: a maximum alone, with no minimum to compare it to, is left as it is", () => {
+    expect(orderedKm({ minKm: undefined, maxKm: 100000 })).toEqual({
+      minKm: undefined,
+      maxKm: 100000,
+    });
   });
 });

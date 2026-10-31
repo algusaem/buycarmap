@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { axe } from "vitest-axe";
@@ -183,6 +183,501 @@ describe("MAPUI-5: LocationPopover — Toda España", () => {
     await userEvent.click(screen.getByRole("button", { name: "Toda España" }));
 
     expect(onClear).toHaveBeenCalledTimes(1);
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-77, owner report 2026-10-31): «Dónde»
+// shows «Ciudad…» when empty and is named «Ciudad» (never mentioning postal
+// codes), on the map and the landing, desktop and phone; a postal code typed
+// there still lists what Nominatim answers.
+describe("MAPUI-77: LocationPopover — the field is named Ciudad, not Ciudad o código postal", () => {
+  it("MAPUI-77: the field is named Ciudad in Spanish", () => {
+    renderWithI18n(<LocationPopover {...BASE} />, { locale: "es" });
+
+    expect(screen.getByRole("combobox", { name: "Ciudad" })).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: /código postal/i })).toBeNull();
+  });
+
+  it("MAPUI-77: the field is named City in English, with no mention of a postcode", () => {
+    renderWithI18n(<LocationPopover {...BASE} />, { locale: "en" });
+
+    expect(screen.getByRole("combobox", { name: "City" })).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: /postcode|postal/i })).toBeNull();
+  });
+
+  it("MAPUI-77: a postal code typed there still lists what Nominatim answers (worked example «28013» → Madrid)", async () => {
+    server.use(
+      http.get("https://nominatim.openstreetmap.org/search", () =>
+        HttpResponse.json([makeNominatimResult()]),
+      ),
+    );
+    renderWithI18n(<LocationPopover {...BASE} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "28013");
+
+    expect(
+      await screen.findByRole("option", { name: "MadridComunidad de Madrid" }),
+    ).toBeInTheDocument();
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-78, bug fix, owner report 2026-10-31):
+// Enter chooses the highlighted option or, with none highlighted, the first
+// listed — exactly the worked example «Enter in «Dónde»».
+describe("MAPUI-78: LocationPopover — Enter chooses the highlighted option or the first", () => {
+  function twoPlaces() {
+    server.use(
+      http.get("https://nominatim.openstreetmap.org/search", () =>
+        HttpResponse.json([
+          makeNominatimResult(),
+          makeNominatimResult({
+            place_id: 2,
+            display_name: "Barcelona, España",
+            lat: "41.3851",
+            lon: "2.1734",
+            address: { city: "Barcelona", state: "Cataluña" },
+          }),
+        ]),
+      ),
+    );
+  }
+
+  it("MAPUI-78: with two places listed and none highlighted, Enter chooses the first (worked example «28013» → Madrid)", async () => {
+    const onSelect = vi.fn();
+    twoPlaces();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "28013");
+    await screen.findAllByRole("option");
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith({
+      placeId: 1,
+      displayName: "Madrid",
+      lat: 40.4168,
+      lng: -3.7038,
+    });
+  });
+
+  it("MAPUI-78: ArrowDown twice then Enter chooses the second listed place", async () => {
+    const onSelect = vi.fn();
+    twoPlaces();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "28013");
+    await screen.findAllByRole("option");
+
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith({
+      placeId: 2,
+      displayName: "Barcelona",
+      lat: 41.3851,
+      lng: 2.1734,
+    });
+  });
+
+  it("MAPUI-78: the list closed with Escape, ArrowDown reopens it and Enter chooses the first listed", async () => {
+    const onSelect = vi.fn();
+    twoPlaces();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "28013");
+    await screen.findAllByRole("option");
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith({
+      placeId: 1,
+      displayName: "Madrid",
+      lat: 40.4168,
+      lng: -3.7038,
+    });
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-79): Enter chooses nothing, and the field
+// keeps its text and any message, when no search is running and nothing is
+// listed — under two characters, no place found, the place search down, or
+// the list closed with Escape.
+describe("MAPUI-79: LocationPopover — Enter chooses nothing when nothing is listed", () => {
+  it("MAPUI-79: under two characters, Enter chooses nothing", async () => {
+    const onSelect = vi.fn();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+    const combobox = screen.getByRole("combobox");
+
+    await userEvent.type(combobox, "M");
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(combobox).toHaveValue("M");
+  });
+
+  it("MAPUI-79: no place found, Enter chooses nothing and keeps the no-match message", async () => {
+    const onSelect = vi.fn();
+    server.use(http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.json([])));
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+    const combobox = screen.getByRole("combobox");
+
+    await userEvent.type(combobox, "Villarriba");
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("No existe ningún lugar con ese nombre"),
+    );
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(combobox).toHaveValue("Villarriba");
+    expect(screen.getByRole("status").textContent).toBe("No existe ningún lugar con ese nombre");
+  });
+
+  it("MAPUI-79: the place search down, Enter chooses nothing and keeps the down message", async () => {
+    const onSelect = vi.fn();
+    server.use(
+      http.get(
+        "https://nominatim.openstreetmap.org/search",
+        () => new HttpResponse(null, { status: 500 }),
+      ),
+    );
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+    const combobox = screen.getByRole("combobox");
+
+    await userEvent.type(combobox, "Madrid");
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe(
+        "El buscador de lugares no responde. Prueba otra vez.",
+      ),
+    );
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(combobox).toHaveValue("Madrid");
+    expect(screen.getByRole("status").textContent).toBe(
+      "El buscador de lugares no responde. Prueba otra vez.",
+    );
+  });
+
+  it("MAPUI-79: the list closed with Escape, a further Enter chooses nothing and keeps the text", async () => {
+    const onSelect = vi.fn();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+    const combobox = screen.getByRole("combobox");
+
+    await userEvent.type(combobox, "Madrid");
+    await screen.findByRole("option");
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(combobox).toHaveValue("Madrid");
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-81, amends MAP-20): Enter while the
+// search for the typed text is running chooses nothing yet, and chooses the
+// first place once that search lists one — never an earlier search's places,
+// and never once the text changed, the search found nothing or failed, or
+// the field was left.
+describe("MAPUI-81: LocationPopover — Enter while the search is running", () => {
+  // The exposed `server.events` type only carries "on"/"removeListener"/
+  // "removeAllListeners", not "once", so a single-fire subscription needs
+  // manual unsubscribing. Mirrors lib/hooks/useLocationSearch.test.tsx.
+  function waitForNextMockedResponse(): Promise<void> {
+    return new Promise((resolve) => {
+      const onMocked = () => {
+        server.events.removeListener("response:mocked", onMocked);
+        resolve();
+      };
+      server.events.on("response:mocked", onMocked);
+    });
+  }
+
+  /** One controllable Nominatim request per call, resolved in the order made. */
+  function controllableNominatim() {
+    const resolvers: Array<(response: Response) => void> = [];
+    server.use(
+      http.get(
+        "https://nominatim.openstreetmap.org/search",
+        () =>
+          new Promise<Response>((resolve) => {
+            resolvers.push(resolve);
+          }),
+      ),
+    );
+    return {
+      pendingCount: () => resolvers.length,
+      resolveNext(results: ReturnType<typeof makeNominatimResult>[]) {
+        const resolve = resolvers.shift();
+        if (!resolve) throw new Error("no pending Nominatim request to resolve");
+        resolve(HttpResponse.json(results));
+      },
+      resolveNextWithStatus(status: number) {
+        const resolve = resolvers.shift();
+        if (!resolve) throw new Error("no pending Nominatim request to resolve");
+        resolve(new HttpResponse(null, { status }));
+      },
+    };
+  }
+
+  it("MAPUI-81: Enter while pending chooses nothing yet, then the first place once the search answers", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "Madrid");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+
+    await userEvent.keyboard("{Enter}");
+    expect(onSelect).not.toHaveBeenCalled();
+
+    nominatim.resolveNext([makeNominatimResult()]);
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+    expect(onSelect).toHaveBeenCalledWith({
+      placeId: 1,
+      displayName: "Madrid",
+      lat: 40.4168,
+      lng: -3.7038,
+    });
+  });
+
+  it("MAPUI-81: changing the text after Enter drops the pending choice, and the new search's answer is not auto-chosen either", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "Mad");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+    await userEvent.keyboard("{Enter}");
+
+    await userEvent.type(screen.getByRole("combobox"), "r");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(2));
+
+    nominatim.resolveNext([makeNominatimResult()]);
+    nominatim.resolveNext([
+      makeNominatimResult({
+        place_id: 3,
+        display_name: "Madridejos, España",
+        address: { city: "Madridejos", state: "Toledo" },
+      }),
+    ]);
+
+    // Neither the superseded search's answer nor the new one's is ever
+    // auto-chosen: the Enter pressed before the text changed does not carry
+    // over to it.
+    await screen.findByRole("option", { name: /^Madridejos/ });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("MAPUI-81: the pending search finding nothing drops the Enter, with the no-match message shown", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "Villarriba");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+    await userEvent.keyboard("{Enter}");
+
+    nominatim.resolveNext([]);
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("No existe ningún lugar con ese nombre"),
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("MAPUI-81: the pending search failing drops the Enter, with the down message shown", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "Madrid");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+    await userEvent.keyboard("{Enter}");
+
+    nominatim.resolveNextWithStatus(500);
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe(
+        "El buscador de lugares no responde. Prueba otra vez.",
+      ),
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("MAPUI-81: leaving the field after Enter drops it — nothing is chosen once the answer arrives", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+    const combobox = screen.getByRole("combobox");
+
+    await userEvent.type(combobox, "Madrid");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+    await userEvent.keyboard("{Enter}");
+    fireEvent.blur(combobox);
+
+    nominatim.resolveNext([makeNominatimResult()]);
+
+    await screen.findByRole("option", { name: "MadridComunidad de Madrid" });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("MAPUI-81: with «Mad» already listed, typing another character and pressing Enter immediately chooses only the new search's first place", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "Mad");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+    nominatim.resolveNext([makeNominatimResult()]);
+    await screen.findByRole("option");
+
+    await userEvent.type(screen.getByRole("combobox"), "r");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+    await userEvent.keyboard("{Enter}");
+
+    expect(onSelect).not.toHaveBeenCalled();
+
+    nominatim.resolveNext([
+      makeNominatimResult({
+        place_id: 3,
+        display_name: "Madridejos, España",
+        lat: "39.4668",
+        lon: "-3.5323",
+        address: { city: "Madridejos", state: "Toledo" },
+      }),
+    ]);
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+    expect(onSelect).toHaveBeenCalledWith({
+      placeId: 3,
+      displayName: "Madridejos",
+      lat: 39.4668,
+      lng: -3.5323,
+    });
+  });
+
+  it("MAPUI-81: Madrid{Enter} typed in one go, inside the debounce, chooses the first place once the request resolves", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "Madrid{Enter}");
+    expect(onSelect).not.toHaveBeenCalled();
+
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+    nominatim.resolveNext([makeNominatimResult()]);
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+    expect(onSelect).toHaveBeenCalledWith({
+      placeId: 1,
+      displayName: "Madrid",
+      lat: 40.4168,
+      lng: -3.7038,
+    });
+  });
+
+  it("MAPUI-81: ArrowDown while pending does nothing — Enter still resolves to the first of two answers", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "Madrid");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{Enter}");
+    expect(onSelect).not.toHaveBeenCalled();
+
+    nominatim.resolveNext([
+      makeNominatimResult(),
+      makeNominatimResult({
+        place_id: 4,
+        display_name: "Barcelona, Catalunya",
+        lat: "41.3874",
+        lon: "2.1686",
+        address: { city: "Barcelona", state: "Catalunya" },
+      }),
+    ]);
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+    expect(onSelect).toHaveBeenCalledWith({
+      placeId: 1,
+      displayName: "Madrid",
+      lat: 40.4168,
+      lng: -3.7038,
+    });
+  });
+
+  it("MAPUI-81: unmounting after Enter while pending drops the choice once the search answers", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    const { unmount } = renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, {
+      locale: "es",
+    });
+
+    await userEvent.type(screen.getByRole("combobox"), "Madrid");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+    await userEvent.keyboard("{Enter}");
+
+    unmount();
+    const responseMocked = waitForNextMockedResponse();
+    nominatim.resolveNext([makeNominatimResult()]);
+    await responseMocked;
+
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("MAPUI-81: pressing Enter twice during a search still chooses only once", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "Madrid");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+
+    await userEvent.keyboard("{Enter}{Enter}");
+    nominatim.resolveNext([makeNominatimResult()]);
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+  });
+
+  it("MAPUI-81: Borrar texto after Enter drops the pending choice, even once the new search finds a place", async () => {
+    const onSelect = vi.fn();
+    const nominatim = controllableNominatim();
+    renderWithI18n(<LocationPopover {...BASE} onSelect={onSelect} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox"), "Madrid");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(1));
+    await userEvent.keyboard("{Enter}");
+
+    await userEvent.click(screen.getByRole("button", { name: "Borrar texto" }));
+    await userEvent.type(screen.getByRole("combobox"), "Ba");
+    await waitFor(() => expect(nominatim.pendingCount()).toBe(2));
+
+    // The superseded "Madrid" request, resolved first, then "Ba"'s own.
+    nominatim.resolveNext([makeNominatimResult()]);
+    nominatim.resolveNext([
+      makeNominatimResult({
+        place_id: 4,
+        display_name: "Barcelona, Catalunya",
+        lat: "41.3874",
+        lon: "2.1686",
+        address: { city: "Barcelona", state: "Catalunya" },
+      }),
+    ]);
+
+    await screen.findByRole("option", { name: /^Barcelona/ });
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });
 

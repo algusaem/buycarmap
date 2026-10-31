@@ -23,6 +23,13 @@ describe("buildCochesNetFilters", () => {
     expect(filters.km).toBeUndefined();
   });
 
+  it("MAPUI-73: translates minKm alone to a km range with no upper end, and no vehicles", () => {
+    const filters = buildCochesNetFilters({ minKm: 50000 });
+
+    expect(filters.km).toEqual({ from: 50000, to: null });
+    expect(filters.vehicles).toBeUndefined();
+  });
+
   it("maps fuel and transmission tokens to coches.net ids", () => {
     const filters = buildCochesNetFilters({ engine: ["gasoil"], gearbox: ["automatic"] });
 

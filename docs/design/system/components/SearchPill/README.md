@@ -2,7 +2,7 @@
 
 El buscador de toda la app: una píldora `surface` con borde `line` y tres segmentos (Dónde · Coche · Precio) separados por divisores `line`, y el botón `lime` al final.
 
-- Cada segmento: etiqueta `overline` en `text-muted` y valor en peso 600. Sin valor, el valor va en `text-muted`: «Ciudad o código postal…», «Marca o modelo…» y, en Precio, «Cualquiera» sin «…».
+- Cada segmento: etiqueta `overline` en `text-muted` y valor en peso 600. Sin valor, el valor va en `text-muted`: «Ciudad…», «Marca o modelo…» y, en Precio, «Cualquiera» sin «…».
 - **Tu ubicación**: cuando la posición del navegador hace de sitio, el valor de Dónde es «Tu ubicación · 50 km», igual que «Madrid · 50 km» con un sitio elegido y «Toda España» sin ninguno. Lo mismo en el resumen del móvil. «Toda España» la quita, y nunca va a la URL.
 - Precio es el último segmento y no lleva divisor antes del botón.
 - Pulsar un segmento abre su [SearchPopover](../SearchPopover/README.md) (ubicación y radio, marca o modelo, rango de precio). Cada segmento lleva `aria-haspopup="dialog"`; el abierto, `aria-expanded="true"` y un subrayado `lime` de 2px con `radius-pill`, a 22px de cada lado.

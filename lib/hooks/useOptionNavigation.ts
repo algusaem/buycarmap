@@ -13,7 +13,16 @@ import { type KeyboardEvent, useCallback, useEffect, useId, useRef, useState } f
 // `listboxId` names the listbox, `optionId(index)` each option, and
 // `activeDescendant` is the field's `aria-activedescendant`: the highlighted
 // option while the list shows.
-export function useOptionNavigation(count: number, choose: (index: number) => void) {
+//
+// `enterChoosesFirst` (MAPUI-78, «Dónde» only — «Coche» keeps guessing
+// nothing, MAPUI-80): with nothing highlighted, Enter chooses the first
+// listed instead of doing nothing. Off by default, so every caller but
+// PlaceField is unchanged.
+export function useOptionNavigation(
+  count: number,
+  choose: (index: number) => void,
+  enterChoosesFirst = false,
+) {
   const [highlighted, setHighlighted] = useState(-1);
   const [dismissed, setDismissed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,9 +66,13 @@ export function useOptionNavigation(count: number, choose: (index: number) => vo
       event.preventDefault();
       setHighlighted((index) => (index <= 0 ? count - 1 : index - 1));
     }
-    if (event.key === "Enter" && highlighted >= 0 && highlighted < count) {
+    if (event.key !== "Enter") return;
+    if (highlighted >= 0 && highlighted < count) {
       event.preventDefault();
       choose(highlighted);
+    } else if (enterChoosesFirst) {
+      event.preventDefault();
+      choose(0);
     }
   }
 

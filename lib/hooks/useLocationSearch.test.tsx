@@ -421,4 +421,119 @@ describe("useLocationSearch", () => {
     expect(result.current.results).toEqual([]);
     expect(result.current.isSearching).toBe(false);
   });
+
+  // docs/specs/redesign-map.md (MAPUI-81): PlaceField's own hook for acting on
+  // a request Enter was pressed on while it was pending, following the same
+  // out-of-order guard as `results`/`failed` above.
+  describe("MAPUI-81: onSettled", () => {
+    it("MAPUI-81: fires once with the mapped results on success", async () => {
+      vi.useFakeTimers();
+      const onSettled = vi.fn();
+      const { result } = renderHook(() => useLocationSearch("es", onSettled));
+
+      act(() => result.current.setQuery("Madrid"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(onSettled).toHaveBeenCalledTimes(1);
+      expect(onSettled).toHaveBeenCalledWith([
+        { placeId: 1, displayName: "Madrid, Comunidad de Madrid", lat: 40.4168, lng: -3.7038 },
+      ]);
+    });
+
+    it("MAPUI-81: fires once with an empty array on failure", async () => {
+      vi.useFakeTimers();
+      server.use(
+        http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.error()),
+      );
+      const onSettled = vi.fn();
+      const { result } = renderHook(() => useLocationSearch("es", onSettled));
+
+      act(() => result.current.setQuery("Madrid"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(onSettled).toHaveBeenCalledTimes(1);
+      expect(onSettled).toHaveBeenCalledWith([]);
+    });
+
+    it("MAPUI-81: fires only for the latest query, never for one a later query superseded", async () => {
+      vi.useFakeTimers();
+      const onSettled = vi.fn();
+      const release = holdNominatimResponse([makeNominatimResult()]);
+      const { result } = renderHook(() => useLocationSearch("es", onSettled));
+
+      act(() => result.current.setQuery("Madr"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      act(() => result.current.setQuery("Madri"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(onSettled).toHaveBeenCalledTimes(1);
+      expect(onSettled).toHaveBeenCalledWith([
+        { placeId: 1, displayName: "Madrid, Comunidad de Madrid", lat: 40.4168, lng: -3.7038 },
+      ]);
+
+      onSettled.mockClear();
+      await release();
+
+      expect(onSettled).not.toHaveBeenCalled();
+    });
+
+    it("MAPUI-81: is not called once the query is shortened below two characters while pending", async () => {
+      vi.useFakeTimers();
+      const onSettled = vi.fn();
+      const release = holdNominatimResponse([]);
+      const { result } = renderHook(() => useLocationSearch("es", onSettled));
+
+      act(() => result.current.setQuery("Madr"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      act(() => result.current.setQuery("M"));
+
+      await release();
+
+      expect(onSettled).not.toHaveBeenCalled();
+    });
+
+    it("MAPUI-81: is not called after unmounting before the debounce fires", async () => {
+      vi.useFakeTimers();
+      const onSettled = vi.fn();
+      const { result, unmount } = renderHook(() => useLocationSearch("es", onSettled));
+
+      act(() => result.current.setQuery("Madrid"));
+      unmount();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(onSettled).not.toHaveBeenCalled();
+    });
+
+    it("MAPUI-81: is not called when unmounted after the debounce fires, once the held request resolves", async () => {
+      vi.useFakeTimers();
+      const onSettled = vi.fn();
+      const release = holdNominatimResponse([makeNominatimResult()], "Madr");
+      const { result, unmount } = renderHook(() => useLocationSearch("es", onSettled));
+
+      act(() => result.current.setQuery("Madr"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      unmount();
+      await release();
+
+      expect(onSettled).not.toHaveBeenCalled();
+    });
+  });
 });
