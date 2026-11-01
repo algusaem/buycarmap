@@ -14,7 +14,7 @@ El selector de cada segmento del buscador (ver [SearchPill](../SearchPill/README
 
 ## Dónde
 
-- El campo «Ciudad o código postal» busca mientras escribes; cada sitio es una opción, con su provincia o comunidad en una segunda línea a 13px `text-muted` cuando la tiene («Madrid» · «Comunidad de Madrid»).
+- El campo «Ciudad» busca mientras escribes; cada sitio es una opción, con su provincia o comunidad en una segunda línea a 13px `text-muted` cuando la tiene («Madrid» · «Comunidad de Madrid»). Intro elige el sitio con el foco y, si ninguno lo tiene, el primero de la lista.
 - Debajo, un divisor `line-soft` a todo el ancho de la tarjeta y la sección «Radio»: chips de 10, 25, 50, 100 y 200 km que se reparten el ancho (un grupo de radios); el elegido en `violet` con `on-violet` y peso 800, los demás con borde `line` y peso 600. Sin sitio elegido, el grupo está desactivado (`aria-disabled="true"`, al 40 %, como «Crear alerta» desactivado) y se activa al elegir un sitio.
 - **Con tu ubicación**: cuando la posición del navegador hace de sitio, el campo dice «Tu ubicación», sin lista de sitios, y el radio está activo (50 km elegido). La quita «Toda España» en el desplegable, o la `x` de «Borrar texto» en la hoja «BUSCAR».
 - **Sin resultados**: si ningún sitio se llama así, en el lugar de la lista sale «No existe ningún lugar con ese nombre» a 15px en `text-muted`, anunciado como estado.
@@ -44,13 +44,13 @@ Un solo campo que busca mientras escribes, «Marca o modelo…».
 - Tocar el resumen del buscador (en la banda de arriba del mapa) abre la hoja. `surface`, borde superior `line`, `radius-sheet` arriba, pegada abajo y con el asa (`handle`, 40 × 5) arriba al centro. Detrás, el mapa oscurecido.
 - **Cabecera** de 70px, padding lateral 20px y divisor `line-soft`: a la izquierda, sin `x` a la vista, el sitio de «Cerrar», que queda oculto para lectores de pantalla y solo aparece ahí con el foco del teclado (botón de icono de 40px con borde `line` y la `x` de 14px); en medio «BUSCAR» en Unbounded 16 peso 800, a la derecha «Borrar» (botón de texto de 14px peso 700, subrayado).
 - **Cuerpo**: padding 22px 20px y 26px entre secciones, cada una con su `section-label`: «Dónde» (el campo y los chips de radio, de 44px de alto, que se reparten el ancho), «Coche» (el mismo campo que en escritorio, con el chip de la marca cuando la hay), «Descripción» (un campo de 52px sin lista de sugerencias, «Descripción: e46, gti…», ver [SearchPill](../SearchPill/README.md)) y «Precio» (el rango y las cajas).
-- **Pie**: padding 14px 20px 28px con divisor `line-soft` arriba, y «VER COCHES»: principal de 56px a todo el ancho con `button-display`. Mientras el teclado del móvil está abierto se oculta y la lista gana su sitio; vuelve al cerrarlo.
+- **Pie**: padding 14px 20px 28px con divisor `line-soft` arriba, y «VER COCHES»: principal de 56px a todo el ancho con `button-display`. Con el teclado del móvil abierto sigue a la vista, encima del teclado.
 - A diferencia del desplegable, lo elegido en la hoja no se aplica al momento: la búsqueda y el resumen de la fila cambian al pulsar «Ver coches». Cerrar la hoja descarta lo elegido y la deja como estaba; «Borrar» vacía los campos de la hoja, que tampoco se aplica hasta «Ver coches».
 - Se cierra arrastrando el asa hacia abajo, tocando fuera, con Escape, con «Cerrar» o con «Ver coches» (ver [BottomSheet](../BottomSheet/README.md) › Hojas modales).
 
 ## Teclado y lectores de pantalla
 
-- Cada campo es un `combobox` de su `listbox`: con las flechas se recorren las opciones, Intro elige la que tiene el foco y Escape cierra el desplegable y devuelve el foco a su segmento.
+- Cada campo es un `combobox` de su `listbox`: con las flechas se recorren las opciones, Intro elige la que tiene el foco (en Dónde, si ninguna lo tiene, la primera de la lista, y si aún está buscando la elige en cuanto llegue; en Coche, nada) y Escape cierra el desplegable y devuelve el foco a su segmento.
 - El número de resultados se anuncia en un texto oculto con `role="status"` y `aria-live="polite"` («4 resultados»).
 - Los chips de radio y los atajos de precio son grupos de radios; los mandos del rango, sliders con su valor en texto.
 

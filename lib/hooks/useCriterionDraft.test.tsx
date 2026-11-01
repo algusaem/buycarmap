@@ -2,10 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useCriterionDraft } from "./useCriterionDraft";
 
-// docs/specs/redesign-map.md (MAPUI-14): «Kilómetros, hasta» and «Año, desde»
-// apply on commit. There is no amount left to refuse here: NumberBox never
-// forwards unreadable text to `setDraft` in the first place, and the schema
-// accepts every whole number of 0 or more.
+// docs/specs/redesign-map.md (MAPUI-14): «Año»'s «Desde» applies on commit — the
+// hook now serves only that box, since «Kilómetros»'s «Mínimo» and «Máximo»
+// share useMileageDraft instead. There is no amount left to refuse here:
+// NumberBox never forwards unreadable text to `setDraft` in the first place,
+// and the schema accepts every whole number of 0 or more.
 
 function renderDraft(value: number | undefined, onCommit = vi.fn()) {
   const view = renderHook(

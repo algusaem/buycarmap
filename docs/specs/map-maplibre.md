@@ -2,7 +2,7 @@
 
 Key: MAPLIBRE
 Status: Implemented
-Last updated: 2026-10-21
+Last updated: 2026-11-01
 
 ---
 
@@ -75,6 +75,9 @@ The same map, on the new engine
   preview on desktop at once, Escape closes it and focus returns to the pin.
 - [x] MAPLIBRE-9 · e2e — On a phone, dragging the results sheet's handle or header moves the sheet and
   does not pan the map, and panning the map does not move the sheet.
+- [x] MAPLIBRE-16 · component — The map is fitted before any pin of a new generation goes on it (a
+  page's first results, or the alert newly open), so no pin of that generation is on the page in a
+  view not yet fitted to it. (amended 2026-11-01, bug fix)
 
 Where the map's code and data go
 
@@ -127,6 +130,14 @@ one zoom level lower:
 | default (Spain) | centre 40.4168, −3.7038, zoom 6 | same centre, zoom 5 |
 | fit to results | padding 40px, max zoom 14 | padding 56px (amended 2026-10-20), max zoom 13 |
 | phone zone preview | `paddingTopLeft` [80, 26], `paddingBottomRight` [0, 26] | padding top 26, left 80, right 0, bottom 26 |
+
+**The fit comes before the pins (MAPLIBRE-16, bug fix).** A search's first results are the Audi A3
+2.0 TDI at 14.500 €, and the next search's the Seat Leon FR at 9.500 €:
+
+- Before: each pin went on the map first and `fitBounds` ran a task later. Under load
+  `/alerts` could show the pin «Toyota Corolla 125H, 16.200 €» with `fitBounds` called 0 times.
+- After: `fitBounds` runs before the marker of each search's pin is added, and with that pin on
+  `/alerts`, `fitBounds` has been called 1 time.
 
 **Privacy page (MAPLIBRE-13).** In «Third-party services» / «Servicios de terceros», only the CARTO
 clause changes; the rest of each body and `updated` stay as FRONT-27 has them, with `updated` moved to

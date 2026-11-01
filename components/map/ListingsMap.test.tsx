@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as Sentry from "@sentry/nextjs";
-import { AttributionControl, MapLibreMap, Popup } from "maplibre-gl";
+import { AttributionControl, MapLibreMap, Marker, Popup } from "maplibre-gl";
 import { axe } from "vitest-axe";
 import { renderWithI18n } from "@/test/utils/render";
 import { withAnimations } from "@/test/utils/animations";
@@ -187,6 +187,20 @@ describe("ListingsMap viewport generation (MAP-25)", () => {
     rerender(<ListingsMap listings={[]} resultsGeneration={3} />);
     expect(fitBounds).toHaveBeenCalledTimes(2);
     fitBounds.mockRestore();
+  });
+
+  it("MAPLIBRE-16: the map is fitted before a generation's pins go on it, on the first results and on the next", () => {
+    const fitBounds = vi.spyOn(MapLibreMap.prototype, "fitBounds");
+    const addTo = vi.spyOn(Marker.prototype, "addTo");
+
+    const { rerender } = renderWithI18n(<ListingsMap listings={[AUDI]} resultsGeneration={1} />);
+    expect(fitBounds.mock.invocationCallOrder[0]).toBeLessThan(addTo.mock.invocationCallOrder[0]);
+
+    rerender(<ListingsMap listings={[SEAT]} resultsGeneration={2} />);
+    expect(fitBounds.mock.invocationCallOrder[1]).toBeLessThan(addTo.mock.invocationCallOrder[1]);
+
+    fitBounds.mockRestore();
+    addTo.mockRestore();
   });
 
   it("MAP-34: with a zone and no listings, the map frames the zone", () => {

@@ -178,6 +178,20 @@ async function tabWalk(
   return stops;
 }
 
+/**
+ * Waits until the header has left its session placeholders (HEAD-11), the
+ * state a walk over any page can compare. `networkidle` alone does not reach
+ * it: `get-session` only goes out from the hydrated page, so while the browser
+ * is still running a cold visit's scripts the network stays silent, and the
+ * idle mark can land before `load`, with the request not yet sent (first seen
+ * on PR #169's CI: idle before `load` at 3.5s, `get-session` out at 4.1s,
+ * answered at 4.8s, after the walk had passed the header).
+ */
+async function waitForSettledHeader(page: Page) {
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator('header [data-slot="skeleton"]')).toHaveCount(0, { timeout: 15_000 });
+}
+
 /** Compares `stops`' names against `expected` (a literal string, or a RegExp for a dynamic name). */
 function expectSequence(stops: { tag: string; name: string }[], expected: (string | RegExp)[]) {
   const actualNames = stops.map((stop) => stop.name);
@@ -541,17 +555,18 @@ test.describe("A11Y-2: each page has exactly one main landmark, targeted by the 
 //    its value; its overline label describes it"). With nothing chosen, the
 //    values (SearchPill.tsx: `where = placeLabel(place?.displayName, …)`,
 //    which is `undefined` with no place selected, confirmed against
-//    lib/search/filter-chips.test.ts's own "no location" case) are «Ciudad o
-//    código postal…» (`search.wherePlaceholder`, the Segment's own fallback
-//    — not «Toda España», which is `phone-summary.ts`'s fallback for the
-//    *phone* summary button only), «Cualquier marca» and «Cualquiera».
+//    lib/search/filter-chips.test.ts's own "no location" case) are «Ciudad…»
+//    (`search.wherePlaceholder`, the Segment's own fallback — not «Toda
+//    España», which is `phone-summary.ts`'s fallback for the *phone* summary
+//    button only; amended 2026-10-31, MAPUI-77, owner report), «Cualquier
+//    marca» and «Cualquiera».
 //  - «ES»/«EN» (LanguageControl.tsx): each button's drawn text is "ES"/"EN",
 //    but its `aria-label` is `t("nav.localeEs")`/`t("nav.localeEn")` —
 //    "Español"/"Inglés" in messages/es.json — which is its accessible name.
 const DESKTOP_MAP_SEQUENCE: (string | RegExp)[] = [
   "Saltar al contenido", // 1
   "BuyCarMap", // 2: the wordmark link
-  "Ciudad o código postal…", // 3: «Dónde» segment — accessible name is its value, see header note
+  "Ciudad…", // 3: «Dónde» segment — accessible name is its value, see header note
   "Cualquier marca", // 4: «Coche» segment
   "Cualquiera", // 5: «Precio» segment
   "Buscar", // 6
@@ -758,9 +773,7 @@ test.describe("A11Y-4: every Tab stop of the walk-throughs is visible, not clipp
         await setLocale(page, "es");
         await page.setViewportSize(viewport);
         await page.goto(path);
-        // The headers draw placeholders until the session has resolved
-        // (HEAD-11): both walks start once the page has settled.
-        await page.waitForLoadState("networkidle");
+        await waitForSettledHeader(page);
 
         // Counts the stops first, then walks them again from a fresh
         // start — the skip link, the first Tab on a reloaded page — so that
@@ -768,7 +781,7 @@ test.describe("A11Y-4: every Tab stop of the walk-throughs is visible, not clipp
         const stops = await tabWalk(page, { maxStops: 60 });
         expect(stops.length, `${path} has no focusable stops`).toBeGreaterThan(0);
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForSettledHeader(page);
         for (let i = 0; i < stops.length; i++) {
           await page.keyboard.press("Tab");
           let info = await focusedInfo(page);
@@ -802,7 +815,7 @@ test.describe("A11Y-5: Escape closes every opener at once, focus back on it, no 
     // Default values (see the A11Y-3 header note): the «Dónde» segment's
     // fallback is its placeholder, not «Toda España» (that is the phone
     // summary's own fallback).
-    for (const segmentName of [/ciudad o código postal/i, /cualquier marca/i, /cualquiera/i]) {
+    for (const segmentName of [/^ciudad…?$/i, /cualquier marca/i, /cualquiera/i]) {
       const segment = page.getByRole("search").getByRole("button", { name: segmentName }).first();
       await segment.focus();
       await page.keyboard.press("Enter");
@@ -1461,8 +1474,9 @@ const A11Y7_SEQUENCES: Record<
 //
 // Desktop, 1440×900 (`3xl` is 90rem, app/globals.css, so the 1440 grid):
 // LandingSearch.tsx's pill (SearchPill `variant="landing"`): each segment's
-// name is its value (see the A11Y-3 header note) — «Ciudad o código postal…»
-// (search.wherePlaceholder), «Marca o modelo…» (search.carPlaceholder, the
+// name is its value (see the A11Y-3 header note) — «Ciudad…» (amended
+// 2026-10-31, MAPUI-77, owner report; search.wherePlaceholder), «Marca o
+// modelo…» (search.carPlaceholder, the
 // landing's own «Coche» placeholder), «Cualquiera» (search.priceAny) — then
 // «Buscar», whose name is its drawn label (search.submit; the landing variant
 // sets no aria-label). Then Landing.tsx's «Populares» links in POPULAR_CARS
@@ -1477,7 +1491,7 @@ const LANDING_DESKTOP: (string | RegExp)[] = [
   "Inglés",
   "Entrar",
   "Crear cuenta",
-  "Ciudad o código postal…",
+  "Ciudad…",
   "Marca o modelo…",
   "Cualquiera",
   "Buscar",

@@ -130,3 +130,56 @@ describe("MAPUI-63: toggleQuickFilter and isQuickFilterOn (worked example)", () 
     expectPressed({ ...before, ...patch }, []);
   });
 });
+
+// docs/specs/redesign-map.md (MAPUI-76, worked example "Quick filters"
+// rows on minKm): «Hasta 100.000 km» reads maxKm alone, and pressing it
+// over a minimum above 100.000 clears that minimum — since no car could
+// match both — while a minimum of 100.000 or less is left as it is.
+describe("MAPUI-76: isQuickFilterOn and toggleQuickFilter — a minimum mileage in force", () => {
+  it("MAPUI-76: minKm=50000&maxKm=100000 reads Hasta 100.000 km as pressed (maxKm alone)", () => {
+    expect(isQuickFilterOn({ minKm: 50000, maxKm: 100000 }, "maxKm100k")).toBe(true);
+  });
+
+  it("MAPUI-76: minKm=50000, pressing Hasta 100.000 km sets the maximum and leaves the minimum", () => {
+    const before: SearchInput = { minKm: 50000 };
+
+    const patch = toggleQuickFilter(before, "maxKm100k");
+
+    expect(patch).toEqual({ maxKm: 100000 });
+    const after = { ...before, ...patch };
+    expect(after).toEqual({ minKm: 50000, maxKm: 100000 });
+    expectPressed(after, ["maxKm100k"]);
+  });
+
+  it("MAPUI-76: minKm=100000 (equal to the maximum), pressing Hasta 100.000 km keeps that minimum", () => {
+    const before: SearchInput = { minKm: 100000 };
+
+    const patch = toggleQuickFilter(before, "maxKm100k");
+
+    const after = { ...before, ...patch };
+    expect(after).toEqual({ minKm: 100000, maxKm: 100000 });
+  });
+
+  it("MAPUI-76: minKm=150000 (above the maximum), pressing Hasta 100.000 km clears that minimum", () => {
+    const before: SearchInput = { minKm: 150000 };
+
+    const patch = toggleQuickFilter(before, "maxKm100k");
+
+    // toStrictEqual: the minimum must be cleared with the key present, not
+    // merely left out — a patch merged with `{ ...before, ...patch }` only
+    // clears a field whose key is in the patch at all.
+    expect(patch).toStrictEqual({ maxKm: 100000, minKm: undefined });
+    expectPressed({ ...before, ...patch }, ["maxKm100k"]);
+  });
+
+  it("MAPUI-76: minKm=50000&maxKm=100000, releasing Hasta 100.000 km clears only the maximum", () => {
+    const before: SearchInput = { minKm: 50000, maxKm: 100000 };
+
+    const patch = toggleQuickFilter(before, "maxKm100k");
+
+    expect(patch).toStrictEqual({ maxKm: undefined });
+    const after = { ...before, ...patch };
+    expect(after).toEqual({ minKm: 50000, maxKm: undefined });
+    expectPressed(after, []);
+  });
+});

@@ -7,6 +7,7 @@ import { axe } from "vitest-axe";
 import { server } from "@/test/msw/server";
 import { renderWithI18n } from "@/test/utils/render";
 import { withAnimations } from "@/test/utils/animations";
+import { makeNominatimResult } from "@/test/fixtures/nominatim";
 import { SearchSheet, type SearchSheetProps } from "./SearchSheet";
 
 // The last input is page-wide (lib/input-modality.ts), so every test starts
@@ -41,7 +42,7 @@ describe("MAPUI-21: SearchSheet — opens with the four segments", () => {
     // Section labels over fields, not buttons (SearchPopover README › la hoja «BUSCAR»).
     const sections = within(dialog);
     expect(sections.getByText("Dónde")).toBeInTheDocument();
-    expect(sections.getByRole("combobox", { name: "Ciudad o código postal" })).toBeInTheDocument();
+    expect(sections.getByRole("combobox", { name: "Ciudad" })).toBeInTheDocument();
     expect(sections.getByText("Coche")).toBeInTheDocument();
     expect(sections.getByRole("combobox", { name: "Marca o modelo" })).toBeInTheDocument();
     expect(sections.getByText("Descripción")).toBeInTheDocument();
@@ -333,7 +334,7 @@ describe("MAPUI-21: SearchSheet — the place field's ×", () => {
     );
 
     // «Ma» typed over «Tu ubicación», then the × on that text.
-    await userEvent.tripleClick(screen.getByRole("combobox", { name: "Ciudad o código postal" }));
+    await userEvent.tripleClick(screen.getByRole("combobox", { name: "Ciudad" }));
     await userEvent.keyboard("Ma");
     await userEvent.click(screen.getByRole("button", { name: "Borrar texto" }));
     await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
@@ -412,10 +413,7 @@ describe("MAPUI-56: SearchSheet — no-match messages", () => {
     server.use(http.get("https://nominatim.openstreetmap.org/search", () => HttpResponse.json([])));
     renderWithI18n(<SearchSheet {...BASE} />, { locale: "es" });
 
-    await userEvent.type(
-      screen.getByRole("combobox", { name: "Ciudad o código postal" }),
-      "Villarriba",
-    );
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "Villarriba");
 
     await waitFor(() =>
       expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain(
@@ -423,6 +421,69 @@ describe("MAPUI-56: SearchSheet — no-match messages", () => {
       ),
     );
     expect(screen.queryByRole("listbox")).toBeNull();
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-78, MAPUI-81, owner report 2026-10-31):
+// Enter in «Dónde» with places listed and none highlighted chooses the first
+// listed, exactly as the pointer would, held in the sheet's own draft until
+// «Ver coches» — the same place the phone's other fields already wait for.
+describe("MAPUI-78: SearchSheet — Enter in Dónde chooses the first place, held until Ver coches", () => {
+  it("MAPUI-78: Enter with no option highlighted chooses the first place, which Ver coches then applies (worked example «28013» → Madrid)", async () => {
+    const onApply = vi.fn();
+    renderWithI18n(<SearchSheet {...BASE} onApply={onApply} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox", { name: "Ciudad" }), "28013");
+    await screen.findByRole("option");
+
+    await userEvent.keyboard("{Enter}");
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(onApply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        place: { placeId: 1, displayName: "Madrid", lat: 40.4168, lng: -3.7038 },
+      }),
+    );
+  });
+});
+
+describe("MAPUI-81: SearchSheet — Enter in Dónde while the search is running", () => {
+  it("MAPUI-81: Enter pressed while the search is pending chooses nothing yet, then the first place once it answers", async () => {
+    const handlerInvoked = Promise.withResolvers<void>();
+    const response = Promise.withResolvers<ReturnType<typeof makeNominatimResult>[]>();
+    server.use(
+      http.get("https://nominatim.openstreetmap.org/search", async () => {
+        handlerInvoked.resolve();
+        return HttpResponse.json(await response.promise);
+      }),
+    );
+    const onApply = vi.fn();
+    renderWithI18n(<SearchSheet {...BASE} onApply={onApply} />, { locale: "es" });
+    const combobox = screen.getByRole("combobox", { name: "Ciudad" });
+
+    // «28013» (the raw typed text) differs from the answer's displayName
+    // («Madrid»), so the box's value unambiguously tells "still typed" apart
+    // from "committed once the pending search answered".
+    await userEvent.type(combobox, "28013");
+    await handlerInvoked.promise;
+
+    await userEvent.keyboard("{Enter}");
+    // Nothing chosen yet, while the request is still pending: no place for
+    // «Ver coches» to apply.
+    expect(combobox).toHaveValue("28013");
+
+    response.resolve([makeNominatimResult()]);
+
+    await waitFor(() => expect(combobox).toHaveValue("Madrid"));
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(onApply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        place: { placeId: 1, displayName: "Madrid", lat: 40.4168, lng: -3.7038 },
+      }),
+    );
   });
 });
 

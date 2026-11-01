@@ -948,6 +948,7 @@ async function deliverPendingMatches(summary: RunSummary): Promise<boolean> {
       matches: matches.map((match) => ({ ...match, id: match.listingId })),
       unsubscribeUrl: `${appUrl}/api/alerts/unsubscribe?token=${token}`,
       alertUrl: `${appUrl}/alerts/${alert.id}`,
+      manageUrl: `${appUrl}/alerts`,
     };
     const { html, text } = await renderEmail(createElement(AlertDigestEmail, digestProps));
 

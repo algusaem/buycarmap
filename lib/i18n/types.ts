@@ -484,8 +484,11 @@ export interface Translations {
     fuelType: string;
     transmission: string;
     price: string;
-    maxKm: string;
+    km: string;
+    kmMin: string;
+    kmMax: string;
     year: string;
+    yearFrom: string;
     listed: string;
     transmissions: {
       manual: string;
@@ -505,11 +508,12 @@ export interface Translations {
       lastWeek: string;
       lastMonth: string;
     };
-    kmAndYear: string;
     maxKmPlaceholder: string;
-    maxKmSuffix: string;
+    minKmPlaceholder: string;
+    kmSuffix: string;
     minYearPlaceholder: string;
     maxKmChip: string;
+    minKmChip: string;
     minYearChip: string;
     brandAndModel: string;
   };

@@ -1901,9 +1901,7 @@ describe("MapView with the browser's position (issue #117)", () => {
     await screen.findByText(WALLAPOP_TITLE);
 
     // The browser has not answered yet: the pill has no place, and reads its placeholder.
-    await userEvent.click(
-      within(headerSlot).getByRole("button", { name: "Ciudad o código postal…" }),
-    );
+    await userEvent.click(within(headerSlot).getByRole("button", { name: "Ciudad…" }));
     await userEvent.click(await screen.findByRole("button", { name: "Toda España" }));
 
     await act(async () => {
@@ -1915,9 +1913,7 @@ describe("MapView with the browser's position (issue #117)", () => {
       .mocked(searchListings)
       .mock.calls.filter(([input]) => input.latitude !== undefined);
     expect(withLatitude).toEqual([]);
-    expect(
-      within(headerSlot).getByRole("button", { name: "Ciudad o código postal…" }),
-    ).toBeInTheDocument();
+    expect(within(headerSlot).getByRole("button", { name: "Ciudad…" })).toBeInTheDocument();
     expect(within(headerSlot).queryByText(/Tu ubicación/)).not.toBeInTheDocument();
     // The phone summary keeps its no-place reading too: «Toda España» over the car and price.
     expect(

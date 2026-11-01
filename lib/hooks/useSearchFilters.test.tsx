@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { NuqsTestingAdapter, withNuqsTestingAdapter } from "nuqs/adapters/testing";
+import {
+  NuqsTestingAdapter,
+  type OnUrlUpdateFunction,
+  withNuqsTestingAdapter,
+} from "nuqs/adapters/testing";
 import type { SearchInput } from "@/lib/search/schema";
+import { toggleQuickFilter } from "@/lib/search/quick-filters";
 
 // Geolocation is a dependency of the mount sequence, not a thing these tests
 // are about — except the geolocation cases (MAP-14, MAP-28 to MAP-37), which
@@ -1034,6 +1039,100 @@ describe("useSearchFilters updateInput (MAPUI-12)", () => {
       model: undefined,
     });
   });
+
+  it("MAPUI-85: commits minKm and maxKm to the URL and the search after the MAP-11 pause", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.updateInput({ minKm: 50000, maxKm: 100000 }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ minKm: 50000, maxKm: 100000 }),
+    );
+    const params = onUrlUpdate.mock.lastCall?.[0].searchParams;
+    expect(params?.get("minKm")).toBe("50000");
+    expect(params?.get("maxKm")).toBe("100000");
+  });
+
+  it("MAPUI-85: minKm reaches the search with no brand or model chosen", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.updateInput({ minKm: 50000 }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ minKm: 50000, brand: undefined, model: undefined }),
+    );
+  });
+
+  it("MAPUI-85: minKm=150000 with no brand or model reaches the URL and the search unaccompanied", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.updateInput({ minKm: 150000 }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ minKm: 150000, brand: undefined, model: undefined }),
+    );
+    const params = onUrlUpdate.mock.lastCall?.[0].searchParams;
+    expect(params?.get("minKm")).toBe("150000");
+    expect(params?.has("make")).toBe(false);
+    expect(params?.has("model")).toBe(false);
+  });
+
+  it("MAPUI-76: minKm=150000, pressing Hasta 100.000 km clears that minimum in the URL too", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?minKm=150000", onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.updateInput(toggleQuickFilter(result.current.input, "maxKm100k")));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    const params = onUrlUpdate.mock.lastCall?.[0].searchParams;
+    expect(params?.get("maxKm")).toBe("100000");
+    expect(params?.has("minKm")).toBe(false);
+  });
 });
 
 // docs/specs/redesign-map.md, worked example "«Quitar filtros» (MAPUI-31)":
@@ -1082,10 +1181,10 @@ describe("useSearchFilters «Quitar filtros» (MAPUI-31)", () => {
 
 // docs/specs/redesign-map.md, worked example "Gearbox (MAPUI-16)".
 describe("useSearchFilters gearbox (MAPUI-16)", () => {
-  async function mountSearchFor(searchParams: string) {
+  async function mountSearchFor(searchParams: string, onUrlUpdate?: OnUrlUpdateFunction) {
     const search = vi.fn<(params: SearchInput) => void>();
     renderHook(() => useSearchFilters(search, () => ""), {
-      wrapper: withNuqsTestingAdapter({ searchParams }),
+      wrapper: withNuqsTestingAdapter({ searchParams, onUrlUpdate }),
     });
     await act(async () => {
       await Promise.resolve();
@@ -1099,6 +1198,15 @@ describe("useSearchFilters gearbox (MAPUI-16)", () => {
 
   it("MAPUI-16: gearbox=manual sends manual", async () => {
     expect((await mountSearchFor("?gearbox=manual")).gearbox).toEqual(["manual"]);
+  });
+
+  it("MAPUI-85: minKm=150000&maxKm=100000 mounts as sent and does not rewrite the URL", async () => {
+    const onUrlUpdate = vi.fn();
+    const searchInput = await mountSearchFor("?minKm=150000&maxKm=100000", onUrlUpdate);
+
+    expect(searchInput.minKm).toBe(150000);
+    expect(searchInput.maxKm).toBe(100000);
+    expect(onUrlUpdate).not.toHaveBeenCalled();
   });
 });
 

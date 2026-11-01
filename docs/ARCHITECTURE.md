@@ -1465,7 +1465,9 @@ screen reader says, the engine every iPhone uses — is specified in
   `pnpm test:e2e` and `pnpm check:full`, on a GitHub-hosted `windows-2025`
   runner ([`screen-reader.yml`](../.github/workflows/screen-reader.yml)) — not
   locally. It asserts the app's own Spanish strings inside NVDA's spoken log,
-  never NVDA's role words ([ADR 0024](decisions/0024-guidepup-nvda.md)).
+  never NVDA's role words ([ADR 0024](decisions/0024-guidepup-nvda.md)). NVDA
+  quitting can take Chromium down with it, so each test launches its own
+  browser and closes it before NVDA quits.
 - **WebKit** (`webkit-iphone`, Playwright's newest iPhone descriptor; and
   `webkit-desktop`, desktop Safari at 1440 × 900) runs `e2e/map.spec.ts` and
   `e2e/navigation.spec.ts`, so `pnpm check:full` needs
@@ -1569,6 +1571,12 @@ changes a screen regenerates its baseline the same way, after the owner reviews 
 `e2e/visual.spec.ts`). The header swaps a placeholder for real links when
 `useSession()` resolves, and `next/font` loads asynchronously. Both raced the
 camera and made these tests look inherently flaky. They are not.
+
+**`networkidle` does not mean the session has resolved.** `get-session` goes out
+from the hydrated page, so a cold visit whose scripts keep the browser busy can
+reach `networkidle` before that request exists. A test that needs the signed-out
+header waits for it, or for its placeholders to be gone (`waitForSettledHeader`
+in `e2e/keyboard.spec.ts`).
 
 **`maxDiffPixels: 300` is calibrated, not arbitrary**: roughly 86 px of
 antialiasing noise between identical renders, versus 1,310 px for a one-step

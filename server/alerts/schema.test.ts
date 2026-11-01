@@ -85,6 +85,14 @@ describe("isSpecificEnough", () => {
     // "At least €500" excludes almost nothing, unlike a ceiling.
     expect(isSpecificEnough({ minPrice: 500 })).toBe(false);
   });
+
+  it("ALERT-38: a mileage range alone is not specific enough", () => {
+    expect(isSpecificEnough({ minKm: 50000, maxKm: 100000 })).toBe(false);
+  });
+
+  it("ALERT-38: a mileage range alongside a brand is specific enough", () => {
+    expect(isSpecificEnough({ brand: "Toyota", minKm: 50000 })).toBe(true);
+  });
 });
 
 describe("parseStoredCriteria", () => {

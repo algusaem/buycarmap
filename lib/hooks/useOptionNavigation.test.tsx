@@ -75,6 +75,71 @@ describe("useOptionNavigation", () => {
   });
 });
 
+// docs/specs/redesign-map.md (MAPUI-78, MAPUI-79): «Dónde» only — with
+// nothing highlighted, Enter chooses the first listed instead of nothing.
+function FirstChoosingField({ count, choose }: { count: number; choose: (index: number) => void }) {
+  const { highlighted, onKeyDown } = useOptionNavigation(count, choose, true);
+  return <input aria-label="Campo" data-highlighted={highlighted} onKeyDown={onKeyDown} readOnly />;
+}
+
+describe("useOptionNavigation — enterChoosesFirst (MAPUI-78, MAPUI-79)", () => {
+  it("MAPUI-78: with nothing highlighted, Enter chooses the first listed", async () => {
+    const choose = vi.fn();
+    renderWithI18n(<FirstChoosingField count={3} choose={choose} />);
+    await userEvent.click(screen.getByRole("textbox", { name: "Campo" }));
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(choose).toHaveBeenCalledTimes(1);
+    expect(choose).toHaveBeenCalledWith(0);
+  });
+
+  it("MAPUI-78: a highlighted option still wins over the first listed", async () => {
+    const choose = vi.fn();
+    renderWithI18n(<FirstChoosingField count={3} choose={choose} />);
+    await userEvent.click(screen.getByRole("textbox", { name: "Campo" }));
+
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+
+    expect(choose).toHaveBeenCalledTimes(1);
+    expect(choose).toHaveBeenCalledWith(1);
+  });
+
+  it("MAPUI-79: closed with Escape, Enter chooses nothing", async () => {
+    const choose = vi.fn();
+    renderWithI18n(<FirstChoosingField count={3} choose={choose} />);
+    await userEvent.click(screen.getByRole("textbox", { name: "Campo" }));
+
+    await userEvent.keyboard("{Escape}");
+    await userEvent.keyboard("{Enter}");
+
+    expect(choose).not.toHaveBeenCalled();
+  });
+
+  it("MAPUI-79: with no options, Enter chooses nothing", async () => {
+    const choose = vi.fn();
+    renderWithI18n(<FirstChoosingField count={0} choose={choose} />);
+    await userEvent.click(screen.getByRole("textbox", { name: "Campo" }));
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(choose).not.toHaveBeenCalled();
+  });
+
+  it("MAPUI-78: after Escape, ArrowDown reopens the list and Enter chooses the first listed", async () => {
+    const choose = vi.fn();
+    renderWithI18n(<FirstChoosingField count={3} choose={choose} />);
+    await userEvent.click(screen.getByRole("textbox", { name: "Campo" }));
+    await userEvent.keyboard("{Escape}");
+
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{Enter}");
+
+    expect(choose).toHaveBeenCalledTimes(1);
+    expect(choose).toHaveBeenCalledWith(0);
+  });
+});
+
 // MAP-20, MAPUI-2, MAPUI-21: Escape or a press outside closes the list without
 // choosing; ArrowDown or a reset shows it again.
 function ClosableField({ count, choose }: { count: number; choose: (index: number) => void }) {

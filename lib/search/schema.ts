@@ -28,7 +28,7 @@ const baseSearchSchema = z.object({
   model: z.string().optional(),
   minYear: z.number().int().optional(),
   maxYear: z.number().int().optional(),
-  minKm: z.number().nonnegative().optional(),
+  minKm: z.number().int().nonnegative().optional(),
   maxKm: z.number().int().nonnegative().optional(),
   minHorsePower: z.number().nonnegative().optional(),
   maxHorsePower: z.number().positive().optional(),

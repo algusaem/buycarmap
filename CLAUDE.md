@@ -67,7 +67,7 @@ session did not follow this section, whatever its «Lacayos» line says.
 
 ## Project Overview
 
-BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, description text, and recency (horsepower only survives in old links), then browse results as a synchronized card list + map.
+BuyCarMap aggregates second-hand car listings and displays them on an interactive map. Users search and filter by location, price, make/model, fuel, gearbox, mileage range, minimum year, description text, and recency (horsepower only survives in old links), then browse results as a synchronized card list + map.
 
 What is and is not built is under **Current state** below. Everything else in this
 file is a rule; the explanations live in `docs/`.

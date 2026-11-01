@@ -99,7 +99,8 @@ The AlertCard
   - each fuel group (MAPUI-15), as the filters row writes it;
   - the price: «Hasta 18.000 €», «Desde 3.000 €» or «3.000 – 20.000 €» (`priceLabel`);
   - the gearbox, «Manual» or «Automático»;
-  - the mileage, «Hasta 120.000 km», as on the map (MAPUI-13);
+  - the mileage, «Hasta 120.000 km», as on the map (MAPUI-13); a minimum reads «Desde 50.000 km» and both
+    «50.000 – 100.000 km» (amended 2026-10-31, MAPUI-75);
   - the year, «Desde 2017»;
   - the zone: «Madrid · 50 km» with a place name, «50 km» when the alert has a place but no place
     name, and nothing when it has no place.
@@ -830,6 +831,7 @@ gives Spanish only. English is drafted here and reviewed in the pull request, as
 | «Volver» (the round link) | `nav.back` | existing | "Back" |
 | «{place} · {km} km», «{km} km» | `search.placeRadius`, `search.radiusOption` | existing | "{place} · {km} km", "{km} km" |
 | The criteria parts | `search.brandModel`, `search.priceUpTo`, `search.priceFrom`, `filters.fuelGroups.*`, `filters.transmissions.*`, `filters.maxKmChip`, `filters.minYearChip` | existing | — |
+| «Desde {km}» (the minimum-mileage criterion) | `filters.minKmChip` | new, with MAPUI-75 — redesign-map.md | "From {km}" |
 | «Cargando…» (pill, visually hidden status) | `map.loading` | existing | "Loading…" |
 | «Guardar», «Quitar de guardados», «Ver anuncio» | `map.addFavorite`, `map.removeFavorite`, `map.viewListing` | existing | "Save", "Remove from saved", "View listing" |
 | «Cerrar vista previa», «N coches · desde …», «Acercar», «Alejar» | `map.closePreview`, `map.pinGroup`, `map.zoomIn`, `map.zoomOut` | existing | — `map.preview` («Vista previa del coche») is removed: the preview is named by its car (amended 2026-10-21, MAPUI-69 — redesign-map.md) |

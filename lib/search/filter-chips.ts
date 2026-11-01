@@ -14,7 +14,9 @@ import type { SearchInput } from "@/lib/search/schema";
 // worked example's «Diésel», «Hasta 20.000 €», «Automático», «Últimas 24 h».
 // The key names the criterion: `engine:<group>`, `maxPrice`,
 // `minPrice` or `price` (both), `gearbox`, `maxKm`, `minYear`, `timeFilter`
-// and `brand` (the brand and the model).
+// and `brand` (the brand and the model). `maxKm` also names the mileage chip
+// when only `minKm` is set, or both — one chip either way, never two
+// (MAPUI-75): «Desde 50.000 km», «Hasta 100.000 km» or «50.000 – 100.000 km».
 type FuelChipKey = `engine:${FuelGroup}`;
 
 type ChipKey =
@@ -47,6 +49,31 @@ const PRICE_WORDING = {
 export type PriceWording = keyof typeof PRICE_WORDING;
 
 /**
+ * Shared by `priceLabel` and `mileageLabel`: a range reads as `both`, a lone
+ * maximum as `upTo`, a lone minimum as `from`; undefined with neither end
+ * set. Each producer takes the end(s) it names and returns the finished
+ * text — a formatted amount, or that amount already wrapped in its message.
+ */
+function boundsLabel(
+  min: number | undefined,
+  max: number | undefined,
+  {
+    both,
+    upTo,
+    from,
+  }: {
+    both: (min: number, max: number) => string;
+    upTo: (max: number) => string;
+    from: (min: number) => string;
+  },
+): string | undefined {
+  if (min != null && max != null) return both(min, max);
+  if (max != null) return upTo(max);
+  if (min != null) return from(min);
+  return undefined;
+}
+
+/**
  * The price as the pill and the alert summary write it (MAPUI-1): «Hasta
  * 20.000 €», «Desde 3.000 €» or «3.000 – 20.000 €»; undefined with no price.
  */
@@ -59,12 +86,11 @@ export function priceLabel(
   const { minPrice, maxPrice } = input;
   const keys = PRICE_WORDING[wording];
 
-  if (minPrice != null && maxPrice != null) {
-    return formatPrice({ min: minPrice, max: maxPrice }, locale);
-  }
-  if (maxPrice != null) return t(keys.upTo, { price: formatPrice(maxPrice, locale) });
-  if (minPrice != null) return t(keys.from, { price: formatPrice(minPrice, locale) });
-  return undefined;
+  return boundsLabel(minPrice, maxPrice, {
+    both: (min, max) => formatPrice({ min, max }, locale),
+    upTo: (max) => t(keys.upTo, { price: formatPrice(max, locale) }),
+    from: (min) => t(keys.from, { price: formatPrice(min, locale) }),
+  });
 }
 
 /**
@@ -109,22 +135,36 @@ function fuelChips(input: SearchInput, { t }: LocaleCopy): FilterChip[] {
   }));
 }
 
+/**
+ * «Kilómetros»'s label (MAPUI-75), shaped like `priceLabel`: the range when
+ * both ends are set, otherwise whichever end is — undefined with neither.
+ */
+function mileageLabel(
+  input: Pick<SearchInput, "minKm" | "maxKm">,
+  copy: LocaleCopy,
+): string | undefined {
+  const { t, locale } = copy;
+  const { minKm, maxKm } = input;
+
+  return boundsLabel(minKm, maxKm, {
+    both: (min, max) => formatMileage({ min, max }, locale),
+    upTo: (max) => t("filters.maxKmChip", { km: formatMileage(max, locale) }),
+    from: (min) => t("filters.minKmChip", { km: formatMileage(min, locale) }),
+  });
+}
+
 /** The gearbox, mileage and year chips, in that order. */
-function specChips(input: SearchInput, { t, locale }: LocaleCopy): FilterChip[] {
+function specChips(input: SearchInput, copy: LocaleCopy): FilterChip[] {
   const gearbox = chosenGearbox(input.gearbox);
   const chips: FilterChip[] = [];
 
-  if (gearbox) chips.push({ key: "gearbox", label: t(`filters.transmissions.${gearbox}`) });
-  if (input.maxKm != null) {
-    chips.push({
-      key: "maxKm",
-      label: t("filters.maxKmChip", { km: formatMileage(input.maxKm, locale) }),
-    });
-  }
+  if (gearbox) chips.push({ key: "gearbox", label: copy.t(`filters.transmissions.${gearbox}`) });
+  const km = mileageLabel(input, copy);
+  if (km) chips.push({ key: "maxKm", label: km });
   if (input.minYear != null) {
     chips.push({
       key: "minYear",
-      label: t("filters.minYearChip", { year: String(input.minYear) }),
+      label: copy.t("filters.minYearChip", { year: String(input.minYear) }),
     });
   }
   return chips;

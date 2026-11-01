@@ -53,6 +53,19 @@ describe("searchSchema", () => {
     expect(searchSchema.safeParse({ maxKm: 100.5 }).success).toBe(false);
   });
 
+  it("MAPUI-84: accepts a minKm of 0 but rejects a non-integer minKm", () => {
+    expect(searchSchema.safeParse({ minKm: 0 }).success).toBe(true);
+    expect(searchSchema.safeParse({ minKm: 100.5 }).success).toBe(false);
+  });
+
+  it("MAPUI-86: accepts a minKm above maxKm, unchanged — their order is not the schema's concern", () => {
+    const result = searchSchema.safeParse({ minKm: 150000, maxKm: 100000 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({ minKm: 150000, maxKm: 100000 });
+    }
+  });
+
   it("rejects an unknown timeFilter value", () => {
     expect(searchSchema.safeParse({ timeFilter: "lastYear" }).success).toBe(false);
   });

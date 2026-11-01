@@ -232,7 +232,21 @@ describe("AlertDigestEmail (INT-13)", () => {
   const alertLabel = "Audi A3 under 20k";
 
   function buildProps(locale: Locale) {
-    return { locale, alertLabel, matches: [match], unsubscribeUrl };
+    return { locale, alertLabel, matches: [match], unsubscribeUrl, manageUrl: `${APP_URL}/alerts` };
+  }
+
+  // Strips every tag (and with it, attribute values such as `alt` or `href`)
+  // so assertions about what a reader actually sees never match hidden markup.
+  function visibleText(html: string): string {
+    return html.replace(/<[^>]*>/g, "");
+  }
+
+  function findImgTags(html: string): string[] {
+    return html.match(/<img\b[^>]*>/g) ?? [];
+  }
+
+  function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   it("INT-13: en subject names the single match, as today's renderAlertEmail does", () => {
@@ -292,5 +306,165 @@ describe("AlertDigestEmail (INT-13)", () => {
     expect(html).toContain(match.title);
     expect(html).toContain(second.title);
     expect(calls).toEqual([]);
+  });
+
+  // ALERT-56 (docs/specs/alerts.md, #152): each match shows its stored
+  // snapshot's photo above its details, full width and 200px tall, with the
+  // listing's title as alt text; a match with no stored image shows a
+  // neutral "Sin foto" / "No photo" placeholder of the same size instead.
+  describe("ALERT-56", () => {
+    const golfAdvance = makeMatchListing({
+      id: "wallapop-golf-1",
+      title: "Volkswagen Golf 2.0 TDI Advance",
+      image: "https://cdn.wallapop.com/images/golf-1.jpg",
+      url: "https://es.wallapop.com/item/golf-1",
+    });
+    const golfVariant = makeMatchListing({
+      id: "milanuncios-golf-3",
+      title: "Volkswagen Golf Variant 2.0 TDI Business",
+      image: "",
+      url: "https://www.milanuncios.com/coche/golf-3",
+    });
+
+    it("ALERT-56: shows the match's photo above its title, full width and 200px tall, with the title as alt text", async () => {
+      const { html } = await renderEmail(
+        createElement(AlertDigestEmail, {
+          ...buildProps("es"),
+          matches: [golfAdvance, golfVariant],
+        }),
+      );
+
+      const imgs = findImgTags(html);
+      expect(imgs).toHaveLength(1);
+
+      const [img] = imgs;
+      expect(img).toContain(`src="${golfAdvance.image}"`);
+      expect(img).toContain(`alt="${golfAdvance.title}"`);
+      expect(img).toMatch(/style="[^"]*width:100%[^"]*"/);
+      expect(img).toMatch(/style="[^"]*height:200px[^"]*"/);
+
+      const imgIndex = html.indexOf(img);
+      const titleIndex = html.indexOf(`>${golfAdvance.title}<`);
+      expect(imgIndex).toBeGreaterThanOrEqual(0);
+      expect(titleIndex).toBeGreaterThan(imgIndex);
+    });
+
+    it("ALERT-56: a match with no stored photo shows a placeholder, not an image, in the same slot", async () => {
+      const { html } = await renderEmail(
+        createElement(AlertDigestEmail, {
+          ...buildProps("es"),
+          matches: [golfAdvance, golfVariant],
+        }),
+      );
+
+      const imgs = findImgTags(html);
+      expect(imgs.some((img) => img.includes('src=""'))).toBe(false);
+      expect(imgs.some((img) => img.includes(`alt="${golfVariant.title}"`))).toBe(false);
+
+      const placeholderRegex = /<[^>]*style="[^"]*height:200px[^"]*"[^>]*>Sin foto</;
+      expect(html).toMatch(placeholderRegex);
+
+      const placeholderMatch = html.match(placeholderRegex);
+      expect(placeholderMatch).not.toBeNull();
+      const placeholderIndex = html.indexOf((placeholderMatch as RegExpMatchArray)[0]);
+      const firstTitleIndex = html.indexOf(`>${golfAdvance.title}<`);
+      const secondTitleIndex = html.indexOf(`>${golfVariant.title}<`);
+
+      expect(placeholderIndex).toBeGreaterThan(firstTitleIndex);
+      expect(placeholderIndex).toBeLessThan(secondTitleIndex);
+    });
+
+    it("ALERT-56: the placeholder text follows the recipient's locale", async () => {
+      const { html } = await renderEmail(
+        createElement(AlertDigestEmail, {
+          ...buildProps("en"),
+          matches: [golfAdvance, golfVariant],
+        }),
+      );
+
+      expect(html).toMatch(/<[^>]*style="[^"]*height:200px[^"]*"[^>]*>No photo</);
+      expect(visibleText(html)).not.toContain("Sin foto");
+    });
+  });
+
+  // ALERT-57 (docs/specs/alerts.md, #152): the email links to the alert's own
+  // page with a view-all button, and ends with a footer explaining why it
+  // was sent plus two text links (manage, unsubscribe) with no bare URL
+  // shown as visible text.
+  describe("ALERT-57", () => {
+    const alertUrlAda = `${APP_URL}/alerts/alert-ada`;
+    const manageUrlAda = `${APP_URL}/alerts`;
+    const unsubscribeUrlAda = `${APP_URL}/api/alerts/unsubscribe?token=raw-token-ada`;
+
+    function buildAlert57Props(locale: Locale) {
+      return {
+        locale,
+        alertLabel,
+        matches: [match],
+        unsubscribeUrl: unsubscribeUrlAda,
+        alertUrl: alertUrlAda,
+        manageUrl: manageUrlAda,
+      };
+    }
+
+    it("ALERT-57: links the view-all button, the manage link and the unsubscribe link to their own hrefs, in Spanish", async () => {
+      const { html } = await renderEmail(createElement(AlertDigestEmail, buildAlert57Props("es")));
+
+      expect(html).toMatch(
+        new RegExp(
+          `href="${escapeRegExp(alertUrlAda)}"[^>]*>(?:(?!</a>)[\\s\\S])*>Ver todos los coches<`,
+        ),
+      );
+      expect(html).toMatch(
+        new RegExp(`href="${escapeRegExp(manageUrlAda)}"[^>]*>Gestionar alertas<`),
+      );
+      expect(html).toMatch(
+        new RegExp(
+          `href="${escapeRegExp(unsubscribeUrlAda)}"[^>]*>Dejar de recibir estos correos<`,
+        ),
+      );
+    });
+
+    it("ALERT-57: the footer explains why the email was sent, with no URL shown as visible text", async () => {
+      const { html } = await renderEmail(createElement(AlertDigestEmail, buildAlert57Props("es")));
+      const text = visibleText(html);
+
+      expect(text).toContain("Recibes esto porque creaste una alerta en BuyCarMap.");
+      expect(text).not.toContain(alertUrlAda);
+      expect(text).not.toContain(manageUrlAda);
+      expect(text).not.toContain(unsubscribeUrlAda);
+    });
+
+    it("ALERT-57: the footer and its two links sit below the view-all button", async () => {
+      const { html } = await renderEmail(createElement(AlertDigestEmail, buildAlert57Props("es")));
+      const text = visibleText(html);
+
+      const viewAllIndex = text.indexOf("Ver todos los coches");
+      const footerIndex = text.indexOf("Recibes esto porque creaste una alerta en BuyCarMap.");
+      const manageIndex = text.indexOf("Gestionar alertas");
+      const unsubscribeIndex = text.indexOf("Dejar de recibir estos correos");
+
+      expect(viewAllIndex).toBeGreaterThanOrEqual(0);
+      expect(footerIndex).toBeGreaterThan(viewAllIndex);
+      expect(manageIndex).toBeGreaterThan(footerIndex);
+      expect(unsubscribeIndex).toBeGreaterThan(footerIndex);
+    });
+
+    it("ALERT-57: the same links and footer render in English", async () => {
+      const { html } = await renderEmail(createElement(AlertDigestEmail, buildAlert57Props("en")));
+
+      expect(html).toMatch(
+        new RegExp(
+          `href="${escapeRegExp(alertUrlAda)}"[^>]*>(?:(?!</a>)[\\s\\S])*>View all matches<`,
+        ),
+      );
+      expect(html).toMatch(new RegExp(`href="${escapeRegExp(manageUrlAda)}"[^>]*>Manage alerts<`));
+      expect(html).toMatch(
+        new RegExp(`href="${escapeRegExp(unsubscribeUrlAda)}"[^>]*>Stop these emails<`),
+      );
+      expect(visibleText(html)).toContain(
+        "You are receiving this because you set up an alert on BuyCarMap.",
+      );
+    });
   });
 });

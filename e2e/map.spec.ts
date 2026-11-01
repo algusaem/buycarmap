@@ -145,7 +145,7 @@ test.describe("MAPUI-49: desktop search writes to the URL and Back restores it",
     // whatever the brand and the price asked for.
     const madridCar = page.getByRole("link", { name: /Audi A3 2\.0 TDI/ });
 
-    await page.getByRole("button", { name: /ciudad o código postal|city or postcode/i }).click();
+    await page.getByRole("button", { name: /^ciudad…?$|^city…?$/i }).click();
     await page.getByRole("combobox").fill("Madrid");
     await page
       .getByRole("option", { name: /madrid/i })
@@ -328,6 +328,154 @@ test.describe("MAPUI-50: phone BUSCAR sheet applies only on Ver coches", () => {
       .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
       .first();
     await expect(summary).toContainText("«e46»");
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-85, MAPUI-86, owner report 2026-10-31):
+// «Kilómetros» offers «Mínimo» again, applying as «Máximo» does, with a
+// reversed pair swapped on blur, Enter or «Ver coches».
+test.describe("MAPUI-85, MAPUI-86: Kilómetros — Mínimo reaches the URL, swapped if typed in reverse", () => {
+  const FILTERS = /^(filtros|filters)$/i;
+
+  test("MAPUI-85: desktop, typing a minimum and pressing Enter reaches the URL with no brand, badge 1", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "desktop-only — the phone flow is covered below");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockListingSources(page);
+    await page.goto("/map");
+
+    const header = page.getByTestId("header-desktop");
+    await header.getByRole("button", { name: FILTERS }).click();
+    const dialog = page.getByRole("dialog", { name: FILTERS });
+    const minimo = dialog.locator('input[name="minKm"]');
+    await minimo.fill("50000");
+    await minimo.press("Enter");
+
+    await expect(page).toHaveURL(/minKm=50000/);
+    expect(page.url()).not.toContain("make=");
+    await expect(page.getByRole("button", { name: FILTERS }).first()).toHaveAccessibleDescription(
+      /^1 /,
+    );
+  });
+
+  test("MAPUI-86: desktop, then typing a maximum under the minimum swaps both ends on blur, badge stays 1", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "desktop-only — the phone flow is covered below");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockListingSources(page);
+    await page.goto("/map");
+
+    const header = page.getByTestId("header-desktop");
+    await header.getByRole("button", { name: FILTERS }).click();
+    const dialog = page.getByRole("dialog", { name: FILTERS });
+    const minimo = dialog.locator('input[name="minKm"]');
+    await minimo.fill("50000");
+    await minimo.press("Enter");
+    await expect(page).toHaveURL(/minKm=50000/);
+
+    const maximo = dialog.locator('input[name="maxKm"]');
+    await maximo.fill("40000");
+    await maximo.blur();
+
+    await expect(page).toHaveURL(/minKm=40000/);
+    await expect(page).toHaveURL(/maxKm=50000/);
+    await expect(page.getByRole("button", { name: FILTERS }).first()).toHaveAccessibleDescription(
+      /^1 /,
+    );
+  });
+
+  test("MAPUI-86: phone, both ends typed in reverse, Ver coches hands them over swapped", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet flow");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockListingSources(page);
+    await page.goto("/map");
+
+    await page.getByRole("button", { name: FILTERS }).first().click();
+    const dialog = page.getByRole("dialog", { name: FILTERS });
+    await dialog.locator('input[name="minKm"]').fill("150000");
+    await dialog.locator('input[name="maxKm"]').fill("100000");
+    await dialog.getByRole("button", { name: /^(ver coches|show cars)$/i }).click();
+
+    await expect(page).toHaveURL(/minKm=100000/);
+    await expect(page).toHaveURL(/maxKm=150000/);
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-78, MAPUI-81, owner report 2026-10-31):
+// the phone BUSCAR sheet's «Dónde» combobox gets the same Enter behaviour as
+// the desktop popover (e2e/location-search.spec.ts).
+test.describe("MAPUI-78, MAPUI-81: phone BUSCAR sheet — Enter in Dónde", () => {
+  const CITY_NAME = /^(ciudad|city)$/i;
+
+  test("MAPUI-78: filling 28013, waiting for the option, Enter then Ver coches sets locationName", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet flow");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockListingSources(page);
+    await page.route(NOMINATIM_URL, (route) => route.fulfill({ json: [MADRID_RESULT] }));
+    await page.goto("/map");
+
+    await page
+      .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
+      .first()
+      .click();
+    const sheet = page.getByRole("dialog", { name: /^(buscar|search)$/i });
+    const where = sheet.getByRole("combobox", { name: CITY_NAME });
+    await where.fill("28013");
+    await expect(page.getByRole("option")).toHaveCount(1);
+
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: /^(ver coches|show cars)$/i }).click();
+
+    await expect(page).toHaveURL(/locationName=Madrid/);
+  });
+
+  test("MAPUI-81: Enter pressed immediately, with the answer held, chooses Madrid once released", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet flow");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockListingSources(page);
+    let resolveReached: (() => void) | undefined;
+    const reached = new Promise<void>((resolve) => {
+      resolveReached = resolve;
+    });
+    const routeGate = Promise.withResolvers<void>();
+    await page.route(NOMINATIM_URL, async (route) => {
+      resolveReached?.();
+      await routeGate.promise;
+      await route.fulfill({ json: [MADRID_RESULT] });
+    });
+    await page.goto("/map");
+
+    await page
+      .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
+      .first()
+      .click();
+    const sheet = page.getByRole("dialog", { name: /^(buscar|search)$/i });
+    const where = sheet.getByRole("combobox", { name: CITY_NAME });
+    await where.fill("28013");
+    await page.keyboard.press("Enter");
+
+    await reached;
+    // The request is still held: nothing chosen yet.
+    await expect(where).toHaveValue("28013");
+    routeGate.resolve();
+
+    await expect(where).toHaveValue("Madrid", { timeout: 10000 });
+    await page.getByRole("button", { name: /^(ver coches|show cars)$/i }).click();
+
+    await expect(page).toHaveURL(/locationName=Madrid/);
   });
 });
 
@@ -776,11 +924,14 @@ test.describe("DESC-27: the description field and the search group", () => {
       // The input sits inside the pill's border, so the row's edge is the pill's.
       const descriptionBox = await box(descriptionField.locator(".."));
 
+      const pillBox = await box(page.getByRole("search"));
+
       expectWithin(
-        crearAlertaBox.x + crearAlertaBox.width,
-        navBox.x,
-        "the group ends where the nav starts",
+        (pillBox.x + crearAlertaBox.x + crearAlertaBox.width) / 2,
+        DESKTOP_1440.width / 2,
+        "the group stays centred on the window",
       );
+      expect(crearAlertaBox.x + crearAlertaBox.width).toBeLessThanOrEqual(navBox.x);
       expect(crearAlertaBox.x + crearAlertaBox.width).toBeLessThan(
         descriptionBox.x + descriptionBox.width,
       );
@@ -2124,5 +2275,133 @@ test.describe("MAPUI-27: the desktop preview's lifecycle on the MapLibre map", (
       (violation) => violation.impact === "serious" || violation.impact === "critical",
     );
     expect(serious.map((violation) => violation.id)).toEqual([]);
+  });
+});
+
+// docs/specs/redesign-map.md (MAPUI-72 to MAPUI-74): the «BUSCAR» sheet always
+// rests on the visible part of the screen (useVisibleScreen.ts), even with
+// the iPhone keyboard up — only `window.visualViewport` reports that, and no
+// real browser here can raise an on-screen keyboard. This fakes it the same
+// way SheetChrome.test.tsx's own stub does: an EventTarget standing in for
+// `window.visualViewport`, with a mutable `height` the test can shrink and
+// restore, dispatching the `resize` the hook listens for.
+test.describe("MAPUI-72: the «BUSCAR» sheet over the iPhone keyboard", () => {
+  /**
+   * Replaces `window.visualViewport` before any page script runs, with an
+   * EventTarget carrying `height` (the live `window.innerHeight` until a test
+   * sets one: read this early, before the viewport meta, it is the wrong
+   * size), `offsetTop` 0 and `scale` 1 — exposed as `window.__viewport` so the
+   * test can drive it later.
+   */
+  async function fakeVisualViewport(page: Page) {
+    await page.addInitScript(() => {
+      let height: number | null = null;
+      const viewport = Object.defineProperties(new EventTarget(), {
+        height: {
+          get: () => height ?? window.innerHeight,
+          set: (next: number) => {
+            height = next;
+          },
+        },
+        offsetTop: { value: 0 },
+        scale: { value: 1 },
+      });
+      Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
+      (window as Window & { __viewport?: typeof viewport }).__viewport = viewport;
+    });
+  }
+
+  /** Sets the faked viewport's `height` and dispatches `resize`, as a real keyboard would. */
+  async function setFakeViewportHeight(page: Page, height: number) {
+    await page.evaluate((next) => {
+      const viewport = (window as Window & { __viewport?: EventTarget & { height: number } })
+        .__viewport;
+      if (!viewport) throw new Error("window.__viewport was not installed");
+      viewport.height = next;
+      viewport.dispatchEvent(new Event("resize"));
+    }, height);
+  }
+
+  test("MAPUI-72: with the keyboard up, «Ver coches» and the focused field stay in the visible part, and the fields scroll", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only: the BUSCAR sheet has no desktop keyboard case");
+    await fakeVisualViewport(page);
+    await mockListingSources(page);
+    await page.goto("/map");
+    await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+    const originalHeight = await page.evaluate(() => window.innerHeight);
+
+    await page
+      .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
+      .first()
+      .click();
+    const sheet = page.getByRole("dialog", { name: /^(buscar|search)$/i });
+    await expect(sheet).toBeVisible();
+
+    const whereField = page.getByRole("combobox", {
+      name: /^(ciudad|city)$/i,
+    });
+    await whereField.click();
+    await expect(whereField).toBeFocused();
+
+    const KEYBOARD_HEIGHT = 400;
+    await setFakeViewportHeight(page, KEYBOARD_HEIGHT);
+
+    const showCars = sheet.getByRole("button", { name: /^(ver coches|show cars)$/i });
+    await expect
+      .poll(() => showCars.evaluate((el) => el.getBoundingClientRect().bottom))
+      .toBeLessThanOrEqual(KEYBOARD_HEIGHT);
+    const showCarsBox = await box(showCars);
+    expect(
+      showCarsBox.y + showCarsBox.height,
+      "«Ver coches» bottom stays inside the keyboard-shrunk viewport",
+    ).toBeLessThanOrEqual(KEYBOARD_HEIGHT);
+
+    const fieldBox = await box(whereField);
+    expect(fieldBox.y, "the focused field's top stays on screen").toBeGreaterThanOrEqual(0);
+    expect(
+      fieldBox.y + fieldBox.height,
+      "the focused field's bottom stays inside the keyboard-shrunk viewport",
+    ).toBeLessThanOrEqual(KEYBOARD_HEIGHT);
+
+    const dialogBox = await box(sheet);
+    expectWithin(
+      dialogBox.y + dialogBox.height,
+      KEYBOARD_HEIGHT,
+      "the dialog's bottom at the keyboard-shrunk viewport height",
+    );
+
+    const scroller = await scrollableAncestor(whereField);
+    const metricsBefore = await scroller.evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      scrollTop: el.scrollTop,
+    }));
+    expect(
+      metricsBefore.scrollHeight,
+      `scroller scrollHeight (${metricsBefore.scrollHeight}) over its clientHeight (${metricsBefore.clientHeight})`,
+    ).toBeGreaterThan(metricsBefore.clientHeight);
+
+    await scroller.evaluate((el) => {
+      el.scrollTop = el.scrollTop + 20;
+    });
+    const scrollTopAfter = await scroller.evaluate((el) => el.scrollTop);
+    expect(scrollTopAfter, "the scroller's scrollTop can be changed by page.evaluate").not.toBe(
+      metricsBefore.scrollTop,
+    );
+    await scroller.dispose();
+
+    await setFakeViewportHeight(page, originalHeight);
+    await expect
+      .poll(() => sheet.evaluate((el) => el.getBoundingClientRect().bottom))
+      .toBeGreaterThan(KEYBOARD_HEIGHT);
+    const restoredBox = await box(sheet);
+    expectWithin(
+      restoredBox.y + restoredBox.height,
+      originalHeight,
+      "the dialog's bottom back at the viewport height",
+    );
   });
 });

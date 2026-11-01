@@ -303,7 +303,7 @@
       "kind": "input",
       "refersTo": "input",
       "description": "A 52px field on bg with a line border that turns lime on focus.",
-      "html": "<input class=\"ds-input\" placeholder=\"Ciudad o código postal…\" />",
+      "html": "<input class=\"ds-input\" placeholder=\"Ciudad…\" />",
       "css": ".ds-input { height: 52px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--radius-field); background: var(--bg); color: var(--text); font-family: \"Rethink Sans\", system-ui, sans-serif; font-size: 16px; } .ds-input::placeholder { color: var(--text-muted); } .ds-input:focus-visible { border-color: var(--lime); outline: 2px solid var(--lime); outline-offset: 3px; }"
     },
     {

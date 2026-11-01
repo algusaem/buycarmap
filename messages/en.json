@@ -393,8 +393,8 @@
     "descriptionLabel": "Description",
     "descriptionField": "Search the description",
     "descriptionPlaceholder": "Description: e46, gti…",
-    "wherePlaceholder": "City or postcode…",
-    "whereLabel": "City or postcode",
+    "wherePlaceholder": "City…",
+    "whereLabel": "City",
     "yourLocation": "Your location",
     "places": "Places",
     "carPlaceholder": "Make or model…",
@@ -521,6 +521,8 @@
       "intro": "These have appeared since we last checked:",
       "viewAll": "View all matches",
       "unsubscribe": "Stop these emails",
+      "manage": "Manage alerts",
+      "noPhoto": "No photo",
       "footer": "You are receiving this because you set up an alert on BuyCarMap."
     }
   },
@@ -551,8 +553,11 @@
     "fuelType": "Fuel type",
     "transmission": "Transmission",
     "price": "Price",
-    "maxKm": "Mileage, up to",
-    "year": "Year, from",
+    "km": "Mileage",
+    "kmMin": "Minimum",
+    "kmMax": "Maximum",
+    "year": "Year",
+    "yearFrom": "From",
     "listed": "Listed",
     "transmissions": {
       "manual": "Manual",
@@ -572,11 +577,12 @@
       "lastWeek": "Last week",
       "lastMonth": "Last month"
     },
-    "kmAndYear": "Mileage and year",
     "maxKmPlaceholder": "100,000…",
-    "maxKmSuffix": "km",
+    "minKmPlaceholder": "50,000…",
+    "kmSuffix": "km",
     "minYearPlaceholder": "2017…",
     "maxKmChip": "Up to {km}",
+    "minKmChip": "From {km}",
     "minYearChip": "From {year}",
     "brandAndModel": "Make and model"
   },
