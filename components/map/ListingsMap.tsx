@@ -105,7 +105,10 @@ function FitBounds({ listings, zone, resetWhenEmpty, coveredFrom }: FitBoundsPro
   const coveredFromRef = useRef(coveredFrom);
   coveredFromRef.current = coveredFrom;
 
-  useEffect(() => {
+  // MAPLIBRE-16: a layout effect, ahead of the pins' own in the tree, so the
+  // fit runs in the commit that puts them on the page. As a passive effect it
+  // ran a task later, with the pins already there in the view they came to.
+  useLayoutEffect(() => {
     // A listing with no coordinates has no pin (groupPins), so it has no say
     // in the bounds either (redesign-saved.md › Edge cases).
     const points: LngLat[] = listingsRef.current
