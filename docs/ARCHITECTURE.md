@@ -1456,7 +1456,9 @@ screen reader says, the engine every iPhone uses — is specified in
   `pnpm test:e2e` and `pnpm check:full`, on a GitHub-hosted `windows-2025`
   runner ([`screen-reader.yml`](../.github/workflows/screen-reader.yml)) — not
   locally. It asserts the app's own Spanish strings inside NVDA's spoken log,
-  never NVDA's role words ([ADR 0024](decisions/0024-guidepup-nvda.md)).
+  never NVDA's role words ([ADR 0024](decisions/0024-guidepup-nvda.md)). NVDA
+  quitting can take Chromium down with it, so each test launches its own
+  browser and closes it before NVDA quits.
 - **WebKit** (`webkit-iphone`, Playwright's newest iPhone descriptor; and
   `webkit-desktop`, desktop Safari at 1440 × 900) runs `e2e/map.spec.ts` and
   `e2e/navigation.spec.ts`, so `pnpm check:full` needs
