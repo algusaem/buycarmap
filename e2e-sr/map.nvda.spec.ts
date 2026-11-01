@@ -56,8 +56,8 @@ const MAX_NVDA_STOPS = 80;
 // its own and closes it in an afterEach, which runs before fixtures tear down,
 // and NVDA quits with no browser left to take with it.
 const test = nvdaTest.extend<{ ownBrowser: Browser }>({
-  ownBrowser: async ({ browserType, headless, launchOptions }, use) => {
-    await use(await browserType.launch({ ...launchOptions, headless }));
+  ownBrowser: async ({ playwright, browserName, headless, launchOptions }, use) => {
+    await use(await playwright[browserName].launch({ ...launchOptions, headless }));
   },
   context: async ({ ownBrowser, baseURL, locale }, use) => {
     await use(await ownBrowser.newContext({ ...devices["Desktop Chrome"], baseURL, locale }));
