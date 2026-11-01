@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { AppError } from "@/lib/result";
-import { hasPlace, searchSchema, type SearchInput } from "@/lib/search/schema";
+import { hasPlace, KEYWORDS_MAX_LENGTH, searchSchema, type SearchInput } from "@/lib/search/schema";
 
 // Codes, not sentences — same reasoning as FAVORITE_ERROR and AUTH_ERROR: a
 // server action cannot read the client's i18n context, and the default locale
@@ -53,25 +53,62 @@ export function isSpecificEnough(criteria: SearchInput): boolean {
 }
 
 /**
- * The criteria an alert stores (MAPUI-42): never «Publicado» (`timeFilter`)
- * nor the `?q=` text (`keywords`). Stripped here, on the server's own parse,
- * so a direct call carrying either stores and hashes exactly what the dialog
- * would have sent.
+ * The criteria an alert stores (MAPUI-42, reversed for the `?q=` text by
+ * docs/specs/map-description-search.md, DESC-22): never «Publicado»
+ * (`timeFilter`). The text is kept and hashed with the rest — an alert is a
+ * saved search, and must not promise less than the search it came from.
+ * Stripped here, on the server's own parse, so a direct call carrying
+ * `timeFilter` stores and hashes exactly what the dialog would have sent.
  */
 export function withoutUnsavedCriteria(criteria: SearchInput): SearchInput {
-  const { timeFilter: _timeFilter, keywords: _keywords, ...saved } = criteria;
+  const { timeFilter: _timeFilter, ...saved } = criteria;
   return saved;
 }
 
 /**
+ * Normalises `keywords` for storage (DESC-22, DESC-23): trimmed, and dropped
+ * entirely once trimming leaves nothing — so a blank text hashes exactly as
+ * no text at all, and an existing alert is still «Ya tienes esta alerta».
+ */
+function withNormalizedKeywords(criteria: SearchInput): SearchInput {
+  if (criteria.keywords === undefined) return criteria;
+  const trimmed = criteria.keywords.trim();
+  if (trimmed === "") {
+    const { keywords: _keywords, ...rest } = criteria;
+    return rest;
+  }
+  return { ...criteria, keywords: trimmed };
+}
+
+// DESC-31: a NUL byte or a lone (unpaired) surrogate are both text a
+// Postgres `jsonb` column refuses to store. Split in two, not one
+// `/[\u0000\p{Cs}]/u` literal — Biome's noControlCharactersInRegex rejects a
+// control character inside a `/…/` pattern even escaped, and its own
+// useRegexLiterals rejects building the same pattern from a string instead,
+// so the NUL check is a plain string method and only the surrogate check,
+// which names no control character, stays a regex literal.
+function hasJsonbUnsafeText(text: string): boolean {
+  return text.includes("\u0000") || /\p{Cs}/u.test(text);
+}
+
+/**
  * The criteria an alert can be created with: the search schema without the
- * criteria an alert never saves, refined by the specificity rule (ALERT-38).
- * The create dialog (MAPUI-41) and `createAlert` both parse with it, so they
- * cannot disagree; a too-broad set fails with the single issue
- * `criteriaTooBroad`.
+ * criteria an alert never saves, its text normalised and length-checked
+ * (DESC-25), refined by the specificity rule (ALERT-38). The create dialog
+ * (MAPUI-41) and `createAlert` both parse with it, so they cannot disagree; a
+ * too-broad set fails with the single issue `criteriaTooBroad`, and text over
+ * the limit fails as invalid criteria — `createAlert` reports `invalidCriteria`
+ * for any issue that is not `criteriaTooBroad`.
  */
 export const alertCriteriaSchema = searchSchema
   .transform(withoutUnsavedCriteria)
+  .transform(withNormalizedKeywords)
+  .refine((criteria) => (criteria.keywords?.length ?? 0) <= KEYWORDS_MAX_LENGTH, {
+    error: ALERT_ERROR.invalidCriteria,
+  })
+  .refine((criteria) => !hasJsonbUnsafeText(criteria.keywords ?? ""), {
+    error: ALERT_ERROR.invalidCriteria,
+  })
   .refine(isSpecificEnough, {
     error: ALERT_ERROR.criteriaTooBroad,
   });

@@ -185,6 +185,17 @@ describe("mapSearchUrl", () => {
     expect(params.has("radius")).toBe(false);
   });
 
+  // docs/specs/map-description-search.md (DESC-14): the landing's phone
+  // sheet passes keywords, trimmed, as `q`; the desktop pill and the popular
+  // cars never pass one (ENTRY-6).
+  it("DESC-14: a trimmed text goes to /map?q=e46", () => {
+    expect(mapSearchUrl(DEFAULTS, "  e46 ")).toBe("/map?q=e46");
+  });
+
+  it("DESC-14: a text that is only spaces produces no q", () => {
+    expect(mapSearchUrl(DEFAULTS, "   ")).toBe("/map");
+  });
+
   // F4 review round 2 (T6): a place with a *non-default* radius keeps it —
   // the earlier split/parse/re-add only ever had to add the radius back
   // when it was the parser's own default (50); `clearOnDefault: false`

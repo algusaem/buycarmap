@@ -29,19 +29,25 @@ const INITIAL_DRAFT: LandingDraft = {
 /**
  * `/map` with exactly what was chosen, through `lib/search/url-state.ts`'s
  * shared `mapSearchUrl` (docs/specs/redesign-entry.md, Contracts › "Landing
- * to map") — never through `?q=` (ENTRY-6). Named apart from the imported
- * `mapSearchUrl` it calls, so the two are never confused at a call site.
+ * to map"). `keywords` reaches `q` only from the phone sheet's own
+ * Descripción field (docs/specs/map-description-search.md, DESC-14,
+ * ENTRY-6): the desktop pill and the popular cars call this with none.
+ * Named apart from the imported `mapSearchUrl` it calls, so the two are
+ * never confused at a call site.
  */
-function draftToUrl(draft: LandingDraft): string {
-  return mapSearchUrl({
-    ...EMPTY_URL_FILTERS,
-    brand: draft.brand,
-    model: draft.model,
-    minPrice: draft.minPrice,
-    maxPrice: draft.maxPrice,
-    selectedLocation: draft.place ?? undefined,
-    distanceInKm: draft.radiusKm,
-  });
+function draftToUrl(draft: LandingDraft, keywords?: string): string {
+  return mapSearchUrl(
+    {
+      ...EMPTY_URL_FILTERS,
+      brand: draft.brand,
+      model: draft.model,
+      minPrice: draft.minPrice,
+      maxPrice: draft.maxPrice,
+      selectedLocation: draft.place ?? undefined,
+      distanceInKm: draft.radiusKm,
+    },
+    keywords,
+  );
 }
 
 // docs/specs/redesign-entry.md (ENTRY-2, ENTRY-3, ENTRY-5, ENTRY-6). The
@@ -60,8 +66,8 @@ export function useLandingSearch() {
   const edit = (patch: Partial<LandingDraft>) => setDraft((current) => ({ ...current, ...patch }));
   const closeSegment = () => setOpenSegment(null);
 
-  function navigateTo(target: LandingDraft) {
-    router.push(draftToUrl(target));
+  function navigateTo(target: LandingDraft, keywords?: string) {
+    router.push(draftToUrl(target, keywords));
   }
 
   function search() {
@@ -78,15 +84,20 @@ export function useLandingSearch() {
 
   function applySheet(result: SheetSearch) {
     setSheetOpen(false);
-    navigateTo({
-      // Left out when the sheet's «Dónde» was untouched: the landing's own place stands.
-      place: result.place === undefined ? draft.place : result.place,
-      radiusKm: result.distanceInKm ?? draft.radiusKm,
-      brand: result.brand ?? "",
-      model: result.model ?? "",
-      minPrice: result.minPrice,
-      maxPrice: result.maxPrice,
-    });
+    navigateTo(
+      {
+        // Left out when the sheet's «Dónde» was untouched: the landing's own place stands.
+        place: result.place === undefined ? draft.place : result.place,
+        radiusKm: result.distanceInKm ?? draft.radiusKm,
+        brand: result.brand ?? "",
+        model: result.model ?? "",
+        minPrice: result.minPrice,
+        maxPrice: result.maxPrice,
+      },
+      // docs/specs/map-description-search.md (DESC-14): the phone sheet's own
+      // Descripción text, carried to `/map` as `q`.
+      result.keywords,
+    );
   }
 
   return {

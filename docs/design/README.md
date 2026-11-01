@@ -69,6 +69,9 @@ beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, 
 - `F3-buscador-donde.dc.html`, `F3-buscador-coche.dc.html`, `F3-buscador-precio.dc.html` — the map
   with each search pill segment open (Dónde, Coche, Precio) on desktop; on the phone, the map with
   the search row and the «Buscar» sheet it opens.
+- `F3-buscador-texto.dc.html`, `F3-mapa-texto.dc.html`, `F3-crear-alerta-texto.dc.html` — searching by
+  description in its own field: typing «e46» in the filter row and in the «Buscar» sheet, the map with
+  the search applied, and «Crear alerta» saving it.
 - `F3-mapa-tu-ubicacion.dc.html`, `F3-buscador-tu-ubicacion.dc.html` — the map centred on the user's
   position, with «Tu ubicación · 50 km» in the pill and the phone row and the 50 km zone drawn
   around it; and the «Dónde» popover and the phone «Buscar» sheet with «Tu ubicación» as the place.
@@ -86,6 +89,8 @@ beside its phone screen (390 × 844); the landing, sign in, saved cars, alerts, 
   and several matches at one point, alerts on a laptop and loading (desktop); an alert's page on
   desktop and its delete dialog; on the phone, an alert with no place, a long list scrolled, a
   saved match and both pages loading; and no alerts.
+- `F6-alerta-descripcion.dc.html` — an alert saved with a description: the list and its page, with
+  «e46» as a criterion.
 - `I152-correo-alerta.dc.html` — the alert digest email, desktop and phone: each car's photo above
   its details, «Sin foto» for a listing without one, and the footer with «Gestionar alertas» beside
   the unsubscribe link. It keeps the current email style; moving the emails to the redesign is

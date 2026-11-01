@@ -300,7 +300,9 @@ describe("MapView searching", () => {
   it("starts from the query the page was opened with", async () => {
     renderWithI18n(<MapView initialQuery="case-initial-query" />);
 
-    // MAPUI-18: the `?q=` text still reaches the search, with no control for it.
+    // MAPUI-18, amended by docs/specs/map-description-search.md (DESC-15):
+    // the `?q=` text reaches the search on load, now through the
+    // Descripción field rather than with no control for it.
     await waitFor(() =>
       expect(searchListings).toHaveBeenCalledWith(
         expect.objectContaining({ keywords: "case-initial-query" }),
@@ -1182,6 +1184,323 @@ describe("MapView — MAPUI-31 the empty state's actions", () => {
   });
 });
 
+// docs/specs/map-description-search.md (DESC-19, DESC-20).
+// docs/specs/map-description-search.md (DESC-15): Back/Forward (or any
+// external URL change) discards an unconfirmed draft and restores the field
+// to whatever q the URL now carries. A mutable `url` read by the wrapper on
+// every render, as useSearchFilters.test.tsx's own Back/Forward tests do —
+// MapView has no helper of its own that changes the URL from outside. The
+// field is portalled (HeaderSearch, lib/hooks/useMapHeaderSlot.ts), so, as
+// the DESC-19 describe below, a slot must exist before it can be queried.
+describe("MapView — DESC-15 an external URL change over an unapplied draft", () => {
+  let headerSlot: HTMLDivElement;
+  let filtersSlot: HTMLDivElement;
+
+  beforeEach(() => {
+    headerSlot = document.createElement("div");
+    filtersSlot = document.createElement("div");
+    document.body.append(headerSlot, filtersSlot);
+    setMapHeaderSlot(headerSlot);
+    setMapFiltersSlot(filtersSlot);
+  });
+
+  afterEach(() => {
+    headerSlot.remove();
+    filtersSlot.remove();
+  });
+
+  it("DESC-15: a draft typed over q is discarded when the URL changes from outside", async () => {
+    // lib/wallapop/cache.ts's cache is a module-level singleton keyed by the
+    // full search params, shared across every test in this file (comment at
+    // the top, near `onlyWallapop`): `e46`/`golf` are both used elsewhere
+    // with no location, so this test's own `q` values are case-unique
+    // instead, to never serve — or poison — another test's cache entry.
+    let url = "q=case-desc-15-a";
+    const view = render(<MapView initialQuery="case-desc-15-external" />, {
+      wrapper: ({ children }) => (
+        <NextIntlClientProvider locale="es" messages={esMessages} timeZone="UTC">
+          <NuqsTestingAdapter hasMemory searchParams={url}>
+            {children}
+          </NuqsTestingAdapter>
+        </NextIntlClientProvider>
+      ),
+    });
+
+    const field = await screen.findByRole("searchbox", { name: "Buscar en la descripción" });
+    expect(field).toHaveValue("case-desc-15-a");
+    await userEvent.type(field, "x");
+    expect(field).toHaveValue("case-desc-15-ax");
+
+    url = "q=case-desc-15-b";
+    view.rerender(<MapView initialQuery="case-desc-15-external" />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue(
+        "case-desc-15-b",
+      ),
+    );
+  });
+});
+
+describe("MapView — DESC-19 text applied with no results", () => {
+  let headerSlot: HTMLDivElement;
+  let filtersSlot: HTMLDivElement;
+
+  beforeEach(() => {
+    headerSlot = document.createElement("div");
+    filtersSlot = document.createElement("div");
+    document.body.append(headerSlot, filtersSlot);
+    setMapHeaderSlot(headerSlot);
+    setMapFiltersSlot(filtersSlot);
+  });
+
+  afterEach(() => {
+    headerSlot.remove();
+    filtersSlot.remove();
+  });
+
+  it("DESC-19: Quitar filtros clears the text, the field and q along with the filters", async () => {
+    server.use(...nothingFound);
+    const onUrlUpdate = vi.fn();
+    renderWithI18n(<MapView initialQuery="case-desc-19" />, {
+      locale: "es",
+      searchParams: `${MADRID}&q=e46`,
+      onUrlUpdate,
+    });
+
+    expect(await screen.findByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue(
+      "e46",
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Quitar filtros" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue(""),
+    );
+    await waitFor(() =>
+      expect(
+        Object.fromEntries(onUrlUpdate.mock.lastCall?.[0].searchParams ?? []),
+      ).not.toHaveProperty("q"),
+    );
+  });
+
+  it("DESC-19: Quitar filtros discards an unapplied draft too, searching with no keywords", async () => {
+    server.use(...nothingFound);
+    // lib/wallapop/cache.ts's cache is keyed by the full, stringified search
+    // params (comment near `onlyWallapop` above): with no place, «Quitar
+    // filtros» would clear this down to `{}` — the same signature any other
+    // test's own fully-cleared, place-less search reaches — and `MADRID` is
+    // shared by other DESC-19 cases that also clear down to it (place and
+    // radius kept, MAPUI-31). A place of this test's own keeps it unique.
+    renderWithI18n(<MapView initialQuery="case-desc-19-draft" />, {
+      locale: "es",
+      searchParams: "lat=41.3851&lng=2.1734&placeId=99&locationName=Barcelona&make=BMW",
+    });
+
+    const field = await screen.findByRole("searchbox", { name: "Buscar en la descripción" });
+    await userEvent.type(field, "gti");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Quitar filtros" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue(""),
+    );
+    await waitFor(() => expect(lastSearch()).toMatchObject({ keywords: "" }));
+  });
+
+  it("DESC-19: opening Filtros and pressing Borrar also empties the field and drops q", async () => {
+    server.use(...nothingFound);
+    const onUrlUpdate = vi.fn();
+    renderWithI18n(<MapView initialQuery="case-desc-19-panel-borrar" />, {
+      locale: "es",
+      searchParams: `${MADRID}&q=e46`,
+      onUrlUpdate,
+    });
+
+    expect(await screen.findByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue(
+      "e46",
+    );
+
+    await userEvent.click(within(filtersSlot).getByRole("button", { name: "Filtros" }));
+    const dialog = await screen.findByRole("dialog", { name: "Filtros" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Borrar" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue(""),
+    );
+    await waitFor(() =>
+      expect(
+        Object.fromEntries(onUrlUpdate.mock.lastCall?.[0].searchParams ?? []),
+      ).not.toHaveProperty("q"),
+    );
+  });
+});
+
+describe("MapView — DESC-20 a failed search with text applied", () => {
+  let headerSlot: HTMLDivElement;
+  let filtersSlot: HTMLDivElement;
+
+  beforeEach(() => {
+    headerSlot = document.createElement("div");
+    filtersSlot = document.createElement("div");
+    document.body.append(headerSlot, filtersSlot);
+    setMapHeaderSlot(headerSlot);
+    setMapFiltersSlot(filtersSlot);
+  });
+
+  afterEach(() => {
+    headerSlot.remove();
+    filtersSlot.remove();
+  });
+
+  it("DESC-20: onUrlUpdate is never called with q absent, also after Reintentar", async () => {
+    server.use(
+      http.get(WALLAPOP, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.post(COCHESNET, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.get(MILANUNCIOS, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+    );
+    const onUrlUpdate = vi.fn();
+    renderWithI18n(<MapView initialQuery="case-desc-20-no-url-wipe" />, {
+      locale: "es",
+      // A different text than the sibling test below — lib/wallapop/cache.ts
+      // keys its module-level cache by the search params, keywords included,
+      // and a shared "e46" would otherwise read the sibling's cached success
+      // instead of hitting this test's own failing handlers.
+      searchParams: "q=gti",
+      onUrlUpdate,
+    });
+    await screen.findByText("¿Se ha caído algo?");
+
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([makeWallapopItem()]))),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    await screen.findByText(WALLAPOP_TITLE);
+
+    for (const call of onUrlUpdate.mock.calls) {
+      expect(call[0].searchParams.has("q")).toBe(true);
+    }
+  });
+
+  it("DESC-20: keeps the text in the field and the URL, and Reintentar searches with it", async () => {
+    server.use(
+      http.get(WALLAPOP, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.post(COCHESNET, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+      http.get(MILANUNCIOS, () => HttpResponse.json({ error: "down" }, { status: 500 })),
+    );
+    renderWithI18n(<MapView initialQuery="case-desc-20" />, {
+      locale: "es",
+      searchParams: "q=e46",
+    });
+
+    await screen.findByText("¿Se ha caído algo?");
+
+    expect(screen.getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue("e46");
+
+    server.use(
+      ...onlyWallapop,
+      http.get(WALLAPOP, () => HttpResponse.json(makeWallapopResponse([makeWallapopItem()]))),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    await screen.findByText(WALLAPOP_TITLE);
+    expect(lastSearch()).toMatchObject({ keywords: "e46" });
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-12, DESC-18, DESC-21): every
+// surface that reads the applied text off `filters.input`, not off the
+// filter values directly.
+describe("MapView — the applied description text reaches the phone and alerts", () => {
+  it("DESC-18: on a phone, the search summary shows «e46» after the car", async () => {
+    stubPhoneWidth();
+    server.use(...onlyWallapop);
+    renderWithI18n(<MapView initialQuery="case-desc-18" />, {
+      locale: "es",
+      searchParams: "q=e46",
+    });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    expect(screen.getByRole("button", { name: /«e46»/ })).toBeInTheDocument();
+  });
+
+  it("DESC-12: on a phone, the sheet opens with the applied text and Ver coches keeps it", async () => {
+    stubPhoneWidth();
+    server.use(...onlyWallapop);
+    const onUrlUpdate = vi.fn();
+    const { container } = renderWithI18n(<MapView initialQuery="case-desc-12" />, {
+      locale: "es",
+      searchParams: "q=e46",
+      onUrlUpdate,
+    });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(within(container).getByRole("button", { name: /«e46»/ }));
+    const dialog = await screen.findByRole("dialog", { name: "BUSCAR" });
+    expect(within(dialog).getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue(
+      "e46",
+    );
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Ver coches" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(lastSearch()).toMatchObject({ keywords: "e46" });
+    // Nothing changed, so MAP-38 pushes no history entry at all — the bug
+    // this guards against is a wipe, which would have dropped q from one.
+    for (const call of onUrlUpdate.mock.calls) {
+      expect(call[0].searchParams.has("q")).toBe(true);
+    }
+  });
+
+  it("DESC-13: on a phone, typing in the sheet and closing with Escape discards it — reopening shows the applied text again", async () => {
+    stubPhoneWidth();
+    server.use(...onlyWallapop);
+    const { container } = renderWithI18n(<MapView initialQuery="case-desc-13" />, {
+      locale: "es",
+      searchParams: "q=e46",
+    });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(within(container).getByRole("button", { name: /«e46»/ }));
+    let dialog = await screen.findByRole("dialog", { name: "BUSCAR" });
+    const field = within(dialog).getByRole("searchbox", { name: "Buscar en la descripción" });
+    expect(field).toHaveValue("e46");
+
+    await userEvent.type(field, "x");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    await userEvent.click(within(container).getByRole("button", { name: /«e46»/ }));
+    dialog = await screen.findByRole("dialog", { name: "BUSCAR" });
+    expect(within(dialog).getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue(
+      "e46",
+    );
+  });
+
+  it("DESC-21: an alert created from the map keeps the text", async () => {
+    useSession.mockReturnValue({ data: { user: { id: "user-ada" } }, isPending: false });
+    vi.mocked(createAlert).mockResolvedValue({ ok: true, value: { created: true } });
+    stubPhoneWidth();
+    server.use(...onlyWallapop);
+    // DESC-24: the text alone is «Demasiado amplia» and disables the submit
+    // button, so a brand joins it, as the spec's own DESC-21 worked example does.
+    const { container } = renderWithI18n(<MapView initialQuery="case-desc-21" />, {
+      locale: "es",
+      searchParams: "make=BMW&q=e46",
+    });
+    await screen.findByText(WALLAPOP_TITLE);
+
+    await userEvent.click(within(container).getByRole("button", { name: "Crear alerta" }));
+    const dialog = await screen.findByRole("dialog", { name: "CREAR ALERTA" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Crear alerta" }));
+
+    await waitFor(() => expect(createAlert).toHaveBeenCalledTimes(1));
+    const [criteria] = vi.mocked(createAlert).mock.calls[0];
+    expect(criteria).toMatchObject({ brand: "BMW", keywords: "e46" });
+  });
+});
+
 describe("MapView — MAPUI-5 the national search's heading", () => {
   it("MAPUI-5: with no place, exhausted results are counted: «2 COCHES»", async () => {
     server.use(...audiThenSeat);
@@ -1470,7 +1789,9 @@ describe("MapView with the browser's position (issue #117)", () => {
 
     await userEvent.click(within(container).getByRole("button", { name: /Your location · 50 km/ }));
     const dialog = await screen.findByRole("dialog", { name: "SEARCH" });
-    await userEvent.click(within(dialog).getByRole("button", { name: "Clear text" }));
+    // The place field's × comes first; the description field holds this test's query.
+    const [clearPlace] = within(dialog).getAllByRole("button", { name: "Clear text" });
+    await userEvent.click(clearPlace);
     await userEvent.click(within(dialog).getByRole("button", { name: "Show cars" }));
 
     await waitFor(() => expect(lastSearch()?.latitude).toBeUndefined());
@@ -1512,7 +1833,7 @@ describe("MapView with the browser's position (issue #117)", () => {
     useSession.mockReturnValue({ data: { user: { id: "user-ada" } }, isPending: false });
     vi.mocked(createAlert).mockResolvedValue({ ok: true, value: { created: true } });
     server.use(...onlyWallapop);
-    const { container } = renderWithI18n(<MapView initialQuery="case-geo-alert" />, {
+    const { container } = renderWithI18n(<MapView />, {
       locale: "es",
       searchParams: "make=Toyota&model=Corolla",
     });
@@ -1644,5 +1965,83 @@ describe("MapView with the browser's position (issue #117)", () => {
         JSON.stringify({ lat: 40.42, lng: -3.7, radiusKm: 100 }),
       ),
     );
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-8, DESC-9, DESC-33): «Buscar»
+// applies whatever the Descripción field currently holds — an unconfirmed
+// draft typed over the applied text, or nothing once Escape or «Borrar
+// texto» has discarded it. Case-unique `q` and filter values (comment near
+// `onlyWallapop` above) so this file's shared Wallapop cache never serves —
+// or poisons — another test's entry. Kept last in the file: `lastSearch()`
+// reads the mocked `searchListings`'s own last call, and a search that hits
+// `useListingsSearch`'s separate results cache (lib/wallapop/cache.ts) never
+// calls it at all, so a test placed between two others that share a cache
+// key would see a stale, unrelated call instead of its own.
+describe("MapView — DESC-33/DESC-9 Buscar applies the field's current state", () => {
+  let headerSlot: HTMLDivElement;
+  let filtersSlot: HTMLDivElement;
+
+  beforeEach(() => {
+    headerSlot = document.createElement("div");
+    filtersSlot = document.createElement("div");
+    document.body.append(headerSlot, filtersSlot);
+    setMapHeaderSlot(headerSlot);
+    setMapFiltersSlot(filtersSlot);
+  });
+
+  afterEach(() => {
+    headerSlot.remove();
+    filtersSlot.remove();
+  });
+
+  it("DESC-33: typing over the applied text, Escape, then Buscar searches with the applied text and keeps it in the URL", async () => {
+    server.use(...onlyWallapop);
+    const onUrlUpdate = vi.fn();
+    renderWithI18n(<MapView initialQuery="case-desc-33-buscar" />, {
+      locale: "es",
+      searchParams: "q=case-desc-33-applied",
+      onUrlUpdate,
+    });
+
+    const field = await screen.findByRole("searchbox", { name: "Buscar en la descripción" });
+    expect(field).toHaveValue("case-desc-33-applied");
+    await userEvent.type(field, "x");
+    await userEvent.keyboard("{Escape}");
+    expect(field).toHaveValue("case-desc-33-applied");
+
+    await userEvent.click(screen.getByRole("button", { name: "Buscar" }));
+
+    await waitFor(() => expect(lastSearch()).toMatchObject({ keywords: "case-desc-33-applied" }));
+    // Nothing in the URL actually changes (the text is back to what `q`
+    // already held), so no history entry is pushed (MAP-38) — the URL
+    // keeps `q=case-desc-33-applied` simply because it was never rewritten.
+    expect(onUrlUpdate).not.toHaveBeenCalled();
+  });
+
+  it("DESC-9: typing text, Borrar texto, then Buscar searches with no keywords and no q in the URL", async () => {
+    server.use(...onlyWallapop);
+    const onUrlUpdate = vi.fn();
+    // A brand of this test's own (comment above): with no text and no other
+    // filter, the final search signature would otherwise be the one every
+    // other no-filters, no-place test also reaches.
+    renderWithI18n(<MapView initialQuery="case-desc-9-buscar" />, {
+      locale: "es",
+      searchParams: "make=CaseDescNueve",
+      onUrlUpdate,
+    });
+
+    const field = await screen.findByRole("searchbox", { name: "Buscar en la descripción" });
+    await userEvent.type(field, "case-desc-9-typed");
+    await userEvent.click(screen.getByRole("button", { name: "Borrar texto" }));
+    expect(field).toHaveValue("");
+
+    await userEvent.click(screen.getByRole("button", { name: "Buscar" }));
+
+    await waitFor(() => expect(lastSearch()).toMatchObject({ keywords: "" }));
+    // Whatever landed in the URL along the way, none of it ever named `q`.
+    for (const call of onUrlUpdate.mock.calls) {
+      expect(call[0].searchParams.has("q")).toBe(false);
+    }
   });
 });

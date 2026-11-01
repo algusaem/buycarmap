@@ -11,22 +11,26 @@ import { LanguageControl } from "./LanguageControl";
 import { Wordmark } from "./Wordmark";
 
 // HeaderNav README › Mapa and › Mapa en portátil (HEAD-1, HEAD-2, HEAD-21);
-// docs/specs/redesign-map.md (MAPUI-64, MAPUI-70). One `surface` band with no
-// border, 48px from each side, on a grid. The navigation is the pages
-// header's: Mapa (current) · Guardados · Alertas and the avatar. From 1440px
-// (`3xl`) it is two rows: row one, 24px under the top, is `1fr auto 1fr` with
-// the wordmark at the start, the search group (the 48px search pill and
-// «Crear alerta», MAPUI-1) in the centre column and the navigation at the
-// end; row two, 28px under the pill and 17px above the band's bottom, holds
-// «Filtros» and the quick filters (MAPUI-63) in the same centre column, so
-// both rows share its axis. From 1024 to 1439px the three don't fit in one
-// row, so the band takes three: the wordmark and the navigation, then the
-// search group 20px under them, then the filters 28px under it, each
-// centred. The map page owns the search and filters state, so their cells
-// are handed to it through `setMapHeaderSlot` and `setMapFiltersSlot` and the
-// page portals its parts in. Both cells keep their height while empty, so the
-// band does not jump when the page mounts. There is no phone region: on a
-// phone the map has no app header (HEAD-7).
+// docs/specs/redesign-map.md (MAPUI-64, MAPUI-70); docs/specs/
+// map-description-search.md (DESC-27). One `surface` band with no border,
+// 48px from each side, on a grid. The navigation is the pages header's: Mapa
+// (current) · Guardados · Alertas and the avatar. From 1440px (`3xl`) it is
+// two rows: row one, 24px under the top, is `1fr auto 1fr` with the wordmark
+// at the start, the search group (the 48px search pill and «Crear alerta»,
+// MAPUI-1) in the centre column and the navigation at the end; row two, 28px
+// under the pill and 17px above the band's bottom, spans from the search
+// group's own column to the band's end (`grid-column: 2 / -1`) and is
+// left-aligned there, so a wider row (the Descripción field, DESC-1) never
+// pushes the pill back towards the centre the way widening an `auto` column
+// would. From 1024 to 1439px the three don't fit in one row, so the band
+// takes three: the wordmark and the navigation, then the search group 20px
+// under them, then the filters 28px under it, each centred — row two keeps
+// its own centring there; only `3xl` left-aligns it. The map page owns the
+// search and filters state, so their cells are handed to it through
+// `setMapHeaderSlot` and `setMapFiltersSlot` and the page portals its parts
+// in. Both cells keep their height while empty, so the band does not jump
+// when the page mounts. There is no phone region: on a phone the map has no
+// app header (HEAD-7).
 export function MapHeader({ session }: { session: HeaderSession }) {
   const t = useTranslations();
 
@@ -52,7 +56,7 @@ export function MapHeader({ session }: { session: HeaderSession }) {
       </MainNav>
       <div
         ref={setMapFiltersSlot}
-        className="col-span-2 row-start-3 mt-7 flex h-8.5 justify-center 3xl:col-span-1 3xl:col-start-2 3xl:row-start-2"
+        className="col-span-2 row-start-3 mt-7 flex h-8.5 justify-center 3xl:row-start-2 3xl:col-start-2 3xl:-col-end-1 3xl:justify-start"
       />
     </div>
   );

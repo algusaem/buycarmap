@@ -1,6 +1,6 @@
 import type { ShownPlace } from "@/interfaces/location";
 import type { LocaleCopy } from "@/lib/i18n/copy";
-import { carLabel, placeLabel, priceLabel } from "@/lib/search/filter-chips";
+import { carLabel, placeLabel, priceLabel, textLabel } from "@/lib/search/filter-chips";
 import type { SearchInput } from "@/lib/search/schema";
 
 export interface PhoneSummary {
@@ -12,7 +12,9 @@ export interface PhoneSummary {
 
 /**
  * The phone search summary (docs/specs/redesign-map.md MAPUI-20): the place
- * and its radius, over the car and the price.
+ * and its radius, over the car and the price. docs/specs/map-description-
+ * search.md (DESC-18): the description text, when applied, shows in «…»
+ * between the car and the price.
  */
 export function phoneSummary(
   input: SearchInput,
@@ -22,9 +24,11 @@ export function phoneSummary(
 ): PhoneSummary {
   const { t } = copy;
   const price = priceLabel(input, copy, "summary") ?? t("search.anyPrice");
+  const text = textLabel(input);
+  const car = carLabel(input, copy) ?? t("search.anyBrand");
 
   return {
     placeSummary: placeLabel(place?.displayName, radiusKm, copy) ?? t("search.allSpain"),
-    carPriceSummary: `${carLabel(input, copy) ?? t("search.anyBrand")} · ${price}`,
+    carPriceSummary: [car, ...(text ? [text] : []), price].join(" · "),
   };
 }

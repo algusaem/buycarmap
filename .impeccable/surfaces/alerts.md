@@ -4,8 +4,9 @@ The alerts pages of BuyCarMap 2.0, «Alertas» and an alert's own page. Behaviou
 [`docs/specs/redesign-alerts.md`](../../docs/specs/redesign-alerts.md) (ALERTUI); the visual source of
 truth is the design in [`docs/design/`](../../docs/design/README.md) (boards `R3-alertas`,
 `F6-alerta`, `F6-alerta-estados`, `F6-alertas-escritorio`, `F6-alerta-escritorio`,
-`F6-alerta-mas-estados`, `F0-estado-alertas-vacio`, `F0-estado-error-pagina` and the UI Kit). Where
-this brief and the design disagree, the design wins and this brief is corrected.
+`F6-alerta-mas-estados`, `F6-alerta-descripcion`, `F0-estado-alertas-vacio`, `F0-estado-error-pagina`
+and the UI Kit). Where this brief and the design disagree, the design wins and this brief is
+corrected.
 
 ## 1. Job and audience
 
@@ -55,7 +56,8 @@ this brief and the design disagree, the design wins and this brief is corrected.
 
 - Alerts: none, one, a few, twenty; names short to very long; active or paused («En pausa»); with a
   place and a place name, with a place and no name (created before F6: the radius alone), or with no
-  place (no zone, the pill names the alert alone); criteria that no longer parse (no criteria line).
+  place (no zone, the pill names the alert alone); criteria that no longer parse (no criteria line);
+  with or without a saved description text, shown in «…» right after the car (DESC-30).
 - Matches: none («Sin coincidencias», «Te avisaremos en cuanto salga un coche que encaje.»), one to
   four (all on the open card), more than four («Ver las N coincidencias»), two hundred or more on the
   alert's page; with or without a photo; already saved or not.

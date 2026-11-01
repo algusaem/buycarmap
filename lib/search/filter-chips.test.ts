@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SearchInput } from "@/lib/search/schema";
 import { EN_COPY, ES_COPY } from "@/test/utils/copy";
-import { filterChips, placeLabel, priceLabel } from "./filter-chips";
+import { carLabel, filterChips, placeLabel, priceLabel } from "./filter-chips";
 
 // docs/specs/redesign-map.md (MAPUI-13, worked examples under "Chip texts").
 // `filterChips` is `SearchInput` in, chip list out — the filters row's badge
@@ -118,6 +118,26 @@ describe("MAPUI-13: filterChips — nothing active", () => {
         ES_COPY,
       ),
     ).toEqual([]);
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-17): the text does not count
+// in the «Filtros» badge (this array's length, lib/hooks/useFilterCount.ts)
+// and does not appear in the Coche value (carLabel).
+describe("DESC-17: filterChips and carLabel ignore the description text", () => {
+  it("DESC-17: keywords alone gives no chip, so the badge stays at 0", () => {
+    expect(filterChips({ keywords: "e46" }, ES_COPY)).toEqual([]);
+  });
+
+  it("DESC-17: a brand with keywords still gives only the brand's chip", () => {
+    expect(filterChips({ brand: "BMW", keywords: "e46" }, ES_COPY)).toEqual([
+      { key: "brand", label: "BMW" },
+    ]);
+  });
+
+  it("DESC-17: carLabel never mentions the text", () => {
+    const input: SearchInput = { brand: "BMW", keywords: "e46" };
+    expect(carLabel(input, ES_COPY)).toBe("BMW");
   });
 });
 

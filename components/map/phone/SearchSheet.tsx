@@ -1,9 +1,9 @@
 "use client";
 
-import { type RefObject, useState } from "react";
+import { type RefObject, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { CarTypeahead } from "@/components/map/search/CarTypeahead";
-import { closeListboxFirst } from "@/components/map/search/Combobox";
+import { closeListboxFirst, SearchField } from "@/components/map/search/Combobox";
 import { PanelSection } from "@/components/map/search/PanelSection";
 import { PlaceField } from "@/components/map/search/PlaceField";
 import { PriceRange } from "@/components/map/search/PriceRange";
@@ -12,15 +12,17 @@ import { PhoneBottomSheet, SheetHeader, ShowCarsFooter } from "./SheetChrome";
 import type { SelectedLocation, ShownPlace } from "@/interfaces/location";
 import type { SheetSearch } from "@/interfaces/search-sheet";
 import { isSelectedLocation } from "@/lib/search/shown-place";
-import type { SearchInput } from "@/lib/search/schema";
+import { KEYWORDS_MAX_LENGTH, type SearchInput } from "@/lib/search/schema";
 
 // docs/specs/redesign-map.md (MAPUI-21); docs/design/system/components/
-// SearchPopover/README.md (Móvil: la hoja «BUSCAR»). A bottom sheet over the
-// dimmed map with «Dónde», «Coche» and «Precio». Nothing chosen here reaches
-// the search until «Ver coches», which hands it all to `onApply`; closing
-// discards it (owner decision, "Decisions and rationale" › "Desktop applies
-// at once, the phone applies on «Ver coches»"), and «Borrar» only empties the
-// sheet's fields. Escape closes an open list first, then the sheet
+// SearchPopover/README.md (Móvil: la hoja «BUSCAR»); docs/specs/
+// map-description-search.md (DESC-2, DESC-12, DESC-13). A bottom sheet over
+// the dimmed map with «Dónde», «Coche», «Descripción» and «Precio». Nothing
+// chosen here reaches the search until «Ver coches» (or Enter in the
+// Descripción field), which hands it all to `onApply`; closing discards it
+// (owner decision, "Decisions and rationale" › "Desktop applies at once, the
+// phone applies on «Ver coches»"), and «Borrar» only empties the sheet's
+// fields. Escape closes an open list first, then the sheet
 // (closeListboxFirst).
 
 export interface SearchSheetProps {
@@ -75,6 +77,8 @@ interface Draft {
   model: string;
   minPrice?: number;
   maxPrice?: number;
+  /** docs/specs/map-description-search.md (DESC-2, DESC-12, DESC-13). */
+  keywords: string;
 }
 
 /**
@@ -100,6 +104,7 @@ interface SheetContentProps {
 /** The sheet's fields, mounted on each opening so they start from the search. */
 function SheetContent({ initial, place, radiusKm, onApply, onClose }: SheetContentProps) {
   const t = useTranslations();
+  const keywordsRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<Draft>({
     place,
     placeTouched: false,
@@ -108,6 +113,7 @@ function SheetContent({ initial, place, radiusKm, onApply, onClose }: SheetConte
     model: initial.model ?? "",
     minPrice: initial.minPrice,
     maxPrice: initial.maxPrice,
+    keywords: initial.keywords ?? "",
   });
   const edit = (patch: Partial<Draft>) => setDraft((current) => ({ ...current, ...patch }));
 
@@ -117,6 +123,7 @@ function SheetContent({ initial, place, radiusKm, onApply, onClose }: SheetConte
       model: draft.model || undefined,
       minPrice: draft.minPrice,
       maxPrice: draft.maxPrice,
+      keywords: draft.keywords.trim() || undefined,
       distanceInKm: draft.radiusKm,
       place: appliedPlace(draft),
     });
@@ -137,6 +144,7 @@ function SheetContent({ initial, place, radiusKm, onApply, onClose }: SheetConte
             model: "",
             minPrice: undefined,
             maxPrice: undefined,
+            keywords: "",
           })
         }
       />
@@ -160,6 +168,26 @@ function SheetContent({ initial, place, radiusKm, onApply, onClose }: SheetConte
             onSelectBrand={(brand) => edit({ brand, model: "" })}
             onSelectModel={(model) => edit({ model })}
             onClear={() => edit({ brand: "", model: "" })}
+          />
+        </PanelSection>
+        <PanelSection level={3} title={t("search.descriptionLabel")}>
+          <SearchField
+            ref={keywordsRef}
+            type="search"
+            name="q"
+            aria-label={t("search.descriptionField")}
+            placeholder={t("search.descriptionPlaceholder")}
+            maxLength={KEYWORDS_MAX_LENGTH}
+            enterKeyHint="search"
+            value={draft.keywords}
+            onValueChange={(keywords) => edit({ keywords })}
+            onClearText={() => {
+              edit({ keywords: "" });
+              keywordsRef.current?.focus();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") showCars();
+            }}
           />
         </PanelSection>
         <PanelSection level={3} title={t("search.price")}>

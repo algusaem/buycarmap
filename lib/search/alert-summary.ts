@@ -1,5 +1,11 @@
 import type { LocaleCopy } from "@/lib/i18n/copy";
-import { carLabel, criteriaChips, placeLabel, priceLabel } from "@/lib/search/filter-chips";
+import {
+  carLabel,
+  criteriaChips,
+  placeLabel,
+  priceLabel,
+  textLabel,
+} from "@/lib/search/filter-chips";
 import { hasPlace, type SearchInput } from "@/lib/search/schema";
 
 // docs/specs/redesign-map.md (MAPUI-40, worked examples under "Alert name and
@@ -20,24 +26,39 @@ import { hasPlace, type SearchInput } from "@/lib/search/schema";
 const SEPARATOR = " · ";
 
 /**
- * The prefilled name: the car and the place, or the price when neither is
- * set, or nothing («Toyota Corolla · Madrid», «Madrid», «Hasta 15.000 €»).
+ * docs/specs/map-description-search.md (DESC-21): the car and its text as one
+ * part, unquoted and space-joined — «BMW e46» — or the text alone with no
+ * car — «e46» — undefined with neither.
+ */
+function carAndText(input: SearchInput, copy: LocaleCopy): string | undefined {
+  const car = carLabel(input, copy);
+  const text = input.keywords?.trim();
+  if (car && text) return `${car} ${text}`;
+  return car ?? (text || undefined);
+}
+
+/**
+ * The prefilled name: the car (with its text, DESC-21) and the place, or the
+ * price when neither is set, or nothing («Toyota Corolla · Madrid»,
+ * «e46 · Madrid», «Madrid», «Hasta 15.000 €»).
  */
 export function alertName(
   input: SearchInput,
   placeName: string | undefined,
   copy: LocaleCopy,
 ): string {
-  const parts = [carLabel(input, copy), placeName].filter((part) => part);
+  const parts = [carAndText(input, copy), placeName].filter((part) => part);
   if (parts.length > 0) return parts.join(SEPARATOR);
   return priceLabel(input, copy) ?? "";
 }
 
 /**
- * The car («Cualquier marca»), the price («Cualquier precio»), then the
- * fuels, the gearbox, the mileage, the year and the place with its radius,
- * each only when set. A place with no name — the browser's position — ends
- * with the radius alone, as the alert's card reads once saved (MAP-36).
+ * The car («Cualquier marca»), its text in «…» when applied right after it
+ * (docs/specs/map-description-search.md, DESC-21), the price («Cualquier
+ * precio»), then the fuels, the gearbox, the mileage, the year and the place
+ * with its radius, each only when set. A place with no name — the browser's
+ * position — ends with the radius alone, as the alert's card reads once
+ * saved (MAP-36).
  */
 export function alertSummary(
   input: SearchInput,
@@ -47,9 +68,11 @@ export function alertSummary(
   const place = placeName
     ? placeLabel(placeName, input.distanceInKm, copy)
     : alertZone(input, null, copy);
+  const text = textLabel(input);
 
   return [
     carLabel(input, copy) ?? copy.t("search.anyBrand"),
+    ...(text ? [text] : []),
     priceLabel(input, copy) ?? copy.t("search.anyPrice"),
     ...criteriaChips(input, copy).map((chip) => chip.label),
     ...(place ? [place] : []),
@@ -74,10 +97,12 @@ export function alertZone(
 
 /**
  * docs/specs/redesign-alerts.md (ALERTUI-5; amends MAPUI-40): an alert's
- * criteria as the AlertCard writes them, each only when set — the car, the
- * fuel groups, the price, the gearbox, the mileage, the year, then the zone
- * («Madrid · 50 km», or «50 km» with a place but no place name). Never
- * «Publicado», the `?q=` text, «Cualquier marca» or «Cualquier precio».
+ * criteria as the AlertCard writes them, each only when set — the car, its
+ * saved text in «…» right after it (docs/specs/map-description-search.md,
+ * DESC-30 — first when there is no car), the fuel groups, the price, the
+ * gearbox, the mileage, the year, then the zone («Madrid · 50 km», or
+ * «50 km» with a place but no place name). Never «Publicado», «Cualquier
+ * marca» or «Cualquier precio».
  */
 export function alertCriteria(
   input: SearchInput,
@@ -88,6 +113,7 @@ export function alertCriteria(
   const isFuel = (key: string) => key.startsWith("engine:");
   return [
     carLabel(input, copy),
+    textLabel(input),
     ...chips.filter((chip) => isFuel(chip.key)).map((chip) => chip.label),
     priceLabel(input, copy),
     ...chips.filter((chip) => !isFuel(chip.key)).map((chip) => chip.label),

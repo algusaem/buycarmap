@@ -173,9 +173,10 @@ describe("createAlert", () => {
     expect(await prisma.alert.count()).toBe(0);
   });
 
-  it("MAPUI-42: a direct call carrying timeFilter and keywords stores the criteria without either, hashed as the clean criteria", async () => {
+  it("MAPUI-42/DESC-22: a direct call carrying timeFilter and keywords strips only timeFilter — the text is kept and hashed", async () => {
     signedInAs(ADA);
     const clean = makeCriteria();
+    const withText = { ...clean, keywords: "golf" };
 
     const result = await createAlert(
       { ...clean, timeFilter: "lastMonth", keywords: "golf" },
@@ -192,8 +193,63 @@ describe("createAlert", () => {
       latitude: 40.4168,
       longitude: -3.7038,
       distanceInKm: 50,
+      keywords: "golf",
     });
-    expect(rows[0].criteriaHash).toBe(hashCriteria(clean));
+    expect(rows[0].criteriaHash).toBe(hashCriteria(withText));
+  });
+
+  // docs/specs/map-description-search.md (DESC-22, DESC-25).
+  it("DESC-22: two alerts differing only in the text are two criteria rows, each storing its trimmed text", async () => {
+    signedInAs(ADA);
+
+    await createAlert(makeCriteria({ keywords: "  e46  " }), "BMW e46");
+    await createAlert(makeCriteria({ keywords: "gti" }), "BMW gti");
+
+    const rows = await prisma.alertCriteria.findMany();
+    expect(rows).toHaveLength(2);
+    const stored = rows
+      .map((row) => row.criteria)
+      .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+    const expected = [makeCriteria({ keywords: "e46" }), makeCriteria({ keywords: "gti" })].sort(
+      (a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)),
+    );
+    expect(stored).toEqual(expected);
+  });
+
+  it("DESC-22: the same text from two users shares one criteria row", async () => {
+    signedInAs(ADA);
+    await createAlert(makeCriteria({ keywords: "e46" }), "Ada's e46 search");
+    signedInAs(GRACE);
+    await createAlert(makeCriteria({ keywords: "e46" }), "Grace's e46 search");
+
+    expect(await prisma.alertCriteria.count()).toBe(1);
+  });
+
+  it("DESC-25: rejects text longer than 100 characters as invalid criteria", async () => {
+    signedInAs(ADA);
+
+    const result = await createAlert(makeCriteria({ keywords: "e".repeat(101) }), "Too long");
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidCriteria", messageKey: "alertErrors.invalidCriteria" },
+    });
+    expect(await prisma.alertCriteria.count()).toBe(0);
+  });
+
+  it("DESC-31: rejects text jsonb cannot store as invalid criteria, storing nothing (worked example)", async () => {
+    signedInAs(ADA);
+
+    const result = await createAlert(
+      makeCriteria({ brand: "BMW", keywords: "a\u0000b" }),
+      "Unsafe text",
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "invalidCriteria", messageKey: "alertErrors.invalidCriteria" },
+    });
+    expect(await prisma.alertCriteria.count()).toBe(0);
   });
 
   it("PLAT-27: rejects a non-string label (today a TypeError reaching Prisma unparsed)", async () => {

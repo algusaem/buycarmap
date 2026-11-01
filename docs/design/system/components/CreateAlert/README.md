@@ -14,6 +14,6 @@ Guarda la búsqueda del mapa como una alerta. Lo abre «Crear alerta» (ver Head
 - **Creada**: se cierra y sale el aviso (Toast) «Alerta creada» con la acción «Ver alertas», arriba al centro.
 - **Ya la tienes**: si ya tienes una alerta activa con esa misma búsqueda, se cierra igual y sale el mismo aviso con «Ya tienes esta alerta» y la acción «Ver alertas». Pasa también si ya tienes 20 alertas, porque no se crea ninguna nueva.
 - **Pausada o borrada**: si esa alerta estaba pausada desde el correo o la habías borrado, vuelve a activarse con el nombre nuevo y el aviso es «Alerta creada».
-- **La búsqueda que guarda**: los criterios del mapa sin «Publicado» y sin el texto libre que llega de la landing (`?q=`).
+- **La búsqueda que guarda**: los criterios del mapa sin «Publicado». La descripción va con ellos: el nombre sale «BMW e46 · Madrid» y el resumen «BMW · «e46» · Hasta 20.000 € · Madrid · 50 km». La descripción no basta para «Demasiado amplia»: solo «e46», sin marca, precio máximo ni zona, sigue siendo demasiado amplia.
 - Abrir «Crear alerta» cierra la vista previa (MapPreview) que esté abierta.
 - Movimiento: el diálogo se funde en 180ms (en el móvil, la hoja sube en 240ms) cuando se abre o cierra con el ratón; con el teclado aparece y desaparece al instante. Los avisos se funden tras un clic y aparecen al instante tras una tecla.

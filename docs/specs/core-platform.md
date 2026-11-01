@@ -2,7 +2,7 @@
 
 Key: PLAT
 Status: Implemented
-Last updated: 2026-10-15
+Last updated: 2026-11-01
 
 ---
 
@@ -47,7 +47,7 @@ This is phase 6 of ADR 0007: rows 11–15.
 
 ### Logging, correlation and Sentry
 
-- [x] PLAT-15 · unit — `lib/logger.ts` exports one Pino logger: JSON in production, `pino-pretty` in development, silent in tests. Its `redact` paths censor `password`, `*.password`, `token`, `*.token`, `email`, `*.email`, `secret`, `*.secret`, `code`, `*.code`, `headers.authorization` and `headers.cookie`. — The paths in `lib/logger.ts` today are `password`, `*.password`, `token`, `*.token`, `email`, `*.email`, `secret`, `*.secret`, `code`, `*.code`, `headers.authorization`, `headers.cookie`, `ipAddress`, `*.ipAddress`, `userAgent`, `*.userAgent`, `backupCodes`, `*.backupCodes`, `placeName` and `*.placeName` (amended 2026-10-16, ALERTUI — redesign-alerts.md).
+- [x] PLAT-15 · unit — `lib/logger.ts` exports one Pino logger: JSON in production, `pino-pretty` in development, silent in tests. Its `redact` paths censor `password`, `*.password`, `token`, `*.token`, `email`, `*.email`, `secret`, `*.secret`, `code`, `*.code`, `headers.authorization` and `headers.cookie`. — The paths in `lib/logger.ts` today are `password`, `*.password`, `token`, `*.token`, `email`, `*.email`, `secret`, `*.secret`, `code`, `*.code`, `headers.authorization`, `headers.cookie`, `ipAddress`, `*.ipAddress`, `userAgent`, `*.userAgent`, `backupCodes`, `*.backupCodes`, `placeName` and `*.placeName` (amended 2026-10-16, ALERTUI — redesign-alerts.md). — `keywords`, `*.keywords`, `criteria` and `*.criteria` join the list (amended 2026-11-01, DESC — map-description-search.md).
 - [x] PLAT-16 · unit — Every `console.*` call in `app/`, `components/`, `lib/` and `server/` is replaced by the logger, and Biome's `noConsole` rule is an error for those paths. `e2e/**` and `scripts/**` may keep `console`.
 - [x] PLAT-17 · unit + node — `proxy.ts` gives every request it handles an `x-request-id`: it keeps a valid incoming one (a UUID) and otherwise generates one. It forwards the id to the app as a request header and returns it as a response header. `lib/request-context.ts` holds the id in an `AsyncLocalStorage`. Route handlers and the Server Actions from PLAT-11 run inside it, and every log line written inside it carries `requestId`.
 - [x] PLAT-18 · unit — Sentry (`@sentry/nextjs`) is initialised from `instrumentation.ts` and `instrumentation-client.ts` only when a DSN is set, with `dataCollection` turning off user identity, cookies, headers, request bodies, query strings, query data and stack-frame variables (SDK 11's replacement for `sendDefaultPii: false`), `tracesSampleRate: 0` and no session replay. Without a DSN it is inert, and nothing is sent. Browser events go through a tunnel route (`/monitoring`), so the CSP needs no Sentry host. Source maps are uploaded only when `SENTRY_AUTH_TOKEN` is set. Every event carries a `request_id` tag when one is in context.

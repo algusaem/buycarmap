@@ -2,7 +2,7 @@
 
 Key: SRC
 Status: Implemented
-Last updated: 2026-10-21
+Last updated: 2026-10-31
 
 ---
 
@@ -284,6 +284,9 @@ Accumulated the hard way. None of it is discoverable from the response.
 - **A city-centre fan-out was tried and rejected.** Firing parallel requests from
   ten Spanish city centres and deduplicating by id yields ~400 items across ~86
   cities. It works; it was not wanted. Do not rebuild it without asking.
+- **`keywords` matches closely, not exactly.** Observed live 2026-10-31 with
+  `/map?q=e46` in production: the first page was nearly all Serie 3 from 1997 to
+  2006, about 5 of 40 unrelated ([map-description-search.md](map-description-search.md)).
 
 #### Failure handling
 
@@ -357,6 +360,10 @@ falls back to the site default.
 2026-08-12: `BMW` capped at 300 € returned exactly 3 matching items and
 `totalResults: 3`, no "related" filler. A narrow filter set returns fewer
 results, never different ones.
+
+**`searchText` is a loose match.** Observed live 2026-10-31 with `/map?q=e46` in
+production: about 13 Serie 3 of 41, more than half X3, Z4 or Z3. We add no text
+post-filter ([map-description-search.md](map-description-search.md)).
 
 ##### Taxonomy translation
 

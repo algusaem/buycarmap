@@ -340,13 +340,14 @@ async function expectVisibleFocus(page: Page) {
 }
 
 /** Which focus indicator A11Y-4 reads for the focused element. */
-type FocusIndicatorKind = "outline" | "card-photo-ring" | "map-ring";
+type FocusIndicatorKind = "outline" | "card-photo-ring" | "map-ring" | "pill-outline";
 
 /**
  * Asserts the focused element's indicator (A11Y-4, amended 2026-10-20): a
  * results card's link draws the photo's lime ring (MAPUI-66), read the way
  * e2e/map.spec.ts's MAPUI-66 test reads it; the map surface's canvas draws the
- * inset 2px lime ring on its map container (`[data-map]::after`); everything
+ * inset 2px lime ring on its map container (`[data-map]::after`); the
+ * Descripción field's input draws LOOK-11's outline on its pill; everything
  * else draws LOOK-11's outline.
  */
 async function expectFocusIndicator(page: Page) {
@@ -354,6 +355,7 @@ async function expectFocusIndicator(page: Page) {
   const kind: FocusIndicatorKind = await locator.evaluate((el) => {
     if (el instanceof HTMLCanvasElement && el.closest("[data-map]")) return "map-ring";
     if (el.matches('[data-testid="results-sheet"] article a')) return "card-photo-ring";
+    if (el.matches('input[type="search"][name="q"]')) return "pill-outline";
     return "outline";
   });
 
@@ -385,15 +387,18 @@ async function expectFocusIndicator(page: Page) {
     return;
   }
 
-  const outline = await locator.evaluate((el) => {
-    const style = getComputedStyle(el);
+  const outline = await locator.evaluate((el, kind) => {
+    // The Descripción field's input sits inside a pill (LOOK-11); the pill,
+    // not the input, draws the outline.
+    const target = kind === "pill-outline" ? (el.parentElement ?? el) : el;
+    const style = getComputedStyle(target);
     return {
       outlineStyle: style.outlineStyle,
       outlineWidth: style.outlineWidth,
       outlineColor: style.outlineColor,
       outlineOffset: style.outlineOffset,
     };
-  });
+  }, kind);
   // MapLibre's attribution toggle sits in the map's rounded corner, which
   // clips an outline drawn outside it, so its LOOK-11 outline is drawn inside
   // (A11Y-4, owner 2026-10-20): same style, width and colour, offset -2px.
@@ -575,22 +580,26 @@ const DESKTOP_MAP_SEQUENCE: (string | RegExp)[] = [
   "Manual", // 14
   "Automático", // 15
   /Hasta\s*100\.000\s*km/i, // 16
-  /Audi A3 2\.0 TDI/, // 17: first card's link
-  "Guardar", // 18: first card's heart, unsaved (signed out)
-  /BMW Serie 3 320d/, // 19
-  "Guardar", // 20
-  /SEAT León 1\.5 TSI/, // 21
-  "Guardar", // 22
-  "Mapa: usa las flechas para moverlo y + o − para acercar o alejar", // 23: A11Y-8's name
-  /Audi A3 2\.0 TDI/, // 24: first pin
-  /BMW Serie 3 320d/, // 25
-  /SEAT León 1\.5 TSI/, // 26
-  "Acercar", // 27
-  "Alejar", // 28
-  "Mostrar u ocultar la atribución", // 29: the attribution's toggle
-  /OpenFreeMap/, // 30
-  /OpenMapTiles/, // 31
-  /OpenStreetMap/, // 32
+  // 17: «Descripción» field, right after the last quick filter
+  // (docs/specs/map-description-search.md, DESC-28). No applied text in this
+  // scenario, so no «Borrar texto» follows it.
+  "Buscar en la descripción", // 17
+  /Audi A3 2\.0 TDI/, // 18: first card's link
+  "Guardar", // 19: first card's heart, unsaved (signed out)
+  /BMW Serie 3 320d/, // 20
+  "Guardar", // 21
+  /SEAT León 1\.5 TSI/, // 22
+  "Guardar", // 23
+  "Mapa: usa las flechas para moverlo y + o − para acercar o alejar", // 24: A11Y-8's name
+  /Audi A3 2\.0 TDI/, // 25: first pin
+  /BMW Serie 3 320d/, // 26
+  /SEAT León 1\.5 TSI/, // 27
+  "Acercar", // 28
+  "Alejar", // 29
+  "Mostrar u ocultar la atribución", // 30: the attribution's toggle
+  /OpenFreeMap/, // 31
+  /OpenMapTiles/, // 32
+  /OpenStreetMap/, // 33
 ];
 
 // Worked examples › phone sequence (amended 2026-10-20: "11–12. the link and
@@ -631,7 +640,7 @@ const PHONE_MAP_SEQUENCE: (string | RegExp)[] = [
 ];
 
 test.describe("A11Y-3: /map's full tab order, signed out, default results", () => {
-  test("A11Y-3: at 1440×900, Tab from the skip link visits exactly the desktop sequence, and Shift+Tab reverses it", async ({
+  test("A11Y-3/DESC-28: at 1440×900, Tab from the skip link visits exactly the desktop sequence (the Descripción field right after the last quick filter), and Shift+Tab reverses it", async ({
     page,
   }) => {
     await setLocale(page, "es");
@@ -671,6 +680,30 @@ test.describe("A11Y-3: /map's full tab order, signed out, default results", () =
     await expect(
       page.getByTestId("results-sheet").locator("article").first().getByRole("link").first(),
     ).toBeFocused();
+    await expect(page.locator(":focus")).toHaveAccessibleName(/Audi A3 2\.0 TDI/);
+  });
+
+  // docs/specs/map-description-search.md (DESC-28): with text applied, the
+  // field's own «Borrar texto» joins the tab order right after it.
+  test("DESC-28: with q=e46, Tab to the field then Borrar texto, which draws LOOK-11's outline, then the first card's link", async ({
+    page,
+  }) => {
+    await setLocale(page, "es");
+    await page.setViewportSize(DESKTOP_1440);
+    await mockListingSources(page);
+    await page.goto("/map?q=e46");
+    await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+
+    const field = page.getByRole("searchbox", { name: "Buscar en la descripción" });
+    await field.focus();
+    await expect(field).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    const clearButton = page.getByRole("button", { name: /^(borrar texto|clear text)$/i });
+    await expect(clearButton).toBeFocused();
+    await expectFocusIndicator(page);
+
+    await page.keyboard.press("Tab");
     await expect(page.locator(":focus")).toHaveAccessibleName(/Audi A3 2\.0 TDI/);
   });
 

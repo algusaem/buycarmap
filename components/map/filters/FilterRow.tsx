@@ -8,6 +8,7 @@ import { closeListboxFirst } from "@/components/map/search/Combobox";
 import { useFilterCount } from "@/lib/hooks/useFilterCount";
 import type { SearchInput } from "@/lib/search/schema";
 import { cn } from "@/lib/utils";
+import { DescriptionField } from "./DescriptionField";
 import { FiltersBadge } from "./FiltersBadge";
 import { QuickFilters } from "./QuickFilters";
 
@@ -30,6 +31,20 @@ export interface FilterRowProps {
   panel: ReactNode;
   panelOpen: boolean;
   onClosePanel: () => void;
+  // docs/specs/map-description-search.md (DESC-1, DESC-6 to DESC-11,
+  // DESC-17): the Descripción field, after a divider, at the row's end.
+  // HeaderSearch always wires both; optional only so a caller testing the
+  // row in isolation (FilterRow.test.tsx's MAPUI-13/19 and MOTION describes)
+  // can leave the field out.
+  keywords?: string;
+  onApplyKeywords?: (text: string) => void;
+  /** docs/specs/map-description-search.md (DESC-15): changes whenever the
+   * hook discards the field's typed draft from outside. Optional alongside
+   * `keywords`. */
+  keywordsResetKey?: number;
+  /** docs/specs/map-description-search.md (DESC-8): every keystroke's raw
+   * value, so «Buscar» can apply an unconfirmed draft. */
+  onKeywordsDraftChange?: (value: string) => void;
 }
 
 export function FilterRow({
@@ -39,6 +54,10 @@ export function FilterRow({
   panel,
   panelOpen,
   onClosePanel,
+  keywords,
+  onApplyKeywords,
+  keywordsResetKey,
+  onKeywordsDraftChange,
 }: FilterRowProps) {
   const t = useTranslations();
   const { count, descriptionId, describedBy } = useFilterCount(input);
@@ -61,6 +80,17 @@ export function FilterRow({
       />
       <span aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-line" />
       <QuickFilters input={input} onApply={onApplyQuick} />
+      {onApplyKeywords && (
+        <>
+          <span aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-line" />
+          <DescriptionField
+            applied={keywords ?? ""}
+            resetKey={keywordsResetKey}
+            onApply={onApplyKeywords}
+            onDraftChange={onKeywordsDraftChange}
+          />
+        </>
+      )}
     </div>
   );
 }

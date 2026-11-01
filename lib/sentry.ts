@@ -1,5 +1,11 @@
 import { getRequestId } from "@/lib/request-context";
-import { PRIVATE_DATA_COLLECTION } from "@/lib/sentry-privacy";
+import {
+  beforeBreadcrumb,
+  beforeSend as stripQuery,
+  PRIVATE_DATA_COLLECTION,
+  type SentryBreadcrumb,
+  type SentryRequestEvent,
+} from "@/lib/sentry-privacy";
 
 // PLAT-18 (docs/specs/core-platform.md): the DSN-gated options every Sentry
 // initialisation site (instrumentation.ts, instrumentation-client.ts) starts
@@ -11,7 +17,7 @@ interface SentryIntegration {
   name?: string;
 }
 
-interface SentryEventLike {
+interface SentryEventLike extends SentryRequestEvent {
   tags?: Record<string, unknown>;
 }
 
@@ -21,6 +27,7 @@ export interface SentryOptions {
   dataCollection: typeof PRIVATE_DATA_COLLECTION;
   integrations?: SentryIntegration[];
   beforeSend: <T extends SentryEventLike>(event: T) => T;
+  beforeBreadcrumb: <T extends SentryBreadcrumb>(breadcrumb: T) => T;
 }
 
 /** Inert without a DSN: nothing is sent, and nothing is initialised. */
@@ -31,10 +38,15 @@ export function sentryOptions(dsn: string | undefined): SentryOptions | undefine
     dsn,
     tracesSampleRate: 0,
     dataCollection: PRIVATE_DATA_COLLECTION,
+    // docs/specs/map-description-search.md (DESC-32): a server event may
+    // carry the typed description text through its request URL or
+    // `contexts.nextjs.request_path`; stripped here, in the same function
+    // that tags the event with the request's correlation id.
     beforeSend(event) {
       event.tags = { ...event.tags, ...requestIdTag() };
-      return event;
+      return stripQuery(event);
     },
+    beforeBreadcrumb,
   };
 }
 

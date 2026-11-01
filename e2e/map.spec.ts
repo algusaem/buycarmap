@@ -299,6 +299,36 @@ test.describe("MAPUI-50: phone BUSCAR sheet applies only on Ver coches", () => {
     await expect(page).toHaveURL(before);
     expect(page.url()).not.toContain("make=Toyota");
   });
+
+  // docs/specs/map-description-search.md (DESC-12): the sheet's own
+  // Descripción field applies through «Ver coches», like every other field.
+  test("DESC-12: typing e46 in Descripción and pressing Ver coches writes q=e46 and the summary shows «e46»", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "phone-only BUSCAR sheet flow");
+    await page.setViewportSize(MOBILE);
+    await mockListingSources(page);
+    await page.goto("/map");
+
+    await page
+      .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
+      .first()
+      .click();
+    await expect(page.getByRole("dialog", { name: /^(buscar|search)$/i })).toBeVisible();
+
+    const descriptionField = page.getByRole("searchbox", {
+      name: /buscar en la descripci[oó]n|search the description/i,
+    });
+    await descriptionField.fill("e46");
+    await page.getByRole("button", { name: /^(ver coches|show cars)$/i }).click();
+
+    await expect(page).toHaveURL(/q=e46/);
+    const summary = page
+      .getByRole("button", { name: /toda españa|cualquier marca|all of spain|any make/i })
+      .first();
+    await expect(summary).toContainText("«e46»");
+  });
 });
 
 // docs/specs/redesign-map.md (MAPUI-85, MAPUI-86, owner report 2026-10-31):
@@ -599,6 +629,9 @@ test.describe("MAPUI-51: phone touch targets", () => {
 
 const FILTERS_NAME = /^(filtros|filters)$/i;
 const MAX_KM_QUICK_NAME = /^(hasta\s*100\.000\s*km|up to\s*100,000\s*km)$/i;
+// docs/specs/map-description-search.md (DESC-1, DESC-27): the field at the
+// end of row two.
+const DESCRIPTION_FIELD_NAME = /^(buscar en la descripci[oó]n|search the description)$/i;
 const MAP_REGION_NAME = /^(mapa|map)$/i;
 const SUMMARY_NAME = /toda españa|cualquier marca|all of spain|any make/i;
 
@@ -641,9 +674,9 @@ test.describe("MAPUI-64: the desktop header band", () => {
     expectWithin(filtersBox.y, 100, "row two top");
     expectWithin(filtersBox.y + filtersBox.height, 134, "row two bottom (Filtros)");
     expectWithin(kmBox.y + kmBox.height, 134, "row two bottom (quick filter)");
-    const rowTwoCentre1440 = (filtersBox.x + kmBox.x + kmBox.width) / 2;
-    const groupCentre1440 = (pillBox.x + crearAlertaBox.x + crearAlertaBox.width) / 2;
-    expectWithin(rowTwoCentre1440 - groupCentre1440, 0, "row two on the search group's axis");
+    // DESC-27: at 1440px and wider, row two starts at the search group's left
+    // edge rather than sharing its centre.
+    expectWithin(filtersBox.x - pillBox.x, 0, "row two starts at the search group's left edge");
 
     const wordmarkBox = await box(page.getByRole("link", { name: "BuyCarMap" }));
     expectWithin(wordmarkBox.x, 48, "wordmark left");
@@ -686,9 +719,9 @@ test.describe("MAPUI-64: the desktop header band", () => {
     expectWithin(filtersBox.y, 100, "row two top");
     expectWithin(filtersBox.y + filtersBox.height, 134, "row two bottom (Filtros)");
     expectWithin(kmBox.y + kmBox.height, 134, "row two bottom (quick filter)");
-    const rowTwoCentre2560 = (filtersBox.x + kmBox.x + kmBox.width) / 2;
-    const groupCentre2560 = (pillBox.x + crearAlertaBox.x + crearAlertaBox.width) / 2;
-    expectWithin(rowTwoCentre2560 - groupCentre2560, 0, "row two on the search group's axis");
+    // DESC-27: at 1440px and wider, row two starts at the search group's left
+    // edge rather than sharing its centre.
+    expectWithin(filtersBox.x - pillBox.x, 0, "row two starts at the search group's left edge");
   });
 
   dbTest(
@@ -717,19 +750,18 @@ test.describe("MAPUI-64: the desktop header band", () => {
       expectWithin(pillBox.y, 24, "pill top");
       expectWithin(pillBox.y + pillBox.height, 72, "pill bottom");
 
-      const crearAlerta = band.getByRole("button", { name: /^(crear alerta|create alert)$/i });
-      const crearAlertaBox = await box(crearAlerta);
+      await expect(
+        band.getByRole("button", { name: /^(crear alerta|create alert)$/i }),
+      ).toBeVisible();
 
       const filtersButton = page.getByRole("button", { name: FILTERS_NAME }).first();
-      const kmQuickFilter = page.getByRole("button", { name: MAX_KM_QUICK_NAME });
       const filtersBox = await box(filtersButton);
-      const kmBox = await box(kmQuickFilter);
       expectWithin(filtersBox.y, 100, "row two top");
       expectWithin(filtersBox.y + filtersBox.height, 134, "row two bottom (Filtros)");
 
-      const rowTwoCentre = (filtersBox.x + kmBox.x + kmBox.width) / 2;
-      const groupCentre = (pillBox.x + crearAlertaBox.x + crearAlertaBox.width) / 2;
-      expectWithin(rowTwoCentre - groupCentre, 0, "row two on the search group's axis");
+      // DESC-27: at 1440px and wider, row two starts at the search group's
+      // left edge rather than sharing its centre.
+      expectWithin(filtersBox.x - pillBox.x, 0, "row two starts at the search group's left edge");
 
       const navBox = await box(
         page.locator("header").getByRole("navigation", { name: /^(main|principal)$/i }),
@@ -787,8 +819,15 @@ test.describe("MAPUI-70: the laptop header band", () => {
       expectWithin(filtersBox.y, 168, "row two top");
       expectWithin(filtersBox.y + filtersBox.height, 202, "row two bottom (Filtros)");
       expectWithin(kmBox.y + kmBox.height, 202, "row two bottom (quick filter)");
+
+      // DESC-27: below 1440px the measure runs from «Filtros» to the
+      // description field (row two's new rightmost element), still centred
+      // on the window.
+      const descriptionField = page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME });
+      // The input sits inside the pill's border, so the row's edge is the pill's.
+      const descriptionBox = await box(descriptionField.locator(".."));
       expectWithin(
-        filtersBox.x - (width - (kmBox.x + kmBox.width)),
+        filtersBox.x - (width - (descriptionBox.x + descriptionBox.width)),
         0,
         "row two centred on the window",
       );
@@ -811,6 +850,93 @@ test.describe("MAPUI-70: the laptop header band", () => {
       expect(offenders, `elements past the 48px side margins: ${offenders.join(", ")}`).toEqual([]);
     });
   }
+});
+
+// docs/specs/map-description-search.md (DESC-27): the field does not move
+// the search group at 1440px and wider.
+test.describe("DESC-27: the description field and the search group", () => {
+  // The deep link that gives «Filtros» its longest badge (every fuel group,
+  // a gearbox, a mileage ceiling, a minimum year and «Publicado»), plus the
+  // field's own applied text at its 100-character limit — the two widest
+  // things row two ever draws at once.
+  const WIDEST_ROW_TWO =
+    "engine=gasoline,gasoil,hybride,hybride_plugin,electric,cng&gearbox=manual&maxKm=100000" +
+    "&minYear=2015&timeFilter=today&make=Volkswagen&model=Golf&maxPrice=20000" +
+    `&q=${"a".repeat(100)}`;
+
+  for (const width of [1024, 1440, 2560]) {
+    test(`DESC-27: at ${width}px with the badge at its longest, the page has no horizontal overflow`, async ({
+      page,
+      isMobile,
+    }) => {
+      test.skip(isMobile, "desktop-only header band");
+      await page.setViewportSize({ width, height: 900 });
+      await mockListingSources(page);
+      await page.goto(`/map?${WIDEST_ROW_TWO}`);
+      await expect(page.getByRole("button", { name: FILTERS_NAME }).first()).toBeVisible();
+
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(scrollWidth, `documentElement.scrollWidth at ${width}px`).toBeLessThanOrEqual(width);
+
+      const band = page.getByTestId("header-desktop");
+      const bandBox = await box(band);
+      // 1024px is still the laptop band (MAPUI-70), whose 48px side margins
+      // are load-bearing (not just the band's own edges, as at 1440px and
+      // wider, where the band itself may legitimately reach the window).
+      const bounds = width === 1024 ? { left: 48, right: width - 48 } : { left: 0, right: width };
+      const offenders = await band.evaluate(
+        (el, bounds: { left: number; right: number }) =>
+          [...el.querySelectorAll("*")]
+            .map((node) => ({
+              tag: node.tagName.toLowerCase(),
+              rect: node.getBoundingClientRect(),
+            }))
+            .filter(({ rect }) => rect.width > 0 && rect.height > 0)
+            .filter(({ rect }) => rect.left < bounds.left - 1 || rect.right > bounds.right + 1)
+            .map(
+              ({ tag, rect }) =>
+                `${tag} left=${rect.left.toFixed(1)} right=${rect.right.toFixed(1)}`,
+            ),
+        bounds,
+      );
+      expect(offenders, `elements past the band's own bounds: ${offenders.join(", ")}`).toEqual([]);
+      expect(bandBox.width).toBeLessThanOrEqual(width);
+    });
+  }
+
+  dbTest(
+    "DESC-27 (dbTest): signed in at 1440×900 with the design's values, row two does not widen the search group's column",
+    async ({ page, isMobile }) => {
+      test.skip(isMobile, "desktop-only header band");
+      const email = e2eEmail("descsearchgroupcentre");
+      await seedUser(email, PASSWORD, "Desc Search Group User");
+      await mockListingSources(page);
+      await page.setViewportSize(DESKTOP_1440);
+      await signIn(page, email);
+      await page.goto("/map?lat=40.4168&lng=-3.7038&locationName=Madrid&radius=50&maxPrice=20000");
+      await expect(page.getByText("Audi A3 2.0 TDI").first()).toBeVisible();
+
+      const crearAlerta = page.getByRole("button", { name: /^(crear alerta|create alert)$/i });
+      const crearAlertaBox = await box(crearAlerta);
+      const nav = page.locator("header").getByRole("navigation", { name: /^(main|principal)$/i });
+      const navBox = await box(nav);
+      const descriptionField = page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME });
+      // The input sits inside the pill's border, so the row's edge is the pill's.
+      const descriptionBox = await box(descriptionField.locator(".."));
+
+      const pillBox = await box(page.getByRole("search"));
+
+      expectWithin(
+        (pillBox.x + crearAlertaBox.x + crearAlertaBox.width) / 2,
+        DESKTOP_1440.width / 2,
+        "the group stays centred on the window",
+      );
+      expect(crearAlertaBox.x + crearAlertaBox.width).toBeLessThanOrEqual(navBox.x);
+      expect(crearAlertaBox.x + crearAlertaBox.width).toBeLessThan(
+        descriptionBox.x + descriptionBox.width,
+      );
+    },
+  );
 });
 
 test.describe("MAPUI-65: the desktop list and map share the width", () => {
