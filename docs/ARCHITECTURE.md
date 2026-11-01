@@ -81,7 +81,7 @@ browser-bound `searchWallapop`/`searchCochesNet`/`searchMilanuncios` any more.
 
 **Filters.** [`lib/hooks/useSearchFilters.ts`](../lib/hooks/useSearchFilters.ts)
 holds every filter in one `FilterValues` object and exposes a typed setter per
-field. Two paths write it:
+field. Three paths write it:
 
 - `update()` — every desktop popover and filters-panel change — patches state and
   **debounces the search by 400 ms** (MAP-11), so a drag on the price range fires one
@@ -89,20 +89,28 @@ field. Two paths write it:
 - `apply()` patches and searches at once, with no pause: the phone sheets' «Ver
   coches», a quick filter (MAPUI-63) and the panel's «Borrar» (MAPUI-19, MAPUI-21,
   MAPUI-22).
+- `applyKeywords()` applies the Descripción field's own Enter or «Borrar texto»
+  (DESC-6, DESC-9 in [`specs/map-description-search.md`](specs/map-description-search.md)):
+  trimmed, and only when it differs from what is already applied, searching at
+  once like `apply()`.
 
 Which desktop popover is open is one piece of state in the hook
 (`activePopover`), so at most one is (MAPUI-2). `triggerSearch()` («Buscar»)
 searches immediately and closes both the open popover and the filters dropdown;
 `update()` closes neither — closing them out from under someone still choosing
-would be hostile.
+would be hostile. `triggerSearch()` also applies the Descripción field's own
+unconfirmed, typed-but-not-entered draft, the way «Buscar» applies any other
+filter (DESC-8).
 
 `clearAll()` («Quitar filtros») clears every filter, the criteria the UI no longer
 offers included, and **keeps the place and the radius** (MAPUI-31). `setBrand` also
 clears `model`: a model only means anything under its brand.
 
-`?q=` survives only in old links; the map still parses it and drops it once a control clears it;
-nothing produces it any more (MAPUI-18 in [`specs/redesign-map.md`](specs/redesign-map.md), ENTRY-6
-in [`specs/redesign-entry.md`](specs/redesign-entry.md)). It never saves it in an alert (MAPUI-42).
+`?q=` is the text of the description field, on the filter row and in the phone «BUSCAR» sheet; the
+landing's phone sheet produces it too, and old links keep working (DESC-6, DESC-12, DESC-14 and
+DESC-15 in [`specs/map-description-search.md`](specs/map-description-search.md), ENTRY-6 in
+[`specs/redesign-entry.md`](specs/redesign-entry.md)). Alerts save it with the rest of the criteria
+(DESC-22).
 
 On mount the hook fires an immediate search, then — unless the URL already carries a place — asks
 the browser for its position and, if one arrives before the user makes a location choice, searches
@@ -116,8 +124,9 @@ only with a place — the radius live in the URL through [nuqs](https://nuqs.dev
 plus `filtersToUrlState`/`urlStateToFilters` to convert to and from the hook's
 `FilterValues`), so a filtered search deep-links and a reload restores it. The
 URL is only written at the same points the hook already calls `search()` —
-the debounce firing, an explicit `triggerSearch()`, or `apply()` («Ver coches», a quick
-filter, «Borrar»; `clearAll()` goes through it) — each as
+the debounce firing, an explicit `triggerSearch()`, `apply()` («Ver coches», a quick
+filter, «Borrar»; `clearAll()` goes through it) or `applyKeywords()` (Enter, «Borrar
+texto») — each as
 a pushed history entry when the URL changes
 ([`specs/map-and-search.md`](specs/map-and-search.md) MAP-38), not on every keystroke; a `useEffect` watching the
 nuqs-backed state resyncs and re-searches when the URL changes from outside
@@ -358,7 +367,7 @@ Spanish or English in components.
 | `app/` | Routes, layouts, proxy route handlers |
 | `server/<feature>/` | The server layer, one folder per feature: `actions.ts` (Server Actions — every mutation), `queries.ts` (page reads), `service.ts` (the only files that import Prisma, apart from `lib/db/` and the LAYOUT-7 exception, `lib/auth/auth.ts` — see [specs/core-layout.md](specs/core-layout.md)), `schema.ts` (Zod schemas with exported inferred types). Boundaries enforced by dependency-cruiser — see [specs/core-layout.md](specs/core-layout.md) |
 | `app/api/` | Proxy route handlers for the three upstreams, plus the alert cron endpoint |
-| `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row, the quick filters and the panel), `phone/` (the phone search, sheets and results sheet) |
+| `components/map/` | The search + map feature: `search/` (the desktop pill and its popovers), `filters/` (the filters row, the quick filters, the description field and the panel), `phone/` (the phone search, sheets and results sheet) |
 | `components/alerts/` | The alerts pages (`AlertsPage`, `AlertPage`), the AlertCard, the alert map and the phone zone map, the delete confirmation, the loading and error states, and the create-alert dialog |
 | `components/nav/` | The headers, the phone tab bar and the language control |
 | `components/account/` | The account page: its cards, the dialog-or-sheet frame and each card's form in it, the loading placeholders |
@@ -696,7 +705,7 @@ MapView
 │  │  ├─ CarPopover        CarTypeahead: brands, then models through useCarModels
 │  │  ├─ PricePopover      PriceRange (Radix Slider and boxes), shortcuts
 │  │  └─ CreateAlert       the inline card, in the pill's own popover
-│  └─ FilterRow            row two: «Filtros», QuickFilters; FilterPanel is its desktop dropdown
+│  └─ FilterRow            row two: «Filtros», QuickFilters, DescriptionField; FilterPanel is its desktop dropdown
 ├─ MapResultsArea          the list-and-map area
 │  ├─ PhoneSearchBar       phone only, in the band on top: the summary, «Filtros», QuickFilters
 │  ├─ ResultsSheet         the list column on desktop, the results sheet on a phone
@@ -1755,7 +1764,11 @@ Sentry event carries the same value as a `request_id` tag.
 [`lib/sentry.ts`](../lib/sentry.ts) and `instrumentation.ts` initialise
 `@sentry/nextjs` only when `SENTRY_DSN` is set — inert otherwise, nothing is
 sent. `dataCollection` (`lib/sentry-privacy.ts`) turns off user identity, cookies, headers, request bodies and query strings, query data and stack-frame variables, `tracesSampleRate: 0`, no session replay.
-Source maps upload only when `SENTRY_AUTH_TOKEN` is set. See
+Source maps upload only when `SENTRY_AUTH_TOKEN` is set. `lib/sentry-privacy.ts`'s
+`beforeSend`/`beforeBreadcrumb` also strip the query string from every event and
+breadcrumb's own URL fields, in the browser, the server and edge (DESC-32 in
+[`specs/map-description-search.md`](specs/map-description-search.md)), so the typed description
+text never reaches Sentry that way either. See
 [`privacy/processors.md`](privacy/processors.md) for what it receives.
 
 #### Image hosts

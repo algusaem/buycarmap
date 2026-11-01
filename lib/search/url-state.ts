@@ -44,6 +44,18 @@ export const searchParsers = {
 
 export type UrlSearchState = inferParserType<typeof searchParsers>;
 
+/**
+ * The description text's URL parameter (MAPUI-18; docs/specs/
+ * map-description-search.md, Contracts › URL). Read on every `/map` load —
+ * an old `/map?q=…` link keeps working — and, since DESC-1, written by the
+ * Descripción field through `useSearchFilters`'s own `urlParsers` (that hook
+ * owns `q`, not this module) and by the landing's phone sheet through
+ * `mapSearchUrl` (DESC-14; the desktop pill and the popular cars never pass
+ * one). Not one of `searchParsers`: the hook owns it directly, not this
+ * module, and drops it once a control clears it.
+ */
+export const KEYWORDS_PARAM = "q";
+
 // The landing's desktop search, phone sheet and popular-car chips all start
 // from this (docs/specs/redesign-entry.md, Contracts › "Landing to map"), so
 // no filter stays set once a chip or a cleared field is applied to it.
@@ -72,6 +84,7 @@ export const EMPTY_URL_FILTERS: UrlFilterValues = {
 const mapUrlSerializer = createSerializer({
   ...searchParsers,
   radius: searchParsers.radius.withOptions({ clearOnDefault: false }),
+  [KEYWORDS_PARAM]: parseAsString,
 });
 
 // The subset of `useSearchFilters`' `FilterValues` this module knows how to
@@ -139,24 +152,17 @@ export function urlRadius(filters: UrlFilterValues): number | null {
  * `URLSearchParams`. The radius only means anything once a place is chosen
  * (worked example "Dónde «Madrid» (50 km)" keeps it even at its default, via
  * `mapUrlSerializer`'s `clearOnDefault: false`), so `urlRadius` clears it
- * whenever one is not.
+ * whenever one is not. `keywords`, trimmed, is `q` (DESC-14) — only the
+ * landing's phone sheet ever passes it; the desktop pill and the popular
+ * cars call this with none, so they still produce no `q` (ENTRY-6).
  */
-export function mapSearchUrl(filters: UrlFilterValues): string {
+export function mapSearchUrl(filters: UrlFilterValues, keywords?: string): string {
   return mapUrlSerializer("/map", {
     ...filtersToUrlState(filters),
     radius: urlRadius(filters),
+    [KEYWORDS_PARAM]: keywords?.trim() || null,
   });
 }
-
-/**
- * An old link's free text (`/map?q=…`): still parsed and searched, never
- * shown and never produced by anything in the app (MAPUI-18, amended by
- * docs/specs/redesign-entry.md's ENTRY-6 — the landing builds its own
- * `/map` links through `mapSearchUrl` above, never this). Not one of
- * `searchParsers`: the map's caller of useSearchFilters owns it, and the
- * hook drops it once a control clears it.
- */
-export const KEYWORDS_PARAM = "q";
 
 const VALID_TIME_FILTERS = new Set(["today", "lastWeek", "lastMonth"]);
 

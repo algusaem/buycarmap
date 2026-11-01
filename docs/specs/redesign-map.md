@@ -2,7 +2,7 @@
 
 Key: MAPUI
 Status: Implemented
-Last updated: 2026-10-22
+Last updated: 2026-10-31
 
 ---
 
@@ -107,7 +107,8 @@ Filters row and panel
   when it was the last, and «Filtros» when none is left. — replaced by the quick filters (MAPUI-63):
   the row shows «Filtros» with its badge, a divider and the quick filters, and no removable chips;
   the badge still counts the active criteria as the worked example «Chip texts» does (amended
-  2026-10-17, design A7 accepted 2026-10-17, #134)
+  2026-10-17, design A7 accepted 2026-10-17, #134) — the row also ends with a divider and the field
+  «Buscar en la descripción» (DESC-1), which the badge does not count (DESC-17) (amended 2026-10-31, DESC — map-description-search.md)
 - [x] MAPUI-14 · component — The filters panel has exactly the sections Precio, Combustible, Cambio,
   Kilómetros y año (the maximum mileage and the minimum year, with the visible labels «Kilómetros, hasta»
   and «Año, desde»), Publicado, and Marca y modelo (the «Coche»
@@ -135,8 +136,9 @@ Filters row and panel
   - «Último mes» → `lastMonth`.
 - [x] MAPUI-18 · unit — A URL carrying a criterion the UI no longer offers still parses and still
   reaches the search, with no control or chip for it. Those criteria are `minKm`, `maxYear`,
-  `minHorsePower`, `maxHorsePower`, `gearbox=semiautomatic`, `engine=cng` and the `?q=` text. «Borrar»
-  and «Quitar filtros» clear them (amends FRONT-13).
+  `minHorsePower`, `maxHorsePower`, `gearbox=semiautomatic` and `engine=cng`. «Borrar»
+  and «Quitar filtros» clear them (amends FRONT-13). — `?q=` left this list: it has its control, the
+  description field (DESC-1, DESC-15) (amended 2026-10-31, DESC — map-description-search.md)
 - [x] MAPUI-19 · component — On desktop the filters panel is a dropdown under «Filtros» with no close
   button:
   - every choice applies at once;
@@ -149,7 +151,9 @@ Phone
 - [x] MAPUI-20 · component — At phone width the map shows, floating over it, two rows:
   - the search summary: «Madrid · 50 km» over «Cualquier marca · hasta 20.000 €», or «Toda España»
     with no place — «Tu ubicación · 50 km» while the browser's position stands in (amended
-    2026-10-21, MAP-32, issue #117);
+    2026-10-21, MAP-32, issue #117) — with text applied, the second line shows it in «…» after the car
+    and before the price, «BMW · «e46» · hasta 20.000 €» (DESC-18)
+    (amended 2026-10-31, DESC — map-description-search.md);
   - beside it, the violet filters button, then the filters row.
 
   — not floating any more: a solid `surface` band across the top holds the summary with a 44px round
@@ -159,8 +163,8 @@ Phone
 
   It shows no zoom control and no app header (keeps HEAD-7), and the tab bar of MAPUI-52 runs along
   the bottom.
-- [x] MAPUI-21 · component — Tapping the summary opens the «BUSCAR» sheet with «Dónde», «Coche» and
-  «Precio»:
+- [x] MAPUI-21 · component — Tapping the summary opens the «BUSCAR» sheet with «Dónde», «Coche»,
+  «Descripción» and «Precio» (amended 2026-10-31, DESC — map-description-search.md):
   - nothing chosen there reaches the URL, the summary or the search until «Ver coches», which applies
     it all and closes the sheet;
   - «Dónde» left untouched keeps the place in force, or the browser's position standing in for one;
@@ -170,7 +174,7 @@ Phone
   - closing the sheet discards it. It closes by dragging its handle down, a press outside it, Escape
     or its visually hidden «Cerrar», with no visible «×» (amended 2026-10-15, owner: no visible close on phone sheets; drag down to close; SAVED-37 to SAVED-41,
     redesign-saved.md);
-  - «Borrar» empties the sheet's fields, applied only on «Ver coches».
+  - «Borrar» empties the sheet's fields, «Descripción» included (DESC-13), applied only on «Ver coches».
 - [x] MAPUI-22 · component — The violet button opens the full-screen filters panel, with the same
   sections as MAPUI-14 and the apply, discard and «Borrar» behaviour of MAPUI-21. Removing a chip
   from the filters row applies at once. — the violet button becomes the round «Filtros» button of
@@ -345,11 +349,12 @@ Crear alerta
   reads «Cualquier marca · Cualquier precio». The dialog then shows «Añade una marca, un precio
   máximo o una zona para crear la alerta.» with `role="alert"`, «Crear alerta» is `aria-disabled`, and
   pressing it sends nothing.
-- [x] MAPUI-42 · component — «Crear alerta» calls `createAlert` with the current criteria, without
-  `timeFilter` and without the `?q=` text, and the trimmed name. On success the dialog closes and the toast «Alerta creada»
-  offers «Ver alertas», which links to `/alerts`. The server strips both too: criteria sent to
-  `createAlert` with a `timeFilter` or `keywords` are hashed and stored without them, the same as
-  the criteria without them. (amended 2026-10-13) — at desktop width the toast's top is 12px below
+- [x] MAPUI-42 · component — «Crear alerta» calls `createAlert` with the current criteria, the `?q=`
+  text included, without `timeFilter`, and the trimmed name. On success the dialog closes and the toast «Alerta creada»
+  offers «Ver alertas», which links to `/alerts`. The server strips it too: criteria sent to
+  `createAlert` with a `timeFilter` are hashed and stored without it, the same as the criteria
+  without it. The text is trimmed and stored with the criteria (DESC-22). (amended 2026-10-13;
+  amended 2026-10-31, DESC — map-description-search.md) — at desktop width the toast's top is 12px below
   the filter row and its centre is over the results list's, and its close button is «Cerrar aviso»,
   as every toast in the app (amended 2026-10-15, SAVED-24 and SAVED-36 — redesign-saved.md) — the
   toast's top is 12px under the header band instead, at 163px (SAVED-24 as amended, MAPUI-64)
@@ -489,7 +494,8 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
   the weight, 800 against 600, as LOOK-12, and «Manual» and «Automático» read pressed by the panel's
   own rule (MAPUI-16, MAPUI-18) (amended 2026-10-17, #134). On desktop they follow
   «Filtros» and a divider; on a phone «Filtros» is the round button beside the summary (MAPUI-67).
-  The filters panel and the quick filters always show the same criteria.
+  The filters panel and the quick filters always show the same criteria. — on desktop a divider and
+  the field «Buscar en la descripción» follow them (DESC-1) (amended 2026-10-31, DESC — map-description-search.md)
 - [x] MAPUI-64 · e2e — At 1440 × 900 on `/map`, the header is one `surface` band with no bottom border
   (HEAD-21), 48px from each side, 151px tall:
   - row one: the wordmark, the 48px-tall search pill with «Crear alerta» centred, the navigation;
@@ -501,7 +507,10 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
   — this band is the one from 1440px wide; its navigation is the pages header's section links (HEAD-1),
   and row two is centred on the same column as the search group instead of on the window: the section
   links are wider than the wordmark, so that column sits left of the window's centre, and both rows
-  share its axis (amended 2026-10-22, design accepted 2026-10-22, #157).
+  share its axis (amended 2026-10-22, design accepted 2026-10-22, #157). — row two also ends with a
+  divider and the field «Buscar en la descripción» (DESC-1), and is not centred any more: it starts at the
+  left edge of the search group and spans to the end of the band, so the field does not move the
+  search group (DESC-27) (amended 2026-10-31, DESC — map-description-search.md)
 - [x] MAPUI-65 · e2e — At desktop width, under the band, the list and the map share the width between
   48px side margins in two equal halves 48px apart. The results heading is 24px under the band. The
   map is a card with the `card` radius (22px) and no border, its top level with the heading's top and
@@ -525,7 +534,9 @@ Header band, quick filters and desktop layout (design A7 accepted 2026-10-17, #1
   (HEAD-1, or «Entrar» signed out, HEAD-2) at the end, as in the pages header; row two, 20px under it,
   the 48px search pill and «Crear alerta», centred on the window; row three, 28px under the pill,
   «Filtros», the divider and the quick filters, centred on the window, 17px above the band's bottom.
-  Nothing in the band reaches past its 48px side margins (design accepted 2026-10-22, #157).
+  Nothing in the band reaches past its 48px side margins (design accepted 2026-10-22, #157). — row
+  three also ends with a divider and the field «Buscar en la descripción» (DESC-1), and stays centred on
+  the window (DESC-27) (amended 2026-10-31, DESC — map-description-search.md)
 - [x] MAPUI-71 · e2e — The sheet's moves are checked with a real finger (touch events through the
   browser, never the mouse, which ignores `touch-action`): a swipe up on the middle sheet's card
   reaches full, and at full a swipe in the list scrolls the list and leaves the sheet at full (bug
@@ -601,8 +612,9 @@ of `manual` and `automatic` is set (MAPUI-16), and `semiautomatic` has no contro
 At 1024 the pill row is row two and row three is the filters (MAPUI-70). At 1440, signed in, with the
 design's values («Madrid · 50 km», «Cualquier marca», «Hasta 20.000 €»), the search group (pill and
 «Crear alerta») is 633px wide and the section links with the language and the avatar 418px, so the
-group's centre is at x 646, 74px left of the window's centre, and row two's centre is at x 646 too
-(MAPUI-64, amended 2026-10-22, #157).
+group's centre is at x 646, 74px left of the window's centre (MAPUI-64, amended 2026-10-22, #157).
+Row two starts at the group's left edge, so it has no centre of its own from 1440px wide (DESC-27)
+(amended 2026-10-31, DESC — map-description-search.md).
 
 **The desktop list's clipped outline (MAPUI-66, bug fix #134).** Measured on production at 1440 × 900.
 
@@ -942,16 +954,18 @@ to tell a new alert from an existing one, and to reactivate a paused one (Contra
   - Paused at the limit: a paused alert and 19 others. Saving the paused alert's criteria again
     answers `created: true`, reactivates that same alert with the new name, and the user still has 20
     alerts (MAPUI-43).
-  - A direct call to `createAlert` carrying `timeFilter` or `keywords` stores and hashes the criteria
-    without them (MAPUI-42).
+  - A direct call to `createAlert` carrying `timeFilter` stores and hashes the criteria without it
+    (MAPUI-42). One carrying `keywords` stores and hashes the text, trimmed (DESC-22)
+    (amended 2026-10-31, DESC — map-description-search.md).
   - A create that fails on the network keeps the dialog open with its message (MAPUI-45).
   - Signed out (MAPUI-46).
   - A session that ends while the dialog is open gets `unauthenticated` inline (MAPUI-45).
 
 ## Out of scope
 
-- The landing's search (F4, [ENTRY](redesign-entry.md)): it no longer produces `?q=`; the map still
-  parses it from old links (MAPUI-18).
+- The landing's search (F4, [ENTRY](redesign-entry.md)): its desktop pill and its popular cars
+  produce no `?q=`; the map still parses it from old links (DESC-15). (Amended 2026-10-31, DESC —
+  map-description-search.md: its phone sheet may produce it, ENTRY-6, DESC-14.)
 - The saved-cars and alerts pages' own layouts (F5, F6). This phase changes only the card they render
   (MAPUI-38), their phone header and their tab bar (MAPUI-52 to MAPUI-54). The phone car sheet on
   saved cars and the phone alert page are designed (`F5-guardados-coche`, `F6-alerta`,
@@ -980,7 +994,8 @@ returns the shared `Result<{ created: boolean }, AlertError>` (PLAT-11, `lib/res
   reactivated, and for one restored from a soft-deleted row. The last two take the new name.
 
 The error codes are unchanged: `unauthenticated`, `invalidCriteria`, `criteriaTooBroad`,
-`tooManyAlerts`. The criteria never carry `timeFilter` or the `?q=` text (MAPUI-42).
+`tooManyAlerts`. The criteria never carry `timeFilter` (MAPUI-42); they carry the `?q=` text, of
+at most 100 characters, as `keywords` (DESC-22, DESC-25) (amended 2026-10-31, DESC — map-description-search.md).
 
 **Specificity.** `isSpecificEnough` stays in `server/alerts/schema.ts` as the refinement of
 `alertCriteriaSchema`, which the create-alert dialog and `createAlert` both parse with, so they share
@@ -1107,7 +1122,8 @@ resolves the name, the merge's model post-filter compares names, and a number wo
 that post-filter.
 
 **Removed controls, kept parameters.** Horsepower, minimum mileage, maximum year, semi-automatic and
-CNG leave the UI, and so does free text, which the landing stopped producing in F4 (ENTRY-6). The URL keeps understanding all of them.
+CNG leave the UI, and so did free text, which the landing stopped producing in F4 (ENTRY-6), until it
+came back as a field of its own (amended 2026-10-31, DESC — map-description-search.md). The URL keeps understanding all of them.
 Old shared links and the current landing keep working instead of silently widening, and nothing a
 saved alert or a bookmark relies on breaks. Not showing them as chips is the cost: they would need
 copy and a design for criteria the product no longer offers.
@@ -1119,9 +1135,9 @@ are only two kinds, so both together mean any gearbox, and an old link carrying 
 criterion (owner decision, 2026-10-13).
 
 **Alerts do not save «Publicado».** An alert already looks only for cars new since it last ran. A
-saved «Último mes» would make every poll ask Wallapop for a month of listings. Nor does it save the
-`?q=` text (owner decision, 2026-10-13): the map no longer shows it (MAPUI-18), so the alert would
-carry a criterion the buyer cannot see.
+saved «Último mes» would make every poll ask Wallapop for a month of listings. The `?q=` text stayed
+out too while the map did not show it (owner decision, 2026-10-13), because the alert would carry a
+criterion the buyer could not see. The map shows it now, so alerts save it (amended 2026-10-31, DESC — map-description-search.md).
 
 **Telling "already existed" apart (owner decision: "say so").** The upsert hides it today. The service
 derives `created` inside the same transaction as the write, from the row it finds there, and never

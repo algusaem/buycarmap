@@ -23,7 +23,7 @@ vi.mock("@/server/search/actions", () => ({
   })),
 }));
 
-const push = vi.fn();
+const push = vi.fn<(url: string) => void>();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
 }));
@@ -172,7 +172,7 @@ describe("ENTRY-3: LandingSearch — Buscar navigates with exactly what was chos
   });
 });
 
-describe("ENTRY-6: LandingSearch — never produces ?q=", () => {
+describe("ENTRY-6: LandingSearch — the desktop pill and the popular cars never produce ?q=", () => {
   it("ENTRY-6: offers no free-text search box, and Buscar never includes q= even with a brand chosen", async () => {
     renderWithI18n(<LandingSearch />, { locale: "es" });
     const desktop = within(screen.getByTestId("landing-search-desktop"));
@@ -314,6 +314,45 @@ describe("ENTRY-5: LandingSearch — the phone card opens the BUSCAR sheet", () 
     const url = push.mock.calls[0][0] as string;
     expect(pathOf(url)).toBe("/map");
     expect(parsedParams(url)).toEqual({});
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-14): the phone sheet's
+// Descripción reaches /map as q; the desktop pill and the popular cars still
+// never produce one (ENTRY-6, unchanged, kept passing above).
+describe("DESC-14: LandingSearch — the phone sheet's Descripción reaches /map as q", () => {
+  it("DESC-14: Ver coches in the phone sheet carries the typed text as q", async () => {
+    renderWithI18n(<LandingSearch />, { locale: "es" });
+    await userEvent.click(screen.getByTestId("landing-search-phone"));
+
+    await userEvent.type(
+      screen.getByRole("searchbox", { name: "Buscar en la descripción" }),
+      "e46",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(push).toHaveBeenCalledTimes(1);
+    const url = push.mock.calls[0][0];
+    expect(pathOf(url)).toBe("/map");
+    expect(parsedParams(url)).toEqual({ q: "e46" });
+  });
+
+  it("DESC-14: a brand plus the typed text both reach the URL", async () => {
+    renderWithI18n(<LandingSearch />, { locale: "es" });
+    await userEvent.click(screen.getByTestId("landing-search-phone"));
+
+    await userEvent.type(screen.getByRole("combobox", { name: "Marca o modelo" }), "BMW");
+    await userEvent.click(await screen.findByRole("option", { name: "BMW" }));
+    await userEvent.type(
+      screen.getByRole("searchbox", { name: "Buscar en la descripción" }),
+      "e46",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(push).toHaveBeenCalledTimes(1);
+    const url = push.mock.calls[0][0];
+    expect(pathOf(url)).toBe("/map");
+    expect(parsedParams(url)).toEqual({ make: "BMW", q: "e46" });
   });
 });
 

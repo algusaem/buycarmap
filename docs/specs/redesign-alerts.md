@@ -2,7 +2,7 @@
 
 Key: ALERTUI
 Status: Implemented
-Last updated: 2026-10-18
+Last updated: 2026-10-31
 
 ---
 
@@ -95,6 +95,7 @@ The AlertCard
 - [x] ALERTUI-5 · unit — An alert's criteria are a pure function of its stored criteria and its stored
   place name. They are, in this order, each only when set:
   - the car: «Marca» or «Marca Modelo» (`carLabel`);
+  - the stored `?q=` text, in «…» (DESC-30) (amended 2026-10-31, DESC — map-description-search.md);
   - each fuel group (MAPUI-15), as the filters row writes it;
   - the price: «Hasta 18.000 €», «Desde 3.000 €» or «3.000 – 20.000 €» (`priceLabel`);
   - the gearbox, «Manual» or «Automático»;
@@ -103,7 +104,7 @@ The AlertCard
   - the zone: «Madrid · 50 km» with a place name, «50 km» when the alert has a place but no place
     name, and nothing when it has no place.
 
-  They never include «Publicado» or the `?q=` text, even when the stored criteria hold them, and never
+  They never include «Publicado», even when the stored criteria hold it, and never
   «Cualquier marca» or «Cualquier precio». They give exactly the worked example "Criteria".
 - [x] ALERTUI-6 · component — A folded AlertCard shows:
   - the alert's name, drawn in capitals;
@@ -664,8 +665,9 @@ pre-F6 case.
 - **A paused alert:** «En pausa» on the folded, open and phone cards; its zone and its matches still
   show (ALERTUI-6, ALERTUI-7, ALERTUI-28). Resuming it is out of scope.
 - **Stored criteria that no longer parse:** no criteria line or chip (worked example "Criteria").
-- **Stored criteria holding «Publicado» or the `?q=` text** (saved before MAPUI-42): neither shows
-  (ALERTUI-5).
+- **Stored criteria holding «Publicado»** (saved before MAPUI-42): it does not show (ALERTUI-5).
+- **Stored criteria holding the `?q=` text:** it shows, whenever it was saved (DESC-30)
+  (amended 2026-10-31, DESC — map-description-search.md).
 - **An unknown, malformed, foreign or deleted `alert`:** the newest is open (ALERTUI-12).
 - **The `alert` parameter on a phone, or a window narrowed below 1024px:** ignored, with the URL left
   alone (ALERTUI-13).

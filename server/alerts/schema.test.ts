@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { ALERT_ID } from "@/test/fixtures/alert-listings";
-import { alertPlaceNameSchema, isSpecificEnough, parseStoredCriteria } from "./schema";
+import {
+  alertCriteriaSchema,
+  alertPlaceNameSchema,
+  isSpecificEnough,
+  parseStoredCriteria,
+} from "./schema";
 import { hashCriteria, MAX_ALERTS_PER_USER, resolveOpenAlertId } from "./service";
 
 describe("hashCriteria", () => {
@@ -99,6 +104,72 @@ describe("parseStoredCriteria", () => {
   it("rejects a value that is not an object at all", () => {
     expect(parseStoredCriteria(null)).toBeNull();
     expect(parseStoredCriteria("brand=Audi")).toBeNull();
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-23): keywords absent, empty or
+// only spaces all hash the same as criteria with no keywords at all.
+describe("DESC-23: alertCriteriaSchema normalizes blank keywords", () => {
+  it.each([
+    ["absent", undefined],
+    ["empty", ""],
+    ["only spaces", "   "],
+  ])("DESC-23: keywords %s parses to criteria with no keywords field", (_label, keywords) => {
+    const parsed = alertCriteriaSchema.parse({ brand: "Audi", keywords });
+
+    expect(parsed).toEqual({ brand: "Audi" });
+  });
+
+  it("DESC-23: a blank text hashes the same as no text at all, so an existing alert is still «Ya tienes esta alerta»", () => {
+    const withoutText = alertCriteriaSchema.parse({ brand: "Audi" });
+    const blank = alertCriteriaSchema.parse({ brand: "Audi", keywords: "   " });
+
+    expect(hashCriteria(blank)).toBe(hashCriteria(withoutText));
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-24; worked example): the text
+// alone does not satisfy «Demasiado amplia»; a brand, a maximum price or a
+// place does.
+describe("DESC-24: isSpecificEnough and the text alone", () => {
+  it("DESC-24: criteria with only keywords are refused — too broad", () => {
+    expect(isSpecificEnough({ keywords: "e46" })).toBe(false);
+  });
+
+  it("DESC-24: adding a brand accepts them", () => {
+    expect(isSpecificEnough({ brand: "BMW", keywords: "e46" })).toBe(true);
+  });
+
+  it("DESC-24: adding a maximum price accepts them", () => {
+    expect(isSpecificEnough({ maxPrice: 20000, keywords: "e46" })).toBe(true);
+  });
+
+  it("DESC-24: adding a place accepts them", () => {
+    expect(isSpecificEnough({ latitude: 40.4168, longitude: -3.7038, keywords: "e46" })).toBe(true);
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-31): a text a Postgres `jsonb`
+// column cannot store is refused as invalid criteria.
+describe("DESC-31: alertCriteriaSchema refuses text jsonb cannot store", () => {
+  it("DESC-31: a NUL byte is refused as invalidCriteria", () => {
+    const result = alertCriteriaSchema.safeParse({ brand: "BMW", keywords: "a\u0000b" });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toBe("invalidCriteria");
+  });
+
+  it("DESC-31: a lone surrogate is refused as invalidCriteria", () => {
+    const result = alertCriteriaSchema.safeParse({ brand: "BMW", keywords: "a\ud800b" });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toBe("invalidCriteria");
+  });
+
+  it("DESC-31: a properly paired surrogate (an emoji) is not mistaken for a lone one and is accepted", () => {
+    const result = alertCriteriaSchema.safeParse({ brand: "BMW", keywords: "🚗 e46" });
+
+    expect(result.success).toBe(true);
   });
 });
 

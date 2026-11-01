@@ -2,7 +2,7 @@
 
 Key: FRONT
 Status: Implemented
-Last updated: 2026-10-21
+Last updated: 2026-10-31
 
 ---
 
@@ -68,7 +68,7 @@ This is phase 9 of ADR 0007, rows 19, 20, 21 and 28, delivered in one PR (owner'
 
 ### URL state
 
-- [x] FRONT-13 · e2e — The search filters, location and radius live in the URL through nuqs parsers in `lib/search/url-state.ts`. A filtered search deep-links, a reload restores it, and Back and Forward restore the previous filters and their results. The existing search e2e tests pass unchanged. — the search is set through the pill and the filters panel: the worked-example URL still parses, criteria the UI no longer offers still reach the search with no control for them (MAPUI-18), and the search e2e moves to the pill (MAPUI-49) (amended 2026-10-13, MAPUI — redesign-map.md)
+- [x] FRONT-13 · e2e — The search filters, location and radius live in the URL through nuqs parsers in `lib/search/url-state.ts`. A filtered search deep-links, a reload restores it, and Back and Forward restore the previous filters and their results. The existing search e2e tests pass unchanged. — the search is set through the pill and the filters panel: the worked-example URL still parses, criteria the UI no longer offers still reach the search with no control for them (MAPUI-18), and the search e2e moves to the pill (MAPUI-49) (amended 2026-10-13, MAPUI — redesign-map.md) — the search is also set through the description field, which keeps its text in the URL as `q` (DESC-6, DESC-15) (amended 2026-10-31, DESC — map-description-search.md)
 
 ### Feedback channels
 

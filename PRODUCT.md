@@ -12,7 +12,7 @@ Private individuals buying a second-hand car for themselves, who want several po
 
 ## Product Purpose
 
-BuyCarMap aggregates second-hand car listings from multiple marketplaces and displays them on an interactive map. Users search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, and recency (horsepower only survives in old links), then browse results as a synchronized card list and map.
+BuyCarMap aggregates second-hand car listings from multiple marketplaces and displays them on an interactive map. Users search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, description text, and recency (horsepower only survives in old links), then browse results as a synchronized card list and map.
 
 For a first-time visitor, success means seeing cars near them within seconds, with no sign-up required: the map opens around their position when the browser shares it, or on the place they set. Signing up is for keeping cars (saved cars) and being told about new ones (alerts).
 
@@ -28,7 +28,7 @@ The user is deciding on a car purchase and comparing listings, most likely from 
 
 Built today:
 
-- Search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, and recency, with a synchronized card list + map. Horsepower is no longer offered; old links that carry it still work.
+- Search and filter by location, price, make/model, fuel, gearbox, maximum mileage, minimum year, description text, and recency, with a synchronized card list + map. Horsepower is no longer offered; old links that carry it still work.
 - Listings aggregated from Wallapop, coches.net, and Milanuncios into one result set.
 - Authentication: register, login, password reset, account management, two-factor, optional OAuth.
 - Favorites: save listings, manage them at `/favorites`, reconciled into search results.

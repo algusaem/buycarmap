@@ -377,6 +377,38 @@
       "w": 2188,
       "x": 6150,
       "y": 3180
+    },
+    "F3-buscador-texto.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · buscador: descripción",
+      "w": 1970,
+      "x": 4100,
+      "y": 6360
+    },
+    "F3-mapa-texto.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Mapa · búsqueda por descripción",
+      "w": 1970,
+      "x": 6150,
+      "y": 6360
+    },
+    "F3-crear-alerta-texto.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Crear alerta con descripción",
+      "w": 1970,
+      "x": 8200,
+      "y": 6360
+    },
+    "F6-alerta-descripcion.dc.html": {
+      "h": 900,
+      "page": "r3",
+      "title": "Alerta con descripción",
+      "w": 1970,
+      "x": 12900,
+      "y": 10600
     }
   },
   "createdOnFiles": {
@@ -408,6 +440,9 @@
     "F3-crear-alerta-estados.dc.html",
     "F3-buscador-donde.dc.html",
     "F3-buscador-coche.dc.html",
+    "F3-buscador-texto.dc.html",
+    "F3-mapa-texto.dc.html",
+    "F3-crear-alerta-texto.dc.html",
     "F3-buscador-precio.dc.html",
     "F3-mapa-tu-ubicacion.dc.html",
     "F3-buscador-tu-ubicacion.dc.html",
@@ -421,6 +456,7 @@
     "F0-estado-guardados-vacio.dc.html",
     "R3-alertas.dc.html",
     "F6-alerta.dc.html",
+    "F6-alerta-descripcion.dc.html",
     "F6-alerta-estados.dc.html",
     "F6-alertas-escritorio.dc.html",
     "F6-alerta-escritorio.dc.html",

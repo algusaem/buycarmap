@@ -208,7 +208,9 @@ function CreateAlertBody({ criteria, placeName, onClose, sheet }: CreateAlertBod
           )}
         </AnimatePresence>
       </div>
-      <p className="m-0 text-sm text-text-muted">{alertSummary(alertCriteria, placeName, copy)}</p>
+      <p className="m-0 wrap-break-word text-sm text-text-muted">
+        {alertSummary(alertCriteria, placeName, copy)}
+      </p>
       <AnimatePresence initial={false}>
         {tooBroad && <Notice key="too-broad">{t("createAlert.tooBroad")}</Notice>}
         {refusal && <Notice key="refusal">{refusal}</Notice>}

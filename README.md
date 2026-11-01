@@ -15,8 +15,8 @@ plotted on a map of Spain.
 - **One search, three marketplaces.** Wallapop, coches.net and Milanuncios are searched together
   and merged into one result list; if a source is down, the others still render.
 - **One set of filters for every source**: location and radius, price, make and model, fuel,
-  gearbox, maximum mileage, minimum year and recency. Horsepower is no longer offered; old links
-  that carry it still work.
+  gearbox, maximum mileage, minimum year, description text and recency. Horsepower is no longer
+  offered; old links that carry it still work.
 - **A card list and a map that stay in sync**, with a price pin for each car.
 - **Saved cars**: keep the listings you like, with their own map, at `/favorites`.
 - **Email alerts**: save a search and get a digest when new cars match it, with one-click
@@ -411,6 +411,7 @@ solo project is ceremony.
 | [navbar.md](docs/specs/navbar.md) | NAV | Implemented | The pre-2.0 navigation bar; replaced by redesign-navigation.md (HEAD), kept criteria still hold |
 | [redesign-navigation.md](docs/specs/redesign-navigation.md) | HEAD | Implemented | BuyCarMap 2.0 F2: headers, phone headers, bottom nav, language control |
 | [redesign-map.md](docs/specs/redesign-map.md) | MAPUI | Implemented | BuyCarMap 2.0 F3: search pill, filters, price pins, phone sheets, car card, «Crear alerta» |
+| [map-description-search.md](docs/specs/map-description-search.md) | DESC | Implemented | Searching the map by a free description text («e46», «gti») in a field of its own, on the filter row, the «BUSCAR» sheet and alerts |
 | [redesign-entry.md](docs/specs/redesign-entry.md) | ENTRY | Implemented | BuyCarMap 2.0 F4: landing search and map preview, sign-in states, callbackUrl rule, GitHub removed |
 | [redesign-saved.md](docs/specs/redesign-saved.md) | SAVED | Implemented | BuyCarMap 2.0 F5: saved cars with their map, sort, removal with undo, phone rows and car sheet, virtualised list, page states |
 | [redesign-alerts.md](docs/specs/redesign-alerts.md) | ALERTUI | Implemented | BuyCarMap 2.0 F6: alerts with their zone map, the open alert in the URL, the alert page on desktop and phone, delete with confirmation, the stored place name, page states |
@@ -641,6 +642,8 @@ Do not point a gap at a loosely related file to make it look covered.
 | `proxy.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `instrumentation.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `instrumentation-client.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `lib/instrumentation-client.test.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| `lib/instrumentation.node.test.ts` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `lib/db/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `server/health/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | `app/api/health/**` | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |

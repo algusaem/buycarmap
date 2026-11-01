@@ -134,4 +134,32 @@ test.describe("create alert end to end", () => {
       await expect(page.getByText(/toyota/i).first()).toBeVisible({ timeout: 15_000 });
     },
   );
+
+  // docs/specs/map-description-search.md (DESC-30): the alert keeps the
+  // description text, shown on its card in «…» right after the car.
+  dbTest(
+    "DESC-30: creating an alert from /map?make=BMW&q=e46 keeps the text — /alerts shows «e46»",
+    async ({ page }) => {
+      const email = e2eEmail("createalertdesctext");
+      await seedUser(email, PASSWORD, "Create Alert Desc Text User");
+      await mockListingSources(page);
+
+      await signIn(page, email);
+      await page.goto("/map?make=BMW&q=e46");
+
+      await page
+        .getByRole("button", { name: /crear alerta|create alert/i })
+        .first()
+        .click();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: /crear alerta|create alert/i })
+        .click();
+
+      await expect(page.getByText(/alerta creada|alert created/i)).toBeVisible({ timeout: 15_000 });
+
+      await page.goto("/alerts");
+      await expect(page.getByText("«e46»").first()).toBeVisible({ timeout: 15_000 });
+    },
+  );
 });

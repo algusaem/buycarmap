@@ -29,8 +29,11 @@ const BASE: SearchSheetProps = {
   onClose: vi.fn(),
 };
 
-describe("MAPUI-21: SearchSheet — opens with the three segments", () => {
-  it("MAPUI-21: titled BUSCAR, with Dónde, Coche and Precio", () => {
+// docs/specs/map-description-search.md (DESC-2): a fourth section,
+// «Descripción», between «Coche» and «Precio». Was "opens with the three
+// segments" before this spec change (MAPUI-21).
+describe("MAPUI-21: SearchSheet — opens with the four segments", () => {
+  it("DESC-2: titled BUSCAR, with Dónde, Coche, Descripción and Precio", () => {
     renderWithI18n(<SearchSheet {...BASE} />, { locale: "es" });
 
     const dialog = screen.getByRole("dialog", { name: "BUSCAR" });
@@ -41,8 +44,195 @@ describe("MAPUI-21: SearchSheet — opens with the three segments", () => {
     expect(sections.getByRole("combobox", { name: "Ciudad o código postal" })).toBeInTheDocument();
     expect(sections.getByText("Coche")).toBeInTheDocument();
     expect(sections.getByRole("combobox", { name: "Marca o modelo" })).toBeInTheDocument();
+    expect(sections.getByText("Descripción")).toBeInTheDocument();
+    expect(
+      sections.getByRole("searchbox", { name: "Buscar en la descripción" }),
+    ).toBeInTheDocument();
     expect(sections.getByText("Precio")).toBeInTheDocument();
     expect(sections.getByRole("slider", { name: "Precio máximo" })).toBeInTheDocument();
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-1): the field's placeholder.
+describe("DESC-1: SearchSheet — Descripción's placeholder", () => {
+  it("DESC-1: the field carries the description placeholder", () => {
+    renderWithI18n(<SearchSheet {...BASE} />, { locale: "es" });
+
+    expect(screen.getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveAttribute(
+      "placeholder",
+      "Descripción: e46, gti…",
+    );
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-2): the section order, and the
+// field itself carries no combobox semantics — unlike Dónde and Coche, it
+// has no listbox to expand.
+describe("DESC-2: SearchSheet — section order and no combobox semantics on Descripción", () => {
+  it("DESC-2: the section labels read Dónde, Coche, Descripción, Precio in order", () => {
+    renderWithI18n(<SearchSheet {...BASE} />, { locale: "es" });
+
+    const dialog = screen.getByRole("dialog", { name: "BUSCAR" });
+    const labels = within(dialog)
+      .getAllByText(/^(Dónde|Coche|Descripción|Precio)$/)
+      .map((node) => node.textContent);
+    expect(labels).toEqual(["Dónde", "Coche", "Descripción", "Precio"]);
+  });
+
+  it("DESC-2: the field has no aria-expanded or aria-autocomplete, and typing opens no listbox", async () => {
+    renderWithI18n(<SearchSheet {...BASE} />, { locale: "es" });
+
+    const field = screen.getByRole("searchbox", { name: "Buscar en la descripción" });
+    expect(field).not.toHaveAttribute("aria-expanded");
+    expect(field).not.toHaveAttribute("aria-autocomplete");
+
+    await userEvent.type(field, "e46");
+
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-5): the 100-character limit,
+// shared with the desktop field (KEYWORDS_MAX_LENGTH).
+describe("DESC-5: SearchSheet — Descripción's 100-character limit", () => {
+  it("DESC-5: typing 101 characters stops at 100", async () => {
+    renderWithI18n(<SearchSheet {...BASE} />, { locale: "es" });
+
+    const field = screen.getByRole("searchbox", { name: "Buscar en la descripción" });
+    await userEvent.type(field, "a".repeat(101));
+
+    expect(field).toHaveValue("a".repeat(100));
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-9): «Borrar texto» refocuses
+// the field, the same as the desktop one.
+describe("DESC-9: SearchSheet — Borrar texto refocuses the field", () => {
+  it("DESC-9: Borrar texto empties the field and gives it the focus back", async () => {
+    renderWithI18n(<SearchSheet {...BASE} initial={{ keywords: "e46" }} />, { locale: "es" });
+
+    const dialog = screen.getByRole("dialog", { name: "BUSCAR" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Borrar texto" }));
+
+    const field = screen.getByRole("searchbox", { name: "Buscar en la descripción" });
+    expect(field).toHaveValue("");
+    expect(field).toHaveFocus();
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-3): text typed in one field
+// never changes the other.
+describe("DESC-3: SearchSheet — Coche and Descripción stay independent", () => {
+  it("DESC-3: text typed in Descripción never reaches Coche's brand or model", async () => {
+    renderWithI18n(<SearchSheet {...BASE} />, { locale: "es" });
+
+    await userEvent.type(
+      screen.getByRole("searchbox", { name: "Buscar en la descripción" }),
+      "e46",
+    );
+
+    expect(screen.getByRole("combobox", { name: "Marca o modelo" })).toHaveValue("");
+  });
+
+  it("DESC-3: text typed in Coche never reaches Descripción", async () => {
+    renderWithI18n(<SearchSheet {...BASE} />, { locale: "es" });
+
+    await userEvent.type(screen.getByRole("combobox", { name: "Marca o modelo" }), "Toy");
+
+    expect(screen.getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue("");
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-12): the field opens with the
+// applied text, and «Ver coches» (or Enter in the field) applies what it
+// holds, with no need to confirm it first.
+describe("DESC-12: SearchSheet — Descripción opens with the applied text", () => {
+  it("DESC-12: the field opens showing the applied text", () => {
+    renderWithI18n(<SearchSheet {...BASE} initial={{ keywords: "e46" }} />, { locale: "es" });
+
+    expect(screen.getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue("e46");
+  });
+
+  it("DESC-12: Ver coches applies what the field holds, with no need to confirm it first", async () => {
+    const onApply = vi.fn();
+    renderWithI18n(<SearchSheet {...BASE} onApply={onApply} />, { locale: "es" });
+
+    await userEvent.type(
+      screen.getByRole("searchbox", { name: "Buscar en la descripción" }),
+      "e46",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ keywords: "e46" }));
+  });
+
+  it("DESC-12: Enter in the field does the same as Ver coches", async () => {
+    const onApply = vi.fn();
+    renderWithI18n(<SearchSheet {...BASE} onApply={onApply} />, { locale: "es" });
+
+    await userEvent.type(
+      screen.getByRole("searchbox", { name: "Buscar en la descripción" }),
+      "e46{Enter}",
+    );
+
+    expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ keywords: "e46" }));
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-13): closing discards what was
+// typed; «Borrar» empties the field, which takes effect only on «Ver coches».
+describe("DESC-13: SearchSheet — closing discards Descripción, Borrar empties it", () => {
+  it("DESC-13: closing the sheet discards text typed into Descripción", async () => {
+    const onApply = vi.fn();
+    const onClose = vi.fn();
+    renderWithI18n(<SearchSheet {...BASE} onApply={onApply} onClose={onClose} />, {
+      locale: "es",
+    });
+
+    await userEvent.type(
+      screen.getByRole("searchbox", { name: "Buscar en la descripción" }),
+      "e46",
+    );
+    await userEvent.keyboard("{Escape}");
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it("DESC-13: Borrar empties the Descripción field, applied only on Ver coches", async () => {
+    const onApply = vi.fn();
+    renderWithI18n(<SearchSheet {...BASE} initial={{ keywords: "e46" }} onApply={onApply} />, {
+      locale: "es",
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Borrar" }));
+    expect(onApply).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ keywords: undefined }));
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-2): Descripción is the same
+// field as Dónde and Coche — SearchField's magnifier, 16px text and «Borrar
+// texto» button, not a plain input.
+describe("DESC-2: SearchSheet — Descripción is the same field as Dónde and Coche", () => {
+  it("DESC-2: with text, «Borrar texto» empties the field and only Ver coches applies it", async () => {
+    const onApply = vi.fn();
+    renderWithI18n(<SearchSheet {...BASE} initial={{ keywords: "e46" }} onApply={onApply} />, {
+      locale: "es",
+    });
+
+    const dialog = screen.getByRole("dialog", { name: "BUSCAR" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Borrar texto" }));
+
+    expect(screen.getByRole("searchbox", { name: "Buscar en la descripción" })).toHaveValue("");
+    expect(onApply).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Ver coches" }));
+
+    expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ keywords: undefined }));
   });
 });
 

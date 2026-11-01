@@ -91,6 +91,17 @@ export function carLabel(
   return copy.t("search.brandModel", { brand: input.brand, model: input.model });
 }
 
+/**
+ * docs/specs/map-description-search.md (DESC-18, DESC-21, DESC-30): the
+ * applied description text in «…», trimmed; undefined when there is none to
+ * show. Shared by the phone summary, the alert summary and an alert's
+ * criteria, the three places that quote the text the same way.
+ */
+export function textLabel(input: Pick<SearchInput, "keywords">): string | undefined {
+  const text = input.keywords?.trim();
+  return text ? `«${text}»` : undefined;
+}
+
 function fuelChips(input: SearchInput, { t }: LocaleCopy): FilterChip[] {
   return groupsFromEngine(input.engine ?? []).map((group) => ({
     key: `engine:${group}`,
