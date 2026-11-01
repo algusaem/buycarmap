@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.7.0...buycarmap-v0.8.0) (2026-11-01)
+
+
+### Features
+
+* **map:** search listings by description ([#175](https://github.com/algusaem/buycarmap/issues/175)) ([228b1dd](https://github.com/algusaem/buycarmap/commit/228b1dd137b0316585e3534c91800126de830263))
+
+
+### Bug Fixes
+
+* **map:** fit the map before its pins go on it ([#171](https://github.com/algusaem/buycarmap/issues/171)) ([df48359](https://github.com/algusaem/buycarmap/commit/df48359021a0276fc7b12de13f4c099da9c02e7c))
+
 ## [0.7.0](https://github.com/algusaem/buycarmap/compare/buycarmap-v0.6.0...buycarmap-v0.7.0) (2026-10-31)
 
 
