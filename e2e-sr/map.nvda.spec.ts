@@ -23,8 +23,8 @@
 // asserts on what NVDA says to a user action: a key press that starts a search
 // (a polite status, A11Y-10), focus moving (A11Y-9, A11Y-11), or the virtual
 // cursor walking the page with `next()` (A11Y-12, A11Y-13).
-import { type NVDAPlaywright, nvdaTest as test } from "@guidepup/playwright";
-import { expect, type Page } from "@playwright/test";
+import { type NVDAPlaywright, nvdaTest } from "@guidepup/playwright";
+import { type Browser, devices, expect, type Page } from "@playwright/test";
 import { mockListingSources, setUpstreamScenario } from "../e2e/fixtures/network";
 import { stubMapTiles } from "../e2e/fixtures/map-tiles";
 
@@ -48,17 +48,28 @@ const PHONE_390 = { width: 390, height: 844 };
 // speaks the phrase awaited fails instead of walking forever.
 const MAX_NVDA_STOPS = 80;
 
+// Guidepup quits NVDA as each test's `nvda` fixture tears down. On the CI
+// runner that sometimes took Chromium down with it, around 200ms after a
+// passing test ended, even with that test's page already closed: the next
+// test then failed at once on «browser.newContext: Target page, context or
+// browser has been closed». So no two tests share a browser: each launches
+// its own and closes it in an afterEach, which runs before fixtures tear down,
+// and NVDA quits with no browser left to take with it.
+const test = nvdaTest.extend<{ ownBrowser: Browser }>({
+  ownBrowser: async ({ playwright, browserName, headless, launchOptions }, use) => {
+    await use(await playwright[browserName].launch({ ...launchOptions, headless }));
+  },
+  context: async ({ ownBrowser, baseURL, locale }, use) => {
+    await use(await ownBrowser.newContext({ ...devices["Desktop Chrome"], baseURL, locale }));
+  },
+});
+
 test.use({ nvdaStartOptions: { capture: true } });
 
-// Guidepup quits NVDA as each test's `nvda` fixture tears down, while the
-// page it was reading is still open. On the CI runner that sometimes took
-// Chromium down with it, around 200ms after a passing test ended: the next
-// test then failed at once on «browser.newContext: Target page, context or
-// browser has been closed». Closing the page first, in an afterEach (which
-// runs before fixtures tear down), leaves NVDA nothing to be reading when it
-// quits.
-test.afterEach(async ({ page }) => {
-  await page.close();
+test.afterEach(async ({ context, ownBrowser }) => {
+  // The context first: closing it is what saves a failed test's trace.
+  await context.close();
+  await ownBrowser.close();
 });
 
 /**
