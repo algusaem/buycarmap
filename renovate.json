@@ -5,6 +5,7 @@
   "schedule": ["before 9am on monday"],
   "rebaseWhen": "conflicted",
   "prConcurrentLimit": 3,
+  "minimumReleaseAge": "3 days",
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch"],
@@ -12,6 +13,7 @@
     }
   ],
   "vulnerabilityAlerts": {
-    "schedule": ["at any time"]
+    "schedule": ["at any time"],
+    "minimumReleaseAge": "1 day"
   }
 }

@@ -1860,7 +1860,10 @@ the release PR on every push to master; merging it tags the release and writes `
 which is never edited by hand. Renovate (`renovate.json`) proposes dependency updates: minor and
 patch bumps are grouped into one PR a week (Monday morning, Europe/Madrid), a PR rebases itself
 when it falls behind master instead of going stale, and a vulnerability alert can open a PR at any
-time rather than waiting for the weekly schedule.
+time rather than waiting for the weekly schedule. Renovate only proposes a version once it is three
+days old (one day for a vulnerability alert): pnpm 11 refuses to install anything published less
+than a day ago (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`), so a fresher version in the lockfile
+fails every CI job at `pnpm install`.
 
 `pnpm check` stops at the first failing stage, and its static checks come first because they fail
 in seconds. `prisma generate` runs before it because `typecheck` and the tests import the
