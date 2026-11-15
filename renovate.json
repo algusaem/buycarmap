@@ -13,7 +13,9 @@
         "*",
         "!@tanstack/react-virtual",
         "!@axe-core/playwright",
-        "!impeccable"
+        "!impeccable",
+        "!maplibre-gl",
+        "!@playwright/test"
       ],
       "groupName": "minor and patch updates"
     }
