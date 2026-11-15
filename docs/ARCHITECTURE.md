@@ -1863,10 +1863,13 @@ when it falls behind master instead of going stale, and a vulnerability alert ca
 time rather than waiting for the weekly schedule. Renovate only proposes a version once it is three
 days old (one day for a vulnerability alert): pnpm 11 refuses to install anything published less
 than a day ago (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`), so a fresher version in the lockfile
-fails every CI job at `pnpm install`. Three packages stay out of the weekly group and get a PR of
+fails every CI job at `pnpm install`. Five packages stay out of the weekly group and get a PR of
 their own, because each of their minor or patch bumps needs work beyond the bump:
 `@tanstack/react-virtual` (the saved-cars list under jsdom), `@axe-core/playwright` (new axe rules
-fail the accessibility e2e) and `impeccable` (pinned to the vendored skill's version, FRONT-16).
+fail the accessibility e2e), `impeccable` (pinned to the vendored skill's version, FRONT-16),
+`maplibre-gl` (held at 6.15.0: from 6.16.0 the map's first worker request never finishes in dev,
+so `/map` never reaches network idle and MAPLIBRE-10 and PLAT-23 time out) and `@playwright/test`
+(held at 1.63.0: with 1.65's WebKit, MAPUI-59 fails on CI).
 
 `pnpm check` stops at the first failing stage, and its static checks come first because they fail
 in seconds. `prisma generate` runs before it because `typecheck` and the tests import the
