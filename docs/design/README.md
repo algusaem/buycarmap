@@ -18,22 +18,21 @@ How the old interface became this one, screen by screen: [The 2.0 redesign](rede
 
 ## Where it lives
 
-**This folder is the source of truth**, and the design is viewed in the Claude Design project
-[BuyCarMap 2.0](https://claude.ai/design/p/838f9ee3-0bcc-4990-8c5a-5a685806db48), which is published
-from it (its id is pinned in `.design-sync/config.json`):
+**This folder is the source of truth**, and the design is viewed in two claude.ai artifacts
+published from it, file for file — each folder below is the artifact's `project/` folder:
 
-| | Source here | In the project |
+| | Source here | Viewed in |
 | --- | --- | --- |
-| Screens and UI kit | `docs/design/canvas/` | groups "Pantallas" and "UI Kit", one card per artboard in journey order |
-| Design system | `docs/design/system/` | tokens, README and one card per component |
+| Screens and UI kit | `docs/design/canvas/` | the canvas [Buycarmap 2.0](https://claude.ai/artifact/9TxaFxZY17u59e2L1DEZjf), pages "Pantallas" and "UI Kit" |
+| Design system | `docs/design/system/` | the design system [BuyCarMap 2.0](https://claude.ai/artifact/Rzes1CqbkBtFkVBjG2nihj): tokens, README and one card per component |
 
-A design change is made here, shown to the owner, and republished to the project in the same pull
-request, so the two never differ.
+A design change is made here, shown to the owner, and republished to the artifacts in the same pull
+request, so the two never differ. Each folder's index (`canvas.json`, `design-system.json`) is
+republished only when it changes.
 
-The first version lived in two claude.ai artifacts, a canvas
-(`https://claude.ai/artifact/9TxaFxZY17u59e2L1DEZjf`) and a design system
-(`https://claude.ai/artifact/Rzes1CqbkBtFkVBjG2nihj`). They are frozen at commit `944a770`: an
-artifact created from an artifact type cannot be published to from a coding session.
+From 2026-10-12 to 2026-11-15 the design was mirrored to a standalone Claude Design project instead,
+while the artifacts could not be published to from a coding session. Standalone Claude Design
+closes on 2026-12-14; that project is no longer kept in sync.
 
 A Figma copy exists too ([BuyCarMap — Rediseño](https://www.figma.com/design/j0j8TrycVYlM50otNVJNdU)),
 with the first screens and a component library. It is well behind the canvas — it predates the

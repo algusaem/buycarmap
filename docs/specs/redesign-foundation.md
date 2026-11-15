@@ -263,7 +263,7 @@ larger `radius-panel` (28px); they get it with their layout in F4 and F7.
 truth; where two screens disagreed on a detail, the majority value won and the other screen was
 aligned (owner rule, 2026-10-12). That pass added the tokens LOOK-1 now lists (radii, the photo tints,
 `handle`, `text-legal`, `map-road-minor`, the Google colours, the avatar ring shadows) and moved
-`scrim` to 0.85. The design is viewed in the Claude Design project named in `docs/design/README.md`.
+`scrim` to 0.85. The design is viewed in the claude.ai artifacts named in `docs/design/README.md`.
 
 **Visual baselines and docs move with the look.** Changing every screen's palette and type breaks
 `e2e/visual.spec.ts`'s login and map baselines on purpose; this PR regenerates both from the new

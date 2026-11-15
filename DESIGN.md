@@ -225,7 +225,7 @@ two complementary inks carry every meaning (lime for what you are doing or looki
 what is yours), and the headlines shout in uppercase like a mate who knows cars. The visual source of
 truth is [`docs/design/`](docs/design/README.md) — the screens and the UI Kit in `docs/design/canvas/`,
 the brand book and tokens in [`docs/design/system/`](docs/design/system/README.md) — viewed in the
-Claude Design project [BuyCarMap 2.0](https://claude.ai/design/p/838f9ee3-0bcc-4990-8c5a-5a685806db48).
+claude.ai artifacts named in [`docs/design/README.md`](docs/design/README.md).
 This file summarises that system for whoever builds a screen; where the two disagree, the design wins
 and this file is corrected.
 
