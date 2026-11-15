@@ -34,12 +34,26 @@ describe("MOTION-5: SearchField — hover", () => {
   });
 });
 
-// docs/specs/motion.md (MOTION-13): the type-ahead field's clear button
-// appears and disappears at once.
-describe("MOTION-13: SearchField — the clear button appears and disappears at once", () => {
-  function Harness({ initial = "" }: { initial?: string }) {
-    const [value, setValue] = useState(initial);
-    return (
+function Harness({ initial = "" }: { initial?: string }) {
+  const [value, setValue] = useState(initial);
+  return (
+    <SearchField
+      expanded={false}
+      value={value}
+      onValueChange={setValue}
+      onClearText={() => setValue("")}
+      aria-label="Ciudad o código postal"
+    />
+  );
+}
+
+function HarnessWithSetButton() {
+  const [value, setValue] = useState("");
+  return (
+    <>
+      <button type="button" onClick={() => setValue("M")}>
+        Set M
+      </button>
       <SearchField
         expanded={false}
         value={value}
@@ -47,9 +61,13 @@ describe("MOTION-13: SearchField — the clear button appears and disappears at 
         onClearText={() => setValue("")}
         aria-label="Ciudad o código postal"
       />
-    );
-  }
+    </>
+  );
+}
 
+// docs/specs/motion.md (MOTION-13): the type-ahead field's clear button
+// appears and disappears at once.
+describe("MOTION-13: SearchField — the clear button appears and disappears at once", () => {
   it("MOTION-13: typing shows the clear button with no inline opacity below 1, even with animations enabled", async () => {
     await withAnimations(async () => {
       renderWithI18n(<Harness />);
@@ -72,24 +90,6 @@ describe("MOTION-13: SearchField — the clear button appears and disappears at 
       expect(screen.queryByRole("button", { name: "Clear text" })).not.toBeInTheDocument();
     });
   });
-
-  function HarnessWithSetButton() {
-    const [value, setValue] = useState("");
-    return (
-      <>
-        <button type="button" onClick={() => setValue("M")}>
-          Set M
-        </button>
-        <SearchField
-          expanded={false}
-          value={value}
-          onValueChange={setValue}
-          onClearText={() => setValue("")}
-          aria-label="Ciudad o código postal"
-        />
-      </>
-    );
-  }
 
   it('MOTION-13: a pointer click that sets the value to "M" shows the clear button with no inline opacity below 1, even with animations enabled', async () => {
     await withAnimations(async () => {

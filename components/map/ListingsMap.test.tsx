@@ -1054,6 +1054,18 @@ describe("MAPUI-27: ListingsMap — closing the preview", () => {
   });
 });
 
+function Wrapper() {
+  const [listings, setListings] = useState<CarListing[]>([AUDI, SEAT]);
+  return (
+    <>
+      <button type="button" onClick={() => setListings([SEAT])}>
+        Drop Audi
+      </button>
+      <ListingsMap listings={listings} />
+    </>
+  );
+}
+
 // docs/specs/redesign-map.md (MAPUI-27, amended: "Opening another pin while a
 // preview is open closes the first and opens the second, which stays open").
 // Every close goes through the pin's own requestClose(), so these need real
@@ -1154,17 +1166,6 @@ describe("MAPUI-27: ListingsMap — one open preview at a time", () => {
 
   it("MAPUI-27: a pin unmounting mid-exit throws nothing and leaves no popup open", async () => {
     await withAnimations(async (clock) => {
-      function Wrapper() {
-        const [listings, setListings] = useState<CarListing[]>([AUDI, SEAT]);
-        return (
-          <>
-            <button type="button" onClick={() => setListings([SEAT])}>
-              Drop Audi
-            </button>
-            <ListingsMap listings={listings} />
-          </>
-        );
-      }
       renderWithI18n(<Wrapper />, { locale: "es" });
 
       const pin = screen.getByRole("button", { name: AUDI_PIN });

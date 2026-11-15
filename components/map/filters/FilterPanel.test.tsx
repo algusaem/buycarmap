@@ -401,6 +401,21 @@ describe("MAPUI-85: FilterPanel — Mínimo applies as Máximo does", () => {
   });
 });
 
+interface ControlledPanelProps {
+  initialInput: SearchInput;
+}
+
+function ControlledPanel({ initialInput }: ControlledPanelProps) {
+  const [input, setInput] = useState<SearchInput>(initialInput);
+  return (
+    <FilterPanel
+      {...DESKTOP}
+      input={input}
+      onChange={(patch) => setInput((current) => ({ ...current, ...patch }))}
+    />
+  );
+}
+
 describe("MAPUI-86: FilterPanel — a typed minimum mileage above the maximum is swapped", () => {
   it("MAPUI-86: desktop, worked example — typing 150.000 in Mínimo over an existing Máximo of 100.000 swaps on blur", () => {
     const onChange = vi.fn();
@@ -455,17 +470,7 @@ describe("MAPUI-86: FilterPanel — a typed minimum mileage above the maximum is
   });
 
   it("MAPUI-86: desktop, Enter applies a swap and the focused box shows the applied amount, as after leaving it (amended 2026-10-31)", async () => {
-    function ControlledPanel() {
-      const [input, setInput] = useState<SearchInput>({ maxKm: 100000 });
-      return (
-        <FilterPanel
-          {...DESKTOP}
-          input={input}
-          onChange={(patch) => setInput((current) => ({ ...current, ...patch }))}
-        />
-      );
-    }
-    renderWithI18n(<ControlledPanel />, { locale: "es" });
+    renderWithI18n(<ControlledPanel initialInput={{ maxKm: 100000 }} />, { locale: "es" });
     const minimo = within(sectionNamed("Kilómetros")).getByRole("textbox", { name: "Mínimo" });
 
     await userEvent.type(minimo, "150000{Enter}");
@@ -721,17 +726,7 @@ describe("MAPUI-84: FilterPanel — number formatting on Máximo and Desde (amen
   });
 
   it("MAPUI-11: desktop, Enter applies the typed year and the box reads 2017, never 2.017", async () => {
-    function ControlledPanel() {
-      const [input, setInput] = useState<SearchInput>({});
-      return (
-        <FilterPanel
-          {...DESKTOP}
-          input={input}
-          onChange={(patch) => setInput((current) => ({ ...current, ...patch }))}
-        />
-      );
-    }
-    renderWithI18n(<ControlledPanel />, { locale: "es" });
+    renderWithI18n(<ControlledPanel initialInput={{}} />, { locale: "es" });
     const desde = within(sectionNamed("Año")).getByRole("textbox", { name: "Desde" });
 
     await userEvent.type(desde, "2017{Enter}");

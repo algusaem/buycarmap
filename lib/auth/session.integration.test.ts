@@ -119,15 +119,15 @@ describe("BAUTH-19 worked example: changing the password writes the credential a
 // docs/specs/redesign-pages.md (PAGES-35, Permissions): /account resolves the
 // user and the session behind the request from one lookup, to mark «esta»
 // among the user's sessions; it honours revocation as getCurrentUser does.
-describe("PAGES-35: getCurrentUserWithSessionId", () => {
-  /** Sets the cookie jar to the signed cookie of `token`. */
-  async function useCookieOf(token: string) {
-    const cookie = await signSessionToken(token);
-    cookieStore.get.mockImplementation((name: string) =>
-      name === cookie.name ? { value: cookie.value } : undefined,
-    );
-  }
+/** Sets the cookie jar to the signed cookie of `token`. */
+async function useCookieOf(token: string) {
+  const cookie = await signSessionToken(token);
+  cookieStore.get.mockImplementation((name: string) =>
+    name === cookie.name ? { value: cookie.value } : undefined,
+  );
+}
 
+describe("PAGES-35: getCurrentUserWithSessionId", () => {
   it("PAGES-35: returns the signed-in user and the id of the session behind the cookie", async () => {
     const user = await createUser({ password: await hashPassword("the-old-password") });
     const sessionA = await auth.api.signInEmail({

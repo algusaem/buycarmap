@@ -40,6 +40,21 @@ describe("MAPUI-11: PricePopover — the two-knob range", () => {
   });
 });
 
+function ControlledPopover() {
+  const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
+  const [maxPrice, setMaxPrice] = useState<number | undefined>(20000);
+  return (
+    <PricePopover
+      minPrice={minPrice}
+      maxPrice={maxPrice}
+      onApply={(min, max) => {
+        setMinPrice(min);
+        setMaxPrice(max);
+      }}
+    />
+  );
+}
+
 describe("MAPUI-11: PricePopover — the Mínimo and Máximo boxes", () => {
   it("MAPUI-11: typing into Máximo accepts any amount", async () => {
     renderWithI18n(<PricePopover {...BASE} />, { locale: "es" });
@@ -91,20 +106,6 @@ describe("MAPUI-11: PricePopover — the Mínimo and Máximo boxes", () => {
   });
 
   it("MAPUI-11: maximum 20.000, typing 25000 into Mínimo and Enter swaps to Mínimo 20.000, Máximo 25.000", async () => {
-    function ControlledPopover() {
-      const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
-      const [maxPrice, setMaxPrice] = useState<number | undefined>(20000);
-      return (
-        <PricePopover
-          minPrice={minPrice}
-          maxPrice={maxPrice}
-          onApply={(min, max) => {
-            setMinPrice(min);
-            setMaxPrice(max);
-          }}
-        />
-      );
-    }
     renderWithI18n(<ControlledPopover />, { locale: "es" });
 
     const minBox = screen.getByRole("textbox", { name: "Mínimo" });

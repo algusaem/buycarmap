@@ -177,7 +177,7 @@ the fix is `pnpm db:branch`. Never work around the guard. It deliberately ignore
 | `pnpm build` | `prisma generate && next build` |
 | `pnpm check` | The verification contract: `lint` → `typecheck` → `test` → `build`, stopping at the first failure |
 | `pnpm check:full` | `check`, then `test:e2e`. Needs Playwright's WebKit once: `pnpm exec playwright install webkit` |
-| `pnpm lint` | Biome (lint and format), `depcruise`, knip, `spec:check`, `docs:check`, `todo:check` |
+| `pnpm lint` | Biome (lint and format; Markdown and YAML are not formatted, and the Playwright rules apply only to `e2e/` and `e2e-sr/`), `depcruise`, knip, `spec:check`, `docs:check`, `todo:check` |
 | `pnpm depcruise` | The dependency-cruiser boundaries (`.dependency-cruiser.cjs`), 0 violations required |
 | `pnpm typecheck` | `tsc --noEmit` and type-coverage (minimum in `package.json` › `typeCoverage`) |
 | `pnpm test` | Vitest, all three projects, with v8 coverage and the ratchet thresholds |

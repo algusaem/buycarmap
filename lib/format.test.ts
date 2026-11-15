@@ -234,10 +234,12 @@ describe("PAGES-31: formatMonth — «en BuyCarMap desde <mes>»", () => {
 // cards' and the sessions dialog's device line, amending today's "·" join
 // (the old SessionsCard's deviceLabelText). The join is the caller's
 // translated `account.sessions.device`, here the Spanish message itself.
+function JOIN({ browser, os }: { browser: string; os: string }) {
+  return esMessages.account.sessions.device.replace("{browser}", browser).replace("{os}", os);
+}
+
 describe("PAGES-52: formatDeviceLabel — «<navegador> en <sistema>»", () => {
   const UNKNOWN = "Dispositivo desconocido";
-  const JOIN = ({ browser, os }: { browser: string; os: string }) =>
-    esMessages.account.sessions.device.replace("{browser}", browser).replace("{os}", os);
 
   it("PAGES-52: Chrome on Windows reads «Chrome en Windows»", () => {
     expect(

@@ -12,18 +12,26 @@ import { MotionProvider } from "./MotionProvider";
 // into its own components/MotionProvider.tsx, because the single dark
 // theme needs no theme provider at all.
 
+interface ProbeProps {
+  onValue: (value: string | undefined) => void;
+}
+
+function Probe({ onValue }: ProbeProps) {
+  onValue(useContext(MotionConfigContext).reducedMotion);
+  return null;
+}
+
 describe("MotionProvider", () => {
   it('FRONT-29: provides a MotionConfig context with reducedMotion set to "user" (amended 2026-10-12, LOOK — redesign-foundation.md)', () => {
     let reducedMotion: string | undefined;
 
-    function Probe() {
-      reducedMotion = useContext(MotionConfigContext).reducedMotion;
-      return null;
-    }
-
     render(
       <MotionProvider>
-        <Probe />
+        <Probe
+          onValue={(value) => {
+            reducedMotion = value;
+          }}
+        />
       </MotionProvider>,
     );
 
