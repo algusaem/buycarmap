@@ -15,28 +15,28 @@ beforeEach(() => {
 // docs/specs/motion.md (Key MOTION, Approved), MOTION-12: a desktop dialog
 // appears at once when opened from the keyboard, and disappears at once when
 // closed with Escape; opened or closed with a pointer, it still fades.
-describe("MOTION-12: ResponsiveDialog — the desktop dialog opens and closes at once from the keyboard, but still fades for a pointer", () => {
-  function Harness() {
-    const [open, setOpen] = useState(false);
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    function onClose() {
-      setOpen(false);
-    }
-    return (
-      <>
-        <button ref={triggerRef} type="button" onClick={() => setOpen(true)}>
-          Abrir
-        </button>
-        <ResponsiveDialog open={open} onClose={onClose} isPhone={false} returnFocusRef={triggerRef}>
-          <p>Contenido</p>
-          <button type="button" onClick={onClose}>
-            Cerrar
-          </button>
-        </ResponsiveDialog>
-      </>
-    );
+function Harness() {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  function onClose() {
+    setOpen(false);
   }
+  return (
+    <>
+      <button ref={triggerRef} type="button" onClick={() => setOpen(true)}>
+        Abrir
+      </button>
+      <ResponsiveDialog open={open} onClose={onClose} isPhone={false} returnFocusRef={triggerRef}>
+        <p>Contenido</p>
+        <button type="button" onClick={onClose}>
+          Cerrar
+        </button>
+      </ResponsiveDialog>
+    </>
+  );
+}
 
+describe("MOTION-12: ResponsiveDialog — the desktop dialog opens and closes at once from the keyboard, but still fades for a pointer", () => {
   it("MOTION-12: Enter on the trigger opens the dialog with no inline opacity below 1, even with animations enabled", async () => {
     await withAnimations(async () => {
       renderWithI18n(<Harness />);
@@ -124,27 +124,27 @@ describe("MOTION-12: ResponsiveDialog — the desktop dialog opens and closes at
 // (ResponsiveDialog's `isPhone` branch, PhoneBottomSheet) appears at once when
 // opened from the keyboard, and disappears at once when closed with Escape;
 // opened or closed with a pointer, it still slides.
-describe("MOTION-12: ResponsiveDialog — the phone sheet opens and closes at once from the keyboard, but still slides for a pointer", () => {
-  function PhoneHarness() {
-    const [open, setOpen] = useState(false);
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    return (
-      <>
-        <button ref={triggerRef} type="button" onClick={() => setOpen(true)}>
-          Abrir
-        </button>
-        <ResponsiveDialog
-          open={open}
-          onClose={() => setOpen(false)}
-          isPhone
-          returnFocusRef={triggerRef}
-        >
-          <p>Contenido</p>
-        </ResponsiveDialog>
-      </>
-    );
-  }
+function PhoneHarness() {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button ref={triggerRef} type="button" onClick={() => setOpen(true)}>
+        Abrir
+      </button>
+      <ResponsiveDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        isPhone
+        returnFocusRef={triggerRef}
+      >
+        <p>Contenido</p>
+      </ResponsiveDialog>
+    </>
+  );
+}
 
+describe("MOTION-12: ResponsiveDialog — the phone sheet opens and closes at once from the keyboard, but still slides for a pointer", () => {
   it("MOTION-12: Enter on the trigger opens the sheet with no inline transform left at its off-screen offset, even with animations enabled", async () => {
     await withAnimations(async () => {
       renderWithI18n(<PhoneHarness />);

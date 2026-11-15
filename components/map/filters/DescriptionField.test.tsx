@@ -186,12 +186,13 @@ describe("DESC-5: DescriptionField — pasting past the 100-character limit", ()
   });
 });
 
+function Harness() {
+  const [applied, setApplied] = useState("");
+  return <DescriptionField applied={applied} onApply={setApplied} />;
+}
+
 describe("DESC-6: DescriptionField — Enter keeps the same input focused", () => {
   it("DESC-6: Enter applies the text and the same input keeps focus as the applied prop changes", async () => {
-    function Harness() {
-      const [applied, setApplied] = useState("");
-      return <DescriptionField applied={applied} onApply={setApplied} />;
-    }
     renderWithI18n(<Harness />);
     const field = screen.getByRole("searchbox", { name: "Search the description" });
 

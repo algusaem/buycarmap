@@ -439,17 +439,17 @@ describe("MOTION-8: ResultsSheet — the list never animates", () => {
   });
 });
 
+function Harness({ initial }: { initial: ResultsSheetPosition }) {
+  const [position, setPosition] = useState<ResultsSheetPosition>(initial);
+  return <ResultsSheet {...BASE} position={position} onPositionChange={setPosition} />;
+}
+
 // docs/specs/motion.md (MOTION-14): Enter or Space on the handle moves the
 // sheet to its next position at once; a pointer press still springs it.
 describe("MOTION-14: ResultsSheet — the handle moves at once from the keyboard, but still springs for a pointer", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
-
-  function Harness({ initial }: { initial: ResultsSheetPosition }) {
-    const [position, setPosition] = useState<ResultsSheetPosition>(initial);
-    return <ResultsSheet {...BASE} position={position} onPositionChange={setPosition} />;
-  }
 
   /** Gives the sheet's offsets real numbers (jsdom's own getBoundingClientRect
    * is always zero): full (the sheet's area) at 0, the middle probe at 400 and

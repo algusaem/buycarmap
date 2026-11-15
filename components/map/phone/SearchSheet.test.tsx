@@ -487,22 +487,22 @@ describe("MAPUI-81: SearchSheet — Enter in Dónde while the search is running"
   });
 });
 
+function Harness() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        Abrir búsqueda
+      </button>
+      <SearchSheet {...BASE} open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
 // docs/specs/motion.md (MOTION-12): the «BUSCAR» sheet, a phone sheet that
 // fades, appears at once when opened from the keyboard and disappears at once
 // with Escape; opened with a pointer, it still fades in over 180ms.
 describe("MOTION-12: SearchSheet — the fading sheet opens and closes at once from the keyboard, but still fades for a pointer", () => {
-  function Harness() {
-    const [open, setOpen] = useState(false);
-    return (
-      <>
-        <button type="button" onClick={() => setOpen(true)}>
-          Abrir búsqueda
-        </button>
-        <SearchSheet {...BASE} open={open} onClose={() => setOpen(false)} />
-      </>
-    );
-  }
-
   it("MOTION-12: Enter on its opener shows the sheet with no inline opacity below 1, even with animations enabled", async () => {
     await withAnimations(async () => {
       renderWithI18n(<Harness />, { locale: "es" });

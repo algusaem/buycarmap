@@ -189,30 +189,30 @@ describe("MAPUI-19: FilterRow — the desktop dropdown", () => {
   });
 });
 
-describe("MAPUI-19: FilterRow — the dropdown closes without a close button", () => {
-  // The caller's open state, held the way MapView holds it.
-  function Harness() {
-    const [open, setOpen] = useState(true);
-    return (
-      <FilterRow
-        input={{}}
-        onApplyQuick={vi.fn()}
-        onOpenFilters={() => setOpen(true)}
-        panelOpen={open}
-        onClosePanel={() => setOpen(false)}
-        panel={
-          <FilterPanel
-            input={{}}
-            mode="desktop"
-            onChange={vi.fn()}
-            onClear={vi.fn()}
-            onCloseDesktop={() => setOpen(false)}
-          />
-        }
-      />
-    );
-  }
+// The caller's open state, held the way MapView holds it.
+function Harness() {
+  const [open, setOpen] = useState(true);
+  return (
+    <FilterRow
+      input={{}}
+      onApplyQuick={vi.fn()}
+      onOpenFilters={() => setOpen(true)}
+      panelOpen={open}
+      onClosePanel={() => setOpen(false)}
+      panel={
+        <FilterPanel
+          input={{}}
+          mode="desktop"
+          onChange={vi.fn()}
+          onClear={vi.fn()}
+          onCloseDesktop={() => setOpen(false)}
+        />
+      }
+    />
+  );
+}
 
+describe("MAPUI-19: FilterRow — the dropdown closes without a close button", () => {
   it("MAPUI-19: the open dropdown has no close or «Cerrar» button", () => {
     renderWithI18n(<Harness />, { locale: "es" });
 
@@ -350,29 +350,29 @@ describe("MOTION-6: FilterRow — hover and press on Filtros", () => {
 // docs/specs/motion.md (MOTION-10): the desktop «Filtros» dropdown opens and
 // closes at once from the keyboard, and still fades for a pointer — the
 // worked example «Filtros» (MOTION-10, MOTION-16).
-describe("MOTION-10: FilterRow — the dropdown opens and closes at once from the keyboard, but still animates for a pointer", () => {
-  function ClosedHarness() {
-    const [open, setOpen] = useState(false);
-    return (
-      <FilterRow
-        input={{}}
-        onApplyQuick={vi.fn()}
-        onOpenFilters={() => setOpen(true)}
-        panelOpen={open}
-        onClosePanel={() => setOpen(false)}
-        panel={
-          <FilterPanel
-            input={{}}
-            mode="desktop"
-            onChange={vi.fn()}
-            onClear={vi.fn()}
-            onCloseDesktop={() => setOpen(false)}
-          />
-        }
-      />
-    );
-  }
+function ClosedHarness() {
+  const [open, setOpen] = useState(false);
+  return (
+    <FilterRow
+      input={{}}
+      onApplyQuick={vi.fn()}
+      onOpenFilters={() => setOpen(true)}
+      panelOpen={open}
+      onClosePanel={() => setOpen(false)}
+      panel={
+        <FilterPanel
+          input={{}}
+          mode="desktop"
+          onChange={vi.fn()}
+          onClear={vi.fn()}
+          onCloseDesktop={() => setOpen(false)}
+        />
+      }
+    />
+  );
+}
 
+describe("MOTION-10: FilterRow — the dropdown opens and closes at once from the keyboard, but still animates for a pointer", () => {
   it.each([
     ["Enter", "{Enter}"],
     ["Space", " "],

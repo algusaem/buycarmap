@@ -87,7 +87,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
-    "@biomejs/biome": "^2.5.14",
+    "@biomejs/biome": "^2.6.7",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@faker-js/faker": "^10.6.0",

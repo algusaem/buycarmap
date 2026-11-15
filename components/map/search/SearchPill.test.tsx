@@ -180,27 +180,25 @@ describe("MAPUI-12: SearchPill Buscar — closes the open popover and re-searche
   });
 });
 
-describe("MAPUI-2: SearchPill — a closed popover leaves the tree", () => {
-  // The caller's single `openSegment`, held the way HeaderSearch holds it.
-  function Harness() {
-    const [openSegment, setOpenSegment] = useState<SearchPopover | null>("where");
-    return (
-      <SearchPill
-        {...BASE}
-        openSegment={openSegment}
-        setOpenSegment={setOpenSegment}
-        popovers={{
-          where: (
-            <input role="combobox" aria-label="Ciudad o código postal" aria-expanded={false} />
-          ),
-          car: <input role="combobox" aria-label="Marca o modelo" aria-expanded={false} />,
-        }}
-      />
-    );
-  }
+// The caller's single `openSegment`, held the way HeaderSearch holds it.
+function StubPopoversHarness() {
+  const [openSegment, setOpenSegment] = useState<SearchPopover | null>("where");
+  return (
+    <SearchPill
+      {...BASE}
+      openSegment={openSegment}
+      setOpenSegment={setOpenSegment}
+      popovers={{
+        where: <input role="combobox" aria-label="Ciudad o código postal" aria-expanded={false} />,
+        car: <input role="combobox" aria-label="Marca o modelo" aria-expanded={false} />,
+      }}
+    />
+  );
+}
 
+describe("MAPUI-2: SearchPill — a closed popover leaves the tree", () => {
   it("MAPUI-2: after Escape on Dónde its combobox is gone, and opening Coche exposes only Coche's", async () => {
-    renderWithI18n(<Harness />, { locale: "es" });
+    renderWithI18n(<StubPopoversHarness />, { locale: "es" });
     expect(screen.getByRole("combobox", { name: "Ciudad o código postal" })).toBeInTheDocument();
 
     await userEvent.keyboard("{Escape}");
@@ -216,45 +214,45 @@ describe("MAPUI-2: SearchPill — a closed popover leaves the tree", () => {
   });
 });
 
-describe("MAPUI-2: SearchPill — closing with the real popovers", () => {
-  // The pill with the three real popover bodies, the open segment held the
-  // way HeaderSearch holds it.
-  function Harness({ initial = null }: { initial?: SearchPopover | null }) {
-    const [openSegment, setOpenSegment] = useState<SearchPopover | null>(initial);
-    const close = () => setOpenSegment(null);
-    return (
-      <SearchPill
-        {...BASE}
-        openSegment={openSegment}
-        setOpenSegment={setOpenSegment}
-        popovers={{
-          where: (
-            <LocationPopover
-              value={null}
-              radiusKm={50}
-              onSelect={vi.fn()}
-              onClear={vi.fn()}
-              onRadiusChange={vi.fn()}
-            />
-          ),
-          car: (
-            <CarPopover
-              brand=""
-              model=""
-              onSelectBrand={vi.fn()}
-              onSelectModel={vi.fn()}
-              onClear={vi.fn()}
-              onClose={close}
-            />
-          ),
-          price: <PricePopover onApply={vi.fn()} />,
-        }}
-      />
-    );
-  }
+// The pill with the three real popover bodies, the open segment held the
+// way HeaderSearch holds it.
+function RealPopoversHarness({ initial = null }: { initial?: SearchPopover | null }) {
+  const [openSegment, setOpenSegment] = useState<SearchPopover | null>(initial);
+  const close = () => setOpenSegment(null);
+  return (
+    <SearchPill
+      {...BASE}
+      openSegment={openSegment}
+      setOpenSegment={setOpenSegment}
+      popovers={{
+        where: (
+          <LocationPopover
+            value={null}
+            radiusKm={50}
+            onSelect={vi.fn()}
+            onClear={vi.fn()}
+            onRadiusChange={vi.fn()}
+          />
+        ),
+        car: (
+          <CarPopover
+            brand=""
+            model=""
+            onSelectBrand={vi.fn()}
+            onSelectModel={vi.fn()}
+            onClear={vi.fn()}
+            onClose={close}
+          />
+        ),
+        price: <PricePopover onApply={vi.fn()} />,
+      }}
+    />
+  );
+}
 
+describe("MAPUI-2: SearchPill — closing with the real popovers", () => {
   it("MAPUI-2: a press outside «Dónde» closes it", async () => {
-    renderWithI18n(<Harness initial="where" />, { locale: "es" });
+    renderWithI18n(<RealPopoversHarness initial="where" />, { locale: "es" });
     expect(screen.getByRole("dialog", { name: "Dónde" })).toBeInTheDocument();
 
     await userEvent.click(document.body);
@@ -267,7 +265,7 @@ describe("MAPUI-2: SearchPill — closing with the real popovers", () => {
   });
 
   it("MAPUI-2: with «Dónde» open, pressing «Coche» opens «Coche»", async () => {
-    renderWithI18n(<Harness initial="where" />, { locale: "es" });
+    renderWithI18n(<RealPopoversHarness initial="where" />, { locale: "es" });
     expect(screen.getByRole("dialog", { name: "Dónde" })).toBeInTheDocument();
     const carSegment = screen.getByRole("button", { name: "Cualquier marca" });
 
@@ -279,7 +277,7 @@ describe("MAPUI-2: SearchPill — closing with the real popovers", () => {
   });
 
   it("MAPUI-2: Escape pressed inside the open popover closes it and puts the focus back on its segment", async () => {
-    renderWithI18n(<Harness />, { locale: "es" });
+    renderWithI18n(<RealPopoversHarness />, { locale: "es" });
     const segment = screen.getByRole("button", { name: "Cualquier marca" });
 
     await userEvent.click(segment);
@@ -294,7 +292,7 @@ describe("MAPUI-2: SearchPill — closing with the real popovers", () => {
   });
 
   it("MAPUI-2: Escape with the list open closes only the list; the popover stays with its text, and a second Escape closes it", async () => {
-    renderWithI18n(<Harness initial="car" />, { locale: "es" });
+    renderWithI18n(<RealPopoversHarness initial="car" />, { locale: "es" });
     const field = screen.getByRole("combobox", { name: "Marca o modelo" });
 
     await userEvent.type(field, "Toy");
@@ -312,38 +310,38 @@ describe("MAPUI-2: SearchPill — closing with the real popovers", () => {
   });
 });
 
-describe("SearchPill accessibility — the open popovers", () => {
-  function OpenPill({ segment }: { segment: SearchPopover }) {
-    return (
-      <SearchPill
-        {...BASE}
-        openSegment={segment}
-        popovers={{
-          where: (
-            <LocationPopover
-              value={{ placeId: 1, displayName: "Madrid", lat: 40.4168, lng: -3.7038 }}
-              radiusKm={50}
-              onSelect={vi.fn()}
-              onClear={vi.fn()}
-              onRadiusChange={vi.fn()}
-            />
-          ),
-          car: (
-            <CarPopover
-              brand="Toyota"
-              model=""
-              onSelectBrand={vi.fn()}
-              onSelectModel={vi.fn()}
-              onClear={vi.fn()}
-              onClose={vi.fn()}
-            />
-          ),
-          price: <PricePopover maxPrice={20000} onApply={vi.fn()} />,
-        }}
-      />
-    );
-  }
+function OpenPill({ segment }: { segment: SearchPopover }) {
+  return (
+    <SearchPill
+      {...BASE}
+      openSegment={segment}
+      popovers={{
+        where: (
+          <LocationPopover
+            value={{ placeId: 1, displayName: "Madrid", lat: 40.4168, lng: -3.7038 }}
+            radiusKm={50}
+            onSelect={vi.fn()}
+            onClear={vi.fn()}
+            onRadiusChange={vi.fn()}
+          />
+        ),
+        car: (
+          <CarPopover
+            brand="Toyota"
+            model=""
+            onSelectBrand={vi.fn()}
+            onSelectModel={vi.fn()}
+            onClear={vi.fn()}
+            onClose={vi.fn()}
+          />
+        ),
+        price: <PricePopover maxPrice={20000} onApply={vi.fn()} />,
+      }}
+    />
+  );
+}
 
+describe("SearchPill accessibility — the open popovers", () => {
   it.each<[SearchPopover, string]>([
     ["where", "Dónde"],
     ["car", "Coche"],
@@ -382,33 +380,33 @@ describe("MOTION-6: SearchPill — hover and press on the segments and the searc
 // docs/specs/motion.md (MOTION-10): a segment's popover appears at once when
 // opened with Enter and disappears at once when closed with Escape; opened
 // or closed with a pointer, it still fades.
-describe("MOTION-10: SearchPill — a segment's popover opens and closes at once from the keyboard, but still animates for a pointer", () => {
-  function Harness({ initial = null }: { initial?: SearchPopover | null }) {
-    const [openSegment, setOpenSegment] = useState<SearchPopover | null>(initial);
-    return (
-      <SearchPill
-        {...BASE}
-        openSegment={openSegment}
-        setOpenSegment={setOpenSegment}
-        popovers={{
-          car: (
-            <CarPopover
-              brand=""
-              model=""
-              onSelectBrand={vi.fn()}
-              onSelectModel={vi.fn()}
-              onClear={vi.fn()}
-              onClose={() => setOpenSegment(null)}
-            />
-          ),
-        }}
-      />
-    );
-  }
+function CarPopoverHarness({ initial = null }: { initial?: SearchPopover | null }) {
+  const [openSegment, setOpenSegment] = useState<SearchPopover | null>(initial);
+  return (
+    <SearchPill
+      {...BASE}
+      openSegment={openSegment}
+      setOpenSegment={setOpenSegment}
+      popovers={{
+        car: (
+          <CarPopover
+            brand=""
+            model=""
+            onSelectBrand={vi.fn()}
+            onSelectModel={vi.fn()}
+            onClear={vi.fn()}
+            onClose={() => setOpenSegment(null)}
+          />
+        ),
+      }}
+    />
+  );
+}
 
+describe("MOTION-10: SearchPill — a segment's popover opens and closes at once from the keyboard, but still animates for a pointer", () => {
   it("MOTION-10: Enter on Coche opens its popover with no inline opacity below 1, even with animations enabled", async () => {
     await withAnimations(async () => {
-      renderWithI18n(<Harness />, { locale: "es" });
+      renderWithI18n(<CarPopoverHarness />, { locale: "es" });
       screen.getByRole("button", { name: "Cualquier marca" }).focus();
 
       await userEvent.keyboard("{Enter}");
@@ -421,7 +419,7 @@ describe("MOTION-10: SearchPill — a segment's popover opens and closes at once
 
   it("MOTION-10: Escape closes the popover in the same tick, with no exit animation to wait for", async () => {
     await withAnimations(async () => {
-      renderWithI18n(<Harness />, { locale: "es" });
+      renderWithI18n(<CarPopoverHarness />, { locale: "es" });
       screen.getByRole("button", { name: "Cualquier marca" }).focus();
       await userEvent.keyboard("{Enter}");
       await screen.findByRole("dialog", { name: "Coche" });
@@ -435,7 +433,7 @@ describe("MOTION-10: SearchPill — a segment's popover opens and closes at once
 
   it("MOTION-10: opened with a click and closed with Escape, the popover is gone in the same tick (worked example «Filtros», third row)", async () => {
     await withAnimations(async () => {
-      renderWithI18n(<Harness />, { locale: "es" });
+      renderWithI18n(<CarPopoverHarness />, { locale: "es" });
       await userEvent.click(screen.getByRole("button", { name: "Cualquier marca" }));
       await screen.findByRole("dialog", { name: "Coche" });
 
@@ -447,7 +445,7 @@ describe("MOTION-10: SearchPill — a segment's popover opens and closes at once
 
   it("MOTION-10: a click on Coche still fades its popover in, with an inline opacity below 1 right after", async () => {
     await withAnimations(async () => {
-      renderWithI18n(<Harness />, { locale: "es" });
+      renderWithI18n(<CarPopoverHarness />, { locale: "es" });
 
       await userEvent.click(screen.getByRole("button", { name: "Cualquier marca" }));
 
@@ -458,7 +456,7 @@ describe("MOTION-10: SearchPill — a segment's popover opens and closes at once
 
   it("MOTION-10: a click outside still plays the close animation — the popover is still mounted right after", async () => {
     await withAnimations(async (clock) => {
-      renderWithI18n(<Harness />, { locale: "es" });
+      renderWithI18n(<CarPopoverHarness />, { locale: "es" });
       await userEvent.click(screen.getByRole("button", { name: "Cualquier marca" }));
       await screen.findByRole("dialog", { name: "Coche" });
       await clock.finish();
@@ -482,19 +480,19 @@ describe("MOTION-10: SearchPill — a segment's popover opens and closes at once
 // docs/specs/motion.md (MOTION-10): the desktop «Crear alerta» popover
 // appears at once when opened with Enter and disappears at once when closed
 // with Escape; opened or closed with a pointer, it still fades.
-describe("MOTION-10: SearchPill — the «Crear alerta» popover opens and closes at once from the keyboard, but still animates for a pointer", () => {
-  function CreateAlertHarness() {
-    const [createAlertOpen, setCreateAlertOpen] = useState(false);
-    return (
-      <SearchPill
-        {...BASE}
-        createAlertOpen={createAlertOpen}
-        onCreateAlertOpenChange={setCreateAlertOpen}
-        createAlert={<p>Resumen</p>}
-      />
-    );
-  }
+function CreateAlertHarness() {
+  const [createAlertOpen, setCreateAlertOpen] = useState(false);
+  return (
+    <SearchPill
+      {...BASE}
+      createAlertOpen={createAlertOpen}
+      onCreateAlertOpenChange={setCreateAlertOpen}
+      createAlert={<p>Resumen</p>}
+    />
+  );
+}
 
+describe("MOTION-10: SearchPill — the «Crear alerta» popover opens and closes at once from the keyboard, but still animates for a pointer", () => {
   it("MOTION-10: Enter on «Crear alerta» opens its popover with no inline opacity below 1, even with animations enabled", async () => {
     await withAnimations(async () => {
       renderWithI18n(<CreateAlertHarness />, { locale: "es" });
@@ -536,30 +534,30 @@ describe("MOTION-10: SearchPill — the «Crear alerta» popover opens and close
 // docs/specs/motion.md (MOTION-28): the search pill's lime underline under
 // the open segment appears and leaves at once with the keyboard, as the
 // popover itself does (MOTION-10), and keeps its grow and fade for a pointer.
-describe("MOTION-28: SearchPill — the open segment's underline", () => {
-  function Harness() {
-    const [openSegment, setOpenSegment] = useState<SearchPopover | null>(null);
-    return (
-      <SearchPill
-        {...BASE}
-        openSegment={openSegment}
-        setOpenSegment={setOpenSegment}
-        popovers={{
-          car: (
-            <CarPopover
-              brand=""
-              model=""
-              onSelectBrand={vi.fn()}
-              onSelectModel={vi.fn()}
-              onClear={vi.fn()}
-              onClose={() => setOpenSegment(null)}
-            />
-          ),
-        }}
-      />
-    );
-  }
+function UnderlineHarness() {
+  const [openSegment, setOpenSegment] = useState<SearchPopover | null>(null);
+  return (
+    <SearchPill
+      {...BASE}
+      openSegment={openSegment}
+      setOpenSegment={setOpenSegment}
+      popovers={{
+        car: (
+          <CarPopover
+            brand=""
+            model=""
+            onSelectBrand={vi.fn()}
+            onSelectModel={vi.fn()}
+            onClear={vi.fn()}
+            onClose={() => setOpenSegment(null)}
+          />
+        ),
+      }}
+    />
+  );
+}
 
+describe("MOTION-28: SearchPill — the open segment's underline", () => {
   function underlineOf(segmentButton: HTMLElement): HTMLElement {
     const underline = segmentButton.querySelector(".bg-lime");
     if (!underline) throw new Error("expected the segment's underline span");
@@ -568,7 +566,7 @@ describe("MOTION-28: SearchPill — the open segment's underline", () => {
 
   it("MOTION-28: Enter opens the popover and the underline carries transition-none", async () => {
     await withAnimations(async () => {
-      renderWithI18n(<Harness />, { locale: "es" });
+      renderWithI18n(<UnderlineHarness />, { locale: "es" });
       const segment = screen.getByRole("button", { name: "Cualquier marca" });
       segment.focus();
 
@@ -581,7 +579,7 @@ describe("MOTION-28: SearchPill — the open segment's underline", () => {
 
   it("MOTION-28: Escape closes the popover and the underline still carries transition-none", async () => {
     await withAnimations(async () => {
-      renderWithI18n(<Harness />, { locale: "es" });
+      renderWithI18n(<UnderlineHarness />, { locale: "es" });
       const segment = screen.getByRole("button", { name: "Cualquier marca" });
       segment.focus();
       await userEvent.keyboard("{Enter}");
@@ -595,7 +593,7 @@ describe("MOTION-28: SearchPill — the open segment's underline", () => {
 
   it("MOTION-28: a click opens the popover and the underline keeps its grow-and-fade transition, not transition-none", async () => {
     await withAnimations(async () => {
-      renderWithI18n(<Harness />, { locale: "es" });
+      renderWithI18n(<UnderlineHarness />, { locale: "es" });
       const segment = screen.getByRole("button", { name: "Cualquier marca" });
 
       await userEvent.click(segment);

@@ -702,6 +702,11 @@ function holdNominatimPending() {
   );
 }
 
+function ControlledLocationPopover() {
+  const [value, setValue] = useState<LocationPopoverProps["value"]>(null);
+  return <LocationPopover {...BASE} value={value} onSelect={setValue} />;
+}
+
 describe("LocationSearch suggestions accessibility", () => {
   it("MAP-20: has no accessibility violations with a result showing", async () => {
     const { container } = renderWithI18n(<LocationPopover {...BASE} />);
@@ -891,10 +896,6 @@ describe("LocationSearch suggestions accessibility", () => {
 
   it("MOTION-13: after selecting an option, the dropdown is gone at once", async () => {
     await withAnimations(async () => {
-      function ControlledLocationPopover() {
-        const [value, setValue] = useState<LocationPopoverProps["value"]>(null);
-        return <LocationPopover {...BASE} value={value} onSelect={setValue} />;
-      }
       renderWithI18n(<ControlledLocationPopover />);
 
       await userEvent.type(screen.getByRole("combobox"), "Madrid");

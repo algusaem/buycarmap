@@ -342,30 +342,30 @@ describe("MOTION-13: CarPopover — the list never animates (amends MAPUI-2)", (
   });
 });
 
+function ControlledCarPopover() {
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  return (
+    <CarPopover
+      {...BASE}
+      brand={brand}
+      model={model}
+      onSelectBrand={(next) => {
+        setBrand(next);
+        setModel("");
+      }}
+      onSelectModel={setModel}
+      onClear={() => {
+        setBrand("");
+        setModel("");
+      }}
+    />
+  );
+}
+
 // docs/specs/motion.md (MOTION-18): the brand chip in «Coche» appears and
 // leaves with no fade, as the rest of the type-ahead does (MOTION-13).
 describe("MOTION-18: CarPopover — the brand chip appears and leaves with no fade", () => {
-  function ControlledCarPopover() {
-    const [brand, setBrand] = useState("");
-    const [model, setModel] = useState("");
-    return (
-      <CarPopover
-        {...BASE}
-        brand={brand}
-        model={model}
-        onSelectBrand={(next) => {
-          setBrand(next);
-          setModel("");
-        }}
-        onSelectModel={setModel}
-        onClear={() => {
-          setBrand("");
-          setModel("");
-        }}
-      />
-    );
-  }
-
   it("MOTION-18: choosing Toyota with Enter shows its chip with no inline opacity below 1, even with animations enabled", async () => {
     await withAnimations(async () => {
       renderWithI18n(<ControlledCarPopover />, { locale: "es" });
