@@ -14,7 +14,7 @@ header.open{padding:0 var(--space-12);background:none}
 header.map{height:auto;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:24px 48px 17px}
 .row1{display:grid;grid-template-columns:1fr auto 1fr;grid-template-rows:48px 34px;row-gap:28px;align-items:center}
 .row2{height:34px;display:flex;align-items:center;justify-content:center;gap:8px}
-.row1 .row2{grid-column:2}
+.row1 .row2{grid-column:2 / -1;justify-content:flex-start}
 header.laptop{width:1024px}
 .laptop .top{height:48px;display:flex;align-items:center;justify-content:space-between}
 .laptop .search{margin-top:20px;justify-content:center}
@@ -88,7 +88,8 @@ a:hover{color:var(--lime)}
       <button class="quick" type="button" aria-pressed="false">Manual</button>
       <button class="quick" type="button" aria-pressed="false">Automático</button>
       <button class="quick" type="button" aria-pressed="false">Hasta 100.000 km</button>
-    </div>
+    <span aria-hidden="true" style="flex-shrink: 0; width: 1px; height: 24px; background: #2A2A2E; margin: 0 4px"></span><div style="flex-shrink: 0; box-sizing: border-box; width: 240px; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #2A2A2E; border-radius: 999px; color: #A3A0A6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" name="q" aria-label="Buscar en la descripción" autocomplete="off" value="" placeholder="Descripción: e46, gti…" style="all: unset; flex: 1; min-width: 0; height: 100%; font-family: inherit; font-size: 13px; font-weight: 600; color: #F4F2F0"></div>
+</div>
   </div>
 </header>
 <header class="map">
@@ -115,7 +116,8 @@ a:hover{color:var(--lime)}
       <button class="quick" type="button" aria-pressed="false">Manual</button>
       <button class="quick" type="button" aria-pressed="false">Automático</button>
       <button class="quick" type="button" aria-pressed="false">Hasta 100.000 km</button>
-    </div>
+    <span aria-hidden="true" style="flex-shrink: 0; width: 1px; height: 24px; background: #2A2A2E; margin: 0 4px"></span><div style="flex-shrink: 0; box-sizing: border-box; width: 240px; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #2A2A2E; border-radius: 999px; color: #A3A0A6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" name="q" aria-label="Buscar en la descripción" autocomplete="off" value="" placeholder="Descripción: e46, gti…" style="all: unset; flex: 1; min-width: 0; height: 100%; font-family: inherit; font-size: 13px; font-weight: 600; color: #F4F2F0"></div>
+</div>
   </div>
 </header>
 <header class="map laptop">
@@ -146,7 +148,8 @@ a:hover{color:var(--lime)}
     <button class="quick" type="button" aria-pressed="false">Manual</button>
     <button class="quick" type="button" aria-pressed="false">Automático</button>
     <button class="quick" type="button" aria-pressed="false">Hasta 100.000 km</button>
-  </div>
+  <span aria-hidden="true" style="flex-shrink: 0; width: 1px; height: 24px; background: #2A2A2E; margin: 0 4px"></span><div style="flex-shrink: 0; box-sizing: border-box; width: 240px; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #2A2A2E; border-radius: 999px; color: #A3A0A6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" name="q" aria-label="Buscar en la descripción" autocomplete="off" value="" placeholder="Descripción: e46, gti…" style="all: unset; flex: 1; min-width: 0; height: 100%; font-family: inherit; font-size: 13px; font-weight: 600; color: #F4F2F0"></div>
+</div>
 </header>
 <header>
   <a class="w" href="#">BUYCAR<span>MAP</span></a>

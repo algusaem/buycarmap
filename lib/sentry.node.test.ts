@@ -52,3 +52,36 @@ describe("requestIdTag", () => {
     expect(tag).toEqual({ request_id: "0f8f2b1e-6a3c-4c1e-9d7a-2b5e8f1c3a4d" });
   });
 });
+
+describe("sentryOptions: beforeBreadcrumb (DESC-32)", () => {
+  it("DESC-32: strips the query from the event's request URL and the Next.js request path", () => {
+    const options = sentryOptions("https://key@sentry.test/1");
+    if (!options) throw new Error("expected options to be defined");
+
+    const event = {
+      request: { url: "https://buycarmap.test/map?q=e46&lat=40.4" },
+      contexts: { nextjs: { request_path: "/map?q=e46" } },
+    };
+
+    expect(options.beforeSend(event)).toMatchObject({
+      request: { url: "https://buycarmap.test/map" },
+      contexts: { nextjs: { request_path: "/map" } },
+    });
+  });
+
+  it("DESC-32: strips the query from a console breadcrumb's message and drops its arguments", () => {
+    const options = sentryOptions("https://key@sentry.test/1");
+    if (!options) throw new Error("expected options to be defined");
+
+    const breadcrumb = {
+      category: "console",
+      message: "Failed to fetch RSC payload for /map?q=e46.",
+      data: { arguments: ["x"] },
+    };
+
+    const result = options.beforeBreadcrumb(breadcrumb);
+
+    expect(result.message).toBe("Failed to fetch RSC payload for /map.");
+    expect(result.data).not.toHaveProperty("arguments");
+  });
+});

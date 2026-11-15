@@ -98,6 +98,10 @@ export function HeaderSearch({
             onApplyQuick={(patch) => filters.applyInput(patch)}
             panelOpen={filters.isOpen}
             onClosePanel={closeFilters}
+            keywords={filters.keywords}
+            onApplyKeywords={filters.applyKeywords}
+            keywordsResetKey={filters.keywordsResetKey}
+            onKeywordsDraftChange={filters.noteKeywordsDraft}
             panel={
               <FilterPanel
                 mode="desktop"

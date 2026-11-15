@@ -257,8 +257,8 @@ A night with a single light: neutrals do the work, lime is the light, violet mar
 ### Secondary
 - **Violet** (`violet`): lime's complement — what is yours and states. The saved heart, the pressed
   chip, the filter count, the account avatar, the current tab of the phone tab bar, a chosen select
-  option's box. Content on violet is always `on-violet` (4.6:1); `on-violet` at 15 % is the hover
-  wash of the brand chip's «Quitar».
+  option's box, and the Descripción field's applied border. Content on violet is always `on-violet`
+  (4.6:1); `on-violet` at 15 % is the hover wash of the brand chip's «Quitar».
 
 ### Tertiary
 - **Danger** (`danger`): only what cannot be undone (delete account), with one reversible exception,
@@ -361,7 +361,8 @@ Two frames are drawn for every screen: desktop at 1440 × 900 and phone at 390 �
   saved and alerts grids; the desktop map's grid 24px between columns and 40px between rows
   (MAPUI-65), 24px for block padding and between groups.
 - **Map screens.** Desktop: a 151px two-row `surface` band — the search pill with «Crear alerta»,
-  then «Filtros» and the quick filters — and under it the list and the map in two halves 48px apart,
+  then, in the second row, «Filtros», the quick filters and, left-aligned at 1440px and wider, the
+  Descripción field — and under it the list and the map in two halves 48px apart,
   the map a rounded card aligned with the list's heading; the list in two columns, three from 1920px.
   Phone: a solid `surface` band with the search summary, the round «Filtros» and the quick filters,
   the map under it, the results in a bottom sheet over the tab bar. List and map stay in sync on every screen
@@ -477,6 +478,10 @@ shares. The roadmap (`docs/design/roadmap.md`) says which phase builds each one.
   **Error:** the message sits 8px under the field, an 18px `circle-alert` in `danger`
   and 14px weight 600 `text`; the border does not change.
   [PasswordField](docs/design/system/components/PasswordField/README.md).
+- **Descripción field exception:** the map's filter-row field, 240 × 34px, `radius-pill` instead of
+  `radius-field`, 13px text at weight 600, placeholders in `text-muted`. Applied text: `violet`
+  border and weight 800. Focus: `lime` border, weight unchanged. The LOOK-13 exception: on a coarse
+  pointer the text is 16px, at the same height.
 
 ### Select
 - One style, always with checkboxes: the trigger is a field with a `chevron-down`; the list is

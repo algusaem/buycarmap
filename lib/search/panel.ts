@@ -45,7 +45,8 @@ export function orderedKm({
  * panel's own sections — «Kilómetros» now offers `minKm` too (MAPUI-84) —
  * and the criteria the UI no longer offers (`maxYear`, `minHorsePower`,
  * `maxHorsePower`, MAPUI-18). Not the place and its radius, which belong to
- * «Dónde», nor the `?q=` text, which its callers drop on their own.
+ * «Dónde», nor the description text (docs/specs/map-description-search.md,
+ * DESC-1), which its callers clear on their own, the same way they apply it.
  */
 export const PANEL_KEYS = [
   "minPrice",

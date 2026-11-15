@@ -40,6 +40,13 @@ const REDACT_PATHS = [
   // created for («Getafe») says where a person looks for a car.
   "placeName",
   "*.placeName",
+  // docs/specs/map-description-search.md (DESC-34): the free text someone
+  // typed into the Descripción field, or saved into an alert's criteria, is
+  // exactly the kind of thing a user types that must never reach a log line.
+  "keywords",
+  "*.keywords",
+  "criteria",
+  "*.criteria",
 ];
 
 /**

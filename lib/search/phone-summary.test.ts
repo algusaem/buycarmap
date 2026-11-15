@@ -24,3 +24,20 @@ describe("MAPUI-20: phoneSummary", () => {
     );
   });
 });
+
+// docs/specs/map-description-search.md (DESC-18): the text shows in «…»
+// after the car and before the price.
+describe("DESC-18: phoneSummary shows the description text in «…» after the car", () => {
+  it("DESC-18: BMW, maximum 20.000 €, text e46 reads «BMW · «e46» · hasta 20.000 €»", () => {
+    expect(
+      phoneSummary({ brand: "BMW", maxPrice: 20000, keywords: "e46" }, null, 50, ES_COPY)
+        .carPriceSummary,
+    ).toBe("BMW · «e46» · hasta 20.000 €");
+  });
+
+  it("DESC-18: with no brand, reads «Cualquier marca · «e46» · hasta 20.000 €»", () => {
+    expect(
+      phoneSummary({ maxPrice: 20000, keywords: "e46" }, null, 50, ES_COPY).carPriceSummary,
+    ).toBe("Cualquier marca · «e46» · hasta 20.000 €");
+  });
+});

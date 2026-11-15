@@ -36,9 +36,10 @@ export function MapView({ initialQuery = "" }: MapViewProps) {
   const { favoriteIds, setFavorite } = useFavorites();
   const toggleFavorite = useFavoriteToggle();
 
-  // MAPUI-18, amended by docs/specs/redesign-entry.md (ENTRY-6): `?q=` is
-  // still parsed and searched for an old link, but no control shows or
-  // edits it, and nothing in the app produces it any more.
+  // docs/specs/map-description-search.md (DESC-1, DESC-15): `q` lives in the
+  // URL, which the hook reads. `initialQuery` only seeds a render with no URL
+  // text; the page passes none, so a restored page cannot bring back text
+  // the URL no longer has.
   const getKeywords = useCallback(() => initialQuery, [initialQuery]);
   const filters = useSearchFilters(search, getKeywords);
   const { input, browserPosition } = filters;

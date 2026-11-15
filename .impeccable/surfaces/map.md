@@ -3,9 +3,9 @@
 The map and search screen of BuyCarMap 2.0. Behaviour is specified in
 [`docs/specs/redesign-map.md`](../../docs/specs/redesign-map.md) (MAPUI); the visual source of truth is
 the design in [`docs/design/`](../../docs/design/README.md) (boards `R3-mapa-detalle`, `F3-buscador-*`,
-`F3-mapa-filtros`, `F3-mapa-tu-ubicacion`, `F3-mapa-crear-alerta`, `F3-crear-alerta-estados`, the
-`F0-estado-*` states and the UI Kit). Where this brief and the design disagree, the design wins and
-this brief is corrected.
+`F3-buscador-texto`, `F3-mapa-filtros`, `F3-mapa-texto`, `F3-mapa-tu-ubicacion`, `F3-mapa-crear-alerta`,
+`F3-crear-alerta-texto`, `F3-crear-alerta-estados`, the `F0-estado-*` states and the UI Kit). Where this
+brief and the design disagree, the design wins and this brief is corrected.
 
 ## 1. Job and audience
 
@@ -34,9 +34,10 @@ this brief is corrected.
   `bg` and `surface`, lime for what the buyer is doing or looking at now, violet for what is theirs
   and for chosen states, Unbounded uppercase for headings, counts and prices, Rethink Sans for the rest.
 - Structural thesis: the map is the product. Desktop opens on a two-row `surface` band — in its first
-  row's centre the «Dónde · Coche · Precio» search pill with «Crear alerta» beside it, then «Filtros» and
-  the quick filters — and under it the list and the map in two halves, the map a rounded card; the cards
-  in two columns, three from 1920px. The phone keeps the map on screen under a solid band with the search
+  row's centre the «Dónde · Coche · Precio» search pill with «Crear alerta» beside it, then in the
+  second row «Filtros», the quick filters and the Descripción field — and under it the list and the
+  map in two halves, the map a rounded card; the cards in two columns, three from 1920px. The phone
+  keeps the map on screen under a solid band with the search
   summary, the round «Filtros» and the quick filters, and the results in a three-position sheet over the
   tab bar.
 - Focal moment: a price pin and its card lighting up together in lime — hovering a card, or opening a
@@ -44,10 +45,10 @@ this brief is corrected.
 
 ## 4. Scope and boundaries
 
-- In scope: the header band with the search pill and its popovers, «Filtros», the quick filters and the
-  panel, the phone's top band, search sheet and full-screen filters, price pins and grouping, the preview
-  card, zoom, the results sheet, the loading, empty and error states, the shared car card, «Crear alerta»
-  and the phone tab bar.
+- In scope: the header band with the search pill and its popovers, «Filtros», the quick filters, the
+  Descripción field and the panel, the phone's top band, search sheet and full-screen filters, price
+  pins and grouping, the preview card, zoom, the results sheet, the loading, empty and error states,
+  the shared car card, «Crear alerta» and the phone tab bar.
 - Untouched here: the landing's search ([`landing.md`](landing.md)), the saved-cars and alerts page layouts (F5, F6), emails.
 - Anti-goals: no sort control; no distance clustering; no photo carousel; no search-as-I-move-the-map; no
   navigation menu sheet or hamburger.
@@ -63,6 +64,9 @@ this brief is corrected.
 - Dónde: a chosen place («Madrid · 50 km»), «Toda España», or «Tu ubicación · 50 km» while the
   browser's position stands in for a place — the radius choices work around it, «Toda España»
   clears it (and, in the phone «Buscar» sheet, the field's × «Borrar texto»), and the map draws and frames its zone (MAP-32, MAP-34).
+- Descripción: empty (placeholder «Descripción: e46, gti…»), typed and not yet applied (plain
+  `line` border), applied (`violet` border, weight 800) and focused (`lime` border, weight stays
+  if the text is the applied one).
 - Error: «¿Se ha caído algo?» with «Reintentar» inline; the route's own error page reads «Error al
   cargar el mapa. Vuelve a intentarlo más tarde.» with «Reintentar».
 - Pins: one price per point; cars sharing a point (city-level coordinates from coches.net and
@@ -79,8 +83,9 @@ this brief is corrected.
 
 - Desktop applies at once: every popover and panel choice updates the URL and re-searches after the
   short pause; «Buscar» searches immediately. The quick filters apply at once at every width, with no
-  pause and no «Ver coches». The phone's search sheet and full-screen filters apply on «Ver coches»;
-  closing one discards it.
+  pause and no «Ver coches». The Descripción field applies on Enter or on the pill's «Buscar», never
+  on every keystroke and never on leaving the field. The phone's search sheet and full-screen filters
+  apply on «Ver coches»; closing one discards it.
 - Popovers and the filters dropdown anchor under their trigger, one open at a time, closing on a press
   outside or Escape with focus returned. The preview is anchored to its pin and moves with the map;
   it takes focus on open, and opening «Crear alerta» closes it.

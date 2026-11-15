@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import { env } from "@/lib/env";
-import { PRIVATE_DATA_COLLECTION } from "@/lib/sentry-privacy";
+import { beforeBreadcrumb, beforeSend, PRIVATE_DATA_COLLECTION } from "@/lib/sentry-privacy";
 
 // PLAT-18 (docs/specs/core-platform.md): Sentry is inert without a DSN — this
 // never sends anything locally or in tests. Split per runtime with a dynamic
@@ -32,18 +32,23 @@ export async function register() {
         tracesSampleRate: options.tracesSampleRate,
         dataCollection: PRIVATE_DATA_COLLECTION,
         beforeSend: options.beforeSend,
+        beforeBreadcrumb: options.beforeBreadcrumb,
       });
     }
   }
 
   if (process.env.NEXT_RUNTIME === "edge") {
     // No request-id tag here: that needs lib/request-context.ts, which is
-    // Node-only.
+    // Node-only. docs/specs/map-description-search.md (DESC-32): the query
+    // string still has to go, so the same strip lib/sentry.ts's own
+    // `beforeSend` applies is passed straight through here.
     if (env.SENTRY_DSN) {
       Sentry.init({
         dsn: env.SENTRY_DSN,
         tracesSampleRate: 0,
         dataCollection: PRIVATE_DATA_COLLECTION,
+        beforeSend,
+        beforeBreadcrumb,
       });
     }
   }

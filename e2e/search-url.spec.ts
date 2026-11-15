@@ -20,6 +20,11 @@ test.beforeEach(async ({ page }) => {
 // returning no parsers, so these names are what the spec commits to, not
 // yet what any code produces.
 
+// docs/specs/map-description-search.md (DESC-1): the Descripción field's
+// accessible name, in either locale — shared by every test below that reads
+// or fills it.
+const DESCRIPTION_FIELD_NAME = /buscar en la descripci[oó]n|search the description/i;
+
 const wallapop = {
   data: {
     section: {
@@ -158,4 +163,120 @@ test("FRONT-13/MAPUI-49: a filtered search deep-links, reloads, and Back/Forward
   await expect(page).toHaveURL(/maxPrice=10000/);
   await openPricePopover(page);
   await expect(page.getByRole("textbox", { name: /^(máximo|maximum)$/i })).toHaveValue("10,000");
+});
+
+// docs/specs/map-description-search.md (DESC-29).
+test("DESC-29: typing in Descripción and pressing Enter puts q in the URL; reload keeps it; Borrar texto removes it", async ({
+  page,
+}) => {
+  await mockUpstreams(page);
+  await page.goto("/map");
+  await expect(page.getByText("Seat León 1.5 TSI")).toBeVisible();
+
+  const field = page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME });
+  await field.fill("e46");
+  await field.press("Enter");
+
+  await expect(page).toHaveURL(/q=e46/);
+
+  await page.reload();
+  await expect(page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME })).toHaveValue("e46");
+
+  await page.getByRole("button", { name: /borrar texto|clear text/i }).click();
+
+  await expect(page).not.toHaveURL(/q=e46/);
+  await expect(page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME })).toHaveValue("");
+});
+
+// docs/specs/map-description-search.md (DESC-4, DESC-6, DESC-8).
+test("DESC-4/DESC-6: the pill's border is violet only after blur, lime while focused, with weight 800 once applied", async ({
+  page,
+}) => {
+  await mockUpstreams(page);
+  await page.goto("/map");
+  await expect(page.getByText("Seat León 1.5 TSI")).toBeVisible();
+
+  const field = page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME });
+  await field.fill("e46");
+  await field.press("Enter");
+  await expect(page).toHaveURL(/q=e46/);
+
+  // While the field itself still has the focus right after Enter, the pill
+  // draws its focus (lime) border, never the applied (violet) one.
+  await expect(field).toBeFocused();
+  const pill = field.locator("..");
+  await expect(pill).toHaveCSS("border-color", "rgb(198, 255, 61)");
+  await expect(field).toHaveCSS("font-weight", "800");
+
+  // Only once the field loses the focus does the border read as applied
+  // (violet) — a link is reliably focusable, unlike a plain heading.
+  await page
+    .getByRole("link", { name: /seat león/i })
+    .first()
+    .focus();
+  await expect(field).not.toBeFocused();
+  await expect(pill).toHaveCSS("border-color", "rgb(124, 77, 255)");
+});
+
+test("DESC-8: typing e46 and clicking the lime search button applies it, writing q=e46", async ({
+  page,
+}) => {
+  await mockUpstreams(page);
+  await page.goto("/map");
+  await expect(page.getByText("Seat León 1.5 TSI")).toBeVisible();
+
+  const field = page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME });
+  await field.fill("e46");
+
+  await page.getByRole("button", { name: /^(buscar|search)$/i }).click();
+
+  await expect(page).toHaveURL(/q=e46/);
+  await expect(field).toHaveValue("e46");
+});
+
+// docs/specs/map-description-search.md (DESC-15): a client-side return
+// restores the page with its old props — the page passes no `q`, so that
+// restore brings back no text — and the URL alone, read by the hook,
+// decides the field. A client-side navigation (the `BuyCarMap` wordmark, a
+// `next/link` to `/`), not `page.goto`, which is a full load that would
+// remount MapView from scratch and so could never exercise the restore.
+test("DESC-15: Borrar texto, a client-side visit away and Back leave the field empty with no q", async ({
+  page,
+}) => {
+  await mockUpstreams(page);
+  await page.goto("/map?q=e46");
+  await expect(page.getByText("Seat León 1.5 TSI")).toBeVisible();
+
+  const field = page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME });
+  await expect(field).toHaveValue("e46");
+  await page.getByRole("button", { name: /borrar texto|clear text/i }).click();
+  await expect(page).not.toHaveURL(/q=e46/);
+
+  await page.getByRole("link", { name: "BuyCarMap" }).click();
+  await expect(page).toHaveURL("/");
+  await page.goBack();
+
+  await expect(page).not.toHaveURL(/q=e46/);
+  await expect(page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME })).toHaveValue("");
+});
+
+// docs/specs/map-description-search.md (DESC-33).
+test("DESC-33: Escape discards what was typed, restoring the applied text, with the field still focused", async ({
+  page,
+}) => {
+  await mockUpstreams(page);
+  await page.goto("/map");
+  await expect(page.getByText("Seat León 1.5 TSI")).toBeVisible();
+
+  const field = page.getByRole("searchbox", { name: DESCRIPTION_FIELD_NAME });
+  await field.fill("e46");
+  await field.press("Enter");
+  await expect(page).toHaveURL(/q=e46/);
+
+  await field.fill("e46x");
+  await field.press("Escape");
+
+  await expect(field).toHaveValue("e46");
+  await expect(field).toBeFocused();
+  await expect(page).toHaveURL(/q=e46/);
 });

@@ -2,7 +2,7 @@
 
 Key: A11Y
 Status: Approved
-Last updated: 2026-10-19
+Last updated: 2026-10-31
 
 ---
 
@@ -60,7 +60,8 @@ Keyboard walk-through
   element is visible: its box is non-empty and inside the viewport once the browser has scrolled it
   into view, not clipped by a scrolling ancestor, not covered by the tab bar or the results sheet,
   not inside an `inert` or `aria-hidden="true"` subtree, and it draws the focus outline of LOOK-11 —
-  or, for a results card's link, the photo's lime ring of MAPUI-66, and for the map's attribution toggle, which sits in the map's rounded corner, the same outline drawn inside it. A control that is visually hidden
+  or, for a results card's link, the photo's lime ring of MAPUI-66, and for the map's attribution toggle, which sits in the map's rounded corner, the same outline drawn inside it, and for the Descripción field, whose input sits inside a pill, the same outline drawn on the pill
+  (amended 2026-10-31, DESC — map-description-search.md). A control that is visually hidden
   until focused (the sheets' «Cerrar», SAVED-41; the skip link, A11Y-1) counts once focused. The
   outline and the scroll that brings a focused control into view appear at once, with no transition
   or smooth scroll, because a key caused them (`docs/specs/motion.md`). The map surface, which the
@@ -147,14 +148,16 @@ Desktop, 1440 × 900:
 8. «ES» · 9. «EN» · 10. «Entrar»
 11. «Filtros» · 12–16. the quick filters «Gasolina», «Diésel», «Manual», «Automático»,
     «Hasta 100.000 km»
-17–22. each card's link then its heart: Audi, BMW, SEAT
-23. the map surface (A11Y-8)
-24–26. the three pins, in list order
-27. «Acercar» · 28. «Alejar»
-29. the attribution's toggle «Mostrar u ocultar la atribución»
-30–32. the attribution links: OpenFreeMap, OpenMapTiles, OpenStreetMap
+17. «Buscar en la descripción», followed by its «Borrar texto» when it shows (DESC-28)
+    (amended 2026-10-31, DESC — map-description-search.md)
+18–23. each card's link then its heart: Audi, BMW, SEAT
+24. the map surface (A11Y-8)
+25–27. the three pins, in list order
+28. «Acercar» · 29. «Alejar»
+30. the attribution's toggle «Mostrar u ocultar la atribución»
+31–33. the attribution links: OpenFreeMap, OpenMapTiles, OpenStreetMap
 
-After «Saltar al contenido» + Enter, the next Tab lands on 17 (the first card's link): the link skips
+After «Saltar al contenido» + Enter, the next Tab lands on 18 (the first card's link): the link skips
 the whole header, the filters row included, which lives in the header (amended 2026-10-20, owner).
 
 Phone, 390 × 844 (sheet at its middle position):

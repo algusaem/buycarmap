@@ -61,8 +61,10 @@ Landing
   over «Buscar». Tapping anywhere on the card, «Buscar» included, opens the «BUSCAR» sheet of the map
   (MAPUI-21), over the landing.
   «Ver coches» goes to `/map` with what was chosen, as ENTRY-3 does; closing it changes nothing. — «Dónde» left untouched in the phone sheet keeps the place chosen on the landing card (amended 2026-10-21, MAPUI-21, issue #117)
-- [x] ENTRY-6 · component — The landing produces no `?q=` link: neither the search nor a popular car
-  sends free text. The map still reads `?q=` from old links (MAPUI-18, kept).
+- [x] ENTRY-6 · component — The landing's desktop pill and its popular cars produce no `?q=` link:
+  neither sends free text. Its phone sheet may: «Ver coches» carries the text of «Descripción» to
+  `/map` as `q` (DESC-14). The map still reads `?q=` from old links (DESC-15)
+  (amended 2026-10-31, DESC — map-description-search.md).
 - [x] ENTRY-7 · component — The map preview is a fixed illustration with example pins and an example
   car card. The whole preview is one link to `/map`, named «Ver el mapa». From 1440px wide it sits
   beside the search, with the Storyset illustration and the arrows. From 1024px to 1439px wide there
@@ -457,7 +459,8 @@ ENTRY-17 narrows where a signed-in user can be sent; it grants nothing.
 **Landing to map.**
 - The landing builds the map URL with the map's own URL-state parsers (`lib/search/url-state.ts`), so
   the parameters are exactly those the map reads.
-- `?q=` is still parsed by the map for old links. Nothing in the app produces it anymore.
+- `?q=` is still parsed by the map for old links. On the landing only the phone sheet produces it;
+  the desktop pill and the popular cars do not (amended 2026-10-31, DESC — map-description-search.md).
 
 **Shared pieces.**
 - The landing reuses the map's search popovers and the phone «BUSCAR» sheet (`components/map/search/*`,
@@ -535,8 +538,10 @@ English copy is drafted with the implementation and reviewed in the pull request
 - **The landing search navigates; it does not search.** The landing has no results to show, so the
   popovers hold a draft and «Buscar» hands it to the map. The phone sheet's «Ver coches» does the
   same. This reuses the map's controls, rather than building a second set that would drift.
-- **No `?q=` from the landing.** Free text is the one filter the map only half applies (MAPUI-18).
-  The design draws structured segments. Old links keep working.
+- **No `?q=` from the landing's pill or popular cars.** When this was decided, free text was the one
+  filter the map only half applied (MAPUI-18). The design draws structured segments. Old links keep
+  working. The phone sheet is the map's own, so its «Descripción» field does reach `/map` as `q`
+  (amended 2026-10-31, DESC — map-description-search.md).
 - **Popular cars as brand and model.** They become real filters that every source understands, not
   free text.
 - **The map preview is a picture.** A live map on the landing would load the map library and query

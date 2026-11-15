@@ -102,6 +102,39 @@ describe("createLogger redaction", () => {
     expect(alert.label).toBe("Corolla");
   });
 
+  it("DESC-34: redacts keywords and criteria, nested or top-level", () => {
+    const dest = makeDestination();
+    const log = createLogger(dest);
+
+    log.info(
+      {
+        keywords: "e46",
+        criteria: { brand: "BMW", keywords: "e46" },
+        alert: { criteria: { keywords: "gti" } },
+      },
+      "x",
+    );
+
+    expect(dest.lines.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(dest.lines[0]) as Record<string, unknown>;
+    expect(parsed.keywords).toBe("[Redacted]");
+    expect(parsed.criteria).toBe("[Redacted]");
+    const alert = parsed.alert as Record<string, unknown>;
+    expect(alert.criteria).toBe("[Redacted]");
+  });
+
+  it("DESC-34: redacts keywords nested under an arbitrary key, not just criteria/alert", () => {
+    const dest = makeDestination();
+    const log = createLogger(dest);
+
+    log.info({ search: { keywords: "e46" } }, "x");
+
+    expect(dest.lines.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(dest.lines[0]) as Record<string, unknown>;
+    const search = parsed.search as Record<string, unknown>;
+    expect(search.keywords).toBe("[Redacted]");
+  });
+
   it("PLAT-15: leaves an unrelated field untouched", () => {
     const dest = makeDestination();
     const log = createLogger(dest);

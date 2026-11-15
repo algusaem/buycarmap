@@ -113,6 +113,16 @@ for (const path of ["/", "/login"]) {
   });
 }
 
+// docs/specs/map-description-search.md (Key DESC): the Descripción field's
+// applied text, with its own «Borrar texto» and violet-on-blur border, adds
+// no serious or critical axe violation.
+test("DESC-1: no serious accessibility violations on /map?q=e46", async ({ page }) => {
+  await mockListingSources(page);
+  await page.goto("/map?q=e46");
+  await page.getByText("Audi A3 2.0 TDI").waitFor();
+  expectNoSeriousViolations(await seriousViolations(page));
+});
+
 // /favorites, /alerts and /account need a signed-in session, which this
 // suite only has against a real database (E2E_DB) — the same gate
 // e2e/favorites.spec.ts uses for its round trips. Skipped, not silently

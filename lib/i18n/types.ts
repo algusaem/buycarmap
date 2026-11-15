@@ -319,6 +319,9 @@ export interface Translations {
     where: string;
     car: string;
     price: string;
+    descriptionLabel: string;
+    descriptionField: string;
+    descriptionPlaceholder: string;
     wherePlaceholder: string;
     whereLabel: string;
     places: string;

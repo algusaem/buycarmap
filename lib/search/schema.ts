@@ -5,6 +5,15 @@ import { z } from "zod";
 // when coordinates are given but no radius is.
 export const DEFAULT_RADIUS_KM = 50;
 
+/**
+ * docs/specs/map-description-search.md (DESC-5, DESC-25): the description
+ * text's length limit. It bounds what the Descripción field lets someone
+ * type (DescriptionField.tsx, SearchSheet.tsx) and what an alert can save
+ * (server/alerts/schema.ts) — never `searchSchema` itself, which keeps no
+ * such limit, so an old `/map?q=` link longer than this still searches.
+ */
+export const KEYWORDS_MAX_LENGTH = 100;
+
 /** The `timeFilter` values, in the order the filters panel offers them (MAPUI-17). */
 export const TIME_FILTERS = ["today", "lastWeek", "lastMonth"] as const;
 

@@ -5,9 +5,10 @@ import { Check, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
-// docs/design/system/components/SearchPopover/README.md: the pieces «Dónde»
-// and «Coche» share, in the popovers, the «BUSCAR» sheet and the filters
-// panel's «Marca y modelo».
+// docs/design/system/components/SearchPopover/README.md: the field pieces
+// the type-ahead fields («Dónde», «Coche») share with the sheet's
+// Descripción field, which has no list, plus the row and panel chrome
+// around them — in the popovers, the «BUSCAR» sheet and the filters panel.
 //
 // - SearchField: 52px, `bg` fill, `line` border (`lime` with focus, plus the
 //   2px lime focus ring of LOOK-11 on the field), `radius-field`, the 18px
@@ -45,18 +46,20 @@ export function closeListboxFirst(event: KeyboardEvent) {
   }
 }
 
-interface SearchFieldProps
-  extends Omit<ComponentProps<"input">, "className" | "type" | "role" | "onChange"> {
+interface SearchFieldBaseProps
+  extends Omit<ComponentProps<"input">, "className" | "type" | "onChange" | "role"> {
   ref?: Ref<HTMLInputElement>;
-  /** Whether its listbox is showing. */
-  expanded: boolean;
   value: string;
   onValueChange: (value: string) => void;
   onClearText: () => void;
 }
 
+type SearchFieldProps = SearchFieldBaseProps &
+  ({ type?: "text"; expanded: boolean } | { type: "search"; expanded?: never });
+
 export function SearchField({
   ref,
+  type,
   expanded,
   value,
   onValueChange,
@@ -64,21 +67,27 @@ export function SearchField({
   ...inputProps
 }: SearchFieldProps) {
   const t = useTranslations();
+  const roleProps =
+    type === "search"
+      ? { type }
+      : {
+          type: "text",
+          role: "combobox",
+          "aria-expanded": expanded,
+          "aria-autocomplete": "list" as const,
+        };
 
   return (
     <div className="flex h-13 items-center gap-2.5 rounded-field border border-line bg-bg pr-1 pl-4 text-text-muted transition-[border-color] not-focus-within:hover:border-text-muted focus-within:border-lime has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-3 has-[input:focus-visible]:outline-lime">
       <Search aria-hidden="true" strokeWidth={2.4} className="size-4.5 shrink-0" />
       <input
         ref={ref}
-        type="text"
-        role="combobox"
-        aria-expanded={expanded}
+        {...roleProps}
         autoComplete="off"
         spellCheck={false}
-        aria-autocomplete="list"
         value={value}
         onChange={(event) => onValueChange(event.target.value)}
-        className="h-full min-w-0 flex-1 bg-transparent font-sans text-base text-text outline-none placeholder:text-text-muted focus-visible:outline-none"
+        className="h-full min-w-0 flex-1 bg-transparent font-sans text-base text-text outline-none placeholder:text-text-muted focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
         {...inputProps}
       />
       {value !== "" && (

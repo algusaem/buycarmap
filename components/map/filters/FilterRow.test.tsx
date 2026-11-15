@@ -239,6 +239,73 @@ describe("MAPUI-19: FilterRow — the dropdown closes without a close button", (
   });
 });
 
+// docs/specs/map-description-search.md (Key DESC). DESC-1:
+// from 1024px the row ends with a divider and the Descripción field; DESC-17:
+// the text never counts in the badge. Rendered in English (the default
+// locale here), per the spec's Contracts i18n table.
+describe("DESC-1: FilterRow — the description field at the end of the row", () => {
+  it("DESC-1: shows a field named Search the description, with the applied text and onApplyKeywords wired", () => {
+    renderWithI18n(
+      <FilterRow
+        input={{}}
+        onApplyQuick={vi.fn()}
+        onOpenFilters={vi.fn()}
+        panel={closedPanel}
+        panelOpen={false}
+        onClosePanel={vi.fn()}
+        keywords=""
+        onApplyKeywords={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("searchbox", { name: "Search the description" })).toBeInTheDocument();
+  });
+
+  it('DESC-1: with keywords="e46", the field shows it, and Enter calls onApplyKeywords("e46")', async () => {
+    const onApplyKeywords = vi.fn();
+    renderWithI18n(
+      <FilterRow
+        input={{ keywords: "e46" }}
+        onApplyQuick={vi.fn()}
+        onOpenFilters={vi.fn()}
+        panel={closedPanel}
+        panelOpen={false}
+        onClosePanel={vi.fn()}
+        keywords="e46"
+        onApplyKeywords={onApplyKeywords}
+      />,
+    );
+
+    const field = screen.getByRole("searchbox", { name: "Search the description" });
+    expect(field).toHaveValue("e46");
+
+    await userEvent.type(field, "{Enter}");
+
+    expect(onApplyKeywords).toHaveBeenCalledWith("e46");
+  });
+});
+
+describe("DESC-17: FilterRow — the text does not count in the Filtros badge", () => {
+  it("DESC-17: with only the text applied, Filtros shows no badge", () => {
+    renderWithI18n(
+      <FilterRow
+        input={{ keywords: "e46" }}
+        onApplyQuick={vi.fn()}
+        onOpenFilters={vi.fn()}
+        panel={closedPanel}
+        panelOpen={false}
+        onClosePanel={vi.fn()}
+        keywords="e46"
+        onApplyKeywords={vi.fn()}
+      />,
+      { locale: "es" },
+    );
+
+    const filtersButton = screen.getByRole("button", { name: "Filtros" });
+    expect(within(filtersButton).queryByText(/^\d+$/)).toBeNull();
+  });
+});
+
 describe("FilterRow accessibility", () => {
   it("has no accessibility violations with an active fuel and a maximum price", async () => {
     const { container } = renderWithI18n(

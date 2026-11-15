@@ -33,7 +33,7 @@ rows. The cascade is enforced by Postgres, not by application code
 - **`AlertCriteria`, while someone else still watches it.** The saved search
   behind an alert has no link to a user, because one criteria set is shared by
   everyone watching the same search, and it can hold the coordinates the user
-  chose. Deleting the account deletes each criteria set no other alert
+  chose and the description text they typed. Deleting the account deletes each criteria set no other alert
   references, with its seen-list; one that another user's alert still
   references stays, because it is that user's saved search too
   ([alerts.md](../specs/alerts.md), ALERT-45;

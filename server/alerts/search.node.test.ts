@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { makeWallapopItem, makeWallapopResponse } from "@/test/fixtures/wallapop";
 import { makeCochesNetItem, makeCochesNetResponse } from "@/test/fixtures/cochesnet";
+import { makeMilanunciosResponse } from "@/test/fixtures/milanuncios";
 import { makeCriteria, makeMatchListing } from "@/test/fixtures/alerts";
 import * as searchService from "@/server/search/service";
 import { EMPTY_SEARCH_CURSORS } from "@/server/search/service";
@@ -31,6 +32,18 @@ function captureCochesNetBody(): () => Record<string, unknown> {
     http.post(COCHESNET, async ({ request }) => {
       captured = (await request.json()) as Record<string, unknown>;
       return HttpResponse.json(makeCochesNetResponse([makeCochesNetItem()], 1));
+    }),
+  );
+  return () => captured;
+}
+
+/** Captures the query string the runner sends to Milanuncios. */
+function captureMilanunciosQuery(): () => URLSearchParams {
+  let captured = new URLSearchParams();
+  server.use(
+    http.get(MILANUNCIOS, ({ request }) => {
+      captured = new URL(request.url).searchParams;
+      return HttpResponse.json(makeMilanunciosResponse([], 0));
     }),
   );
   return () => captured;
@@ -74,6 +87,40 @@ describe("searchAllSources", () => {
     // is a US datacenter returning US listings.
     expect(query().get("latitude")).toBe("40");
     expect(query().get("longitude")).toBe("-3.5");
+  });
+
+  // docs/specs/map-description-search.md (DESC-26): the poll sends the
+  // stored text to the sources with the other criteria.
+  it("DESC-26: sends the stored text to Wallapop with the other criteria", async () => {
+    const query = captureWallapopQuery();
+
+    await searchAllSources(makeCriteria({ keywords: "e46" }));
+
+    expect(query().get("keywords")).toBe("e46");
+  });
+
+  it("DESC-26: sends the stored text to coches.net as filters.searchText", async () => {
+    const body = captureCochesNetBody();
+
+    await searchAllSources(makeCriteria({ keywords: "e46" }));
+
+    expect((body().filters as Record<string, unknown>).searchText).toBe("e46");
+  });
+
+  it("DESC-26: sends the stored text to Milanuncios as palabras", async () => {
+    const query = captureMilanunciosQuery();
+
+    await searchAllSources(makeCriteria({ keywords: "e46", model: undefined }));
+
+    expect(query().get("palabras")).toBe("e46");
+  });
+
+  it("DESC-26: folds the model into Milanuncios's palabras, text first", async () => {
+    const query = captureMilanunciosQuery();
+
+    await searchAllSources(makeCriteria({ keywords: "e46", model: "Serie 3" }));
+
+    expect(query().get("palabras")).toBe("e46 Serie 3");
   });
 
   it("asks coches.net for the most recently published first", async () => {

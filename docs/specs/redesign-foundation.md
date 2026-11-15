@@ -2,7 +2,7 @@
 
 Key: LOOK
 Status: Implemented
-Last updated: 2026-10-18
+Last updated: 2026-10-31
 
 ---
 
@@ -73,6 +73,8 @@ the design system, and the internal style-guide pages. No screen changes its str
   the checkbox select's trigger on `/palette`, the Radix select trigger being deleted (MAPUI-48)
   (amended 2026-10-13, MAPUI — redesign-map.md) — the focus border reaches `lime` within the 120ms
   state transition (MOTION-5), where it changed at once (amended 2026-10-18, MOTION — motion.md)
+  — the description field on the map's filter row is an exception: 34px tall, with a 16px font size
+  on a coarse pointer at that same height (amended 2026-10-31, DESC — map-description-search.md)
 - [x] LOOK-14 · e2e — A toast renders on `surface` with a `line` border, `radius-card`,
   `shadow-float` and `text` colour; its optional action is `lime` text and its close button has an
   accessible name (amends FRONT-23 to the single theme).

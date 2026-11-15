@@ -293,10 +293,10 @@ describe("ALERTUI-5: alertCriteria — the orders the boards do not draw", () =>
     expect(alertCriteria({ brand: "Toyota" }, null, ES_COPY)).toEqual(["Toyota"]);
   });
 
-  it("ALERTUI-5: a timeFilter and ?q= text stored before MAPUI-42 never show — Toyota only, no «Últimas 24 h»", () => {
+  it("DESC-30: timeFilter still never shows, but the saved text now does, right after the car — Toyota, «golf»", () => {
     const input: SearchInput = { brand: "Toyota", timeFilter: "today", keywords: "golf" };
 
-    expect(alertCriteria(input, null, ES_COPY)).toEqual(["Toyota"]);
+    expect(alertCriteria(input, null, ES_COPY)).toEqual(["Toyota", "«golf»"]);
   });
 
   it("ALERTUI-5: manual + automatic (an old link) give no gearbox part (MAPUI-16)", () => {
@@ -329,6 +329,71 @@ describe("ALERTUI-5: alertZone — the zone alone, for the pills", () => {
 
   it("ALERTUI-5: with no place, nothing", () => {
     expect(alertZone({ brand: "BMW", maxPrice: 20000 }, "Madrid", ES_COPY)).toBeUndefined();
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-21; worked example under
+// "Alerts"): alertName and alertSummary carry the saved text too, reversing
+// MAPUI-42.
+describe("DESC-21: alertName and alertSummary carry the description text", () => {
+  const withBrand: SearchInput = {
+    brand: "BMW",
+    maxPrice: 20000,
+    distanceInKm: 50,
+    keywords: "e46",
+  };
+
+  it("DESC-21: name is «BMW e46 · Madrid»", () => {
+    expect(alertName(withBrand, "Madrid", ES_COPY)).toBe("BMW e46 · Madrid");
+  });
+
+  it("DESC-21: summary is «BMW · «e46» · Hasta 20.000 € · Madrid · 50 km»", () => {
+    expect(alertSummary(withBrand, "Madrid", ES_COPY)).toBe(
+      "BMW · «e46» · Hasta 20.000 € · Madrid · 50 km",
+    );
+  });
+
+  const noBrand: SearchInput = { maxPrice: 20000, distanceInKm: 50, keywords: "e46" };
+
+  it("DESC-21: with no brand, the name starts with the text — «e46 · Madrid»", () => {
+    expect(alertName(noBrand, "Madrid", ES_COPY)).toBe("e46 · Madrid");
+  });
+
+  it("DESC-21: with no brand, the summary starts with «Cualquier marca · «e46»»", () => {
+    expect(alertSummary(noBrand, "Madrid", ES_COPY)).toBe(
+      "Cualquier marca · «e46» · Hasta 20.000 € · Madrid · 50 km",
+    );
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-30; worked example "Criteria"):
+// alertCriteria lists the saved text as its own item, right after the car —
+// first when there is no car.
+describe("DESC-30: alertCriteria lists the saved description text", () => {
+  it("DESC-30: BMW, Madrid 50 km, max 20.000 €, text e46 lists [BMW, «e46», Hasta 20.000 €, Madrid · 50 km]", () => {
+    const input: SearchInput = {
+      brand: "BMW",
+      maxPrice: 20000,
+      latitude: 40.4168,
+      longitude: -3.7038,
+      distanceInKm: 50,
+      keywords: "e46",
+    };
+
+    expect(alertCriteria(input, "Madrid", ES_COPY)).toEqual([
+      "BMW",
+      "«e46»",
+      `Hasta 20.000${NBSP}€`,
+      `Madrid · 50${NBSP}km`,
+    ]);
+  });
+
+  it("DESC-30: with no brand, the text comes first", () => {
+    expect(alertCriteria({ keywords: "e46" }, null, ES_COPY)).toEqual(["«e46»"]);
+  });
+
+  it("DESC-30: an alert with no text lists what it does today", () => {
+    expect(alertCriteria({ brand: "Toyota" }, null, ES_COPY)).toEqual(["Toyota"]);
   });
 });
 

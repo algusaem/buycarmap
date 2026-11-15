@@ -19,8 +19,9 @@ brief and the design disagree, the design wins and this brief is corrected.
 - Primary task: choose a place, a car or a price and press «Buscar» (desktop) or «Ver coches»
   (phone), or pick a popular car, and land on `/map` with that search applied (ENTRY-2, ENTRY-3,
   ENTRY-4, ENTRY-5).
-- Success: the visitor reaches `/map` with a search already narrowed, without typing free text —
-  the landing produces no `?q=` link (ENTRY-6).
+- Success: the visitor reaches `/map` with a search already narrowed. The desktop pill and
+  «Populares» produce no free text and no `?q=` link (ENTRY-6); the phone sheet's «Descripción»
+  field is the exception and can add one (DESC-14).
 - Evidence on screen: the headline «¿En busca de coche? Mira el mapa», the line «Una web, toda la
   segunda mano, sin cincuenta pestañas.», the search, «Populares» and the map preview. No made-up
   figures, no «Ver el mapa» as a separate link, no «Accede para guardar búsquedas» (ENTRY-1).
@@ -49,8 +50,9 @@ brief and the design disagree, the design wins and this brief is corrected.
   signed-in phone tab bar (ENTRY-8).
 - Untouched here: `/login`'s own surface is [`login.md`](login.md); the map itself (F3); the
   saved-cars and alerts page layouts (F5, F6); emails.
-- Anti-goals: no free-text search box, no live map or real listings on the landing (owner decision,
-  2026-10-14), no per-source filter UI, no figures the sources did not produce.
+- Anti-goals: no free-text search box on the desktop pill or in «Populares» (the phone sheet's
+  «Descripción» field is the exception, DESC-14), no live map or real listings on the landing
+  (owner decision, 2026-10-14), no per-source filter UI, no figures the sources did not produce.
 
 ## 5. States and ranges
 

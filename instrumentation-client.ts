@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import { env } from "@/lib/env";
-import { PRIVATE_DATA_COLLECTION } from "@/lib/sentry-privacy";
+import { beforeBreadcrumb, beforeSend, PRIVATE_DATA_COLLECTION } from "@/lib/sentry-privacy";
 
 // PLAT-18 (docs/specs/core-platform.md): the browser half of Sentry
 // initialisation. Deliberately does not import lib/sentry.ts — that module
@@ -12,5 +12,7 @@ if (env.NEXT_PUBLIC_SENTRY_DSN) {
     dsn: env.NEXT_PUBLIC_SENTRY_DSN,
     tracesSampleRate: 0,
     dataCollection: PRIVATE_DATA_COLLECTION,
+    beforeSend,
+    beforeBreadcrumb,
   });
 }

@@ -217,8 +217,10 @@ describe("MAPUI-46: CreateAlert — no session", () => {
   });
 });
 
-describe("MAPUI-42: CreateAlert — the criteria and the name sent", () => {
-  it("MAPUI-42: sends the trimmed name and every criterion but timeFilter and the ?q= text, under the full summary", async () => {
+// docs/specs/map-description-search.md (DESC-21, DESC-22; Criteria amended
+// MAPUI-42): the text is now kept and sent — only timeFilter is stripped.
+describe("MAPUI-42/DESC-22: CreateAlert — the criteria and the name sent", () => {
+  it("DESC-22: sends the trimmed name and every criterion but timeFilter, keeping the text, under the full summary", async () => {
     vi.mocked(createAlert).mockResolvedValue({ ok: true, value: { created: true } });
     renderWithI18n(
       <CreateAlert
@@ -236,9 +238,12 @@ describe("MAPUI-42: CreateAlert — the criteria and the name sent", () => {
       { locale: "es" },
     );
 
-    // «Publicado» never reaches the summary either (MAPUI-40). getByText
-    // reads the no-break space before «€» as a plain one.
-    expect(screen.getByText("Toyota · Hasta 20.000 € · Madrid · 50 km")).toBeInTheDocument();
+    // «Publicado» never reaches the summary (MAPUI-40); the text now does,
+    // in «…» right after the car (DESC-21). getByText reads the no-break
+    // space before «€» as a plain one.
+    expect(
+      screen.getByText("Toyota · «golf» · Hasta 20.000 € · Madrid · 50 km"),
+    ).toBeInTheDocument();
     const nameField = screen.getByRole("textbox", { name: /nombre/i });
     await userEvent.clear(nameField);
     await userEvent.type(nameField, "  Mi alerta  ");
@@ -247,13 +252,20 @@ describe("MAPUI-42: CreateAlert — the criteria and the name sent", () => {
     // Amended 2026-10-15 (MAPUI-42, ALERTUI-48 — redesign-alerts.md): the
     // place chosen in «Dónde» goes as the place name.
     expect(createAlert).toHaveBeenCalledWith(
-      { brand: "Toyota", maxPrice: 20000, latitude: 40.4168, longitude: -3.7038, distanceInKm: 50 },
+      {
+        brand: "Toyota",
+        maxPrice: 20000,
+        latitude: 40.4168,
+        longitude: -3.7038,
+        distanceInKm: 50,
+        keywords: "golf",
+      },
       "Mi alerta",
       "Madrid",
     );
     const [sentCriteria] = vi.mocked(createAlert).mock.calls[0];
     expect(sentCriteria).not.toHaveProperty("timeFilter");
-    expect(sentCriteria).not.toHaveProperty("keywords");
+    expect(sentCriteria).toHaveProperty("keywords", "golf");
   });
 });
 

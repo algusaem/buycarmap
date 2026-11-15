@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import {
   NuqsTestingAdapter,
   type OnUrlUpdateFunction,
@@ -784,7 +784,7 @@ describe("useSearchFilters popovers (MAPUI-12)", () => {
 });
 
 // docs/specs/redesign-map.md (MAPUI-18): «Borrar» and «Quitar filtros» go
-// through `clearAll`, which also drops the landing's `?q=` text — from the
+// through `clearAll`, which also drops the field's `q` text — from the
 // search it runs, from the ones after it, and from the URL.
 describe("useSearchFilters clearAll and the ?q= text (MAPUI-18)", () => {
   it("MAPUI-18: clearAll searches without the q text and removes q from the URL", async () => {
@@ -1403,5 +1403,538 @@ describe("useSearchFilters Back/Forward", () => {
       expect.objectContaining({ latitude: 41.3874, longitude: 2.1686, distanceInKm: 50 }),
     );
     expect(result.current.browserPosition).toBeUndefined();
+  });
+});
+
+// docs/specs/map-description-search.md (Key DESC). The hook
+// gains `keywords` (the applied, trimmed text) and `applyKeywords`.
+describe("DESC-6: useSearchFilters applyKeywords applies at once, no debounce", () => {
+  it("DESC-6: on /map?make=BMW, applying '  e46 ' searches once with brand BMW and keywords e46, and writes q=e46", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?make=BMW", onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.applyKeywords("  e46 "));
+
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ brand: "BMW", keywords: "e46" }),
+    );
+    await waitFor(() => expect(onUrlUpdate.mock.lastCall?.[0].searchParams.get("q")).toBe("e46"));
+    // FRONT-13: every commit this hook writes pushes a new history entry
+    // (never replaces it), so Back/Forward moves between searches.
+    expect(onUrlUpdate.mock.lastCall?.[0].options.history).toBe("push");
+  });
+
+  it("DESC-6: a change still waiting out the MAP-11 pause and an immediate applyKeywords collapse into one search", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.setBrand("Audi"));
+    act(() => result.current.applyKeywords("e46"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ brand: "Audi", keywords: "e46" }),
+    );
+  });
+
+  it("DESC-6: inner runs of spaces stay as typed", async () => {
+    const search = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.applyKeywords("  e46   gti "));
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "e46   gti" }));
+  });
+});
+
+describe("DESC-7: useSearchFilters applyKeywords with the applied text unchanged", () => {
+  it("DESC-7: applying the same trimmed text again runs no search and writes no history entry", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => result.current.applyKeywords("e46"));
+    await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled());
+    search.mockClear();
+    onUrlUpdate.mockClear();
+
+    act(() => result.current.applyKeywords("e46"));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(search).not.toHaveBeenCalled();
+    expect(onUrlUpdate).not.toHaveBeenCalled();
+  });
+
+  it("DESC-7: on /map?q=e46, applying 'e46' again runs no search and writes no history entry", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46", onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+    onUrlUpdate.mockClear();
+
+    act(() => result.current.applyKeywords("e46"));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(search).not.toHaveBeenCalled();
+    expect(onUrlUpdate).not.toHaveBeenCalled();
+  });
+
+  it("DESC-7: with no q, applying '' runs no search and writes no history entry", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+    onUrlUpdate.mockClear();
+
+    act(() => result.current.applyKeywords(""));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(search).not.toHaveBeenCalled();
+    expect(onUrlUpdate).not.toHaveBeenCalled();
+  });
+
+  it("DESC-7: on /map?q=e46, a noted draft matching the applied text is discarded via keywordsResetKey, with no search", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46", onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+    onUrlUpdate.mockClear();
+    const resetKeyBefore = result.current.keywordsResetKey;
+
+    act(() => result.current.noteKeywordsDraft("e46 "));
+    act(() => result.current.applyKeywords("e46 "));
+
+    expect(search).not.toHaveBeenCalled();
+    expect(onUrlUpdate).not.toHaveBeenCalled();
+    expect(result.current.keywordsResetKey).not.toBe(resetKeyBefore);
+
+    act(() => result.current.applyKeywords("  e46 "));
+
+    expect(search).not.toHaveBeenCalled();
+  });
+});
+
+describe("DESC-10: useSearchFilters applyKeywords clears on empty or only spaces", () => {
+  it("DESC-10: applying an empty string clears the applied text and removes q", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46", onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.applyKeywords(""));
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "" }));
+    await waitFor(() => expect(onUrlUpdate.mock.lastCall?.[0].searchParams.has("q")).toBe(false));
+  });
+
+  it("DESC-10: applying only spaces clears the applied text the same way", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46", onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.applyKeywords("   "));
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "" }));
+    await waitFor(() => expect(onUrlUpdate.mock.lastCall?.[0].searchParams.has("q")).toBe(false));
+  });
+});
+
+describe("DESC-11: useSearchFilters keeps the applied text across other criteria", () => {
+  it("DESC-11: a later brand change still carries the applied text", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => result.current.applyKeywords("e46"));
+    act(() => result.current.setBrand("BMW"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ keywords: "e46", brand: "BMW" }),
+    );
+  });
+
+  it("DESC-11: on /map?q=e46, a later brand change and an applyInput both keep the text in the search and the URL", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46", onUrlUpdate, hasMemory: true }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => result.current.setBrand("BMW"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "e46" }));
+    expect(onUrlUpdate.mock.lastCall?.[0].searchParams.get("q")).toBe("e46");
+
+    act(() => result.current.applyInput({ maxPrice: 20000 }));
+
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ keywords: "e46", maxPrice: 20000 }),
+    );
+    expect(onUrlUpdate.mock.lastCall?.[0].searchParams.get("q")).toBe("e46");
+  });
+});
+
+describe("DESC-13: useSearchFilters — applyInput sets or clears the text", () => {
+  it("DESC-13: on /map?q=e46, applyInput with keywords undefined clears the text and removes q", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46", onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.applyInput({ keywords: undefined }));
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "" }));
+    await waitFor(() => expect(onUrlUpdate.mock.lastCall?.[0].searchParams.has("q")).toBe(false));
+    expect(result.current.keywords).toBe("");
+  });
+
+  it("DESC-13: applyInput with keywords '  gti ' applies the trimmed text and writes q=gti", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46", onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.applyInput({ keywords: "  gti " }));
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "gti" }));
+    await waitFor(() => expect(onUrlUpdate.mock.lastCall?.[0].searchParams.get("q")).toBe("gti"));
+  });
+});
+
+describe("DESC-15: useSearchFilters reads q from the URL, and Back/Forward restore it with the search", () => {
+  it("DESC-15: a URL with q searches with it on mount and reports it as the applied text", async () => {
+    const search = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46" }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ keywords: "e46" }));
+    expect(result.current.keywords).toBe("e46");
+  });
+
+  it("DESC-15: Back restores the field and the search together", async () => {
+    const search = vi.fn();
+    let url = "?q=e46";
+    const view = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: ({ children }) => (
+        <NuqsTestingAdapter searchParams={url} hasMemory>
+          {children}
+        </NuqsTestingAdapter>
+      ),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    url = "?q=gti";
+    view.rerender();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "gti" }));
+
+    // Back to the entry before.
+    url = "?q=e46";
+    view.rerender();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "e46" }));
+    expect(view.result.current.keywords).toBe("e46");
+  });
+
+  it("DESC-15: a draft noted before the URL changes from outside is discarded, so triggerSearch after applies the restored text", async () => {
+    const search = vi.fn();
+    let url = "?q=e46";
+    const view = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: ({ children }) => (
+        <NuqsTestingAdapter searchParams={url} hasMemory>
+          {children}
+        </NuqsTestingAdapter>
+      ),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => view.result.current.noteKeywordsDraft("gti"));
+
+    url = "?q=golf";
+    view.rerender();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => view.result.current.triggerSearch());
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "golf" }));
+  });
+});
+
+describe("DESC-16: useSearchFilters — q holding only spaces is no text", () => {
+  it("DESC-16: mounting on /map?q=%20%20 searches with no keywords, reports no applied text and no hasFilters", async () => {
+    const search = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=%20%20" }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ keywords: "" }));
+    expect(result.current.keywords).toBe("");
+    expect(result.current.hasFilters).toBe(false);
+  });
+
+  it("DESC-16: q restored to only spaces by Back searches with no keywords, no applied text and no hasFilters", async () => {
+    const search = vi.fn();
+    let url = "?q=e46";
+    const view = renderHook(() => useSearchFilters(search, () => "e46"), {
+      wrapper: ({ children }) => (
+        <NuqsTestingAdapter searchParams={url} hasMemory>
+          {children}
+        </NuqsTestingAdapter>
+      ),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    url = "?q=%20%20";
+    view.rerender();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "" }));
+    expect(view.result.current.keywords).toBe("");
+    expect(view.result.current.hasFilters).toBe(false);
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-8): «Buscar» applies whatever
+// the Descripción field currently holds, confirmed or not.
+describe("DESC-8: useSearchFilters — triggerSearch applies the field's noted draft", () => {
+  it("DESC-8: a noted draft is searched and written to the URL by triggerSearch", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => result.current.noteKeywordsDraft("e46"));
+    act(() => result.current.triggerSearch());
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "e46" }));
+    await waitFor(() => expect(onUrlUpdate.mock.lastCall?.[0].searchParams.get("q")).toBe("e46"));
+  });
+
+  it("DESC-8: with no draft noted, triggerSearch leaves the applied text unchanged", async () => {
+    const search = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46" }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.triggerSearch());
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "e46" }));
+  });
+
+  it("DESC-8: a noted draft is not applied by another filter's own debounced update", async () => {
+    vi.useFakeTimers();
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.noteKeywordsDraft("gti"));
+    act(() => result.current.setBrand("BMW"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    // «BMW» alone, never the noted draft: a filter's own debounced update
+    // never reads it — only `triggerSearch` does (DESC-8, covered above).
+    expect(search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ brand: "BMW", keywords: "" }),
+    );
+    // No call wrote a `q`: `commitUrl` only names the param once a control
+    // has touched the text (useSearchFilters.ts), which never happened here.
+    for (const call of onUrlUpdate.mock.calls) {
+      expect(call[0].searchParams.has("q")).toBe(false);
+    }
+  });
+
+  it("DESC-8: on /map?q=e46, noting an empty draft and triggering the search clears the text and removes q", async () => {
+    const search = vi.fn();
+    const onUrlUpdate = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter({ searchParams: "?q=e46", onUrlUpdate }),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    search.mockClear();
+
+    act(() => result.current.noteKeywordsDraft(""));
+    act(() => result.current.triggerSearch());
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "" }));
+    await waitFor(() => expect(onUrlUpdate.mock.lastCall?.[0].searchParams.has("q")).toBe(false));
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-19): every clear path discards
+// the field's unconfirmed draft, through `keywordsResetKey`.
+describe("DESC-19: useSearchFilters — clearAll discards a noted draft", () => {
+  it("DESC-19: clearAll bumps keywordsResetKey, and a later triggerSearch searches with no text", async () => {
+    const search = vi.fn();
+    const { result } = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: withNuqsTestingAdapter(),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const resetKeyBefore = result.current.keywordsResetKey;
+
+    act(() => result.current.noteKeywordsDraft("e46"));
+    act(() => result.current.clearAll());
+
+    expect(result.current.keywordsResetKey).not.toBe(resetKeyBefore);
+
+    act(() => result.current.triggerSearch());
+
+    expect(search).toHaveBeenLastCalledWith(expect.objectContaining({ keywords: "" }));
+  });
+});
+
+// docs/specs/map-description-search.md (DESC-15): Back/Forward discards an
+// unconfirmed draft the same way, since the URL it restores already decides
+// the text.
+describe("DESC-15: useSearchFilters — Back discards a noted draft", () => {
+  it("DESC-15: Back bumps keywordsResetKey", async () => {
+    const search = vi.fn();
+    let url = "?q=e46";
+    const view = renderHook(() => useSearchFilters(search, () => ""), {
+      wrapper: ({ children }) => (
+        <NuqsTestingAdapter searchParams={url} hasMemory>
+          {children}
+        </NuqsTestingAdapter>
+      ),
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const resetKeyBefore = view.result.current.keywordsResetKey;
+    act(() => view.result.current.noteKeywordsDraft("gti"));
+
+    url = "?q=golf";
+    view.rerender();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(view.result.current.keywordsResetKey).not.toBe(resetKeyBefore);
   });
 });
