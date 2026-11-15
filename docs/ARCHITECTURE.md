@@ -1863,7 +1863,10 @@ when it falls behind master instead of going stale, and a vulnerability alert ca
 time rather than waiting for the weekly schedule. Renovate only proposes a version once it is three
 days old (one day for a vulnerability alert): pnpm 11 refuses to install anything published less
 than a day ago (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`), so a fresher version in the lockfile
-fails every CI job at `pnpm install`.
+fails every CI job at `pnpm install`. Three packages stay out of the weekly group and get a PR of
+their own, because each of their minor or patch bumps needs work beyond the bump:
+`@tanstack/react-virtual` (the saved-cars list under jsdom), `@axe-core/playwright` (new axe rules
+fail the accessibility e2e) and `impeccable` (pinned to the vendored skill's version, FRONT-16).
 
 `pnpm check` stops at the first failing stage, and its static checks come first because they fail
 in seconds. `prisma generate` runs before it because `typecheck` and the tests import the

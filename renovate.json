@@ -9,6 +9,12 @@
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch"],
+      "matchPackageNames": [
+        "*",
+        "!@tanstack/react-virtual",
+        "!@axe-core/playwright",
+        "!impeccable"
+      ],
       "groupName": "minor and patch updates"
     }
   ],
