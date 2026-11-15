@@ -227,7 +227,8 @@ describe("verification contract and repository tooling", () => {
       // The .ts file (and the fixture's own biome.json) must be checked.
       const result = runBiome(["check", "--error-on-warnings", "."]);
       expect(result.status).toBe(0);
-      expect(result.stdout).toContain("Checked 2 files");
+      // Biome 2.6 prints the summary on stderr; earlier versions on stdout.
+      expect(`${result.stdout}${result.stderr}`).toContain("Checked 2 files");
 
       // .claude/x.json, inside the checkout itself, must stay excluded.
       const direct = runBiome(["check", "--error-on-warnings", ".claude/x.json"]);
